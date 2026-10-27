@@ -16,7 +16,8 @@ import farmhouse from "@/assets/sprites/farmhouse.webp";
 import cottage from "@/assets/sprites/cottage.webp";
 import barn from "@/assets/sprites/barn.webp";
 import church from "@/assets/sprites/church.webp";
-import mill from "@/assets/sprites/mill.webp";
+import mill from "@/assets/sprites/mill-body.webp";
+import millSails from "@/assets/sprites/mill-sails.webp";
 import inn from "@/assets/sprites/inn.webp";
 import bakery from "@/assets/sprites/bakery.webp";
 import townhouse from "@/assets/sprites/townhouse.webp";
@@ -50,7 +51,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   cottage: { url: cottage, crop: [0, 0, 996, 872], width: 22, base: 5 },
   barn: { url: barn, crop: [0, 0, 1000, 933], width: 25, base: 5 },
   church: { url: church, crop: [0, 0, 780, 943], width: 27, base: 5 },
-  mill: { url: mill, crop: [0, 0, 649, 978], width: 23, base: 4 },
+  mill: { url: mill, crop: [0, 0, 480, 779], width: 16, base: 4 },
   inn: { url: inn, crop: [0, 0, 982, 925], width: 26, base: 5 },
   bakery: { url: bakery, crop: [0, 0, 921, 908], width: 24, base: 5 },
   townhouse: { url: townhouse, crop: [0, 0, 498, 1010], width: 19, base: 4 },
@@ -89,8 +90,10 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   c.imageSmoothingEnabled = true;
   c.imageSmoothingQuality = "high";
   if (reveal < 1) { const top = y + sprite.base - height * reveal; c.beginPath(); c.rect(x - width, top, width * 2, height * 2); c.clip(); }
-  c.drawImage(seasonalImage(image), x - width / 2, y + sprite.base - height, width, height);
+  const left = x - width / 2, top = y + sprite.base - height;
+  c.drawImage(seasonalImage(image), left, top, width, height);
   c.restore();
+  if (reveal >= 1) animate(c, kind, left, top, width / sw, x * 7 + y * 13);
   return true;
 }
 
@@ -100,3 +103,91 @@ export function preloadBuildingSprites() {
   for (const s of Object.values(sprites)) if (s && !s.image) { s.image = new Image(); s.image.decoding = "async"; s.image.src = s.url; }
 }
 if (typeof window !== "undefined") preloadBuildingSprites();
+
+// ---- living overlays: moving parts painted over the still sprites (pure functions of clock time) ----
+let animT = 0;
+/** Set once per frame by the renderer so every overlay shares the same clock. */
+export function setSpriteTime(t: number) { animT = t; }
+let sailsImg: HTMLImageElement | undefined;
+if (typeof Image !== "undefined") { sailsImg = new Image(); sailsImg.decoding = "async"; sailsImg.src = millSails; }
+
+function animate(c: CanvasRenderingContext2D, kind: Kind, left: number, top: number, k: number, sd: number) {
+  const t = animT, P = (u: number, v: number): [number, number] => [left + u * k, top + v * k];
+  if (kind === "mill") millSailsAt(c, ...P(102, 137), 480 * k * 1.45, t, sd);
+  else if (kind === "watermill") waterWheel(c, ...P(368, 318), 72 * k, t, sd);
+  else if (kind === "campfire") flames(c, ...P(168, 200), 150 * k, t, sd);
+}
+
+function millSailsAt(c: CanvasRenderingContext2D, x: number, y: number, d: number, t: number, sd: number) {
+  if (!sailsImg?.complete || !sailsImg.naturalWidth) return;
+  const gust = 1 + 0.25 * Math.sin(t / 9000 + sd);
+  const a = (t / 2600) * gust + sd;
+  c.save(); c.translate(x, y);
+  c.transform(0.62, 0.22, 0, 1, 0, 0); // sails face the viewer at an angle, like the cap
+  c.rotate(a);
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  c.drawImage(sailsImg, -d / 2, -d / 2, d, d);
+  c.restore();
+}
+
+function waterWheel(c: CanvasRenderingContext2D, x: number, y: number, r: number, t: number, sd: number) {
+  const a = t / 1800 + sd;
+  c.save(); c.translate(x, y); c.transform(0.82, 0.12, 0, 1.12, 0, 0);
+  // dark hollow of the wheel, hiding the painted still spokes
+  c.fillStyle = "rgba(36,30,24,0.92)"; c.beginPath(); c.arc(0, 0, r * 0.93, 0, 7); c.fill();
+  c.lineCap = "round";
+  for (let i = 0; i < 8; i++) {
+    const q = a + (i * Math.PI) / 4, cx = Math.cos(q), sy = Math.sin(q);
+    c.strokeStyle = "#5a4130"; c.lineWidth = r * 0.07;
+    c.beginPath(); c.moveTo(0, 0); c.lineTo(cx * r * 0.86, sy * r * 0.86); c.stroke();
+    // paddle
+    c.strokeStyle = "#6e5038"; c.lineWidth = r * 0.16;
+    c.beginPath(); c.moveTo(cx * r * 0.78, sy * r * 0.78); c.lineTo(cx * r * 0.98, sy * r * 0.98); c.stroke();
+  }
+  c.strokeStyle = "#4a3426"; c.lineWidth = r * 0.09; c.beginPath(); c.arc(0, 0, r * 0.86, 0, 7); c.stroke();
+  c.strokeStyle = "rgba(160,120,80,0.5)"; c.lineWidth = r * 0.025; c.beginPath(); c.arc(0, 0, r * 0.82, Math.PI * 1.05, Math.PI * 1.6); c.stroke();
+  c.fillStyle = "#3a2a1e"; c.beginPath(); c.arc(0, 0, r * 0.13, 0, 7); c.fill();
+  c.restore();
+  // water spilling over the paddles and splashing below
+  for (let i = 0; i < 9; i++) {
+    const ph = (t / 700 + i / 9 + sd * 0.1) % 1;
+    const px = x + r * (0.55 + 0.15 * Math.sin(i * 2.3)), py = y - r * 0.9 + ph * r * 2;
+    c.fillStyle = `rgba(215,232,238,${0.55 * (1 - ph)})`;
+    c.fillRect(px, py, r * 0.035, r * 0.12);
+  }
+  for (let i = 0; i < 5; i++) {
+    const ph = (t / 900 + i / 5) % 1;
+    c.fillStyle = `rgba(230,240,240,${0.35 * (1 - ph)})`;
+    c.beginPath(); c.ellipse(x + r * (0.2 + i * 0.12), y + r * 1.02, r * (0.06 + ph * 0.14), r * (0.025 + ph * 0.05), 0, 0, 7); c.fill();
+  }
+}
+
+function flames(c: CanvasRenderingContext2D, x: number, y: number, h: number, t: number, sd: number) {
+  c.save();
+  // breathing glow on stones and ground
+  const fl = 0.75 + 0.15 * Math.sin(t / 110 + sd) + 0.1 * Math.sin(t / 47 + sd * 3);
+  const g = c.createRadialGradient(x, y - h * 0.1, 0, x, y - h * 0.1, h * 0.9);
+  g.addColorStop(0, `rgba(255,170,70,${0.28 * fl})`); g.addColorStop(1, "rgba(255,140,50,0)");
+  c.globalCompositeOperation = "lighter"; c.fillStyle = g; c.fillRect(x - h, y - h, h * 2, h * 2);
+  // flickering tongues
+  for (let i = 0; i < 6; i++) {
+    const ph = t / (90 + i * 23) + i * 1.7 + sd;
+    const hx = x + (i - 2.5) * h * 0.07, tall = h * (0.42 + 0.22 * Math.abs(Math.sin(ph)) + 0.08 * Math.sin(ph * 2.7));
+    const sway = Math.sin(ph * 1.3) * h * 0.06, w = h * (0.1 + 0.03 * Math.sin(ph * 0.7));
+    const fg = c.createLinearGradient(hx, y, hx, y - tall);
+    fg.addColorStop(0, "rgba(255,120,30,0.55)"); fg.addColorStop(0.5, "rgba(255,190,70,0.4)"); fg.addColorStop(1, "rgba(255,230,140,0)");
+    c.fillStyle = fg; c.beginPath();
+    c.moveTo(hx - w, y);
+    c.quadraticCurveTo(hx - w * 0.9, y - tall * 0.5, hx + sway, y - tall);
+    c.quadraticCurveTo(hx + w * 0.9, y - tall * 0.5, hx + w, y);
+    c.closePath(); c.fill();
+  }
+  // sparks rising and drifting
+  for (let i = 0; i < 7; i++) {
+    const ph = (t / 1400 + i / 7 + (sd % 1)) % 1;
+    const sx = x + Math.sin(i * 4.1 + ph * 6) * h * 0.18 + ph * h * 0.12, sy = y - h * 0.3 - ph * h * 0.9;
+    c.fillStyle = `rgba(255,${200 - ph * 80},90,${0.9 * (1 - ph)})`;
+    c.fillRect(sx, sy, h * 0.012, h * 0.012);
+  }
+  c.restore();
+}

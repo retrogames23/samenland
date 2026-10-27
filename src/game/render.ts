@@ -1,6 +1,6 @@
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
-import { drawBuildingSprite, spriteBox } from "./building-sprites";
+import { drawBuildingSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, wandererImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
