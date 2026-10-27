@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { draw, iso, toTile, type Camera } from "@/game/render";
+import { draw, iso, toTile, MIN_ZOOM, type Camera } from "@/game/render";
+import { Maximize2, Minimize2 } from "lucide-react";
 import {
   canPlant,
   radiusOf,
@@ -37,6 +38,12 @@ export function Game() {
   const [, tick] = useState(0);
 
   const dpr = useRef(1);
+  const [fs, setFs] = useState(false);
+  useEffect(() => {
+    const on = () => setFs(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", on);
+    return () => document.removeEventListener("fullscreenchange", on);
+  }, []);
   const cam = useRef<Camera>({ x: 0, y: 0, zoom: 2.6 });
   const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
   const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine });
@@ -135,7 +142,7 @@ export function Game() {
       const r = cv.getBoundingClientRect();
       const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
       target.current = {
-        zoom: Math.min(7, Math.max(0.5, target.current.zoom * Math.exp(-dy * 0.0015))),
+        zoom: Math.min(7, Math.max(MIN_ZOOM, target.current.zoom * Math.exp(-dy * 0.0015))),
         ax: (e.clientX - r.left) * dpr.current,
         ay: (e.clientY - r.top) * dpr.current,
       };
@@ -425,7 +432,17 @@ export function Game() {
         </div>
       </header>
 
-      <aside className="absolute right-4 top-4 w-56 rounded-md border-2 border-border bg-card/90 p-3 shadow-[var(--shadow-cozy)] backdrop-blur">
+      <button
+        type="button"
+        aria-label={fs ? t.exitFullscreen : t.fullscreen}
+        title={fs ? t.exitFullscreen : t.fullscreen}
+        onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}
+        className="absolute right-4 top-4 z-10 grid h-8 w-8 place-items-center rounded-md border-2 border-border bg-card/90 text-foreground shadow-[var(--shadow-cozy)] hover:bg-accent"
+      >
+        {fs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+      </button>
+
+      <aside className="absolute right-4 top-14 w-56 rounded-md border-2 border-border bg-card/90 p-3 shadow-[var(--shadow-cozy)] backdrop-blur">
         <h2 className="font-display text-lg text-foreground">{t.towns}</h2>
         <ul className="mt-1 max-h-60 space-y-1 overflow-auto text-sm">
           {seeds.map((s) => (

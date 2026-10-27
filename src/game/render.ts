@@ -1,4 +1,4 @@
-import { hash, structureAt, terrain, isWater, MAP, FLAT, links, roadProgress, isTwin, ageHours, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { hash, structureAt, terrain, isWater, MAP, FLAT, links, roadProgress, isTwin, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -249,10 +249,69 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
 
 const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge"]);
 
+/** Whole map fits ~1000px wide at this zoom. */
+export const MIN_ZOOM = 0.05;
+const OVERVIEW_BELOW = 0.45;
+let overview: HTMLCanvasElement | null = null;
+/** Cached map picture at 1/8 iso scale (built once; terrain is static). */
+function overviewMap() {
+  if (overview) return overview;
+  const S = 8, W = (MAP * TW) / S, H = (MAP * TH) / S;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const g = cv.getContext("2d")!; const img = g.createImageData(W, H);
+  const rgb = new Map<string, [number, number, number]>();
+  const tmp = document.createElement("canvas").getContext("2d")!;
+  for (const [k, [h, s, l]] of Object.entries(TERRAIN)) { tmp.fillStyle = hsl(h, s, l); tmp.fillRect(0, 0, 1, 1); const d = tmp.getImageData(0, 0, 1, 1).data; rgb.set(k, [d[0]!, d[1]!, d[2]!]); }
+  for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+    const ix = px * S - (MAP * TW) / 2, iy = py * S;
+    const tx = Math.floor(ix / TW + iy / TH), ty = Math.floor(iy / TH - ix / TW);
+    const o = (py * W + px) * 4;
+    if (tx < 0 || ty < 0 || tx >= MAP || ty >= MAP) continue;
+    const c = rgb.get(terrain(tx, ty))!; const n = (hash(tx, ty, 11) - 0.5) * 8;
+    img.data[o] = c[0] + n; img.data[o + 1] = c[1] + n; img.data[o + 2] = c[2] + n; img.data[o + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  overview = cv; return cv;
+}
+
+function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], now: number) {
+  const z = cam.zoom * dpr;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.fillStyle = hsl(205, 30, 58); c.fillRect(0, 0, w, h);
+  c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
+  c.imageSmoothingEnabled = true;
+  c.drawImage(overviewMap(), -(MAP * TW) / 2, 0, MAP * TW, MAP * TH);
+  const px = 1 / z;
+  c.strokeStyle = "#a9875c"; c.lineWidth = 2 * dpr * px; c.lineJoin = "round";
+  for (const l of links(seeds)) {
+    const p = roadProgress(l, now); if (p <= 0) continue;
+    c.beginPath();
+    l.tiles.forEach(([x, y], i) => { const [a, b] = iso(x, y); i ? c.lineTo(a, b) : c.moveTo(a, b); });
+    c.globalAlpha = 0.4 + 0.6 * p; c.stroke(); c.globalAlpha = 1;
+  }
+  for (const s of seeds) {
+    const [ix, iy] = iso(s.x, s.y);
+    const r = Math.max(4 * dpr * px, radiusOf(effAge(s, seeds, now)) * TW * 0.5);
+    c.beginPath(); c.ellipse(ix, iy, r, r / 2, 0, 0, 7);
+    c.fillStyle = hsl(s.hue, 45, 52, 0.85); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.2 * dpr * px; c.stroke();
+  }
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.font = `700 ${Math.round(18 * dpr)}px 'Caveat', cursive`; c.textAlign = "center";
+  for (const s of seeds) {
+    const [ix, iy] = iso(s.x, s.y);
+    const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2 - 10 * dpr;
+    c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(s.name, sx, sy);
+    c.fillStyle = INK; c.fillText(s.name, sx, sy);
+  }
+  const pat = paperPattern(c);
+  if (pat) { c.globalCompositeOperation = "multiply"; c.globalAlpha = 0.35; c.fillStyle = pat; c.fillRect(0, 0, w, h); c.globalAlpha = 1; c.globalCompositeOperation = "source-over"; }
+}
+
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
 ) {
+  if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
   const t = performance.now();
   const z = cam.zoom * dpr;
   c.setTransform(1, 0, 0, 1, 0, 0);

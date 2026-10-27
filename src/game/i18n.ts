@@ -57,6 +57,8 @@ const de = {
   collapse: "Einklappen",
   expand: "Ausklappen",
   taglineShort: "Setz einen Samen. Schau zu, wie es wächst.",
+  fullscreen: "Vollbild",
+  exitFullscreen: "Vollbild beenden",
   tradeBonus: (p: number) => `+${p}% Wachstum durch Handel`,
   twinWith: (n: string) => `Zwillingsstadt mit ${n}`,
 };
@@ -118,6 +120,8 @@ const en: typeof de = {
   collapse: "Collapse",
   expand: "Expand",
   taglineShort: "Plant a seed. Watch it grow.",
+  fullscreen: "Fullscreen",
+  exitFullscreen: "Exit fullscreen",
   tradeBonus: (p) => `+${p}% growth from trade`,
   twinWith: (n) => `Twin town with ${n}`,
 };
