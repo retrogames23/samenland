@@ -1,3 +1,4 @@
+import { REALMS, REALM_TZ, detectRealm, setRealm, type Realm } from "@/game/time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
@@ -110,6 +111,9 @@ export function Game() {
   const [tab, setTab] = useState<Tab | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [realm, setRealmState] = useState<Realm>("europe");
+  const realmRef = useRef<Realm>("europe");
   const [view, setView] = useState({ x: MAP / 2, y: MAP / 2, span: 40 });
   const [who, setWho] = useState<Person | null>(null);
   const [place, setPlace] = useState<Inspect | null>(null);
@@ -174,8 +178,20 @@ export function Game() {
         setUserId(session?.user.id ?? null);
     });
     (async () => {
+      const { data: u0 } = await supabase.auth.getUser();
+      let r = detectRealm();
+      if (u0.user) {
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u0.user.id);
+        const adm = !!roles?.some((x) => x.role === "admin");
+        setIsAdmin(adm);
+        const o = localStorage.getItem("samenland-realm") as Realm | null;
+        if (adm && o && REALMS.includes(o)) r = o;
+      }
+      setRealm(r);
+      realmRef.current = r;
+      setRealmState(r);
       const [a, b, bl, sg, pu] = await Promise.all([
-        supabase.from("seeds").select("*").order("created_at"),
+        supabase.from("seeds").select("*").eq("realm", r).order("created_at"),
         supabase.from("plantings").select("*"),
         supabase.from("blessings").select("id, seed_id, created_at"),
         supabase.from("signposts").select("id, seed_id, target_id, user_id, message"),
@@ -197,8 +213,10 @@ export function Game() {
     })();
     const ch = supabase
       .channel(`world-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "seeds" }, (p) =>
-        setSeeds((s) => (s.some((x) => x.id === (p.new as Seed).id) ? s : [...s, p.new as Seed])),
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "seeds" }, (p) => {
+        if ((p.new as { realm?: string }).realm !== realmRef.current) return;
+        setSeeds((s) => (s.some((x) => x.id === (p.new as Seed).id) ? s : [...s, p.new as Seed]));
+      },
       )
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "plantings" }, (p) =>
         setPlantings((s) =>
@@ -361,6 +379,7 @@ export function Game() {
           y,
           hue: Math.floor(Math.random() * 360),
           user_id: userId,
+          realm,
         })
         .select()
         .single();
@@ -751,7 +770,7 @@ export function Game() {
           ) : null}
           <div className="ml-auto hidden text-right text-xs text-muted-foreground md:block">
             <div>{new Date(now).toLocaleDateString(lang === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long" })}</div>
-            <div>{t.seasons[season]} · {new Date(now).toLocaleTimeString(lang === "de" ? "de-DE" : "en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}</div>
+            <div>{t.seasons[season]} · {new Date(now).toLocaleTimeString(lang === "de" ? "de-DE" : "en-GB", { hour: "2-digit", minute: "2-digit", timeZone: REALM_TZ[realm] })}</div>
           </div>
           <div className="ml-auto flex items-center gap-1 md:ml-0">
             <button type="button" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} onClick={toggleSound} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent">
@@ -773,6 +792,14 @@ export function Game() {
                 <button key={l} className={`flex-1 rounded px-2 py-1 uppercase ${lang === l ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => switchLang(l)}>{l}</button>
               ))}
             </div>
+            {isAdmin && (<>
+              <div className="text-xs text-muted-foreground">{t.hud.realm}</div>
+              <div className="grid grid-cols-2 gap-1">
+                {REALMS.map((r) => (
+                  <button key={r} className={`rounded px-2 py-1 text-xs ${realm === r ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => { if (r === realm) return; localStorage.setItem("samenland-realm", r); window.location.reload(); }}>{t.realms[r]}</button>
+                ))}
+              </div>
+            </>)}
             {userId ? <Button size="sm" variant="secondary" className="w-full" onClick={() => { supabase.auth.signOut(); setSettings(false); }}>{t.signOut}</Button>
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
           </Panel>
