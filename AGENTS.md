@@ -11,4 +11,4 @@
 
 ## Samenland game
 - Town growth is a pure deterministic function of seed position + created_at (src/game/world.ts); never store growth state — every client computes the same town from the shared seed rows, so towns grow even when nobody watches.
-- Rendering is a low-res canvas upscaled with pixelated rendering (src/game/render.ts); canvas art colors live there, UI uses design tokens.
+- Rendering is a full-resolution (devicePixelRatio) canvas with a hand-drawn look: jittered ink outlines are deterministic per object via hash, never random per frame (src/game/render.ts); canvas art colors live there, UI uses design tokens.
