@@ -268,9 +268,12 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const e = pl[i]!, prev = pl[(i - 1 + pl.length) % pl.length]!;
   const base: Pose = { p, x: e.place[0], y: e.place[1], visible: !e.indoor, walking: false, dir: [0, 1], phase: 0, act: e.act, working: false, talk: null, talkTurn: false };
   const secs = (hr - e.at) * 3600;
-  const ra: Tile = [Math.round(prev.place[0]), Math.round(prev.place[1])], rb: Tile = [Math.round(e.place[0]), Math.round(e.place[1])];
-  if (ra[0] !== rb[0] || ra[1] !== rb[1] || prev.place[0] !== e.place[0]) {
-    const pts = [prev.place, ...route(t, ra, rb, seeds).slice(1, -1), e.place];
+  // indoor places are entered through their door; outdoor spots on a roof/rock move to the nearest open tile
+  const at = (en: Entry): Tile => en.indoor || !freeAt(t, en.place[0], en.place[1], seeds) ? doorOf(t, en.place, seeds) : en.place;
+  const pa = at(prev), pb = at(e);
+  const ra: Tile = [Math.round(pa[0]), Math.round(pa[1])], rb: Tile = [Math.round(pb[0]), Math.round(pb[1])];
+  if (ra[0] !== rb[0] || ra[1] !== rb[1] || pa[0] !== pb[0] || pa[1] !== pb[1]) {
+    const pts = [pa, ...route(t, ra, rb, seeds).slice(1, -1), pb];
     let len = 0; const seg: number[] = [];
     for (let k = 1; k < pts.length; k++) { const d = Math.hypot(pts[k]![0] - pts[k - 1]![0], pts[k]![1] - pts[k - 1]![1]); seg.push(d); len += d; }
     let dd = secs * p.speed;
@@ -287,14 +290,20 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   }
   if (e.indoor) return base;
   const tt = now / 1000;
+  const c0 = pb;
+  base.x = c0[0]; base.y = c0[1];
   if (e.act === "play") {
-    // children run little loops
-    const r = 0.5 + hash(p.id, 1, 810) * 0.4, w = 0.35 * (hash(p.id, 2, 810) < 0.5 ? 1 : -1), a = tt * w + p.id;
-    return { ...base, x: e.place[0] + Math.cos(a) * r, y: e.place[1] + Math.sin(a) * r, walking: true, dir: [-Math.sin(a) * Math.sign(w), Math.cos(a) * Math.sign(w)], phase: tt * 0.8 / 0.32 * Math.abs(w) * 1.6 };
+    // children run little loops – shrunk until the whole loop stays on open ground
+    let r = 0.5 + hash(p.id, 1, 810) * 0.4;
+    const w = 0.35 * (hash(p.id, 2, 810) < 0.5 ? 1 : -1), a = tt * w + p.id;
+    while (r > 0.05 && ![0, 1.57, 3.14, 4.71].every((q) => freeAt(t, c0[0] + Math.cos(q) * r, c0[1] + Math.sin(q) * r, seeds))) r -= 0.15;
+    if (r <= 0.05) return { ...base, dir: [1, 0.3] };
+    return { ...base, x: c0[0] + Math.cos(a) * r, y: c0[1] + Math.sin(a) * r, walking: true, dir: [-Math.sin(a) * Math.sign(w), Math.cos(a) * Math.sign(w)], phase: tt * 0.8 / 0.32 * Math.abs(w) * 1.6 };
   }
   const wx = (vnoise(tt / 40, p.id % 997, 811) - 0.5) * 0.25, wy = (vnoise(tt / 40, p.id % 991, 812) - 0.5) * 0.25;
   const face = hash(p.id, Math.floor(tt / 30), 813) < 0.5 ? 1 : -1;
-  return { ...base, x: e.place[0] + wx, y: e.place[1] + wy, dir: [face, 0.3], working: e.act === "work" };
+  const ok = freeAt(t, c0[0] + wx, c0[1] + wy, seeds);
+  return { ...base, x: c0[0] + (ok ? wx : 0), y: c0[1] + (ok ? wy : 0), dir: [face, 0.3], working: e.act === "work" };
 }
 
 /** All visible villagers of a town right now, with conversations paired deterministically. */
