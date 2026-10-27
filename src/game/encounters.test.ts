@@ -26,3 +26,13 @@ describe("encounters", () => {
     expect(activeBoons(d, t0 + 97 * H).health).toBe(0);
   });
 });
+
+describe("encounter catalogue", () => {
+  it("has 24 encounters, each shown once per 24-day round", () => {
+    expect(Object.keys(ENCOUNTERS).length).toBe(24);
+    const t0 = Date.UTC(2026, 0, 1); const H = 3.6e6;
+    const round = Math.floor(dayOf(t0) / 24) * 24;
+    const seen = new Set(Array.from({ length: 24 }, (_, d) => eventOf("s", (round + d) * 24 * H + H)));
+    expect(seen.size).toBe(24);
+  });
+});
