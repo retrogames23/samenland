@@ -228,8 +228,7 @@ export function Game() {
       const ss = (a.data ?? []) as Seed[];
       setSeeds(ss);
       setPlantings((b.data ?? []) as Planting[]);
-      const { data: u } = await supabase.auth.getUser();
-      const my = ss.find((s) => u.user && s.user_id === u.user.id) ?? ss[0];
+      const my = ss.find((s) => uid && s.user_id === uid) ?? ss[0];
       if (my) focus(my.x, my.y);
       else focus(MAP / 2, MAP / 2);
     })();
