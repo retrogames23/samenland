@@ -290,6 +290,8 @@ const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well",
 /** Whole map fits ~1000px wide at this zoom. */
 export const MIN_ZOOM = 0.025;
 const OVERVIEW_BELOW = 0.45;
+/** Between this zoom and OVERVIEW_BELOW the overview uses the baked ground chunks. */
+const CHUNKS_BELOW_OVERVIEW = 0.18;
 const smoothCache = new WeakMap<object, Pt[]>();
 /** Road tiles are 4-connected (stair steps); travellers follow a smoothed curve through them. */
 function smoothRoad(l: { tiles: [number, number][] }): Pt[] {
@@ -538,7 +540,15 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
   c.fillStyle = "#1f4f63"; c.fillRect(0, 0, w, h);
   c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  c.drawImage(overviewMap(), -(MAP * TW) / 2, 0, MAP * TW, MAP * TH);
+  if (cam.zoom >= CHUNKS_BELOW_OVERVIEW) {
+    // painted ground chunks keep the real textures sharp; the coarse bitmap is only for the far view
+    const inv = (sx: number, sy: number) => toTile((sx - w / 2) / z + cam.x, (sy - h / 2) / z + cam.y);
+    const cs = [inv(0, 0), inv(w, 0), inv(0, h), inv(w, h)];
+    const x0 = Math.max(0, Math.min(...cs.map((p) => p[0])) - 2), x1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[0])) + 2);
+    const y0 = Math.max(0, Math.min(...cs.map((p) => p[1])) - 2), y1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[1])) + 5);
+    c.drawImage(overviewMap(), -(MAP * TW) / 2, 0, MAP * TW, MAP * TH); // under not-yet-baked chunks
+    drawGroundChunks(c, x0, x1, y0, y1, z, cam.x - w / 2 / z, cam.x + w / 2 / z, cam.y - h / 2 / z, cam.y + h / 2 / z, true);
+  } else c.drawImage(overviewMap(), -(MAP * TW) / 2, 0, MAP * TW, MAP * TH);
   const px = 1 / z;
   c.lineJoin = "round"; c.lineCap = "round";
   for (const l of links(seeds)) {
@@ -835,11 +845,11 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   (cv as HTMLCanvasElement & { ox?: number; oy?: number }).oy = top;
   if (missing) return cv; // not cached: re-bake once images have loaded
   chunkCache.set(key, cv);
-  while (chunkCache.size > 48) chunkCache.delete(chunkCache.keys().next().value!);
+  while (chunkCache.size > 140) chunkCache.delete(chunkCache.keys().next().value!);
   return cv;
 }
-function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number) {
-  const q = z > 1.6 ? 2 : 1, sk = seasonKey(renderNow);
+function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false) {
+  const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow);
   let baked = 0;
   const cx0 = Math.floor(x0 / CH), cx1 = Math.floor(x1 / CH), cy0 = Math.floor(y0 / CH), cy1 = Math.floor(y1 / CH);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
@@ -847,9 +857,11 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
     const X0 = ix * CH, Y0 = iy * CH, X1 = X0 + CH - 1, Y1 = Y0 + CH - 1;
     if (iso(X1, Y0)[0] + TW < vx0 || iso(X0, Y1)[0] - TW > vx1 || iso(X1, Y1)[1] + TH < vy0 || iso(X0, Y0)[1] - TH - PAD_TOP > vy1) continue;
     const cached = chunkCache.has(`${ix},${iy},${q},${sk}`);
-    if (!cached && baked >= 3) { // spread baking over frames; fall back to the cached lower quality if any
-      const lo = chunkCache.get(`${ix},${iy},${3 - q},${sk}`) as (HTMLCanvasElement & { ox: number; oy: number }) | undefined;
-      if (lo) c.drawImage(lo, lo.ox, lo.oy, lo.width / (3 - q), lo.height / (3 - q));
+    if (!cached && baked >= 3) { // spread baking over frames; fall back to another cached quality if any
+      const oq = [2, 1, 0.5].find((o) => o !== q && chunkCache.has(`${ix},${iy},${o},${sk}`));
+      const lo = oq ? chunkCache.get(`${ix},${iy},${oq},${sk}`) as (HTMLCanvasElement & { ox: number; oy: number }) : undefined;
+      if (lo && oq) c.drawImage(lo, lo.ox, lo.oy, lo.width / oq, lo.height / oq);
+      else if (far) { /* overview bitmap already underneath */ }
       else { const [a, b] = iso(X0 + CH / 2, Y0 + CH / 2); c.fillStyle = "#7a8a50"; c.beginPath(); c.moveTo(a, b - CH * TH / 2); c.lineTo(a + CH * TW / 2, b); c.lineTo(a, b + CH * TH / 2); c.lineTo(a - CH * TW / 2, b); c.fill(); }
       continue;
     }
