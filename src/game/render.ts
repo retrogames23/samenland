@@ -106,7 +106,36 @@ function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
   }
 }
 
-export type Light = { x: number; y: number; r: number };
+/** win: a small window pane (rendered as a warm rectangle), otherwise an open flame/forge. */
+export type Light = { x: number; y: number; r: number; win?: boolean };
+
+/** Local clock hour, cached per second (house lights depend on it). */
+let hrCache = { at: 0, hr: 12 };
+const localHour = () => { const n = Date.now(); if (n - hrCache.at > 1000) { const d = new Date(n); hrCache = { at: n, hr: d.getHours() + d.getMinutes() / 60 }; } return hrCache.hr; };
+/** Hours since 18:00 (wraps), so evening and night compare on one axis. */
+const sinceEve = (h: number) => (h - 18 + 24) % 24;
+/**
+ * Deterministic per house: whether it is lit right now. Each household switches on at dusk
+ * (some never), off between 21:00 and 23:30; the inn stays lit until 0:45. From 1:00 every window
+ * is dark; a few early risers light up 5:30–7:00.
+ */
+function houseLit(kind: string, sd: number, hr: number): boolean {
+  const a = hash(sd, 7, 811), b = hash(sd, 7, 812), e = sinceEve(hr);
+  if (hr >= 5.5 && hr < 7.2) return a < 0.3 && hr >= 5.5 + b * 1.2;
+  if (e > 6.6) return false; // 0:36 onwards everything dark (inn below)
+  const on = 0.3 + b * 1.4; // 18:18–19:42
+  const off = kind === "inn" ? 6.75 : kind === "church" || kind === "townhall" ? 2.5 + a : 3 + a * 2.5; // 21:00–23:30
+  if (kind !== "inn" && a > 0.75) return false; // some homes stay dark all evening
+  return e >= on && e < off;
+}
+/** Plausible window panes on the two visible walls, relative to the sprite foot. */
+const WINDOWS: Record<string, [number, number][]> = {
+  hut: [[-4, -5]], cottage: [[-5, -6], [4, -5]], farmhouse: [[-7, -7], [-3, -6], [5, -6]], suburb: [[-5, -6], [4, -6]],
+  townhouse: [[-6, -9], [-6, -15], [5, -9], [5, -15]], inn: [[-8, -7], [-4, -6], [5, -7], [8, -8]], bakery: [[-5, -6], [5, -6]],
+  workshop: [[-5, -6], [5, -6]], townhall: [[-8, -9], [-4, -8], [4, -8], [8, -9]], church: [[-6, -10], [5, -10]], chapel: [[-3, -7]],
+  market: [[-4, -5]], markethall: [[-7, -7], [6, -7]], guildhall: [[-6, -9], [5, -9]], library: [[-6, -8], [5, -8]],
+  infirmary: [[-5, -6], [5, -6]], school: [[-6, -7], [5, -7]], station: [[-7, -7], [6, -7]], fishery: [[-4, -5]], harbor: [[4, -6]],
+};
 /** Hovered / selected villager ids, set by the UI so the canvas can highlight them. */
 export const peopleFocus: { hover: string | null; sel: string | null } = { hover: null, sel: null };
 
