@@ -3,7 +3,7 @@ import { seasonKey } from "./season";
 import { drawBuildingSprite } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, setNatureTime, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
-import { hash, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -567,49 +567,89 @@ export function draw(
     c.fillStyle = wp ?? hsl(190, 30, 32); c.fill();
   }
   c.globalAlpha = 1;
-  // ---- pass 1: ground, coasts, flat things ----
+  // ---- pass 1a: land base. Interior tiles get a diamond; transition tiles get nothing here ----
+  type Edge = { x: number; y: number; cx: number; cy: number; tr: string; r: number; coast: boolean };
+  const edges: Edge[] = [];
+  for (let s = x0 + y0; s <= x1 + y1; s++) {
+    for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
+      const y = s - x;
+      const tr = terrain(x, y);
+      if (isWater(tr)) {
+        if (tr === "deep") {
+          const [cx, cy] = iso(x, y);
+          c.fillStyle = "rgba(8,30,40,0.14)"; c.beginPath(); c.ellipse(cx, cy, TW * 0.8, TH * 0.8, 0, 0, 7); c.fill();
+        }
+        continue;
+      }
+      const [cx, cy] = iso(x, y);
+      const pr = RANK[tr]!;
+      let lowest = pr, coast = false;
+      for (const [dx, dy] of NB8) { const o = terrain(x + dx, y + dy); const r = RANK[o]!; if (r < lowest) lowest = r; if (isWater(o)) coast = true; }
+      if (lowest < pr) { edges.push({ x, y, cx, cy, tr, r: pr, coast }); continue; }
+      c.beginPath();
+      c.moveTo(cx, cy - TH / 2 - 0.6); c.lineTo(cx + TW / 2 + 0.6, cy); c.lineTo(cx, cy + TH / 2 + 0.6); c.lineTo(cx - TW / 2 - 0.6, cy); c.closePath();
+      c.fillStyle = texture(c, TEX_OF[tr]!) ?? "#7a8a50"; c.fill();
+    }
+  }
+  // ---- pass 1b: transition tiles, lowest rank first. Contour radius comes from a smooth
+  // world-space noise field, so neighbouring blobs share one continuous, organic outline. ----
+  edges.sort((a, b) => a.r - b.r);
+  const K = 14;
+  const contour = (e: Edge, grow: number) => {
+    c.beginPath();
+    for (let i = 0; i <= K; i++) {
+      const a = (i / K) * Math.PI * 2;
+      const dx = Math.cos(a), dy = Math.sin(a);
+      // world position of this contour vertex (tile units, rotated back from iso)
+      const wx = e.x + (dx + dy) * 0.5, wy = e.y + (dy - dx) * 0.5;
+      const n = vnoise(wx * 1.7, wy * 1.7, 31 + e.r) * 0.6 + vnoise(wx * 4.3, wy * 4.3, 47 + e.r) * 0.4;
+      const r = (0.64 + n * 0.34) * grow;
+      const px = e.cx + dx * r * TW * 0.72, py = e.cy + dy * r * TH * 0.72;
+      if (i === 0) c.moveTo(px, py);
+      else {
+        const am = ((i - 0.5) / K) * Math.PI * 2;
+        c.quadraticCurveTo(e.cx + Math.cos(am) * r * TW * 0.74, e.cy + Math.sin(am) * r * TH * 0.74, px, py);
+      }
+    }
+    c.closePath();
+  };
+  for (const e of edges) {
+    if (e.coast) {
+      // wet, darker sand rim fading into the water instead of a white sticker outline
+      contour(e, 1.1); c.fillStyle = "rgba(40,48,38,0.18)"; c.fill();
+    }
+    contour(e, 1);
+    c.fillStyle = texture(c, TEX_OF[e.tr]!) ?? "#7a8a50"; c.fill();
+    if (e.coast && detail) {
+      const f = 0.06 + 0.05 * Math.sin(t / 1400 + e.x * 0.7 + e.y * 0.5);
+      c.strokeStyle = `rgba(30,36,28,${0.22})`; c.lineWidth = 1.6; c.stroke();
+      c.strokeStyle = `rgba(235,240,230,${f})`; c.lineWidth = 3; c.stroke();
+    }
+  }
+  // frayed edges: a few grass tufts and pebbles breaking up the borderline
+  if (detail) {
+    for (const e of edges) {
+      const n = hash(e.x, e.y, 401) < 0.5 ? 1 : 2;
+      for (let i = 0; i < n; i++) {
+        const a = hash(e.x, e.y, 410 + i) * Math.PI * 2;
+        const px = e.cx + Math.cos(a) * TW * 0.42, py = e.cy + Math.sin(a) * TH * 0.42;
+        if (e.r >= 3) {
+          c.strokeStyle = "rgba(78,96,46,0.45)"; c.lineWidth = 0.35; c.beginPath();
+          for (let b = -1; b <= 1; b++) { c.moveTo(px + b * 0.4, py); c.lineTo(px + b * 0.8, py - 1.2 - hash(e.x, i, b + 5) * 0.6); }
+          c.stroke();
+        } else {
+          c.fillStyle = "rgba(120,112,98,0.8)"; c.beginPath(); c.ellipse(px, py, 1, 0.6, 0, 0, 7); c.fill();
+        }
+      }
+    }
+  }
+
+  // ---- pass 1c: flat things on the ground ----
   for (let s = x0 + y0; s <= x1 + y1; s++) {
     for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
       const y = s - x;
       const [cx, cy] = iso(x, y);
       const tr = terrain(x, y);
-      const [hh, ss, ll] = TERRAIN[tr]!;
-      const wet = isWater(tr);
-      const tp = wet ? null : texture(c, TEX_OF[tr]!);
-      const fill = tp ?? hsl(hh, ss, ll);
-      if (!wet) {
-        c.beginPath();
-        c.moveTo(cx, cy - TH / 2 - 0.6); c.lineTo(cx + TW / 2 + 0.6, cy); c.lineTo(cx, cy + TH / 2 + 0.6); c.lineTo(cx - TW / 2 - 0.6, cy); c.closePath();
-        c.fillStyle = fill; c.fill();
-      } else if (tr === "deep") {
-        // soft darkening blob for deep water instead of a hard-edged diamond
-        c.fillStyle = "rgba(8,30,40,0.16)"; c.beginPath(); c.ellipse(cx, cy, TW * 0.75, TH * 0.75, 0, 0, 7); c.fill();
-      }
-      // organic edges: higher-ranked ground spills over lower neighbours as an irregular blob
-      const pr = RANK[tr]!;
-      let lower = false;
-      for (const [dx, dy] of NB8) if (RANK[terrain(x + dx, y + dy)]! < pr) { lower = true; break; }
-      if (lower && !wet) {
-        c.beginPath();
-        const k = 9;
-        for (let i = 0; i <= k; i++) {
-          const a = (i / k) * Math.PI * 2;
-          const r = 0.62 + (hash(x * 3 + i, y * 5 - i, 61) - 0.5) * 0.28;
-          const px = cx + Math.cos(a) * r * TW * 0.78, py = cy + Math.sin(a) * r * TH * 0.78;
-          if (i === 0) c.moveTo(px, py); else {
-            const am = ((i - 0.5) / k) * Math.PI * 2;
-            c.quadraticCurveTo(cx + Math.cos(am) * r * TW * 0.84, cy + Math.sin(am) * r * TH * 0.84, px, py);
-          }
-        }
-        c.closePath();
-        c.fillStyle = fill; c.fill();
-        if (isWater(terrain(x + 1, y)) || isWater(terrain(x, y + 1)) || isWater(terrain(x - 1, y)) || isWater(terrain(x, y - 1))) {
-          if (detail) {
-            const f = 0.25 + 0.2 * Math.sin(t / 900 + x * 0.7 + y * 0.5);
-            c.strokeStyle = `rgba(250,250,240,${f})`; c.lineWidth = 0.8; c.stroke();
-          }
-        }
-      }
       const st = structureAt(x, y, seeds, now);
       tiles.push({ x, y, cx, cy, st });
       if (!detail) {
@@ -630,12 +670,29 @@ export function draw(
       const sd = x * 1000 + y;
       const pp = P(cx, cy);
       if (st.kind === "bridge") {
-        const pl: Pt[] = [pp(-0.42, -0.42), pp(0.42, -0.42), pp(0.42, 0.42), pp(-0.42, 0.42)];
-        shape(c, pl, sd, "#a07a52", true);
-        c.globalAlpha = 0.55;
-        for (let k = -3; k <= 3; k++) line(c, pp(k * 0.12, -0.4), pp(k * 0.12, 0.4), sd + k + 5, 0.35);
-        c.globalAlpha = 1;
-        line(c, pp(-0.45, -0.45), pp(0.45, -0.45), sd + 20, 0.6); line(c, pp(-0.45, 0.45), pp(0.45, 0.45), sd + 21, 0.6);
+        // one continuous deck: a segment towards every connected bridge/road neighbour, posts in the water
+        const dirs: [number, number][] = [];
+        for (const [dx, dy] of NB8) {
+          const o = structureAt(x + dx, y + dy, seeds, now);
+          if (o && PATHLIKE.has(o.kind)) dirs.push([dx, dy]);
+        }
+        if (!dirs.length) dirs.push([1, 0], [-1, 0]);
+        const W = 0.2;
+        // posts first (under the deck), slightly into the water
+        c.fillStyle = "rgba(55,38,22,0.9)";
+        for (const s of [-1, 1]) { const [px, py] = pp(s * W * 0.7, -s * W * 0.7); c.fillRect(px - 0.7, py, 1.4, 3.2); }
+        for (const [dx, dy] of dirs) {
+          const len = Math.hypot(dx, dy), nx = -dy / len * W, ny = dx / len * W;
+          const ex = dx * 0.56, ey = dy * 0.56;
+          const q = [pp(nx, ny), pp(ex + nx, ey + ny), pp(ex - nx, ey - ny), pp(-nx, -ny)];
+          c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
+          c.fillStyle = "#9a7650"; c.fill();
+          c.strokeStyle = "rgba(60,42,25,0.35)"; c.lineWidth = 0.4;
+          for (let k = 1; k < 6; k++) { const f = k / 6; const a = pp(ex * f + nx, ey * f + ny), b = pp(ex * f - nx, ey * f - ny); c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); }
+          c.strokeStyle = "rgba(50,35,20,0.6)"; c.lineWidth = 0.7;
+          for (const sg of [1, -1]) { const a = pp(sg * nx, sg * ny), b = pp(ex + sg * nx, ey + sg * ny); c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); }
+        }
+        c.beginPath(); c.ellipse(cx, cy, TW * W * 0.75, TH * W * 0.75, 0, 0, 7); c.fillStyle = "#9a7650"; c.fill();
       } else if (st.kind === "path" || st.kind === "street" || st.kind === "road" || st.kind === "avenue" || st.kind === "rail") {
         const street = st.kind === "street" || st.kind === "avenue";
         const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
