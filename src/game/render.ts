@@ -552,25 +552,44 @@ export function draw(
   const L: Light[] = [];
   const tiles: { x: number; y: number; cx: number; cy: number; st: Structure | null }[] = [];
 
-  // ---- pass 1: watercolor ground, coasts, flat things ----
+  // ---- pass 0: one continuous water surface under everything (no tile seams) ----
+  // Two slow, counter-drifting layers that breathe back and forth: calm, never a conveyor belt.
+  const wA = Math.sin(t / 9000) * 40 + t / 30000, wB = Math.cos(t / 7000) * 30 - t / 45000;
+  for (let pass = 0; pass < 2; pass++) {
+    const wp = texture(c, "water", pass ? wB : wA);
+    c.globalAlpha = pass ? 0.35 + 0.1 * Math.sin(t / 5000) : 1;
+    c.beginPath();
+    for (let s = x0 + y0; s <= x1 + y1; s++) for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
+      const y = s - x; if (!isWater(terrain(x, y))) continue;
+      const [cx, cy] = iso(x, y);
+      c.moveTo(cx, cy - TH / 2 - 1); c.lineTo(cx + TW / 2 + 1, cy); c.lineTo(cx, cy + TH / 2 + 1); c.lineTo(cx - TW / 2 - 1, cy); c.closePath();
+    }
+    c.fillStyle = wp ?? hsl(190, 30, 32); c.fill();
+  }
+  c.globalAlpha = 1;
+  // ---- pass 1: ground, coasts, flat things ----
   for (let s = x0 + y0; s <= x1 + y1; s++) {
     for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
       const y = s - x;
       const [cx, cy] = iso(x, y);
       const tr = terrain(x, y);
       const [hh, ss, ll] = TERRAIN[tr]!;
-      const isDeep = tr === "deep";
-      const tp = texture(c, TEX_OF[tr]!, isWater(tr) ? (t / 400) % 816 : 0);
+      const wet = isWater(tr);
+      const tp = wet ? null : texture(c, TEX_OF[tr]!);
       const fill = tp ?? hsl(hh, ss, ll);
-      c.beginPath();
-      c.moveTo(cx, cy - TH / 2 - 0.6); c.lineTo(cx + TW / 2 + 0.6, cy); c.lineTo(cx, cy + TH / 2 + 0.6); c.lineTo(cx - TW / 2 - 0.6, cy); c.closePath();
-      c.fillStyle = fill; c.fill();
-      if (isDeep && tp) { c.fillStyle = "rgba(10,40,70,0.45)"; c.fill(); }
+      if (!wet) {
+        c.beginPath();
+        c.moveTo(cx, cy - TH / 2 - 0.6); c.lineTo(cx + TW / 2 + 0.6, cy); c.lineTo(cx, cy + TH / 2 + 0.6); c.lineTo(cx - TW / 2 - 0.6, cy); c.closePath();
+        c.fillStyle = fill; c.fill();
+      } else if (tr === "deep") {
+        // soft darkening blob for deep water instead of a hard-edged diamond
+        c.fillStyle = "rgba(8,30,40,0.16)"; c.beginPath(); c.ellipse(cx, cy, TW * 0.75, TH * 0.75, 0, 0, 7); c.fill();
+      }
       // organic edges: higher-ranked ground spills over lower neighbours as an irregular blob
       const pr = RANK[tr]!;
       let lower = false;
       for (const [dx, dy] of NB8) if (RANK[terrain(x + dx, y + dy)]! < pr) { lower = true; break; }
-      if (lower) {
+      if (lower && !wet) {
         c.beginPath();
         const k = 9;
         for (let i = 0; i <= k; i++) {
@@ -585,7 +604,7 @@ export function draw(
         c.closePath();
         c.fillStyle = fill; c.fill();
         if (isWater(terrain(x + 1, y)) || isWater(terrain(x, y + 1)) || isWater(terrain(x - 1, y)) || isWater(terrain(x, y - 1))) {
-          if (!isWater(tr) && detail) {
+          if (detail) {
             const f = 0.25 + 0.2 * Math.sin(t / 900 + x * 0.7 + y * 0.5);
             c.strokeStyle = `rgba(250,250,240,${f})`; c.lineWidth = 0.8; c.stroke();
           }
@@ -599,11 +618,6 @@ export function draw(
         else if (st?.kind === "field") { c.fillStyle = texture(c, st.v > 0.5 ? "wheat" : "crops") ?? hsl(44, 45, 66); c.fill(); }
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square")) { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#cdb084"; diamond(c, cx, cy, 0.85); c.fill(); }
         continue;
-      }
-      if (isWater(tr) && hash(x, y, 15) > 0.82) {
-        const ph = Math.sin(t / 1500 + x + y) * 1.2;
-        c.strokeStyle = "rgba(255,255,255,0.35)"; c.lineWidth = 0.5;
-        c.beginPath(); c.moveTo(cx - 4 + ph, cy); c.quadraticCurveTo(cx - 2 + ph, cy - 1.5, cx + ph, cy); c.quadraticCurveTo(cx + 2 + ph, cy + 1.5, cx + 4 + ph, cy); c.stroke();
       }
       if (tr === "hill" || tr === "mountain") {
         const rs = resourceAt(x, y);
