@@ -623,7 +623,7 @@ export function Game() {
         aria-label={sound ? t.soundOff : t.soundOn}
         title={sound ? t.soundOff : t.soundOn}
         onClick={toggleSound}
-        className="absolute right-14 top-4 z-10 grid h-8 w-8 place-items-center rounded-md border-2 border-border bg-card/90 text-foreground shadow-[var(--shadow-cozy)] hover:bg-accent"
+        className="absolute right-4 top-4 z-10 grid h-8 w-8 place-items-center rounded-md border-2 border-border bg-card/90 text-foreground shadow-[var(--shadow-cozy)] hover:bg-accent md:right-14"
       >
         {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
       </button>
@@ -632,7 +632,7 @@ export function Game() {
         aria-label={fs ? t.exitFullscreen : t.fullscreen}
         title={fs ? t.exitFullscreen : t.fullscreen}
         onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}
-        className="absolute right-4 top-4 z-10 grid h-8 w-8 place-items-center rounded-md border-2 border-border bg-card/90 text-foreground shadow-[var(--shadow-cozy)] hover:bg-accent"
+        className="absolute right-4 top-4 z-10 hidden h-8 w-8 place-items-center rounded-md border-2 border-border bg-card/90 text-foreground shadow-[var(--shadow-cozy)] hover:bg-accent md:grid"
       >
         {fs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
       </button>
