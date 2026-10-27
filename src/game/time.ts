@@ -1,11 +1,12 @@
 /** Four realms (separate maps), each with one shared clock, so everyone on a map sees the same day/night. */
-export type Realm = "us-west" | "us-east" | "europe" | "asia";
+export type Realm = "us-west" | "us-east" | "europe" | "asia" | "lab";
 export const REALMS: Realm[] = ["us-west", "us-east", "europe", "asia"];
 export const REALM_TZ: Record<Realm, string> = {
   "us-west": "America/Los_Angeles",
   "us-east": "America/New_York",
   europe: "Europe/Berlin",
   asia: "Asia/Tokyo",
+  lab: "Europe/Berlin",
 };
 /** Pick a realm from a UTC offset in hours (positive = east of UTC). */
 export function realmForOffset(h: number): Realm {
@@ -25,6 +26,7 @@ function makeFmt(z: string) {
 }
 let cache = { min: -1, base: 0 };
 export function setRealm(r: Realm) {
+  lab = r === "lab";
   if (REALM_TZ[r] === tz) return;
   tz = REALM_TZ[r];
   fmt = makeFmt(tz);
@@ -40,4 +42,16 @@ export function worldHour(now: number): number {
     cache = { min, base: g("hour") + g("minute") / 60 };
   }
   return cache.base + (now - cache.min * 60000) / 3.6e6;
+}
+
+/** Admin test map: time runs LAB_SPEED times faster from LAB_EPOCH, plus an optional jump (game hours). */
+export const LAB_EPOCH = Date.parse("2026-10-27T23:40:00Z");
+export const LAB_SPEED = 1000;
+let lab = false, jumpH = 0;
+export const isLab = () => lab;
+export function setLabJump(h: number) { jumpH = Math.max(0, h); }
+export const labJump = () => jumpH;
+/** The game's "now": real time on public maps, warped time on the lab map. */
+export function clock(real = Date.now()): number {
+  return lab ? LAB_EPOCH + (real - LAB_EPOCH) * LAB_SPEED + jumpH * 3.6e6 : real;
 }

@@ -1,4 +1,4 @@
-import { worldHour } from "./time";
+import { worldHour, clock } from "./time";
 import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
@@ -114,7 +114,7 @@ export type Light = { x: number; y: number; r: number; building?: { kind: Kind; 
 
 /** Local clock hour, cached per second (house lights depend on it). */
 let hrCache = { at: 0, hr: 12 };
-const localHour = () => { const n = Date.now(); if (n - hrCache.at > 1000) { const d = new Date(n); hrCache = { at: n, hr: worldHour(n) }; void d; } return hrCache.hr; };
+const localHour = () => { const n = clock(); if (n - hrCache.at > 1000) { const d = new Date(n); hrCache = { at: n, hr: worldHour(n) }; void d; } return hrCache.hr; };
 /** Hovered / selected villager ids, set by the UI so the canvas can highlight them. */
 export const peopleFocus: { hover: string | null; sel: string | null } = { hover: null, sel: null };
 
@@ -592,7 +592,7 @@ function overviewMap() {
 /** Builds the overview picture in idle time so zooming out never stalls. */
 export function prewarmOverview() {
   if (typeof window === "undefined") return;
-  const go = () => { renderNow = renderNow || Date.now(); if (!allTexturesReady()) return void setTimeout(go, 400); overviewMap(); };
+  const go = () => { renderNow = renderNow || clock(); if (!allTexturesReady()) return void setTimeout(go, 400); overviewMap(); };
   const ric = (window as Window & { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback;
   ric ? ric(go) : setTimeout(go, 800);
 }
@@ -1294,7 +1294,7 @@ export function draw(
   vg.addColorStop(0, "rgba(20,15,10,0)"); vg.addColorStop(1, "rgba(20,15,10,0.32)");
   c.fillStyle = vg; c.fillRect(0, 0, w, h);
 
-  const hr = worldHour(Date.now());
+  const hr = worldHour(clock());
   // darkness: 0 by day, ramps through dusk (18–21:30) and dawn (5–7:30), full at night
   const sm = (a: number, b: number, x: number) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
   const night = hr >= 12 ? sm(18, 21.5, hr) : 1 - sm(5, 7.5, hr);

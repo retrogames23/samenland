@@ -1,4 +1,4 @@
-import { worldHour } from "./time";
+import { worldHour, clock } from "./time";
 /**
  * Procedural soundscape (Web Audio, no sample files). The render loop hands in a scene summary a few
  * times per second; this module only mixes — it never touches game state, so worlds stay deterministic.
@@ -151,7 +151,7 @@ function tick() {
     }
   }
   // church bell at the full hour (real clock), when a church is in view
-  const wh = worldHour(Date.now()), key = Math.floor(wh);
+  const wh = worldHour(clock()), key = Math.floor(wh);
   if (wh - key < 1 / 60 && lastBell !== key) {
     const ch = s.sources.find((x) => x.k === "church");
     if (ch) { lastBell = key; for (let i = 0; i < ((key % 12) || 12); i++) setTimeout(() => ctx && enabled && tone(ch.pan, 0.12 * ch.near, 392, 390, 2.4, "sine"), i * 1600); }

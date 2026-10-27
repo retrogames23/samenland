@@ -1,4 +1,4 @@
-import { REALMS, REALM_TZ, detectRealm, setRealm, type Realm } from "@/game/time";
+import { REALMS, REALM_TZ, detectRealm, setRealm, clock, isLab, labJump, setLabJump, LAB_SPEED, type Realm } from "@/game/time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
@@ -204,7 +204,8 @@ export function Game() {
           const adm = !!roles?.some((x) => x.role === "admin");
           setIsAdmin(adm);
           const o = localStorage.getItem("samenland-realm") as Realm | null;
-          if (adm && o && REALMS.includes(o)) r = o;
+          if (adm && o && (REALMS.includes(o) || o === "lab")) r = o;
+          if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
         }
       } catch { /* play as guest */ }
       setRealm(r);
@@ -306,11 +307,11 @@ export function Game() {
       const s = st.current;
       const h = s.hover;
       const ok = h && s.mode === "seed" ? canPlant(h[0], h[1], s.seeds) === null : null;
-      draw(ctx, cv.width, cv.height, dpr.current, c, s.seeds, s.plantings, Date.now(), h, ok);
+      draw(ctx, cv.width, cv.height, dpr.current, c, s.seeds, s.plantings, clock(), h, ok);
       const own = s.seeds.find((x) => x.id === s.mine);
       if (s.placing && h && own) {
         // SimCity-style ghost: the building floats over the tile, tinted by whether it may stand there
-        const good = canPlaceSpecial(s.placing, h[0], h[1], own, s.seeds, Date.now()) === null;
+        const good = canPlaceSpecial(s.placing, h[0], h[1], own, s.seeds, clock()) === null;
         const z = c.zoom * dpr.current, [gx, gy] = iso(h[0], h[1]);
         ctx.save();
         ctx.setTransform(z, 0, 0, z, cv.width / 2 - c.x * z, cv.height / 2 - c.y * z);
@@ -412,7 +413,7 @@ export function Game() {
     } else if (mode === "tree" || mode === "flower" || mode === "lantern") {
       const my = seeds.find((s) => s.id === mine);
       if (!my) return;
-      if (Math.hypot(x - my.x, y - my.y) > radiusOf(effAge(my, seeds, Date.now())) + 3)
+      if (Math.hypot(x - my.x, y - my.y) > radiusOf(effAge(my, seeds, clock())) + 3)
         return setMsg(t.nearOnly);
       if (!buildable(terrain(x, y))) return setMsg(t.noGrow);
       const { data } = await supabase
@@ -448,8 +449,8 @@ export function Game() {
     setEncounters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
     bell(0); setEncOpen(false); setMsg(t.enc.done);
   };
-  const twinsOfMine = my ? twinLinks(my, seeds, Date.now()).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
-  const pactPartner = twinsOfMine.find((o) => pactPending(my!, o, seeds, Date.now()) === "vote") ?? null;
+  const twinsOfMine = my ? twinLinks(my, seeds, clock()).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
+  const pactPartner = twinsOfMine.find((o) => pactPending(my!, o, seeds, clock()) === "vote") ?? null;
   const sealPact = async () => {
     if (!my || !userId || !pactPartner || !pactPick) return;
     const { data, error } = await supabase.from("twin_votes").insert({ seed_id: my.id, partner_id: pactPartner.id, user_id: userId, pact: pactPick }).select("id, seed_id, partner_id, pact, created_at").single();
@@ -462,7 +463,7 @@ export function Game() {
     if (error || !data) return setMsg(t.twin.poor);
     setWorks((w) => [...w, data]); tap();
   };
-  const myStats = my ? townStats(my, seeds, Date.now()) : null;
+  const myStats = my ? townStats(my, seeds, clock()) : null;
   const switchLang = (l: Lang) => {
     setLang(l);
     localStorage.setItem("samenland-lang", l);
@@ -489,7 +490,7 @@ export function Game() {
     if (r?.error) setMsg(t.authFail);
   };
 
-  const now = Date.now();
+  const now = clock();
   const owner = !!my && !!userId && my.user_id === userId;
   const decision = pickDecision({
     road: owner && !myRoad && roadCandidates(my!, seeds).length > 0,
@@ -529,7 +530,7 @@ export function Game() {
   };
   const buy = async (item: Item, x: number, y: number) => {
     if (!my) return;
-    const err = canPlaceSpecial(item, x, y, my, seeds, Date.now());
+    const err = canPlaceSpecial(item, x, y, my, seeds, clock());
     if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore"]);
     setPlacing(null);
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x, y }).select("id, seed_id, item, cost, created_at, x, y").single();
@@ -787,16 +788,16 @@ export function Game() {
                 const tr = lastTraders.find((f) => Math.hypot(f.x - wx, f.y - 3 - wy) < Math.max(4, 16 / c.zoom));
                 if (tr) { tap(pan); setWho(null); setPlace(null); return setMsg(t.trade.trader(tr.cart, tr.good ? t.trade.goods[tr.good] ?? tr.good : "–", tr.from, tr.to)); } }
               const [tx, ty] = tileAt(e);
-              { const g = twinGateAt(tx, ty, seeds, Date.now());
-                if (g) { tap(pan); setWho(null); setPlace(null); const p = pactOf(g.a, g.b, seeds, Date.now());
-                  return setMsg(`${t.twin.gate(g.a.name, g.b.name)}${p ? ` · ${t.twin.pacts[p.kind]![0]}` : ""}${marketDay(g, Date.now()) ? ` · ${t.twin.market}` : ""}`); } }
+              { const g = twinGateAt(tx, ty, seeds, clock());
+                if (g) { tap(pan); setWho(null); setPlace(null); const p = pactOf(g.a, g.b, seeds, clock());
+                  return setMsg(`${t.twin.gate(g.a.name, g.b.name)}${p ? ` · ${t.twin.pacts[p.kind]![0]}` : ""}${marketDay(g, clock()) ? ` · ${t.twin.market}` : ""}`); } }
               const sm = signpostMap(seeds);
               for (const [dx, dy] of [[0, 0], [1, 1], [1, 0], [0, 1], [-1, 0], [0, -1]] as const) {
                 const sp = sm.get((ty + dy) * MAP + tx + dx);
                 if (sp) { tap(pan); setWho(null); setPlace(null); return setMsg(`${t.signFrom(seeds.find((x) => x.id === sp.seed_id)?.name ?? "?")}: „${sp.message}“`); }
               }
-              const ins = inspectAt(tx, ty, seeds, Date.now());
-              if (!ins && structureAt(tx, ty, seeds, Date.now())?.kind === "pasture") baa(pan);
+              const ins = inspectAt(tx, ty, seeds, clock());
+              if (!ins && structureAt(tx, ty, seeds, clock())?.kind === "pasture") baa(pan);
               if (ins) { if (ins.kind === "pasture") baa(pan); else tap(pan); setWho(null); return setPlace(ins); }
               setPlace(null);
             }
@@ -864,7 +865,7 @@ export function Game() {
             {isAdmin && (<>
               <div className="text-xs text-muted-foreground">{t.hud.realm}</div>
               <div className="grid grid-cols-2 gap-1">
-                {REALMS.map((r) => (
+                {[...REALMS, "lab" as Realm].map((r) => (
                   <button key={r} className={`rounded px-2 py-1 text-xs ${realm === r ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => { if (r === realm) return; localStorage.setItem("samenland-realm", r); window.location.reload(); }}>{t.realms[r]}</button>
                 ))}
               </div>
@@ -916,7 +917,7 @@ export function Game() {
       </div>
 
       {encOpen && my && (() => {
-        const ev = pendingEncounter(my, my.decisions ?? [], Date.now());
+        const ev = pendingEncounter(my, my.decisions ?? [], clock());
         const fxText = (e: string, c: string) => {
           const ch = choiceOf(e, c)!; const f = ch.fx as { h?: number; growth?: number; food?: number; health?: number; wealth?: number };
           const parts = [f.growth ? t.enc.growth(Math.round(f.growth * 100)) : "", f.food ? `+${f.food} ${t.enc.food}` : "", f.health ? `+${f.health} ${t.enc.health}` : "", f.wealth ? `+${f.wealth} ${t.enc.wealth}` : ""].filter(Boolean);
@@ -1080,7 +1081,7 @@ export function Game() {
           </div>
         )}
         {who && (() => {
-          const now = Date.now();
+          const now = clock();
           const q = poseOf(who, townOf(who.seed, seeds, now), seeds, now);
           return (
             <div className="pointer-events-auto w-full max-w-xs rounded-md border-2 border-border bg-card px-3 py-2 shadow-[var(--shadow-panel)] border-wood text-foreground shadow-[var(--shadow-cozy)]">
@@ -1094,7 +1095,7 @@ export function Game() {
           );
         })()}
         {place && (() => {
-          const ins = inspectAt(place.x, place.y, seeds, Date.now()) ?? place;
+          const ins = inspectAt(place.x, place.y, seeds, clock()) ?? place;
           const name = t.kind[ins.kind] ?? ins.kind;
           const list = (ps: Person[]) => ps.length ? (
             <ul className="mt-0.5 space-y-0.5">
