@@ -22,6 +22,7 @@ export function Game() {
   const [hover, setHover] = useState<[number, number] | null>(null);
   const [form, setForm] = useState({ name: "", owner: "" });
   const [msg, setMsg] = useState<string | null>(null);
+  const [open, setOpen] = useState(true);
   const [, tick] = useState(0);
 
   const dpr = useRef(1);
@@ -36,6 +37,7 @@ export function Game() {
   useEffect(() => {
     const saved = localStorage.getItem("samenland-lang");
     setLang(saved === "en" || saved === "de" ? saved : navigator.language.startsWith("de") ? "de" : "en");
+    if (localStorage.getItem("samenland-panel") === "closed") setOpen(false);
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
     const { data: sub } = supabase.auth.onAuthStateChange((ev, session) => {
       if (ev === "SIGNED_IN" || ev === "SIGNED_OUT" || ev === "USER_UPDATED" || ev === "INITIAL_SESSION") setUserId(session?.user.id ?? null);

@@ -24,6 +24,8 @@ const de = {
   checkMail: "Fast geschafft: Bestätige deine E-Mail über den Link, den wir dir geschickt haben.",
   authFail: "Anmeldung fehlgeschlagen. Prüfe E-Mail und Passwort.",
   or: "oder",
+  collapse: "Einklappen", expand: "Ausklappen",
+  taglineShort: "Setz einen Samen. Schau zu, wie es wächst.",
 };
 
 const en: typeof de = {
@@ -50,6 +52,8 @@ const en: typeof de = {
   checkMail: "Almost there: confirm your email via the link we sent you.",
   authFail: "Sign-in failed. Check your email and password.",
   or: "or",
+  collapse: "Collapse", expand: "Expand",
+  taglineShort: "Plant a seed. Watch it grow.",
 };
 
 export const DICT = { de, en };
