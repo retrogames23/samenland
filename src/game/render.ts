@@ -950,9 +950,7 @@ export function draw(
     }
     if (tr === "mountain" && hash(x, y, 26) > 0.55) {
       const sc = 0.55 + hash(x, y, 27) * 0.5;
-      if (!drawNature(c, "crag", cx + (hash(x, y, 28) - 0.5) * 6, cy + 4, sc, 0, hash(x, y, 29) > 0.5)) {
-        shape(c, [[cx - 11, cy + 3], [cx, cy - 12], [cx + 11, cy + 3]], x * 29 + y, hsl(30, 10, 58), true, false);
-      }
+      drawNature(c, "crag", cx + (hash(x, y, 28) - 0.5) * 6, cy + 4, sc, 0, hash(x, y, 29) > 0.5);
     }
     if (tr === "forest" && !st) {
       if (hash(x, y, 19) > 0.35) tree(c, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6);
