@@ -86,6 +86,7 @@ const de = {
   buy: "Kaufen",
   owned: "gebaut",
   bought: (n: string) => `${n} gehört jetzt zum Dorf.`,
+  place: { pick: (n: string) => `Wähle einen Platz für: ${n}`, hint: "Grün = hier kann gebaut werden. Tippe zum Bauen.", far: "Zu weit von deinem Dorf entfernt.", ground: "Auf diesem Boden kann man nicht bauen.", taken: "Hier steht schon etwas.", shore: "Die Fischerhütte muss am Wasser stehen." },
   poor: "Dafür reicht das Geld noch nicht.",
   age: (h: number) =>
     h < 1
@@ -206,6 +207,7 @@ const en: typeof de = {
   buy: "Buy",
   owned: "built",
   bought: (n) => `${n} is now part of the village.`,
+  place: { pick: (n) => `Choose a spot for: ${n}`, hint: "Green = you can build here. Tap to build.", far: "Too far from your village.", ground: "You can't build on this ground.", taken: "Something already stands here.", shore: "The fisher's hut must be by the water." },
   poor: "Not enough money yet.",
   age: (h) =>
     h < 1
