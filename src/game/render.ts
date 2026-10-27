@@ -1,7 +1,9 @@
+import { setArtTime } from "./season-art";
+import { seasonKey } from "./season";
 import { drawBuildingSprite } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, setNatureTime, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
-import { hash, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { hash, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -106,10 +108,14 @@ const roofHue = (s: Structure, slate = false) => slate ? [215, 12, 46] : [12 + s
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
   if (drawBuildingSprite(c, s.kind, cx, cy, s.v)) {
+    if (s.kind === "campfire") {
+      c.fillStyle = "rgba(255,183,57,0.7)"; c.beginPath(); c.ellipse(cx,cy-4,1.5,2.4+Math.sin(t/160)*0.5,0,0,7); c.fill();
+      L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
+    }
     if (["farmhouse", "cottage", "inn", "bakery", "townhouse", "smithy"].includes(s.kind)) {
       L.push({ x: cx - 2, y: cy - 6, r: s.kind === "smithy" ? 5 : 2.5 });
     }
-    if (["factory", "smithy", "bakery", "inn"].includes(s.kind)) {
+    if (["factory", "manufactory", "steamworks", "smithy", "bakery", "inn"].includes(s.kind)) {
       smoke(c, cx + 4, cy - (s.kind === "factory" ? 24 : 18), t, sd, s.kind === "factory" ? 1.5 : 0.6);
     }
     return;
@@ -464,6 +470,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
     c.strokeStyle = "rgba(60,40,20,0.5)"; c.lineWidth = Math.max(3.5 * dpr * px, 5); c.stroke();
     c.strokeStyle = texture(c, "dirt") ?? "#b89468"; c.lineWidth = Math.max(2.2 * dpr * px, 3.5); c.stroke();
     c.globalAlpha = 1;
+    if (railReady(l,seeds,now)) drawRails(c,l,seeds,now);
   }
   const vx0 = cam.x - w / 2 / z, vx1 = cam.x + w / 2 / z, vy0 = cam.y - h / 2 / z, vy1 = cam.y + h / 2 / z;
   for (const s of seeds) {
@@ -504,10 +511,26 @@ function diamond(c: C, cx: number, cy: number, k: number) {
   c.beginPath(); c.moveTo(cx, cy - TH / 2 * k); c.lineTo(cx + TW / 2 * k, cy); c.lineTo(cx, cy + TH / 2 * k); c.lineTo(cx - TW / 2 * k, cy); c.closePath();
 }
 
+function drawRails(c: C, l: ReturnType<typeof links>[number], seeds: Seed[], now: number) {
+  c.save(); c.lineCap = "butt";
+  for (let i=1;i<l.tiles.length;i++) {
+    const a=l.tiles[i-1], b=l.tiles[i]; if (!a || !b) continue;
+    const st=structureAt(b[0],b[1],seeds,now); if (st && st.kind!=="road" && st.kind!=="bridge" && st.kind!=="rail") continue;
+    const [ax,ay]=iso(a[0],a[1]), [bx,by]=iso(b[0],b[1]);
+    const dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;
+    c.strokeStyle="#6a5340"; c.lineWidth=1.4;
+    for(let j=0;j<4;j++){const f=j/4,x=ax+dx*f,y=ay+dy*f;c.beginPath();c.moveTo(x-nx*2.4,y-ny*2.4);c.lineTo(x+nx*2.4,y+ny*2.4);c.stroke();}
+    c.strokeStyle="#b6b8af";c.lineWidth=0.75;
+    for(const sign of [-1,1]){c.beginPath();c.moveTo(ax+nx*sign*1.6,ay+ny*sign*1.6);c.lineTo(bx+nx*sign*1.6,by+ny*sign*1.6);c.stroke();}
+  }
+  c.restore();
+}
+
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
 ) {
+  renderNow = now; setArtTime(now); setNatureTime(now);
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
   const t = performance.now();
   const z = cam.zoom * dpr;
@@ -672,6 +695,8 @@ export function draw(
       c.setLineDash([2, 1.5]); c.strokeStyle = ghostOk === false ? "#b5503e" : INK; c.lineWidth = 0.9; c.stroke(); c.setLineDash([]);
     }
   }
+
+  for (const l of links(seeds)) if (railReady(l,seeds,now)) drawRails(c,l,seeds,now);
 
   // ---- life on the trade roads ----
   if (detail) for (const l of links(seeds)) {
