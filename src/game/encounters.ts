@@ -28,13 +28,10 @@ function strHash(s: string) {
   h = Math.imul(h ^ (h >>> 15), 2246822507);
   return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
 }
-/** The encounter waiting for a village on the UTC day of `now`; never the same as yesterday's. */
+/** The encounter waiting for a village on the UTC day of `now`: cycles through a per-village shuffled order, so it never repeats on consecutive days. */
 export function eventOf(seedId: string, now: number): EventKey {
-  const d = dayOf(now), n = EVENT_KEYS.length;
-  const pick = (k: number) => Math.floor(strHash(`${seedId}:${k}`) * n);
-  let i = pick(d);
-  if (i === pick(d - 1)) i = (i + 1) % n;
-  return EVENT_KEYS[i]!;
+  const order = [...EVENT_KEYS].sort((p, q) => strHash(`${seedId}:${p}`) - strHash(`${seedId}:${q}`));
+  return order[((dayOf(now) % order.length) + order.length) % order.length]!;
 }
 export const choicesOf = (e: EventKey) => Object.keys(ENCOUNTERS[e]) as string[];
 export const choiceOf = (e: string, c: string): Choice | undefined => (ENCOUNTERS as Record<string, Record<string, Choice>>)[e]?.[c];
