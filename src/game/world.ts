@@ -399,6 +399,14 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
 /** Cache key that changes whenever seed positions, ages or purchases change. */
 export const seedsKey = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${s.bought?.length ?? 0}`).join(";");
 
+/** Growth hour at which the building on this tile is finished (0 for the founding core). */
+export function bornAt(x: number, y: number, s: Seed): number {
+  const dx = x - s.x, dy = y - s.y;
+  if (CORE[`${dx},${dy}`] || (!dx && !dy)) return 0;
+  for (let i = LANDMARKS.length - 1; i >= 0; i--) { const l = LANDMARKS[i]!; if (l.dx === dx && l.dy === dy) return l.at; }
+  return tileBirth(Math.hypot(dx, dy)) * (0.75 + 0.5 * hash(x, y, 3));
+}
+
 let cacheKey = "";
 const scache = new Map<number, Structure | null>();
 export function structureAt(x: number, y: number, seeds: Seed[], now: number): Structure | null {
