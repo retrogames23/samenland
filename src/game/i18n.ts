@@ -118,7 +118,7 @@ const de = {
   soundOn: "Ton an",
   soundOff: "Ton aus",
   exitFullscreen: "Vollbild beenden",
-  enc: { btn: "Besuch am Dorfplatz", title: "Eine Begegnung", decided: "Heute hast du schon entschieden – morgen wartet eine neue Begegnung.", free: "kostenlos", gain: (n: number) => `+${n} Taler`, fail: "Die Entscheidung konnte nicht getroffen werden.", poor: "Zu wenig Taler", done: "Der Schulze hat entschieden.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} Tage` : `${h} Std.`, growth: (p: number) => `+${p} % Wachstum`, food: "Nahrung", health: "Gesundheit", wealth: "Wohlstand", chronicle: "Chronik", dayN: (n: number) => `Tag ${n}`, none: "Noch keine Einträge.",
+  enc: { later: "Später entscheiden", waiting: "Eine Entscheidung wartet auf dich", btn: "Besuch am Dorfplatz", title: "Eine Begegnung", decided: "Heute hast du schon entschieden – morgen wartet eine neue Begegnung.", free: "kostenlos", gain: (n: number) => `+${n} Taler`, fail: "Die Entscheidung konnte nicht getroffen werden.", poor: "Zu wenig Taler", done: "Der Schulze hat entschieden.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} Tage` : `${h} Std.`, growth: (p: number) => `+${p} % Wachstum`, food: "Nahrung", health: "Gesundheit", wealth: "Wohlstand", chronicle: "Chronik", dayN: (n: number) => `Tag ${n}`, none: "Noch keine Einträge.",
     events: {
       journeyman: ["Der Geselle auf der Walz", "Ein Zimmermannsgeselle in schwarzer Kluft klopft am Rathaus. Er bietet an, einige Wochen auszuhelfen, wenn man ihn gut beherbergt."],
       merchant: ["Der fahrende Gewürzhändler", "Ein bunter Karren hält am Brunnen. Salz, Safran und Seide liegen zum Feilschen bereit."],
@@ -264,7 +264,7 @@ const en: typeof de = {
   soundOn: "Sound on",
   soundOff: "Sound off",
   exitFullscreen: "Exit fullscreen",
-  enc: { btn: "Visitor at the square", title: "An encounter", decided: "You've already decided today – a new encounter awaits tomorrow.", free: "free", gain: (n: number) => `+${n} thaler`, fail: "The decision could not be made.", poor: "Not enough thaler", done: "The headman has decided.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} days` : `${h} h`, growth: (p: number) => `+${p}% growth`, food: "Food", health: "Health", wealth: "Prosperity", chronicle: "Chronicle", dayN: (n: number) => `Day ${n}`, none: "No entries yet.",
+  enc: { later: "Decide later", waiting: "A decision awaits you", btn: "Visitor at the square", title: "An encounter", decided: "You've already decided today – a new encounter awaits tomorrow.", free: "free", gain: (n: number) => `+${n} thaler`, fail: "The decision could not be made.", poor: "Not enough thaler", done: "The headman has decided.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} days` : `${h} h`, growth: (p: number) => `+${p}% growth`, food: "Food", health: "Health", wealth: "Prosperity", chronicle: "Chronicle", dayN: (n: number) => `Day ${n}`, none: "No entries yet.",
     events: {
       journeyman: ["The travelling journeyman", "A carpenter journeyman in black garb knocks at the town hall. He offers to help out for a few weeks if he is well housed."],
       merchant: ["The spice merchant", "A colourful cart stops at the well. Salt, saffron and silk are laid out for haggling."],
