@@ -6,3 +6,4 @@
 - [x] Login, 1 Samen pro Spieler
 - [x] Spiel auf Deutsch und Englisch
 - [x] Detaillierte Gebäudebilder im gewählten Stil einbauen und auf der Karte prüfen
+- [x] Landschaft, Bäume, Felder, Wege, Wasser und Menschen an den detaillierten Stil anpassen
