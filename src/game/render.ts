@@ -851,7 +851,7 @@ export function draw(
         const rs = resourceAt(x, y);
         if (rs) {
           const n = rs === "stone" ? 2 : 4;
-          const [lit, mid, dark] = rs === "ore" ? ["#b98a6a", "#8a5a3e", "#4e3426"] : rs === "coal" ? ["#5a544e", "#36312d", "#1d1a18"] : ["#d6d0c4", "#a9a295", "#6e685e"];
+          const [lit, mid, dark] = rs === "ore" ? ["#b98a6a", "#8a5a3e", "#4e3426"] : rs === "coal" ? ["#5a544e", "#36312d", "#1d1a18"] : ["#b8b2a6", "#8c8679", "#57524a"];
           for (let i = 0; i < n; i++) rock(c, cx + (hash(x, y, 90 + i) - 0.5) * 14, cy + (hash(x, y, 95 + i) - 0.5) * 6, (rs === "stone" ? 2.6 : 1.4) * (0.7 + hash(x, y, 99 + i) * 0.6), lit, mid, dark, rs === "ore" && i === 0);
         }
       }
