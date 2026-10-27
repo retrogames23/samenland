@@ -204,6 +204,7 @@ const de = {
   character: { plains: ["Ackerdorf", "Fruchtbares Land für Korn, Mehl und Brot"], mountain: ["Bergdorf", "Fels und Erz für Stein, Eisen und Werkzeug"], coast: ["Fischerdorf", "Wasser für Fisch, Salz und Boote"], forest: ["Walddorf", "Wald für Bauholz, Holzkohle und Kräuter"] } as Record<string, [string, string]>,
   tradeBonus: (p: number) => `+${p}% Wachstum durch Handel`,
   trade: {
+    trader: (cart: boolean, good: string, from: string, to: string) => `${cart ? "Fuhrwerk" : "Händler"} mit ${good}: von ${from} nach ${to}`,
     title: "Handel", exports: "Verkauft", imports: "Braucht", partners: "Handelspartner", none: "Noch keine Handelsstraße.",
     fit: (f: number): string => (f >= 1.2 ? "ergänzt sich gut" : f >= 0.9 ? "ergänzt sich" : "zu ähnlich"),
     partner: (name: string, p: number, fit: string) => `${name}: +${p}% · ${fit}`,
@@ -421,6 +422,7 @@ const en: typeof de = {
   character: { plains: ["Farming village", "Fertile land for grain, flour and bread"], mountain: ["Mountain village", "Rock and ore for stone, iron and tools"], coast: ["Fishing village", "Water for fish, salt and boats"], forest: ["Forest village", "Woods for timber, charcoal and herbs"] },
   tradeBonus: (p) => `+${p}% growth from trade`,
   trade: {
+    trader: (cart, good, from, to) => `${cart ? "Ox cart" : "Trader"} carrying ${good}: from ${from} to ${to}`,
     title: "Trade", exports: "Sells", imports: "Needs", partners: "Trade partners", none: "No trade road yet.",
     fit: (f) => (f >= 1.2 ? "great match" : f >= 0.9 ? "good match" : "too similar"),
     partner: (name, p, fit) => `${name}: +${p}% · ${fit}`,
