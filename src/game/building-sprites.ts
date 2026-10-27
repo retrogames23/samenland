@@ -65,7 +65,14 @@ const sprites: Partial<Record<Kind, Sprite>> = {
 };
 
 /** Browser images are created only when the canvas draws, never during SSR. */
-export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number): boolean {
+/** Drawn width/height and ground offset of a building sprite (null while unknown). */
+export function spriteBox(kind: Kind, variant: number): { w: number; h: number; base: number } | null {
+  const sprite = sprites[kind]; if (!sprite) return null;
+  const [, , sw, sh] = sprite.crop, w = sprite.width * (0.97 + variant * 0.06);
+  return { w, h: w * sh / sw, base: sprite.base };
+}
+/** `reveal` < 1 draws only the lower part of the building (walls rising on a construction site). */
+export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, reveal = 1): boolean {
   const sprite = sprites[kind];
   if (!sprite || typeof Image === "undefined") return false;
   if (!sprite.image) {
@@ -81,6 +88,7 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   c.save();
   c.imageSmoothingEnabled = true;
   c.imageSmoothingQuality = "high";
+  if (reveal < 1) { const top = y + sprite.base - height * reveal; c.beginPath(); c.rect(x - width, top, width * 2, height * 2); c.clip(); }
   c.drawImage(seasonalImage(image), x - width / 2, y + sprite.base - height, width, height);
   c.restore();
   return true;

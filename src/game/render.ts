@@ -1,6 +1,6 @@
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
-import { drawBuildingSprite } from "./building-sprites";
+import { drawBuildingSprite, spriteBox } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, wandererImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
@@ -140,8 +140,79 @@ function rock(c: C, x: number, y: number, s: number, lit: string, mid: string, d
 }
 const roofHue = (s: Structure, slate = false) => slate ? [215, 12, 46] : [12 + s.v * 18 + (s.seed.hue % 20) - 10, 48, 50];
 
+
+/** Construction site: staked plot with materials → rising walls in a timber scaffold → finished. */
+function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail: boolean) {
+  const p = s.build ?? 1, sd = Math.floor(s.v * 9973);
+  const box = spriteBox(s.kind, s.v);
+  const w = Math.min(30, (box?.w ?? 24) * 0.75), hw = w / 2, hh = w / 4;
+  // trodden, dug-up ground
+  c.save();
+  c.beginPath(); c.moveTo(cx, cy - hh); c.lineTo(cx + hw, cy); c.lineTo(cx, cy + hh); c.lineTo(cx - hw, cy); c.closePath();
+  c.fillStyle = "rgba(112,86,58,0.55)"; c.fill();
+  // foundation stones
+  if (p > 0.15) {
+    const f = Math.min(1, (p - 0.15) / 0.2), k = 0.78;
+    c.beginPath(); c.moveTo(cx, cy - hh * k); c.lineTo(cx + hw * k, cy); c.lineTo(cx, cy + hh * k); c.lineTo(cx - hw * k, cy); c.closePath();
+    c.strokeStyle = `rgba(150,140,125,${f})`; c.lineWidth = 1.6; c.stroke();
+    c.strokeStyle = `rgba(60,52,44,${0.6 * f})`; c.lineWidth = 0.35; c.stroke();
+  }
+  // walls rise from the ground up
+  if (p > 0.35 && box) {
+    c.globalAlpha = 0.95;
+    drawBuildingSprite(c, s.kind, cx, cy, s.v, Math.min(1, 0.12 + (p - 0.35) / 0.65 * 0.95));
+    c.globalAlpha = 1;
+  }
+  c.restore();
+  if (!detail) return;
+  // scaffold poles and planks around the rising house
+  if (p > 0.25 && p < 0.97) {
+    const top = Math.min(box ? box.h * 0.8 : 18, 6 + p * (box ? box.h * 0.8 : 18));
+    const posts: Pt[] = [[cx - hw * 0.85, cy], [cx, cy + hh * 0.85], [cx + hw * 0.85, cy], [cx, cy - hh * 0.85]];
+    for (const [px, py] of posts) {
+      c.strokeStyle = "#6e5236"; c.lineWidth = 0.7; c.beginPath(); c.moveTo(px, py); c.lineTo(px, py - top); c.stroke();
+      c.strokeStyle = "rgba(25,16,8,0.6)"; c.lineWidth = 0.25; c.stroke();
+    }
+    for (let lv = 0.45; lv < 1; lv += 0.5) {
+      c.strokeStyle = "#9a7a52"; c.lineWidth = 0.9; c.beginPath();
+      c.moveTo(posts[0]![0], posts[0]![1] - top * lv); c.lineTo(posts[1]![0], posts[1]![1] - top * lv); c.lineTo(posts[2]![0], posts[2]![1] - top * lv); c.stroke();
+      c.strokeStyle = "rgba(25,16,8,0.55)"; c.lineWidth = 0.25; c.stroke();
+    }
+    // diagonal brace
+    c.strokeStyle = "#7d5f3f"; c.lineWidth = 0.45; c.beginPath(); c.moveTo(posts[0]![0], posts[0]![1]); c.lineTo(posts[1]![0], posts[1]![1] - top * 0.9); c.stroke();
+  }
+  // stakes and string while the plot is still being marked out
+  if (p < 0.3) {
+    for (const [px, py] of [[cx - hw, cy], [cx, cy + hh], [cx + hw, cy], [cx, cy - hh]] as Pt[]) {
+      c.strokeStyle = "#7a5a3a"; c.lineWidth = 0.55; c.beginPath(); c.moveTo(px, py); c.lineTo(px, py - 2.6); c.stroke();
+    }
+    c.strokeStyle = "rgba(235,225,200,0.75)"; c.lineWidth = 0.2; c.beginPath();
+    c.moveTo(cx - hw, cy - 2.2); c.lineTo(cx, cy + hh - 2.2); c.lineTo(cx + hw, cy - 2.2); c.lineTo(cx, cy - hh - 2.2); c.closePath(); c.stroke();
+  }
+  // material piles: timber stack and stone blocks, used up as the house grows
+  const left = Math.max(0, 1 - p);
+  const bx = cx + hw * 0.95, by = cy + hh * 0.55;
+  const logs = Math.ceil(4 * left);
+  for (let i = 0; i < logs; i++) {
+    const ly = by - i * 0.85, lx = bx + (i % 2) * 0.4;
+    c.strokeStyle = "#5a4028"; c.lineWidth = 1.05; c.beginPath(); c.moveTo(lx - 3, ly - 1.2); c.lineTo(lx + 2.6, ly + 1.2); c.stroke();
+    c.strokeStyle = "#a07850"; c.lineWidth = 0.7; c.stroke();
+    c.fillStyle = "#d8b98a"; c.beginPath(); c.arc(lx + 2.6, ly + 1.2, 0.42, 0, 7); c.fill();
+  }
+  const stones = Math.ceil(5 * left);
+  for (let i = 0; i < stones; i++) {
+    const sx = cx - hw * 0.95 + (i % 3) * 1.5 - 0.5, sy = cy + hh * 0.5 - Math.floor(i / 3) * 0.9 + (i % 3) * 0.4;
+    c.fillStyle = hsl(30, 6, 62 + hash(sd, i, 1) * 10); c.fillRect(sx - 0.7, sy - 0.7, 1.4, 0.9);
+    c.fillStyle = "rgba(40,32,24,0.45)"; c.fillRect(sx - 0.7, sy + 0.1, 1.4, 0.25);
+  }
+  // fresh sawdust / dust puff from hammering
+  if (p > 0.25 && p < 0.97 && Math.sin(t / 300 + sd) > 0.7) {
+    c.fillStyle = "rgba(210,190,150,0.35)"; c.beginPath(); c.ellipse(cx + Math.sin(sd) * hw * 0.4, cy - 4 - p * 6, 1.6, 0.8, 0, 0, 7); c.fill();
+  }
+}
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
+  if (s.build !== undefined) { drawSite(c, s, cx, cy, t, true); return; }
   if (drawBuildingSprite(c, s.kind, cx, cy, s.v)) {
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
@@ -355,6 +426,22 @@ function personBody(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   limb(c, ap, shirt, 0.62 * s);
   const hand = ap[2]!;
   c.fillStyle = skin; c.beginPath(); c.arc(hand[0], hand[1], 0.32 * s, 0, 7); c.fill();
+  if (q.working && (p.job === "builder" || p.job === "woodcutter" || p.job === "mason")) {
+    // hammer / axe / pick swinging down in a steady rhythm
+    const sw = Math.max(0, Math.sin(t / 230 + p.id)) * 1.3;
+    const tip: Pt = [hand[0] + face * (1.4 - sw * 0.4) * s, hand[1] - (1.6 - sw * 1.8) * s];
+    line(c, hand, tip, p.id, 0.38, "#6f533b");
+    c.fillStyle = p.job === "builder" ? "#4a4440" : "#8a8f94";
+    c.beginPath(); c.ellipse(tip[0], tip[1], (p.job === "builder" ? 0.45 : 0.75) * s, 0.35 * s, face * 0.6, 0, 7); c.fill();
+    c.strokeStyle = "rgba(22,16,10,0.8)"; c.lineWidth = 0.25; c.stroke();
+    if (sw < 0.15 && p.job !== "builder") { c.fillStyle = p.job === "mason" ? "rgba(220,215,205,0.8)" : "rgba(200,160,100,0.8)"; for (let i = 0; i < 3; i++) c.fillRect(tip[0] + (hash(p.id, i, Math.floor(t / 230)) - 0.5) * 3, tip[1] - hash(i, p.id, 7) * 2, 0.4, 0.4); }
+  }
+  if (q.walking && q.act === "work" && (p.job === "woodcutter" || p.job === "mason" || p.job === "builder")) {
+    // carried load: a log on the shoulder, or a stone block / plank under the arm
+    const shp: Pt = [sh[0], sh[1] - 0.2 * s];
+    if (p.job === "mason") { c.fillStyle = "#a9a49c"; c.fillRect(hand[0] - 0.9 * s, hand[1] - 1.1 * s, 1.8 * s, 1.2 * s); c.strokeStyle = "rgba(22,16,10,0.8)"; c.lineWidth = 0.25; c.strokeRect(hand[0] - 0.9 * s, hand[1] - 1.1 * s, 1.8 * s, 1.2 * s); }
+    else { c.strokeStyle = p.job === "woodcutter" ? "#5e4229" : "#b08a5a"; c.lineWidth = (p.job === "woodcutter" ? 1.1 : 0.6) * s; c.beginPath(); c.moveTo(shp[0] - 2.6 * s * face, shp[1] + 0.4 * s); c.lineTo(shp[0] + 2.4 * s * face, shp[1] - 0.6 * s); c.stroke(); }
+  }
   if (q.working && p.job === "farmer") line(c, [hand[0] - face * 1.2, hand[1] - 1.2], [hand[0] + face * 1.4, hand[1] + 2.6 + Math.sin(t / 420 + p.id) * 0.5], p.id, 0.4, "#7a5a3c");
   if (L.stick) line(c, hand, [hand[0] + face * 0.5, Y], p.id + 1, 0.35, "#6f533b");
   return hc;
@@ -457,6 +544,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
       const [cx, cy] = iso(x, y);
       if (st.kind === "field") { c.fillStyle = texture(c, st.v > 0.5 ? "wheat" : "crops") ?? "#c9b46a"; diamond(c, cx, cy, step); c.fill(); }
       else if (PATHLIKE.has(st.kind) || st.kind === "square") { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#bfa47a"; diamond(c, cx, cy, step * 0.8); c.fill(); }
+      else if (st.build !== undefined) drawSite(c, st, cx, cy, 0, false);
       else if (!FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
     }
   }
@@ -950,7 +1038,8 @@ export function draw(
     const tr = terrain(x, y);
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
     if (!detail) {
-      if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
+      if (st?.build !== undefined) drawSite(c, st, cx, cy, t, false);
+      else if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
       continue; // forests and crags are baked into the ground chunks
     }
     if (tr === "mountain" && hash(x, y, 26) > 0.55) {

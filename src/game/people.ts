@@ -5,7 +5,7 @@ import { hash, vnoise, structureAt, effAge, radiusOf, terrain, buildable, FLAT, 
 export type Sex = "f" | "m";
 export type Job =
   | "farmer" | "baker" | "smith" | "innkeeper" | "miller" | "crafter" | "worker"
-  | "sawyer" | "merchant" | "priest" | "carter" | "homemaker" | "retired" | "child";
+  | "sawyer" | "builder" | "woodcutter" | "mason" | "merchant" | "priest" | "carter" | "homemaker" | "retired" | "child";
 export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play";
 type Tile = [number, number];
 export type Person = {
@@ -30,7 +30,7 @@ const SLOTS: Partial<Record<Kind, [Job, number]>> = {
   bakery: ["baker", 2], smithy: ["smith", 2], inn: ["innkeeper", 2], mill: ["miller", 1], workshop: ["crafter", 2],
   factory: ["worker", 6], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
 };
-const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["farmer", "merchant", "carter"]);
+const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["farmer", "merchant", "carter", "builder", "woodcutter", "mason"]);
 const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge", "rail", "avenue"]);
 
 export type Town = {
@@ -54,9 +54,11 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const r = radiusOf(effAge(s, seeds, now));
   const x0 = Math.floor(s.x - r - 2), x1 = Math.ceil(s.x + r + 2), y0 = Math.floor(s.y - r - 2), y1 = Math.ceil(s.y + r + 2);
   const byKind = new Map<Kind, Tile[]>();
+  const sites: Tile[] = [];
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     const st = structureAt(x, y, seeds, now);
     if (!st || st.seed.id !== s.id) continue;
+    if (st.build !== undefined) { sites.push([x, y]); continue; }
     if (!byKind.has(st.kind)) byKind.set(st.kind, []);
     byKind.get(st.kind)!.push([x, y]);
   }
@@ -89,6 +91,14 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   for (const [k, sl] of Object.entries(SLOTS) as [Kind, [Job, number]][])
     for (const at of byKind.get(k) ?? []) for (let i = 0; i < sl[1]; i++) slots.push({ job: sl[0], at });
   slots.sort((a, b) => hash(a.at[0] * 7 + a.job.length, a.at[1], 501) - hash(b.at[0] * 7 + b.job.length, b.at[1], 501));
+  // raw materials first: a woodcutter at the nearest forest edge, a mason at the nearest rocks
+  const age = effAge(s, seeds, now);
+  const [wood, rock] = resourceSpots(s, r);
+  if (rock && age >= 24) slots.unshift({ job: "mason", at: rock });
+  if (wood) { slots.unshift({ job: "woodcutter", at: wood }); if (r > 8) slots.unshift({ job: "woodcutter", at: wood }); }
+  // every construction site gets builders before anyone else is hired
+  sites.sort((a, b) => Math.hypot(a[0] - s.x, a[1] - s.y) - Math.hypot(b[0] - s.x, b[1] - s.y));
+  for (const at of sites.slice(0, 4).reverse()) { const fr = front(at) ?? at; slots.unshift({ job: "builder", at: fr }, { job: "builder", at: fr }); }
 
   const homes: Tile[] = [];
   for (const k of Object.keys(HOMES) as Kind[]) homes.push(...(byKind.get(k) ?? []));
@@ -132,6 +142,31 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     }
   }
   return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map() };
+}
+
+/** Nearest open forest-edge tile (woodcutting) and open tile beside hills/rocks (quarry). */
+const spotCache = new Map<string, [Tile | null, Tile | null]>();
+export function resourceSpots(s: Seed, r: number): [Tile | null, Tile | null] {
+  const R = Math.ceil(r + 10), key = `${s.id}:${s.x}:${s.y}:${R}`;
+  const hit = spotCache.get(key); if (hit) return hit;
+  let wood: Tile | null = null, rock: Tile | null = null, wd = Infinity, rd = Infinity;
+  for (let y = s.y - R; y <= s.y + R; y++) for (let x = s.x - R; x <= s.x + R; x++) {
+    const d = Math.hypot(x - s.x, y - s.y);
+    if (d < r * 0.6 + 2 || d > R) continue;
+    const t = terrain(x, y);
+    if (t === "forest" && d < wd) {
+      let open = false;
+      for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) { const n = terrain(x + i, y + j); if (n !== "forest" && buildable(n)) open = true; }
+      if (open) { wd = d; wood = [x, y]; }
+    }
+    if (buildable(t) && t !== "forest" && d < rd) {
+      for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) { const n = terrain(x + i, y + j); if (n === "hill" || n === "mountain") { rd = d; rock = [x, y]; break; } }
+    }
+  }
+  const out: [Tile | null, Tile | null] = [wood, rock];
+  if (spotCache.size > 64) spotCache.clear();
+  spotCache.set(key, out);
+  return out;
 }
 
 // ---------------- collision ----------------

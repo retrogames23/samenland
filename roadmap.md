@@ -11,3 +11,5 @@
 - [x] Neue Gebäudebilder, Alleen und Schienenverbindungen
 - [x] Kalender-Jahreszeiten in Nahansicht und Übersicht
 - [x] Wachstumsregeln und Jahreszeiten testen, im Spiel prüfen
+- [x] Baustellen statt plötzlich auftauchender Häuser, Zimmerleute, Holzfäller und Steinmetze
+- [ ] Sichtbare Warenflüsse und Lieferketten (Holz → Sägewerk → Baustelle, Korn → Mühle → Bäckerei)
