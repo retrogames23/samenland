@@ -1,6 +1,6 @@
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
-import { drawBuildingSprite, spriteBox } from "./building-sprites";
+import { drawBuildingSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, wandererImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
@@ -915,7 +915,7 @@ export function draw(
   renderNow = now; setArtTime(now); setNatureTime(now);
   lastPeople.length = 0;
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
-  const t = performance.now();
+  const t = performance.now(); setSpriteTime(t);
   const z = cam.zoom * dpr;
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.fillStyle = hsl(205, 30, 58); c.fillRect(0, 0, w, h);
