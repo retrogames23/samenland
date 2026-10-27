@@ -181,7 +181,7 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
     t.costC.set(k, v);
     return v; // 40 = through a building only as a last resort (hidden there: courtyard / back door)
   };
-  const dist = new Float32Array(W * H).fill(Infinity), prev = new Int32Array(W * H).fill(-1);
+  const dist = new Float64Array(W * H).fill(Infinity), prev = new Int32Array(W * H).fill(-1);
   const heap: [number, number][] = [];
   const push = (d: number, i: number) => { heap.push([d, i]); let k = heap.length - 1; while (k > 0) { const p = (k - 1) >> 1; if (heap[p]![0] <= heap[k]![0]) break; [heap[p], heap[k]] = [heap[k]!, heap[p]!]; k = p; } };
   const pop = () => { const top = heap[0]!; const last = heap.pop()!; if (heap.length) { heap[0] = last; let k = 0; for (;;) { const l = k * 2 + 1, r = l + 1; let m = k; if (l < heap.length && heap[l]![0] < heap[m]![0]) m = l; if (r < heap.length && heap[r]![0] < heap[m]![0]) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k]!, heap[m]!]; k = m; } } return top; };
