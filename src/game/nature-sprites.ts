@@ -75,3 +75,14 @@ if (typeof window !== "undefined") {
   for (const s of Object.values(NATURE)) img(s.url);
   for (const u of Object.values(TEX)) img(u);
 }
+
+const samples = new Map<Tex, { d: Uint8ClampedArray; n: number }>();
+/** Small RGB sample grid of a texture (for the cached overview map); null until loaded. */
+export function texSample(t: Tex) {
+  const s = samples.get(t); if (s) return s;
+  const i = img(TEX[t]); if (!i) return null;
+  const n = 64, cv = document.createElement("canvas"); cv.width = cv.height = n;
+  const g = cv.getContext("2d", { willReadFrequently: true })!; g.drawImage(i, 0, 0, n, n);
+  const r = { d: g.getImageData(0, 0, n, n).data, n }; samples.set(t, r); return r;
+}
+export const allTexturesReady = () => (Object.keys(TEX) as Tex[]).every((t) => texSample(t));

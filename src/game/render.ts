@@ -1,5 +1,5 @@
 import { drawBuildingSprite } from "./building-sprites";
-import { texture, drawNature, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -410,10 +410,11 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
 }
 
 let overview: HTMLCanvasElement | null = null;
-/** Cached map picture at 1/8 iso scale (built once; terrain is static). */
+/** Cached map picture at 1/16 iso scale, coloured from the real ground textures (terrain is static). */
 function overviewMap() {
   if (overview) return overview;
-  const S = 16, W = (MAP * TW) / S, H = (MAP * TH) / S;
+  const ready = allTexturesReady();
+  const S = 8, W = (MAP * TW) / S, H = (MAP * TH) / S;
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const g = cv.getContext("2d")!; const img = g.createImageData(W, H);
   const rgb = new Map<string, [number, number, number]>();
@@ -421,45 +422,81 @@ function overviewMap() {
   for (const [k, [h, s, l]] of Object.entries(TERRAIN)) { tmp.fillStyle = hsl(h, s, l); tmp.fillRect(0, 0, 1, 1); const d = tmp.getImageData(0, 0, 1, 1).data; rgb.set(k, [d[0]!, d[1]!, d[2]!]); }
   for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
     const ix = px * S - (MAP * TW) / 2, iy = py * S;
-    const tx = Math.floor(ix / TW + iy / TH), ty = Math.floor(iy / TH - ix / TW);
+    // jitter the lookup so terrain borders read as soft, organic lines instead of stair steps
+    const jx = (hash(px, py, 7) - 0.5) * TW * 0.9, jy = (hash(px, py, 8) - 0.5) * TH * 0.9;
+    const fx = (ix + jx) / TW + (iy + jy) / TH, fy = (iy + jy) / TH - (ix + jx) / TW;
+    const tx = Math.floor(fx), ty = Math.floor(fy);
     const o = (py * W + px) * 4;
     if (tx < 0 || ty < 0 || tx >= MAP || ty >= MAP) continue;
-    const c = rgb.get(terrain(tx, ty))!; const n = (hash(tx, ty, 11) - 0.5) * 8;
-    img.data[o] = c[0] + n; img.data[o + 1] = c[1] + n; img.data[o + 2] = c[2] + n; img.data[o + 3] = 255;
+    const tr = terrain(tx, ty);
+    let r: number, gg: number, b: number;
+    const sm = ready ? texSample(TEX_OF[tr]!) : null;
+    if (sm) { const q = ((py % sm.n) * sm.n + (px % sm.n)) * 4; r = sm.d[q]!; gg = sm.d[q + 1]!; b = sm.d[q + 2]!; }
+    else { const c0 = rgb.get(tr)!; r = c0[0]; gg = c0[1]; b = c0[2]; }
+    if (tr === "deep") { r *= 0.6; gg *= 0.7; b *= 0.8; }
+    if (tr === "forest") { r *= 0.78; gg *= 0.85; b *= 0.75; }
+    if (tr === "mountain") { const m = 0.9 + hash(tx, ty, 3) * 0.2; r *= m; gg *= m; b *= m; }
+    img.data[o] = r; img.data[o + 1] = gg; img.data[o + 2] = b; img.data[o + 3] = 255;
   }
   g.putImageData(img, 0, 0);
-  overview = cv; return cv;
+  // soften once more so coasts and rivers look painted, not pixelated
+  const out = document.createElement("canvas"); out.width = W; out.height = H;
+  const og = out.getContext("2d")!; og.filter = "blur(0.8px)"; og.drawImage(cv, 0, 0);
+  if (ready) overview = out;
+  return out;
 }
 
 function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], now: number) {
   const z = cam.zoom * dpr;
   c.setTransform(1, 0, 0, 1, 0, 0);
-  c.fillStyle = hsl(205, 30, 58); c.fillRect(0, 0, w, h);
+  c.fillStyle = "#1f4f63"; c.fillRect(0, 0, w, h);
   c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
-  c.imageSmoothingEnabled = true;
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   c.drawImage(overviewMap(), -(MAP * TW) / 2, 0, MAP * TW, MAP * TH);
   const px = 1 / z;
-  c.strokeStyle = "#a9875c"; c.lineWidth = 2 * dpr * px; c.lineJoin = "round";
+  c.lineJoin = "round"; c.lineCap = "round";
   for (const l of links(seeds)) {
     const p = roadProgress(l, now); if (p <= 0) continue;
+    const pts = smoothRoad(l);
     c.beginPath();
-    l.tiles.forEach(([x, y], i) => { const [a, b] = iso(x, y); i ? c.lineTo(a, b) : c.moveTo(a, b); });
-    c.globalAlpha = 0.4 + 0.6 * p; c.stroke(); c.globalAlpha = 1;
+    pts.forEach(([x, y], i) => { const [a, b] = iso(x, y); i ? c.lineTo(a, b) : c.moveTo(a, b); });
+    c.globalAlpha = 0.35 + 0.55 * p;
+    c.strokeStyle = "rgba(60,40,20,0.5)"; c.lineWidth = Math.max(3.5 * dpr * px, 5); c.stroke();
+    c.strokeStyle = texture(c, "dirt") ?? "#b89468"; c.lineWidth = Math.max(2.2 * dpr * px, 3.5); c.stroke();
+    c.globalAlpha = 1;
   }
+  const vx0 = cam.x - w / 2 / z, vx1 = cam.x + w / 2 / z, vy0 = cam.y - h / 2 / z, vy1 = cam.y + h / 2 / z;
   for (const s of seeds) {
     const [ix, iy] = iso(s.x, s.y);
-    const r = Math.max(4 * dpr * px, radiusOf(effAge(s, seeds, now)) * TW * 0.5);
-    c.beginPath(); c.ellipse(ix, iy, r, r / 2, 0, 0, 7);
-    c.fillStyle = hsl(s.hue, 45, 52, 0.85); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.2 * dpr * px; c.stroke();
+    const R = radiusOf(effAge(s, seeds, now));
+    const rr = Math.max(R * TW * 0.5, 3 * dpr * px);
+    if (ix + rr < vx0 || ix - rr > vx1 || iy + rr < vy0 || iy - rr > vy1) continue;
+    // settled ground under the town
+    c.beginPath(); c.ellipse(ix, iy, rr * 1.05, rr * 0.55, 0, 0, 7);
+    c.fillStyle = "rgba(70,55,35,0.25)"; c.fill();
+    // the real buildings, at true scale, back to front
+    const Ri = Math.ceil(R) + 1, step = cam.zoom < 0.12 && Ri > 14 ? 2 : 1;
+    for (let d = -2 * Ri; d <= 2 * Ri; d++) for (let x = s.x - Ri; x <= s.x + Ri; x += step) {
+      const y = s.x + s.y + d - x; if (y < s.y - Ri || y > s.y + Ri) continue;
+      const st = structureAt(x, y, seeds, now); if (!st) continue;
+      const [cx, cy] = iso(x, y);
+      if (st.kind === "field") { c.fillStyle = texture(c, st.v > 0.5 ? "wheat" : "crops") ?? "#c9b46a"; diamond(c, cx, cy, step); c.fill(); }
+      else if (PATHLIKE.has(st.kind) || st.kind === "square") { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#bfa47a"; diamond(c, cx, cy, step * 0.8); c.fill(); }
+      else if (!FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
+    }
   }
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.font = `700 ${Math.round(18 * dpr)}px Georgia, 'Times New Roman', serif`; c.textAlign = "center";
   for (const s of seeds) {
     const [ix, iy] = iso(s.x, s.y);
-    const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2 - 10 * dpr;
+    const R = radiusOf(effAge(s, seeds, now)) * TH * 0.5 * z;
+    const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2 - R - 12 * dpr;
     c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(s.name, sx, sy);
     c.fillStyle = INK; c.fillText(s.name, sx, sy);
   }
+}
+function diamond(c: C, cx: number, cy: number, k: number) {
+  c.beginPath(); c.moveTo(cx, cy - TH / 2 * k); c.lineTo(cx + TW / 2 * k, cy); c.lineTo(cx, cy + TH / 2 * k); c.lineTo(cx - TW / 2 * k, cy); c.closePath();
 }
 
 export function draw(
@@ -526,8 +563,8 @@ export function draw(
       if (!detail) {
         c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
         if (st && !FLAT.has(st.kind)) { /* drawn in pass 2 */ }
-        else if (st?.kind === "field") { c.fillStyle = hsl(st.v > 0.5 ? 44 : 78, 45, 66, 0.9); c.fill(); }
-        else if (st && PATHLIKE.has(st.kind)) { c.fillStyle = "#cdb084"; c.fill(); }
+        else if (st?.kind === "field") { c.fillStyle = texture(c, st.v > 0.5 ? "wheat" : "crops") ?? hsl(44, 45, 66); c.fill(); }
+        else if (st && (PATHLIKE.has(st.kind) || st.kind === "square")) { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#cdb084"; diamond(c, cx, cy, 0.85); c.fill(); }
         continue;
       }
       if (isWater(tr) && hash(x, y, 15) > 0.82) {
@@ -601,11 +638,9 @@ export function draw(
   for (const { x, y, cx, cy, st } of tiles) {
     const tr = terrain(x, y);
     if (!detail) {
-      if (st && !FLAT.has(st.kind) && st.kind !== "hay") {
-        const [rh, rs, rl] = roofHue(st, st.kind === "factory" || st.kind === "warehouse");
-        c.beginPath(); c.moveTo(cx, cy - 7); c.lineTo(cx + 7, cy - 3); c.lineTo(cx, cy + 1); c.lineTo(cx - 7, cy - 3); c.closePath();
-        c.fillStyle = hsl(rh!, rs!, rl!); c.fill(); c.strokeStyle = INK; c.lineWidth = 0.8; c.stroke();
-      } else if (tr === "forest" && !st && hash(x, y, 19) > 0.3) blob(c, cx, cy - 3, 7, hsl(100, 26, 44), x * 3 + y, false);
+      if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
+      else if (tr === "forest" && !st && hash(x, y, 19) > 0.25) tree(c, cx, cy + 2, 0.9 + hash(x, y, 20) * 0.3, 0, hash(x, y, 21), x * 13 + y, 0.6);
+      else if (tr === "mountain" && hash(x, y, 26) > 0.6) drawNature(c, "crag", cx, cy + 4, 0.6 + hash(x, y, 27) * 0.4, 0, hash(x, y, 29) > 0.5);
       continue;
     }
     if (tr === "mountain" && hash(x, y, 26) > 0.55) {
