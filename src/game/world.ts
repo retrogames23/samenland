@@ -84,44 +84,60 @@ export function resourceAt(x: number, y: number): Resource | null {
 
 export const ageHours = (s: Seed, now: number) => Math.max(0, (now - Date.parse(s.created_at)) / 3.6e6);
 
-/** Growth stages: Hof, Weiler, Dorf, Kleinstadt, Industrie (thresholds in hours). */
+/** Six eras in effective hours. Expansion slows, but never stops. */
 export const STAGES = [
-  { name: "Hof", from: 0 },
-  { name: "Weiler", from: 24 },
-  { name: "Dorf", from: 120 },
-  { name: "Kleinstadt", from: 480 },
-  { name: "Industriestadt", from: 1440 },
+  { name: "Ursprung", from: 0 }, { name: "Weiler", from: 24 },
+  { name: "Dorf", from: 168 }, { name: "Kleinstadt", from: 2160 },
+  { name: "Handelsstadt", from: 4380 }, { name: "Metropole", from: 8760 },
 ] as const;
-export const stageOf = (h: number) => (h >= 1440 ? 4 : h >= 480 ? 3 : h >= 120 ? 2 : h >= 24 ? 1 : 0);
-/** Town radius in tiles: starts as a single farm, grows with sqrt(age) — very slowly. */
-export const radiusOf = (h: number) => 1.6 + 0.45 * Math.sqrt(h);
-const birthAt = (d: number) => Math.pow(Math.max(0, d - 1.6) / 0.45, 2);
-
+export const stageOf = (h: number) => {
+  let stage = 0;
+  for (let i = 1; i < STAGES.length; i++) if (h >= STAGES[i].from) stage = i;
+  return stage;
+};
+/** Mixed sqrt/log expansion: ~43 tiles at two years, continuing beyond that. */
+export const radiusOf = (h: number) => 1.6 + 0.18 * Math.sqrt(Math.max(0, h)) + 3 * Math.log1p(Math.max(0, h) / 60);
+/** Monotonic numeric inverse; no artificial maximum town size. */
+export const birthAt = (d: number) => {
+  if (d <= 1.6) return 0;
+  let lo = 0, hi = 24;
+  while (radiusOf(hi) < d) hi *= 2;
+  for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (radiusOf(mid) < d) lo = mid; else hi = mid; }
+  return (lo + hi) / 2;
+};
 export type Kind =
   | "well" | "path" | "street" | "square"
   | "farmhouse" | "barn" | "field" | "pasture" | "garden" | "hay"
   | "cottage" | "church" | "mill" | "inn" | "bakery"
   | "townhouse" | "workshop" | "smithy" | "warehouse" | "market"
-  | "factory" | "sawmill" | "road" | "bridge";
+  | "factory" | "sawmill" | "road" | "bridge"
+  | "campfire" | "hut" | "coop" | "fence" | "chapel" | "watermill" | "harbor"
+  | "stall" | "townhall" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue";
 export type Structure = { kind: Kind; seed: Seed; v: number };
-export const FLAT: ReadonlySet<Kind> = new Set(["path", "street", "square", "field", "pasture", "garden", "market", "road", "bridge"]);
-
-const CORE: Record<string, Kind> = { "1,0": "farmhouse", "0,1": "barn", "1,1": "hay", "-1,0": "field", "-1,1": "field", "0,-1": "garden" };
+export const FLAT: ReadonlySet<Kind> = new Set(["path", "street", "square", "field", "pasture", "garden", "market", "road", "bridge", "rail", "avenue"]);
+const CORE: Record<string, Kind> = { "1,0": "hut", "0,1": "hut", "1,1": "campfire", "-1,0": "garden", "-1,1": "field", "0,-1": "garden" };
 const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
-  { dx: 2, dy: -2, at: 110, kind: "church" },
-  { dx: -3, dy: -3, at: 140, kind: "mill" },
-  { dx: 3, dy: 1, at: 160, kind: "inn" },
-  { dx: -2, dy: 2, at: 200, kind: "bakery" },
-  { dx: 0, dy: -3, at: 480, kind: "market" },
-  { dx: 4, dy: -1, at: 520, kind: "smithy" },
-  { dx: -4, dy: 1, at: 600, kind: "warehouse" },
-  { dx: 8, dy: 6, at: 1440, kind: "factory" },
-  { dx: -7, dy: -6, at: 1500, kind: "sawmill" },
-  { dx: -9, dy: 5, at: 1700, kind: "factory" },
-  { dx: 6, dy: -9, at: 2200, kind: "factory" },
+  { dx: 2, dy: -1, at: 30, kind: "coop" }, { dx: -2, dy: 1, at: 48, kind: "barn" },
+  { dx: 2, dy: -2, at: 180, kind: "chapel" }, { dx: -3, dy: -3, at: 240, kind: "watermill" },
+  { dx: 3, dy: 1, at: 280, kind: "inn" }, { dx: -2, dy: 2, at: 360, kind: "bakery" },
+  { dx: 0, dy: -3, at: 2160, kind: "stall" }, { dx: 4, dy: -1, at: 2300, kind: "smithy" },
+  { dx: -4, dy: 1, at: 2500, kind: "warehouse" },
+  { dx: 3, dy: -4, at: 4380, kind: "townhall" }, { dx: 2, dy: -2, at: 4500, kind: "church" },
+  { dx: 8, dy: 6, at: 8760, kind: "manufactory" }, { dx: -7, dy: -6, at: 9200, kind: "steamworks" },
+  { dx: -9, dy: 5, at: 10000, kind: "station" }, { dx: 6, dy: -9, at: 12000, kind: "factory" },
+  { dx: 12, dy: 3, at: 14500, kind: "sawmill" },
 ];
-const SPOKE_AT = [0, 0, 24, 72, 150, 300, 600, 1200];
-const RINGS = [{ r: 5, at: 150 }, { r: 10, at: 600 }, { r: 16, at: 1500 }, { r: 24, at: 3500 }];
+const SPOKE_AT = [0, 0, 48, 168, 720, 2160, 4380, 8760];
+const RINGS = [{ r: 5, at: 240 }, { r: 10, at: 2160 }, { r: 16, at: 4380 }, { r: 24, at: 8760 }, { r: 34, at: 15000 }];
+const waterNearCache = new Map<number, boolean>();
+export function waterNearby(x: number, y: number): boolean {
+  const key = y * MAP + x, hit = waterNearCache.get(key); if (hit !== undefined) return hit;
+  let water = false;
+  for (let j = -3; j <= 3 && !water; j++) for (let i = -3; i <= 3; i++) if (Math.hypot(i,j) <= 3 && isWater(terrain(x+i,y+j))) { water = true; break; }
+  waterNearCache.set(key, water); return water;
+}
+const birthCache = new Map<number, number>();
+const tileBirth = (d: number) => { const key = Math.round(d * d); let h = birthCache.get(key); if (h === undefined) { h = birthAt(d); birthCache.set(key, h); } return h; };
 
 function seedNum(s: Seed) { let h = 0; for (const ch of s.id) h = (h * 31 + ch.charCodeAt(0)) | 0; return h; }
 
@@ -155,38 +171,51 @@ function weighted<T>(h: number, opts: [T, number][]): T {
 }
 
 function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: number): Kind | null {
-  const dx = x - s.x, dy = y - s.y;
-  const stage = stageOf(age);
-  if (dx === 0 && dy === 0) return "well";
+  const dx = x - s.x, dy = y - s.y, stage = stageOf(age);
+  if (dx === 0 && dy === 0) return age < 0.15 ? "campfire" : "well";
   const core = CORE[`${dx},${dy}`];
-  if (core) return stage >= 3 && core !== "barn" && core !== "hay" ? "square" : core;
-  for (const l of LANDMARKS) if (l.dx === dx && l.dy === dy && age >= l.at) return l.kind;
-  if (pathAt(x, y, s, age, r)) return stage >= 3 && d < r * 0.6 ? "street" : "path";
+  if (core) {
+    if (age < 0.05 && core !== "hut") return null;
+    if (dx === 0 && dy === 1 && age < 2) return null;
+    if (core === "hut") return stage >= 3 ? "townhouse" : stage >= 1 ? "farmhouse" : "hut";
+    if (core === "campfire") return stage >= 2 ? "square" : "campfire";
+    return stage >= 3 ? "square" : core;
+  }
+  // Later landmarks replace earlier ones at the same site.
+  for (let i = LANDMARKS.length - 1; i >= 0; i--) {
+    const l = LANDMARKS[i];
+    if (l.dx !== dx || l.dy !== dy || age < l.at) continue;
+    return l.kind === "watermill" && !waterNearby(x,y) ? "mill" : l.kind;
+  }
+  if (stage >= 3 && d > 3 && d < r * 0.8 && waterNearby(x,y) && hash(x,y,89) > 0.985) return "harbor";
+  if (pathAt(x,y,s,age,r)) return stage >= 4 && d > r * 0.55 ? "avenue" : stage >= 3 && d < r * 0.6 ? "street" : "path";
   if (stage >= 2 && d < 1.6) return "square";
-  const birth = birthAt(d) * (0.75 + 0.5 * hash(x, y, 3));
+  if (stage === 0) return null;
+  const birth = tileBirth(d) * (0.75 + 0.5 * hash(x,y,3));
   if (age < birth) return null;
   let near = false;
-  for (let j = -1; j <= 1 && !near; j++) for (let i = -1; i <= 1; i++) if ((i || j) && pathAt(x + i, y + j, s, age, r)) { near = true; break; }
-  const h = hash(x, y, 4), bs = stageOf(birth);
+  for (let j=-1;j<=1 && !near;j++) for (let i=-1;i<=1;i++) if ((i||j) && pathAt(x+i,y+j,s,age,r)) { near=true; break; }
+  const h = hash(x,y,4);
   if (!near) {
-    if (stage >= 3 && d < r * 0.45) return h < 0.5 ? "garden" : null;
-    return weighted(h, [["field", 55], ["pasture", bs <= 2 ? 25 : 5], ["garden", 8], ["hay", 4]]) as Kind;
+    if (stage >= 4 && d < r * 0.5) return h < 0.45 ? "garden" : null;
+    return weighted(h, [["field",55],["pasture",20],["garden",10],["hay",4],["fence",6],["coop",5]]);
   }
-  if (hash(x, y, 2) > 0.78) return h < 0.5 ? "garden" : null;
-  let k: Kind;
-  if (bs <= 1) k = weighted(h, [["farmhouse", 50], ["barn", 25], ["garden", 15], ["hay", 10]]);
-  else if (bs === 2) k = weighted(h, [["cottage", 55], ["farmhouse", 20], ["barn", 10], ["garden", 15]]);
-  else if (bs === 3) k = weighted(h, [["townhouse", 60], ["workshop", 15], ["cottage", 15], ["warehouse", 10]]);
-  else k = weighted(h, [["townhouse", 40], ["factory", 15], ["warehouse", 20], ["workshop", 25]]);
-  // densification: old farmhouses near the centre get rebuilt as townhouses
-  if (stage >= 3 && (k === "farmhouse" || k === "cottage") && d < r * 0.4 && hash(x, y, 9) < 0.6) k = "townhouse";
-  return k;
+  if (hash(x,y,2)>0.82) return h<0.5?"garden":null;
+  if (stage <= 1) return weighted(h,[["farmhouse",50],["barn",25],["garden",15],["coop",10]]);
+  if (stage === 2) return weighted(h,[["cottage",55],["farmhouse",20],["barn",10],["garden",15]]);
+  // Stable sectors form residential, craft and market districts.
+  const sector = ((Math.atan2(dy,dx) + Math.PI + hash(seedNum(s),1,81)*2) % (2*Math.PI))/(2*Math.PI);
+  if (stage === 3) return weighted(h,[["townhouse",55],["workshop",20],["cottage",15],["stall",10]]);
+  if (d < r * 0.4) return weighted(h,[["townhouse",75],["workshop",10],["stall",10],["garden",5]]);
+  if (stage === 5 && d > r * 0.72 && sector < 0.55) return "suburb";
+  if (sector < 0.4) return stage >= 5 ? weighted(h,[["manufactory",25],["steamworks",8],["warehouse",25],["workshop",42]]) : weighted(h,[["workshop",65],["smithy",15],["warehouse",20]]);
+  return weighted(h,[["townhouse",65],["stall",15],["cottage",20]]);
 }
 
 let cacheKey = "";
 const scache = new Map<number, Structure | null>();
 export function structureAt(x: number, y: number, seeds: Seed[], now: number): Structure | null {
-  const key = `${Math.floor(now / 60000)}|${seeds.length}`;
+  const key = `${Math.floor(now / 60000)}|${seeds.map(s => `${s.id}:${s.x}:${s.y}:${s.created_at}`).join(";")}`;
   if (key !== cacheKey) { cacheKey = key; scache.clear(); }
   const ck = y * MAP + x;
   const c = scache.get(ck);
@@ -247,7 +276,7 @@ let linkCache: Link[] = [];
 const roadIdx = new Map<number, { link: Link; i: number }>();
 
 export function links(seeds: Seed[]): Link[] {
-  const key = seeds.map((s) => s.id).join("|");
+  const key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}`).join("|");
   if (key === linkKey) return linkCache;
   linkKey = key; linkCache = []; roadIdx.clear();
   for (let i = 0; i < seeds.length; i++) for (let j = i + 1; j < seeds.length; j++) {
@@ -337,3 +366,6 @@ export function effAge(s: Seed, seeds: Seed[], now: number) {
 export function isTwin(l: Link, seeds: Seed[], now: number) {
   return radiusOf(effAge(l.a, seeds, now)) + radiusOf(effAge(l.b, seeds, now)) >= l.d;
 }
+
+/** Rails unlock only when BOTH linked settlements enter the industrial era. */
+export const railReady = (l: Link, seeds: Seed[], now: number) => stageOf(effAge(l.a,seeds,now)) >= 5 && stageOf(effAge(l.b,seeds,now)) >= 5;
