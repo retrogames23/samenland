@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, type Camera } from "@/game/render";
-import { canPlant, radiusOf, ageHours, townStats, terrain, type Planting, type Seed } from "@/game/world";
+import { canPlant, radiusOf, ageHours, townStats, terrain, STAGES, stageOf, type Planting, type Seed } from "@/game/world";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const PX = 2; // pixel-art scale
 type Mode = "look" | "seed" | "tree" | "flower" | "lantern";
 const TERRAIN_DE: Record<string, string> = { deep: "Tiefes Meer", water: "Wasser", sand: "Sand", grass: "Wiese", meadow: "Blumenwiese", forest: "Wald", hill: "Hügel" };
 
@@ -20,8 +19,9 @@ export function Game() {
   const [msg, setMsg] = useState<string | null>(null);
   const [, tick] = useState(0);
 
-  const cam = useRef<Camera>({ x: 0, y: 0, zoom: 1.4 });
-  const target = useRef({ zoom: 1.4, ax: 0, ay: 0 });
+  const dpr = useRef(1);
+  const cam = useRef<Camera>({ x: 0, y: 0, zoom: 2.6 });
+  const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
   const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine });
   st.current.seeds = seeds; st.current.hover = hover; st.current.mode = mode; st.current.mine = mine;
   st.current.plantings = new Map(plantings.map((p) => [`${p.x},${p.y}`, p]));
@@ -55,19 +55,19 @@ export function Game() {
     const cv = canvasRef.current!;
     const ctx = cv.getContext("2d")!;
     let raf = 0;
-    const resize = () => { cv.width = Math.ceil(cv.clientWidth / PX); cv.height = Math.ceil(cv.clientHeight / PX); };
+    const resize = () => { dpr.current = window.devicePixelRatio || 1; cv.width = Math.ceil(cv.clientWidth * dpr.current); cv.height = Math.ceil(cv.clientHeight * dpr.current); };
     resize(); window.addEventListener("resize", resize);
     const loop = () => {
       const c = cam.current, tg = target.current;
       if (Math.abs(tg.zoom - c.zoom) > 0.0005) {
         const nz = c.zoom + (tg.zoom - c.zoom) * 0.16;
-        const px = tg.ax - cv.width / 2, py = tg.ay - cv.height / 2;
+        const px = (tg.ax - cv.width / 2) / dpr.current, py = (tg.ay - cv.height / 2) / dpr.current;
         c.x += px / c.zoom - px / nz; c.y += py / c.zoom - py / nz; c.zoom = nz;
       }
       const s = st.current;
       const h = s.hover;
       const ok = h && s.mode === "seed" ? canPlant(h[0], h[1], s.seeds) === null : null;
-      draw(ctx, cv.width, cv.height, c, s.seeds, s.plantings, Date.now(), h, ok);
+      draw(ctx, cv.width, cv.height, dpr.current, c, s.seeds, s.plantings, Date.now(), h, ok);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -75,7 +75,7 @@ export function Game() {
       e.preventDefault();
       const r = cv.getBoundingClientRect();
       const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
-      target.current = { zoom: Math.min(4, Math.max(0.3, target.current.zoom * Math.exp(-dy * 0.0015))), ax: (e.clientX - r.left) / PX, ay: (e.clientY - r.top) / PX };
+      target.current = { zoom: Math.min(7, Math.max(0.5, target.current.zoom * Math.exp(-dy * 0.0015))), ax: (e.clientX - r.left) * dpr.current, ay: (e.clientY - r.top) * dpr.current };
     };
     cv.addEventListener("wheel", onWheel, { passive: false });
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); cv.removeEventListener("wheel", onWheel); };
@@ -83,8 +83,8 @@ export function Game() {
 
   const tileAt = (e: React.PointerEvent) => {
     const cv = canvasRef.current!, r = cv.getBoundingClientRect(), c = cam.current;
-    const sx = (e.clientX - r.left) / PX, sy = (e.clientY - r.top) / PX;
-    return toTile((sx - cv.width / 2) / c.zoom + c.x, (sy - cv.height / 2) / c.zoom + c.y) as [number, number];
+    const sx = e.clientX - r.left, sy = e.clientY - r.top;
+    return toTile((sx - r.width / 2) / c.zoom + c.x, (sy - r.height / 2) / c.zoom + c.y) as [number, number];
   };
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
 
@@ -116,14 +116,14 @@ export function Game() {
     <div className="relative h-screen w-full overflow-hidden bg-background">
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 h-full w-full cursor-grab touch-none [image-rendering:pixelated]"
+        className="absolute inset-0 h-full w-full cursor-grab touch-none"
         onPointerDown={(e) => { drag.current = { x: e.clientX, y: e.clientY, moved: false }; (e.target as Element).setPointerCapture(e.pointerId); }}
         onPointerMove={(e) => {
           const d = drag.current;
           if (d && e.buttons) {
             const dx = e.clientX - d.x, dy = e.clientY - d.y;
             if (Math.abs(dx) + Math.abs(dy) > 3) d.moved = true;
-            if (d.moved) { cam.current.x -= dx / PX / cam.current.zoom; cam.current.y -= dy / PX / cam.current.zoom; d.x = e.clientX; d.y = e.clientY; }
+            if (d.moved) { cam.current.x -= dx / cam.current.zoom; cam.current.y -= dy / cam.current.zoom; d.x = e.clientX; d.y = e.clientY; }
           }
           setHover(tileAt(e));
         }}
@@ -133,12 +133,12 @@ export function Game() {
 
       <header className="pointer-events-none absolute left-4 top-4 max-w-xs">
         <div className="pointer-events-auto rounded-md border-2 border-border bg-card/90 p-4 shadow-[var(--shadow-cozy)] backdrop-blur">
-          <h1 className="font-display text-3xl leading-none text-primary">Samenland</h1>
+          <h1 className="font-display text-4xl leading-none text-primary">Samenland</h1>
           <p className="mt-1 text-sm text-muted-foreground">Setz einen Samen. Schau zu, wie dein Dorf wächst – in Echtzeit, auch wenn du weg bist.</p>
           {my && myStats ? (
             <div className="mt-3 space-y-1 text-sm">
               <div className="font-display text-lg text-foreground">{my.name}</div>
-              <div className="text-muted-foreground">Seit {fmtAge(myStats.age)} · {myStats.houses} Häuser · ~{myStats.people} Leute</div>
+              <div className="text-muted-foreground">{myStats.stage} · seit {fmtAge(myStats.age)} · {myStats.buildings} Gebäude</div>
               <Button size="sm" variant="secondary" className="mt-1" onClick={() => focus(my.x, my.y)}>Zu meinem Dorf</Button>
             </div>
           ) : mode !== "seed" ? (
@@ -161,7 +161,7 @@ export function Game() {
             <li key={s.id}>
               <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => focus(s.x, s.y)}>
                 <span className="text-foreground">{s.name}</span>
-                <span className="block text-xs text-muted-foreground">{s.owner} · {fmtAge(ageHours(s, Date.now()))}</span>
+                <span className="block text-xs text-muted-foreground">{STAGES[stageOf(ageHours(s, Date.now()))]!.name} · {s.owner} · {fmtAge(ageHours(s, Date.now()))}</span>
               </button>
             </li>
           ))}
