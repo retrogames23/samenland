@@ -1,7 +1,7 @@
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
 import { drawBuildingSprite } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, setNatureTime, boatImage, sheepImage, planksPattern, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -487,9 +487,11 @@ let renderNow = 0;
 function overviewMap() {
   const sk = seasonKey(renderNow);
   if (overview && overviewSeason === sk) return overview;
-  overviewSeason = sk;
   const ready = allTexturesReady();
-  const S = 8, W = (MAP * TW) / S, H = (MAP * TH) / S;
+  // never rebuild every frame while textures load: keep the last picture (or a cheap one) until ready
+  if (!ready && overview) return overview;
+  overviewSeason = sk;
+  const S = 16, W = (MAP * TW) / S, H = (MAP * TH) / S;
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const g = cv.getContext("2d")!; const img = g.createImageData(W, H);
   const rgb = new Map<string, [number, number, number]>();
@@ -517,8 +519,17 @@ function overviewMap() {
   // soften once more so coasts and rivers look painted, not pixelated
   const out = document.createElement("canvas"); out.width = W; out.height = H;
   const og = out.getContext("2d")!; og.filter = "blur(0.8px)"; og.drawImage(cv, 0, 0);
-  if (ready) overview = out;
+  overview = out;
+  if (!ready) overviewSeason = "";
   return out;
+}
+
+/** Builds the overview picture in idle time so zooming out never stalls. */
+export function prewarmOverview() {
+  if (typeof window === "undefined") return;
+  const go = () => { renderNow = renderNow || Date.now(); if (!allTexturesReady()) return void setTimeout(go, 400); overviewMap(); };
+  const ric = (window as Window & { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback;
+  ric ? ric(go) : setTimeout(go, 800);
 }
 
 function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], now: number) {
@@ -711,28 +722,9 @@ function drawRails(c: C, l: ReturnType<typeof links>[number], seeds: Seed[], now
   c.restore();
 }
 
-export function draw(
-  c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
-  now: number, hover: [number, number] | null, ghostOk: boolean | null,
-) {
-  renderNow = now; setArtTime(now); setNatureTime(now);
-  lastPeople.length = 0;
-  if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
-  const t = performance.now();
-  const z = cam.zoom * dpr;
-  c.setTransform(1, 0, 0, 1, 0, 0);
-  c.fillStyle = hsl(205, 30, 58); c.fillRect(0, 0, w, h);
-  c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
-
-  const inv = (sx: number, sy: number) => toTile((sx - w / 2) / z + cam.x, (sy - h / 2) / z + cam.y);
-  const cs = [inv(0, 0), inv(w, 0), inv(0, h), inv(w, h)];
-  const x0 = Math.max(0, Math.min(...cs.map((p) => p[0])) - 2), x1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[0])) + 2);
-  const y0 = Math.max(0, Math.min(...cs.map((p) => p[1])) - 2), y1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[1])) + 5);
-  const detail = cam.zoom >= 1.3;
-  const cs0x = cam.x - w / 2 / z, cs1x = cam.x + w / 2 / z, cs0y = cam.y - h / 2 / z, cs1y = cam.y + h / 2 / z;
-  const L: Light[] = [];
-  const tiles: { x: number; y: number; cx: number; cy: number; st: Structure | null }[] = [];
-
+type GroundEdge = { x: number; y: number; cx: number; cy: number; tr: string; r: number; coast: boolean };
+/** Water + layered land for a tile range; returns border tiles for frayed edges. */
+function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: number, detail: boolean): GroundEdge[] {
   // ---- pass 0: one continuous water surface under everything (no tile seams) ----
   // Two slow, counter-drifting layers that breathe back and forth: calm, never a conveyor belt.
   // Also laid under shore tiles, so the land outline may curve freely over it.
@@ -758,8 +750,7 @@ export function draw(
   // ---- pass 1: land as stacked layers (sand < fields < meadow < grass < hill < forest < rock).
   // Each layer is one marching-squares region with noise-shifted crossings, filled as a single
   // path: borders run continuously across tiles, with no per-tile discs, rings or diamond corners.
-  type Edge = { x: number; y: number; cx: number; cy: number; tr: string; r: number; coast: boolean };
-  const edges: Edge[] = [];
+  const edges: GroundEdge[] = [];
   const gx0 = x0 - 1, gy0 = y0 - 1, GW = x1 - x0 + 3, GH = y1 - y0 + 3;
   const lay = new Int8Array(GW * GH);
   for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) lay[j * GW + i] = LAYER[terrain(gx0 + i, gy0 + j)]!;
@@ -809,6 +800,90 @@ export function draw(
     stroke(1.6, "rgba(30,36,28,0.2)");
     if (detail) stroke(2.4, `rgba(235,240,230,${0.05 + 0.04 * Math.sin(t / 1400)})`);
   }
+  return edges;
+}
+
+// ---- mid-zoom ground cache: static terrain (+ forests, crags) baked per 32x32-tile chunk ----
+const CH = 32, PAD_TOP = 40;
+const chunkCache = new Map<string, HTMLCanvasElement>();
+function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasElement | null {
+  const key = `${ix},${iy},${q},${sk}`;
+  const hit = chunkCache.get(key);
+  if (hit) { chunkCache.delete(key); chunkCache.set(key, hit); return hit; }
+  const X0 = ix * CH, Y0 = iy * CH, X1 = Math.min(MAP - 1, X0 + CH - 1), Y1 = Math.min(MAP - 1, Y0 + CH - 1);
+  // bounding box of the chunk diamond in world pixels
+  const left = iso(X0, Y1)[0] - TW, right = iso(X1, Y0)[0] + TW, top = iso(X0, Y0)[1] - TH - PAD_TOP, bottom = iso(X1, Y1)[1] + TH;
+  const cv = document.createElement("canvas");
+  cv.width = Math.ceil((right - left) * q); cv.height = Math.ceil((bottom - top) * q);
+  const g = cv.getContext("2d")!;
+  g.setTransform(q, 0, 0, q, -left * q, -top * q);
+  // fill only this chunk's diamond so neighbouring chunks never double-paint
+  g.save();
+  const a = iso(X0 - 0.5, Y0 - 0.5), b = iso(X1 + 0.5, Y0 - 0.5), d = iso(X1 + 0.5, Y1 + 0.5), e = iso(X0 - 0.5, Y1 + 0.5);
+  g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(d[0], d[1]); g.lineTo(e[0], e[1]); g.closePath(); g.clip();
+  drawGround(g, X0, X1, Y0, Y1, 0, false);
+  g.restore();
+  let missing = false;
+  for (let s = X0 + Y0; s <= X1 + Y1; s++) for (let x = Math.max(X0, s - Y1); x <= Math.min(X1, s - Y0); x++) {
+    const y = s - x, tr = terrain(x, y);
+    const [cx, cy] = iso(x, y);
+    if (tr === "forest" && hash(x, y, 19) > 0.25) tree(g, cx, cy + 2, 0.9 + hash(x, y, 20) * 0.3, 0, hash(x, y, 21), x * 13 + y, 0.6);
+    else if (tr === "mountain" && hash(x, y, 26) > 0.6) drawNature(g, "crag", cx, cy + 4, 0.6 + hash(x, y, 27) * 0.4, 0, hash(x, y, 29) > 0.5);
+  }
+  if (!allTexturesReady() || !natureReady()) missing = true;
+  (cv as HTMLCanvasElement & { ox?: number; oy?: number }).ox = left;
+  (cv as HTMLCanvasElement & { ox?: number; oy?: number }).oy = top;
+  if (missing) return cv; // not cached: re-bake once images have loaded
+  chunkCache.set(key, cv);
+  while (chunkCache.size > 48) chunkCache.delete(chunkCache.keys().next().value!);
+  return cv;
+}
+function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number) {
+  const q = z > 1.6 ? 2 : 1, sk = seasonKey(renderNow);
+  let baked = 0;
+  const cx0 = Math.floor(x0 / CH), cx1 = Math.floor(x1 / CH), cy0 = Math.floor(y0 / CH), cy1 = Math.floor(y1 / CH);
+  for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
+    const iy = s - ix;
+    const X0 = ix * CH, Y0 = iy * CH, X1 = X0 + CH - 1, Y1 = Y0 + CH - 1;
+    if (iso(X1, Y0)[0] + TW < vx0 || iso(X0, Y1)[0] - TW > vx1 || iso(X1, Y1)[1] + TH < vy0 || iso(X0, Y0)[1] - TH - PAD_TOP > vy1) continue;
+    const cached = chunkCache.has(`${ix},${iy},${q},${sk}`);
+    if (!cached && baked >= 3) { // spread baking over frames; fall back to the cached lower quality if any
+      const lo = chunkCache.get(`${ix},${iy},${3 - q},${sk}`) as (HTMLCanvasElement & { ox: number; oy: number }) | undefined;
+      if (lo) c.drawImage(lo, lo.ox, lo.oy, lo.width / (3 - q), lo.height / (3 - q));
+      else { const [a, b] = iso(X0 + CH / 2, Y0 + CH / 2); c.fillStyle = "#7a8a50"; c.beginPath(); c.moveTo(a, b - CH * TH / 2); c.lineTo(a + CH * TW / 2, b); c.lineTo(a, b + CH * TH / 2); c.lineTo(a - CH * TW / 2, b); c.fill(); }
+      continue;
+    }
+    if (!cached) baked++;
+    const cv = groundChunk(ix, iy, q, sk) as (HTMLCanvasElement & { ox: number; oy: number }) | null;
+    if (cv) c.drawImage(cv, cv.ox, cv.oy, cv.width / q, cv.height / q);
+  }
+}
+
+export function draw(
+  c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
+  now: number, hover: [number, number] | null, ghostOk: boolean | null,
+) {
+  renderNow = now; setArtTime(now); setNatureTime(now);
+  lastPeople.length = 0;
+  if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
+  const t = performance.now();
+  const z = cam.zoom * dpr;
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.fillStyle = hsl(205, 30, 58); c.fillRect(0, 0, w, h);
+  c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
+
+  const inv = (sx: number, sy: number) => toTile((sx - w / 2) / z + cam.x, (sy - h / 2) / z + cam.y);
+  const cs = [inv(0, 0), inv(w, 0), inv(0, h), inv(w, h)];
+  const x0 = Math.max(0, Math.min(...cs.map((p) => p[0])) - 2), x1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[0])) + 2);
+  const y0 = Math.max(0, Math.min(...cs.map((p) => p[1])) - 2), y1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[1])) + 5);
+  const detail = cam.zoom >= 1.3;
+  const cs0x = cam.x - w / 2 / z, cs1x = cam.x + w / 2 / z, cs0y = cam.y - h / 2 / z, cs1y = cam.y + h / 2 / z;
+  const L: Light[] = [];
+  const tiles: { x: number; y: number; cx: number; cy: number; st: Structure | null }[] = [];
+
+  let edges: GroundEdge[] = [];
+  if (detail) edges = drawGround(c, x0, x1, y0, y1, t, true);
+  else drawGroundChunks(c, x0, x1, y0, y1, z, cs0x, cs1x, cs0y, cs1y);
   // frayed edges: a few grass tufts and pebbles breaking up the borderline
   if (detail) {
     for (const e of edges) {
@@ -944,9 +1019,7 @@ export function draw(
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
     if (!detail) {
       if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
-      else if (tr === "forest" && !st && hash(x, y, 19) > 0.25) tree(c, cx, cy + 2, 0.9 + hash(x, y, 20) * 0.3, 0, hash(x, y, 21), x * 13 + y, 0.6);
-      else if (tr === "mountain" && hash(x, y, 26) > 0.6) drawNature(c, "crag", cx, cy + 4, 0.6 + hash(x, y, 27) * 0.4, 0, hash(x, y, 29) > 0.5);
-      continue;
+      continue; // forests and crags are baked into the ground chunks
     }
     if (tr === "mountain" && hash(x, y, 26) > 0.55) {
       const sc = 0.55 + hash(x, y, 27) * 0.5;
