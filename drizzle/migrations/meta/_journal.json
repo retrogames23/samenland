@@ -36,6 +36,13 @@
       "when": 1793124046662,
       "tag": "0004_treasury_purchases",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793131569031,
+      "tag": "0005_taler_prices",
+      "breakpoints": true
     }
   ]
 }

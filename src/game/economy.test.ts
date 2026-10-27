@@ -1,19 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { coins, popAt, taxEarned, treasury, START_COPPER } from "./economy";
+import { ITEMS, popAt, taxEarned, treasury, START_TALER } from "./economy";
 
-const seed = (daysAgo: number) => ({ id: "s", name: "A", owner: "o", x: 500, y: 500, hue: 0, created_at: new Date(Date.UTC(2026, 0, 1)).toISOString(), _d: daysAgo });
 const t0 = Date.UTC(2026, 0, 1);
+const seed = () => ({ id: "s", name: "A", owner: "o", x: 500, y: 500, hue: 0, created_at: new Date(t0).toISOString() });
+const day = 86400000;
 
-describe("economy", () => {
-  it("starts with 100 copper", () => expect(treasury(seed(0), [], t0)).toBe(100));
-  it("START is 100", () => expect(START_COPPER).toBe(100));
-  it("pays 1 copper per resident per day", () => {
-    expect(taxEarned(seed(1), t0 + 86400000)).toBe(popAt(24));
-  });
-  it("100 copper = 1 silver, 100 silver = 1 gold", () => {
-    expect(coins(10203)).toEqual({ gold: 1, silver: 2, copper: 3 });
-  });
+describe("economy (Taler)", () => {
+  it("starts with 150 Taler", () => expect(treasury(seed(), [], t0)).toBe(START_TALER));
+  it("START is 150", () => expect(START_TALER).toBe(150));
+  it("pays 1 Taler per resident per day", () => expect(taxEarned(seed(), t0 + day)).toBe(popAt(24)));
+  it("a fisher hut is affordable on day one", () => expect(treasury(seed(), [], t0)).toBeGreaterThanOrEqual(ITEMS.fisher));
+  it("the school is not affordable before day 50", () => expect(treasury(seed(), [], t0 + 49 * day)).toBeLessThan(ITEMS.school));
   it("spending reduces the treasury", () => {
-    expect(treasury(seed(0), [{ id: "p", seed_id: "s", item: "fisher", cost: 60, created_at: "" }], t0)).toBe(40);
+    expect(treasury(seed(), [{ id: "p", seed_id: "s", item: "fisher", cost: 120, created_at: "" }], t0)).toBe(30);
   });
 });
