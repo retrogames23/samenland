@@ -132,6 +132,16 @@ const en: typeof de = {
   livesIn: (town) => `lives in ${town}`,
   carrying: (g, d) => `carrying ${({ log: "logs", stone: "stone blocks", planks: "planks", grain: "grain", flour: "flour", bread: "bread" } as Record<string, string>)[g]} to the ${({ sawmill: "sawmill", site: "building site", store: "store", mill: "mill", bakery: "bakery", inn: "inn", market: "market" } as Record<string, string>)[d]}`,
   close: "Close",
+  kind: { well: "Well", farmhouse: "Farmhouse", barn: "Barn", field: "Field", garden: "Vegetable garden", hay: "Haystack", cottage: "Cottage", church: "Church", mill: "Windmill", inn: "Inn", bakery: "Bakery", townhouse: "Townhouse", workshop: "Workshop", smithy: "Smithy", warehouse: "Warehouse", market: "Market square", factory: "Factory", sawmill: "Sawmill", campfire: "Campfire", hut: "Hut", coop: "Chicken coop", chapel: "Chapel", watermill: "Watermill", harbor: "Fishing harbour", stall: "Market stall", townhall: "Town hall", manufactory: "Manufactory", steamworks: "Steam works", station: "Station", suburb: "Suburban house" },
+  purpose: { well: "Fresh water and a midday meeting spot.", farmhouse: "Home of a farming family.", barn: "Stores hay, straw and harvest.", field: "Grain grows here for the mill.", garden: "Vegetables for the kitchen next door.", hay: "Fodder for the winter.", cottage: "A small home.", church: "Services, bells and festivals.", mill: "Grinds grain into flour.", inn: "Ale, bread and stories at night.", bakery: "Bakes fresh bread from flour.", townhouse: "A home in town.", workshop: "Craftsfolk make goods.", smithy: "Forges tools and fittings.", warehouse: "Stores stone, planks and goods.", market: "Bread and goods are sold here.", factory: "Industrial production.", sawmill: "Cuts logs into planks.", campfire: "The heart of the first settlers.", hut: "The first simple shelter.", coop: "Hens lay eggs here.", chapel: "A small place of prayer.", watermill: "The stream grinds grain into flour.", harbor: "Fishers sail out from here.", stall: "Traders offer their wares.", townhall: "Seat of the town council.", manufactory: "Many hands make cloth and tools.", steamworks: "Steam power drives the machines.", station: "Trains link the towns.", suburb: "A home on the edge of town." },
+  site: (k) => `${k} under construction`,
+  progress: (p) => `Progress: ${p}%`,
+  needs: "Needs: planks, stone blocks and logs",
+  residents: "Residents",
+  workers: "Workers",
+  builders: "Carpenters on site",
+  nobody: "nobody right now",
+  inTown: (k, town) => `${k} in ${town}`,
   age: (h) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))} min`

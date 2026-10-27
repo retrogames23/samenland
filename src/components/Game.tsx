@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, peopleFocus, prewarmOverview, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townOf, poseOf, type Person } from "@/game/people";
+import { inspectAt, type Inspect } from "@/game/inspect";
 import { Maximize2, Minimize2 } from "lucide-react";
 import {
   canPlant,
@@ -43,6 +44,7 @@ export function Game() {
   const [listOpen, setListOpen] = useState(true);
   const [sheet, setSheet] = useState<"me" | "towns" | null>(null);
   const [who, setWho] = useState<Person | null>(null);
+  const [place, setPlace] = useState<Inspect | null>(null);
   const [, tick] = useState(0);
 
   const dpr = useRef(1);
@@ -322,7 +324,11 @@ export function Game() {
           if (d && !d.moved) {
             if (mode === "look") {
               const best = personAt(e);
-              if (best) return setWho(best);
+              if (best) { setPlace(null); return setWho(best); }
+              const [tx, ty] = tileAt(e);
+              const ins = inspectAt(tx, ty, seeds, Date.now());
+              if (ins) { setWho(null); return setPlace(ins); }
+              setPlace(null);
             }
             const [x, y] = tileAt(e);
             onClick(x, y);
