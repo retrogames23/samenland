@@ -1,7 +1,7 @@
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
 import { drawBuildingSprite } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, planksPattern, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, wandererImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -144,7 +144,6 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
   const sd = x * 1000 + y;
   if (drawBuildingSprite(c, s.kind, cx, cy, s.v)) {
     if (s.kind === "campfire") {
-      c.fillStyle = "rgba(255,183,57,0.7)"; c.beginPath(); c.ellipse(cx,cy-4,1.5,2.4+Math.sin(t/160)*0.5,0,0,7); c.fill();
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
     if (["farmhouse", "cottage", "inn", "bakery", "townhouse", "smithy"].includes(s.kind)) {
@@ -155,110 +154,8 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
     }
     return;
   }
-  const v = s.v, rx = v > 0.5;
-  const [rh, rs, rl] = roofHue(s, s.kind === "townhouse" && v > 0.6 || s.kind === "warehouse");
-  const pal: Pal = { wall: "#efe3c8", wallD: "#d4c19c", roof: hsl(rh!, rs!, rl!), roofD: hsl(rh!, rs!, rl! - 12) };
-  switch (s.kind) {
-    case "well": {
-      blob(c, cx, cy, 4, "#b9b2a3", sd); blob(c, cx, cy - 0.5, 2.4, "#6f9fb0", sd + 1);
-      line(c, [cx - 3.5, cy], [cx - 3.5, cy - 8], sd + 2, 0.7); line(c, [cx + 3.5, cy], [cx + 3.5, cy - 8], sd + 3, 0.7);
-      shape(c, [[cx - 5.5, cy - 7], [cx + 5.5, cy - 7], [cx, cy - 12]], sd + 4, hsl(s.seed.hue, 40, 48));
-      break;
-    }
-    case "farmhouse": case "cottage": case "inn": case "bakery": {
-      const big = s.kind === "inn" ? 1.15 : s.kind === "cottage" ? 0.85 : 1;
-      const p = gable(c, cx, cy, 0.3 * big, 0.22 * big, 6 * big, 6 * big, rx, pal, sd);
-      doorV(c, p, -0.1, 0.22 * big, sd + 30);
-      windowV(c, p, 0.12, 0.22 * big, 2, sd + 31, L);
-      if (s.kind === "inn") { const q = p(0.3, 0.3, 5); line(c, [q[0], q[1]], [q[0] + 3, q[1]], sd + 32, 0.6); shape(c, [[q[0] + 1.5, q[1]], [q[0] + 4, q[1]], [q[0] + 4, q[1] + 2.5], [q[0] + 1.5, q[1] + 2.5]], sd + 33, "#d9a44a"); }
-      if (s.kind === "bakery" || s.kind === "inn" || v > 0.6) { const q = p(0.15, 0.02, 6 * big + 6 * big); smoke(c, q[0], q[1], t, sd); }
-      break;
-    }
-    case "barn": {
-      const bp: Pal = { wall: "#a8513f", wallD: "#86402f", roof: "#7c6a58", roofD: "#5f5143" };
-      const p = gable(c, cx, cy, 0.36, 0.28, 7, 8, rx, bp, sd);
-      shape(c, [p(-0.12, 0.28, 0), p(0.12, 0.28, 0), p(0.12, 0.28, 5.5), p(-0.12, 0.28, 5.5)], sd + 40, "#efe3c8");
-      line(c, p(-0.12, 0.28, 0), p(0.12, 0.28, 5.5), sd + 41); line(c, p(0.12, 0.28, 0), p(-0.12, 0.28, 5.5), sd + 42);
-      break;
-    }
-    case "hay": {
-      blob(c, cx - 3, cy, 3.2, "#e0c070", sd); blob(c, cx + 3, cy + 1.5, 3, "#d8b862", sd + 1); blob(c, cx, cy - 2, 3.4, "#e6c878", sd + 2);
-      break;
-    }
-    case "church": {
-      const p = gable(c, cx, cy, 0.34, 0.2, 9, 7, true, { ...pal, wall: "#ece6da", wallD: "#cfc6b4", roof: "#6c7480", roofD: "#555c66" }, sd);
-      windowV(c, p, 0.0, 0.2, 3, sd + 50, L, 0.04, 3.4);
-      const tp = box(c, ...p(0.42, 0.0, 0), 0.11, 0.11, 18, "#ece6da", "#cfc6b4", "#cfc6b4", sd + 51);
-      const top = tp(0, 0, 18);
-      shape(c, [tp(-0.11, 0.11, 18), tp(0.11, 0.11, 18), tp(0.11, -0.11, 18), [top[0], top[1] - 10]], sd + 52, "#6c7480");
-      line(c, [top[0], top[1] - 10], [top[0], top[1] - 14], sd + 53, 0.6);
-      line(c, [top[0] - 1.5, top[1] - 12.5], [top[0] + 1.5, top[1] - 12.5], sd + 54, 0.6);
-      break;
-    }
-    case "mill": {
-      const p = P(cx, cy);
-      shape(c, [p(-0.16, 0.16, 0), p(0.16, 0.16, 0), p(0.12, 0.12, 14), p(-0.12, 0.12, 14)], sd, "#e7dcc4");
-      shape(c, [p(0.16, -0.16, 0), p(0.16, 0.16, 0), p(0.12, 0.12, 14), p(0.12, -0.12, 14)], sd + 1, "#cbb995");
-      const hub = p(0.1, 0.1, 16);
-      shape(c, [p(-0.14, 0.14, 14), p(0.14, 0.14, 14), p(0.14, -0.14, 14), [hub[0] - 1, hub[1] - 5]], sd + 2, pal.roof);
-      const ang = t / 1800;
-      for (let k = 0; k < 4; k++) {
-        const a = ang + (k * Math.PI) / 2, ex = hub[0] + Math.cos(a) * 11, ey = hub[1] + Math.sin(a) * 8;
-        line(c, hub, [ex, ey], sd + 3 + k, 0.6);
-        const nx = -Math.sin(a) * 2.2, ny = Math.cos(a) * 1.6;
-        shape(c, [[hub[0] + Math.cos(a) * 3, hub[1] + Math.sin(a) * 2.2], [ex, ey], [ex + nx, ey + ny], [hub[0] + Math.cos(a) * 3 + nx, hub[1] + Math.sin(a) * 2.2 + ny]], sd + 8 + k, "rgba(239,227,200,0.85)");
-      }
-      break;
-    }
-    case "townhouse": {
-      const p = gable(c, cx, cy, 0.3, 0.3, 13, 6, rx, { ...pal, wall: "#f1e8d4", wallD: "#d8c8a6" }, sd);
-      // half-timbering on the front wall
-      c.globalAlpha = 0.8;
-      line(c, p(-0.3, 0.3, 6.5), p(0.3, 0.3, 6.5), sd + 60, 0.7, "#6b4a32");
-      line(c, p(-0.3, 0.3, 0.6), p(0, 0.3, 6.5), sd + 61, 0.6, "#6b4a32");
-      line(c, p(0, 0.3, 6.5), p(0.3, 0.3, 13), sd + 62, 0.6, "#6b4a32");
-      c.globalAlpha = 1;
-      doorV(c, p, -0.15, 0.3, sd + 63);
-      windowV(c, p, 0.14, 0.3, 2.2, sd + 64, L); windowV(c, p, -0.14, 0.3, 8.5, sd + 65, L); windowV(c, p, 0.14, 0.3, 8.5, sd + 66, L);
-      break;
-    }
-    case "workshop": case "smithy": {
-      const p = gable(c, cx, cy, 0.3, 0.26, 5, 3.5, rx, { ...pal, wall: "#c9b48e", wallD: "#a9946f", roof: "#7c6a58", roofD: "#5f5143" }, sd);
-      doorV(c, p, 0, 0.26, sd + 70, 0.1, 3.6, "#4b3a2e");
-      const q = p(-0.18, 0, 8.5);
-      shape(c, [[q[0] - 1, q[1] + 3], [q[0] + 1, q[1] + 3], [q[0] + 1, q[1] - 2], [q[0] - 1, q[1] - 2]], sd + 71, "#8a5a44");
-      smoke(c, q[0], q[1] - 2, t, sd, s.kind === "smithy" ? 1.2 : 0.9);
-      if (s.kind === "smithy") L.push({ x: p(0, 0.26, 2)[0], y: p(0, 0.26, 2)[1], r: 6 });
-      break;
-    }
-    case "warehouse": {
-      const p = gable(c, cx, cy, 0.42, 0.26, 8, 4, rx, { ...pal, wall: "#b8a88c", wallD: "#9a8a70" }, sd);
-      c.globalAlpha = 0.5;
-      for (let i = 1; i < 6; i++) { const u = -0.42 + i * 0.14; line(c, p(u, 0.26, 0), p(u, 0.26, 8), sd + 80 + i, 0.35); }
-      c.globalAlpha = 1;
-      doorV(c, p, 0.1, 0.26, sd + 79, 0.1, 5, "#5b4636");
-      break;
-    }
-    case "factory": case "sawmill": {
-      const fac = s.kind === "factory";
-      const p = box(c, cx, cy, 0.42, 0.34, fac ? 9 : 6, fac ? "#b5614a" : "#b09070", fac ? "#94503c" : "#8f7458", fac ? "#8a7a6c" : "#7c6a58", sd);
-      const H = fac ? 9 : 6;
-      for (let k = 0; k < 3; k++) {
-        const u0 = -0.42 + k * 0.28;
-        shape(c, [p(u0, 0.34, H), p(u0 + 0.28, 0.34, H), p(u0 + 0.28, 0.34, H + 4), p(u0 + 0.28, -0.34, H + 4), p(u0 + 0.28, -0.34, H)], sd + 90 + k, "#6f7882");
-        windowV(c, p, u0 + 0.14, 0.34, 3, sd + 95 + k, L, 0.07, 2.8);
-      }
-      if (fac) {
-        const q = p(0.3, -0.25, H);
-        shape(c, [[q[0] - 1.6, q[1]], [q[0] + 1.6, q[1]], [q[0] + 1.2, q[1] - 18], [q[0] - 1.2, q[1] - 18]], sd + 99, "#9c4e3a");
-        smoke(c, q[0], q[1] - 19, t, sd, 1.8);
-      } else {
-        const q = p(0.3, 0.55, 0);
-        for (let k = 0; k < 3; k++) blob(c, q[0] + k * 2.4, q[1] - k * 0.8, 1.3, "#a87a52", sd + 120 + k);
-      }
-      break;
-    }
-    case "pasture": {
+  const v = s.v;
+  if (s.kind === "pasture") {
       const p = P(cx, cy);
       c.globalAlpha = 0.85;
       line(c, p(-0.48, 0.48, 1.5), p(0.48, 0.48, 1.5), sd, 0.5, "#6b4a32");
@@ -271,19 +168,8 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
           drawSheep(c, cx + Math.sin(ph) * 5 + (k - 1) * 4, cy + Math.cos(ph * 0.7) * 2 + (k % 2) * 2, Math.cos(ph) > 0, t + k * 1700 + sd);
         }
       }
-      break;
-    }
-    case "market": {
-      const cols = ["#c8574a", "#e0b04a", "#5b8fa8"];
-      for (let k = 0; k < 3; k++) {
-        const ox = cx - 6 + k * 6, oy = cy + (k - 1) * 1.5;
-        line(c, [ox - 2, oy], [ox - 2, oy - 4], sd + k, 0.5); line(c, [ox + 2, oy], [ox + 2, oy - 4], sd + k + 5, 0.5);
-        shape(c, [[ox - 3, oy - 4], [ox + 3, oy - 4], [ox + 2, oy - 6.5], [ox - 2, oy - 6.5]], sd + 10 + k, cols[k]!);
-      }
-      break;
-    }
-    default: break;
   }
+
 }
 
 const LAYER: Record<string, number> = { deep: 0, water: 0, sand: 1, fertile: 2, meadow: 3, grass: 4, hill: 5, forest: 6, mountain: 7 };
