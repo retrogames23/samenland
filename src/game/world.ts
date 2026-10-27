@@ -687,7 +687,7 @@ export function effAge(s: Seed, seeds: Seed[], now: number) {
   let c = ageMemo.get(seeds);
   if (!c || c.now !== now) { c = { now, m: new Map() }; ageMemo.set(seeds, c); }
   let v = c.m.get(s.id);
-  if (v === undefined) { v = effAgeBase(s, seeds, now) + twinHours(s, seeds, now); c.m.set(s.id, v); }
+  if (v === undefined) { v = effAgeBase(s, seeds, now) + twinHours(s, seeds, now) * GROWTH_PACE; c.m.set(s.id, v); }
   return v;
 }
 function effAgeBase(s: Seed, seeds: Seed[], now: number) {
@@ -700,9 +700,11 @@ function effAgeBase(s: Seed, seeds: Seed[], now: number) {
     h += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * (now - l.since) / 3.6e6;
   }
   // neighbour bonuses speed growth, but never more than TRADE_CAP of the town's own age
-  return base + Math.min(Math.max(0, h - base), base * TRADE_CAP);
+  return (base + Math.min(Math.max(0, h - base), base * TRADE_CAP)) * GROWTH_PACE;
 }
 export const TRADE_CAP = 0.35;
+/** Global pace: a town with typical neighbours reaches Metropole after ~2 real years. */
+export const GROWTH_PACE = 0.35;
 
 /** Trade partners of a town with the goods flowing each way. */
 export function tradePartners(s: Seed, seeds: Seed[], now: number) {
