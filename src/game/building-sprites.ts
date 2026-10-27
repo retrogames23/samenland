@@ -47,14 +47,21 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
     sprite.image.src = sprite.url;
   }
   const image = sprite.image;
-  if (!image.complete || !image.naturalWidth) return false;
-  const [sx, sy, sw, sh] = sprite.crop;
+  if (!image.complete || !image.naturalWidth) return true; // still loading: draw nothing, never the old vector art
+  const [, , sw, sh] = sprite.crop;
   const width = sprite.width * (0.97 + variant * 0.06);
   const height = width * sh / sw;
   c.save();
   c.imageSmoothingEnabled = true;
   c.imageSmoothingQuality = "high";
-  c.drawImage(image, sx, sy, sw, sh, x - width / 2, y + sprite.base - height, width, height);
+  c.drawImage(image, x - width / 2, y + sprite.base - height, width, height);
   c.restore();
   return true;
 }
+
+/** Starts loading every building image right away so towns appear complete. */
+export function preloadBuildingSprites() {
+  if (typeof Image === "undefined") return;
+  for (const s of Object.values(sprites)) if (s && !s.image) { s.image = new Image(); s.image.decoding = "async"; s.image.src = s.url; }
+}
+if (typeof window !== "undefined") preloadBuildingSprites();

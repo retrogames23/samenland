@@ -58,7 +58,7 @@ export type NatureKind = keyof typeof NATURE;
 export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: number, sway = 0, flip = false): boolean {
   const s = NATURE[k];
   const i = img(s.url); if (!i) return false;
-  const [sx, sy, sw, sh] = s.crop;
+  const [, , sw, sh] = s.crop;
   const w = s.width * scale, h = (w * sh) / sw;
   c.save();
   c.translate(x, y);
@@ -66,7 +66,12 @@ export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: num
   c.fillStyle = "rgba(25,30,15,0.28)";
   c.beginPath(); c.ellipse(w * 0.12, 0, w * 0.42, w * 0.16, 0, 0, 7); c.fill();
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  c.drawImage(i, sx, sy, sw, sh, -w / 2, -h + h * 0.02, w, h);
+  c.drawImage(i, -w / 2, -h + h * 0.02, w, h);
   c.restore();
   return true;
+}
+
+if (typeof window !== "undefined") {
+  for (const s of Object.values(NATURE)) img(s.url);
+  for (const u of Object.values(TEX)) img(u);
 }
