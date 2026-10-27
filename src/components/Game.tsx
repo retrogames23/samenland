@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { draw, iso, toTile, MIN_ZOOM, lastPeople, peopleFocus, prewarmOverview, type Camera } from "@/game/render";
+import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastSources, peopleFocus, prewarmOverview, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townOf, poseOf, type Person } from "@/game/people";
 import { inspectAt, type Inspect } from "@/game/inspect";
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
+import { setScene, setSound, unlock, baa, hm, tap, disposeAudio } from "@/game/audio";
 import {
   canPlant,
+  structureAt,
   radiusOf,
   ageHours,
   effAge,
@@ -49,6 +51,20 @@ export function Game() {
 
   const dpr = useRef(1);
   const [fs, setFs] = useState(false);
+  const [sound, setSoundOn] = useState(false);
+  useEffect(() => {
+    const on = localStorage.getItem("samenland.sound") !== "off";
+    setSoundOn(on);
+    if (!on) return;
+    const first = () => { setSound(true); unlock(); };
+    window.addEventListener("pointerdown", first, { once: true });
+    return () => window.removeEventListener("pointerdown", first);
+  }, []);
+  useEffect(() => () => disposeAudio(), []);
+  const toggleSound = () => {
+    const on = !sound; setSoundOn(on); setSound(on);
+    localStorage.setItem("samenland.sound", on ? "on" : "off");
+  };
   useEffect(() => { prewarmOverview(); }, []);
   useEffect(() => {
     const on = () => setFs(!!document.fullscreenElement);
@@ -131,6 +147,7 @@ export function Game() {
     };
     resize();
     window.addEventListener("resize", resize);
+    let lastScene = 0;
     const loop = () => {
       const c = cam.current,
         tg = target.current;
@@ -146,6 +163,24 @@ export function Game() {
       const h = s.hover;
       const ok = h && s.mode === "seed" ? canPlant(h[0], h[1], s.seeds) === null : null;
       draw(ctx, cv.width, cv.height, dpr.current, c, s.seeds, s.plantings, Date.now(), h, ok);
+      const nowMs = performance.now();
+      if (nowMs - lastScene > 250) {
+        lastScene = nowMs;
+        const hw = cv.clientWidth / 2 / c.zoom, hh = cv.clientHeight / 2 / c.zoom;
+        const [tx, ty] = toTile(c.x, c.y), span = Math.min(200, Math.max(4, (hw / 16 + hh / 8) / 2));
+        let forest = 0, water = 0, sea = 0, n = 0;
+        for (let j = -4; j <= 4; j++) for (let i = -4; i <= 4; i++) {
+          const tr = terrain(Math.round(tx + (i * span) / 4), Math.round(ty + (j * span) / 4)); n++;
+          if (tr === "forest") forest++; else if (tr === "water") water++; else if (tr === "deep") sea++;
+        }
+        const zn = Math.min(1, Math.max(0, (Math.log(c.zoom) - Math.log(MIN_ZOOM)) / (Math.log(5) - Math.log(MIN_ZOOM))));
+        const talkers = lastPeople.filter((p) => p.q.talk !== null && p.q.talkTurn).length;
+        const sources = lastSources.slice(0, 40).map((q) => {
+          const dx = (q.x - c.x) / hw, dy = (q.y - c.y) / hh;
+          return { k: q.k, pan: dx, near: Math.max(0, 1 - Math.hypot(dx, dy) * 0.8) };
+        }).filter((q) => q.near > 0);
+        setScene({ zoom: zn, forest: forest / n, water: water / n, sea: sea / n, people: lastPeople.length, talkers, sources });
+      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -324,10 +359,12 @@ export function Game() {
           if (d && !d.moved) {
             if (mode === "look") {
               const best = personAt(e);
-              if (best) { setPlace(null); return setWho(best); }
+              const pan = (e.clientX / window.innerWidth) * 2 - 1;
+              if (best) { hm(pan); setPlace(null); return setWho(best); }
               const [tx, ty] = tileAt(e);
               const ins = inspectAt(tx, ty, seeds, Date.now());
-              if (ins) { setWho(null); return setPlace(ins); }
+              if (!ins && structureAt(tx, ty, seeds, Date.now())?.kind === "pasture") baa(pan);
+              if (ins) { if (ins.kind === "pasture") baa(pan); else tap(pan); setWho(null); return setPlace(ins); }
               setPlace(null);
             }
             const [x, y] = tileAt(e);
@@ -499,6 +536,15 @@ export function Game() {
         </div>
       </header>
 
+      <button
+        type="button"
+        aria-label={sound ? t.soundOff : t.soundOn}
+        title={sound ? t.soundOff : t.soundOn}
+        onClick={toggleSound}
+        className="absolute right-14 top-4 z-10 grid h-8 w-8 place-items-center rounded-md border-2 border-border bg-card/90 text-foreground shadow-[var(--shadow-cozy)] hover:bg-accent"
+      >
+        {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+      </button>
       <button
         type="button"
         aria-label={fs ? t.exitFullscreen : t.fullscreen}

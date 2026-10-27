@@ -230,6 +230,8 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
 }
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
+  if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
+  else if (s.build !== undefined && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: "site" });
   if (s.build !== undefined) { drawSite(c, s, cx, cy, t, true); return; }
   if (drawBuildingSprite(c, s.kind, cx, cy, s.v)) {
     if (s.kind === "campfire") {
@@ -306,6 +308,9 @@ const PANTS = ["#3e362f", "#4b4e55", "#5a4736", "#363d47"];
 const PERSON_SCALE = 0.55;
 /** Screen-space people currently drawn (for clicking). */
 export const lastPeople: { x: number; y: number; q: Pose }[] = [];
+/** Sound-emitting structures drawn this frame (world-screen coords), read by the audio mixer. */
+export const lastSources: { x: number; y: number; k: string }[] = [];
+const SOUND_KINDS = new Set(["campfire", "mill", "watermill", "smithy", "pasture", "church", "sawmill", "factory", "steamworks"]);
 function limb(c: C, pts: Pt[], col: string, w: number) {
   c.lineCap = "round"; c.lineJoin = "round";
   c.beginPath(); c.moveTo(pts[0]![0], pts[0]![1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i]![0], pts[i]![1]);
@@ -945,7 +950,7 @@ export function draw(
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
 ) {
   renderNow = now; setArtTime(now); setNatureTime(now);
-  lastPeople.length = 0;
+  lastPeople.length = 0; lastSources.length = 0;
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
   const t = performance.now(); setSpriteTime(t);
   const z = cam.zoom * dpr;

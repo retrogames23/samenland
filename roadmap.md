@@ -13,3 +13,4 @@
 - [x] Wachstumsregeln und Jahreszeiten testen, im Spiel prüfen
 - [x] Baustellen statt plötzlich auftauchender Häuser, Zimmerleute, Holzfäller und Steinmetze
 - [ ] Sichtbare Warenflüsse und Lieferketten (Holz → Sägewerk → Baustelle, Korn → Mühle → Bäckerei)
+- [x] Soundeffekte mit Ton an/aus
