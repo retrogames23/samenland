@@ -40,28 +40,90 @@ function heightAt(x: number, y: number) {
   const ridge = 1 - Math.abs(fbm(x / 120, y / 120, 25) * 2 - 1); // mountain chains
   return fbm(x / 90, y / 90, 1) * 0.75 + ridge * ridge * 0.3 - edge;
 }
-/** 0 on a river centreline. Main rivers + narrower tributaries. */
-function riverDist(x: number, y: number) {
-  const main = Math.abs(fbm(x / 170, y / 170, 9) - 0.5);
-  const trib = Math.abs(fbm(x / 70, y / 70, 31) - 0.5) * 1.8;
-  return Math.min(main, trib);
+/**
+ * Traced rivers: each one starts at a spring in the highlands and walks downhill (with a gentle
+ * meander) until it reaches the sea or joins another river. Rivers that never reach the sea are
+ * discarded, so no river ever ends in the middle of a meadow. Stores, per tile, the distance to
+ * the nearest river bank (negative = inside the water).
+ */
+let riverField: Float32Array | null = null;
+let oceanMask: Uint8Array | null = null;
+/** Low ground connected to the open sea (inland hollows stay dry land, never stagnant puddles). */
+function ocean(): Uint8Array {
+  if (oceanMask) return oceanMask;
+  const m = new Uint8Array(MAP * MAP), st: number[] = [];
+  for (let i = 0; i < MAP; i++) for (const k of [i, (MAP - 1) * MAP + i, i * MAP, i * MAP + MAP - 1]) if (!m[k]) { m[k] = 1; st.push(k); }
+  while (st.length) {
+    const k = st.pop()!, x = k % MAP, y = (k / MAP) | 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= MAP || ny >= MAP) continue;
+      const nk = ny * MAP + nx; if (!m[nk] && heightAt(nx, ny) < 0.35) { m[nk] = 1; st.push(nk); }
+    }
+  }
+  return (oceanMask = m);
 }
+function rivers(): Float32Array {
+  if (riverField) return riverField;
+  const sea = ocean();
+  const f = new Float32Array(MAP * MAP).fill(99);
+  const owner = new Int32Array(MAP * MAP).fill(-1);
+  let id = 0;
+  for (let gy = 40; gy < MAP - 40; gy += 44) for (let gx = 40; gx < MAP - 40; gx += 44) {
+    const sx = gx + Math.floor((hash(gx, gy, 61) - 0.5) * 40), sy = gy + Math.floor((hash(gx, gy, 62) - 0.5) * 40);
+    const h0 = heightAt(sx, sy);
+    if (h0 < 0.56 || h0 > 0.79 || hash(gx, gy, 63) > 0.7) continue;
+    const me = id++;
+    const path: [number, number][] = [[sx, sy]];
+    const seen = new Set<number>([sy * MAP + sx]);
+    let x = sx, y = sy, ok = false, pdx = 0, pdy = 0;
+    for (let step = 0; step < 5000; step++) {
+      let best = Infinity, bx = x, by = y;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]] as const) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 1 || ny < 1 || nx >= MAP - 1 || ny >= MAP - 1 || seen.has(ny * MAP + nx)) continue;
+        const v = heightAt(nx, ny) + (vnoise(nx / 9, ny / 9, 64 + me) - 0.5) * 0.02 - (dx * pdx + dy * pdy) * 0.004;
+        if (v < best) { best = v; bx = nx; by = ny; }
+      }
+      if (best === Infinity) break;
+      pdx = bx - x; pdy = by - y; x = bx; y = by;
+      seen.add(y * MAP + x); path.push([x, y]);
+      if (sea[y * MAP + x]) { ok = true; break; }
+      const o = owner[y * MAP + x]!;
+      if (o >= 0 && o !== me) { ok = true; break; } // confluence
+    }
+    if (!ok || path.length < 25) continue;
+    // stamp: narrow spring, widening towards the mouth
+    for (let i = 0; i < path.length; i++) {
+      const [px, py] = path[i]!;
+      const rw = Math.min(2.6, 0.55 + i * 0.006);
+      const R = Math.ceil(rw + 4);
+      for (let oy = -R; oy <= R; oy++) for (let ox = -R; ox <= R; ox++) {
+        const qx = px + ox, qy = py + oy; if (qx < 0 || qy < 0 || qx >= MAP || qy >= MAP) continue;
+        const d = Math.hypot(ox, oy) - rw, k = qy * MAP + qx;
+        if (d < f[k]!) f[k] = d;
+        if (d < 0) owner[k] = me;
+      }
+    }
+  }
+  return (riverField = f);
+}
+/** Distance (tiles) from the nearest river bank; negative inside a river. */
+export const riverDistAt = (x: number, y: number) => rivers()[y * MAP + x]!;
 export function terrain(x: number, y: number): Terrain {
   if (x < 0 || y < 0 || x >= MAP || y >= MAP) return "deep";
   const k = y * MAP + x;
   const c = tcache[k]!;
   if (c) return TLIST[c - 1]!;
-  const h = heightAt(x, y);
-  const rv = riverDist(x, y);
-  // rivers widen as they approach the sea and vanish high in the mountains
-  const w = 0.006 + Math.max(0, 0.62 - h) * 0.03;
+  const rv = rivers()[k]!;
+  let h = heightAt(x, y);
+  if (h < 0.35 && !ocean()[k]) h = 0.38;
   let t: Terrain;
   if (h < 0.3) t = "deep";
-  else if (h < 0.35 || (rv < w && h < 0.74)) t = "water";
-  else if (h < 0.375 || (rv < w + 0.005 && h < 0.74)) t = "sand";
+  else if (h < 0.35 || rv < 0) t = "water";
+  else if (h < 0.375 || (rv < 0.8 && h < 0.7)) t = "sand";
   else if (h > 0.8) t = "mountain";
   else if (h > 0.68) t = "hill";
-  else if (rv < w + 0.03 && h < 0.55) t = "fertile";
+  else if (rv < 3.5 && h < 0.55) t = "fertile";
   else if (fbm(x / 25, y / 25, 5) > 0.58) t = "forest";
   else if (fbm(x / 18, y / 18, 7) > 0.6) t = "meadow";
   else t = "grass";
