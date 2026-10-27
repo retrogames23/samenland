@@ -228,6 +228,7 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
     c.fillStyle = "rgba(210,190,150,0.35)"; c.beginPath(); c.ellipse(cx + Math.sin(sd) * hw * 0.4, cy - 4 - p * 6, 1.6, 0.8, 0, 0, 7); c.fill();
   }
 }
+const LIT_KINDS = new Set<string>(["farmhouse", "cottage", "inn", "bakery", "townhouse", "smithy", "hut", "townhall", "church", "chapel", "suburb", "workshop", "market", "markethall", "guildhall", "library", "infirmary", "school", "station", "fishery", "harbor"]);
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
   if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
