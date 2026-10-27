@@ -294,6 +294,26 @@ function smoothRoad(l: { tiles: [number, number][] }): Pt[] {
   smoothCache.set(l, out); return out;
 }
 
+/** Visible load on the cart bed, coloured by trade good. */
+const LOAD: Record<TradeGood, [string, "sack" | "log" | "barrel" | "block"]> = {
+  grain: ["#d4b25c", "sack"], wool: ["#e6dcc6", "sack"], salt: ["#ece8de", "sack"], fish: ["#7a6a52", "barrel"], beer: ["#6e4a2c", "barrel"],
+  wood: ["#7a5232", "log"], timber: ["#c09a66", "log"], ore: ["#5a5450", "block"], stone: ["#a39d92", "block"], hides: ["#8a5a3a", "sack"], cloth: ["#8a3a3a", "sack"], ironware: ["#4b4e55", "block"],
+};
+function drawLoad(c: C, x: number, y: number, dx: number, g: TradeGood) {
+  const [col, shape] = LOAD[g]; const f = dx < 0 ? 1 : -1;
+  c.save(); c.translate(x + f * 1.6, y - 6.2); c.fillStyle = col; c.strokeStyle = "rgba(30,20,12,0.7)"; c.lineWidth = 0.35;
+  for (let i = 0; i < 3; i++) {
+    const ox = (i - 1) * 1.7, oy = i === 1 ? -0.6 : 0;
+    c.beginPath();
+    if (shape === "sack") c.ellipse(ox, oy, 1.1, 0.8, 0, 0, 7);
+    else if (shape === "barrel") c.ellipse(ox, oy, 0.75, 1.0, 0, 0, 7);
+    else if (shape === "log") c.ellipse(ox, oy, 0.55, 0.55, 0, 0, 7);
+    else c.rect(ox - 0.8, oy - 0.6, 1.6, 1.2);
+    c.fill(); c.stroke();
+  }
+  c.restore();
+}
+
 /** Painted ox cart, facing the travel direction (screen-space dx). */
 function drawCart(c: C, x: number, y: number, dx: number, _dy: number, bob: number, _sd: number, _cover: string, _t: number) {
   const im = cartImage(); if (!im) return;
@@ -314,6 +334,8 @@ const PANTS = ["#3e362f", "#4b4e55", "#5a4736", "#363d47"];
 /** Villagers are drawn at this fraction of their modelled size so they match doors, fences and fields. */
 const PERSON_SCALE = 0.55;
 /** Screen-space people currently drawn (for clicking). */
+/** Screen-space traders on trade roads (for clicking). */
+export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean }[] = [];
 export const lastPeople: { x: number; y: number; q: Pose }[] = [];
 /** Sound-emitting structures drawn this frame (world-screen coords), read by the audio mixer. */
 export const lastSources: { x: number; y: number; k: string }[] = [];
@@ -996,7 +1018,7 @@ export function draw(
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
 ) {
   renderNow = now; setArtTime(now); setNatureTime(now);
-  lastPeople.length = 0; lastSources.length = 0;
+  lastPeople.length = 0; lastTraders.length = 0; lastSources.length = 0;
   signpostMap(seeds);
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
   const t = performance.now(); setSpriteTime(t);
@@ -1125,7 +1147,7 @@ export function draw(
 
   // ---- villagers, bucketed by tile for depth sorting ----
   const folk = new Map<number, Pose[]>();
-  lastPeople.length = 0;
+  lastPeople.length = 0; lastTraders.length = 0;
   if (detail) for (const sd of seeds) {
     const r = radiusOf(effAge(sd, seeds, now)) + 2;
     if (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1) continue;
@@ -1244,11 +1266,11 @@ export function draw(
       const bob = Math.sin(t / 180 + k) * 0.4;
       let dx = (bx - ax) * (fwd ? 1 : -1), dy = (by - ay) * (fwd ? 1 : -1);
       const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
-      if (hash(sn, k, 3) < 0.55) drawCart(c, x, y, dx, dy, bob, sn + k, hsl(35 + hash(sn, k, 4) * 20, 35, 82), t);
-      else {
-        const from = fwd ? l.a : l.b, ex = tradeProfile(from, now).exports;
-        drawWanderer(c, x, y, dx, dy, t, sn + k, CARRY_OF[ex[Math.floor(hash(sn, k, 5) * ex.length)]!]);
-      }
+      const from = fwd ? l.a : l.b, to = fwd ? l.b : l.a, ex = tradeProfile(from, now).exports;
+      const good = ex[Math.floor(hash(sn, k, 5) * ex.length)] ?? null, cart = hash(sn, k, 3) < 0.55;
+      if (cart) { drawCart(c, x, y, dx, dy, bob, sn + k, "", t); if (good) drawLoad(c, x, y - bob * 0.3, dx, good); }
+      else drawWanderer(c, x, y, dx, dy, t, sn + k, good ? CARRY_OF[good] : null);
+      lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
     }
   }
 

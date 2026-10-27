@@ -1,7 +1,7 @@
 import { worldHour } from "./time";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { hash, structureAt, effAge, radiusOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, type Seed, type Kind } from "./world";
+import { hash, structureAt, effAge, radiusOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -186,12 +186,19 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       looks: { skin: h(4), hair: h(5), shirt: 0.99, pants: h(6), hat: true, stick: false }, haul: null,
     });
   }
-  assignHauls(people, byKind, sites, front, well);
+  assignHauls(people, byKind, sites, front, well, tradePartners(s, seeds, now).flatMap((q) => q.buy));
   return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map() };
 }
 
+/** Imported trade good → what it looks like when carried, which buildings take it in. */
+const IMPORT_TO: Record<TradeGood, [Good, Kind[], Dest]> = {
+  grain: ["grain", ["mill", "watermill", "granary"], "mill"], wood: ["log", ["sawmill", "warehouse"], "sawmill"], timber: ["planks", [], "site"],
+  ore: ["stone", ["smithy", "steamworks"], "store"], stone: ["stone", [], "site"], fish: ["bundle", ["inn", "market"], "inn"], salt: ["flour", ["inn", "bakery"], "inn"],
+  wool: ["bundle", ["manufactory", "workshop"], "store"], hides: ["bundle", ["workshop", "market"], "store"], cloth: ["bundle", ["market", "markethall"], "market"],
+  ironware: ["bundle", ["market", "warehouse"], "market"], beer: ["bread", ["inn"], "inn"],
+};
 /** Deterministic supply chains: who carries which good from where to where during work hours. */
-function assignHauls(people: Person[], byKind: Map<Kind, Tile[]>, sites: Tile[], front: (t: Tile) => Tile | null, well: Tile) {
+function assignHauls(people: Person[], byKind: Map<Kind, Tile[]>, sites: Tile[], front: (t: Tile) => Tile | null, well: Tile, imports: TradeGood[] = []) {
   const d = (a: Tile, b: Tile) => Math.hypot(a[0] - b[0], a[1] - b[1]);
   const nearest = (from: Tile, list: Tile[]) => list.reduce<Tile | null>((b, c) => (!b || d(from, c) < d(from, b) ? c : b), null);
   const kinds = (...k: Kind[]) => k.flatMap((x) => byKind.get(x) ?? []);
@@ -221,6 +228,12 @@ function assignHauls(people: Person[], byKind: Map<Kind, Tile[]>, sites: Tile[],
       used.add(`bak${w}`);
       const inn = nearest(w, kinds("inn")), mk = nearest(w, kinds("market"));
       if (inn) go(inn, true, "bread", "inn"); else if (mk) go(mk, false, "bread", "market");
+    }
+    else if ((p.job === "carter" || p.job === "merchant") && imports.length && h < 0.7) {
+      // unload goods brought in by traders: from market / kontor to the workshop that needs them
+      const g = imports[Math.floor(hash(p.id, 4, 950) * imports.length)]!, [vis, ks, dest] = IMPORT_TO[g];
+      const to = ks.length ? nearest(w, kinds(...ks)) : siteFront(w);
+      go(to ?? siteFront(w), !!to, vis, to ? dest : "site");
     }
     p.haul = haul;
   }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastSources, peopleFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
+import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townOf, poseOf, type Person } from "@/game/people";
 import { inspectAt, type Inspect } from "@/game/inspect";
@@ -697,6 +697,10 @@ export function Game() {
               const best = personAt(e);
               const pan = (e.clientX / window.innerWidth) * 2 - 1;
               if (best) { hm(pan); setPlace(null); return setWho(best); }
+              { const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
+                const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
+                const tr = lastTraders.find((f) => Math.hypot(f.x - wx, f.y - 3 - wy) < Math.max(4, 16 / c.zoom));
+                if (tr) { tap(pan); setWho(null); setPlace(null); return setMsg(t.trade.trader(tr.cart, tr.good ? t.trade.goods[tr.good] ?? tr.good : "–", tr.from, tr.to)); } }
               const [tx, ty] = tileAt(e);
               const sm = signpostMap(seeds);
               for (const [dx, dy] of [[0, 0], [1, 1], [1, 0], [0, 1], [-1, 0], [0, -1]] as const) {
