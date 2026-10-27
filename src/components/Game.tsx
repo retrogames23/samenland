@@ -29,7 +29,10 @@ import {
   type Signpost,
   type Planting,
   type Seed,
+  canPlaceSpecial,
+  SPECIAL_KIND,
 } from "@/game/world";
+import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, plantError, type Lang } from "@/game/i18n";
 import { ITEMS, attributes, popAt, treasury, type Item, type Purchase } from "@/game/economy";
 import { lovable } from "@/integrations/lovable";
@@ -698,6 +701,13 @@ export function Game() {
       )}
 
       <div className="pointer-events-none absolute bottom-20 left-2 right-2 z-20 flex flex-col items-end space-y-2 text-sm md:bottom-52 md:left-auto md:right-3 md:w-80">
+        {placing && (
+          <div className="pointer-events-auto flex w-full max-w-xs items-center gap-2 rounded-md border-2 border-wood bg-card px-3 py-2 text-foreground shadow-[var(--shadow-panel)]">
+            {spriteUrl(SPECIAL_KIND[placing]!) && <img src={spriteUrl(SPECIAL_KIND[placing]!)} alt="" className="h-10 w-10 object-contain" />}
+            <div className="flex-1 text-xs"><div className="font-semibold">{t.items[placing]![0]} · {t.taler(ITEMS[placing])}</div>{t.place.hint}</div>
+            <Button size="sm" variant="secondary" onClick={() => { setPlacing(null); setMsg(null); }}>{t.cancel}</Button>
+          </div>
+        )}
         {msg && (
           <div className="rounded-md border-2 border-border bg-card px-3 py-2 shadow-[var(--shadow-panel)] border-wood text-foreground">
             {msg}
