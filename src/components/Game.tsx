@@ -339,7 +339,7 @@ export function Game() {
       const r = cv.getBoundingClientRect();
       const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
       target.current = {
-        zoom: Math.min(7, Math.max(MIN_ZOOM, target.current.zoom * Math.exp(-dy * 0.0015))),
+        zoom: Math.min(12, Math.max(MIN_ZOOM, target.current.zoom * Math.exp(-dy * 0.0015))),
         ax: (e.clientX - r.left) * dpr.current,
         ay: (e.clientY - r.top) * dpr.current,
       };
@@ -532,7 +532,7 @@ export function Game() {
   };
   const zoomBy = (f: number) => {
     const cv = canvasRef.current!;
-    target.current = { zoom: Math.min(7, Math.max(MIN_ZOOM, target.current.zoom * f)), ax: cv.width / 2, ay: cv.height / 2 };
+    target.current = { zoom: Math.min(12, Math.max(MIN_ZOOM, target.current.zoom * f)), ax: cv.width / 2, ay: cv.height / 2 };
   };
   const pick = (k: Tab) => setTab(tab === k ? null : k);
   const tabs: { k: Tab; icon: typeof Hammer; label: string }[] = [
@@ -727,7 +727,7 @@ export function Game() {
             const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
             const p = pinch.current;
             if (p && p.dist > 0) {
-              const nz = Math.min(7, Math.max(MIN_ZOOM, c.zoom * (dist / p.dist)));
+              const nz = Math.min(12, Math.max(MIN_ZOOM, c.zoom * (dist / p.dist)));
               const ox = p.mx - r.left - r.width / 2, oy = p.my - r.top - r.height / 2;
               const wx = ox / c.zoom + c.x, wy = oy / c.zoom + c.y;
               const nx = mx - r.left - r.width / 2, ny = my - r.top - r.height / 2;
