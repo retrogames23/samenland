@@ -72,6 +72,7 @@ export function Game() {
     ro.observe(el); return () => ro.disconnect();
   }, []);
   const [encOpen, setEncOpen] = useState(false);
+  const [snooze, setSnooze] = useState<Partial<Record<DecisionKind, number>>>({});
   const [roadPick, setRoadPick] = useState<string | null>(null);
   const [charterPick, setCharterPick] = useState<CharterPath | null>(null);
   const [signs, setSigns] = useState<Signpost[]>([]);
@@ -432,6 +433,19 @@ export function Game() {
   };
 
   const now = Date.now();
+  const owner = !!my && !!userId && my.user_id === userId;
+  const decision = pickDecision({
+    road: owner && !myRoad && roadCandidates(my!, seeds).length > 0,
+    charter: owner && !myCharter && charterReady(my!.created_at, now),
+    encounter: owner && !!pendingEncounter(my!, my!.decisions ?? [], now),
+  }, (k) => (snooze[k] ?? 0) > now);
+  const anyOpen = roadOpen || charterOpen || encOpen;
+  const sealShown = !anyOpen && !decision.open && decision.due.length > 0;
+  function later(k: DecisionKind) {
+    setSnooze((m) => ({ ...m, [k]: Date.now() + 3.6e6 }));
+    if (k === "road") setRoadOpen(false); else if (k === "charter") setCharterOpen(false); else setEncOpen(false);
+  }
+  function reopen() { setSnooze({}); }
   const cash = my ? treasury(my, purchases, now) : 0;
   const at = my ? attributes(my, seeds, purchases, now) : null;
   const pop = my ? dailyTax(my, ageHours(my, now)) : 0;
@@ -792,7 +806,7 @@ export function Game() {
       })()}
       {roadOpen && my && (
         <Parchment image={ART.road} title={t.road.title} later={t.enc.later} onLater={() => later("road")}>
-              <p className="mt-2 text-sm text-muted-foreground">{t.road.intro}</p>
+              <p className="mt-2 text-sm text-center">{t.road.intro}</p>
               {roadCandidates(my, seeds).length === 0 ? <p className="mt-4 text-sm font-semibold">{t.road.none}</p> : (
                 <>
                   <div className="mt-4 grid gap-2">
@@ -820,7 +834,7 @@ export function Game() {
 
       {charterOpen && my && (
         <Parchment wide image={ART.charter} title={`${t.charter.title} · ${my.name}`} later={t.enc.later} onLater={() => later("charter")}>
-              <p className="mt-2 text-sm text-muted-foreground">{t.charter.intro}</p>
+              <p className="mt-2 text-sm text-center">{t.charter.intro}</p>
               {!charterReady(my.created_at, now) ? (
                 <p className="mt-4 text-sm font-semibold">{t.charter.locked}</p>
               ) : (
@@ -847,8 +861,12 @@ export function Game() {
                   </div>
                 </>
               )}
-            </Panel>
-          </div>
+        </Parchment>
+      )}
+
+      {sealShown && (
+        <div className="absolute right-3 z-30" style={{ top: barH + 8 }}>
+          <WaxSeal label={t.enc.waiting} onClick={reopen} />
         </div>
       )}
 
