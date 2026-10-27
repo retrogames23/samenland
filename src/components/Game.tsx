@@ -271,7 +271,7 @@ export function Game() {
         setSigns((s) => [...s.filter((x) => x.id !== n.id), n]);
       })
       .subscribe();
-    const iv = setInterval(() => tick((n) => n + 1), 30000);
+    const iv = setInterval(() => tick((n) => n + 1), isLab() ? 2000 : 30000);
     return () => {
       supabase.removeChannel(ch);
       clearInterval(iv);
@@ -869,6 +869,15 @@ export function Game() {
                   <button key={r} className={`rounded px-2 py-1 text-xs ${realm === r ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => { if (r === realm) return; localStorage.setItem("samenland-realm", r); window.location.reload(); }}>{t.realms[r]}</button>
                 ))}
               </div>
+              {realm === "lab" && (<>
+                <div className="text-xs text-muted-foreground">{t.lab.title(LAB_SPEED)}</div>
+                <div className="grid grid-cols-3 gap-1">
+                  {[0, 24, 168, 2160, 4380, 8760].map((h, i) => (
+                    <button key={h} className={`rounded px-1 py-1 text-[10px] ${labJump() === h ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => { localStorage.setItem("samenland-lab-jump", String(h)); setLabJump(h); tick((n) => n + 1); }}>{t.stages[i]}</button>
+                  ))}
+                </div>
+                <div className="text-[10px] text-muted-foreground">{t.lab.note}</div>
+              </>)}
             </>)}
             {userId ? <Button size="sm" variant="secondary" className="w-full" onClick={() => { supabase.auth.signOut(); setSettings(false); }}>{t.signOut}</Button>
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
