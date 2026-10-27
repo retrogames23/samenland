@@ -546,6 +546,55 @@ function diamond(c: C, cx: number, cy: number, k: number) {
   c.beginPath(); c.moveTo(cx, cy - TH / 2 * k); c.lineTo(cx + TW / 2 * k, cy); c.lineTo(cx, cy + TH / 2 * k); c.lineTo(cx - TW / 2 * k, cy); c.closePath();
 }
 
+/** Small wooden rowing/sail boat with planked hull, shading, reflection and wake. */
+function drawBoat(c: C, x: number, y: number, dir: number, t: number, sd: number) {
+  c.save(); c.translate(x, y); c.scale(dir, 1);
+  // wake + soft shadow in the water
+  c.fillStyle = "rgba(15,30,30,0.28)"; c.beginPath(); c.ellipse(0, 1.3, 5.2, 1.5, 0, 0, 7); c.fill();
+  c.strokeStyle = `rgba(210,225,215,${0.18 + 0.08 * Math.sin(t / 500)})`; c.lineWidth = 0.35;
+  for (const s of [1, -1]) { c.beginPath(); c.moveTo(-4.2, 0.4); c.quadraticCurveTo(-7, 0.6 + s * 0.9, -10, 0.8 + s * 1.8); c.stroke(); }
+  // hull
+  const g = c.createLinearGradient(0, -1.6, 0, 1.4);
+  g.addColorStop(0, "#8c6844"); g.addColorStop(0.55, "#6b4c30"); g.addColorStop(1, "#3e2b1b");
+  c.beginPath(); c.moveTo(-4.4, -1.2); c.lineTo(4.6, -1.5); c.quadraticCurveTo(4.2, 0.6, 2.6, 1.1); c.lineTo(-3, 1.1); c.quadraticCurveTo(-4.3, 0.4, -4.4, -1.2); c.closePath();
+  c.fillStyle = g; c.fill(); c.strokeStyle = "rgba(35,24,15,0.75)"; c.lineWidth = 0.3; c.stroke();
+  c.strokeStyle = "rgba(40,28,16,0.45)"; c.lineWidth = 0.2;
+  for (const v of [-0.4, 0.4]) { c.beginPath(); c.moveTo(-4.1, v); c.lineTo(4.1, v - 0.25); c.stroke(); }
+  // inside / gunwale
+  c.fillStyle = "#4a3422"; c.beginPath(); c.ellipse(0.1, -1.35, 3.9, 0.45, -0.03, 0, 7); c.fill();
+  c.fillStyle = "#a78058"; c.fillRect(-3.9, -1.65, 8.2, 0.3);
+  // mast + furled-ish sail
+  c.strokeStyle = "#4a3422"; c.lineWidth = 0.4; c.beginPath(); c.moveTo(0.3, -1.4); c.lineTo(0.3, -9); c.stroke();
+  const sw = Math.sin(t / 900 + sd) * 0.35;
+  const sg = c.createLinearGradient(0.3, 0, 3.8, 0); sg.addColorStop(0, "#d9cfb6"); sg.addColorStop(1, "#b5a88a");
+  c.beginPath(); c.moveTo(0.5, -8.6); c.quadraticCurveTo(3 + sw, -5.5, 3.6 + sw, -2.2); c.lineTo(0.5, -2.2); c.closePath();
+  c.fillStyle = sg; c.fill(); c.strokeStyle = "rgba(70,60,45,0.5)"; c.lineWidth = 0.2; c.stroke();
+  c.strokeStyle = "rgba(60,45,30,0.5)"; c.beginPath(); c.moveTo(0.3, -9); c.lineTo(4.4, -1.5); c.stroke();
+  // boatman
+  c.fillStyle = "#5a4a3a"; c.fillRect(-2.6, -3.2, 1.1, 1.8);
+  c.fillStyle = "#d6b08a"; c.beginPath(); c.arc(-2.05, -3.7, 0.55, 0, 7); c.fill();
+  c.fillStyle = "#6e5a3c"; c.beginPath(); c.ellipse(-2.05, -4.05, 0.85, 0.25, 0, 0, 7); c.fill();
+  c.restore();
+}
+
+/** Traveller on the open road, same muted style as villagers. */
+function drawWanderer(c: C, x: number, y: number, dir: number, t: number, sd: number) {
+  const ph = t / 260 + sd, st = Math.sin(ph) * 0.55, bob = Math.abs(Math.cos(ph)) * 0.15;
+  const coat = ["#5d5244", "#4f5a4a", "#6a4e3a", "#4c4f58"][Math.floor(hash(sd, 1, 7) * 4)]!;
+  c.save(); c.translate(x, y); c.scale(dir * 0.9, 0.9);
+  c.fillStyle = "rgba(20,15,10,0.3)"; c.beginPath(); c.ellipse(0, 0, 1.4, 0.45, 0, 0, 7); c.fill();
+  c.strokeStyle = "#3a3026"; c.lineWidth = 0.45; c.lineCap = "round";
+  c.beginPath(); c.moveTo(0, -2.2 - bob); c.lineTo(st, 0); c.moveTo(0, -2.2 - bob); c.lineTo(-st, 0); c.stroke();
+  const g = c.createLinearGradient(-0.8, 0, 0.8, 0); g.addColorStop(0, coat); g.addColorStop(1, "#2e2820");
+  c.beginPath(); c.moveTo(-0.7, -4.4 - bob); c.lineTo(0.7, -4.4 - bob); c.lineTo(0.85, -1.9 - bob); c.lineTo(-0.85, -1.9 - bob); c.closePath();
+  c.fillStyle = g; c.fill(); c.strokeStyle = "rgba(25,20,15,0.6)"; c.lineWidth = 0.18; c.stroke();
+  c.fillStyle = "#7a5a3a"; c.fillRect(-1.2, -4.1 - bob, 0.6, 1.3); // bundle on back
+  c.fillStyle = "#d4ae88"; c.beginPath(); c.arc(0.1, -5 - bob, 0.5, 0, 7); c.fill();
+  c.fillStyle = "#4a3c2c"; c.beginPath(); c.ellipse(0.1, -5.35 - bob, 0.85, 0.22, 0, 0, 7); c.fill(); c.fillRect(-0.3, -5.8 - bob, 0.8, 0.45);
+  c.strokeStyle = "#5c4430"; c.lineWidth = 0.25; c.beginPath(); c.moveTo(0.9, -3.4 - bob); c.lineTo(1.3 + st * 0.3, 0); c.stroke();
+  c.restore();
+}
+
 function drawRails(c: C, l: ReturnType<typeof links>[number], seeds: Seed[], now: number) {
   c.save(); c.lineCap = "butt";
   for (let i=1;i<l.tiles.length;i++) {
