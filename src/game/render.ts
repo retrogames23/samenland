@@ -1,7 +1,7 @@
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
 import { drawBuildingSprite, spriteBox, setSpriteTime } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, wandererImage, planksPattern, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -110,16 +110,34 @@ export type Light = { x: number; y: number; r: number };
 /** Hovered / selected villager ids, set by the UI so the canvas can highlight them. */
 export const peopleFocus: { hover: string | null; sel: string | null } = { hover: null, sel: null };
 
-/** Small shaded sheep (~hip height of a villager), grazing with an occasional head lift. */
-function drawSheep(c: C, x: number, y: number, flip: boolean, t: number) {
-  const graze = Math.sin(t / 2600) > -0.3;
-  const im = sheepImage(graze); if (!im) return;
+/** Small shaded sheep (~hip height of a villager). Walking adds a trotting bob and nod; standing grazes. */
+function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking: boolean, graze: boolean) {
+  const im = sheepImage(graze && !walking); if (!im) return;
   const w = 5.2, h = (w * im.naturalHeight) / im.naturalWidth;
-  c.fillStyle = "rgba(30,36,22,0.3)"; c.beginPath(); c.ellipse(x, y, 2.4, 0.8, 0, 0, 7); c.fill();
-  c.save(); c.translate(x, y); if (flip) c.scale(-1, 1);
+  const step = walking ? t / 1000 * Math.PI * 2 * 2.2 : 0;
+  const bob = walking ? Math.abs(Math.sin(step)) * 0.35 : Math.sin(t / 1700) * 0.04;
+  const tilt = walking ? Math.sin(step) * 0.05 : 0;
+  c.fillStyle = "rgba(30,36,22,0.3)"; c.beginPath(); c.ellipse(x, y, 2.4 - bob, 0.8, 0, 0, 7); c.fill();
+  c.save(); c.translate(x, y - bob); if (flip) c.scale(-1, 1); c.rotate(tilt);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   c.drawImage(im, -w / 2, -h * 0.95, w, h);
   c.restore();
+}
+/** Grazing rhythm: long stands at one tuft, then a short 2–3 s trot to the next. Pure clock function. */
+function sheepAt(sd: number, k: number, t: number): { dx: number; dy: number; walking: boolean; flip: boolean; graze: boolean } {
+  const CYC = 18000 + hash(sd, k, 5) * 14000, WALK_MS = 2200 + hash(sd, k, 6) * 900;
+  const tt = t + hash(sd, k, 7) * CYC, i = Math.floor(tt / CYC), u = tt - i * CYC;
+  const spot = (j: number): [number, number] => [(hash(sd, k * 31 + j, 8) - 0.5) * 10, (hash(sd, k * 31 + j, 9) - 0.5) * 4];
+  const a = spot(i), b = spot(i + 1);
+  const into = u - (CYC - WALK_MS);
+  if (into > 0) {
+    const f = into / WALK_MS, e = f * f * (3 - 2 * f);
+    return { dx: a[0] + (b[0] - a[0]) * e, dy: a[1] + (b[1] - a[1]) * e, walking: true, flip: b[0] < a[0], graze: false };
+  }
+  const prev = spot(i - 1);
+  // mostly head down; looks up briefly now and then
+  const look = Math.sin(u / 2300 + k) > 0.82;
+  return { dx: a[0], dy: a[1], walking: false, flip: a[0] < prev[0], graze: !look };
 }
 
 /** Weathered, half-buried boulder: rounded, lit from the top-left, settled into the ground. */
@@ -235,8 +253,8 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
       if (v > 0.35) {
         const n = v > 0.7 ? 3 : 2;
         for (let k = 0; k < n; k++) {
-          const ph = t / 9000 + v * 20 + k * 2.1;
-          drawSheep(c, cx + Math.sin(ph) * 5 + (k - 1) * 4, cy + Math.cos(ph * 0.7) * 2 + (k % 2) * 2, Math.cos(ph) > 0, t + k * 1700 + sd);
+          const m = sheepAt(sd, k, t);
+          drawSheep(c, cx + m.dx + (k - 1) * 3, cy + m.dy + (k % 2) * 1.5, m.flip, t + k * 1700, m.walking, m.graze);
         }
       }
   }
@@ -616,16 +634,25 @@ function drawBoat(c: C, x: number, y: number, flip: boolean, t: number, sd: numb
   c.restore();
 }
 
-/** Traveller on the open road, same muted style as villagers. */
-function drawWanderer(c: C, x: number, y: number, dir: number, t: number, sd: number) {
-  const im = wandererImage(); if (!im) return;
-  const bob = Math.abs(Math.sin(t / 260 + sd)) * 0.15;
-  const h = 5.4, w = (h * im.naturalWidth) / im.naturalHeight;
-  c.fillStyle = "rgba(20,15,10,0.3)"; c.beginPath(); c.ellipse(x, y, 1.4, 0.45, 0, 0, 7); c.fill();
-  c.save(); c.translate(x, y - bob); c.scale(dir, 1);
-  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  c.drawImage(im, -w / 2, -h, w, h);
-  c.restore();
+/** Traveller on the open road: a real villager figure with stick and hat, striding along the road. */
+const travellers = new Map<number, Pose["p"]>();
+function drawWanderer(c: C, x: number, y: number, dx: number, dy: number, t: number, sd: number) {
+  let p = travellers.get(sd);
+  if (!p) {
+    p = {
+      id: sd, seed: null as never, first: "", last: "", sex: hash(sd, 1, 11) < 0.35 ? "f" : "m", age: 25 + Math.floor(hash(sd, 2, 11) * 35), job: "carter",
+      home: [0, 0], work: null, workIndoor: false, speed: 0.3,
+      looks: { skin: hash(sd, 3, 11), hair: hash(sd, 4, 11), shirt: hash(sd, 5, 11), pants: hash(sd, 6, 11), hat: true, stick: true }, haul: null,
+    };
+    travellers.set(sd, p);
+  }
+  // screen direction → tile direction (inverse of the iso projection used by the figure)
+  const d0 = (dx + 2 * dy) / 2, d1 = (2 * dy - dx) / 2;
+  const q: Pose = {
+    p, x: 0, y: 0, visible: true, walking: true, dir: [d0, d1], phase: (t / 1000) * Math.PI * 2 * 0.95,
+    act: "work", working: false, talk: null, talkTurn: false, carry: null, dest: null,
+  };
+  drawPerson(c, x, y, q, t, false);
 }
 
 /** Road crew at the growing end of a trade road: stakes ahead, a log pile, gravel, two diggers. */
@@ -1137,7 +1164,7 @@ export function draw(
     const count = 1 + Math.round(mature * 3);
     const sn = l.a.x * 7 + l.b.y * 13;
     for (let k = 0; k < count; k++) {
-      const secsPerTile = 1.6 + hash(sn, k, 1) * 1.2;
+      const secsPerTile = hash(sn, k, 3) < 0.55 ? 1.6 + hash(sn, k, 1) * 1.2 : 3.2 + hash(sn, k, 1) * 1.2;
       const ph = ((t / 1000 / secsPerTile + hash(sn, k, 2) * n * 2) % (n * 2));
       const fwd = ph < n;
       const f = fwd ? ph : n * 2 - ph;
@@ -1154,7 +1181,7 @@ export function draw(
       const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
       if (hash(sn, k, 3) < 0.55) drawCart(c, x, y, dx, dy, bob, sn + k, hsl(35 + hash(sn, k, 4) * 20, 35, 82), t);
       else {
-        drawWanderer(c, x, y, dx >= 0 ? 1 : -1, t, sn + k);
+        drawWanderer(c, x, y, dx, dy, t, sn + k);
       }
     }
   }
