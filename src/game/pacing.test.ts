@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { stageOf, radiusOf, birthAt, structureAt, terrain, buildable, waterNearby, railReady, links, type Seed, type Kind } from "./world";
 import { seasonAt } from "./season";
 const now = Date.UTC(2026,6,15,12);
-function seed(h: number, x=512, y=512, id="pacing"): Seed { return {id,x,y,name:"Test",founder:"Test",hue:90,created_at:new Date(now-h*3600000).toISOString()}; }
+function seed(h: number, x=512, y=512, id="pacing"): Seed { return {id,x,y,name:"Test",owner:"Test",hue:90,created_at:new Date(now-h*3600000).toISOString()}; }
 let site: [number,number] = [512,512];
 outer: for(let y=400;y<600;y+=4) for(let x=400;x<600;x+=4) {
   if ([[0,0],[1,0],[0,1],[1,1],[-1,0],[2,-2],[3,1],[3,-4],[8,6]].every(([dx,dy])=>buildable(terrain(x+(dx??0),y+(dy??0))))) {site=[x,y];break outer;}
