@@ -1,7 +1,7 @@
 // Pure, deterministic world + town growth logic (shared by every player).
 export const MAP = 1024;
 
-export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null };
+export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null; blessed?: number[] };
 export type Planting = { id: string; seed_id: string; kind: "tree" | "flower" | "lantern"; x: number; y: number; created_at: string };
 
 export function hash(x: number, y: number, s = 0): number {
@@ -510,7 +510,7 @@ export function bonusOf(d: number, neighbourAgeH: number) {
 
 /** Current growth speed multiplier: 1 + sum of neighbour bonuses. */
 export function speedOf(s: Seed, seeds: Seed[], now: number) {
-  let sp = 1;
+  let sp = 1 + (isBlessed(s, now) ? BLESS_BONUS : 0);
   for (const l of links(seeds)) {
     if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
     const o = l.a.id === s.id ? l.b : l.a;
@@ -521,7 +521,7 @@ export function speedOf(s: Seed, seeds: Seed[], now: number) {
 
 /** Effective age: real age plus bonus hours accumulated since each road was founded (monotonic, deterministic). */
 export function effAge(s: Seed, seeds: Seed[], now: number) {
-  let h = ageHours(s, now);
+  let h = ageHours(s, now) + blessHours(s, now);
   const base = h;
   for (const l of links(seeds)) {
     if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
@@ -538,3 +538,32 @@ export function isTwin(l: Link, seeds: Seed[], now: number) {
 
 /** Rails unlock only when BOTH linked settlements enter the industrial era. */
 export const railReady = (l: Link, seeds: Seed[], now: number) => stageOf(effAge(l.a,seeds,now)) >= 5 && stageOf(effAge(l.b,seeds,now)) >= 5;
+
+// ---------------- daily blessing (bell / decorated well) ----------------
+/** A blessing lasts 24 h and speeds growth by 10 % meanwhile; derived from the blessing timestamps only. */
+export const BLESS_MS = 24 * 3.6e6;
+export const BLESS_BONUS = 0.1;
+export function blessHours(s: Seed, now: number) {
+  let h = 0;
+  for (const b of s.blessed ?? []) if (b <= now) h += Math.min(now - b, BLESS_MS) / 3.6e6 * BLESS_BONUS;
+  return h;
+}
+export function isBlessed(s: Seed, now: number) { return (s.blessed ?? []).some((b) => b <= now && now - b < BLESS_MS); }
+/** Ms until the owner may bless again (0 = now). */
+export function blessCooldown(s: Seed, now: number) {
+  const last = Math.max(-Infinity, ...(s.blessed ?? []));
+  return Math.max(0, last + BLESS_MS - now);
+}
+
+// ---------------- signposts on trade roads ----------------
+export type Signpost = { id: string; seed_id: string; target_id: string; user_id: string; message: string };
+/** Road tile where a town's signpost towards a neighbour stands: a few steps out of town along the road. */
+export function signTile(seeds: Seed[], fromId: string, toId: string): [number, number] | null {
+  const l = links(seeds).find((k) => (k.a.id === fromId && k.b.id === toId) || (k.b.id === fromId && k.a.id === toId));
+  if (!l || l.tiles.length < 4) return null;
+  const from = l.a.id === fromId ? l.a : l.b;
+  // first road tile outside the town's core, so the post stands at the village edge
+  const order = l.a.id === fromId ? l.tiles : [...l.tiles].reverse();
+  const i = order.findIndex(([x, y]) => Math.hypot(x - from.x, y - from.y) >= 7);
+  return order[i < 0 ? Math.min(3, order.length - 1) : i]!;
+}

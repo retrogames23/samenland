@@ -22,6 +22,13 @@
       "when": 1793061541458,
       "tag": "0002_seed_ownership",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793121940397,
+      "tag": "0003_village_rituals_and_signposts",
+      "breakpoints": true
     }
   ]
 }

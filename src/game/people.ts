@@ -5,7 +5,7 @@ import { hash, structureAt, effAge, radiusOf, terrain, buildable, FLAT, type See
 export type Sex = "f" | "m";
 export type Job =
   | "farmer" | "baker" | "smith" | "innkeeper" | "miller" | "crafter" | "worker"
-  | "sawyer" | "builder" | "woodcutter" | "mason" | "merchant" | "priest" | "carter" | "homemaker" | "retired" | "child";
+  | "sawyer" | "builder" | "woodcutter" | "mason" | "merchant" | "priest" | "carter" | "mayor" | "homemaker" | "retired" | "child";
 export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play";
 type Tile = [number, number];
 export type Person = {
@@ -36,7 +36,7 @@ const SLOTS: Partial<Record<Kind, [Job, number]>> = {
   bakery: ["baker", 2], smithy: ["smith", 2], inn: ["innkeeper", 2], mill: ["miller", 1], workshop: ["crafter", 2],
   factory: ["worker", 6], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
 };
-const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["farmer", "merchant", "carter", "builder", "woodcutter", "mason"]);
+const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["mayor", "farmer", "merchant", "carter", "builder", "woodcutter", "mason"]);
 const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge", "rail", "avenue"]);
 
 export type Town = {
@@ -147,6 +147,17 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
         haul: null,
       });
     }
+  }
+  // the player's own figure: the village mayor (Dorfschulze), walking between well, sites and meeting spots
+  if (s.user_id) {
+    const hall = byKind.get("townhall")?.[0];
+    const h = (i: number) => hash(s.x, s.y, 880 + i);
+    const sex: Sex = h(0) < 0.5 ? "f" : "m";
+    people.push({
+      id: -(s.x * 1024 + s.y) - 1, seed: s, first: pick(sex === "f" ? F : M, h(1)), last: pick(S, h(2)), sex, age: 46 + Math.floor(h(3) * 14), job: "mayor",
+      home: homes[0] ?? [s.x + 1, s.y + 1], work: hall ? (front(hall) ?? meet) : meet, workIndoor: false, speed: 0.2,
+      looks: { skin: h(4), hair: h(5), shirt: 0.99, pants: h(6), hat: true, stick: false }, haul: null,
+    });
   }
   assignHauls(people, byKind, sites, front, well);
   return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map() };
