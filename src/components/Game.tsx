@@ -61,6 +61,13 @@ export function Game() {
   const [roadOpen, setRoadOpen] = useState(false);
   type EncRow = { id: string; seed_id: string; event: string; choice: string; cost: number; created_at: string };
   const [encounters, setEncounters] = useState<EncRow[]>([]);
+  const barRef = useRef<HTMLDivElement>(null);
+  const [barH, setBarH] = useState(88);
+  useEffect(() => {
+    const el = barRef.current; if (!el) return;
+    const ro = new ResizeObserver(() => setBarH(el.offsetTop + el.offsetHeight));
+    ro.observe(el); return () => ro.disconnect();
+  }, []);
   const [encOpen, setEncOpen] = useState(false);
   const [roadPick, setRoadPick] = useState<string | null>(null);
   const [charterPick, setCharterPick] = useState<CharterPath | null>(null);
@@ -652,7 +659,7 @@ export function Game() {
         onPointerLeave={() => setHover(null)}
       />
       {/* top bar */}
-      <div className="pointer-events-none absolute inset-x-2 top-2 z-30 md:inset-x-3 md:top-3">
+      <div ref={barRef} className="pointer-events-none absolute inset-x-2 top-2 z-30 md:inset-x-3 md:top-3">
         <Panel inner="flex items-center gap-3 px-3 py-1.5 md:gap-5">
           <div className="min-w-0 shrink">
             <div title={my ? t.character[characterOf(my.x, my.y)]![1] : undefined} className="truncate font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
@@ -730,7 +737,7 @@ export function Game() {
       </div>
 
       {/* build rail: left on desktop, bottom on phones */}
-      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-30 md:inset-x-auto md:bottom-auto md:left-3 md:top-24">
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-30 md:inset-x-auto md:bottom-auto md:left-3 md:top-[var(--bar-h,6rem)]" style={{ "--bar-h": `${barH + 8}px` } as React.CSSProperties}>
         <Panel inner="!bg-wood !border-0 flex gap-1 p-1 md:flex-col">
           {tabs.map(({ k, icon: I, label }) => (
             <WoodButton key={k} label={label} active={tab === k} onClick={() => pick(k)} className="h-11 flex-1 flex-col gap-0.5 md:h-14 md:w-14 md:flex-none">
