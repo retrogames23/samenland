@@ -1,3 +1,5 @@
+import { seasonalImage } from "./season-art";
+import { seasonKey } from "./season";
 import grass from "@/assets/terrain/grass.jpg";
 import meadow from "@/assets/terrain/meadow.jpg";
 import forest from "@/assets/terrain/forest.jpg";
@@ -29,14 +31,18 @@ function img(url: string) {
   return i.complete && i.naturalWidth ? i : null;
 }
 
-const pats = new Map<Tex, CanvasPattern>();
+const pats = new Map<string, CanvasPattern>();
+let artNow = 0;
+export const setNatureTime = (now: number) => { artNow = now; };
+const texRole = (t: Tex) => t === "water" ? "water" : t === "wheat" || t === "crops" ? "field" : t === "meadow" ? "flower" : "ground";
 /** Texture laid on the iso ground plane (rotated 45° and squashed), anchored in world space. */
 export function texture(c: C, t: Tex, shift = 0): CanvasPattern | null {
-  let p = pats.get(t);
+  const key = `${t}:${seasonKey(artNow)}`;
+  let p = pats.get(key);
   if (!p) {
     const i = img(TEX[t]); if (!i) return null;
-    p = c.createPattern(i, "repeat") ?? undefined; if (!p) return null;
-    pats.set(t, p);
+    p = c.createPattern(seasonalImage(i, texRole(t)), "repeat") ?? undefined; if (!p) return null;
+    if (pats.size > 44) pats.clear(); pats.set(key, p);
   }
   const s = SPAN[t] / 816;
   const m = new DOMMatrix().scale(1, 0.5).rotate(45).translate(shift, shift * 0.3).scale(s, s);
@@ -66,7 +72,7 @@ export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: num
   c.fillStyle = "rgba(25,30,15,0.28)";
   c.beginPath(); c.ellipse(w * 0.12, 0, w * 0.42, w * 0.16, 0, 0, 7); c.fill();
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  c.drawImage(i, -w / 2, -h + h * 0.02, w, h);
+  c.drawImage(seasonalImage(i, k === "fir" ? "fir" : k === "crag" ? "building" : "leaf"), -w / 2, -h + h * 0.02, w, h);
   c.restore();
   return true;
 }
@@ -76,13 +82,14 @@ if (typeof window !== "undefined") {
   for (const u of Object.values(TEX)) img(u);
 }
 
-const samples = new Map<Tex, { d: Uint8ClampedArray; n: number }>();
+const samples = new Map<string, { d: Uint8ClampedArray; n: number }>();
 /** Small RGB sample grid of a texture (for the cached overview map); null until loaded. */
 export function texSample(t: Tex) {
-  const s = samples.get(t); if (s) return s;
+  const key = `${t}:${seasonKey(artNow)}`;
+  const s = samples.get(key); if (s) return s;
   const i = img(TEX[t]); if (!i) return null;
   const n = 64, cv = document.createElement("canvas"); cv.width = cv.height = n;
-  const g = cv.getContext("2d", { willReadFrequently: true })!; g.drawImage(i, 0, 0, n, n);
-  const r = { d: g.getImageData(0, 0, n, n).data, n }; samples.set(t, r); return r;
+  const g = cv.getContext("2d", { willReadFrequently: true })!; g.drawImage(seasonalImage(i, texRole(t)), 0, 0, n, n);
+  const r = { d: g.getImageData(0, 0, n, n).data, n }; if (samples.size > 44) samples.clear(); samples.set(key, r); return r;
 }
 export const allTexturesReady = () => (Object.keys(TEX) as Tex[]).every((t) => texSample(t));

@@ -24,13 +24,14 @@ const M = ["Otto", "Karl", "Emil", "Fritz", "Hans", "Paul", "Anton", "Jakob", "F
 const S = ["Hollmann", "Brandt", "Weber", "Müller", "Becker", "Lindner", "Kraus", "Vogt", "Seidel", "Hartmann", "Ebert", "Moosbauer", "Winter", "Sommer", "Fink", "Haas", "Kessler", "Roth", "Albers", "Pfeiffer", "Graf", "Kühn"];
 const pick = <T,>(a: readonly T[], h: number) => a[Math.floor(h * a.length) % a.length]!;
 
-const HOMES: Partial<Record<Kind, [number, number]>> = { farmhouse: [2, 4], cottage: [2, 3], townhouse: [2, 4], inn: [2, 2], bakery: [2, 2] };
+const HOMES: Partial<Record<Kind, [number, number]>> = { hut: [2, 2], suburb: [2, 4], farmhouse: [2, 4], cottage: [2, 3], townhouse: [2, 4], inn: [2, 2], bakery: [2, 2] };
 const SLOTS: Partial<Record<Kind, [Job, number]>> = {
+  watermill: ["miller", 2], chapel: ["priest", 1], manufactory: ["worker", 4], steamworks: ["worker", 4], station: ["carter", 2], stall: ["merchant", 2], harbor: ["carter", 2], townhall: ["crafter", 2],
   bakery: ["baker", 2], smithy: ["smith", 2], inn: ["innkeeper", 2], mill: ["miller", 1], workshop: ["crafter", 2],
   factory: ["worker", 6], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
 };
 const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["farmer", "merchant", "carter"]);
-const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge"]);
+const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge", "rail", "avenue"]);
 
 export type Town = {
   seed: Seed; people: Person[]; well: Tile; meet: Tile; meets: Tile[]; plays: Tile[]; school: Tile | null; play: Tile;
@@ -40,7 +41,7 @@ export type Town = {
 
 const towns = new Map<string, Town>();
 export function townOf(s: Seed, seeds: Seed[], now: number): Town {
-  const key = `${s.id}|${Math.floor(now / 60000)}|${seeds.length}`;
+  const key = `${s.id}|${Math.floor(now / 60000)}|${seeds.map(s => `${s.id}:${s.x}:${s.y}:${s.created_at}`).join(";")}`;
   const hit = towns.get(key);
   if (hit) return hit;
   for (const k of towns.keys()) if (k.startsWith(s.id + "|")) towns.delete(k);
@@ -75,10 +76,10 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const open = (x: number, y: number) => { const st = structureAt(x, y, seeds, now); return buildable(terrain(x, y)) && (!st || FLAT.has(st.kind)); };
   const front = (tl: Tile): Tile | null => { for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]] as const) if (open(tl[0] + dx, tl[1] + dy)) return [tl[0] + dx, tl[1] + dy]; return null; };
   const meets: Tile[] = [];
-  for (const k of ["inn", "church", "bakery"] as Kind[]) for (const tl of byKind.get(k) ?? []) { const f = front(tl); if (f) meets.push(f); }
+  for (const k of ["inn", "church", "chapel", "townhall", "stall", "bakery"] as Kind[]) for (const tl of byKind.get(k) ?? []) { const f = front(tl); if (f) meets.push(f); }
   meets.push(...(byKind.get("market") ?? []), ...(byKind.get("square") ?? []).slice(0, 6));
   if (!meets.length) meets.push([s.x + 1, s.y + 1]);
-  const school = byKind.get("church")?.[0] ?? null;
+  const school = byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
   const meet = meets[0]!;
   const plays: Tile[] = [...(byKind.get("pasture") ?? []), ...(byKind.get("square") ?? [])].slice(0, 8);
   if (!plays.length) plays.push([s.x + 1, s.y - 2]);
