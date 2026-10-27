@@ -9,11 +9,11 @@ import dirt from "@/assets/terrain/dirt.jpg";
 import cobble from "@/assets/terrain/cobble.jpg";
 import wheat from "@/assets/terrain/wheat.jpg";
 import crops from "@/assets/terrain/crops.jpg";
-import oak from "@/assets/sprites/oak.png";
-import fir from "@/assets/sprites/fir.png";
-import birch from "@/assets/sprites/birch.png";
-import crag from "@/assets/sprites/crag.png";
-import bush from "@/assets/sprites/bush.png";
+import oak from "@/assets/sprites/oak.webp";
+import fir from "@/assets/sprites/fir.webp";
+import birch from "@/assets/sprites/birch.webp";
+import crag from "@/assets/sprites/crag.webp";
+import bush from "@/assets/sprites/bush.webp";
 
 type C = CanvasRenderingContext2D;
 export type Tex = "grass" | "meadow" | "forest" | "sand" | "water" | "fertile" | "rock" | "dirt" | "cobble" | "wheat" | "crops";
@@ -46,19 +46,19 @@ export function texture(c: C, t: Tex, shift = 0): CanvasPattern | null {
 
 type Sprite = { url: string; crop: [number, number, number, number]; width: number };
 const NATURE = {
-  oak: { url: oak, crop: [50, 45, 716, 726], width: 24 },
-  fir: { url: fir, crop: [229, 26, 358, 763], width: 13 },
-  birch: { url: birch, crop: [180, 33, 459, 744], width: 15 },
-  crag: { url: crag, crop: [12, 79, 791, 669], width: 40 },
-  bush: { url: bush, crop: [163, 181, 490, 454], width: 9 },
+  oak: { url: oak, crop: [0, 0, 716, 726], width: 24 },
+  fir: { url: fir, crop: [0, 0, 358, 763], width: 13 },
+  birch: { url: birch, crop: [0, 0, 459, 744], width: 15 },
+  crag: { url: crag, crop: [0, 0, 791, 669], width: 40 },
+  bush: { url: bush, crop: [0, 0, 490, 454], width: 9 },
 } satisfies Record<string, Sprite>;
 export type NatureKind = keyof typeof NATURE;
 
 /** Draws a nature sprite with its foot at (x,y); sway skews the crown slightly. */
 export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: number, sway = 0, flip = false): boolean {
   const s = NATURE[k];
-  const i = img(s.url); if (!i) return false;
-  const [sx, sy, sw, sh] = s.crop;
+  const i = img(s.url); if (!i) return true; // loading: draw nothing rather than old art
+  const [, , sw, sh] = s.crop;
   const w = s.width * scale, h = (w * sh) / sw;
   c.save();
   c.translate(x, y);
@@ -66,7 +66,12 @@ export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: num
   c.fillStyle = "rgba(25,30,15,0.28)";
   c.beginPath(); c.ellipse(w * 0.12, 0, w * 0.42, w * 0.16, 0, 0, 7); c.fill();
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  c.drawImage(i, sx, sy, sw, sh, -w / 2, -h + h * 0.02, w, h);
+  c.drawImage(i, -w / 2, -h + h * 0.02, w, h);
   c.restore();
   return true;
+}
+
+if (typeof window !== "undefined") {
+  for (const s of Object.values(NATURE)) img(s.url);
+  for (const u of Object.values(TEX)) img(u);
 }
