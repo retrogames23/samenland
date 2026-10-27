@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { draw, iso, toTile, MIN_ZOOM, type Camera } from "@/game/render";
+import { draw, iso, toTile, MIN_ZOOM, lastPeople, type Camera } from "@/game/render";
+import { townOf, poseOf, type Person } from "@/game/people";
 import { Maximize2, Minimize2 } from "lucide-react";
 import {
   canPlant,
@@ -38,6 +39,7 @@ export function Game() {
   const [form, setForm] = useState({ name: "", owner: "" });
   const [msg, setMsg] = useState<string | null>(null);
   const [open, setOpen] = useState(true);
+  const [who, setWho] = useState<Person | null>(null);
   const [, tick] = useState(0);
 
   const dpr = useRef(1);
@@ -266,6 +268,13 @@ export function Game() {
           const d = drag.current;
           drag.current = null;
           if (d && !d.moved) {
+            if (mode === "look") {
+              const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
+              const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
+              let best: Person | null = null, bd = 4.5;
+              for (const f of lastPeople) { const dd = Math.hypot(f.x - wx, f.y - 3.5 - wy); if (dd < bd) { bd = dd; best = f.q.p; } }
+              if (best) return setWho(best);
+            }
             const [x, y] = tileAt(e);
             onClick(x, y);
           }
@@ -491,6 +500,20 @@ export function Game() {
             {msg}
           </div>
         )}
+        {who && (() => {
+          const now = Date.now();
+          const q = poseOf(who, townOf(who.seed, seeds, now), seeds, now);
+          return (
+            <div className="pointer-events-auto max-w-xs rounded-md border-2 border-border bg-card/95 px-3 py-2 text-foreground shadow-[var(--shadow-cozy)]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="font-['Caveat'] text-xl leading-tight">{who.first} {who.last}</div>
+                <button type="button" aria-label={t.close} className="text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
+              </div>
+              <div className="text-sm">{t.personAge(who.age)} · {t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
+              <div className="text-xs text-muted-foreground">{t.livesIn(who.seed.name)} – {t.act[q.walking && q.act !== "play" ? "walking" : q.act]}</div>
+            </div>
+          );
+        })()}
         {hover && (
           <div className="rounded bg-card/80 px-2 py-1 text-xs text-muted-foreground">
             {t.terrain[terrain(hover[0], hover[1])]}{resourceAt(hover[0], hover[1]) ? ` · ${t.resource[resourceAt(hover[0], hover[1])!]}` : ""} · {hover[0]}, {hover[1]}
