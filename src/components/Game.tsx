@@ -136,7 +136,7 @@ export function Game() {
       if (error) setMsg(t.authFail);
     }
   };
-  const oauth = async (p: "google" | "lovable") => {
+  const oauth = async (p: "google" | "apple") => {
     const r = await lovable.auth.signInWithOAuth(p, { redirect_uri: window.location.origin });
     if (r?.error) setMsg(t.authFail);
   };
@@ -175,7 +175,7 @@ export function Game() {
               <p className="text-xs text-muted-foreground">{t.signInToPlant}</p>
               <div className="flex gap-2">
                 <Button type="button" size="sm" variant="secondary" className="flex-1" onClick={() => oauth("google")}>{t.google}</Button>
-                <Button type="button" size="sm" variant="secondary" className="flex-1" onClick={() => oauth("lovable")}>{t.lovable}</Button>
+                <Button type="button" size="sm" variant="secondary" className="flex-1" onClick={() => oauth("apple")}>{t.apple}</Button>
               </div>
               <div className="text-center text-xs text-muted-foreground">{t.or}</div>
               <Input type="email" required placeholder={t.email} value={auth.email} onChange={(e) => setAuth({ ...auth, email: e.target.value })} />
