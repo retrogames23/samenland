@@ -57,6 +57,13 @@
       "when": 1793132860420,
       "tag": "0007_village_charters",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793133134593,
+      "tag": "0008_charter_bonuses_guild_buildings",
+      "breakpoints": true
     }
   ]
 }

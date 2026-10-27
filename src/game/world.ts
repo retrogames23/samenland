@@ -1,7 +1,7 @@
 // Pure, deterministic world + town growth logic (shared by every player).
 export const MAP = 1024;
 
-export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[] };
+export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number } };
 export type Planting = { id: string; seed_id: string; kind: "tree" | "flower" | "lantern"; x: number; y: number; created_at: string };
 
 export function hash(x: number, y: number, s = 0): number {
@@ -195,7 +195,7 @@ export type Kind =
   | "factory" | "sawmill" | "road" | "bridge"
   | "campfire" | "hut" | "coop" | "fence" | "chapel" | "watermill" | "harbor"
   | "stall" | "townhall" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue"
-  | "fishery" | "granary" | "infirmary" | "school";
+  | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). */
 export type Structure = { kind: Kind; seed: Seed; v: number; build?: number };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
@@ -359,7 +359,11 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
 }
 
 /** Player-bought buildings: the shop item → building kind, built over SPECIAL_BUILD real ms after purchase. */
-export const SPECIAL_KIND: Record<string, Kind> = { fisher: "fishery", granary: "granary", healer: "infirmary", school: "school" };
+export const SPECIAL_KIND: Record<string, Kind> = { fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy" };
+/** Craft charter halves the construction time of bought buildings. */
+export const specialBuild = (s: Seed) => (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD);
+/** Farm charter: +5 % growth from the day it was sealed. */
+export const FARM_BONUS = 0.05;
 export const SPECIAL_BUILD = 6 * 3600000;
 const CORE_SPOTS = new Set([...Object.keys(CORE), ...LANDMARKS.map((l) => `${l.dx},${l.dy}`), "0,0"]);
 const siteCache = new Map<string, Map<number, { kind: Kind; at: number }>>();
@@ -399,7 +403,7 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
   return out;
 }
 /** Cache key that changes whenever seed positions, ages or purchases change. */
-export const seedsKey = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}`).join(";");
+export const seedsKey = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}`).join(";");
 
 /** Growth hour at which the building on this tile is finished (0 for the founding core). */
 export function bornAt(x: number, y: number, s: Seed): number {
@@ -422,7 +426,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     if (!s.bought?.length) continue;
     const sp = specialSites(s).get(ck);
     if (!sp || now < sp.at) continue;
-    const p = (now - sp.at) / SPECIAL_BUILD;
+    const p = (now - sp.at) / specialBuild(s);
     best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p } : {}) };
     scache.set(ck, best);
     return best;
@@ -571,7 +575,7 @@ export function bonusOf(d: number, neighbourAgeH: number) {
 
 /** Current growth speed multiplier: 1 + sum of neighbour bonuses. */
 export function speedOf(s: Seed, seeds: Seed[], now: number) {
-  let sp = 1 + (isBlessed(s, now) ? BLESS_BONUS : 0);
+  let sp = 1 + (isBlessed(s, now) ? BLESS_BONUS : 0) + (s.charter?.path === "farm" && now > s.charter.at ? FARM_BONUS : 0);
   for (const l of links(seeds)) {
     if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
     const o = l.a.id === s.id ? l.b : l.a;
@@ -583,6 +587,7 @@ export function speedOf(s: Seed, seeds: Seed[], now: number) {
 /** Effective age: real age plus bonus hours accumulated since each road was founded (monotonic, deterministic). */
 export function effAge(s: Seed, seeds: Seed[], now: number) {
   let h = ageHours(s, now) + blessHours(s, now);
+  if (s.charter?.path === "farm" && now > s.charter.at) h += (now - s.charter.at) / 3.6e6 * FARM_BONUS;
   const base = h;
   for (const l of links(seeds)) {
     if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;

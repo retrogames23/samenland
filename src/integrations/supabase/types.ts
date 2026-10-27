@@ -234,6 +234,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      charter_tax: {
+        Args: { _at: string; _charter: string; _created: string }
+        Returns: number
+      }
       village_tax: { Args: { _at: string; _created: string }; Returns: number }
     }
     Enums: {
