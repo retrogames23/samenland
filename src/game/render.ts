@@ -5,7 +5,7 @@ import { seasonKey } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
-import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, acreOf, ageHours, effAge, radiusOf, isBlessed, signTile, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, isBlessed, signTile, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -247,8 +247,8 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
     if (hasNightSprite(s.kind) && houseLit(s.kind, sd, localHour())) {
       L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd } });
     }
-    if (["factory", "manufactory", "steamworks", "smithy", "bakery", "inn"].includes(s.kind)) {
-      smoke(c, cx + 4, cy - (s.kind === "factory" ? 24 : 18), t, sd, s.kind === "factory" ? 1.5 : 0.6);
+    if (["steamworks", "smithy", "bakery", "inn"].includes(s.kind)) {
+      smoke(c, cx + 4, cy - 18, t, sd, 0.6);
     }
     return;
   }
@@ -317,7 +317,7 @@ const PERSON_SCALE = 0.55;
 export const lastPeople: { x: number; y: number; q: Pose }[] = [];
 /** Sound-emitting structures drawn this frame (world-screen coords), read by the audio mixer. */
 export const lastSources: { x: number; y: number; k: string }[] = [];
-const SOUND_KINDS = new Set(["campfire", "mill", "watermill", "smithy", "pasture", "church", "sawmill", "factory", "steamworks"]);
+const SOUND_KINDS = new Set(["campfire", "mill", "watermill", "smithy", "pasture", "church", "sawmill", "steamworks"]);
 function limb(c: C, pts: Pt[], col: string, w: number) {
   c.lineCap = "round"; c.lineJoin = "round";
   c.beginPath(); c.moveTo(pts[0]![0], pts[0]![1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i]![0], pts[i]![1]);
@@ -595,7 +595,6 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
     c.strokeStyle = "rgba(60,40,20,0.5)"; c.lineWidth = Math.max(3.5 * dpr * px, 5); c.stroke();
     c.strokeStyle = texture(c, "dirt") ?? "#b89468"; c.lineWidth = Math.max(2.2 * dpr * px, 3.5); c.stroke();
     c.globalAlpha = 1;
-    if (railReady(l,seeds,now)) drawRails(c,l,seeds,now);
   }
   const vx0 = cam.x - w / 2 / z, vx1 = cam.x + w / 2 / z, vy0 = cam.y - h / 2 / z, vy1 = cam.y + h / 2 / z;
   for (const s of seeds) {
@@ -804,20 +803,6 @@ function drawBridgeSpan(c: C, A: Pt, B: Pt, sd: number, t: number) {
   c.restore();
 }
 
-function drawRails(c: C, l: ReturnType<typeof links>[number], seeds: Seed[], now: number) {
-  c.save(); c.lineCap = "butt";
-  for (let i=1;i<l.tiles.length;i++) {
-    const a=l.tiles[i-1], b=l.tiles[i]; if (!a || !b) continue;
-    const st=structureAt(b[0],b[1],seeds,now); if (st && st.kind!=="road" && st.kind!=="bridge" && st.kind!=="rail") continue;
-    const [ax,ay]=iso(a[0],a[1]), [bx,by]=iso(b[0],b[1]);
-    const dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;
-    c.strokeStyle="#6a5340"; c.lineWidth=1.4;
-    for(let j=0;j<4;j++){const f=j/4,x=ax+dx*f,y=ay+dy*f;c.beginPath();c.moveTo(x-nx*2.4,y-ny*2.4);c.lineTo(x+nx*2.4,y+ny*2.4);c.stroke();}
-    c.strokeStyle="#b6b8af";c.lineWidth=0.75;
-    for(const sign of [-1,1]){c.beginPath();c.moveTo(ax+nx*sign*1.6,ay+ny*sign*1.6);c.lineTo(bx+nx*sign*1.6,by+ny*sign*1.6);c.stroke();}
-  }
-  c.restore();
-}
 
 type GroundEdge = { x: number; y: number; cx: number; cy: number; tr: string; r: number; coast: boolean };
 /** Water + layered land for a tile range; returns border tiles for frayed edges. */
@@ -1219,7 +1204,6 @@ export function draw(
     }
   }
 
-  for (const l of links(seeds)) if (railReady(l,seeds,now)) drawRails(c,l,seeds,now);
 
   // ---- life on the trade roads ----
   if (detail) for (const l of links(seeds)) {
