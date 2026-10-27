@@ -727,7 +727,7 @@ export function Game() {
           ) : null}
           <div className="ml-auto hidden text-right text-xs text-muted-foreground md:block">
             <div>{new Date(now).toLocaleDateString(lang === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long" })}</div>
-            <div>{t.seasons[season]} · {new Date(now).toLocaleTimeString(lang === "de" ? "de-DE" : "en-GB", { hour: "2-digit", minute: "2-digit" })}</div>
+            <div>{t.seasons[season]} · {new Date(now).toLocaleTimeString(lang === "de" ? "de-DE" : "en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" })}</div>
           </div>
           <div className="ml-auto flex items-center gap-1 md:ml-0">
             <button type="button" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} onClick={toggleSound} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent">
