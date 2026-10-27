@@ -57,7 +57,7 @@ export type NatureKind = keyof typeof NATURE;
 /** Draws a nature sprite with its foot at (x,y); sway skews the crown slightly. */
 export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: number, sway = 0, flip = false): boolean {
   const s = NATURE[k];
-  const i = img(s.url); if (!i) return false;
+  const i = img(s.url); if (!i) return true; // loading: draw nothing rather than old art
   const [, , sw, sh] = s.crop;
   const w = s.width * scale, h = (w * sh) / sw;
   c.save();
