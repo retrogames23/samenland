@@ -237,8 +237,10 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
-    if (["farmhouse", "cottage", "inn", "bakery", "townhouse", "smithy"].includes(s.kind)) {
-      L.push({ x: cx - 2, y: cy - 6, r: s.kind === "smithy" ? 5 : 2.5 });
+    if (LIT_KINDS.has(s.kind)) {
+      const big = s.kind === "smithy" || s.kind === "inn" || s.kind === "townhall" || s.kind === "church";
+      L.push({ x: cx - 3, y: cy - 7, r: big ? 5 : 3 });
+      if (big || s.kind === "townhouse" || s.kind === "markethall" || s.kind === "guildhall") L.push({ x: cx + 4, y: cy - 5, r: 3 });
     }
     if (["factory", "manufactory", "steamworks", "smithy", "bakery", "inn"].includes(s.kind)) {
       smoke(c, cx + 4, cy - (s.kind === "factory" ? 24 : 18), t, sd, s.kind === "factory" ? 1.5 : 0.6);
@@ -1264,19 +1266,39 @@ export function draw(
   c.fillStyle = vg; c.fillRect(0, 0, w, h);
 
   const hr = new Date().getHours() + new Date().getMinutes() / 60;
-  const night = Math.min(1, Math.max(0, (Math.cos((hr / 24) * Math.PI * 2) + 0.15) / 1.15));
-  const dusk = Math.max(0, 1 - Math.abs(hr - 19) / 2) + Math.max(0, 1 - Math.abs(hr - 6.5) / 1.5);
-  if (dusk > 0) { c.fillStyle = `rgba(240,150,90,${dusk * 0.12})`; c.fillRect(0, 0, w, h); }
+  // darkness: 0 by day, ramps through dusk (18–21:30) and dawn (5–7:30), full at night
+  const sm = (a: number, b: number, x: number) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+  const night = hr >= 12 ? sm(18, 21.5, hr) : 1 - sm(5, 7.5, hr);
+  const dusk = Math.max(0, 1 - Math.abs(hr - 19) / 1.8) + Math.max(0, 1 - Math.abs(hr - 6.5) / 1.3);
+  if (dusk > 0) { c.fillStyle = `rgba(240,140,80,${dusk * 0.14})`; c.fillRect(0, 0, w, h); }
   if (night > 0.02) {
-    c.fillStyle = `rgba(30,36,72,${night * 0.45})`; c.fillRect(0, 0, w, h);
+    // deep indigo multiply keeps the painting legible but truly dark
+    c.globalCompositeOperation = "multiply";
+    c.fillStyle = `rgba(${Math.round(255 - night * 205)},${Math.round(255 - night * 195)},${Math.round(255 - night * 140)},1)`;
+    c.fillRect(0, 0, w, h);
+    c.globalCompositeOperation = "source-over";
+    c.fillStyle = `rgba(14,18,44,${night * 0.25})`; c.fillRect(0, 0, w, h);
+    // cool moonlight sheen from the upper right
+    const mg = c.createRadialGradient(w * 0.85, -h * 0.1, 0, w * 0.85, -h * 0.1, Math.max(w, h));
+    mg.addColorStop(0, `rgba(150,170,230,${0.12 * night})`); mg.addColorStop(1, "rgba(150,170,230,0)");
+    c.fillStyle = mg; c.fillRect(0, 0, w, h);
     c.globalCompositeOperation = "lighter";
-    for (const l of L) {
+    const late = hr >= 23 || hr < 5; // most windows go dark late at night
+    for (let i = 0; i < L.length; i++) {
+      const l = L[i]!;
+      if (late && l.r < 4 && (i * 2654435761 >>> 0) % 4 !== 0) continue;
       const sx = (l.x - cam.x) * z + w / 2, sy = (l.y - cam.y) * z + h / 2;
-      if (sx < -60 || sy < -60 || sx > w + 60 || sy > h + 60) continue;
-      const r = l.r * z;
+      const r = l.r * z * 2.2;
+      if (sx < -r || sy < -r || sx > w + r || sy > h + r) continue;
+      const fl = 0.9 + 0.1 * Math.sin(t * 7 + i * 1.7);
       const g = c.createRadialGradient(sx, sy, 0, sx, sy, r);
-      g.addColorStop(0, `rgba(255,200,110,${0.45 * night})`); g.addColorStop(1, "rgba(255,200,110,0)");
+      g.addColorStop(0, `rgba(255,190,100,${0.7 * night * fl})`);
+      g.addColorStop(0.25, `rgba(255,150,60,${0.32 * night * fl})`);
+      g.addColorStop(1, "rgba(255,130,50,0)");
       c.fillStyle = g; c.fillRect(sx - r, sy - r, r * 2, r * 2);
+      // bright window core
+      const cr = Math.max(1.2, l.r * z * 0.18);
+      c.fillStyle = `rgba(255,220,140,${0.85 * night})`; c.fillRect(sx - cr / 2, sy - cr / 2, cr, cr * 1.3);
     }
     c.globalCompositeOperation = "source-over";
   }
