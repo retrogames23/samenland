@@ -213,7 +213,8 @@ const de = {
     goods: { grain: "Getreide", wool: "Wolle", wood: "Holz", ore: "Erz", stone: "Stein", fish: "Fisch", salt: "Salz", hides: "Leder", cloth: "Tuch", ironware: "Eisenwaren", beer: "Bier", timber: "Bauholz" } as Record<string, string>,
   },
   twinWith: (n: string) => `Zwillingsstadt mit ${n}`,
-  hud: { build: "Bauen", rituals: "Zuwendung", signs: "Wegweiser", towns: "Dörfer", plant: "Samen setzen", settings: "Einstellungen", menu: "Menü", zoomIn: "Hineinzoomen", zoomOut: "Herauszoomen", close: "Schließen", noTown: "Setze zuerst deinen Samen.", login: "Melde dich an, um ein Dorf zu gründen.", language: "Sprache" },
+  hud: { build: "Bauen", rituals: "Zuwendung", signs: "Wegweiser", towns: "Dörfer", plant: "Samen setzen", settings: "Einstellungen", menu: "Menü", zoomIn: "Hineinzoomen", zoomOut: "Herauszoomen", close: "Schließen", noTown: "Setze zuerst deinen Samen.", login: "Melde dich an, um ein Dorf zu gründen.", language: "Sprache", realm: "Karte (Admin)" },
+  realms: { "us-west": "Amerika West", "us-east": "Amerika Ost", europe: "Europa", asia: "Asien-Pazifik" },
   perDay: (n: number) => `+${n}/Tag`,
   people: (n: number) => `${n} Bewohner`,
 };
@@ -431,7 +432,8 @@ const en: typeof de = {
     goods: { grain: "grain", wool: "wool", wood: "wood", ore: "ore", stone: "stone", fish: "fish", salt: "salt", hides: "hides", cloth: "cloth", ironware: "ironware", beer: "beer", timber: "timber" },
   },
   twinWith: (n) => `Twin town with ${n}`,
-  hud: { build: "Build", rituals: "Care", signs: "Signposts", towns: "Villages", plant: "Plant seed", settings: "Settings", menu: "Menu", zoomIn: "Zoom in", zoomOut: "Zoom out", close: "Close", noTown: "Plant your seed first.", login: "Sign in to found a village.", language: "Language" },
+  hud: { build: "Build", rituals: "Care", signs: "Signposts", towns: "Villages", plant: "Plant seed", settings: "Settings", menu: "Menu", zoomIn: "Zoom in", zoomOut: "Zoom out", close: "Close", noTown: "Plant your seed first.", login: "Sign in to found a village.", language: "Language", realm: "Map (admin)" },
+  realms: { "us-west": "America West", "us-east": "America East", europe: "Europe", asia: "Asia-Pacific" },
   perDay: (n: number) => `+${n}/day`,
   people: (n: number) => `${n} residents`,
 };
