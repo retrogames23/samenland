@@ -1,3 +1,4 @@
+import { townPoses, type Pose } from "./people";
 import { hash, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
@@ -290,6 +291,124 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, bob: numbe
   c.globalAlpha = 0.5; line(c, [mx, my], [mx, my - 3.3], sd + 6, 0.4); c.globalAlpha = 1;
 }
 
+// ---------------- villagers ----------------
+const SKIN = ["#f1d3b8", "#e6bf9c", "#d4a27c", "#b47e58", "#8d5a3b"];
+const HAIR = ["#2e2119", "#5a3b26", "#8a5a33", "#c8964f", "#e2c47a", "#a8452c"];
+const CLOTH = ["#7d9a6a", "#b5503e", "#4f6d8a", "#c99a4a", "#8a6a9a", "#6b8f8a", "#a8735a", "#5d6b4a", "#c77b6a", "#efe3c8"];
+const PANTS = ["#4a4038", "#5a5f6b", "#6b5440", "#3f4a5a"];
+/** Screen-space people currently drawn (for clicking). */
+export const lastPeople: { x: number; y: number; q: Pose }[] = [];
+function limb(c: C, pts: Pt[], col: string, w: number) {
+  c.lineCap = "round"; c.lineJoin = "round";
+  c.beginPath(); c.moveTo(pts[0]![0], pts[0]![1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i]![0], pts[i]![1]);
+  c.strokeStyle = INK; c.lineWidth = w + 0.42; c.stroke();
+  c.strokeStyle = col; c.lineWidth = w; c.stroke();
+}
+function bubble(c: C, x: number, y: number, icon: number) {
+  c.beginPath(); c.ellipse(x, y, 2.6, 1.9, 0, 0, 7);
+  c.moveTo(x - 0.6, y + 1.6); c.lineTo(x - 1.4, y + 3); c.lineTo(x + 0.3, y + 1.8);
+  c.fillStyle = "#fbf6ea"; c.fill(); c.strokeStyle = INK; c.lineWidth = 0.3; c.stroke();
+  c.lineWidth = 0.3;
+  if (icon === 0) { c.fillStyle = "#c0504a"; c.beginPath(); c.arc(x - 0.45, y - 0.3, 0.55, 0, 7); c.arc(x + 0.45, y - 0.3, 0.55, 0, 7); c.fill(); c.beginPath(); c.moveTo(x - 1, y - 0.1); c.lineTo(x, y + 1); c.lineTo(x + 1, y - 0.1); c.fill(); }
+  else if (icon === 1) { c.fillStyle = "#c8914f"; c.beginPath(); c.ellipse(x, y, 1.4, 0.8, 0, 0, 7); c.fill(); c.stroke(); for (const k of [-0.5, 0, 0.5]) { c.beginPath(); c.moveTo(x + k - 0.2, y - 0.5); c.lineTo(x + k + 0.2, y + 0.3); c.stroke(); } }
+  else if (icon === 2) { c.fillStyle = "#f0c24f"; c.beginPath(); c.arc(x, y, 0.75, 0, 7); c.fill(); c.strokeStyle = "#d9a53a"; for (let k = 0; k < 6; k++) { const a = k * 1.047; c.beginPath(); c.moveTo(x + Math.cos(a) * 1.05, y + Math.sin(a) * 1.05); c.lineTo(x + Math.cos(a) * 1.45, y + Math.sin(a) * 1.45); c.stroke(); } }
+  else if (icon === 3) { c.fillStyle = "#b8c4cf"; c.beginPath(); c.arc(x - 0.5, y - 0.2, 0.7, 0, 7); c.arc(x + 0.5, y - 0.3, 0.8, 0, 7); c.fill(); c.strokeStyle = "#5a86b0"; for (const k of [-0.6, 0.1, 0.8]) { c.beginPath(); c.moveTo(x + k, y + 0.7); c.lineTo(x + k - 0.2, y + 1.2); c.stroke(); } }
+  else if (icon === 4) { c.fillStyle = INK; for (const k of [-0.9, 0, 0.9]) { c.beginPath(); c.arc(x + k, y, 0.28, 0, 7); c.fill(); } }
+  else { c.fillStyle = INK; c.beginPath(); c.ellipse(x - 0.4, y + 0.6, 0.45, 0.35, -0.4, 0, 7); c.fill(); c.strokeStyle = INK; c.beginPath(); c.moveTo(x - 0.0, y + 0.6); c.lineTo(x, y - 1); c.quadraticCurveTo(x + 0.8, y - 0.7, x + 0.9, y - 0.2); c.stroke(); }
+}
+function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
+  const p = q.p, L = p.looks;
+  const kid = p.age < 15, old = p.age >= 65;
+  const s = kid ? 0.52 + p.age * 0.03 : 1;
+  const sdx = (q.dir[0] - q.dir[1]), sdy = (q.dir[0] + q.dir[1]) * 0.5;
+  const dl = Math.hypot(sdx, sdy) || 1;
+  const fx = sdx / dl, fy = sdy / dl;
+  const face = fx >= 0 ? 1 : -1, side = 0.35 + 0.65 * Math.abs(fx), away = fy < -0.35;
+  const skin = SKIN[Math.floor(L.skin * SKIN.length)]!, shirt = CLOTH[Math.floor(L.shirt * CLOTH.length)]!;
+  const pants = PANTS[Math.floor(L.pants * PANTS.length)]!;
+  const hair = L.hair < 0 ? "#d8d4cc" : HAIR[Math.floor(L.hair * HAIR.length)]!;
+  const ph = q.phase + p.id;
+  const walk = q.walking ? 1 : 0;
+  const bounce = walk * Math.abs(Math.sin(ph)) * 0.25 * s + (kid && q.act === "play" ? Math.max(0, Math.sin(ph * 0.5)) * 0.5 : 0);
+  // shadow
+  c.fillStyle = "rgba(60,40,25,0.22)"; c.beginPath(); c.ellipse(X, Y, 1.5 * s, 0.6 * s, 0, 0, 7); c.fill();
+  if (simple) {
+    limb(c, [[X, Y - 0.2], [X, Y - 3.4 * s - bounce]], pants, 0.9 * s);
+    limb(c, [[X, Y - 3.4 * s - bounce], [X, Y - 5.6 * s - bounce]], shirt, 1.4 * s);
+    c.fillStyle = skin; c.beginPath(); c.arc(X, Y - 6.6 * s - bounce, 0.9 * s, 0, 7); c.fill();
+    return;
+  }
+  const leg = (old ? 1.65 : 1.8) * s;
+  const hip: Pt = [X, Y - leg * 2 - bounce];
+  const stoop = old ? 0.45 * face : 0;
+  const sh: Pt = [X + stoop, hip[1] - 2.5 * s];
+  const legPts = (l: number): Pt[] => {
+    const a = Math.sin(ph + (l > 0 ? 0 : Math.PI)) * 0.55 * walk;
+    const bend = walk * Math.max(0, Math.sin(ph + (l > 0 ? 0 : Math.PI) + 1.2)) * 0.7;
+    const knee: Pt = [hip[0] + Math.sin(a) * leg * side * face, hip[1] + Math.cos(a) * leg];
+    const foot: Pt = [knee[0] + Math.sin(a - bend) * leg * side * face, knee[1] + Math.cos(a - bend) * leg];
+    return [[hip[0] + l * 0.28 * s * (1 - side * 0.6), hip[1]], knee, foot];
+  };
+  const dress = p.sex === "f" && !kid ? true : p.sex === "f" && L.pants > 0.4;
+  const legCol = dress ? skin : pants;
+  // back leg & arm
+  limb(c, legPts(-1), legCol, 0.75 * s);
+  const armPts = (l: number): Pt[] => {
+    const o: Pt = [sh[0] + l * 0.25 * s * (1 - side * 0.6), sh[1] + 0.3 * s];
+    if (q.working && (p.job === "farmer" || p.job === "homemaker")) {
+      const sw = Math.sin(t / 420 + p.id) * 0.6;
+      return [o, [o[0] + face * 1.0 * s, o[1] + 0.9 * s + sw * 0.4], [o[0] + face * 1.9 * s, o[1] + 0.6 * s + sw]];
+    }
+    if (q.talk !== null && q.talkTurn && l > 0) {
+      const g = Math.sin(t / 260 + p.id) * 0.3;
+      return [o, [o[0] + face * 0.9 * s, o[1] + 0.9 * s], [o[0] + face * 1.7 * s, o[1] + 0.2 * s + g]];
+    }
+    const a = Math.sin(ph + (l > 0 ? Math.PI : 0)) * 0.5 * walk;
+    const el: Pt = [o[0] + Math.sin(a) * 1.3 * s * side * face, o[1] + Math.cos(a) * 1.3 * s];
+    return [o, el, [el[0] + Math.sin(a + 0.3 * walk) * 1.2 * s * side * face, el[1] + Math.cos(a + 0.3) * 1.2 * s]];
+  };
+  limb(c, armPts(-1), shirt, 0.62 * s);
+  // torso
+  c.beginPath();
+  c.moveTo(sh[0] - 0.85 * s, sh[1]); c.lineTo(sh[0] + 0.85 * s, sh[1]);
+  c.lineTo(hip[0] + 0.75 * s, hip[1] + 0.2); c.lineTo(hip[0] - 0.75 * s, hip[1] + 0.2); c.closePath();
+  c.fillStyle = shirt; c.fill(); c.strokeStyle = INK; c.lineWidth = 0.32; c.stroke();
+  if (dress) {
+    const sk = CLOTH[(Math.floor(L.shirt * CLOTH.length) + 3) % CLOTH.length]!;
+    const fl = walk * Math.sin(ph) * 0.25;
+    c.beginPath(); c.moveTo(hip[0] - 0.8 * s, hip[1] - 0.3); c.lineTo(hip[0] + 0.8 * s, hip[1] - 0.3);
+    c.lineTo(hip[0] + 1.35 * s + fl, hip[1] + leg * 1.25); c.quadraticCurveTo(hip[0], hip[1] + leg * 1.4, hip[0] - 1.35 * s + fl, hip[1] + leg * 1.25); c.closePath();
+    c.fillStyle = sk; c.fill(); c.stroke();
+  }
+  limb(c, legPts(1), legCol, 0.75 * s);
+  if (dress) { /* front leg peeks out under the skirt */ }
+  // head
+  const hr = (kid ? 1.15 : 0.95) * s;
+  const hc: Pt = [sh[0] + face * 0.1 * s + stoop * 0.6, sh[1] - hr - 0.25 * s];
+  limb(c, [[sh[0], sh[1]], [hc[0], hc[1] + hr * 0.6]], skin, 0.5 * s);
+  c.beginPath(); c.arc(hc[0], hc[1], hr, 0, 7); c.fillStyle = skin; c.fill(); c.strokeStyle = INK; c.lineWidth = 0.3; c.stroke();
+  // hair
+  c.fillStyle = hair; c.beginPath();
+  if (away) c.arc(hc[0], hc[1], hr * 1.02, 0, 7);
+  else c.arc(hc[0] - face * 0.15 * hr, hc[1] - 0.1 * hr, hr * 1.02, Math.PI * 1.05, Math.PI * 1.95 + face * 0.2);
+  c.fill();
+  if (p.sex === "f" && L.hair >= 0) { c.beginPath(); c.ellipse(hc[0] - face * hr * 0.75, hc[1] + hr * 0.6, hr * 0.35, hr * 0.9, 0, 0, 7); c.fill(); }
+  if (!away) { c.fillStyle = INK; c.beginPath(); c.arc(hc[0] + face * hr * 0.42, hc[1] - hr * 0.05, 0.13 * s + 0.05, 0, 7); c.fill(); }
+  if (L.hat && !kid) {
+    c.fillStyle = p.job === "farmer" ? "#d9bf7a" : "#4a3a30";
+    c.beginPath(); c.ellipse(hc[0], hc[1] - hr * 0.55, hr * 1.55, hr * 0.38, 0, 0, 7); c.fill(); c.stroke();
+    c.beginPath(); c.ellipse(hc[0], hc[1] - hr * 0.9, hr * 0.85, hr * 0.55, 0, Math.PI, 0); c.fill(); c.stroke();
+  }
+  // front arm with tool / stick
+  const ap = armPts(1);
+  limb(c, ap, shirt, 0.62 * s);
+  const hand = ap[2]!;
+  c.fillStyle = skin; c.beginPath(); c.arc(hand[0], hand[1], 0.32 * s, 0, 7); c.fill();
+  if (q.working && p.job === "farmer") line(c, [hand[0] - face * 1.2, hand[1] - 1.2], [hand[0] + face * 1.4, hand[1] + 2.6 + Math.sin(t / 420 + p.id) * 0.5], p.id, 0.4, "#7a5a3c");
+  if (L.stick) line(c, hand, [hand[0] + face * 0.5, Y], p.id + 1, 0.35, "#6f533b");
+  if (q.talk !== null && q.talkTurn) bubble(c, hc[0] + face * 2.6, hc[1] - 3.2, q.talk);
+}
+
 let overview: HTMLCanvasElement | null = null;
 /** Cached map picture at 1/8 iso scale (built once; terrain is static). */
 function overviewMap() {
@@ -449,6 +568,20 @@ export function draw(
     }
   }
 
+  // ---- villagers, bucketed by tile for depth sorting ----
+  const folk = new Map<number, Pose[]>();
+  lastPeople.length = 0;
+  if (detail) for (const sd of seeds) {
+    const r = radiusOf(effAge(sd, seeds, now)) + 2;
+    if (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1) continue;
+    for (const q of townPoses(sd, seeds, now)) {
+      const k = Math.round(q.y) * MAP + Math.round(q.x);
+      if (!folk.has(k)) folk.set(k, []);
+      folk.get(k)!.push(q);
+    }
+  }
+  const simpleFolk = cam.zoom < 2.2;
+
   // ---- pass 2: standing objects in depth order ----
   for (const { x, y, cx, cy, st } of tiles) {
     const tr = terrain(x, y);
@@ -470,6 +603,11 @@ export function draw(
       if (hash(x, y, 19) > 0.35) tree(c, cx + 5, cy - 1, 0.7 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y);
     } else if ((tr === "grass" || tr === "meadow") && !st && hash(x, y, 22) > 0.95) tree(c, cx, cy + 1, 0.9, t, hash(x, y, 23), x * 19 + y);
     if (st) drawStructure(c, st, cx, cy, x, y, t, L);
+    const fk = folk.get(y * MAP + x);
+    if (fk) {
+      fk.sort((a, b) => a.x + a.y - b.x - b.y);
+      for (const q of fk) { const [px, py] = iso(q.x, q.y); drawPerson(c, px, py, q, t, simpleFolk); lastPeople.push({ x: px, y: py, q }); }
+    }
     const pl = plantings.get(`${x},${y}`);
     if (pl) {
       const sd = x * 77 + y;
