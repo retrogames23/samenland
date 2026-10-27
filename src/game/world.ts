@@ -196,7 +196,11 @@ function keptPaths(s: Seed, age: number, r: number): Set<number> {
     changed = false;
     for (const k of [...paths]) {
       if (anchored(k)) continue;
-      if (nbrs(k).filter((n) => paths.has(n)).length <= 1) { paths.delete(k); changed = true; }
+      // an end tile: its path neighbours all touch each other, so removing it cuts nothing
+      const ns = nbrs(k).filter((n) => paths.has(n));
+      const seen = new Set<number>(ns.slice(0, 1)), st = ns.slice(0, 1);
+      while (st.length) { const a = st.pop()!; for (const b of ns) if (!seen.has(b) && Math.abs((a % MAP) - (b % MAP)) <= 1 && Math.abs(((a / MAP) | 0) - ((b / MAP) | 0)) <= 1) { seen.add(b); st.push(b); } }
+      if (seen.size === ns.length) { paths.delete(k); changed = true; }
     }
   }
   if (keptCache.size > 200) keptCache.clear();
