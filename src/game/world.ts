@@ -47,9 +47,24 @@ function heightAt(x: number, y: number) {
  * the nearest river bank (negative = inside the water).
  */
 let riverField: Float32Array | null = null;
-export const RIVER_SEA = 0.3;
+let oceanMask: Uint8Array | null = null;
+/** Low ground connected to the open sea (inland hollows stay dry land, never stagnant puddles). */
+function ocean(): Uint8Array {
+  if (oceanMask) return oceanMask;
+  const m = new Uint8Array(MAP * MAP), st: number[] = [];
+  for (let i = 0; i < MAP; i++) for (const k of [i, (MAP - 1) * MAP + i, i * MAP, i * MAP + MAP - 1]) if (!m[k]) { m[k] = 1; st.push(k); }
+  while (st.length) {
+    const k = st.pop()!, x = k % MAP, y = (k / MAP) | 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= MAP || ny >= MAP) continue;
+      const nk = ny * MAP + nx; if (!m[nk] && heightAt(nx, ny) < 0.35) { m[nk] = 1; st.push(nk); }
+    }
+  }
+  return (oceanMask = m);
+}
 function rivers(): Float32Array {
   if (riverField) return riverField;
+  const sea = ocean();
   const f = new Float32Array(MAP * MAP).fill(99);
   const owner = new Int32Array(MAP * MAP).fill(-1);
   let id = 0;
@@ -72,7 +87,7 @@ function rivers(): Float32Array {
       if (best === Infinity) break;
       pdx = bx - x; pdy = by - y; x = bx; y = by;
       seen.add(y * MAP + x); path.push([x, y]);
-      if (heightAt(x, y) < RIVER_SEA + 0.04) { ok = true; break; }
+      if (sea[y * MAP + x]) { ok = true; break; }
       const o = owner[y * MAP + x]!;
       if (o >= 0 && o !== me) { ok = true; break; } // confluence
     }
@@ -99,8 +114,9 @@ export function terrain(x: number, y: number): Terrain {
   const k = y * MAP + x;
   const c = tcache[k]!;
   if (c) return TLIST[c - 1]!;
-  const h = heightAt(x, y);
   const rv = rivers()[k]!;
+  let h = heightAt(x, y);
+  if (h < 0.35 && !ocean()[k]) h = 0.38;
   let t: Terrain;
   if (h < 0.3) t = "deep";
   else if (h < 0.35 || rv < 0) t = "water";
