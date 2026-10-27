@@ -50,6 +50,13 @@
       "when": 1793131728907,
       "tag": "0006_purchase_position",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793132860420,
+      "tag": "0007_village_charters",
+      "breakpoints": true
     }
   ]
 }
