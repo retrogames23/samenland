@@ -147,7 +147,7 @@ function tick() {
       case "mill": if (rnd() < 0.2 * dt) tone(src.pan, 0.03 * v, 120, 95, 0.6, "sawtooth", 300); break;
       case "watermill": if (rnd() < 2 * dt) tone(src.pan, 0.02 * v, 500 + rnd() * 400, 1200, 0.06); break;
       case "pasture": if (rnd() < 0.02 * dt * 10 && v > 0.3) baa(src.pan); break;
-      case "factory": case "steamworks": if (rnd() < 0.5 * dt) burst(src.pan, 0.05 * v, 400, 0.4, "lowpass"); break;
+      case "steamworks": if (rnd() < 0.8 * dt) burst(src.pan, 0.07 * v, 900, 0.08, "bandpass"); break; // water-driven trip hammer
     }
   }
   // church bell at the full hour (real clock), when a church is in view

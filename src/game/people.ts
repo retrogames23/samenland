@@ -35,9 +35,9 @@ const pick = <T,>(a: readonly T[], h: number) => a[Math.floor(h * a.length) % a.
 
 const HOMES: Partial<Record<Kind, [number, number]>> = { hut: [2, 2], suburb: [2, 4], farmhouse: [2, 4], cottage: [2, 3], townhouse: [2, 4], inn: [2, 2], bakery: [2, 2] };
 const SLOTS: Partial<Record<Kind, [Job, number]>> = {
-  watermill: ["miller", 2], chapel: ["priest", 1], manufactory: ["worker", 4], steamworks: ["worker", 4], station: ["carter", 2], stall: ["merchant", 2], harbor: ["carter", 2], townhall: ["crafter", 2],
+  watermill: ["miller", 2], chapel: ["priest", 1], manufactory: ["crafter", 4], steamworks: ["smith", 3], station: ["merchant", 2], stall: ["merchant", 2], harbor: ["carter", 2], townhall: ["crafter", 2],
   bakery: ["baker", 2], smithy: ["smith", 2], inn: ["innkeeper", 2], mill: ["miller", 1], workshop: ["crafter", 2],
-  factory: ["worker", 6], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
+  factory: ["priest", 2], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
   fishery: ["fisher", 1], infirmary: ["healer", 1], school: ["teacher", 1], granary: ["carter", 1], markethall: ["merchant", 2], guildhall: ["crafter", 2], library: ["teacher", 1], dairy: ["farmer", 2],
 };
 const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["mayor", "farmer", "merchant", "carter", "builder", "woodcutter", "mason", "fisher", "healer"]);

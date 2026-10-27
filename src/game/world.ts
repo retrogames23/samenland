@@ -624,8 +624,6 @@ export function isTwin(l: Link, seeds: Seed[], now: number) {
   return radiusOf(effAge(l.a, seeds, now)) + radiusOf(effAge(l.b, seeds, now)) >= l.d;
 }
 
-/** Rails unlock only when BOTH linked settlements enter the industrial era. */
-export const railReady = (l: Link, seeds: Seed[], now: number) => stageOf(effAge(l.a,seeds,now)) >= 5 && stageOf(effAge(l.b,seeds,now)) >= 5;
 
 // ---------------- daily blessing (bell / decorated well) ----------------
 /** A blessing lasts 24 h and speeds growth by 10 % meanwhile; derived from the blessing timestamps only. */
