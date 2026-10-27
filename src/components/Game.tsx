@@ -98,7 +98,8 @@ export function Game() {
     for (const v of votes) { if (!vo.has(v.seed_id)) vo.set(v.seed_id, []); vo.get(v.seed_id)!.push({ partner: v.partner_id, pact: v.pact as PactKind, at: Date.parse(v.created_at) }); }
     for (const w of works) { if (!wo.has(w.seed_id)) wo.set(w.seed_id, []); wo.get(w.seed_id)!.push({ partner: w.partner_id, work: w.work as WorkKind, cost: w.cost, at: Date.parse(w.created_at) }); }
     return rawSeeds.map((s0) => {
-      const s = vo.has(s0.id) || wo.has(s0.id) ? { ...s0, ...(vo.has(s0.id) ? { votes: vo.get(s0.id) } : {}), ...(wo.has(s0.id) ? { works: wo.get(s0.id) } : {}) } : s0;
+      const v0 = vo.get(s0.id), w0 = wo.get(s0.id);
+      const s: Seed = v0 || w0 ? { ...s0, ...(v0 ? { votes: v0 } : {}), ...(w0 ? { works: w0 } : {}) } : s0;
       const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id), fr = firstRoads.find((f) => f.seed_id === s.id), de = decs.get(s.id);
       if (!bl && !bo && !ch && !fr && !de) return s;
       return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { firstRoad: { target: fr.target_id, at: Date.parse(fr.created_at) } } : {}), ...(de ? { decisions: de.sort((a, b) => a.at - b.at) } : {}) };
