@@ -15,4 +15,4 @@
 - [ ] Sichtbare Warenflüsse und Lieferketten (Holz → Sägewerk → Baustelle, Korn → Mühle → Bäckerei)
 - [x] Soundeffekte mit Ton an/aus
 
-- [ ] Gebäudespezifische Nachtbilder mit passgenauen Fenstern und sanftem Flackern erstellen und prüfen
+- [x] Gebäudespezifische Nachtbilder mit passgenauen Fenstern und sanftem Flackern erstellen und prüfen
