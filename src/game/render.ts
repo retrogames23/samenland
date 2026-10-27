@@ -560,7 +560,7 @@ export function draw(
         }
         if (!any) { c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, 3.5, 2, 0, 0, 7); c.fill(); }
       } else if (st.kind === "square" || st.kind === "market" || st.kind === "well") {
-        c.beginPath(); c.moveTo(cx, cy - TH / 2 - 0.4); c.lineTo(cx + TW / 2 + 0.4, cy); c.lineTo(cx, cy + TH / 2 + 0.4); c.lineTo(cx - TW / 2 - 0.4, cy); c.closePath();
+        c.beginPath(); c.ellipse(cx, cy, TW * (0.56 + hash(x, y, 71) * 0.1), TH * (0.56 + hash(x, y, 72) * 0.1), 0, 0, 7);
         c.fillStyle = texture(c, "cobble") ?? "#d3cab6"; c.fill();
       } else if (st.kind === "field") {
         const ripe = st.v > 0.5;
