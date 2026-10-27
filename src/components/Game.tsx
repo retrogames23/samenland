@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastSources, peopleFocus, prewarmOverview, type Camera } from "@/game/render";
+import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastSources, peopleFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townOf, poseOf, type Person } from "@/game/people";
 import { inspectAt, type Inspect } from "@/game/inspect";
 import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
-import { setScene, setSound, unlock, baa, hm, tap, disposeAudio } from "@/game/audio";
+import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/game/audio";
 import {
   canPlant,
   structureAt,
@@ -19,6 +19,11 @@ import {
   resourceAt,
   MAP,
   stageOf,
+  links,
+  isBlessed,
+  blessCooldown,
+  BLESS_MS,
+  type Signpost,
   type Planting,
   type Seed,
 } from "@/game/world";
@@ -31,7 +36,17 @@ type Mode = "look" | "seed" | "tree" | "flower" | "lantern";
 
 export function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [seeds, setSeeds] = useState<Seed[]>([]);
+  const [rawSeeds, setSeeds] = useState<Seed[]>([]);
+  const [blessings, setBlessings] = useState<{ id: string; seed_id: string; created_at: string }[]>([]);
+  const [signs, setSigns] = useState<Signpost[]>([]);
+  const [signDraft, setSignDraft] = useState<Record<string, string>>({});
+  // blessing timestamps travel with the seed, so growth stays a pure function of shared rows
+  const seeds = useMemo(() => {
+    const by = new Map<string, number[]>();
+    for (const b of blessings) { if (!by.has(b.seed_id)) by.set(b.seed_id, []); by.get(b.seed_id)!.push(Date.parse(b.created_at)); }
+    return rawSeeds.map((s) => (by.has(s.id) ? { ...s, blessed: by.get(s.id)!.sort((a, b) => a - b) } : s));
+  }, [rawSeeds, blessings]);
+  useEffect(() => { setSignposts(signs); }, [signs]);
   const [plantings, setPlantings] = useState<Planting[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [lang, setLang] = useState<Lang>("de");
@@ -104,10 +119,14 @@ export function Game() {
         setUserId(session?.user.id ?? null);
     });
     (async () => {
-      const [a, b] = await Promise.all([
+      const [a, b, bl, sg] = await Promise.all([
         supabase.from("seeds").select("*").order("created_at"),
         supabase.from("plantings").select("*"),
+        supabase.from("blessings").select("id, seed_id, created_at"),
+        supabase.from("signposts").select("id, seed_id, target_id, user_id, message"),
       ]);
+      setBlessings(bl.data ?? []);
+      setSigns((sg.data ?? []) as Signpost[]);
       const ss = (a.data ?? []) as Seed[];
       setSeeds(ss);
       setPlantings((b.data ?? []) as Planting[]);
@@ -126,6 +145,15 @@ export function Game() {
           s.some((x) => x.id === (p.new as Planting).id) ? s : [...s, p.new as Planting],
         ),
       )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "blessings" }, (p) => {
+        const n = p.new as { id: string; seed_id: string; created_at: string };
+        setBlessings((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "signposts" }, (p) => {
+        if (p.eventType === "DELETE") return setSigns((s) => s.filter((x) => x.id !== (p.old as Signpost).id));
+        const n = p.new as Signpost;
+        setSigns((s) => [...s.filter((x) => x.id !== n.id), n]);
+      })
       .subscribe();
     const iv = setInterval(() => tick((n) => n + 1), 30000);
     return () => {
@@ -362,6 +390,11 @@ export function Game() {
               const pan = (e.clientX / window.innerWidth) * 2 - 1;
               if (best) { hm(pan); setPlace(null); return setWho(best); }
               const [tx, ty] = tileAt(e);
+              const sm = signpostMap(seeds);
+              for (const [dx, dy] of [[0, 0], [1, 1], [1, 0], [0, 1], [-1, 0], [0, -1]] as const) {
+                const sp = sm.get((ty + dy) * MAP + tx + dx);
+                if (sp) { tap(pan); setWho(null); setPlace(null); return setMsg(`${t.signFrom(seeds.find((x) => x.id === sp.seed_id)?.name ?? "?")}: „${sp.message}“`); }
+              }
               const ins = inspectAt(tx, ty, seeds, Date.now());
               if (!ins && structureAt(tx, ty, seeds, Date.now())?.kind === "pasture") baa(pan);
               if (ins) { if (ins.kind === "pasture") baa(pan); else tap(pan); setWho(null); return setPlace(ins); }
@@ -427,6 +460,55 @@ export function Game() {
                   >
                     {t.toMine}
                   </Button>
+                  {(() => {
+                    const now = Date.now();
+                    const live = isBlessed(my, now);
+                    const last = Math.max(0, ...(my.blessed ?? []));
+                    const cd = blessCooldown(my, now);
+                    const ring = async (kind: "bell" | "well") => {
+                      const { data, error } = await supabase.from("blessings").insert({ seed_id: my.id, user_id: userId!, kind }).select("id, seed_id, created_at").single();
+                      if (error || !data) return setMsg(t.blessFail);
+                      setBlessings((s) => [...s, data]);
+                      if (kind === "bell") bell(); else tap();
+                      setMsg(t.blessed(my.name));
+                    };
+                    const nbs = links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a));
+                    const saveSign = async (to: Seed) => {
+                      const text = (signDraft[to.id] ?? "").trim().slice(0, 80);
+                      if (!text) return;
+                      const { data, error } = await supabase.from("signposts").upsert({ seed_id: my.id, target_id: to.id, user_id: userId!, message: text }, { onConflict: "seed_id,target_id" }).select("id, seed_id, target_id, user_id, message").single();
+                      if (error || !data) return setMsg(t.blessFail);
+                      setSigns((s) => [...s.filter((x) => x.id !== data.id), data as Signpost]);
+                      setMsg(t.signSaved);
+                    };
+                    return (
+                      <div className="mt-3 space-y-2 border-t border-border pt-2">
+                        <div className="text-xs font-semibold">{t.ritual}</div>
+                        {live && <div className="text-xs text-primary">{t.festive(Math.ceil((last + BLESS_MS - now) / 3.6e6))}</div>}
+                        {cd > 0 ? (
+                          <div className="text-xs text-muted-foreground">{t.blessAgain(Math.ceil(cd / 3.6e6))}</div>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            <Button size="sm" variant="secondary" onClick={() => ring("bell")}>{t.ringBell}</Button>
+                            <Button size="sm" variant="secondary" onClick={() => ring("well")}>{t.decorateWell}</Button>
+                          </div>
+                        )}
+                        <div className="pt-1 text-xs font-semibold">{t.signposts}</div>
+                        {nbs.length === 0 ? <div className="text-xs text-muted-foreground">{t.noNeighbours}</div> : nbs.map((o) => {
+                          const cur = signs.find((x) => x.seed_id === my.id && x.target_id === o.id);
+                          return (
+                            <form key={o.id} className="space-y-1" onSubmit={(e) => { e.preventDefault(); saveSign(o); }}>
+                              <div className="text-xs">{t.signTo(o.name)}</div>
+                              <div className="flex gap-1">
+                                <Input className="h-8 text-xs" maxLength={80} placeholder={t.signPlaceholder} value={signDraft[o.id] ?? cur?.message ?? ""} onChange={(e) => setSignDraft({ ...signDraft, [o.id]: e.target.value })} />
+                                <Button type="submit" size="sm" variant="secondary">{t.signSave}</Button>
+                              </div>
+                            </form>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : !userId ? (
                 <form
