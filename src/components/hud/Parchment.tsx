@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 /** Illustrated parchment overlay for decisions (road, charter, encounters). */
 export function Parchment({ image, title, later, onLater, wide, children }: {
-  image?: string; title: string; later: string; onLater: () => void; wide?: boolean; children: ReactNode;
+  image?: string | undefined; title: string; later: string; onLater: () => void; wide?: boolean; children: ReactNode;
 }) {
   return (
     <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/40 p-3 backdrop-blur-[1px]" onClick={onLater}>

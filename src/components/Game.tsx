@@ -812,7 +812,7 @@ export function Game() {
         );
       })()}
       {roadOpen && my && (
-        <Parchment image={ART.road} title={t.road.title} later={t.enc.later} onLater={() => later("road")}>
+        <Parchment image={ART["road"]} title={t.road.title} later={t.enc.later} onLater={() => later("road")}>
               <p className="mt-2 text-sm text-center">{t.road.intro}</p>
               {roadCandidates(my, seeds).length === 0 ? <p className="mt-4 text-sm font-semibold">{t.road.none}</p> : (
                 <>
@@ -840,7 +840,7 @@ export function Game() {
       )}
 
       {charterOpen && my && (
-        <Parchment wide image={ART.charter} title={`${t.charter.title} · ${my.name}`} later={t.enc.later} onLater={() => later("charter")}>
+        <Parchment wide image={ART["charter"]} title={`${t.charter.title} · ${my.name}`} later={t.enc.later} onLater={() => later("charter")}>
               <p className="mt-2 text-sm text-center">{t.charter.intro}</p>
               {!charterReady(my.created_at, now) ? (
                 <p className="mt-4 text-sm font-semibold">{t.charter.locked}</p>
