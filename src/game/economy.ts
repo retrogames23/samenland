@@ -1,5 +1,5 @@
 import { activeBoons } from "./encounters";
-import { radiusOf, stageOf, effAge, links, waterNearby, type Seed, type CharterPath } from "./world";
+import { radiusOf, stageOf, effAge, links, waterNearby, twinLinks, pactOf, type Seed, type CharterPath } from "./world";
 
 /** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
 export const START_TALER = 150;

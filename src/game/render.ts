@@ -1259,7 +1259,8 @@ export function draw(
       // travellers only show on open road – inside towns they are "between the houses"
       const [tx, ty] = l.tiles[i]!;
       const st = structureAt(tx, ty, seeds, now);
-      if (!st || (st.kind !== "road" && st.kind !== "bridge")) continue;
+      const twin = isTwin(l, seeds, now);
+      if (!st || (st.kind !== "road" && st.kind !== "bridge" && !(twin && st.kind === "street"))) continue;
       const [ax, ay] = pts[i]!, [bx, by] = pts[i + 1]!;
       const x = ax + (bx - ax) * u, y = ay + (by - ay) * u;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
@@ -1267,7 +1268,7 @@ export function draw(
       let dx = (bx - ax) * (fwd ? 1 : -1), dy = (by - ay) * (fwd ? 1 : -1);
       const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
       const from = fwd ? l.a : l.b, to = fwd ? l.b : l.a, ex = tradeProfile(from, now).exports;
-      const good = ex[Math.floor(hash(sn, k, 5) * ex.length)] ?? null, cart = hash(sn, k, 3) < 0.55;
+      const good = ex[Math.floor(hash(sn, k, 5) * ex.length)] ?? null, cart = !twin && hash(sn, k, 3) < 0.55; // twins: porters walk straight from workshop to workshop
       if (cart) { drawCart(c, x, y, dx, dy, bob, sn + k, "", t); if (good) drawLoad(c, x, y - bob * 0.3, dx, good); }
       else drawWanderer(c, x, y, dx, dy, t, sn + k, good ? CARRY_OF[good] : null);
       lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
@@ -1339,5 +1340,15 @@ export function draw(
     const txt = `${l.a.name} ∞ ${l.b.name}`;
     c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(txt, sx, sy);
     c.fillStyle = hsl(20, 45, 38); c.fillText(txt, sx, sy);
+    const g = l.tiles[Math.floor(l.tiles.length / 2)];
+    if (g && z > 0.6) {
+      const [gx, gy] = iso(g[0], g[1]);
+      const px = (gx - cam.x) * z + w / 2, py = (gy - cam.y) * z + h / 2;
+      for (const [k, sd] of [[-1, l.a], [1, l.b]] as const) {
+        const bx = px + k * 7 * z, top = py - 16 * z, wave = Math.sin(now / 700 + k) * 1.5 * z;
+        c.strokeStyle = INK; c.lineWidth = Math.max(1, 0.8 * z); c.beginPath(); c.moveTo(bx, py); c.lineTo(bx, top); c.stroke();
+        c.fillStyle = hsl(sd.hue, 55, 45); c.beginPath(); c.moveTo(bx, top); c.lineTo(bx + k * 6 * z, top + 2 * z + wave); c.lineTo(bx, top + 4 * z); c.closePath(); c.fill();
+      }
+    }
   }
 }
