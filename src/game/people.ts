@@ -179,10 +179,7 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
     const st = structureAt(x, y, seeds, t.now);
     const v = !free(t, x, y, seeds) ? (buildable(terrain(x, y)) ? 40 : Infinity) : st && WALK.has(st.kind) ? 1 : 2.4;
     t.costC.set(k, v);
-    return v;
-    if (st && !FLAT.has(st.kind) && st.kind !== "hay") return 40; // through a building only as a last resort – hidden there (back door / courtyard)
-    if (!buildable(terrain(x, y))) return Infinity;
-    return 2.4;
+    return v; // 40 = through a building only as a last resort (hidden there: courtyard / back door)
   };
   const dist = new Float32Array(W * H).fill(Infinity), prev = new Int32Array(W * H).fill(-1);
   const heap: [number, number][] = [];
