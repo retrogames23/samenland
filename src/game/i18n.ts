@@ -205,7 +205,7 @@ const de = {
   tradeBonus: (p: number) => `+${p}% Wachstum durch Handel`,
   trade: {
     title: "Handel", exports: "Verkauft", imports: "Braucht", partners: "Handelspartner", none: "Noch keine Handelsstraße.",
-    fit: (f: number) => (f >= 1.2 ? "ergänzt sich gut" : f >= 0.9 ? "ergänzt sich" : "zu ähnlich"),
+    fit: (f: number): string => (f >= 1.2 ? "ergänzt sich gut" : f >= 0.9 ? "ergänzt sich" : "zu ähnlich"),
     partner: (name: string, p: number, fit: string) => `${name}: +${p}% · ${fit}`,
     flow: (buy: string, sell: string) => `kauft ${buy || "–"} · liefert ${sell || "–"}`,
     hint: (good: string, town: string | null) => (town ? `Euch fehlt ${good}. ${town} könnte liefern.` : `Euch fehlt ${good}.`),
