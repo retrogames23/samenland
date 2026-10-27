@@ -421,7 +421,9 @@ export function Game() {
       </div>
       {tab === "build" && my && at && (
         <div className="space-y-2">
-          {(Object.keys(ITEMS) as Item[]).map((it) => {
+          {(Object.keys(ITEMS) as Item[]).slice()
+            .sort((a, b) => (Number(at.has(a)) - Number(at.has(b))) || (ITEMS[a] - ITEMS[b]))
+            .map((it) => {
             return (
               <div key={it} className="rounded-md border border-border bg-secondary/60 p-2">
                 <div className="flex items-center gap-2">
