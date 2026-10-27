@@ -483,15 +483,37 @@ export function draw(
       const [cx, cy] = iso(x, y);
       const tr = terrain(x, y);
       const [hh, ss, ll] = TERRAIN[tr]!;
-      const n = hash(x, y, 11) - 0.5;
-      c.beginPath();
-      c.moveTo(cx, cy - TH / 2 - 0.6); c.lineTo(cx + TW / 2 + 0.6, cy); c.lineTo(cx, cy + TH / 2 + 0.6); c.lineTo(cx - TW / 2 - 0.6, cy); c.closePath();
       const isDeep = tr === "deep";
       const tp = texture(c, TEX_OF[tr]!, isWater(tr) ? (t / 400) % 816 : 0);
-      c.fillStyle = tp ?? hsl(hh + n * 6, ss, ll + n * 3); c.fill();
-      if (tp) {
-        const tint = isDeep ? "rgba(10,40,70,0.45)" : tr === "hill" ? "rgba(90,80,40,0.18)" : n > 0 ? `rgba(255,240,200,${n * 0.12})` : `rgba(20,30,10,${-n * 0.18})`;
-        c.fillStyle = tint; c.fill();
+      const fill = tp ?? hsl(hh, ss, ll);
+      c.beginPath();
+      c.moveTo(cx, cy - TH / 2 - 0.6); c.lineTo(cx + TW / 2 + 0.6, cy); c.lineTo(cx, cy + TH / 2 + 0.6); c.lineTo(cx - TW / 2 - 0.6, cy); c.closePath();
+      c.fillStyle = fill; c.fill();
+      if (isDeep && tp) { c.fillStyle = "rgba(10,40,70,0.45)"; c.fill(); }
+      // organic edges: higher-ranked ground spills over lower neighbours as an irregular blob
+      const pr = RANK[tr]!;
+      let lower = false;
+      for (const [dx, dy] of NB8) if (RANK[terrain(x + dx, y + dy)]! < pr) { lower = true; break; }
+      if (lower) {
+        c.beginPath();
+        const k = 9;
+        for (let i = 0; i <= k; i++) {
+          const a = (i / k) * Math.PI * 2;
+          const r = 0.62 + (hash(x * 3 + i, y * 5 - i, 61) - 0.5) * 0.28;
+          const px = cx + Math.cos(a) * r * TW * 0.78, py = cy + Math.sin(a) * r * TH * 0.78;
+          if (i === 0) c.moveTo(px, py); else {
+            const am = ((i - 0.5) / k) * Math.PI * 2;
+            c.quadraticCurveTo(cx + Math.cos(am) * r * TW * 0.84, cy + Math.sin(am) * r * TH * 0.84, px, py);
+          }
+        }
+        c.closePath();
+        c.fillStyle = fill; c.fill();
+        if (isWater(terrain(x + 1, y)) || isWater(terrain(x, y + 1)) || isWater(terrain(x - 1, y)) || isWater(terrain(x, y - 1))) {
+          if (!isWater(tr) && detail) {
+            const f = 0.25 + 0.2 * Math.sin(t / 900 + x * 0.7 + y * 0.5);
+            c.strokeStyle = `rgba(250,250,240,${f})`; c.lineWidth = 0.8; c.stroke();
+          }
+        }
       }
       const st = structureAt(x, y, seeds, now);
       tiles.push({ x, y, cx, cy, st });
@@ -501,20 +523,9 @@ export function draw(
         else if (st && PATHLIKE.has(st.kind)) { c.fillStyle = "#cdb084"; c.fill(); }
         continue;
       }
-      // watercolor blotch
-      // coast / river ink
-      if (!isWater(tr)) {
-        const pp = P(cx, cy);
-        const edges: [number, number, Pt, Pt][] = [[1, 0, pp(0.5, -0.5), pp(0.5, 0.5)], [0, 1, pp(0.5, 0.5), pp(-0.5, 0.5)], [-1, 0, pp(-0.5, 0.5), pp(-0.5, -0.5)], [0, -1, pp(-0.5, -0.5), pp(0.5, -0.5)]];
-        for (const [dx, dy, a, b] of edges) if (isWater(terrain(x + dx, y + dy))) {
-          const f = 0.35 + 0.25 * Math.sin(t / 900 + x * 0.7 + y * 0.5);
-          c.lineCap = "round";
-          c.strokeStyle = "rgba(60,45,25,0.35)"; c.lineWidth = 1.4; c.beginPath(); c.moveTo(a[0], a[1] + 0.6); c.lineTo(b[0], b[1] + 0.6); c.stroke();
-          c.strokeStyle = `rgba(250,250,240,${f})`; c.lineWidth = 0.9; c.beginPath(); c.moveTo(a[0], a[1] + 1.4); c.lineTo(b[0], b[1] + 1.4); c.stroke();
-        }
-      } else if (hash(x, y, 15) > 0.82) {
+      if (isWater(tr) && hash(x, y, 15) > 0.82) {
         const ph = Math.sin(t / 1500 + x + y) * 1.2;
-        c.strokeStyle = "rgba(255,255,255,0.55)"; c.lineWidth = 0.5;
+        c.strokeStyle = "rgba(255,255,255,0.35)"; c.lineWidth = 0.5;
         c.beginPath(); c.moveTo(cx - 4 + ph, cy); c.quadraticCurveTo(cx - 2 + ph, cy - 1.5, cx + ph, cy); c.quadraticCurveTo(cx + 2 + ph, cy + 1.5, cx + 4 + ph, cy); c.stroke();
       }
       if (tr === "hill" || tr === "mountain") {
