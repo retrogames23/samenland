@@ -227,6 +227,20 @@ const tileBirth = (d: number) => { const key = Math.round(d * d); let h = birthC
 
 function seedNum(s: Seed) { let h = 0; for (const ch of s.id) h = (h * 31 + ch.charCodeAt(0)) | 0; return h; }
 
+/**
+ * Farmland is laid out in large acres (several tiles each) per village, so one field is far bigger than
+ * a house. Pure function of seed + tile: every client sees identical parcels.
+ */
+export function acreOf(x: number, y: number, s: Seed) {
+  const n = seedNum(s), W = 4 + Math.floor(hash(n, 1, 91) * 3), H = 3 + Math.floor(hash(n, 2, 91) * 3);
+  const ox = Math.floor(hash(n, 3, 91) * W), oy = Math.floor(hash(n, 4, 91) * H);
+  // stagger alternate rows so acre borders do not line up into one grid
+  const by = Math.floor((y + oy) / H), sh = (by & 1) ? Math.floor(W / 2) : 0;
+  const bx = Math.floor((x + ox + sh) / W);
+  const h = hash(bx * 7 + n, by * 13, 92);
+  return { id: bx * 100003 + by, h, ripe: hash(bx, by + n, 93) > 0.45, along: hash(bx, by + n, 94) > 0.5, corner: (x + ox + sh) % W === 0 && (y + oy) % H === 0 };
+}
+
 function pathAt(x: number, y: number, s: Seed, age: number, r: number): boolean {
   const dx = x - s.x, dy = y - s.y, d = Math.hypot(dx, dy);
   if (d < 0.8 || d > r + 0.3) return false;
@@ -327,7 +341,9 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   const h = hash(x,y,4);
   if (!near) {
     if (stage >= 4 && d < r * 0.5) return h < 0.45 ? "garden" : null;
-    return weighted(h, [["field",55],["pasture",20],["garden",10],["hay",4],["fence",6],["coop",5]]);
+    const a = acreOf(x, y, s);
+    if (a.corner && h > 0.6) return weighted(h, [["hay",40],["coop",30],["fence",30]]);
+    return weighted(a.h, [["field",72],["pasture",22],["garden",6]]);
   }
   if (hash(x,y,2)>0.82) return h<0.5?"garden":null;
   if (stage <= 1) return weighted(h,[["farmhouse",50],["barn",25],["garden",15],["coop",10]]);

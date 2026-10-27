@@ -3,7 +3,7 @@ import { seasonKey } from "./season";
 import { drawBuildingSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
-import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, acreOf, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -599,7 +599,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
       const y = s.x + s.y + d - x; if (y < s.y - Ri || y > s.y + Ri) continue;
       const st = structureAt(x, y, seeds, now); if (!st) continue;
       const [cx, cy] = iso(x, y);
-      if (st.kind === "field") { c.fillStyle = texture(c, st.v > 0.5 ? "wheat" : "crops") ?? "#c9b46a"; diamond(c, cx, cy, step); c.fill(); }
+      if (st.kind === "field") { c.fillStyle = texture(c, acreOf(x, y, st.seed).ripe ? "wheat" : "crops") ?? "#c9b46a"; diamond(c, cx, cy, step); c.fill(); }
       else if (PATHLIKE.has(st.kind) || st.kind === "square") { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#bfa47a"; diamond(c, cx, cy, step * 0.8); c.fill(); }
       else if (st.build !== undefined) drawSite(c, st, cx, cy, 0, false);
       else if (!FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
@@ -1004,7 +1004,7 @@ export function draw(
       if (!detail) {
         c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
         if (st && !FLAT.has(st.kind)) { /* drawn in pass 2 */ }
-        else if (st?.kind === "field") { c.fillStyle = texture(c, st.v > 0.5 ? "wheat" : "crops") ?? hsl(44, 45, 66); c.fill(); }
+        else if (st?.kind === "field") { c.fillStyle = texture(c, acreOf(x, y, st.seed).ripe ? "wheat" : "crops") ?? hsl(44, 45, 66); c.fill(); }
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square")) { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#cdb084"; diamond(c, cx, cy, 0.85); c.fill(); }
         continue;
       }
@@ -1051,11 +1051,21 @@ export function draw(
         c.fillStyle = texture(c, "cobble") ?? "#d3cab6"; c.fill();
       } else if (st.kind === "field" || st.kind === "garden") {
         // Neighbouring plots merge into one acre: fill slightly past the tile, edge only towards non-fields.
-        const ripe = st.kind === "field" && st.v > 0.5;
+        const ac = acreOf(x, y, st.seed), ripe = st.kind === "field" && ac.ripe;
         const q = [pp(-0.52, -0.52), pp(0.52, -0.52), pp(0.52, 0.52), pp(-0.52, 0.52)];
         c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
         c.fillStyle = texture(c, ripe ? "wheat" : "crops") ?? hsl(ripe ? 44 : 80, 50, 60); c.fill();
-        const same = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && (o.kind === "field" || o.kind === "garden"); };
+        const same = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && o.kind === st.kind && acreOf(x + i, y + j, o.seed).id === ac.id; };
+        if (st.kind === "field") {
+          // furrows run the full length of the acre, continuing seamlessly across its tiles
+          c.save(); c.clip(); c.strokeStyle = ripe ? "rgba(120,88,40,0.22)" : "rgba(50,70,30,0.25)"; c.lineWidth = 0.6;
+          for (let k = -2; k <= 2; k++) {
+            const f = k / 4;
+            const [a0, a1] = ac.along ? [pp(-0.6, f), pp(0.6, f)] : [pp(f, -0.6), pp(f, 0.6)];
+            c.beginPath(); c.moveTo(a0[0], a0[1]); c.lineTo(a1[0], a1[1]); c.stroke();
+          }
+          c.restore();
+        }
         c.strokeStyle = "rgba(70,52,30,0.4)"; c.lineWidth = 0.9; c.lineCap = "round";
         const sides: [number, number, number, number][] = [[0, -1, 0, 1], [1, 0, 1, 2], [0, 1, 2, 3], [-1, 0, 3, 0]];
         for (const [i, j, a, b] of sides) if (!same(i, j)) { c.beginPath(); c.moveTo(q[a]![0], q[a]![1]); c.lineTo(q[b]![0], q[b]![1]); c.stroke(); }
