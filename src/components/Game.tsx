@@ -31,7 +31,9 @@ import {
   type Seed,
   canPlaceSpecial,
   SPECIAL_KIND,
+  characterOf,
 } from "@/game/world";
+const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, plantError, type Lang } from "@/game/i18n";
 import { ITEMS, attributes, popAt, treasury, type Item, type Purchase } from "@/game/economy";
