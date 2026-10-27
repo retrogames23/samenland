@@ -490,9 +490,9 @@ function personBody(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
         c.strokeStyle = i % 2 ? "#c49a62" : "#b08a5a"; c.lineWidth = 0.4 * s;
         c.beginPath(); c.moveTo(shp[0] - 3 * s * face, shp[1] + 0.5 * s + o); c.lineTo(shp[0] + 2.8 * s * face, shp[1] - 0.5 * s + o); c.stroke();
       }
-    } else if (q.carry === "grain") {
+    } else if (q.carry === "grain" || q.carry === "bundle") {
       const g: Pt = [shp[0] - face * 0.6 * s, shp[1] - 0.6 * s];
-      c.fillStyle = "#d4b25c"; c.beginPath(); c.ellipse(g[0], g[1], 0.8 * s, 1.7 * s, face * 0.5, 0, 7); c.fill(); c.strokeStyle = ink; c.stroke();
+      c.fillStyle = q.carry === "bundle" ? "#8a6f52" : "#d4b25c"; c.beginPath(); c.ellipse(g[0], g[1], 0.8 * s, 1.7 * s, face * 0.5, 0, 7); c.fill(); c.strokeStyle = ink; c.stroke();
       c.strokeStyle = "#8a6a2a"; c.lineWidth = 0.3 * s; c.beginPath(); c.moveTo(g[0] - 0.7 * s, g[1] + 0.2 * s); c.lineTo(g[0] + 0.7 * s, g[1]); c.stroke();
     } else if (q.carry === "flour") {
       const g: Pt = [shp[0] - face * 0.3 * s, shp[1] - 0.5 * s];
