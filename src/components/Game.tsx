@@ -303,8 +303,10 @@ export function Game() {
                 <div className="mt-3 space-y-1 text-sm">
                   <div className="font-display text-lg text-foreground">{my.name}</div>
                   <div className="text-muted-foreground">
-                    {t.stages[stageOf(myStats.age)]} · {t.since} {t.age(myStats.age)} ·{" "}
+                    {t.stages[stageOf(myStats.age)]} · {t.since} {t.age(ageHours(my, Date.now()))} ·{" "}
                     {myStats.buildings} {t.buildings}
+                    {myStats.speed > 1.005 && <span className="block">{t.tradeBonus(Math.round((myStats.speed - 1) * 100))}</span>}
+                    {myStats.twins.map((n) => <span key={n} className="block">{t.twinWith(n)}</span>)}
                   </div>
                   <Button
                     size="sm"

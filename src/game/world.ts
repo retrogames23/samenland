@@ -184,11 +184,9 @@ export function townStats(s: Seed, seeds: Seed[], now: number) {
   let buildings = 0;
   for (let y = Math.floor(s.y - r); y <= s.y + r; y++)
     for (let x = Math.floor(s.x - r); x <= s.x + r; x++) {
-      const st = structureAt(x, y, [s], now);
-      if (st && !FLAT.has(st.kind) && st.kind !== "well" && st.kind !== "hay") buildings++;
+      const st = structureAt(x, y, seeds, now);
+      if (st && st.seed.id === s.id && !FLAT.has(st.kind) && st.kind !== "well" && st.kind !== "hay") buildings++;
     }
-  // reset cache since it was filled with a single-seed view
-  cacheKey = "";
   const twins = links(seeds).filter((l) => (l.a.id === s.id || l.b.id === s.id) && isTwin(l, seeds, now)).map((l) => (l.a.id === s.id ? l.b : l.a).name);
   return { age, radius: r, buildings, stage: STAGES[stageOf(age)]!.name, speed: speedOf(s, seeds, now), twins };
 }
