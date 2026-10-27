@@ -195,7 +195,11 @@ export type Kind =
   | "factory" | "sawmill" | "road" | "bridge"
   | "campfire" | "hut" | "coop" | "fence" | "chapel" | "watermill" | "harbor"
   | "stall" | "townhall" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue";
-export type Structure = { kind: Kind; seed: Seed; v: number };
+/** build < 1: still a construction site (0 = staked out, 1 = finished). */
+export type Structure = { kind: Kind; seed: Seed; v: number; build?: number };
+/** Construction time (in growth hours) before a building at birth age `at` is finished. */
+export const buildTime = (at: number) => Math.min(96, Math.max(1.5, at * 0.06));
+let buildP = 1;
 export const FLAT: ReadonlySet<Kind> = new Set(["path", "street", "square", "field", "pasture", "garden", "market", "road", "bridge", "rail", "avenue"]);
 const CORE: Record<string, Kind> = { "1,0": "hut", "0,1": "hut", "1,1": "campfire", "-1,0": "garden", "-1,1": "field", "0,-1": "garden" };
 const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
@@ -304,7 +308,8 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   // Later landmarks replace earlier ones at the same site.
   for (let i = LANDMARKS.length - 1; i >= 0; i--) {
     const l = LANDMARKS[i]; if (!l) continue;
-    if (l.dx !== dx || l.dy !== dy || age < l.at) continue;
+    if (l.dx !== dx || l.dy !== dy || age < l.at - buildTime(l.at)) continue;
+    if (age < l.at) buildP = 1 - (l.at - age) / buildTime(l.at);
     return l.kind === "watermill" && !waterNearby(x,y) ? "mill" : l.kind;
   }
   if (stage >= 3 && d > 3 && d < r * 0.8 && waterNearby(x,y) && hash(x,y,89) > 0.985) return "harbor";
@@ -315,7 +320,8 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   if (stage >= 2 && d < 1.6) return "square";
   if (stage === 0) return null;
   const birth = tileBirth(d) * (0.75 + 0.5 * hash(x,y,3));
-  if (age < birth) return null;
+  if (age < birth - buildTime(birth)) return null;
+  if (age < birth) buildP = 1 - (birth - age) / buildTime(birth);
   let near = false;
   for (let j=-1;j<=1 && !near;j++) for (let i=-1;i<=1;i++) if ((i||j) && pathAt(x+i,y+j,s,age,r)) { near=true; break; }
   const h = hash(x,y,4);
@@ -351,8 +357,10 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
       const age = effAge(s, seeds, now);
       const r = radiusOf(age);
       if (d > r + 0.5 || d >= bestD) continue;
+      buildP = 1;
       const k = forSeed(x, y, s, age, r, d);
-      if (k) { best = { kind: k, seed: s, v: hash(x, y, 5) }; bestD = d; }
+      if (k && buildP < 1 && (FLAT.has(k) || k === "hay" || k === "fence")) continue;
+      if (k) { best = { kind: k, seed: s, v: hash(x, y, 5), ...(buildP < 1 ? { build: Math.max(0, buildP) } : {}) }; bestD = d; }
     }
   }
   if (!best) {
