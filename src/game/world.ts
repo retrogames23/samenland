@@ -181,6 +181,35 @@ export const stageOf = (h: number) => {
 };
 /** Mixed sqrt/log expansion: ~43 tiles at two years, continuing beyond that. */
 export const radiusOf = (h: number) => 1.6 + 0.18 * Math.sqrt(Math.max(0, h)) + 3 * Math.log1p(Math.max(0, h) / 60);
+
+/** Coastal towns fan inland: unit vector away from water plus a stretch that compensates lost sea area. Pure, cached. */
+const shapeCache = new Map<string, { ux: number; uy: number; k: number }>();
+export function landShape(s: { id: string; x: number; y: number }) {
+  const ck = `${s.id}|${s.x}|${s.y}`;
+  const hit = shapeCache.get(ck); if (hit) return hit;
+  let land = 0, tot = 0, vx = 0, vy = 0;
+  const R = 16;
+  for (let j = -R; j <= R; j++) for (let i = -R; i <= R; i++) {
+    const d = Math.hypot(i, j); if (d > R || d < 1) continue;
+    tot++;
+    if (buildable(terrain(Math.round(s.x) + i, Math.round(s.y) + j))) { land++; vx += i / d; vy += j / d; }
+  }
+  const f = tot ? land / tot : 1, m = Math.hypot(vx, vy);
+  const out = m > 1e-6 && f < 0.9 ? { ux: vx / m, uy: vy / m, k: Math.min(2, 1 + (0.9 - f) * 2.2) } : { ux: 1, uy: 0, k: 1 };
+  shapeCache.set(ck, out);
+  return out;
+}
+/** Town-space distance: tiles landward count as closer, so a harbour town reaches k× deeper inland. */
+export function townDist(x: number, y: number, s: { id: string; x: number; y: number }): number {
+  const { ux, uy, k } = landShape(s);
+  const dx = x - s.x, dy = y - s.y;
+  if (k === 1) return Math.hypot(dx, dy);
+  let p = dx * ux + dy * uy; const q = -dx * uy + dy * ux;
+  if (p > 0) p /= k;
+  return Math.hypot(p, q);
+}
+/** Max real-tile reach of a town with town-space radius r (for bounding boxes). */
+export const reachOf = (s: { id: string; x: number; y: number }, r: number) => r * landShape(s).k;
 /** Monotonic numeric inverse; no artificial maximum town size. */
 export const birthAt = (d: number) => {
   if (d <= 1.6) return 0;
