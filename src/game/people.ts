@@ -24,7 +24,7 @@ const M = ["Otto", "Karl", "Emil", "Fritz", "Hans", "Paul", "Anton", "Jakob", "F
 const S = ["Hollmann", "Brandt", "Weber", "Müller", "Becker", "Lindner", "Kraus", "Vogt", "Seidel", "Hartmann", "Ebert", "Moosbauer", "Winter", "Sommer", "Fink", "Haas", "Kessler", "Roth", "Albers", "Pfeiffer", "Graf", "Kühn"];
 const pick = <T,>(a: readonly T[], h: number) => a[Math.floor(h * a.length) % a.length]!;
 
-const HOMES: Partial<Record<Kind, [number, number]>> = { farmhouse: [3, 5], cottage: [2, 4], townhouse: [3, 6], inn: [2, 3], bakery: [2, 3] };
+const HOMES: Partial<Record<Kind, [number, number]>> = { farmhouse: [2, 4], cottage: [2, 3], townhouse: [2, 4], inn: [2, 2], bakery: [2, 2] };
 const SLOTS: Partial<Record<Kind, [Job, number]>> = {
   bakery: ["baker", 2], smithy: ["smith", 2], inn: ["innkeeper", 2], mill: ["miller", 1], workshop: ["crafter", 2],
   factory: ["worker", 6], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
@@ -33,7 +33,7 @@ const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["farmer", "merchant", "carter"])
 const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge"]);
 
 export type Town = {
-  seed: Seed; people: Person[]; well: Tile; meet: Tile; meets: Tile[]; school: Tile | null; play: Tile;
+  seed: Seed; people: Person[]; well: Tile; meet: Tile; meets: Tile[]; plays: Tile[]; school: Tile | null; play: Tile;
   x0: number; y0: number; x1: number; y1: number; routes: Map<string, Tile[]>; now: number;
 };
 
@@ -79,7 +79,9 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   if (!meets.length) meets.push([s.x + 1, s.y + 1]);
   const school = byKind.get("church")?.[0] ?? null;
   const meet = meets[0]!;
-  const play = byKind.get("pasture")?.[0] ?? byKind.get("garden")?.[0] ?? [s.x + 1, s.y - 2] as Tile;
+  const plays: Tile[] = [...(byKind.get("pasture") ?? []), ...(byKind.get("square") ?? [])].slice(0, 8);
+  if (!plays.length) plays.push([s.x + 1, s.y - 2]);
+  const play = plays[0]!;
 
   const slots: { job: Job; at: Tile }[] = [];
   for (const [k, sl] of Object.entries(SLOTS) as [Kind, [Job, number]][])
@@ -127,7 +129,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       });
     }
   }
-  return { seed: s, people, well, meet, meets, school, play, x0, y0, x1, y1, routes: new Map(), now };
+  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now };
 }
 
 // ---------------- routing ----------------
@@ -200,9 +202,9 @@ export function planOf(p: Person, t: Town): Entry[] {
     const school = p.age >= 6 && t.school;
     return [
       E(0, "sleep", H, true),
-      E(7.6 + j(1) * 0.3, school ? "school" : "play", school ? t.school! : add(t.play, off(p, 1, 0.7)), !!school),
+      E(7.6 + j(1) * 0.3, school ? "school" : "play", school ? t.school! : add(t.plays[Math.floor(hash(p.home[0], p.home[1], 608) * t.plays.length)]!, off(p, 1, 0.5)), !!school),
       E(12.8 + j(2) * 0.3, "home", H, true),
-      E(14.3 + j(3), "play", add(t.play, off(p, 2, 0.7)), false),
+      E(14.3 + j(3), "play", add(t.plays[Math.floor(hash(p.home[0], p.home[1], 609) * t.plays.length)]!, off(p, 2, 0.5)), false),
       E(18.4 + j(4), "home", H, true),
       E(20.3 + j(5) * 0.5, "sleep", H, true),
     ];
@@ -216,9 +218,9 @@ export function planOf(p: Person, t: Town): Entry[] {
   return [
     E(0, "sleep", H, true),
     E(6.5 + j(1), "work", wp, p.workIndoor),
-    E(12 + j(2) * 0.3, "lunch", hash(p.id, 4, 606) < 0.5 ? ring(p, 4, t.well) : spot(p, t, 4), false),
+    hash(p.id, 4, 607) < 0.4 ? E(12 + j(2) * 0.3, "lunch", hash(p.id, 4, 606) < 0.5 ? ring(p, 4, t.well) : spot(p, t, 4), false) : E(12 + j(2) * 0.3, "work", wp, p.workIndoor),
     E(13 + j(3) * 0.3, "work", wp, p.workIndoor),
-    E(17.2 + j(4), "leisure", spot(p, t, 5), false),
+    hash(p.id, 5, 607) < 0.4 ? E(17.2 + j(4), "leisure", spot(p, t, 5), false) : E(17.2 + j(4), "home", H, true),
     E(19.6 + j(5), "home", H, true),
     E(21.8 + j(6), "sleep", H, true),
   ];
