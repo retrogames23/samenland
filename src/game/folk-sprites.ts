@@ -15,9 +15,9 @@ import scaffold from "@/assets/sprites/folk/scaffold.webp";
 import logs from "@/assets/sprites/folk/logs.webp";
 import blocks from "@/assets/sprites/folk/blocks.webp";
 import bannerPole from "@/assets/sprites/folk/banner-pole.webp";
-import bannerCloth from "@/assets/sprites/folk/banner-cloth.webp";
+import bannerClothUrl from "@/assets/sprites/folk/banner-cloth.webp";
 
-const URLS = { man, woman, child, elder, builder, woodcutter, mason, farmer, porter, priest, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth };
+const URLS = { man, woman, child, elder, builder, woodcutter, mason, farmer, porter, priest, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl };
 export type FolkSprite = keyof typeof URLS;
 const cache = new Map<string, HTMLImageElement>();
 function load(u: string) {
