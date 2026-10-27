@@ -1,4 +1,4 @@
-import { hash, structureAt, terrain, isWater, MAP, FLAT, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { hash, structureAt, terrain, isWater, MAP, FLAT, links, roadProgress, isTwin, ageHours, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -247,7 +247,7 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
   }
 }
 
-const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market"]);
+const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge"]);
 
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
@@ -264,6 +264,7 @@ export function draw(
   const x0 = Math.max(0, Math.min(...cs.map((p) => p[0])) - 2), x1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[0])) + 2);
   const y0 = Math.max(0, Math.min(...cs.map((p) => p[1])) - 2), y1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[1])) + 5);
   const detail = cam.zoom >= 1.3;
+  const cs0x = cam.x - w / 2 / z, cs1x = cam.x + w / 2 / z, cs0y = cam.y - h / 2 / z, cs1y = cam.y + h / 2 / z;
   const L: Light[] = [];
   const tiles: { x: number; y: number; cx: number; cy: number; st: Structure | null }[] = [];
 
@@ -304,9 +305,16 @@ export function draw(
       if (!st) continue;
       const sd = x * 1000 + y;
       const pp = P(cx, cy);
-      if (st.kind === "path" || st.kind === "street") {
+      if (st.kind === "bridge") {
+        const pl: Pt[] = [pp(-0.42, -0.42), pp(0.42, -0.42), pp(0.42, 0.42), pp(-0.42, 0.42)];
+        shape(c, pl, sd, "#a07a52", true);
+        c.globalAlpha = 0.55;
+        for (let k = -3; k <= 3; k++) line(c, pp(k * 0.12, -0.4), pp(k * 0.12, 0.4), sd + k + 5, 0.35);
+        c.globalAlpha = 1;
+        line(c, pp(-0.45, -0.45), pp(0.45, -0.45), sd + 20, 0.6); line(c, pp(-0.45, 0.45), pp(0.45, 0.45), sd + 21, 0.6);
+      } else if (st.kind === "path" || st.kind === "street" || st.kind === "road") {
         const street = st.kind === "street";
-        const col = street ? "#b3aa98" : "#c49e6c";
+        const col = street ? "#b3aa98" : st.kind === "road" ? "#c9a878" : "#c49e6c";
         c.strokeStyle = col; c.lineWidth = street ? 8 : 5.5; c.lineCap = "round";
         let any = false;
         for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
@@ -370,6 +378,50 @@ export function draw(
     }
   }
 
+  // ---- life on the trade roads ----
+  if (detail) for (const l of links(seeds)) {
+    const prog = roadProgress(l, now);
+    if (prog < 1) continue;
+    const n = l.tiles.length;
+    const mature = Math.min(1, Math.min(ageHours(l.a, now), ageHours(l.b, now)) / 240);
+    const count = 1 + Math.round(mature * 3);
+    const sn = l.a.x * 7 + l.b.y * 13;
+    for (let k = 0; k < count; k++) {
+      const secsPerTile = 1.6 + hash(sn, k, 1) * 1.2;
+      const ph = ((t / 1000 / secsPerTile + hash(sn, k, 2) * n * 2) % (n * 2));
+      const fwd = ph < n;
+      const f = fwd ? ph : n * 2 - ph;
+      const i = Math.min(n - 2, Math.floor(f)), u = f - i;
+      const [ax, ay] = iso(l.tiles[i]![0], l.tiles[i]![1]), [bx, by] = iso(l.tiles[i + 1]![0], l.tiles[i + 1]![1]);
+      const x = ax + (bx - ax) * u, y = ay + (by - ay) * u;
+      if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
+      const bob = Math.sin(t / 180 + k) * 0.4;
+      if (hash(sn, k, 3) < 0.55) {
+        // merchant cart with ox
+        const dir = (bx - ax) * (fwd ? 1 : -1) >= 0 ? 1 : -1;
+        blob(c, x + dir * 4.5, y - 2 + bob, 1.8, "#8a6a4c", sn + k, true);
+        shape(c, [[x - 3, y - 5], [x + 3, y - 5], [x + 3, y - 1.5], [x - 3, y - 1.5]], sn + k + 1, hsl(30 + hash(sn, k, 4) * 30, 40, 55));
+        shape(c, [[x - 3.2, y - 5], [x, y - 8], [x + 3.2, y - 5]], sn + k + 2, "#efe3c8");
+        c.fillStyle = INK; c.beginPath(); c.arc(x - 2, y - 1, 1, 0, 7); c.arc(x + 2, y - 1, 1, 0, 7); c.fill();
+      } else {
+        // wanderer
+        line(c, [x, y], [x, y - 4 + bob], sn + k, 0.7);
+        blob(c, x, y - 5.2 + bob, 1.2, "#e8c9a3", sn + k + 3, true);
+        shape(c, [[x - 1.2, y - 4 + bob], [x + 1.2, y - 4 + bob], [x + 1, y - 1.5], [x - 1, y - 1.5]], sn + k + 4, hsl(hash(sn, k, 5) * 360, 35, 50));
+      }
+    }
+    // boats drift under bridges
+    const wi = l.water.indexOf(true);
+    if (wi >= 0) {
+      const [bx, by] = iso(l.tiles[wi]![0], l.tiles[wi]![1]);
+      const sw = Math.sin(t / 4000 + sn) * 14;
+      const x = bx + sw, y = by + 6 + sw * 0.5 + Math.sin(t / 600) * 0.4;
+      shape(c, [[x - 4, y - 1], [x + 4, y - 1], [x + 2.5, y + 1.5], [x - 2.5, y + 1.5]], sn + 90, "#8a6a4c");
+      line(c, [x, y - 1], [x, y - 7], sn + 91, 0.5);
+      shape(c, [[x + 0.3, y - 7], [x + 3.5, y - 2], [x + 0.3, y - 2]], sn + 92, "#f4ecd9");
+    }
+  }
+
   // ---- paper, light, labels (screen space) ----
   c.setTransform(1, 0, 0, 1, 0, 0);
   const pat = paperPattern(c);
@@ -403,5 +455,15 @@ export function draw(
     const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2 - 22 * z - 8 * dpr;
     c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(sd.name, sx, sy);
     c.fillStyle = INK; c.fillText(sd.name, sx, sy);
+  }
+  // twin towns get a joint ribbon label between them
+  c.font = `600 ${Math.round(17 * dpr)}px 'Caveat', cursive`;
+  for (const l of links(seeds)) {
+    if (!isTwin(l, seeds, now)) continue;
+    const [ix, iy] = iso((l.a.x + l.b.x) / 2, (l.a.y + l.b.y) / 2);
+    const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2;
+    const txt = `${l.a.name} ∞ ${l.b.name}`;
+    c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(txt, sx, sy);
+    c.fillStyle = hsl(20, 45, 38); c.fillText(txt, sx, sy);
   }
 }

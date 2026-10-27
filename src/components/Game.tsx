@@ -5,6 +5,8 @@ import {
   canPlant,
   radiusOf,
   ageHours,
+  effAge,
+  speedOf,
   townStats,
   terrain,
   stageOf,
@@ -186,7 +188,7 @@ export function Game() {
     } else if (mode === "tree" || mode === "flower" || mode === "lantern") {
       const my = seeds.find((s) => s.id === mine);
       if (!my) return;
-      if (Math.hypot(x - my.x, y - my.y) > radiusOf(ageHours(my, Date.now())) + 3)
+      if (Math.hypot(x - my.x, y - my.y) > radiusOf(effAge(my, seeds, Date.now())) + 3)
         return setMsg(t.nearOnly);
       if (!["grass", "meadow", "sand", "forest"].includes(terrain(x, y))) return setMsg(t.noGrow);
       const { data } = await supabase
@@ -199,7 +201,7 @@ export function Game() {
   };
 
   const my = seeds.find((s) => s.id === mine);
-  const myStats = my ? townStats(my, Date.now()) : null;
+  const myStats = my ? townStats(my, seeds, Date.now()) : null;
   const switchLang = (l: Lang) => {
     setLang(l);
     localStorage.setItem("samenland-lang", l);
@@ -301,8 +303,10 @@ export function Game() {
                 <div className="mt-3 space-y-1 text-sm">
                   <div className="font-display text-lg text-foreground">{my.name}</div>
                   <div className="text-muted-foreground">
-                    {t.stages[stageOf(myStats.age)]} · {t.since} {t.age(myStats.age)} ·{" "}
+                    {t.stages[stageOf(myStats.age)]} · {t.since} {t.age(ageHours(my, Date.now()))} ·{" "}
                     {myStats.buildings} {t.buildings}
+                    {myStats.speed > 1.005 && <span className="block">{t.tradeBonus(Math.round((myStats.speed - 1) * 100))}</span>}
+                    {myStats.twins.map((n) => <span key={n} className="block">{t.twinWith(n)}</span>)}
                   </div>
                   <Button
                     size="sm"
@@ -432,8 +436,13 @@ export function Game() {
               >
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {t.stages[stageOf(ageHours(s, Date.now()))]} · {s.owner} ·{" "}
+                  {t.stages[stageOf(effAge(s, seeds, Date.now()))]} · {s.owner} ·{" "}
                   {t.age(ageHours(s, Date.now()))}
+                  {speedOf(s, seeds, Date.now()) > 1.005 && (
+                    <span className="block">
+                      {t.tradeBonus(Math.round((speedOf(s, seeds, Date.now()) - 1) * 100))}
+                    </span>
+                  )}
                 </span>
               </button>
             </li>

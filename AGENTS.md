@@ -13,3 +13,4 @@
 - Town growth is a pure deterministic function of seed position + created_at (src/game/world.ts); never store growth state — every client computes the same town from the shared seed rows, so towns grow even when nobody watches.
 - Rendering is a full-resolution (devicePixelRatio) canvas with a hand-drawn look: jittered ink outlines are deterministic per object via hash, never random per frame (src/game/render.ts); canvas art colors live there, UI uses design tokens.
 - Seed ownership is enforced in the database (seeds.user_id UNIQUE + RLS on auth.uid()); UI strings live in src/game/i18n.ts (de/en), game logic returns codes not text.
+- Trade roads, synergy and twin towns are derived from seed pairs in src/game/world.ts (links/effAge); growth uses effective age, never stored state — keeps all clients identical.
