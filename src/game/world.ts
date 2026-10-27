@@ -50,7 +50,7 @@ export const buildable = (t: Terrain) => t === "grass" || t === "meadow" || t ==
 
 export const ageHours = (s: Seed, now: number) => Math.max(0, (now - Date.parse(s.created_at)) / 3.6e6);
 /** Town radius in tiles: grows with the square root of age — slow, forever. */
-export const radiusOf = (hours: number) => 2 + 1.1 * Math.sqrt(hours * 6);
+export const radiusOf = (hours: number) => 2 + 0.9 * Math.sqrt(hours);
 
 export type Structure =
   | { kind: "plaza"; seed: Seed }
@@ -74,13 +74,13 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
       const road = ((dx % 5) + 5) % 5 === 0 || ((dy % 5) + 5) % 5 === 0;
       if (road && d < r - 0.5) st = { kind: "road", seed: s };
       else if (!road) {
-        const birth = Math.pow((d - 1) / 1.1, 2) / 6 * (0.7 + 0.6 * hash(x, y, 3));
-        const density = 0.9 - 0.45 * (d / Math.max(r, 1));
+        const birth = Math.pow(Math.max(0, d - 2) / 0.9, 2) * (0.7 + 0.6 * hash(x, y, 3));
+        const density = 0.7 - 0.4 * (d / Math.max(r, 1));
         if (age >= birth && hash(x, y, 2) < density) {
           const outer = d > r * 0.72 && d > 6;
           st = outer && hash(x, y, 4) < 0.6
             ? { kind: "field", seed: s, v: hash(x, y, 6) }
-            : { kind: "house", seed: s, level: Math.min(3, 1 + Math.floor((age - birth) / 36)), v: hash(x, y, 5) };
+            : { kind: "house", seed: s, level: Math.min(3, 1 + Math.floor((age - birth) / 96)), v: hash(x, y, 5) };
         }
       }
     }

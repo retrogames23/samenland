@@ -118,7 +118,7 @@ export function draw(
         for (let f = 0; f < L; f++) {
           const wy = Y - 5 - f * 4 + bh / 2;
           c.fillStyle = "#4a5a6a"; c.fillRect(X + bw / 2 - 1, wy, 2, 2);
-          lights.push({ x: X + bw / 2, y: wy + 1, r: 5 });
+          lights.push({ x: X + bw / 2, y: wy + 1, r: 3.5 });
         }
         if (L >= 2) {
           c.fillStyle = "#7a5a48"; c.fillRect(X + 3, Y - H - R + bh, 2, 4);
@@ -169,7 +169,7 @@ export function draw(
       if (sx < -40 || sy < -40 || sx > w + 40 || sy > h + 40) continue;
       const r = l.r * z;
       const g = c.createRadialGradient(sx, sy, 0, sx, sy, r);
-      g.addColorStop(0, `rgba(255,200,110,${0.55 * night})`); g.addColorStop(1, "rgba(255,200,110,0)");
+      g.addColorStop(0, `rgba(255,200,110,${0.4 * night})`); g.addColorStop(1, "rgba(255,200,110,0)");
       c.fillStyle = g; c.fillRect(sx - r, sy - r, r * 2, r * 2);
     }
     c.globalCompositeOperation = "source-over";
