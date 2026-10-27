@@ -659,21 +659,23 @@ export function Game() {
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
               {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[stageOf(myStats.age)]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
+            <div className="mt-0.5 flex flex-wrap gap-1">
             {my && !myRoad && my.user_id === userId && (
-              <button type="button" onClick={() => { setRoadPick(null); setRoadOpen(true); }} className="pointer-events-auto mt-0.5 flex items-center gap-1 rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
+              <button type="button" onClick={() => { setRoadPick(null); setRoadOpen(true); }} className="pointer-events-auto flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
                 <span aria-hidden>🛤</span>{t.road.btn}
               </button>
             )}
             {my && my.user_id === userId && pendingEncounter(my, my.decisions ?? [], Date.now()) && (
-              <button type="button" onClick={() => setEncOpen(true)} className="pointer-events-auto mt-0.5 flex items-center gap-1 rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
+              <button type="button" onClick={() => setEncOpen(true)} className="pointer-events-auto flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
                 <span aria-hidden>📜</span>{t.enc.btn}
               </button>
             )}
             {my && !myCharter && my.user_id === userId && (
-              <button type="button" onClick={() => { setCharterPick(null); setCharterOpen(true); }} className="pointer-events-auto mt-0.5 flex items-center gap-1 rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
+              <button type="button" onClick={() => { setCharterPick(null); setCharterOpen(true); }} className="pointer-events-auto flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
                 <span aria-hidden className="grid h-3.5 w-3.5 place-items-center rounded-full bg-destructive text-[8px] text-destructive-foreground">✦</span>{t.charter.seal}
               </button>
             )}
+            </div>
           </div>
           {my && at ? (
             <>
