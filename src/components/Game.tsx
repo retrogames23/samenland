@@ -794,7 +794,7 @@ export function Game() {
                 {(my.decisions ?? []).length === 0 ? <p className="text-xs text-muted-foreground">{t.enc.none}</p> : (
                   <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
                     {[...(my.decisions ?? [])].reverse().slice(0, 8).map((d) => (
-                      <li key={d.at}>{t.day} {Math.floor((d.at - created) / 86400000) + 1}: {t.enc.events[d.event]?.[0]} – {t.enc.choices[`${d.event}:${d.choice}`]}</li>
+                      <li key={d.at}>{t.enc.dayN(Math.floor((d.at - created) / 86400000) + 1)}: {t.enc.events[d.event]?.[0]} – {t.enc.choices[`${d.event}:${d.choice}`]}</li>
                     ))}
                   </ul>
                 )}
