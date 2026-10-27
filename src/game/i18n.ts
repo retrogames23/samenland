@@ -57,6 +57,8 @@ const de = {
   collapse: "Einklappen",
   expand: "Ausklappen",
   taglineShort: "Setz einen Samen. Schau zu, wie es wächst.",
+  tradeBonus: (p: number) => `+${p}% Wachstum durch Handel`,
+  twinWith: (n: string) => `Zwillingsstadt mit ${n}`,
 };
 
 const en: typeof de = {
@@ -116,6 +118,8 @@ const en: typeof de = {
   collapse: "Collapse",
   expand: "Expand",
   taglineShort: "Plant a seed. Watch it grow.",
+  tradeBonus: (p) => `+${p}% growth from trade`,
+  twinWith: (n) => `Twin town with ${n}`,
 };
 
 export const DICT = { de, en };

@@ -69,9 +69,9 @@ export type Kind =
   | "farmhouse" | "barn" | "field" | "pasture" | "garden" | "hay"
   | "cottage" | "church" | "mill" | "inn" | "bakery"
   | "townhouse" | "workshop" | "smithy" | "warehouse" | "market"
-  | "factory" | "sawmill";
+  | "factory" | "sawmill" | "road" | "bridge";
 export type Structure = { kind: Kind; seed: Seed; v: number };
-export const FLAT: ReadonlySet<Kind> = new Set(["path", "street", "square", "field", "pasture", "garden", "market"]);
+export const FLAT: ReadonlySet<Kind> = new Set(["path", "street", "square", "field", "pasture", "garden", "market", "road", "bridge"]);
 
 const CORE: Record<string, Kind> = { "1,0": "farmhouse", "0,1": "barn", "1,1": "hay", "-1,0": "field", "-1,1": "field", "0,-1": "garden" };
 const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
@@ -163,19 +163,23 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     let bestD = Infinity;
     for (const s of seeds) {
       const d = Math.hypot(x - s.x, y - s.y);
-      const age = ageHours(s, now);
+      const age = effAge(s, seeds, now);
       const r = radiusOf(age);
       if (d > r + 0.5 || d >= bestD) continue;
       const k = forSeed(x, y, s, age, r, d);
       if (k) { best = { kind: k, seed: s, v: hash(x, y, 5) }; bestD = d; }
     }
   }
+  if (!best) {
+    const rd = roadAt(x, y, seeds, now);
+    if (rd) best = { kind: rd.bridge ? "bridge" : "road", seed: rd.link.a, v: hash(x, y, 5) };
+  }
   scache.set(ck, best);
   return best;
 }
 
-export function townStats(s: Seed, now: number) {
-  const age = ageHours(s, now);
+export function townStats(s: Seed, seeds: Seed[], now: number) {
+  const age = effAge(s, seeds, now);
   const r = radiusOf(age);
   let buildings = 0;
   for (let y = Math.floor(s.y - r); y <= s.y + r; y++)
@@ -185,7 +189,8 @@ export function townStats(s: Seed, now: number) {
     }
   // reset cache since it was filled with a single-seed view
   cacheKey = "";
-  return { age, radius: r, buildings, stage: STAGES[stageOf(age)]!.name };
+  const twins = links(seeds).filter((l) => (l.a.id === s.id || l.b.id === s.id) && isTwin(l, seeds, now)).map((l) => (l.a.id === s.id ? l.b : l.a).name);
+  return { age, radius: r, buildings, stage: STAGES[stageOf(age)]!.name, speed: speedOf(s, seeds, now), twins };
 }
 
 export const MIN_SEED_DISTANCE = 40;
@@ -196,4 +201,108 @@ export function canPlant(x: number, y: number, seeds: Seed[]): string | null {
   if (!buildable(tt)) return "water";
   for (const s of seeds) if (Math.hypot(x - s.x, y - s.y) < MIN_SEED_DISTANCE) return `near:${s.name}`;
   return null;
+}
+
+// ---------------- trade roads & synergy ----------------
+/** Towns closer than this get a deterministic trade road. */
+export const TRADE_DIST = 80;
+/** Road is founded once the younger town is this many hours old, then built from both ends over ROAD_BUILD hours. */
+export const ROAD_AT = 6;
+export const ROAD_BUILD = 24;
+export type Link = { a: Seed; b: Seed; d: number; since: number; tiles: [number, number][]; water: boolean[] };
+
+let linkKey = "";
+let linkCache: Link[] = [];
+const roadIdx = new Map<number, { link: Link; i: number }>();
+
+export function links(seeds: Seed[]): Link[] {
+  const key = seeds.map((s) => s.id).join("|");
+  if (key === linkKey) return linkCache;
+  linkKey = key; linkCache = []; roadIdx.clear();
+  for (let i = 0; i < seeds.length; i++) for (let j = i + 1; j < seeds.length; j++) {
+    const a = seeds[i]!, b = seeds[j]!;
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (d > TRADE_DIST) continue;
+    const l = buildLink(a, b, d);
+    if (l) linkCache.push(l);
+  }
+  for (const l of linkCache) l.tiles.forEach(([x, y], i) => { const k = y * MAP + x; if (!roadIdx.has(k)) roadIdx.set(k, { link: l, i }); });
+  return linkCache;
+}
+
+function buildLink(a: Seed, b: Seed, d: number): Link | null {
+  const sn = (seedNum(a) ^ seedNum(b)) & 4095;
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  const px = -(b.y - a.y) / d, py = (b.x - a.x) / d;
+  const bend = (hash(sn, 7, 3) - 0.5) * d * 0.45;
+  const cx = mx + px * bend, cy = my + py * bend;
+  const tiles: [number, number][] = [], water: boolean[] = [];
+  let deep = 0, lx = Math.round(a.x), ly = Math.round(a.y);
+  const push = (x: number, y: number) => {
+    const t = terrain(x, y);
+    if (t === "deep") deep++;
+    if (t === "hill" && tiles.length) { /* roads may climb hills */ }
+    tiles.push([x, y]); water.push(isWater(t));
+  };
+  push(lx, ly);
+  const n = Math.ceil(d * 3);
+  for (let k = 1; k <= n; k++) {
+    const u = k / n, iu = 1 - u;
+    const wob = (vnoise(u * 6, 3.1, sn) - 0.5) * 3 * Math.sin(u * Math.PI);
+    const x = Math.round(iu * iu * a.x + 2 * iu * u * cx + u * u * b.x + px * wob);
+    const y = Math.round(iu * iu * a.y + 2 * iu * u * cy + u * u * b.y + py * wob);
+    if (x === lx && y === ly) continue;
+    if (x !== lx && y !== ly) push(x, ly); // keep 4-connected so the road reads continuous
+    push(x, y); lx = x; ly = y;
+  }
+  if (deep > 6) return null; // no roads across the open sea
+  return { a, b, d, since: Math.max(Date.parse(a.created_at), Date.parse(b.created_at)) + ROAD_AT * 3.6e6, tiles, water };
+}
+
+/** 0..1 how much of the road exists. */
+export const roadProgress = (l: Link, now: number) => Math.max(0, Math.min(1, (now - l.since) / (ROAD_BUILD * 3.6e6)));
+
+function roadAt(x: number, y: number, seeds: Seed[], now: number) {
+  links(seeds);
+  const r = roadIdx.get(y * MAP + x);
+  if (!r || now < r.link.since) return null;
+  const n = r.link.tiles.length, half = n / 2;
+  if (Math.min(r.i, n - 1 - r.i) > roadProgress(r.link, now) * half) return null;
+  if (!r.link.water[r.i] && !buildable(terrain(x, y)) && terrain(x, y) !== "hill") return null;
+  return { link: r.link, bridge: r.link.water[r.i]! };
+}
+
+/** Synergy bonus one neighbour gives: +10% .. +25%, more when closer and more mature. */
+export function bonusOf(d: number, neighbourAgeH: number) {
+  const close = Math.max(0, Math.min(1, (TRADE_DIST - d) / (TRADE_DIST - MIN_SEED_DISTANCE)));
+  const mature = Math.min(1, neighbourAgeH / 480);
+  return 0.1 + 0.15 * close * mature;
+}
+
+/** Current growth speed multiplier: 1 + sum of neighbour bonuses. */
+export function speedOf(s: Seed, seeds: Seed[], now: number) {
+  let sp = 1;
+  for (const l of links(seeds)) {
+    if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
+    const o = l.a.id === s.id ? l.b : l.a;
+    sp += bonusOf(l.d, ageHours(o, now)) * roadProgress(l, now);
+  }
+  return sp;
+}
+
+/** Effective age: real age plus bonus hours accumulated since each road was founded (monotonic, deterministic). */
+export function effAge(s: Seed, seeds: Seed[], now: number) {
+  let h = ageHours(s, now);
+  const base = h;
+  for (const l of links(seeds)) {
+    if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
+    const o = l.a.id === s.id ? l.b : l.a;
+    h += bonusOf(l.d, ageHours(o, now)) * (now - l.since) / 3.6e6;
+  }
+  return Math.max(base, h);
+}
+
+/** Two towns whose outskirts touch become a twin town. */
+export function isTwin(l: Link, seeds: Seed[], now: number) {
+  return radiusOf(effAge(l.a, seeds, now)) + radiusOf(effAge(l.b, seeds, now)) >= l.d;
 }
