@@ -70,10 +70,24 @@ function tone(pan: number, vol: number, f0: number, f1: number, dur: number, typ
   n.connect(g).connect(out(pan, 1)); o.start(t); o.stop(t + dur + 0.05);
   return o;
 }
-/** Murmured syllable — warm, wordless "village chatter". */
+/** Murmured syllable — soft, distant, breathy chatter (no buzzy oscillators). */
 function syllable(pan: number, vol: number) {
-  const f = 140 + Math.random() * 140, d = 0.09 + Math.random() * 0.14;
-  tone(pan, vol, f, f * (0.85 + Math.random() * 0.3), d, "sawtooth", 500 + Math.random() * 900);
+  const a = ctx!, t = a.currentTime, d = 0.12 + Math.random() * 0.18;
+  const f = 110 + Math.random() * 120;
+  // gentle voiced hum, heavily low-passed so it sounds muffled like voices across a square
+  const o = a.createOscillator(); o.type = "triangle";
+  o.frequency.setValueAtTime(f, t); o.frequency.linearRampToValueAtTime(f * (0.9 + Math.random() * 0.2), t + d);
+  const lp = a.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 520; lp.Q.value = 0.4;
+  // breath: noise through a vowel-like formant
+  const s = a.createBufferSource(); s.buffer = noise;
+  const bp = a.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 600 + Math.random() * 700; bp.Q.value = 1.2;
+  const g = a.createGain(), o2 = out(pan, 1);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol * 0.6, t + d * 0.35);
+  g.gain.linearRampToValueAtTime(0.0001, t + d);
+  const gn = a.createGain(); gn.gain.value = 0.5;
+  o.connect(lp).connect(g); s.connect(bp).connect(gn).connect(g); g.connect(o2);
+  o.start(t); o.stop(t + d + 0.05); s.start(t, Math.random() * 2, d + 0.05);
 }
 export function baa(pan = 0) {
   if (!ctx || !enabled) return;
