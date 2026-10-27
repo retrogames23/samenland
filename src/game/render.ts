@@ -595,6 +595,63 @@ function drawWanderer(c: C, x: number, y: number, dir: number, t: number, sd: nu
   c.restore();
 }
 
+/**
+ * Straight timber bridge from bank A to bank B: deck rests on both abutments and rises
+ * in a gentle arch, carried by pile pairs (trestles) standing on the riverbed under the deck.
+ */
+function drawBridgeSpan(c: C, A: Pt, B: Pt, water: [number, number][], sd: number) {
+  const dx = B[0] - A[0], dy = B[1] - A[1], len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len;
+  // deck half-width, perpendicular in iso ground space (flatten y)
+  let nx = -uy, ny = ux * 0.5; const nl = Math.hypot(nx, ny) || 1; nx = nx / nl * 3.6; ny = ny / nl * 3.6;
+  const rise = Math.min(4, 1.2 + len * 0.025);
+  const H = (f: number) => 0.6 + rise * Math.sin(Math.PI * f); // height above ground
+  const at = (f: number, s: number): Pt => [A[0] + dx * f + nx * s, A[1] + dy * f + ny * s - H(f)];
+  const ground = (f: number, s: number): Pt => [A[0] + dx * f + nx * s, A[1] + dy * f + ny * s];
+  const poly = (pts: Pt[], fill: string | CanvasGradient) => { c.beginPath(); pts.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath(); c.fillStyle = fill; c.fill(); };
+  const S = 24, fs = Array.from({ length: S + 1 }, (_, i) => i / S);
+  c.save(); c.lineCap = "round";
+  // shadow on the water, offset with the light
+  poly([...fs.map((f) => { const g = ground(f, 1.2); return [g[0] + 2, g[1] + 2.5] as Pt; }), ...fs.slice().reverse().map((f) => { const g = ground(f, -1.2); return [g[0] + 2, g[1] + 2.5] as Pt; })], "rgba(8,22,22,0.3)");
+  // stone abutments at both banks
+  for (const f of [0, 1]) {
+    const g = ground(f, 0);
+    c.fillStyle = "#7d766a"; c.beginPath(); c.ellipse(g[0], g[1] + 0.4, 4.8, 2.2, 0, 0, 7); c.fill();
+    c.fillStyle = "rgba(40,36,30,0.35)"; c.beginPath(); c.ellipse(g[0], g[1] + 1, 4.8, 1.6, 0, 0, Math.PI); c.fill();
+  }
+  // trestles: pile pairs standing in the water, from riverbed up to the deck underside
+  const piles = Math.max(1, Math.round(len / 22));
+  for (let k = 1; k <= piles; k++) {
+    const f = k / (piles + 1);
+    for (const s of [-0.85, 0.85]) {
+      const g = ground(f, s), top = at(f, s);
+      c.fillStyle = "#33251a"; c.fillRect(g[0] - 0.6, top[1], 1.2, g[1] - top[1] + 1.8);
+      c.fillStyle = "rgba(200,215,205,0.2)"; c.beginPath(); c.ellipse(g[0], g[1] + 1.8, 1.4, 0.4, 0, 0, 7); c.fill();
+    }
+    // cross brace between the pair
+    const a = at(f, -0.85), b = ground(f, 0.85);
+    c.strokeStyle = "#3b2b1c"; c.lineWidth = 0.4; c.beginPath(); c.moveTo(a[0], a[1] + 0.8); c.lineTo(b[0], b[1]); c.stroke();
+  }
+  // side beam (visible fascia under the deck)
+  poly([...fs.map((f) => at(f, 1)), ...fs.slice().reverse().map((f) => { const p = at(f, 1); return [p[0], p[1] + 1.1] as Pt; })], "#4a3420");
+  // deck planks across the span
+  const planks = Math.max(8, Math.round(len / 2.6));
+  for (let k = 0; k < planks; k++) {
+    const f0 = k / planks, f1 = (k + 0.86) / planks;
+    poly([at(f0, -1), at(f1, -1), at(f1, 1), at(f0, 1)], `hsl(30,30%,${34 + hash(sd, k, 7) * 12}%)`);
+  }
+  // railings with posts
+  for (const s of [-1, 1]) {
+    const posts = Math.max(3, Math.round(len / 10));
+    c.strokeStyle = "#3a2a1a"; c.lineWidth = 0.4;
+    for (let k = 0; k <= posts; k++) { const p = at(k / posts, s); c.beginPath(); c.moveTo(p[0], p[1]); c.lineTo(p[0], p[1] - 2.6); c.stroke(); }
+    c.strokeStyle = "#6e5034"; c.lineWidth = 0.5; c.beginPath();
+    fs.forEach((f, i) => { const p = at(f, s); i ? c.lineTo(p[0], p[1] - 2.4) : c.moveTo(p[0], p[1] - 2.4); }); c.stroke();
+  }
+  void water;
+  c.restore();
+}
+
 function drawRails(c: C, l: ReturnType<typeof links>[number], seeds: Seed[], now: number) {
   c.save(); c.lineCap = "butt";
   for (let i=1;i<l.tiles.length;i++) {
@@ -755,48 +812,7 @@ export function draw(
       const sd = x * 1000 + y;
       const pp = P(cx, cy);
       if (st.kind === "bridge") {
-        // One straight deck along the bridge axis (4-neighbours only, no diagonal stubs or joint discs).
-        const dirs: [number, number][] = [];
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) {
-          const o = structureAt(x + dx, y + dy, seeds, now);
-          if (o && PATHLIKE.has(o.kind)) dirs.push([dx, dy]);
-        }
-        const alongX = dirs.length ? dirs.some(([dx]) => dx !== 0) : true;
-        const ax: [number, number] = alongX ? [1, 0] : [0, 1];
-        const W = 0.22, E = 0.53; // half width, half length (slight overlap so tiles join seamlessly)
-        const nx = -ax[1] * W, ny = ax[0] * W, ex = ax[0] * E, ey = ax[1] * E;
-        const quad = (o: number, h: number) => [pp(-ex + nx * o, -ey + ny * o), pp(ex + nx * o, ey + ny * o), pp(ex - nx * o, ey - ny * o), pp(-ex - nx * o, -ey - ny * o)].map(([a, b]) => [a, b - h] as Pt);
-        const fillQ = (q: Pt[], f: string | CanvasGradient) => { c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath(); c.fillStyle = f; c.fill(); };
-        const H = 2.2;
-        // shadow on the water
-        fillQ(quad(1.25, -1.2), "rgba(10,25,25,0.32)");
-        // posts reaching into the water
-        if (isWater(tr)) for (const s of [-1, 1]) for (const f of [-0.5, 0.5]) {
-          const [px, py] = pp(ex * f + nx * s * 0.95, ey * f + ny * s * 0.95);
-          c.fillStyle = "#3b2a1a"; c.fillRect(px - 0.55, py - H, 1.1, H + 2.4);
-          c.fillStyle = "rgba(200,215,205,0.18)"; c.beginPath(); c.ellipse(px, py + 2.4, 1.2, 0.35, 0, 0, 7); c.fill();
-        }
-        // side beam
-        const top = quad(1, H), side = quad(1, H - 1);
-        fillQ([top[3]!, top[2]!, side[2]!, side[3]!], "#4c3622");
-        fillQ([top[2]!, top[1]!, side[1]!, side[2]!], "#5a4029");
-        // deck planks, each slightly different
-        const N = 6;
-        for (let k = 0; k < N; k++) {
-          const f0 = -1 + (2 * k) / N, f1 = -1 + (2 * (k + 1)) / N - 0.04;
-          const pq = [pp(ex * f0 + nx, ey * f0 + ny), pp(ex * f1 + nx, ey * f1 + ny), pp(ex * f1 - nx, ey * f1 - ny), pp(ex * f0 - nx, ey * f0 - ny)].map(([a, b]) => [a, b - H] as Pt);
-          const l = 36 + hash(x, y, 500 + k) * 10;
-          fillQ(pq, `hsl(30,32%,${l}%)`);
-        }
-        c.strokeStyle = "rgba(35,24,14,0.45)"; c.lineWidth = 0.25;
-        for (let k = 0; k <= N; k++) { const f = -1 + (2 * k) / N; const a = pp(ex * f + nx, ey * f + ny), b = pp(ex * f - nx, ey * f - ny); c.beginPath(); c.moveTo(a[0], a[1] - H); c.lineTo(b[0], b[1] - H); c.stroke(); }
-        // railings
-        for (const s of [1, -1]) {
-          const a = pp(-ex + nx * s, -ey + ny * s), b = pp(ex + nx * s, ey + ny * s);
-          c.strokeStyle = "#3e2c1b"; c.lineWidth = 0.35;
-          for (const f of [0.15, 0.85]) { const px = a[0] + (b[0] - a[0]) * f, py = a[1] + (b[1] - a[1]) * f; c.beginPath(); c.moveTo(px, py - H); c.lineTo(px, py - H - 2.4); c.stroke(); }
-          c.strokeStyle = "#6e5034"; c.lineWidth = 0.45; c.beginPath(); c.moveTo(a[0], a[1] - H - 2.2); c.lineTo(b[0], b[1] - H - 2.2); c.stroke();
-        }
+        /* drawn as one continuous span per crossing (see drawBridgeSpan) */
       } else if (st.kind === "path" || st.kind === "street" || st.kind === "road" || st.kind === "avenue" || st.kind === "rail") {
         const street = st.kind === "street" || st.kind === "avenue";
         const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
@@ -850,6 +866,25 @@ export function draw(
     }
   }
   const simpleFolk = cam.zoom < 2.2;
+
+  // ---- bridges: one straight span per water crossing, abutment to abutment ----
+  if (detail) for (const l of links(seeds)) {
+    const n = l.tiles.length;
+    for (let i = 0; i < n; i++) {
+      if (!l.water[i]) continue;
+      let j = i; while (j + 1 < n && l.water[j + 1]) j++;
+      const s0 = Math.max(0, i - 1), s1 = Math.min(n - 1, j + 1);
+      const A = l.tiles[s0]!, B = l.tiles[s1]!;
+      const built = [s0, s1].every((k) => { const st = structureAt(l.tiles[k]![0], l.tiles[k]![1], seeds, now); return !!st && PATHLIKE.has(st.kind); })
+        && structureAt(l.tiles[i]![0], l.tiles[i]![1], seeds, now)?.kind === "bridge";
+      if (built) {
+        const [ax, ay] = iso(A[0], A[1]), [bx, by] = iso(B[0], B[1]);
+        if (Math.max(ax, bx) > cs0x - 60 && Math.min(ax, bx) < cs1x + 60 && Math.max(ay, by) > cs0y - 60 && Math.min(ay, by) < cs1y + 60)
+          drawBridgeSpan(c, [ax, ay], [bx, by], l.tiles.slice(i, j + 1), A[0] * 31 + A[1]);
+      }
+      i = j;
+    }
+  }
 
   // ---- pass 2: standing objects in depth order ----
   for (const { x, y, cx, cy, st } of tiles) {
