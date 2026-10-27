@@ -255,6 +255,7 @@ const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well",
 export const MIN_ZOOM = 0.025;
 const OVERVIEW_BELOW = 0.45;
 const smoothCache = new WeakMap<object, Pt[]>();
+const boatRange = new WeakMap<object, [number, number]>();
 /** Road tiles are 4-connected (stair steps); travellers follow a smoothed curve through them. */
 function smoothRoad(l: { tiles: [number, number][] }): Pt[] {
   const hit = smoothCache.get(l); if (hit) return hit;
@@ -662,7 +663,16 @@ export function draw(
     const wi = l.water.indexOf(true);
     if (wi >= 0) {
       const [bx, by] = iso(l.tiles[wi]![0], l.tiles[wi]![1]);
-      const sw = Math.sin(t / 4000 + sn) * 14;
+      // the boat only drifts across the stretch of water around the bridge
+      let rng = boatRange.get(l);
+      if (!rng) {
+        const wet = (o: number) => { const [tx, ty] = toTile(bx + o, by + 6 + o * 0.5); return isWater(terrain(tx, ty)); };
+        let lo = 0, hi = 0;
+        if (wet(0)) { while (lo > -40 && wet(lo - 1)) lo--; while (hi < 40 && wet(hi + 1)) hi++; }
+        rng = [lo + 4, hi - 4]; boatRange.set(l, rng);
+      }
+      if (rng[1] <= rng[0]) continue;
+      const sw = rng[0] + (rng[1] - rng[0]) * (0.5 + 0.5 * Math.sin(t / 4000 + sn));
       const x = bx + sw, y = by + 6 + sw * 0.5 + Math.sin(t / 600) * 0.4;
       shape(c, [[x - 4, y - 1], [x + 4, y - 1], [x + 2.5, y + 1.5], [x - 2.5, y + 1.5]], sn + 90, "#8a6a4c");
       line(c, [x, y - 1], [x, y - 7], sn + 91, 0.5);
