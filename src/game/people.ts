@@ -12,11 +12,17 @@ export type Person = {
   id: number; seed: Seed; first: string; last: string; sex: Sex; age: number; job: Job;
   home: Tile; work: Tile | null; workIndoor: boolean; speed: number;
   looks: { skin: number; hair: number; shirt: number; pants: number; hat: boolean; stick: boolean };
+  haul: Haul | null;
 };
+/** Goods carried along the supply chains (wood → sawmill → site, grain → mill → bakery → inn). */
+export type Good = "log" | "stone" | "planks" | "grain" | "flour" | "bread";
+export type Dest = "sawmill" | "site" | "store" | "mill" | "bakery" | "inn" | "market";
+export type Haul = { from: Tile; to: Tile; fromIn: boolean; toIn: boolean; good: Good; dest: Dest };
 export type Pose = {
   p: Person; x: number; y: number; visible: boolean; walking: boolean;
   dir: [number, number]; phase: number; act: Activity; working: boolean;
   talk: number | null; talkTurn: boolean;
+  carry: Good | null; dest: Dest | null;
 };
 
 const F = ["Greta", "Ida", "Frieda", "Lotte", "Marie", "Anna", "Clara", "Hedwig", "Emma", "Rosa", "Lina", "Mathilda", "Elsa", "Paula", "Wilma", "Martha", "Johanna", "Thea", "Ella", "Luise"];
@@ -138,10 +144,48 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
         workIndoor: !OUTDOOR_WORK.has(job) && job !== "homemaker",
         speed: (kid ? 0.8 : old ? 0.36 : 0.55) * (0.85 + h(11) * 0.3),
         looks: { skin: h(12), hair: old ? -1 : h(13), shirt: h(14), pants: h(15), hat: h(16) < (job === "farmer" ? 0.7 : 0.25), stick: old && h(17) < 0.6 },
+        haul: null,
       });
     }
   }
+  assignHauls(people, byKind, sites, front, well);
   return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map() };
+}
+
+/** Deterministic supply chains: who carries which good from where to where during work hours. */
+function assignHauls(people: Person[], byKind: Map<Kind, Tile[]>, sites: Tile[], front: (t: Tile) => Tile | null, well: Tile) {
+  const d = (a: Tile, b: Tile) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  const nearest = (from: Tile, list: Tile[]) => list.reduce<Tile | null>((b, c) => (!b || d(from, c) < d(from, b) ? c : b), null);
+  const kinds = (...k: Kind[]) => k.flatMap((x) => byKind.get(x) ?? []);
+  const siteFront = (from: Tile) => { const st = nearest(from, sites); return st ? (front(st) ?? st) : null; };
+  const used = new Set<string>();
+  for (const p of people) {
+    if (!p.work) continue;
+    const w = p.work, h = hash(p.id, 3, 950);
+    let haul: Haul | null = null;
+    const go = (to: Tile | null, toIn: boolean, good: Good, dest: Dest, fromIn = p.workIndoor) => {
+      if (to && d(w, to) > 1.5 && d(w, to) < 45) haul = { from: w, to, fromIn, toIn, good, dest };
+    };
+    if (p.job === "woodcutter") {
+      const mill = nearest(w, kinds("sawmill"));
+      if (mill) go(mill, true, "log", "sawmill"); else { const st = siteFront(w); go(st ?? well, false, "log", st ? "site" : "store"); }
+    } else if (p.job === "mason") {
+      const st = siteFront(w); go(st ?? well, false, "stone", st ? "site" : "store");
+    } else if (p.job === "sawyer" && !used.has(`saw${w}`)) {
+      used.add(`saw${w}`);
+      const st = siteFront(w), store = nearest(w, kinds("warehouse", "market"));
+      if (st) go(st, false, "planks", "site"); else if (store) go(store, true, "planks", "store");
+    } else if (p.job === "farmer" && h < 0.5) {
+      const m = nearest(w, kinds("mill", "watermill")); go(m, true, "grain", "mill", false);
+    } else if (p.job === "miller" && !used.has(`mil${w}`)) {
+      used.add(`mil${w}`); go(nearest(w, kinds("bakery")), true, "flour", "bakery");
+    } else if (p.job === "baker" && !used.has(`bak${w}`)) {
+      used.add(`bak${w}`);
+      const inn = nearest(w, kinds("inn")), mk = nearest(w, kinds("market"));
+      if (inn) go(inn, true, "bread", "inn"); else if (mk) go(mk, false, "bread", "market");
+    }
+    p.haul = haul;
+  }
 }
 
 /** Nearest open forest-edge tile (woodcutting) and open tile beside hills/rocks (quarry). */
@@ -306,17 +350,19 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   let i = pl.length - 1;
   while (i > 0 && pl[i]!.at > hr) i--;
   const e = pl[i]!, prev = pl[(i - 1 + pl.length) % pl.length]!;
-  const base: Pose = { p, x: e.place[0], y: e.place[1], visible: !e.indoor, walking: false, dir: [0, 1], phase: 0, act: e.act, working: false, talk: null, talkTurn: false };
+  const base: Pose = { p, x: e.place[0], y: e.place[1], visible: !e.indoor, walking: false, dir: [0, 1], phase: 0, act: e.act, working: false, talk: null, talkTurn: false, carry: null, dest: null };
   const secs = (hr - e.at) * 3600;
   // indoor places are entered through their door; outdoor spots on a roof/rock move to the nearest open tile
   const at = (en: Entry): Tile => en.indoor || !freeAt(t, en.place[0], en.place[1], seeds) ? doorOf(t, en.place, seeds) : en.place;
   const pa = at(prev), pb = at(e);
   const ra: Tile = [Math.round(pa[0]), Math.round(pa[1])], rb: Tile = [Math.round(pb[0]), Math.round(pb[1])];
+  let arrive = 0;
   if (ra[0] !== rb[0] || ra[1] !== rb[1] || pa[0] !== pb[0] || pa[1] !== pb[1]) {
     const pts = [pa, ...route(t, ra, rb, seeds).slice(1, -1), pb];
     let len = 0; const seg: number[] = [];
     for (let k = 1; k < pts.length; k++) { const d = Math.hypot(pts[k]![0] - pts[k - 1]![0], pts[k]![1] - pts[k - 1]![1]); seg.push(d); len += d; }
     let dd = secs * p.speed;
+    arrive = len / p.speed;
     if (dd < len) {
       for (let k = 0; k < seg.length; k++) {
         if (dd <= seg[k]! || k === seg.length - 1) {
@@ -329,6 +375,7 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
       }
     }
   }
+  if (e.act === "work" && p.haul) { const hq = haulPose(p, t, seeds, secs - arrive, base); if (hq) return hq; }
   if (e.indoor) return base;
   const tt = now / 1000;
   const c0 = pb;
@@ -346,6 +393,36 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const face = hash(p.id, Math.floor(tt / 30), 813) < 0.5 ? 1 : -1;
   const ok = freeAt(t, c0[0] + wx, c0[1] + wy, seeds);
   return { ...base, x: c0[0] + (ok ? wx : 0), y: c0[1] + (ok ? wy : 0), dir: [face, 0.3], working: e.act === "work" };
+}
+
+const LOAD = 25; // seconds spent loading / unloading at each end
+function haulPose(p: Person, t: Town, seeds: Seed[], secs: number, base: Pose): Pose | null {
+  const H = p.haul!;
+  const end = (tl: Tile, indoor: boolean): Tile => indoor || !freeAt(t, tl[0], tl[1], seeds) ? doorOf(t, tl, seeds) : tl;
+  const A = end(H.from, H.fromIn), B = end(H.to, H.toIn);
+  const pts = [A, ...route(t, [Math.round(A[0]), Math.round(A[1])], [Math.round(B[0]), Math.round(B[1])], seeds).slice(1, -1), B];
+  let len = 0; const seg: number[] = [];
+  for (let k = 1; k < pts.length; k++) { const dd = Math.hypot(pts[k]![0] - pts[k - 1]![0], pts[k]![1] - pts[k - 1]![1]); seg.push(dd); len += dd; }
+  if (len < 0.5) return null;
+  const leg = len / p.speed, cyc = 2 * (leg + LOAD);
+  const u = ((secs % cyc) + cyc) % cyc;
+  const at = (q: Tile, indoor: boolean, carry: Good | null): Pose =>
+    ({ ...base, x: q[0], y: q[1], visible: !indoor, walking: false, working: !indoor, carry, dest: H.dest });
+  if (u < LOAD) return at(A, H.fromIn, null);
+  if (u >= leg + LOAD && u < leg + 2 * LOAD) return at(B, H.toIn, null);
+  const out = u < leg + LOAD;
+  let dd = (out ? u - LOAD : u - leg - 2 * LOAD) * p.speed;
+  if (!out) dd = len - dd;
+  for (let k = 0; k < seg.length; k++) {
+    if (dd <= seg[k]! || k === seg.length - 1) {
+      const a = pts[k]!, b = pts[k + 1]!, f = seg[k]! ? Math.min(1, dd / seg[k]!) : 0, dl = seg[k]! || 1, sg = out ? 1 : -1;
+      const x = a[0] + (b[0] - a[0]) * f, y = a[1] + (b[1] - a[1]) * f;
+      return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, working: false,
+        dir: [sg * (b[0] - a[0]) / dl, sg * (b[1] - a[1]) / dl], phase: (u * p.speed) / 0.32, carry: out ? H.good : null, dest: H.dest };
+    }
+    dd -= seg[k]!;
+  }
+  return null;
 }
 
 /** All visible villagers of a town right now, with conversations paired deterministically. */

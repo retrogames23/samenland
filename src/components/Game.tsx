@@ -565,7 +565,7 @@ export function Game() {
                 <button type="button" aria-label={t.close} className="text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
               </div>
               <div className="text-sm">{t.personAge(who.age)} · {t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
-              <div className="text-xs text-muted-foreground">{t.livesIn(who.seed.name)} – {t.act[q.walking && q.act !== "play" ? "walking" : q.act]}</div>
+              <div className="text-xs text-muted-foreground">{t.livesIn(who.seed.name)} – {q.carry && q.dest ? t.carrying(q.carry, q.dest) : t.act[q.walking && q.act !== "play" ? "walking" : q.act]}</div>
             </div>
           );
         })()}
