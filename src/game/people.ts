@@ -1,3 +1,4 @@
+import { cacheTick } from "./time";
 import { worldHour } from "./time";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
@@ -49,9 +50,13 @@ export type Town = {
   freeC: Map<number, boolean>; costC: Map<number, number>; doors: Map<number, Tile>;
 };
 
+/** Service buildings whose staff grows with the town (radius), so big towns get more bakers, innkeepers, priests. */
+const SERVICE: ReadonlySet<Kind> = new Set(["bakery", "inn", "mill", "watermill", "church", "chapel", "market", "smithy", "infirmary", "school"] as Kind[]);
+/** Share of unemployed adults who farm: high in villages, low in cities. */
+export const farmShare = (r: number) => (r < 15 ? 0.8 : r < 30 ? 0.45 : 0.25);
 const towns = new Map<string, Town>();
 export function townOf(s: Seed, seeds: Seed[], now: number): Town {
-  const key = `${s.id}|${Math.floor(now / 60000)}|${seedsKey(seeds)}`;
+  const key = `${s.id}|${cacheTick(now)}|${seedsKey(seeds)}`;
   const hit = towns.get(key);
   if (hit) return hit;
   for (const k of towns.keys()) if (k.startsWith(s.id + "|")) towns.delete(k);
@@ -99,16 +104,17 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
 
   const slots: { job: Job; at: Tile }[] = [];
   for (const [k, sl] of Object.entries(SLOTS) as [Kind, [Job, number]][])
-    for (const at of byKind.get(k) ?? []) for (let i = 0; i < sl[1]; i++) slots.push({ job: sl[0], at });
+    for (const at of byKind.get(k) ?? []) for (let i = 0; i < sl[1] * (SERVICE.has(k) ? 1 + Math.floor(r / 12) : 1); i++) slots.push({ job: sl[0], at });
   slots.sort((a, b) => hash(a.at[0] * 7 + a.job.length, a.at[1], 501) - hash(b.at[0] * 7 + b.job.length, b.at[1], 501));
   // raw materials first: a woodcutter at the nearest forest edge, a mason at the nearest rocks
   const age = effAge(s, seeds, now);
   const [wood, rock] = resourceSpots(s, r);
   if (rock && age >= 24) slots.unshift({ job: "mason", at: rock });
-  if (wood) { slots.unshift({ job: "woodcutter", at: wood }); if (r > 8) slots.unshift({ job: "woodcutter", at: wood }); }
+  if (wood) for (let i = 0; i < 1 + Math.floor(r / 8); i++) slots.unshift({ job: "woodcutter", at: wood });
+  if (rock) for (let i = 0; i < Math.floor(r / 15); i++) slots.unshift({ job: "mason", at: rock });
   // every construction site gets builders before anyone else is hired
   sites.sort((a, b) => Math.hypot(a[0] - s.x, a[1] - s.y) - Math.hypot(b[0] - s.x, b[1] - s.y));
-  for (const at of sites.slice(0, 4).reverse()) { const fr = front(at) ?? at; slots.unshift({ job: "builder", at: fr }, { job: "builder", at: fr }); }
+  for (const at of sites.slice(0, 4 + Math.floor(r / 8)).reverse()) { const fr = front(at) ?? at; slots.unshift({ job: "builder", at: fr }, { job: "builder", at: fr }); }
 
   const shore = (from: Tile): Tile => {
     let b = from, bd = Infinity;
@@ -127,6 +133,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   for (const k of Object.keys(HOMES) as Kind[]) homes.push(...(byKind.get(k) ?? []));
   homes.sort((a, b) => Math.hypot(a[0] - s.x, a[1] - s.y) - Math.hypot(b[0] - s.x, b[1] - s.y) || a[0] - b[0] || a[1] - b[1]);
 
+  const workTiles = (["workshop", "warehouse", "market", "markethall", "manufactory", "guildhall", "smithy", "sawmill"] as Kind[]).flatMap((k) => byKind.get(k) ?? []);
   const people: Person[] = [];
   const created = Date.parse(s.created_at);
   for (const home of homes) {
@@ -153,6 +160,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       if (m === 0) { age = pa; sex = h(1) < 0.5 ? "f" : "m"; }
       else if (m === 1 && h(9) < 0.85) { age = Math.max(20, pa + Math.floor((h(2) - 0.5) * 8)); sex = people[people.length - 1]!.sex === "f" ? "m" : "f"; }
       else if (m === size - 1 && size >= 4 && h(3) < 0.4) { age = Math.max(pa + 22, 64 + Math.floor(h(2) * 20)); sex = h(1) < 0.55 ? "f" : "m"; }
+      else if (m >= 3 && h(4) < 0.5) { age = 17 + Math.floor(h(2) * 30); sex = h(1) < 0.5 ? "f" : "m"; } // lodger, journeyman, maid
       else { age = Math.max(1, Math.min(pa - 19, 1 + Math.floor(h(2) * 14))); sex = h(1) < 0.5 ? "f" : "m"; }
       age += Math.floor(yrs);
       let job: Job = "child", work: Tile | null = null;
@@ -160,7 +168,8 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       else if (age >= 16) {
         const slot = h(5) < 0.82 ? slots.shift() : undefined;
         if (slot) { job = slot.job; work = slot.at; }
-        else if (byKind.get("field")?.length && h(6) < 0.8) { job = "farmer"; work = near(byKind.get("field"), home, h(7)); }
+        else if (byKind.get("field")?.length && h(6) < farmShare(r)) { job = "farmer"; work = near(byKind.get("field"), home, h(7)); }
+        else if (r >= 18 && h(8) < 0.6) { job = "worker"; work = near(workTiles, home, h(7)) ?? home; }
         else { job = "homemaker"; work = near(byKind.get("garden"), home, h(7)) ?? home; }
         if (job === "merchant" || job === "carter") work = [work![0], work![1]];
       }

@@ -1,3 +1,4 @@
+import { cacheTick } from "./time";
 import { boonHours, type Decision } from "./encounters";
 // Pure, deterministic world + town growth logic (shared by every player).
 export const MAP = 1024;
@@ -443,7 +444,9 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
   return out;
 }
 /** Cache key that changes whenever seed positions, ages or purchases change. */
-export const seedsKey = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}:${s.firstRoad?.target ?? ""}:${(s.works ?? []).length}`).join(";");
+const skMemo = new WeakMap<Seed[], string>();
+export const seedsKey = (seeds: Seed[]) => { let k = skMemo.get(seeds); if (k === undefined) { k = seedsKeyRaw(seeds); skMemo.set(seeds, k); } return k; };
+const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}:${s.firstRoad?.target ?? ""}:${(s.works ?? []).length}`).join(";");
 
 /** Growth hour at which the building on this tile is finished (0 for the founding core). */
 export function bornAt(x: number, y: number, s: Seed): number {
@@ -457,7 +460,7 @@ export function bornAt(x: number, y: number, s: Seed): number {
 let cacheKey = "";
 const scache = new Map<number, Structure | null>();
 export function structureAt(x: number, y: number, seeds: Seed[], now: number): Structure | null {
-  const key = `${Math.floor(now / 60000)}|${seedsKey(seeds)}`;
+  const key = `${cacheTick(now)}|${seedsKey(seeds)}`;
   if (key !== cacheKey) { cacheKey = key; scache.clear(); }
   const ck = y * MAP + x;
   const c = scache.get(ck);
@@ -679,8 +682,13 @@ export function speedOf(s: Seed, seeds: Seed[], now: number) {
 }
 
 /** Effective age: real age plus bonus hours accumulated since each road was founded (monotonic, deterministic). */
+const ageMemo = new WeakMap<Seed[], { now: number; m: Map<string, number> }>();
 export function effAge(s: Seed, seeds: Seed[], now: number) {
-  return effAgeBase(s, seeds, now) + twinHours(s, seeds, now);
+  let c = ageMemo.get(seeds);
+  if (!c || c.now !== now) { c = { now, m: new Map() }; ageMemo.set(seeds, c); }
+  let v = c.m.get(s.id);
+  if (v === undefined) { v = effAgeBase(s, seeds, now) + twinHours(s, seeds, now); c.m.set(s.id, v); }
+  return v;
 }
 function effAgeBase(s: Seed, seeds: Seed[], now: number) {
   let h = ageHours(s, now) + blessHours(s, now) + boonHours(s.decisions ?? [], now);
@@ -691,8 +699,10 @@ function effAgeBase(s: Seed, seeds: Seed[], now: number) {
     const o = l.a.id === s.id ? l.b : l.a;
     h += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * (now - l.since) / 3.6e6;
   }
-  return Math.max(base, h);
+  // neighbour bonuses speed growth, but never more than TRADE_CAP of the town's own age
+  return base + Math.min(Math.max(0, h - base), base * TRADE_CAP);
 }
+export const TRADE_CAP = 0.35;
 
 /** Trade partners of a town with the goods flowing each way. */
 export function tradePartners(s: Seed, seeds: Seed[], now: number) {
@@ -812,7 +822,7 @@ function twinHours(s: Seed, seeds: Seed[], now: number) {
 /** Gate square, border well, market stalls and the joint building on the twin road's midpoint. Pure. */
 const siteMemo = new WeakMap<Seed[], { key: number; map: Map<number, { kind: Kind; seed: Seed }> }>();
 export function twinSites(seeds: Seed[], now: number) {
-  const key = Math.floor(now / 60000), c = siteMemo.get(seeds);
+  const key = cacheTick(now), c = siteMemo.get(seeds);
   if (c && c.key === key) return c.map;
   const map = new Map<number, { kind: Kind; seed: Seed }>();
   for (const l of links(seeds)) {
