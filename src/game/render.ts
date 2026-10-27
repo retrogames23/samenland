@@ -436,11 +436,40 @@ function personBody(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
     c.strokeStyle = "rgba(22,16,10,0.8)"; c.lineWidth = 0.25; c.stroke();
     if (sw < 0.15 && p.job !== "builder") { c.fillStyle = p.job === "mason" ? "rgba(220,215,205,0.8)" : "rgba(200,160,100,0.8)"; for (let i = 0; i < 3; i++) c.fillRect(tip[0] + (hash(p.id, i, Math.floor(t / 230)) - 0.5) * 3, tip[1] - hash(i, p.id, 7) * 2, 0.4, 0.4); }
   }
-  if (q.walking && q.act === "work" && (p.job === "woodcutter" || p.job === "mason" || p.job === "builder")) {
-    // carried load: a log on the shoulder, or a stone block / plank under the arm
+  if (q.carry) {
+    // the carried good, recognisable at a glance
     const shp: Pt = [sh[0], sh[1] - 0.2 * s];
-    if (p.job === "mason") { c.fillStyle = "#a9a49c"; c.fillRect(hand[0] - 0.9 * s, hand[1] - 1.1 * s, 1.8 * s, 1.2 * s); c.strokeStyle = "rgba(22,16,10,0.8)"; c.lineWidth = 0.25; c.strokeRect(hand[0] - 0.9 * s, hand[1] - 1.1 * s, 1.8 * s, 1.2 * s); }
-    else { c.strokeStyle = p.job === "woodcutter" ? "#5e4229" : "#b08a5a"; c.lineWidth = (p.job === "woodcutter" ? 1.1 : 0.6) * s; c.beginPath(); c.moveTo(shp[0] - 2.6 * s * face, shp[1] + 0.4 * s); c.lineTo(shp[0] + 2.4 * s * face, shp[1] - 0.6 * s); c.stroke(); }
+    const ink = "rgba(22,16,10,0.8)";
+    c.lineWidth = 0.25;
+    if (q.carry === "log") {
+      c.strokeStyle = "#5e4229"; c.lineWidth = 1.15 * s; c.lineCap = "round";
+      c.beginPath(); c.moveTo(shp[0] - 2.6 * s * face, shp[1] + 0.4 * s); c.lineTo(shp[0] + 2.4 * s * face, shp[1] - 0.6 * s); c.stroke();
+      c.fillStyle = "#c9a26b"; c.beginPath(); c.ellipse(shp[0] + 2.4 * s * face, shp[1] - 0.6 * s, 0.45 * s, 0.55 * s, 0, 0, 7); c.fill();
+      c.lineCap = "butt";
+    } else if (q.carry === "stone") {
+      c.fillStyle = "#a9a49c"; c.fillRect(hand[0] - 0.9 * s, hand[1] - 1.1 * s, 1.8 * s, 1.2 * s);
+      c.fillStyle = "rgba(255,255,255,0.18)"; c.fillRect(hand[0] - 0.9 * s, hand[1] - 1.1 * s, 1.8 * s, 0.35 * s);
+      c.strokeStyle = ink; c.strokeRect(hand[0] - 0.9 * s, hand[1] - 1.1 * s, 1.8 * s, 1.2 * s);
+    } else if (q.carry === "planks") {
+      for (let i = 0; i < 3; i++) {
+        const o = -i * 0.35 * s;
+        c.strokeStyle = i % 2 ? "#c49a62" : "#b08a5a"; c.lineWidth = 0.4 * s;
+        c.beginPath(); c.moveTo(shp[0] - 3 * s * face, shp[1] + 0.5 * s + o); c.lineTo(shp[0] + 2.8 * s * face, shp[1] - 0.5 * s + o); c.stroke();
+      }
+    } else if (q.carry === "grain") {
+      const g: Pt = [shp[0] - face * 0.6 * s, shp[1] - 0.6 * s];
+      c.fillStyle = "#d4b25c"; c.beginPath(); c.ellipse(g[0], g[1], 0.8 * s, 1.7 * s, face * 0.5, 0, 7); c.fill(); c.strokeStyle = ink; c.stroke();
+      c.strokeStyle = "#8a6a2a"; c.lineWidth = 0.3 * s; c.beginPath(); c.moveTo(g[0] - 0.7 * s, g[1] + 0.2 * s); c.lineTo(g[0] + 0.7 * s, g[1]); c.stroke();
+    } else if (q.carry === "flour") {
+      const g: Pt = [shp[0] - face * 0.3 * s, shp[1] - 0.5 * s];
+      c.fillStyle = "#e6dcc4"; c.beginPath(); c.ellipse(g[0], g[1], 1.3 * s, 0.9 * s, face * 0.25, 0, 7); c.fill();
+      c.fillStyle = "rgba(90,70,40,0.25)"; c.beginPath(); c.ellipse(g[0], g[1] + 0.3 * s, 1.1 * s, 0.45 * s, 0, 0, Math.PI); c.fill();
+      c.strokeStyle = ink; c.beginPath(); c.ellipse(g[0], g[1], 1.3 * s, 0.9 * s, face * 0.25, 0, 7); c.stroke();
+    } else if (q.carry === "bread") {
+      const g: Pt = [hand[0] + face * 0.4 * s, hand[1] - 0.2 * s];
+      c.fillStyle = "#c79a5a"; c.beginPath(); c.moveTo(g[0] - 1.1 * s, g[1] - 0.4 * s); c.lineTo(g[0] + 1.1 * s, g[1] - 0.4 * s); c.lineTo(g[0] + 0.8 * s, g[1] + 0.5 * s); c.lineTo(g[0] - 0.8 * s, g[1] + 0.5 * s); c.closePath(); c.fill(); c.strokeStyle = ink; c.stroke();
+      c.fillStyle = "#9a5a26"; for (const dx of [-0.45, 0.4]) { c.beginPath(); c.ellipse(g[0] + dx * s, g[1] - 0.55 * s, 0.45 * s, 0.28 * s, 0, 0, 7); c.fill(); }
+    }
   }
   if (q.working && p.job === "farmer") line(c, [hand[0] - face * 1.2, hand[1] - 1.2], [hand[0] + face * 1.4, hand[1] + 2.6 + Math.sin(t / 420 + p.id) * 0.5], p.id, 0.4, "#7a5a3c");
   if (L.stick) line(c, hand, [hand[0] + face * 0.5, Y], p.id + 1, 0.35, "#6f533b");

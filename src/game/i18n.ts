@@ -45,6 +45,7 @@ const de = {
   act: { sleep: "schläft gerade", work: "gerade bei der Arbeit", lunch: "macht Mittagspause am Brunnen", leisure: "trifft sich mit anderen im Dorf", home: "gerade zu Hause", school: "gerade in der Schule", play: "spielt draußen", walking: "ist gerade unterwegs" } as Record<string, string>,
   personAge: (a: number) => `${a} Jahre`,
   livesIn: (town: string) => `wohnt in ${town}`,
+  carrying: (g: string, d: string) => `trägt ${({ log: "Holzstämme", stone: "Steinblöcke", planks: "Bretter", grain: "Getreide", flour: "Mehl", bread: "Brot" } as Record<string, string>)[g]} ${({ sawmill: "zum Sägewerk", site: "zur Baustelle", store: "zum Lager", mill: "zur Mühle", bakery: "zur Bäckerei", inn: "ins Wirtshaus", market: "zum Markt" } as Record<string, string>)[d]}`,
   close: "Schließen",
   age: (h: number) =>
     h < 1
@@ -119,6 +120,7 @@ const en: typeof de = {
   act: { sleep: "asleep", work: "at work", lunch: "having lunch by the well", leisure: "meeting friends in the village", home: "at home", school: "at school", play: "playing outside", walking: "on the way" },
   personAge: (a) => `${a} years`,
   livesIn: (town) => `lives in ${town}`,
+  carrying: (g, d) => `carrying ${({ log: "logs", stone: "stone blocks", planks: "planks", grain: "grain", flour: "flour", bread: "bread" } as Record<string, string>)[g]} to the ${({ sawmill: "sawmill", site: "building site", store: "store", mill: "mill", bakery: "bakery", inn: "inn", market: "market" } as Record<string, string>)[d]}`,
   close: "Close",
   age: (h) =>
     h < 1
