@@ -53,7 +53,7 @@ export function Game() {
     const by = new Map<string, number[]>();
     for (const b of blessings) { if (!by.has(b.seed_id)) by.set(b.seed_id, []); by.get(b.seed_id)!.push(Date.parse(b.created_at)); }
     const buys = new Map<string, NonNullable<Seed["bought"]>>();
-    for (const p of purchases) { if (!buys.has(p.seed_id)) buys.set(p.seed_id, []); buys.get(p.seed_id)!.push({ item: p.item, at: Date.parse(p.created_at), x: p.x, y: p.y }); }
+    for (const p of purchases) { if (!buys.has(p.seed_id)) buys.set(p.seed_id, []); buys.get(p.seed_id)!.push({ item: p.item, at: Date.parse(p.created_at), x: p.x ?? null, y: p.y ?? null }); }
     return rawSeeds.map((s) => {
       const bl = by.get(s.id), bo = buys.get(s.id);
       if (!bl && !bo) return s;
