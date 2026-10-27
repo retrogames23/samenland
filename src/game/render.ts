@@ -634,6 +634,54 @@ function drawWanderer(c: C, x: number, y: number, dir: number, t: number, sd: nu
   c.restore();
 }
 
+/** Road crew at the growing end of a trade road: stakes ahead, a log pile, gravel, two diggers. */
+function drawRoadWorks(c: C, x: number, y: number, dx: number, dy: number, t: number, sd: number) {
+  const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
+  const nx = -dy, ny = dx;
+  // survey stakes marking where the road will go next
+  for (let s = 1; s <= 3; s++) {
+    const px = x + dx * s * 9, py = y + dy * s * 9;
+    for (const side of [-1, 1]) {
+      const sx = px + nx * 3.4 * side, sy = py + ny * 1.7 * side;
+      c.strokeStyle = "#5a4330"; c.lineWidth = 0.35; c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx, sy - 2.2); c.stroke();
+      c.fillStyle = "#c9b48a"; c.fillRect(sx - 0.25, sy - 2.3, 0.5, 0.45);
+    }
+  }
+  // freshly dug earth and gravel heap
+  c.fillStyle = "rgba(92,70,48,0.85)"; c.beginPath(); c.ellipse(x + dx * 3, y + dy * 3, 4.2, 1.8, 0, 0, 7); c.fill();
+  const gx = x - nx * 5, gy = y - ny * 2.5;
+  const gg = c.createRadialGradient(gx - 0.6, gy - 1.2, 0.2, gx, gy, 2.6);
+  gg.addColorStop(0, "#b6ab98"); gg.addColorStop(1, "#6e6556");
+  c.fillStyle = gg; c.beginPath(); c.moveTo(gx - 2.6, gy); c.quadraticCurveTo(gx, gy - 3, gx + 2.6, gy); c.closePath(); c.fill();
+  // log pile
+  const lx = x + nx * 5.5, ly = y + ny * 2.8;
+  c.fillStyle = "rgba(20,15,10,0.3)"; c.beginPath(); c.ellipse(lx, ly + 0.3, 3.4, 1, 0, 0, 7); c.fill();
+  for (const [ox, oy] of [[-1.2, 0], [1.2, 0], [0, -1.1]] as const) {
+    c.strokeStyle = "#6b4a2e"; c.lineWidth = 1.1; c.lineCap = "round";
+    c.beginPath(); c.moveTo(lx + ox - 2, ly + oy - 0.4); c.lineTo(lx + ox + 2, ly + oy + 0.4); c.stroke();
+    c.fillStyle = "#c79a64"; c.beginPath(); c.arc(lx + ox + 2, ly + oy + 0.4, 0.5, 0, 7); c.fill();
+  }
+  // two workers swinging spades
+  for (let w = 0; w < 2; w++) {
+    const wx = x + dx * (2 + w * 3) + nx * (w ? -1.5 : 1.5), wy = y + dy * (2 + w * 3) + ny * (w ? -0.8 : 0.8);
+    const sw = Math.sin(t / 420 + sd + w * 2.1), dip = Math.max(0, sw) * 0.5;
+    const dir = (dx >= 0 ? 1 : -1) * (w ? -1 : 1);
+    c.save(); c.translate(wx, wy); c.scale(dir * 0.9, 0.9);
+    c.fillStyle = "rgba(20,15,10,0.3)"; c.beginPath(); c.ellipse(0, 0, 1.4, 0.45, 0, 0, 7); c.fill();
+    c.strokeStyle = "#3a3026"; c.lineWidth = 0.45; c.lineCap = "round";
+    c.beginPath(); c.moveTo(0, -2.1); c.lineTo(0.5, 0); c.moveTo(0, -2.1); c.lineTo(-0.5, 0); c.stroke();
+    c.save(); c.translate(0, -2.1 + dip); c.rotate(0.25 + dip * 0.6);
+    c.fillStyle = w ? "#5d5244" : "#6a4e3a"; c.beginPath(); c.moveTo(-0.7, -2.3); c.lineTo(0.7, -2.3); c.lineTo(0.8, 0); c.lineTo(-0.8, 0); c.closePath(); c.fill();
+    c.fillStyle = "#d4ae88"; c.beginPath(); c.arc(0.15, -2.9, 0.5, 0, 7); c.fill();
+    c.fillStyle = "#7a6a4a"; c.beginPath(); c.ellipse(0.15, -3.25, 0.75, 0.22, 0, 0, 7); c.fill();
+    // spade
+    const a = 0.9 + sw * 0.45;
+    c.strokeStyle = "#5c4430"; c.lineWidth = 0.25; c.beginPath(); c.moveTo(0.6, -1.6); c.lineTo(0.6 + Math.sin(a) * 3, -1.6 + Math.cos(a) * 3); c.stroke();
+    c.fillStyle = "#77787a"; c.beginPath(); c.arc(0.6 + Math.sin(a) * 3.2, -1.6 + Math.cos(a) * 3.2, 0.45, 0, 7); c.fill();
+    c.restore(); c.restore();
+  }
+}
+
 /**
  * Straight timber bridge from bank A to bank B (≈3 m wide deck, 1 m railing): it rests on stone
  * abutments, rises slightly, and is carried by trestles on the riverbed. A rowing boat lies moored
@@ -1076,7 +1124,18 @@ export function draw(
   // ---- life on the trade roads ----
   if (detail) for (const l of links(seeds)) {
     const prog = roadProgress(l, now);
-    if (prog < 1) continue;
+    if (prog <= 0) continue;
+    if (prog < 1) {
+      // road under construction: a work crew at each growing end
+      const pts = smoothRoad(l), n = pts.length, k = Math.min(n - 2, Math.floor(prog * n / 2));
+      const sn = l.a.x * 7 + l.b.y * 13;
+      for (const [i, j] of [[k, k + 1], [n - 1 - k, n - 2 - k]] as const) {
+        const [ax, ay] = pts[i]!, [bx, by] = pts[Math.max(0, Math.min(n - 1, j))]!;
+        if (ax < cs0x - 40 || ax > cs1x + 40 || ay < cs0y - 40 || ay > cs1y + 40) continue;
+        drawRoadWorks(c, ax, ay, bx - ax, by - ay, t, sn + i);
+      }
+      continue;
+    }
     const pts = smoothRoad(l);
     const n = pts.length;
     const mature = Math.min(1, Math.min(ageHours(l.a, now), ageHours(l.b, now)) / 240);
