@@ -567,49 +567,89 @@ export function draw(
     c.fillStyle = wp ?? hsl(190, 30, 32); c.fill();
   }
   c.globalAlpha = 1;
-  // ---- pass 1: ground, coasts, flat things ----
+  // ---- pass 1a: land base. Interior tiles get a diamond; transition tiles get nothing here ----
+  type Edge = { x: number; y: number; cx: number; cy: number; tr: string; r: number; coast: boolean };
+  const edges: Edge[] = [];
+  for (let s = x0 + y0; s <= x1 + y1; s++) {
+    for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
+      const y = s - x;
+      const tr = terrain(x, y);
+      if (isWater(tr)) {
+        if (tr === "deep") {
+          const [cx, cy] = iso(x, y);
+          c.fillStyle = "rgba(8,30,40,0.14)"; c.beginPath(); c.ellipse(cx, cy, TW * 0.8, TH * 0.8, 0, 0, 7); c.fill();
+        }
+        continue;
+      }
+      const [cx, cy] = iso(x, y);
+      const pr = RANK[tr]!;
+      let lowest = pr, coast = false;
+      for (const [dx, dy] of NB8) { const o = terrain(x + dx, y + dy); const r = RANK[o]!; if (r < lowest) lowest = r; if (isWater(o)) coast = true; }
+      if (lowest < pr) { edges.push({ x, y, cx, cy, tr, r: pr, coast }); continue; }
+      c.beginPath();
+      c.moveTo(cx, cy - TH / 2 - 0.6); c.lineTo(cx + TW / 2 + 0.6, cy); c.lineTo(cx, cy + TH / 2 + 0.6); c.lineTo(cx - TW / 2 - 0.6, cy); c.closePath();
+      c.fillStyle = texture(c, TEX_OF[tr]!) ?? "#7a8a50"; c.fill();
+    }
+  }
+  // ---- pass 1b: transition tiles, lowest rank first. Contour radius comes from a smooth
+  // world-space noise field, so neighbouring blobs share one continuous, organic outline. ----
+  edges.sort((a, b) => a.r - b.r);
+  const K = 14;
+  const contour = (e: Edge, grow: number) => {
+    c.beginPath();
+    for (let i = 0; i <= K; i++) {
+      const a = (i / K) * Math.PI * 2;
+      const dx = Math.cos(a), dy = Math.sin(a);
+      // world position of this contour vertex (tile units, rotated back from iso)
+      const wx = e.x + (dx + dy) * 0.5, wy = e.y + (dy - dx) * 0.5;
+      const n = vnoise(wx * 1.7, wy * 1.7, 31 + e.r) * 0.6 + vnoise(wx * 4.3, wy * 4.3, 47 + e.r) * 0.4;
+      const r = (0.64 + n * 0.34) * grow;
+      const px = e.cx + dx * r * TW * 0.72, py = e.cy + dy * r * TH * 0.72;
+      if (i === 0) c.moveTo(px, py);
+      else {
+        const am = ((i - 0.5) / K) * Math.PI * 2;
+        c.quadraticCurveTo(e.cx + Math.cos(am) * r * TW * 0.74, e.cy + Math.sin(am) * r * TH * 0.74, px, py);
+      }
+    }
+    c.closePath();
+  };
+  for (const e of edges) {
+    if (e.coast) {
+      // wet, darker sand rim fading into the water instead of a white sticker outline
+      contour(e, 1.1); c.fillStyle = "rgba(40,48,38,0.18)"; c.fill();
+    }
+    contour(e, 1);
+    c.fillStyle = texture(c, TEX_OF[e.tr]!) ?? "#7a8a50"; c.fill();
+    if (e.coast && detail) {
+      const f = 0.06 + 0.05 * Math.sin(t / 1400 + e.x * 0.7 + e.y * 0.5);
+      c.strokeStyle = `rgba(30,36,28,${0.22})`; c.lineWidth = 1.6; c.stroke();
+      c.strokeStyle = `rgba(235,240,230,${f})`; c.lineWidth = 3; c.stroke();
+    }
+  }
+  // frayed edges: a few grass tufts and pebbles breaking up the borderline
+  if (detail) {
+    for (const e of edges) {
+      const n = 2 + Math.floor(hash(e.x, e.y, 401) * 3);
+      for (let i = 0; i < n; i++) {
+        const a = hash(e.x, e.y, 410 + i) * Math.PI * 2;
+        const px = e.cx + Math.cos(a) * TW * 0.42, py = e.cy + Math.sin(a) * TH * 0.42;
+        if (e.r >= 3) {
+          c.strokeStyle = "rgba(70,90,40,0.75)"; c.lineWidth = 0.7; c.beginPath();
+          for (let b = -1; b <= 1; b++) { c.moveTo(px + b, py); c.lineTo(px + b * 1.8, py - 2.6 - hash(e.x, i, b + 5)); }
+          c.stroke();
+        } else {
+          c.fillStyle = "rgba(120,112,98,0.8)"; c.beginPath(); c.ellipse(px, py, 1, 0.6, 0, 0, 7); c.fill();
+        }
+      }
+    }
+  }
+
+  // ---- pass 1c: flat things on the ground ----
   for (let s = x0 + y0; s <= x1 + y1; s++) {
     for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
       const y = s - x;
       const [cx, cy] = iso(x, y);
       const tr = terrain(x, y);
-      const [hh, ss, ll] = TERRAIN[tr]!;
-      const wet = isWater(tr);
-      const tp = wet ? null : texture(c, TEX_OF[tr]!);
-      const fill = tp ?? hsl(hh, ss, ll);
-      if (!wet) {
-        c.beginPath();
-        c.moveTo(cx, cy - TH / 2 - 0.6); c.lineTo(cx + TW / 2 + 0.6, cy); c.lineTo(cx, cy + TH / 2 + 0.6); c.lineTo(cx - TW / 2 - 0.6, cy); c.closePath();
-        c.fillStyle = fill; c.fill();
-      } else if (tr === "deep") {
-        // soft darkening blob for deep water instead of a hard-edged diamond
-        c.fillStyle = "rgba(8,30,40,0.16)"; c.beginPath(); c.ellipse(cx, cy, TW * 0.75, TH * 0.75, 0, 0, 7); c.fill();
-      }
-      // organic edges: higher-ranked ground spills over lower neighbours as an irregular blob
-      const pr = RANK[tr]!;
-      let lower = false;
-      for (const [dx, dy] of NB8) if (RANK[terrain(x + dx, y + dy)]! < pr) { lower = true; break; }
-      if (lower && !wet) {
-        c.beginPath();
-        const k = 9;
-        for (let i = 0; i <= k; i++) {
-          const a = (i / k) * Math.PI * 2;
-          const r = 0.62 + (hash(x * 3 + i, y * 5 - i, 61) - 0.5) * 0.28;
-          const px = cx + Math.cos(a) * r * TW * 0.78, py = cy + Math.sin(a) * r * TH * 0.78;
-          if (i === 0) c.moveTo(px, py); else {
-            const am = ((i - 0.5) / k) * Math.PI * 2;
-            c.quadraticCurveTo(cx + Math.cos(am) * r * TW * 0.84, cy + Math.sin(am) * r * TH * 0.84, px, py);
-          }
-        }
-        c.closePath();
-        c.fillStyle = fill; c.fill();
-        if (isWater(terrain(x + 1, y)) || isWater(terrain(x, y + 1)) || isWater(terrain(x - 1, y)) || isWater(terrain(x, y - 1))) {
-          if (detail) {
-            const f = 0.25 + 0.2 * Math.sin(t / 900 + x * 0.7 + y * 0.5);
-            c.strokeStyle = `rgba(250,250,240,${f})`; c.lineWidth = 0.8; c.stroke();
-          }
-        }
-      }
       const st = structureAt(x, y, seeds, now);
       tiles.push({ x, y, cx, cy, st });
       if (!detail) {
