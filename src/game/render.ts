@@ -851,6 +851,25 @@ export function draw(
   }
   const simpleFolk = cam.zoom < 2.2;
 
+  // ---- bridges: one straight span per water crossing, abutment to abutment ----
+  if (detail) for (const l of links(seeds)) {
+    const n = l.tiles.length;
+    for (let i = 0; i < n; i++) {
+      if (!l.water[i]) continue;
+      let j = i; while (j + 1 < n && l.water[j + 1]) j++;
+      const s0 = Math.max(0, i - 1), s1 = Math.min(n - 1, j + 1);
+      const A = l.tiles[s0]!, B = l.tiles[s1]!;
+      const built = [s0, s1].every((k) => { const st = structureAt(l.tiles[k]![0], l.tiles[k]![1], seeds, now); return !!st && PATHLIKE.has(st.kind); })
+        && structureAt(l.tiles[i]![0], l.tiles[i]![1], seeds, now)?.kind === "bridge";
+      if (built) {
+        const [ax, ay] = iso(A[0], A[1]), [bx, by] = iso(B[0], B[1]);
+        if (Math.max(ax, bx) > cs0x - 60 && Math.min(ax, bx) < cs1x + 60 && Math.max(ay, by) > cs0y - 60 && Math.min(ay, by) < cs1y + 60)
+          drawBridgeSpan(c, [ax, ay], [bx, by], l.tiles.slice(i, j + 1), A[0] * 31 + A[1]);
+      }
+      i = j;
+    }
+  }
+
   // ---- pass 2: standing objects in depth order ----
   for (const { x, y, cx, cy, st } of tiles) {
     const tr = terrain(x, y);
