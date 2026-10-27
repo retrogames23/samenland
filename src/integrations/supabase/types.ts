@@ -81,6 +81,41 @@ export type Database = {
           },
         ]
       }
+      purchases: {
+        Row: {
+          cost: number
+          created_at: string
+          id: string
+          item: string
+          seed_id: string
+          user_id: string
+        }
+        Insert: {
+          cost?: number
+          created_at?: string
+          id?: string
+          item: string
+          seed_id: string
+          user_id: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          id?: string
+          item?: string
+          seed_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchases_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seeds: {
         Row: {
           created_at: string
@@ -161,7 +196,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      village_tax: { Args: { _at: string; _created: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

@@ -29,6 +29,13 @@
       "when": 1793121940397,
       "tag": "0003_village_rituals_and_signposts",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793124046662,
+      "tag": "0004_treasury_purchases",
+      "breakpoints": true
     }
   ]
 }
