@@ -38,6 +38,11 @@ const de = {
     fertile: "Fruchtbare Aue",
   } as Record<string, string>,
   resource: { ore: "Eisenerz", coal: "Kohle", stone: "Bruchstein" } as Record<string, string>,
+  job: { farmer: ["Bäuerin", "Bauer"], baker: ["Bäckerin", "Bäcker"], smith: ["Schmiedin", "Schmied"], innkeeper: ["Wirtin", "Wirt"], miller: ["Müllerin", "Müller"], crafter: ["Handwerkerin", "Handwerker"], worker: ["Fabrikarbeiterin", "Fabrikarbeiter"], sawyer: ["Sägerin", "Säger"], merchant: ["Händlerin", "Händler"], priest: ["Pfarrerin", "Pfarrer"], carter: ["Fuhrfrau", "Fuhrmann"], homemaker: ["kümmert sich um Haus und Garten", "kümmert sich um Haus und Garten"], retired: ["im Ruhestand", "im Ruhestand"], child: ["Mädchen", "Junge"] } as Record<string, [string, string]>,
+  act: { sleep: "schläft gerade", work: "gerade bei der Arbeit", lunch: "macht Mittagspause am Brunnen", leisure: "trifft sich mit anderen im Dorf", home: "gerade zu Hause", school: "gerade in der Schule", play: "spielt draußen", walking: "ist gerade unterwegs" } as Record<string, string>,
+  personAge: (a: number) => `${a} Jahre`,
+  livesIn: (town: string) => `wohnt in ${town}`,
+  close: "Schließen",
   age: (h: number) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))} Min.`
@@ -104,6 +109,11 @@ const en: typeof de = {
     fertile: "Fertile floodplain",
   },
   resource: { ore: "iron ore", coal: "coal", stone: "quarry stone" },
+  job: { farmer: ["Farmer", "Farmer"], baker: ["Baker", "Baker"], smith: ["Blacksmith", "Blacksmith"], innkeeper: ["Innkeeper", "Innkeeper"], miller: ["Miller", "Miller"], crafter: ["Craftswoman", "Craftsman"], worker: ["Factory worker", "Factory worker"], sawyer: ["Sawyer", "Sawyer"], merchant: ["Merchant", "Merchant"], priest: ["Priest", "Priest"], carter: ["Carter", "Carter"], homemaker: ["Keeps house and garden", "Keeps house and garden"], retired: ["Retired", "Retired"], child: ["Girl", "Boy"] },
+  act: { sleep: "asleep", work: "at work", lunch: "having lunch by the well", leisure: "meeting friends in the village", home: "at home", school: "at school", play: "playing outside", walking: "on the way" },
+  personAge: (a) => `${a} years`,
+  livesIn: (town) => `lives in ${town}`,
+  close: "Close",
   age: (h) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))} min`
