@@ -32,7 +32,12 @@ import {
   canPlaceSpecial,
   SPECIAL_KIND,
   characterOf,
+  CHARTER_PATHS,
+  charterReady,
+  charterFits,
+  type CharterPath,
 } from "@/game/world";
+const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, plantError, type Lang } from "@/game/i18n";
@@ -48,6 +53,9 @@ export function Game() {
   const [rawSeeds, setSeeds] = useState<Seed[]>([]);
   const [blessings, setBlessings] = useState<{ id: string; seed_id: string; created_at: string }[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [charters, setCharters] = useState<{ id: string; seed_id: string; path: string }[]>([]);
+  const [charterOpen, setCharterOpen] = useState(false);
+  const [charterPick, setCharterPick] = useState<CharterPath | null>(null);
   const [signs, setSigns] = useState<Signpost[]>([]);
   const [signDraft, setSignDraft] = useState<Record<string, string>>({});
   // blessing timestamps travel with the seed, so growth stays a pure function of shared rows
@@ -149,6 +157,7 @@ export function Game() {
         supabase.from("signposts").select("id, seed_id, target_id, user_id, message"),
         supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y"),
       ]);
+      supabase.from("charters").select("id, seed_id, path").then(({ data }) => setCharters(data ?? []));
       setBlessings(bl.data ?? []);
       setPurchases(pu.data ?? []);
       setSigns((sg.data ?? []) as Signpost[]);
@@ -173,6 +182,10 @@ export function Game() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "purchases" }, (p) => {
         const n = p.new as Purchase;
         setPurchases((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "charters" }, (p) => {
+        const n = p.new as { id: string; seed_id: string; path: string };
+        setCharters((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "blessings" }, (p) => {
         const n = p.new as { id: string; seed_id: string; created_at: string };
@@ -338,6 +351,14 @@ export function Game() {
   };
 
   const my = seeds.find((s) => s.id === mine);
+  const myCharter = my ? charters.find((c) => c.seed_id === my.id)?.path : undefined;
+  const sealCharter = async () => {
+    if (!my || !userId || !charterPick) return;
+    const { data, error } = await supabase.from("charters").insert({ seed_id: my.id, user_id: userId, path: charterPick }).select("id, seed_id, path").single();
+    if (error || !data) return setMsg(t.charter.fail);
+    setCharters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
+    bell(0); setCharterOpen(false); setMsg(t.charter.sealed(t.charter.paths[charterPick]![0]));
+  };
   const myStats = my ? townStats(my, seeds, Date.now()) : null;
   const switchLang = (l: Lang) => {
     setLang(l);
@@ -598,8 +619,13 @@ export function Game() {
           <div className="min-w-0 shrink">
             <div title={my ? t.character[characterOf(my.x, my.y)]![1] : undefined} className="truncate font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
-              {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]} · ${t.stages[stageOf(myStats.age)]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
+              {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[stageOf(myStats.age)]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
+            {my && !myCharter && my.user_id === userId && (
+              <button type="button" onClick={() => { setCharterPick(null); setCharterOpen(true); }} className="pointer-events-auto mt-0.5 flex items-center gap-1 rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
+                <span aria-hidden className="grid h-3.5 w-3.5 place-items-center rounded-full bg-destructive text-[8px] text-destructive-foreground">✦</span>{t.charter.seal}
+              </button>
+            )}
           </div>
           {my && at ? (
             <>
@@ -680,6 +706,46 @@ export function Game() {
           </div>
         </Panel>
       </div>
+
+      {charterOpen && my && (
+        <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/30 p-4" onClick={() => setCharterOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="max-h-full w-full max-w-2xl overflow-auto">
+            <Panel inner="p-5">
+              <div className="flex items-start justify-between">
+                <h2 className="font-display text-4xl leading-none text-wood">{t.charter.title} · {my.name}</h2>
+                <button type="button" aria-label={t.hud.close} onClick={() => setCharterOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">{t.charter.intro}</p>
+              {!charterReady(my.created_at, now) ? (
+                <p className="mt-4 text-sm font-semibold">{t.charter.locked}</p>
+              ) : (
+                <>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {CHARTER_PATHS.map((p) => {
+                      const [name, style, bonus, builds] = t.charter.paths[p]!;
+                      const fit = charterFits(characterOf(my.x, my.y), p);
+                      return (
+                        <button key={p} type="button" onClick={() => setCharterPick(p)} aria-pressed={charterPick === p}
+                          className={`rounded-md border-2 p-3 text-left transition ${charterPick === p ? "border-brass bg-brass/20" : "border-border hover:border-brass/60"}`}>
+                          <div className="font-display text-2xl leading-none text-wood">{PATH_ICON[p]} {name}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">{style}</div>
+                          <div className="mt-2 text-xs"><b>+</b> {bonus}</div>
+                          <div className="mt-1 text-xs"><b>{t.charter.buildings}:</b> {builds}</div>
+                          {fit && <div className="mt-2 inline-block rounded-full bg-brass/30 px-2 py-0.5 text-[11px] font-semibold text-wood">✦ {t.charter.fits}</div>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <span className="text-xs text-muted-foreground">{t.charter.final}</span>
+                    <Button disabled={!charterPick} onClick={sealCharter}>{t.charter.sealBtn}</Button>
+                  </div>
+                </>
+              )}
+            </Panel>
+          </div>
+        </div>
+      )}
 
       {authOpen && !userId && (
         <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/30 p-4" onClick={() => setAuthOpen(false)}>
