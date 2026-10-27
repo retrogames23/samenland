@@ -250,7 +250,7 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
 
 const RANK: Record<string, number> = { deep: 0, water: 1, sand: 2, fertile: 3, meadow: 3, grass: 4, hill: 5, forest: 6, mountain: 7 };
 const NB8: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
-const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge"]);
+const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge", "avenue", "rail"]);
 
 /** Whole map fits ~1000px wide at this zoom. */
 export const MIN_ZOOM = 0.025;
@@ -416,9 +416,13 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
 }
 
 let overview: HTMLCanvasElement | null = null;
+let overviewSeason = "";
+let renderNow = 0;
 /** Cached map picture at 1/16 iso scale, coloured from the real ground textures (terrain is static). */
 function overviewMap() {
-  if (overview) return overview;
+  const sk = seasonKey(renderNow);
+  if (overview && overviewSeason === sk) return overview;
+  overviewSeason = sk;
   const ready = allTexturesReady();
   const S = 8, W = (MAP * TW) / S, H = (MAP * TH) / S;
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
@@ -531,6 +535,7 @@ export function draw(
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
 ) {
   renderNow = now; setArtTime(now); setNatureTime(now);
+  lastPeople.length = 0;
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
   const t = performance.now();
   const z = cam.zoom * dpr;
@@ -617,8 +622,8 @@ export function draw(
         for (let k = -3; k <= 3; k++) line(c, pp(k * 0.12, -0.4), pp(k * 0.12, 0.4), sd + k + 5, 0.35);
         c.globalAlpha = 1;
         line(c, pp(-0.45, -0.45), pp(0.45, -0.45), sd + 20, 0.6); line(c, pp(-0.45, 0.45), pp(0.45, 0.45), sd + 21, 0.6);
-      } else if (st.kind === "path" || st.kind === "street" || st.kind === "road") {
-        const street = st.kind === "street";
+      } else if (st.kind === "path" || st.kind === "street" || st.kind === "road" || st.kind === "avenue" || st.kind === "rail") {
+        const street = st.kind === "street" || st.kind === "avenue";
         const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
         c.strokeStyle = col; c.lineWidth = street ? 8 : 5.5; c.lineCap = "round";
         let any = false;
@@ -665,6 +670,7 @@ export function draw(
   // ---- pass 2: standing objects in depth order ----
   for (const { x, y, cx, cy, st } of tiles) {
     const tr = terrain(x, y);
+    if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
     if (!detail) {
       if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
       else if (tr === "forest" && !st && hash(x, y, 19) > 0.25) tree(c, cx, cy + 2, 0.9 + hash(x, y, 20) * 0.3, 0, hash(x, y, 21), x * 13 + y, 0.6);

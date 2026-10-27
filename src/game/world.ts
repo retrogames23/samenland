@@ -92,7 +92,7 @@ export const STAGES = [
 ] as const;
 export const stageOf = (h: number) => {
   let stage = 0;
-  for (let i = 1; i < STAGES.length; i++) if (h >= STAGES[i].from) stage = i;
+  for (let i = 1; i < STAGES.length; i++) if (h >= (STAGES[i]?.from ?? Infinity)) stage = i;
   return stage;
 };
 /** Mixed sqrt/log expansion: ~43 tiles at two years, continuing beyond that. */
@@ -183,7 +183,7 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   }
   // Later landmarks replace earlier ones at the same site.
   for (let i = LANDMARKS.length - 1; i >= 0; i--) {
-    const l = LANDMARKS[i];
+    const l = LANDMARKS[i]; if (!l) continue;
     if (l.dx !== dx || l.dy !== dy || age < l.at) continue;
     return l.kind === "watermill" && !waterNearby(x,y) ? "mill" : l.kind;
   }

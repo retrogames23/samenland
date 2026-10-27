@@ -76,7 +76,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const open = (x: number, y: number) => { const st = structureAt(x, y, seeds, now); return buildable(terrain(x, y)) && (!st || FLAT.has(st.kind)); };
   const front = (tl: Tile): Tile | null => { for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]] as const) if (open(tl[0] + dx, tl[1] + dy)) return [tl[0] + dx, tl[1] + dy]; return null; };
   const meets: Tile[] = [];
-  for (const k of ["inn", "church", "bakery"] as Kind[]) for (const tl of byKind.get(k) ?? []) { const f = front(tl); if (f) meets.push(f); }
+  for (const k of ["inn", "church", "chapel", "townhall", "stall", "bakery"] as Kind[]) for (const tl of byKind.get(k) ?? []) { const f = front(tl); if (f) meets.push(f); }
   meets.push(...(byKind.get("market") ?? []), ...(byKind.get("square") ?? []).slice(0, 6));
   if (!meets.length) meets.push([s.x + 1, s.y + 1]);
   const school = byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
