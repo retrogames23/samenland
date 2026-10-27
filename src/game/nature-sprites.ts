@@ -106,6 +106,12 @@ import sheepStand from "@/assets/sprites/sheep-stand.webp";
 if (typeof window !== "undefined") { img(sheepGraze); img(sheepStand); }
 /** Painted sheep sprite (facing right, feet at bottom), null while loading. */
 export const sheepImage = (graze: boolean) => img(graze ? sheepGraze : sheepStand);
+import cartUrl from "@/assets/sprites/cart.webp";
+import wandererUrl from "@/assets/sprites/wanderer.webp";
+if (typeof window !== "undefined") { img(cartUrl); img(wandererUrl); }
+/** Ox cart (ox facing right) and walking traveller (facing right), null while loading. */
+export const cartImage = () => img(cartUrl);
+export const wandererImage = () => img(wandererUrl);
 const plankPats = new WeakMap<C, CanvasPattern>();
 /** Plank pattern; planks run along the image x-axis, 512px ≈ 8 planks. */
 export function planksPattern(c: C): CanvasPattern | null {
