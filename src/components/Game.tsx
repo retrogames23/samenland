@@ -175,6 +175,8 @@ export function Game() {
     ];
   };
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ dist: number; mx: number; my: number } | null>(null);
 
   const onClick = async (x: number, y: number) => {
     setMsg(null);
