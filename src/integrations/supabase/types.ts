@@ -78,6 +78,45 @@ export type Database = {
           },
         ]
       }
+      first_roads: {
+        Row: {
+          created_at: string
+          id: string
+          seed_id: string
+          target_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          seed_id: string
+          target_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          seed_id?: string
+          target_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "first_roads_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: true
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "first_roads_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plantings: {
         Row: {
           created_at: string
