@@ -833,10 +833,7 @@ export function draw(
       const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
       if (hash(sn, k, 3) < 0.55) drawCart(c, x, y, dx, dy, bob, sn + k, hsl(35 + hash(sn, k, 4) * 20, 35, 82), t);
       else {
-        // wanderer
-        line(c, [x, y], [x, y - 4 + bob], sn + k, 0.7);
-        blob(c, x, y - 5.2 + bob, 1.2, "#e8c9a3", sn + k + 3, true);
-        shape(c, [[x - 1.2, y - 4 + bob], [x + 1.2, y - 4 + bob], [x + 1, y - 1.5], [x - 1, y - 1.5]], sn + k + 4, hsl(hash(sn, k, 5) * 360, 35, 50));
+        drawWanderer(c, x, y, dx >= 0 ? 1 : -1, t, sn + k);
       }
     }
     // boats drift under bridges
@@ -854,9 +851,7 @@ export function draw(
       if (rng[1] <= rng[0]) continue;
       const sw = rng[0] + (rng[1] - rng[0]) * (0.5 + 0.5 * Math.sin(t / 4000 + sn));
       const x = bx + sw, y = by + 6 + sw * 0.5 + Math.sin(t / 600) * 0.4;
-      shape(c, [[x - 4, y - 1], [x + 4, y - 1], [x + 2.5, y + 1.5], [x - 2.5, y + 1.5]], sn + 90, "#8a6a4c");
-      line(c, [x, y - 1], [x, y - 7], sn + 91, 0.5);
-      shape(c, [[x + 0.3, y - 7], [x + 3.5, y - 2], [x + 0.3, y - 2]], sn + 92, "#f4ecd9");
+      drawBoat(c, x, y, Math.cos(t / 4000 + sn) >= 0 ? 1 : -1, t, sn);
     }
   }
 
