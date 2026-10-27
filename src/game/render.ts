@@ -718,7 +718,12 @@ export function draw(
           for (let b = -1; b <= 1; b++) { c.moveTo(px + b * 0.4, py); c.lineTo(px + b * 0.8, py - 1.2 - hash(e.x, i, b + 5) * 0.6); }
           c.stroke();
         } else {
-          c.fillStyle = "rgba(120,112,98,0.8)"; c.beginPath(); c.ellipse(px, py, 1, 0.6, 0, 0, 7); c.fill();
+          // fine, varied gravel instead of grey marbles
+          for (let g = 0; g < 4; g++) {
+            const gx = px + (hash(e.x, e.y, 420 + g + i * 4) - 0.5) * 3, gy = py + (hash(e.x, e.y, 430 + g + i * 4) - 0.5) * 1.4;
+            const l = 38 + hash(e.x, g, 440 + i) * 22;
+            c.fillStyle = `hsla(32,14%,${l}%,0.55)`; c.beginPath(); c.ellipse(gx, gy, 0.35 + hash(g, e.y, 450) * 0.3, 0.22, 0, 0, 7); c.fill();
+          }
         }
       }
     }
@@ -776,14 +781,23 @@ export function draw(
       } else if (st.kind === "path" || st.kind === "street" || st.kind === "road" || st.kind === "avenue" || st.kind === "rail") {
         const street = st.kind === "street" || st.kind === "avenue";
         const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
-        c.strokeStyle = col; c.lineWidth = street ? 8 : 5.5; c.lineCap = "round";
+        const wBase = street ? 7.5 : 5;
+        c.lineCap = "butt"; c.lineJoin = "round";
         let any = false;
         for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
           if (!i && !j) continue;
           const o = structureAt(x + i, y + j, seeds, now);
-          if (o && PATHLIKE.has(o.kind)) { any = true; const m = pp(i * 0.55, j * 0.55); c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke(); }
+          if (!o || !PATHLIKE.has(o.kind)) continue;
+          any = true;
+          const m = pp(i * 0.56, j * 0.56);
+          // soft worn verge, then the track itself; width wobbles slightly so it never looks piped
+          const wv = wBase * (0.9 + hash(x, y, 300 + i * 3 + j) * 0.2);
+          c.strokeStyle = "rgba(70,55,35,0.18)"; c.lineWidth = wv + 2.2; c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke();
+          c.strokeStyle = col; c.lineWidth = wv; c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke();
         }
-        if (!any) { c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, 3.5, 2, 0, 0, 7); c.fill(); }
+        // centre patch joins the segments without round "sausage" caps
+        c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, wBase * 0.5 * (any ? 1 : 0.8), wBase * 0.3, 0, 0, 7); c.fill();
+        if (!street) { c.fillStyle = "rgba(60,45,28,0.12)"; c.beginPath(); c.ellipse(cx + (hash(x, y, 33) - 0.5) * 4, cy, 1.6, 0.6, 0, 0, 7); c.fill(); }
       } else if (st.kind === "square" || st.kind === "market" || st.kind === "well") {
         c.beginPath(); c.ellipse(cx, cy, TW * (0.56 + hash(x, y, 71) * 0.1), TH * (0.56 + hash(x, y, 72) * 0.1), 0, 0, 7);
         c.fillStyle = texture(c, "cobble") ?? "#d3cab6"; c.fill();
@@ -849,7 +863,7 @@ export function draw(
     }
     if (hover && hover[0] === x && hover[1] === y) {
       c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
-      c.setLineDash([2, 1.5]); c.strokeStyle = ghostOk === false ? "#b5503e" : INK; c.lineWidth = 0.9; c.stroke(); c.setLineDash([]);
+      c.fillStyle = ghostOk === false ? "rgba(180,80,60,0.18)" : "rgba(255,240,200,0.14)"; c.fill();
     }
   }
 
