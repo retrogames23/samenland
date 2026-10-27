@@ -73,6 +73,8 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   school: { url: school, crop: [0, 0, 480, 478], width: 24, base: 4 },
 };
 
+/** Image URL of a building, for previews in menus. */
+export const spriteUrl = (kind: Kind) => sprites[kind]?.url;
 /** Browser images are created only when the canvas draws, never during SSR. */
 /** Drawn width/height and ground offset of a building sprite (null while unknown). */
 export function spriteBox(kind: Kind, variant: number): { w: number; h: number; base: number } | null {

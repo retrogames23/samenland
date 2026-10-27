@@ -29,7 +29,10 @@ import {
   type Signpost,
   type Planting,
   type Seed,
+  canPlaceSpecial,
+  SPECIAL_KIND,
 } from "@/game/world";
+import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, plantError, type Lang } from "@/game/i18n";
 import { ITEMS, attributes, popAt, treasury, type Item, type Purchase } from "@/game/economy";
 import { lovable } from "@/integrations/lovable";
@@ -49,8 +52,8 @@ export function Game() {
   const seeds = useMemo(() => {
     const by = new Map<string, number[]>();
     for (const b of blessings) { if (!by.has(b.seed_id)) by.set(b.seed_id, []); by.get(b.seed_id)!.push(Date.parse(b.created_at)); }
-    const buys = new Map<string, { item: string; at: number }[]>();
-    for (const p of purchases) { if (!buys.has(p.seed_id)) buys.set(p.seed_id, []); buys.get(p.seed_id)!.push({ item: p.item, at: Date.parse(p.created_at) }); }
+    const buys = new Map<string, NonNullable<Seed["bought"]>>();
+    for (const p of purchases) { if (!buys.has(p.seed_id)) buys.set(p.seed_id, []); buys.get(p.seed_id)!.push({ item: p.item, at: Date.parse(p.created_at), x: p.x ?? null, y: p.y ?? null }); }
     return rawSeeds.map((s) => {
       const bl = by.get(s.id), bo = buys.get(s.id);
       if (!bl && !bo) return s;
@@ -65,6 +68,7 @@ export function Game() {
   const mine = seeds.find((s) => userId && s.user_id === userId)?.id ?? null;
   const [auth, setAuth] = useState({ email: "", password: "", signup: false });
   const [mode, setMode] = useState<Mode>("look");
+  const [placing, setPlacing] = useState<Item | null>(null);
   const [hover, setHover] = useState<[number, number] | null>(null);
   const [form, setForm] = useState({ name: "", owner: "" });
   const [msg, setMsg] = useState<string | null>(null);
@@ -101,9 +105,10 @@ export function Game() {
   }, []);
   const cam = useRef<Camera>({ x: 0, y: 0, zoom: 2.6 });
   const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
-  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine });
+  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as Item | null });
   st.current.seeds = seeds;
   st.current.hover = hover;
+  st.current.placing = placing;
   st.current.mode = mode;
   st.current.mine = mine;
   st.current.plantings = new Map(plantings.map((p) => [`${p.x},${p.y}`, p]));
@@ -140,7 +145,7 @@ export function Game() {
         supabase.from("plantings").select("*"),
         supabase.from("blessings").select("id, seed_id, created_at"),
         supabase.from("signposts").select("id, seed_id, target_id, user_id, message"),
-        supabase.from("purchases").select("id, seed_id, item, cost, created_at"),
+        supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y"),
       ]);
       setBlessings(bl.data ?? []);
       setPurchases(pu.data ?? []);
@@ -214,6 +219,20 @@ export function Game() {
       const h = s.hover;
       const ok = h && s.mode === "seed" ? canPlant(h[0], h[1], s.seeds) === null : null;
       draw(ctx, cv.width, cv.height, dpr.current, c, s.seeds, s.plantings, Date.now(), h, ok);
+      const own = s.seeds.find((x) => x.id === s.mine);
+      if (s.placing && h && own) {
+        // SimCity-style ghost: the building floats over the tile, tinted by whether it may stand there
+        const good = canPlaceSpecial(s.placing, h[0], h[1], own, s.seeds, Date.now()) === null;
+        const z = c.zoom * dpr.current, [gx, gy] = iso(h[0], h[1]);
+        ctx.save();
+        ctx.setTransform(z, 0, 0, z, cv.width / 2 - c.x * z, cv.height / 2 - c.y * z);
+        ctx.beginPath(); ctx.moveTo(gx, gy - 8); ctx.lineTo(gx + 16, gy); ctx.lineTo(gx, gy + 8); ctx.lineTo(gx - 16, gy); ctx.closePath();
+        ctx.fillStyle = good ? "rgba(90,190,90,0.45)" : "rgba(210,70,60,0.45)"; ctx.fill();
+        ctx.lineWidth = 1 / Math.max(0.5, c.zoom); ctx.strokeStyle = good ? "rgba(40,120,40,0.9)" : "rgba(150,30,25,0.9)"; ctx.stroke();
+        ctx.globalAlpha = good ? 0.8 : 0.45;
+        drawBuildingSprite(ctx, SPECIAL_KIND[s.placing]!, gx, gy, 0.5);
+        ctx.restore();
+      }
       const nowMs = performance.now();
       if (nowMs - lastScene > 250) {
         lastScene = nowMs;
@@ -368,9 +387,12 @@ export function Game() {
     setSigns((s) => [...s.filter((x) => x.id !== data.id), data as Signpost]);
     setMsg(t.signSaved);
   };
-  const buy = async (item: Item) => {
+  const buy = async (item: Item, x: number, y: number) => {
     if (!my) return;
-    const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item }).select("id, seed_id, item, cost, created_at").single();
+    const err = canPlaceSpecial(item, x, y, my, seeds, Date.now());
+    if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore"]);
+    setPlacing(null);
+    const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x, y }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) return setMsg(t.poor);
     setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
     tap();
@@ -402,14 +424,15 @@ export function Game() {
           {(Object.keys(ITEMS) as Item[]).map((it) => {
             return (
               <div key={it} className="rounded-md border border-border bg-secondary/60 p-2">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="font-semibold">{t.items[it]![0]}</span>
+                <div className="flex items-center gap-2">
+                  {spriteUrl(SPECIAL_KIND[it]!) && <img src={spriteUrl(SPECIAL_KIND[it]!)} alt="" loading="lazy" className="h-12 w-12 shrink-0 object-contain drop-shadow" />}
+                  <span className="flex-1 font-semibold">{t.items[it]![0]}</span>
                   <span className="text-xs text-muted-foreground">{t.taler(ITEMS[it])}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">{t.items[it]![1]}</div>
                 <div className="mt-1.5">
                   {at.has(it) ? <span className="text-xs font-semibold text-primary">{t.owned}</span> : (
-                    <Button size="sm" className="h-7 w-full" disabled={cash < ITEMS[it]} onClick={() => buy(it)}>{t.hud.build}</Button>
+                    <Button size="sm" className="h-7 w-full" disabled={cash < ITEMS[it]} onClick={() => { setPlacing(it); setTab(null); setMsg(t.place.pick(t.items[it]![0])); if (my) focus(my.x, my.y); }}>{t.hud.build}</Button>
                   )}
                 </div>
               </div>
@@ -525,7 +548,7 @@ export function Game() {
             }
           }
           setHover(tileAt(e));
-          const hp = mode === "look" && !drag.current?.moved ? personAt(e) : null;
+          const hp = mode === "look" && !placing && !drag.current?.moved ? personAt(e) : null;
           peopleFocus.hover = hp ? pkey(hp) : null;
           (e.target as HTMLElement).style.cursor = hp ? "pointer" : "";
         }}
@@ -543,6 +566,7 @@ export function Game() {
           const d = drag.current;
           drag.current = null;
           if (d && !d.moved) {
+            if (placing) { const [px, py] = tileAt(e); return buy(placing, px, py); }
             if (mode === "look") {
               const best = personAt(e);
               const pan = (e.clientX / window.innerWidth) * 2 - 1;
@@ -680,6 +704,13 @@ export function Game() {
       )}
 
       <div className="pointer-events-none absolute bottom-20 left-2 right-2 z-20 flex flex-col items-end space-y-2 text-sm md:bottom-52 md:left-auto md:right-3 md:w-80">
+        {placing && (
+          <div className="pointer-events-auto flex w-full max-w-xs items-center gap-2 rounded-md border-2 border-wood bg-card px-3 py-2 text-foreground shadow-[var(--shadow-panel)]">
+            {spriteUrl(SPECIAL_KIND[placing]!) && <img src={spriteUrl(SPECIAL_KIND[placing]!)} alt="" className="h-10 w-10 object-contain" />}
+            <div className="flex-1 text-xs"><div className="font-semibold">{t.items[placing]![0]} · {t.taler(ITEMS[placing])}</div>{t.place.hint}</div>
+            <Button size="sm" variant="secondary" onClick={() => { setPlacing(null); setMsg(null); }}>{t.cancel}</Button>
+          </div>
+        )}
         {msg && (
           <div className="rounded-md border-2 border-border bg-card px-3 py-2 shadow-[var(--shadow-panel)] border-wood text-foreground">
             {msg}

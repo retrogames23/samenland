@@ -89,6 +89,8 @@ export type Database = {
           item: string
           seed_id: string
           user_id: string
+          x: number | null
+          y: number | null
         }
         Insert: {
           cost?: number
@@ -97,6 +99,8 @@ export type Database = {
           item: string
           seed_id: string
           user_id: string
+          x?: number | null
+          y?: number | null
         }
         Update: {
           cost?: number
@@ -105,6 +109,8 @@ export type Database = {
           item?: string
           seed_id?: string
           user_id?: string
+          x?: number | null
+          y?: number | null
         }
         Relationships: [
           {

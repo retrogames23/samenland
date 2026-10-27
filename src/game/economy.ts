@@ -4,7 +4,7 @@ import { radiusOf, stageOf, effAge, links, waterNearby, type Seed } from "./worl
 export const START_TALER = 150;
 export const ITEMS = { fisher: 120, granary: 300, healer: 900, school: 3000 } as const;
 export type Item = keyof typeof ITEMS;
-export type Purchase = { id: string; seed_id: string; item: string; cost: number; created_at: string };
+export type Purchase = { id: string; seed_id: string; item: string; cost: number; created_at: string; x?: number | null; y?: number | null };
 
 /** Residents at a given real age (hours); same formula as the database tax function. */
 export const popAt = (h: number) => Math.floor(3 + 0.9 * Math.pow(radiusOf(Math.max(0, h)), 1.6));
