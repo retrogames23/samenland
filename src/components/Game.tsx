@@ -41,7 +41,7 @@ const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", cult
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, plantError, type Lang } from "@/game/i18n";
-import { ITEMS, attributes, popAt, treasury, type Item, type Purchase } from "@/game/economy";
+import { ITEMS, GUILD, canBuy, dailyTax, attributes, treasury, type Item, type Purchase } from "@/game/economy";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +53,7 @@ export function Game() {
   const [rawSeeds, setSeeds] = useState<Seed[]>([]);
   const [blessings, setBlessings] = useState<{ id: string; seed_id: string; created_at: string }[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [charters, setCharters] = useState<{ id: string; seed_id: string; path: string }[]>([]);
+  const [charters, setCharters] = useState<{ id: string; seed_id: string; path: string; created_at: string }[]>([]);
   const [charterOpen, setCharterOpen] = useState(false);
   const [charterPick, setCharterPick] = useState<CharterPath | null>(null);
   const [signs, setSigns] = useState<Signpost[]>([]);
@@ -65,11 +65,11 @@ export function Game() {
     const buys = new Map<string, NonNullable<Seed["bought"]>>();
     for (const p of purchases) { if (!buys.has(p.seed_id)) buys.set(p.seed_id, []); buys.get(p.seed_id)!.push({ item: p.item, at: Date.parse(p.created_at), x: p.x ?? null, y: p.y ?? null }); }
     return rawSeeds.map((s) => {
-      const bl = by.get(s.id), bo = buys.get(s.id);
-      if (!bl && !bo) return s;
-      return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}) };
+      const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id);
+      if (!bl && !bo && !ch) return s;
+      return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}) };
     });
-  }, [rawSeeds, blessings, purchases]);
+  }, [rawSeeds, blessings, purchases, charters]);
   useEffect(() => { setSignposts(signs); }, [signs]);
   const [plantings, setPlantings] = useState<Planting[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -157,7 +157,7 @@ export function Game() {
         supabase.from("signposts").select("id, seed_id, target_id, user_id, message"),
         supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y"),
       ]);
-      supabase.from("charters").select("id, seed_id, path").then(({ data }) => setCharters(data ?? []));
+      supabase.from("charters").select("id, seed_id, path, created_at").then(({ data }) => setCharters(data ?? []));
       setBlessings(bl.data ?? []);
       setPurchases(pu.data ?? []);
       setSigns((sg.data ?? []) as Signpost[]);
@@ -184,7 +184,7 @@ export function Game() {
         setPurchases((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "charters" }, (p) => {
-        const n = p.new as { id: string; seed_id: string; path: string };
+        const n = p.new as { id: string; seed_id: string; path: string; created_at: string };
         setCharters((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "blessings" }, (p) => {
@@ -354,7 +354,7 @@ export function Game() {
   const myCharter = my ? charters.find((c) => c.seed_id === my.id)?.path : undefined;
   const sealCharter = async () => {
     if (!my || !userId || !charterPick) return;
-    const { data, error } = await supabase.from("charters").insert({ seed_id: my.id, user_id: userId, path: charterPick }).select("id, seed_id, path").single();
+    const { data, error } = await supabase.from("charters").insert({ seed_id: my.id, user_id: userId, path: charterPick }).select("id, seed_id, path, created_at").single();
     if (error || !data) return setMsg(t.charter.fail);
     setCharters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
     bell(0); setCharterOpen(false); setMsg(t.charter.sealed(t.charter.paths[charterPick]![0]));
@@ -389,7 +389,7 @@ export function Game() {
   const now = Date.now();
   const cash = my ? treasury(my, purchases, now) : 0;
   const at = my ? attributes(my, seeds, purchases, now) : null;
-  const pop = my ? popAt(ageHours(my, now)) : 0;
+  const pop = my ? dailyTax(my, ageHours(my, now)) : 0;
   const sw = seasonAt(now);
   const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
   const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
@@ -444,14 +444,17 @@ export function Game() {
       </div>
       {tab === "build" && my && at && (
         <div className="space-y-2">
-          {(Object.keys(ITEMS) as Item[]).slice()
+          <div className="rounded-md border border-brass/60 bg-brass/15 p-2 text-xs">
+            {myCharter ? <><b>{PATH_ICON[myCharter]} {t.charter.paths[myCharter]![0]}:</b> {t.charter.bonus[myCharter]}</> : t.charter.guildLocked}
+          </div>
+          {(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter))
             .sort((a, b) => (Number(at.has(a)) - Number(at.has(b))) || (ITEMS[a] - ITEMS[b]))
             .map((it) => {
             return (
               <div key={it} className="rounded-md border border-border bg-secondary/60 p-2">
                 <div className="flex items-center gap-2">
                   {spriteUrl(SPECIAL_KIND[it]!) && <img src={spriteUrl(SPECIAL_KIND[it]!)} alt="" loading="lazy" className="h-12 w-12 shrink-0 object-contain drop-shadow" />}
-                  <span className="flex-1 font-semibold">{t.items[it]![0]}</span>
+                  <span className="flex-1 font-semibold">{t.items[it]![0]}{GUILD[it] && <span className="ml-1 rounded-full bg-brass/30 px-1.5 py-0.5 text-[10px] text-wood">{t.charter.guild}</span>}</span>
                   <span className="text-xs text-muted-foreground">{t.taler(ITEMS[it])}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">{t.items[it]![1]}</div>
