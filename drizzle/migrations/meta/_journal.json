@@ -43,6 +43,13 @@
       "when": 1793131569031,
       "tag": "0005_taler_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793131728907,
+      "tag": "0006_purchase_position",
+      "breakpoints": true
     }
   ]
 }
