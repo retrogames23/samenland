@@ -629,13 +629,13 @@ export function draw(
   // frayed edges: a few grass tufts and pebbles breaking up the borderline
   if (detail) {
     for (const e of edges) {
-      const n = 2 + Math.floor(hash(e.x, e.y, 401) * 3);
+      const n = hash(e.x, e.y, 401) < 0.5 ? 1 : 2;
       for (let i = 0; i < n; i++) {
         const a = hash(e.x, e.y, 410 + i) * Math.PI * 2;
         const px = e.cx + Math.cos(a) * TW * 0.42, py = e.cy + Math.sin(a) * TH * 0.42;
         if (e.r >= 3) {
-          c.strokeStyle = "rgba(70,90,40,0.75)"; c.lineWidth = 0.7; c.beginPath();
-          for (let b = -1; b <= 1; b++) { c.moveTo(px + b, py); c.lineTo(px + b * 1.8, py - 2.6 - hash(e.x, i, b + 5)); }
+          c.strokeStyle = "rgba(78,96,46,0.45)"; c.lineWidth = 0.35; c.beginPath();
+          for (let b = -1; b <= 1; b++) { c.moveTo(px + b * 0.4, py); c.lineTo(px + b * 0.8, py - 1.2 - hash(e.x, i, b + 5) * 0.6); }
           c.stroke();
         } else {
           c.fillStyle = "rgba(120,112,98,0.8)"; c.beginPath(); c.ellipse(px, py, 1, 0.6, 0, 0, 7); c.fill();
