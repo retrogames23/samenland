@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { roadGate, ROAD_BUILD, type Seed } from "./world";
-const mk = (id: string, user?: string, fr?: Seed["firstRoad"]): Seed => ({ id, name: id, owner: id, x: 0, y: 0, hue: 0, created_at: "2026-01-01T00:00:00Z", user_id: user ?? null, firstRoad: fr });
+const mk = (id: string, user?: string, fr?: Seed["firstRoad"]): Seed => ({ id, name: id, owner: id, x: 0, y: 0, hue: 0, created_at: "2026-01-01T00:00:00Z", user_id: user ?? null, ...(fr ? { firstRoad: fr } : {}) });
 describe("first road", () => {
   it("player village without a choice gets no road", () => {
     expect(roadGate(mk("a", "u"), mk("b"))).toBeNull();
