@@ -28,6 +28,7 @@ import {
   BLESS_MS,
   type Signpost,
   type Planting,
+  roadCandidates,
   type Seed,
   canPlaceSpecial,
   SPECIAL_KIND,
@@ -55,6 +56,9 @@ export function Game() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [charters, setCharters] = useState<{ id: string; seed_id: string; path: string; created_at: string }[]>([]);
   const [charterOpen, setCharterOpen] = useState(false);
+  const [firstRoads, setFirstRoads] = useState<{ id: string; seed_id: string; target_id: string; created_at: string }[]>([]);
+  const [roadOpen, setRoadOpen] = useState(false);
+  const [roadPick, setRoadPick] = useState<string | null>(null);
   const [charterPick, setCharterPick] = useState<CharterPath | null>(null);
   const [signs, setSigns] = useState<Signpost[]>([]);
   const [signDraft, setSignDraft] = useState<Record<string, string>>({});
@@ -65,11 +69,11 @@ export function Game() {
     const buys = new Map<string, NonNullable<Seed["bought"]>>();
     for (const p of purchases) { if (!buys.has(p.seed_id)) buys.set(p.seed_id, []); buys.get(p.seed_id)!.push({ item: p.item, at: Date.parse(p.created_at), x: p.x ?? null, y: p.y ?? null }); }
     return rawSeeds.map((s) => {
-      const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id);
-      if (!bl && !bo && !ch) return s;
-      return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}) };
+      const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id), fr = firstRoads.find((f) => f.seed_id === s.id);
+      if (!bl && !bo && !ch && !fr) return s;
+      return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { firstRoad: { target: fr.target_id, at: Date.parse(fr.created_at) } } : {}) };
     });
-  }, [rawSeeds, blessings, purchases, charters]);
+  }, [rawSeeds, blessings, purchases, charters, firstRoads]);
   useEffect(() => { setSignposts(signs); }, [signs]);
   const [plantings, setPlantings] = useState<Planting[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -158,6 +162,7 @@ export function Game() {
         supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y"),
       ]);
       supabase.from("charters").select("id, seed_id, path, created_at").then(({ data }) => setCharters(data ?? []));
+      supabase.from("first_roads").select("id, seed_id, target_id, created_at").then(({ data }) => setFirstRoads(data ?? []));
       setBlessings(bl.data ?? []);
       setPurchases(pu.data ?? []);
       setSigns((sg.data ?? []) as Signpost[]);
@@ -186,6 +191,10 @@ export function Game() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "charters" }, (p) => {
         const n = p.new as { id: string; seed_id: string; path: string; created_at: string };
         setCharters((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "first_roads" }, (p) => {
+        const n = p.new as { id: string; seed_id: string; target_id: string; created_at: string };
+        setFirstRoads((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "blessings" }, (p) => {
         const n = p.new as { id: string; seed_id: string; created_at: string };
@@ -358,6 +367,14 @@ export function Game() {
     if (error || !data) return setMsg(t.charter.fail);
     setCharters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
     bell(0); setCharterOpen(false); setMsg(t.charter.sealed(t.charter.paths[charterPick]![0]));
+  };
+  const myRoad = my ? firstRoads.find((f) => f.seed_id === my.id) : undefined;
+  const sealRoad = async () => {
+    if (!my || !userId || !roadPick) return;
+    const { data, error } = await supabase.from("first_roads").insert({ seed_id: my.id, user_id: userId, target_id: roadPick }).select("id, seed_id, target_id, created_at").single();
+    if (error || !data) return setMsg(t.road.fail);
+    setFirstRoads((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
+    bell(0); setRoadOpen(false); setMsg(t.road.sealed(seeds.find((s) => s.id === roadPick)?.name ?? ""));
   };
   const myStats = my ? townStats(my, seeds, Date.now()) : null;
   const switchLang = (l: Lang) => {
@@ -624,6 +641,11 @@ export function Game() {
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
               {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[stageOf(myStats.age)]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
+            {my && !myRoad && my.user_id === userId && (
+              <button type="button" onClick={() => { setRoadPick(null); setRoadOpen(true); }} className="pointer-events-auto mt-0.5 flex items-center gap-1 rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
+                <span aria-hidden>🛤</span>{t.road.btn}
+              </button>
+            )}
             {my && !myCharter && my.user_id === userId && (
               <button type="button" onClick={() => { setCharterPick(null); setCharterOpen(true); }} className="pointer-events-auto mt-0.5 flex items-center gap-1 rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
                 <span aria-hidden className="grid h-3.5 w-3.5 place-items-center rounded-full bg-destructive text-[8px] text-destructive-foreground">✦</span>{t.charter.seal}
@@ -709,6 +731,42 @@ export function Game() {
           </div>
         </Panel>
       </div>
+
+      {roadOpen && my && (
+        <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/30 p-4" onClick={() => setRoadOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="max-h-full w-full max-w-xl overflow-auto">
+            <Panel inner="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="font-display text-4xl leading-none text-wood">{t.road.title}</h2>
+                <button type="button" aria-label={t.hud.close} onClick={() => setRoadOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">{t.road.intro}</p>
+              {roadCandidates(my, seeds).length === 0 ? <p className="mt-4 text-sm font-semibold">{t.road.none}</p> : (
+                <>
+                  <div className="mt-4 grid gap-2">
+                    {roadCandidates(my, seeds).map((o) => {
+                      const c = characterOf(o.x, o.y), ch = charters.find((x) => x.seed_id === o.id)?.path;
+                      return (
+                        <div key={o.id} className={`flex items-center gap-2 rounded-md border-2 p-2 ${roadPick === o.id ? "border-brass bg-brass/20" : "border-border"}`}>
+                          <button type="button" aria-pressed={roadPick === o.id} onClick={() => setRoadPick(o.id)} className="flex-1 text-left">
+                            <div className="font-semibold text-wood">{o.name}</div>
+                            <div className="text-xs text-muted-foreground">{t.road.dist(Math.round(Math.hypot(o.x - my.x, o.y - my.y)))} · {CHAR_ICON[c]} {t.character[c]![0]}{ch ? ` · ${PATH_ICON[ch]} ${t.charter.paths[ch]![0]}` : ""}</div>
+                          </button>
+                          <Button size="sm" variant="secondary" onClick={() => { focus(o.x, o.y); setRoadOpen(false); }}>{t.road.look}</Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <span className="text-xs text-muted-foreground">{t.road.final}</span>
+                    <Button disabled={!roadPick} onClick={sealRoad}>{t.road.seal}</Button>
+                  </div>
+                </>
+              )}
+            </Panel>
+          </div>
+        </div>
+      )}
 
       {charterOpen && my && (
         <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/30 p-4" onClick={() => setCharterOpen(false)}>
