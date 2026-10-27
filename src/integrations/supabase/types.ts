@@ -46,6 +46,38 @@ export type Database = {
           },
         ]
       }
+      charters: {
+        Row: {
+          created_at: string
+          id: string
+          path: string
+          seed_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          path: string
+          seed_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          path?: string
+          seed_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charters_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: true
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plantings: {
         Row: {
           created_at: string

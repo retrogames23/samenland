@@ -671,3 +671,13 @@ export function characterOf(x: number, y: number): Character {
   charCache.set(key, c);
   return c;
 }
+
+// ---------------- village charter (player-chosen path) ----------------
+export type CharterPath = "trade" | "craft" | "culture" | "farm";
+export const CHARTER_PATHS: CharterPath[] = ["trade", "craft", "culture", "farm"];
+/** Hours of real age before a village may seal its charter (Weiler stage). */
+export const CHARTER_FROM = 24;
+/** Path that fits each landscape best; any path stays valid. */
+export const CHARTER_FIT: Record<Character, CharterPath> = { plains: "farm", forest: "farm", mountain: "craft", coast: "trade" };
+export const charterReady = (createdAt: string, now: number) => (now - Date.parse(createdAt)) / 3.6e6 >= CHARTER_FROM;
+export const charterFits = (c: Character, p: CharterPath) => CHARTER_FIT[c] === p;
