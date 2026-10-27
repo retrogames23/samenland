@@ -4,7 +4,10 @@ import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastSources, peopleFocus, prew
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townOf, poseOf, type Person } from "@/game/people";
 import { inspectAt, type Inspect } from "@/game/inspect";
-import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
+import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, X, LogIn } from "lucide-react";
+import { Panel, WoodButton } from "@/components/hud/Panel";
+import { Minimap } from "@/components/hud/Minimap";
+import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/game/audio";
 import {
   canPlant,
@@ -65,9 +68,11 @@ export function Game() {
   const [hover, setHover] = useState<[number, number] | null>(null);
   const [form, setForm] = useState({ name: "", owner: "" });
   const [msg, setMsg] = useState<string | null>(null);
-  const [open, setOpen] = useState(true);
-  const [listOpen, setListOpen] = useState(true);
-  const [sheet, setSheet] = useState<"me" | "towns" | null>(null);
+  type Tab = "build" | "rituals" | "signs" | "towns" | "plant";
+  const [tab, setTab] = useState<Tab | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [settings, setSettings] = useState(false);
+  const [view, setView] = useState({ x: MAP / 2, y: MAP / 2, span: 40 });
   const [who, setWho] = useState<Person | null>(null);
   const [place, setPlace] = useState<Inspect | null>(null);
   const [, tick] = useState(0);
@@ -114,8 +119,11 @@ export function Game() {
     setLang(
       saved === "en" || saved === "de" ? saved : navigator.language.startsWith("de") ? "de" : "en",
     );
-    if (localStorage.getItem("samenland-panel") === "closed") setOpen(false);
-    if (localStorage.getItem("samenland-towns") === "closed") setListOpen(false);
+    const vi = setInterval(() => {
+      const cv = canvasRef.current, c = cam.current; if (!cv) return;
+      const [x, y] = toTile(c.x, c.y);
+      setView({ x, y, span: (cv.clientWidth / c.zoom) / 32 + (cv.clientHeight / c.zoom) / 16 });
+    }, 500);
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
     const { data: sub } = supabase.auth.onAuthStateChange((ev, session) => {
       if (
@@ -173,6 +181,7 @@ export function Game() {
     return () => {
       supabase.removeChannel(ch);
       clearInterval(iv);
+      clearInterval(vi);
       sub.subscription.unsubscribe();
     };
   }, []);
@@ -335,7 +344,149 @@ export function Game() {
     if (r?.error) setMsg(t.authFail);
   };
 
-  const show = open || sheet === "me";
+  const now = Date.now();
+  const cash = my ? treasury(my, purchases, now) : 0;
+  const co = coins(Math.max(0, cash));
+  const at = my ? attributes(my, seeds, purchases, now) : null;
+  const pop = my ? popAt(ageHours(my, now)) : 0;
+  const sw = seasonAt(now);
+  const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
+  const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
+  const ring = async (kind: "bell" | "well") => {
+    if (!my) return;
+    const { data, error } = await supabase.from("blessings").insert({ seed_id: my.id, user_id: userId!, kind }).select("id, seed_id, created_at").single();
+    if (error || !data) return setMsg(t.blessFail);
+    setBlessings((s) => [...s, data]);
+    if (kind === "bell") bell(); else tap();
+    setMsg(t.blessed(my.name));
+  };
+  const saveSign = async (to: Seed) => {
+    if (!my) return;
+    const text = (signDraft[to.id] ?? "").trim().slice(0, 80);
+    if (!text) return;
+    const { data, error } = await supabase.from("signposts").upsert({ seed_id: my.id, target_id: to.id, user_id: userId!, message: text }, { onConflict: "seed_id,target_id" }).select("id, seed_id, target_id, user_id, message").single();
+    if (error || !data) return setMsg(t.blessFail);
+    setSigns((s) => [...s.filter((x) => x.id !== data.id), data as Signpost]);
+    setMsg(t.signSaved);
+  };
+  const buy = async (item: Item) => {
+    if (!my) return;
+    const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item }).select("id, seed_id, item, cost, created_at").single();
+    if (error || !data) return setMsg(t.poor);
+    setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
+    tap();
+    setMsg(t.bought(t.items[item]![0]));
+  };
+  const zoomBy = (f: number) => {
+    const cv = canvasRef.current!;
+    target.current = { zoom: Math.min(7, Math.max(MIN_ZOOM, target.current.zoom * f)), ax: cv.width / 2, ay: cv.height / 2 };
+  };
+  const pick = (k: Tab) => setTab(tab === k ? null : k);
+  const tabs: { k: Tab; icon: typeof Hammer; label: string }[] = [
+    ...(my ? [
+      { k: "build" as Tab, icon: Hammer, label: t.hud.build },
+      { k: "rituals" as Tab, icon: Bell, label: t.hud.rituals },
+      { k: "signs" as Tab, icon: SignIcon, label: t.hud.signs },
+    ] : [{ k: "plant" as Tab, icon: Sprout, label: t.hud.plant }]),
+    { k: "towns", icon: MapIcon, label: t.hud.towns },
+  ];
+  const Coin = ({ n, c, l }: { n: number; c: string; l: string }) => (
+    <span className="flex items-center gap-1" title={l}><span className={`h-3 w-3 rounded-full border border-wood ${c}`} />{n}</span>
+  );
+  const Head = ({ children }: { children: React.ReactNode }) => <div className="font-display text-2xl leading-none text-wood">{children}</div>;
+
+  const drawer = tab && (
+    <div className="space-y-3 p-3 text-sm">
+      <div className="flex items-center justify-between">
+        <Head>{tabs.find((x) => x.k === tab)?.label}</Head>
+        <button type="button" aria-label={t.hud.close} onClick={() => setTab(null)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+      </div>
+      {tab === "build" && my && at && (
+        <div className="space-y-2">
+          {(Object.keys(ITEMS) as Item[]).map((it) => {
+            const p = coins(ITEMS[it]);
+            return (
+              <div key={it} className="rounded-md border border-border bg-secondary/60 p-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-semibold">{t.items[it]![0]}</span>
+                  <span className="text-xs text-muted-foreground">{p.silver > 0 && `${p.silver} ${t.coin.silver}`}{p.copper > 0 && ` ${p.copper} ${t.coin.copper}`}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">{t.items[it]![1]}</div>
+                <div className="mt-1.5">
+                  {at.has(it) ? <span className="text-xs font-semibold text-primary">{t.owned}</span> : (
+                    <Button size="sm" className="h-7 w-full" disabled={cash < ITEMS[it]} onClick={() => buy(it)}>{t.hud.build}</Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {tab === "rituals" && my && (() => {
+        const live = isBlessed(my, now), last = Math.max(0, ...(my.blessed ?? [])), cd = blessCooldown(my, now);
+        return (
+          <div className="space-y-2">
+            <div className="text-xs text-muted-foreground">{t.ritual}</div>
+            {live && <div className="text-xs text-primary">{t.festive(Math.ceil((last + BLESS_MS - now) / 3.6e6))}</div>}
+            {cd > 0 ? <div className="text-xs text-muted-foreground">{t.blessAgain(Math.ceil(cd / 3.6e6))}</div> : (
+              <div className="grid gap-2">
+                <Button size="sm" variant="secondary" onClick={() => ring("bell")}>{t.ringBell}</Button>
+                <Button size="sm" variant="secondary" onClick={() => ring("well")}>{t.decorateWell}</Button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+      {tab === "signs" && my && (
+        <div className="space-y-2">
+          {nbs.length === 0 ? <div className="text-xs text-muted-foreground">{t.noNeighbours}</div> : nbs.map((o) => {
+            const cur = signs.find((x) => x.seed_id === my.id && x.target_id === o.id);
+            return (
+              <form key={o.id} className="space-y-1" onSubmit={(e) => { e.preventDefault(); saveSign(o); }}>
+                <div className="text-xs">{t.signTo(o.name)}</div>
+                <div className="flex gap-1">
+                  <Input className="h-8 text-xs" maxLength={80} placeholder={t.signPlaceholder} value={signDraft[o.id] ?? cur?.message ?? ""} onChange={(e) => setSignDraft({ ...signDraft, [o.id]: e.target.value })} />
+                  <Button type="submit" size="sm" variant="secondary">{t.signSave}</Button>
+                </div>
+              </form>
+            );
+          })}
+        </div>
+      )}
+      {tab === "plant" && (!userId ? (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">{t.hud.login}</p>
+          <Button size="sm" className="w-full" onClick={() => setAuthOpen(true)}>{t.signIn}</Button>
+        </div>
+      ) : (
+        <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); setMode("seed"); }}>
+          <Input placeholder={t.townName} maxLength={32} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <Input placeholder={t.yourName} maxLength={32} value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} />
+          <p className="text-xs text-muted-foreground">{mode === "seed" ? t.clickLand : t.needNames}</p>
+          {mode === "seed" ? <Button type="button" size="sm" variant="ghost" onClick={() => setMode("look")}>{t.cancel}</Button>
+            : <Button type="submit" size="sm" className="w-full" disabled={!form.name.trim() || !form.owner.trim()}>{t.plant}</Button>}
+        </form>
+      ))}
+      {tab === "towns" && (
+        <ul className="max-h-[50vh] space-y-1 overflow-auto">
+          {seeds.map((s) => (
+            <li key={s.id}>
+              <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { focus(s.x, s.y); setTab(null); }}>
+                <span className="text-foreground">{s.name}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {t.stages[stageOf(effAge(s, seeds, now))]} · {s.owner} · {t.age(ageHours(s, now))}
+                  {speedOf(s, seeds, now) > 1.005 && <span className="block">{t.tradeBonus(Math.round((speedOf(s, seeds, now) - 1) * 100))}</span>}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="relative h-screen w-full overflow-hidden bg-background">
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
       <canvas
@@ -420,324 +571,123 @@ export function Game() {
         }}
         onPointerLeave={() => setHover(null)}
       />
-
-      <header className={`pointer-events-none ${sheet === "me" ? "absolute inset-x-2 bottom-16 z-20 max-h-[70vh] overflow-auto" : "hidden"} md:absolute md:inset-auto md:left-4 md:top-4 md:z-auto md:block md:max-h-none md:max-w-xs md:overflow-visible`}>
-        <div
-          className={`pointer-events-auto rounded-md border-2 border-border bg-card/95 shadow-[var(--shadow-cozy)] backdrop-blur ${show ? "p-4" : "p-3"}`}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <h1 className="font-display text-4xl leading-none text-primary">Samenland</h1>
-            <button
-              type="button"
-              onClick={() => {
-                const next = !open;
-                setOpen(next);
-                localStorage.setItem("samenland-panel", next ? "open" : "closed");
-              }}
-              aria-expanded={open}
-              aria-label={open ? t.collapse : t.expand}
-              title={open ? t.collapse : t.expand}
-              className="-mr-1 -mt-1 shrink-0 rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <svg
-                viewBox="0 0 16 16"
-                aria-hidden="true"
-                className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 6l5 5 5-5" />
-              </svg>
-            </button>
+      {/* top bar */}
+      <div className="pointer-events-none absolute inset-x-2 top-2 z-30 md:inset-x-3 md:top-3">
+        <Panel inner="flex items-center gap-3 px-3 py-1.5 md:gap-5">
+          <div className="min-w-0 shrink">
+            <div className="truncate font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
+            <div className="hidden truncate text-xs text-muted-foreground sm:block">
+              {my && myStats ? `${t.stages[stageOf(myStats.age)]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
+            </div>
           </div>
-          {!show && <p className="mt-1 text-xs text-muted-foreground">{t.taglineShort}</p>}
-          {show && (
+          {my && at ? (
             <>
-              <p className="mt-1 text-sm text-muted-foreground">{t.tagline}</p>
-              {my && myStats ? (
-                <div className="mt-3 space-y-1 text-sm">
-                  <div className="font-display text-lg text-foreground">{my.name}</div>
-                  <div className="text-muted-foreground">
-                    {t.stages[stageOf(myStats.age)]} · {t.since} {t.age(ageHours(my, Date.now()))} ·{" "}
-                    {myStats.buildings} {t.buildings}
-                    {myStats.speed > 1.005 && <span className="block">{t.tradeBonus(Math.round((myStats.speed - 1) * 100))}</span>}
-                    {myStats.twins.map((n) => <span key={n} className="block">{t.twinWith(n)}</span>)}
+              <div className="flex items-center gap-2 text-sm font-semibold tabular-nums">
+                {co.gold > 0 && <Coin n={co.gold} c="bg-brass" l={t.coin.gold} />}
+                <Coin n={co.silver} c="bg-muted" l={t.coin.silver} />
+                <Coin n={co.copper} c="bg-chart-1" l={t.coin.copper} />
+                <span className="hidden text-xs font-normal text-primary sm:inline">{t.perDay(pop)}</span>
+              </div>
+              <div className="hidden text-sm sm:block">{t.people(pop)}</div>
+              <div className="hidden gap-3 lg:flex">
+                {(["food", "health", "wealth"] as const).map((k) => (
+                  <div key={k} className="w-20 text-xs">
+                    <div className="flex justify-between"><span>{t.attrs[k]}</span><span>{at[k]}</span></div>
+                    <div className="h-1.5 rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${at[k]}%` }} /></div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="mt-1"
-                    onClick={() => focus(my.x, my.y)}
-                  >
-                    {t.toMine}
-                  </Button>
-                  {(() => {
-                    const now = Date.now();
-                    const live = isBlessed(my, now);
-                    const last = Math.max(0, ...(my.blessed ?? []));
-                    const cd = blessCooldown(my, now);
-                    const ring = async (kind: "bell" | "well") => {
-                      const { data, error } = await supabase.from("blessings").insert({ seed_id: my.id, user_id: userId!, kind }).select("id, seed_id, created_at").single();
-                      if (error || !data) return setMsg(t.blessFail);
-                      setBlessings((s) => [...s, data]);
-                      if (kind === "bell") bell(); else tap();
-                      setMsg(t.blessed(my.name));
-                    };
-                    const nbs = links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a));
-                    const saveSign = async (to: Seed) => {
-                      const text = (signDraft[to.id] ?? "").trim().slice(0, 80);
-                      if (!text) return;
-                      const { data, error } = await supabase.from("signposts").upsert({ seed_id: my.id, target_id: to.id, user_id: userId!, message: text }, { onConflict: "seed_id,target_id" }).select("id, seed_id, target_id, user_id, message").single();
-                      if (error || !data) return setMsg(t.blessFail);
-                      setSigns((s) => [...s.filter((x) => x.id !== data.id), data as Signpost]);
-                      setMsg(t.signSaved);
-                    };
-                    const cash = treasury(my, purchases, now);
-                    const co = coins(Math.max(0, cash));
-                    const at = attributes(my, seeds, purchases, now);
-                    const buy = async (item: Item) => {
-                      const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item }).select("id, seed_id, item, cost, created_at").single();
-                      if (error || !data) return setMsg(t.poor);
-                      setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
-                      tap();
-                      setMsg(t.bought(t.items[item]![0]));
-                    };
-                    return (
-                      <div className="mt-3 space-y-2 border-t border-border pt-2">
-                        <div className="text-xs font-semibold">{t.treasury}</div>
-                        <div className="text-sm">
-                          {co.gold > 0 && <>{co.gold} {t.coin.gold} · </>}{co.silver > 0 && <>{co.silver} {t.coin.silver} · </>}{co.copper} {t.coin.copper}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{t.taxInfo(popAt(ageHours(my, now)))}</div>
-                        <div className="space-y-1">
-                          {(["food", "health", "wealth"] as const).map((k) => (
-                            <div key={k} className="flex items-center gap-2 text-xs">
-                              <span className="w-20">{t.attrs[k]}</span>
-                              <div className="h-1.5 flex-1 rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${at[k]}%` }} /></div>
-                              <span className="w-6 text-right">{at[k]}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="pt-1 text-xs font-semibold">{t.shop}</div>
-                        {(Object.keys(ITEMS) as Item[]).map((it) => {
-                          const p = coins(ITEMS[it]);
-                          return (
-                            <div key={it} className="flex items-center gap-2 text-xs">
-                              <div className="flex-1"><div>{t.items[it]![0]}</div><div className="text-muted-foreground">{t.items[it]![1]}</div></div>
-                              {at.has(it) ? <span className="text-primary">{t.owned}</span> : (
-                                <Button size="sm" variant="secondary" disabled={cash < ITEMS[it]} onClick={() => buy(it)}>
-                                  {p.silver > 0 && `${p.silver} ${t.coin.silver}`}{p.copper > 0 && ` ${p.copper} ${t.coin.copper}`}
-                                </Button>
-                              )}
-                            </div>
-                          );
-                        })}
-                        <div className="pt-1 text-xs font-semibold">{t.ritual}</div>
-                        {live && <div className="text-xs text-primary">{t.festive(Math.ceil((last + BLESS_MS - now) / 3.6e6))}</div>}
-                        {cd > 0 ? (
-                          <div className="text-xs text-muted-foreground">{t.blessAgain(Math.ceil(cd / 3.6e6))}</div>
-                        ) : (
-                          <div className="flex flex-wrap gap-1">
-                            <Button size="sm" variant="secondary" onClick={() => ring("bell")}>{t.ringBell}</Button>
-                            <Button size="sm" variant="secondary" onClick={() => ring("well")}>{t.decorateWell}</Button>
-                          </div>
-                        )}
-                        <div className="pt-1 text-xs font-semibold">{t.signposts}</div>
-                        {nbs.length === 0 ? <div className="text-xs text-muted-foreground">{t.noNeighbours}</div> : nbs.map((o) => {
-                          const cur = signs.find((x) => x.seed_id === my.id && x.target_id === o.id);
-                          return (
-                            <form key={o.id} className="space-y-1" onSubmit={(e) => { e.preventDefault(); saveSign(o); }}>
-                              <div className="text-xs">{t.signTo(o.name)}</div>
-                              <div className="flex gap-1">
-                                <Input className="h-8 text-xs" maxLength={80} placeholder={t.signPlaceholder} value={signDraft[o.id] ?? cur?.message ?? ""} onChange={(e) => setSignDraft({ ...signDraft, [o.id]: e.target.value })} />
-                                <Button type="submit" size="sm" variant="secondary">{t.signSave}</Button>
-                              </div>
-                            </form>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
-                </div>
-              ) : !userId ? (
-                <form
-                  className="mt-3 space-y-2"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    emailAuth();
-                  }}
-                >
-                  <p className="text-xs text-muted-foreground">{t.signInToPlant}</p>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      className="flex-1"
-                      onClick={() => oauth("google")}
-                    >
-                      {t.google}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      className="flex-1"
-                      onClick={() => oauth("apple")}
-                    >
-                      {t.apple}
-                    </Button>
-                  </div>
-                  <div className="text-center text-xs text-muted-foreground">{t.or}</div>
-                  <Input
-                    type="email"
-                    required
-                    placeholder={t.email}
-                    value={auth.email}
-                    onChange={(e) => setAuth({ ...auth, email: e.target.value })}
-                  />
-                  <Input
-                    type="password"
-                    required
-                    minLength={6}
-                    placeholder={t.password}
-                    value={auth.password}
-                    onChange={(e) => setAuth({ ...auth, password: e.target.value })}
-                  />
-                  <Button type="submit" size="sm" className="w-full">
-                    {auth.signup ? t.signUp : t.signIn}
-                  </Button>
-                  <button
-                    type="button"
-                    className="w-full text-xs text-muted-foreground underline"
-                    onClick={() => setAuth({ ...auth, signup: !auth.signup })}
-                  >
-                    {auth.signup ? t.haveAccount : t.noAccount}
-                  </button>
-                </form>
-              ) : mode !== "seed" ? (
-                <Button className="mt-3" onClick={() => setMode("seed")}>
-                  {t.plant}
-                </Button>
-              ) : (
-                <form className="mt-3 space-y-2" onSubmit={(e) => e.preventDefault()}>
-                  <Input
-                    placeholder={t.townName}
-                    maxLength={32}
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  />
-                  <Input
-                    placeholder={t.yourName}
-                    maxLength={32}
-                    value={form.owner}
-                    onChange={(e) => setForm({ ...form, owner: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {form.name.trim() && form.owner.trim() ? t.clickLand : t.needNames}
-                  </p>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setMode("look")}>
-                    {t.cancel}
-                  </Button>
-                </form>
-              )}
-              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                <div className="flex gap-1">
-                  {(["de", "en"] as Lang[]).map((l) => (
-                    <button
-                      key={l}
-                      className={`rounded px-1.5 py-0.5 uppercase ${lang === l ? "bg-accent text-foreground" : "hover:text-foreground"}`}
-                      onClick={() => switchLang(l)}
-                    >
-                      {l}
-                    </button>
-                  ))}
-                </div>
-                {userId && (
-                  <button
-                    className="underline hover:text-foreground"
-                    onClick={() => supabase.auth.signOut()}
-                  >
-                    {t.signOut}
-                  </button>
-                )}
+                ))}
               </div>
             </>
-          )}
-        </div>
-      </header>
-
-      <button
-        type="button"
-        aria-label={sound ? t.soundOff : t.soundOn}
-        title={sound ? t.soundOff : t.soundOn}
-        onClick={toggleSound}
-        className="absolute right-4 top-4 z-10 grid h-8 w-8 place-items-center rounded-md border-2 border-border bg-card/90 text-foreground shadow-[var(--shadow-cozy)] hover:bg-accent md:right-14"
-      >
-        {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-      </button>
-      <button
-        type="button"
-        aria-label={fs ? t.exitFullscreen : t.fullscreen}
-        title={fs ? t.exitFullscreen : t.fullscreen}
-        onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())}
-        className="absolute right-4 top-4 z-10 hidden h-8 w-8 place-items-center rounded-md border-2 border-border bg-card/90 text-foreground shadow-[var(--shadow-cozy)] hover:bg-accent md:grid"
-      >
-        {fs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-      </button>
-
-      <aside
-        className={`${sheet === "towns" ? "absolute inset-x-2 bottom-16 z-20" : "hidden"} rounded-md border-2 border-border bg-card/95 p-3 shadow-[var(--shadow-cozy)] backdrop-blur md:absolute md:inset-auto md:right-4 md:top-14 md:z-auto md:block ${listOpen ? "md:w-56" : "md:w-auto"}`}
-      >
-        <button
-          type="button"
-          className="flex w-full items-center justify-between gap-2 text-left"
-          aria-expanded={listOpen}
-          onClick={() => {
-            if (sheet === "towns") return setSheet(null);
-            const next = !listOpen;
-            setListOpen(next);
-            localStorage.setItem("samenland-towns", next ? "open" : "closed");
-          }}
-        >
-          <h2 className="font-display text-lg text-foreground">
-            {t.towns} <span className="text-sm text-muted-foreground">({seeds.length})</span>
-          </h2>
-          <svg viewBox="0 0 16 16" aria-hidden="true" className={`h-4 w-4 text-muted-foreground transition-transform ${listOpen || sheet === "towns" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 6l5 5 5-5" />
-          </svg>
-        </button>
-        {(listOpen || sheet === "towns") && (
-        <ul className="mt-1 max-h-[50vh] space-y-1 overflow-auto text-sm md:max-h-60">
-          {seeds.map((s) => (
-            <li key={s.id}>
-              <button
-                className="w-full rounded px-2 py-1 text-left hover:bg-accent"
-                onClick={() => { focus(s.x, s.y); setSheet(null); }}
-              >
-                <span className="text-foreground">{s.name}</span>
-                <span className="block text-xs text-muted-foreground">
-                  {t.stages[stageOf(effAge(s, seeds, Date.now()))]} · {s.owner} ·{" "}
-                  {t.age(ageHours(s, Date.now()))}
-                  {speedOf(s, seeds, Date.now()) > 1.005 && (
-                    <span className="block">
-                      {t.tradeBonus(Math.round((speedOf(s, seeds, Date.now()) - 1) * 100))}
-                    </span>
-                  )}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+          ) : !userId ? (
+            <Button size="sm" onClick={() => setAuthOpen(true)}><LogIn className="mr-1 h-4 w-4" />{t.signIn}</Button>
+          ) : null}
+          <div className="ml-auto hidden text-right text-xs text-muted-foreground md:block">
+            <div>{new Date(now).toLocaleDateString(lang === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long" })}</div>
+            <div>{t.seasons[season]} · {new Date(now).toLocaleTimeString(lang === "de" ? "de-DE" : "en-GB", { hour: "2-digit", minute: "2-digit" })}</div>
+          </div>
+          <div className="ml-auto flex items-center gap-1 md:ml-0">
+            <button type="button" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} onClick={toggleSound} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent">
+              {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </button>
+            <button type="button" aria-label={fs ? t.exitFullscreen : t.fullscreen} title={fs ? t.exitFullscreen : t.fullscreen} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())} className="hidden h-8 w-8 place-items-center rounded-md hover:bg-accent md:grid">
+              {fs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </button>
+            <button type="button" aria-label={t.hud.settings} title={t.hud.settings} aria-expanded={settings} onClick={() => setSettings(!settings)} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent">
+              <Settings className="h-4 w-4" />
+            </button>
+          </div>
+        </Panel>
+        {settings && (
+          <Panel className="absolute right-0 top-full mt-2 w-56" inner="space-y-2 p-3 text-sm">
+            <div className="text-xs text-muted-foreground">{t.hud.language}</div>
+            <div className="flex gap-1">
+              {(["de", "en"] as Lang[]).map((l) => (
+                <button key={l} className={`flex-1 rounded px-2 py-1 uppercase ${lang === l ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => switchLang(l)}>{l}</button>
+              ))}
+            </div>
+            {userId ? <Button size="sm" variant="secondary" className="w-full" onClick={() => { supabase.auth.signOut(); setSettings(false); }}>{t.signOut}</Button>
+              : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
+          </Panel>
         )}
-      </aside>
+      </div>
 
-      <div className="pointer-events-none absolute bottom-16 left-2 right-2 space-y-2 text-sm md:bottom-4 md:left-4 md:right-auto">
+      {/* build rail: left on desktop, bottom on phones */}
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-30 md:inset-x-auto md:bottom-auto md:left-3 md:top-24">
+        <Panel inner="!bg-wood !border-0 flex gap-1 p-1 md:flex-col">
+          {tabs.map(({ k, icon: I, label }) => (
+            <WoodButton key={k} label={label} active={tab === k} onClick={() => pick(k)} className="h-11 flex-1 flex-col gap-0.5 md:h-14 md:w-14 md:flex-none">
+              <I className="h-5 w-5" /><span className="text-[10px] leading-none">{label}</span>
+            </WoodButton>
+          ))}
+        </Panel>
+      </div>
+      {tab && (
+        <div className="pointer-events-none absolute inset-x-2 bottom-20 z-30 max-h-[65vh] overflow-auto md:inset-x-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
+          <Panel>{drawer}</Panel>
+        </div>
+      )}
+
+      {/* minimap + zoom */}
+      <div className="pointer-events-none absolute bottom-3 right-3 z-20 hidden md:block">
+        <Panel inner="p-1.5">
+          <Minimap seeds={seeds} mine={mine} view={view} onJump={(x, y) => focus(x, y)} />
+          <div className="mt-1.5 flex gap-1">
+            <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.hud.zoomOut} onClick={() => zoomBy(1 / 1.6)}><Minus className="h-4 w-4" /></Button>
+            <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.hud.zoomIn} onClick={() => zoomBy(1.6)}><Plus className="h-4 w-4" /></Button>
+            {my && <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.toMine} title={t.toMine} onClick={() => focus(my.x, my.y)}><Home className="h-4 w-4" /></Button>}
+          </div>
+        </Panel>
+      </div>
+
+      {authOpen && !userId && (
+        <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/30 p-4" onClick={() => setAuthOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm">
+            <Panel inner="p-4">
+              <div className="flex items-start justify-between">
+                <h1 className="font-display text-4xl leading-none text-wood">Samenland</h1>
+                <button type="button" aria-label={t.hud.close} onClick={() => setAuthOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{t.tagline}</p>
+              <form className="mt-3 space-y-2" onSubmit={(e) => { e.preventDefault(); emailAuth(); }}>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant="secondary" className="flex-1" onClick={() => oauth("google")}>{t.google}</Button>
+                  <Button type="button" size="sm" variant="secondary" className="flex-1" onClick={() => oauth("apple")}>{t.apple}</Button>
+                </div>
+                <div className="text-center text-xs text-muted-foreground">{t.or}</div>
+                <Input type="email" required placeholder={t.email} value={auth.email} onChange={(e) => setAuth({ ...auth, email: e.target.value })} />
+                <Input type="password" required minLength={6} placeholder={t.password} value={auth.password} onChange={(e) => setAuth({ ...auth, password: e.target.value })} />
+                <Button type="submit" size="sm" className="w-full">{auth.signup ? t.signUp : t.signIn}</Button>
+                <button type="button" className="w-full text-xs text-muted-foreground underline" onClick={() => setAuth({ ...auth, signup: !auth.signup })}>{auth.signup ? t.haveAccount : t.noAccount}</button>
+                {msg && <p className="text-xs text-destructive">{msg}</p>}
+              </form>
+            </Panel>
+          </div>
+        </div>
+      )}
+
+      <div className="pointer-events-none absolute bottom-20 left-2 right-2 z-20 flex flex-col items-end space-y-2 text-sm md:bottom-52 md:left-auto md:right-3 md:w-80">
         {msg && (
-          <div className="rounded-md border-2 border-border bg-card/95 px-3 py-2 text-foreground">
+          <div className="rounded-md border-2 border-border bg-card px-3 py-2 shadow-[var(--shadow-panel)] border-wood text-foreground">
             {msg}
           </div>
         )}
@@ -745,7 +695,7 @@ export function Game() {
           const now = Date.now();
           const q = poseOf(who, townOf(who.seed, seeds, now), seeds, now);
           return (
-            <div className="pointer-events-auto max-w-xs rounded-md border-2 border-border bg-card/95 px-3 py-2 text-foreground shadow-[var(--shadow-cozy)]">
+            <div className="pointer-events-auto w-full max-w-xs rounded-md border-2 border-border bg-card px-3 py-2 shadow-[var(--shadow-panel)] border-wood text-foreground shadow-[var(--shadow-cozy)]">
               <div className="flex items-start justify-between gap-3">
                 <div className="font-['Caveat'] text-xl leading-tight">{who.first} {who.last}</div>
                 <button type="button" aria-label={t.close} className="text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
@@ -770,7 +720,7 @@ export function Game() {
             </ul>
           ) : <div className="text-muted-foreground">{t.nobody}</div>;
           return (
-            <div className="pointer-events-auto max-w-xs rounded-md border-2 border-border bg-card/95 px-3 py-2 text-foreground shadow-[var(--shadow-cozy)]">
+            <div className="pointer-events-auto w-full max-w-xs rounded-md border-2 border-border bg-card px-3 py-2 shadow-[var(--shadow-panel)] border-wood text-foreground shadow-[var(--shadow-cozy)]">
               <div className="flex items-start justify-between gap-3">
                 <div className="font-['Caveat'] text-xl leading-tight">{ins.build !== null ? t.site(name) : name}</div>
                 <button type="button" aria-label={t.close} className="text-muted-foreground hover:text-foreground" onClick={() => setPlace(null)}>×</button>
@@ -800,23 +750,6 @@ export function Game() {
           </div>
         )}
       </div>
-      <div className="pointer-events-none absolute bottom-4 right-4 hidden text-xs text-muted-foreground md:block">
-        {t.hint}
-      </div>
-
-      <nav className="absolute inset-x-2 bottom-2 z-20 flex gap-2 rounded-md border-2 border-border bg-card/95 p-1.5 shadow-[var(--shadow-cozy)] backdrop-blur md:hidden">
-        {(["me", "towns"] as const).map((k) => (
-          <button
-            key={k}
-            type="button"
-            aria-pressed={sheet === k}
-            onClick={() => setSheet(sheet === k ? null : k)}
-            className={`flex-1 rounded px-3 py-2 text-sm ${sheet === k ? "bg-accent text-foreground" : "text-muted-foreground"}`}
-          >
-            {k === "me" ? (my ? t.myTown : t.signIn) : `${t.towns} (${seeds.length})`}
-          </button>
-        ))}
-      </nav>
     </div>
   );
 }
