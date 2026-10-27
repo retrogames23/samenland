@@ -92,16 +92,36 @@ function rivers(): Float32Array {
       if (o >= 0 && o !== me) { ok = true; break; } // confluence
     }
     if (!ok || path.length < 25) continue;
-    // stamp: narrow spring, widening towards the mouth
+    // smooth the grid walk into a flowing curve, then let it swing in gentle meanders
+    const W = 5, sm: [number, number][] = [];
     for (let i = 0; i < path.length; i++) {
-      const [px, py] = path[i]!;
-      const rw = Math.min(2.6, 0.55 + i * 0.006);
-      const R = Math.ceil(rw + 4);
-      for (let oy = -R; oy <= R; oy++) for (let ox = -R; ox <= R; ox++) {
-        const qx = px + ox, qy = py + oy; if (qx < 0 || qy < 0 || qx >= MAP || qy >= MAP) continue;
-        const d = Math.hypot(ox, oy) - rw, k = qy * MAP + qx;
-        if (d < f[k]!) f[k] = d;
-        if (d < 0) owner[k] = me;
+      let ax = 0, ay = 0, n = 0;
+      for (let j = Math.max(0, i - W); j <= Math.min(path.length - 1, i + W); j++) { ax += path[j]![0]; ay += path[j]![1]; n++; }
+      sm.push([ax / n, ay / n]);
+    }
+    const cur: [number, number][] = [];
+    for (let i = 0; i < sm.length; i++) {
+      const a = sm[Math.max(0, i - 3)]!, b = sm[Math.min(sm.length - 1, i + 3)]!;
+      let tx = b[0] - a[0], ty = b[1] - a[1]; const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
+      const ramp = Math.min(1, i / 30, (sm.length - 1 - i) / 15);
+      const off = (vnoise(i / 26, me * 3.1, 66) - 0.5) * 9 * ramp;
+      cur.push([sm[i]![0] - ty * off, sm[i]![1] + tx * off]);
+    }
+    cur.push(...path.slice(-3).map(([a, b]) => [a, b] as [number, number])); // reach the actual mouth / junction
+    // stamp densely along the curve: a brook at the spring, widening towards the mouth
+    for (let i = 0; i + 1 < cur.length; i++) {
+      const [ax, ay] = cur[i]!, [bx, by] = cur[i + 1]!;
+      const seg = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) * 3));
+      const rw = Math.min(2.8, 1.1 + i * 0.006);
+      for (let s = 0; s < seg; s++) {
+        const px = ax + (bx - ax) * (s / seg), py = ay + (by - ay) * (s / seg);
+        const R = Math.ceil(rw + 4), ix = Math.round(px), iy = Math.round(py);
+        for (let oy = -R; oy <= R; oy++) for (let ox = -R; ox <= R; ox++) {
+          const qx = ix + ox, qy = iy + oy; if (qx < 0 || qy < 0 || qx >= MAP || qy >= MAP) continue;
+          const d = Math.hypot(qx - px, qy - py) - rw, k = qy * MAP + qx;
+          if (d < f[k]!) f[k] = d;
+          if (d < 0) owner[k] = me;
+        }
       }
     }
   }
