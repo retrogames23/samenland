@@ -26,8 +26,8 @@ function diamond(c: CanvasRenderingContext2D, cx: number, cy: number, w = TW / 2
   c.moveTo(cx, cy - h); c.lineTo(cx + w, cy); c.lineTo(cx, cy + h); c.lineTo(cx - w, cy); c.closePath();
 }
 function poly(c: CanvasRenderingContext2D, pts: number[], fill: string) {
-  c.beginPath(); c.moveTo(pts[0], pts[1]);
-  for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]);
+  c.beginPath(); c.moveTo(pts[0]!, pts[1]!);
+  for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i]!, pts[i + 1]!);
   c.closePath(); c.fillStyle = fill; c.fill();
 }
 
