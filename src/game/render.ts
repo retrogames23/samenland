@@ -1,3 +1,4 @@
+import { drawBuildingSprite } from "./building-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -121,6 +122,15 @@ const roofHue = (s: Structure, slate = false) => slate ? [215, 12, 46] : [12 + s
 
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
+  if (drawBuildingSprite(c, s.kind, cx, cy, s.v)) {
+    if (["farmhouse", "cottage", "inn", "bakery", "townhouse", "smithy"].includes(s.kind)) {
+      L.push({ x: cx - 2, y: cy - 6, r: s.kind === "smithy" ? 5 : 2.5 });
+    }
+    if (["factory", "smithy", "bakery", "inn"].includes(s.kind)) {
+      smoke(c, cx + 4, cy - (s.kind === "factory" ? 24 : 18), t, sd, s.kind === "factory" ? 1.5 : 0.6);
+    }
+    return;
+  }
   const v = s.v, rx = v > 0.5;
   const [rh, rs, rl] = roofHue(s, s.kind === "townhouse" && v > 0.6 || s.kind === "warehouse");
   const pal: Pal = { wall: "#efe3c8", wallD: "#d4c19c", roof: hsl(rh!, rs!, rl!), roofD: hsl(rh!, rs!, rl! - 12) };
