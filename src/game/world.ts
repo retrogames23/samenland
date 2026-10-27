@@ -68,15 +68,15 @@ function rivers(): Float32Array {
   const f = new Float32Array(MAP * MAP).fill(99);
   const owner = new Int32Array(MAP * MAP).fill(-1);
   let id = 0;
-  for (let gy = 40; gy < MAP - 40; gy += 56) for (let gx = 40; gx < MAP - 40; gx += 56) {
+  for (let gy = 40; gy < MAP - 40; gy += 44) for (let gx = 40; gx < MAP - 40; gx += 44) {
     const sx = gx + Math.floor((hash(gx, gy, 61) - 0.5) * 40), sy = gy + Math.floor((hash(gx, gy, 62) - 0.5) * 40);
     const h0 = heightAt(sx, sy);
-    if (h0 < 0.6 || h0 > 0.79 || hash(gx, gy, 63) > 0.55) continue;
+    if (h0 < 0.56 || h0 > 0.79 || hash(gx, gy, 63) > 0.7) continue;
     const me = id++;
     const path: [number, number][] = [[sx, sy]];
     const seen = new Set<number>([sy * MAP + sx]);
     let x = sx, y = sy, ok = false, pdx = 0, pdy = 0;
-    for (let step = 0; step < 2500; step++) {
+    for (let step = 0; step < 5000; step++) {
       let best = Infinity, bx = x, by = y;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]] as const) {
         const nx = x + dx, ny = y + dy;
