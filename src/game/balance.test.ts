@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { effAge, ageHours, TRADE_CAP, type Seed } from "./world";
+import { effAge, ageHours, TRADE_CAP, stageOf, type Seed } from "./world";
 import { farmShare } from "./people";
 
 const E0 = Date.parse("2026-01-01T00:00:00Z");
@@ -10,10 +10,17 @@ test("neighbour and twin bonuses stay well below doubling", () => {
   const seeds = [mk("a", 306, 420), mk("b", 343, 439), mk("c", 307, 460), mk("d", 343, 481)];
   const now = E0 + 3000 * 3.6e6;
   const base = ageHours(seeds[0]!, now);
-  expect(effAge(seeds[0]!, seeds, now)).toBeLessThanOrEqual(base * 1.6);
+  expect(effAge(seeds[0]!, seeds, now)).toBeLessThanOrEqual(base * 1.6 * 0.35);
 });
 
 test("cities farm less than villages", () => {
   expect(farmShare(10)).toBe(0.8);
   expect(farmShare(40)).toBe(0.25);
+});
+
+test("a town with neighbours becomes a Metropole only after about two years", () => {
+  const seeds = [mk("a", 306, 420), mk("b", 343, 439), mk("c", 307, 460), mk("d", 343, 481)];
+  const day = 864e5;
+  expect(stageOf(effAge(seeds[2]!, seeds, E0 + 540 * day))).toBeLessThan(5);
+  expect(stageOf(effAge(seeds[2]!, seeds, E0 + 820 * day))).toBe(5);
 });

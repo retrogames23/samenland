@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { links, twinSince, isTwin, pactOf, workOf, effAge, PACT_WAIT, WORK_BUILD, type Seed } from "./world";
+import { links, twinSince, isTwin, pactOf, workOf, effAge, GROWTH_PACE, PACT_WAIT, WORK_BUILD, type Seed } from "./world";
 import { attributes } from "./economy";
 
 const T0 = Date.parse("2026-01-01T00:00:00Z");
@@ -20,7 +20,7 @@ describe("twin towns", () => {
   it("twins grow 10% faster from the moment they touch", () => {
     const later = ts! + 100 * 3.6e6;
     const solo = effAge(seeds[0]!, seeds, ts!);
-    expect(effAge(seeds[0]!, seeds, later) - solo).toBeGreaterThan(100 * 1.1 - 1);
+    expect(effAge(seeds[0]!, seeds, later) - solo).toBeGreaterThan((100 * 1.1 - 1) * GROWTH_PACE);
   });
 
   it("a pact holds when both pick the same", () => {
