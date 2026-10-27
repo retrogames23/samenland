@@ -3,7 +3,7 @@ import { seasonKey } from "./season";
 import { drawBuildingSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
-import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, acreOf, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, acreOf, ageHours, effAge, radiusOf, isBlessed, signTile, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -951,12 +951,60 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
   }
 }
 
+// ---------------- player rituals: festive garlands and signposts ----------------
+let signSrc: Signpost[] = [], signKey = "";
+const signMap = new Map<number, Signpost>();
+export function setSignposts(list: Signpost[]) { signSrc = list; }
+/** Tile key → signpost, rebuilt only when the posts or the seed set change. */
+export function signpostMap(seeds: Seed[]) {
+  const k = signSrc.map((p) => p.id + p.message).join("|") + "#" + seeds.length;
+  if (k !== signKey) {
+    signKey = k; signMap.clear();
+    for (const p of signSrc) { const tl = signTile(seeds, p.seed_id, p.target_id); if (tl) signMap.set(tl[1] * MAP + tl[0], p); }
+  }
+  return signMap;
+}
+/** Bunting strung across the village centre with little lanterns, swaying in the breeze. */
+function drawFestive(c: C, cx: number, cy: number, t: number, sd: number, L: Light[]) {
+  const cols = ["#c8553d", "#e8b04a", "#5d8a4e", "#3f6f9a", "#e9dcc0"];
+  const poles: Pt[] = [[cx - 14, cy - 3], [cx, cy - 9], [cx + 14, cy - 3], [cx, cy + 6]];
+  for (const [px, py] of poles) {
+    line(c, [px, py], [px, py - 13], sd, 0.6, "#5a3f2a");
+  }
+  for (let i = 0; i < poles.length; i++) {
+    const A = poles[i]!, B = poles[(i + 1) % poles.length]!;
+    const a: Pt = [A[0], A[1] - 13], b: Pt = [B[0], B[1] - 13];
+    const sag = 3 + Math.sin(t / 1400 + i + sd) * 0.6;
+    const at = (u: number): Pt => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u + Math.sin(u * Math.PI) * sag];
+    c.strokeStyle = "rgba(60,44,30,0.8)"; c.lineWidth = 0.25; c.beginPath();
+    for (let k = 0; k <= 10; k++) { const p = at(k / 10); k ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); }
+    c.stroke();
+    for (let k = 1; k < 8; k++) {
+      const p = at(k / 8), sw = Math.sin(t / 500 + k * 1.3 + i) * 0.35;
+      c.fillStyle = cols[(k + i) % cols.length]!;
+      c.beginPath(); c.moveTo(p[0] - 0.8, p[1]); c.lineTo(p[0] + 0.8, p[1]); c.lineTo(p[0] + sw, p[1] + 2.2); c.closePath(); c.fill();
+    }
+    const m = at(0.5); L.push({ x: m[0], y: m[1] + 1, r: 2.2 });
+    c.fillStyle = "#ffd98a"; c.beginPath(); c.arc(m[0], m[1] + 1, 0.55, 0, 7); c.fill();
+  }
+}
+/** Carved wooden waymark standing beside the road at the village edge. */
+function drawSignpost(c: C, cx: number, cy: number, sd: number) {
+  const x = cx + 5, y = cy + 1;
+  c.fillStyle = "rgba(25,18,10,0.25)"; c.beginPath(); c.ellipse(x + 1, y + 0.3, 2, 0.7, 0, 0, 7); c.fill();
+  line(c, [x, y], [x, y - 10], sd, 0.8, "#5a3f2a");
+  c.fillStyle = "#9c7a52"; c.strokeStyle = "rgba(40,28,16,0.9)"; c.lineWidth = 0.35;
+  c.beginPath(); c.moveTo(x - 4, y - 9.6); c.lineTo(x + 3, y - 9.6); c.lineTo(x + 4.6, y - 8.4); c.lineTo(x + 3, y - 7.2); c.lineTo(x - 4, y - 7.2); c.closePath(); c.fill(); c.stroke();
+  c.strokeStyle = "rgba(60,40,22,0.6)"; c.beginPath(); c.moveTo(x - 3, y - 8.4); c.lineTo(x + 2.4, y - 8.4); c.stroke();
+}
+
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
 ) {
   renderNow = now; setArtTime(now); setNatureTime(now);
   lastPeople.length = 0; lastSources.length = 0;
+  signpostMap(seeds);
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
   const t = performance.now(); setSpriteTime(t);
   const z = cam.zoom * dpr;
@@ -1136,6 +1184,8 @@ export function draw(
       else if (hash(x, y, 22) > 0.9) drawNature(c, "bush", cx + (hash(x, y, 24) - 0.5) * 12, cy + 2, 0.8 + hash(x, y, 25) * 0.5);
     }
     if (st) drawStructure(c, st, cx, cy, x, y, t, L);
+    if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
+    if (signMap.has(y * MAP + x)) drawSignpost(c, cx, cy, x * 13 + y);
     const fk = folk.get(y * MAP + x);
     if (fk) {
       fk.sort((a, b) => a.x + a.y - b.x - b.y);
