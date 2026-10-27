@@ -575,6 +575,45 @@ export function Game() {
             </div>
           );
         })()}
+        {place && (() => {
+          const ins = inspectAt(place.x, place.y, seeds, Date.now()) ?? place;
+          const name = t.kind[ins.kind] ?? ins.kind;
+          const list = (ps: Person[]) => ps.length ? (
+            <ul className="mt-0.5 space-y-0.5">
+              {ps.slice(0, 6).map((p) => (
+                <li key={p.id}>
+                  <button type="button" className="text-left underline-offset-2 hover:underline" onClick={() => { setPlace(null); setWho(p); }}>
+                    {p.first} {p.last} · {t.job[p.job]![p.sex === "f" ? 0 : 1]}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : <div className="text-muted-foreground">{t.nobody}</div>;
+          return (
+            <div className="pointer-events-auto max-w-xs rounded-md border-2 border-border bg-card/95 px-3 py-2 text-foreground shadow-[var(--shadow-cozy)]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="font-['Caveat'] text-xl leading-tight">{ins.build !== null ? t.site(name) : name}</div>
+                <button type="button" aria-label={t.close} className="text-muted-foreground hover:text-foreground" onClick={() => setPlace(null)}>×</button>
+              </div>
+              <div className="text-xs text-muted-foreground">{t.inTown(name, ins.seed.name)}</div>
+              {ins.build !== null ? (
+                <div className="mt-1 space-y-1 text-sm">
+                  <div>{t.progress(Math.round(ins.build * 100))}</div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.round(ins.build * 100)}%` }} /></div>
+                  <div className="text-xs text-muted-foreground">{t.needs}</div>
+                  <div className="text-xs font-semibold">{t.builders}</div>
+                  <div className="text-xs">{list(ins.workers)}</div>
+                </div>
+              ) : (
+                <div className="mt-1 space-y-1 text-sm">
+                  {t.purpose[ins.kind] && <div>{t.purpose[ins.kind]}</div>}
+                  {ins.residents.length > 0 && <div className="text-xs"><div className="font-semibold">{t.residents}</div>{list(ins.residents)}</div>}
+                  {ins.workers.length > 0 && <div className="text-xs"><div className="font-semibold">{t.workers}</div>{list(ins.workers)}</div>}
+                </div>
+              )}
+            </div>
+          );
+        })()}
         {hover && (
           <div className="hidden rounded bg-card/80 px-2 py-1 text-xs text-muted-foreground md:block">
             {t.terrain[terrain(hover[0], hover[1])]}{resourceAt(hover[0], hover[1]) ? ` · ${t.resource[resourceAt(hover[0], hover[1])!]}` : ""} · {hover[0]}, {hover[1]}
