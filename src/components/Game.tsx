@@ -121,6 +121,7 @@ export function Game() {
   const [tab, setTab] = useState<Tab | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [imprint, setImprint] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [realm, setRealmState] = useState<Realm>("europe");
   const realmRef = useRef<Realm>("europe");
@@ -862,6 +863,18 @@ export function Game() {
             </>)}
             {userId ? <Button size="sm" variant="secondary" className="w-full" onClick={() => { supabase.auth.signOut(); setSettings(false); }}>{t.signOut}</Button>
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
+            <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 border-t border-border/60 pt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <a href="https://buymeacoffee.com/doener" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">☕ {t.imprint.coffee}</a>
+              <a href="https://lovable.dev/invite/LN0I260" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">♥ {t.imprint.built}</a>
+              <button type="button" onClick={() => setImprint(!imprint)} className="uppercase hover:text-foreground">{t.imprint.title}</button>
+            </div>
+            {imprint && (
+              <div className="space-y-1.5 rounded border border-border/60 bg-background/40 p-2 text-[11px] leading-snug text-muted-foreground">
+                <div className="text-foreground">Stephan Dörner<br />Bornholmer Str. 89<br />10439 Berlin</div>
+                <div>{t.imprint.contact}: <a href="mailto:stephan.doerner@posteo.de" className="underline-offset-2 hover:underline">stephan.doerner@posteo.de</a></div>
+                <p className="italic">{t.imprint.note}</p>
+              </div>
+            )}
           </Panel>
         )}
       </div>
