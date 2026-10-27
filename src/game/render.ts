@@ -348,10 +348,29 @@ function personBody(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   c.fillStyle = "rgba(25,20,10,0.18)"; c.beginPath(); c.ellipse(X + 1.1 * s, Y + 0.25, 2.3 * s, 0.85 * s, 0.15, 0, 7); c.fill();
   c.fillStyle = "rgba(20,15,8,0.38)"; c.beginPath(); c.ellipse(X, Y, 1.05 * s, 0.42 * s, 0, 0, 7); c.fill();
   if (simple) {
-    limb(c, [[X, Y - 0.2], [X, Y - 3.4 * s - bounce]], pants, 0.9 * s);
-    limb(c, [[X, Y - 3.4 * s - bounce], [X, Y - 5.6 * s - bounce]], shirt, 1.4 * s);
-    c.fillStyle = skin; c.beginPath(); c.arc(X, Y - 6.6 * s - bounce, 0.9 * s, 0, 7); c.fill();
-    return null;
+    // Cheap but proportioned figure for mid zoom: two striding legs, tapered torso, arms, hair/hat.
+    const sw = Math.sin(ph) * 0.9 * walk * s, hipY = Y - 3.5 * s - bounce, shY = hipY - 2.5 * s;
+    const fem = p.sex === "f" && !kid;
+    const lc = fem ? skin : pants;
+    limb(c, [[X - 0.3 * s, hipY], [X - 0.3 * s - sw * face, Y - 0.2]], lc, 0.75 * s);
+    limb(c, [[X + 0.3 * s, hipY], [X + 0.3 * s + sw * face, Y - 0.2]], lc, 0.75 * s);
+    limb(c, [[X - 0.85 * s, shY + 0.3], [X - 0.95 * s + sw * 0.5 * face, hipY + 0.3]], shirt, 0.6 * s);
+    c.beginPath(); c.moveTo(X - 0.85 * s, shY); c.lineTo(X + 0.85 * s, shY);
+    if (fem) { c.lineTo(X + 1.3 * s, hipY + 2.2 * s); c.lineTo(X - 1.3 * s, hipY + 2.2 * s); }
+    else { c.lineTo(X + 0.7 * s, hipY + 0.2); c.lineTo(X - 0.7 * s, hipY + 0.2); }
+    c.closePath(); c.fillStyle = fem ? CLOTH[(Math.floor(L.shirt * CLOTH.length) + 3) % CLOTH.length]! : shirt; c.fill();
+    c.strokeStyle = "rgba(22,16,10,0.85)"; c.lineWidth = 0.45; c.stroke();
+    if (fem) { c.beginPath(); c.moveTo(X - 0.85 * s, shY); c.lineTo(X + 0.85 * s, shY); c.lineTo(X + 0.75 * s, hipY); c.lineTo(X - 0.75 * s, hipY); c.closePath(); c.fillStyle = shirt; c.fill(); }
+    limb(c, [[X + 0.85 * s, shY + 0.3], [X + 0.95 * s - sw * 0.5 * face, hipY + 0.3]], shirt, 0.6 * s);
+    const hr = (kid ? 1.1 : 0.9) * s, hy = shY - hr - 0.2 * s;
+    c.beginPath(); c.arc(X, hy, hr, 0, 7); c.fillStyle = skin; c.fill(); c.strokeStyle = "rgba(22,16,10,0.85)"; c.lineWidth = 0.4; c.stroke();
+    c.fillStyle = hair; c.beginPath(); c.arc(X, hy - 0.1 * hr, hr * 1.02, Math.PI * 1.02, Math.PI * 1.98); c.fill();
+    if (L.hat && !kid) {
+      c.fillStyle = p.job === "farmer" ? "#b89a5e" : "#3e3028";
+      c.beginPath(); c.ellipse(X, hy - hr * 0.55, hr * 1.5, hr * 0.36, 0, 0, 7); c.fill(); c.stroke();
+      c.beginPath(); c.ellipse(X, hy - hr * 0.9, hr * 0.8, hr * 0.5, 0, Math.PI, 0); c.fill();
+    }
+    return [X, hy];
   }
   const leg = (old ? 1.65 : 1.8) * s;
   const hip: Pt = [X, Y - leg * 2 - bounce];
