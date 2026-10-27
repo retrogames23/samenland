@@ -652,8 +652,9 @@ function drawBoat(c: C, x: number, y: number, flip: boolean, t: number, sd: numb
 }
 
 /** Traveller on the open road: a real villager figure with stick and hat, striding along the road. */
+const CARRY_OF: Record<TradeGood, Pose["carry"]> = { grain: "grain", wool: "bundle", wood: "log", timber: "planks", ore: "stone", stone: "stone", fish: "bundle", salt: "flour", hides: "bundle", cloth: "bundle", ironware: "bundle", beer: "bread" };
 const travellers = new Map<number, Pose["p"]>();
-function drawWanderer(c: C, x: number, y: number, dx: number, dy: number, t: number, sd: number) {
+function drawWanderer(c: C, x: number, y: number, dx: number, dy: number, t: number, sd: number, carry: Pose["carry"] = null) {
   let p = travellers.get(sd);
   if (!p) {
     p = {
@@ -667,7 +668,7 @@ function drawWanderer(c: C, x: number, y: number, dx: number, dy: number, t: num
   const d0 = (dx + 2 * dy) / 2, d1 = (2 * dy - dx) / 2;
   const q: Pose = {
     p, x: 0, y: 0, visible: true, walking: true, dir: [d0, d1], phase: (t / 1000) * Math.PI * 2 * 0.95,
-    act: "work", working: false, talk: null, talkTurn: false, carry: null, dest: null,
+    act: "work", working: false, talk: null, talkTurn: false, carry, dest: null,
   };
   drawPerson(c, x, y, q, t, false);
 }
@@ -1223,7 +1224,9 @@ export function draw(
     const pts = smoothRoad(l);
     const n = pts.length;
     const mature = Math.min(1, Math.min(ageHours(l.a, now), ageHours(l.b, now)) / 240);
-    const count = 1 + Math.round(mature * 3);
+    // more traffic the better the towns complement each other; traders rest at night (shared world clock)
+    const hr = worldHour(now), night = hr < 5 || hr >= 22;
+    const count = night ? (mature > 0.5 ? 1 : 0) : 1 + Math.round(mature * 3 * complement(l.a, l.b));
     const sn = l.a.x * 7 + l.b.y * 13;
     for (let k = 0; k < count; k++) {
       const secsPerTile = hash(sn, k, 3) < 0.55 ? 1.6 + hash(sn, k, 1) * 1.2 : 3.2 + hash(sn, k, 1) * 1.2;
@@ -1243,7 +1246,8 @@ export function draw(
       const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
       if (hash(sn, k, 3) < 0.55) drawCart(c, x, y, dx, dy, bob, sn + k, hsl(35 + hash(sn, k, 4) * 20, 35, 82), t);
       else {
-        drawWanderer(c, x, y, dx, dy, t, sn + k);
+        const from = fwd ? l.a : l.b, ex = tradeProfile(from, now).exports;
+        drawWanderer(c, x, y, dx, dy, t, sn + k, CARRY_OF[ex[Math.floor(hash(sn, k, 5) * ex.length)]!]);
       }
     }
   }
