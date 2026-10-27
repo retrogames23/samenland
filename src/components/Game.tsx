@@ -46,8 +46,14 @@ export function Game() {
   const seeds = useMemo(() => {
     const by = new Map<string, number[]>();
     for (const b of blessings) { if (!by.has(b.seed_id)) by.set(b.seed_id, []); by.get(b.seed_id)!.push(Date.parse(b.created_at)); }
-    return rawSeeds.map((s) => (by.has(s.id) ? { ...s, blessed: by.get(s.id)!.sort((a, b) => a - b) } : s));
-  }, [rawSeeds, blessings]);
+    const buys = new Map<string, { item: string; at: number }[]>();
+    for (const p of purchases) { if (!buys.has(p.seed_id)) buys.set(p.seed_id, []); buys.get(p.seed_id)!.push({ item: p.item, at: Date.parse(p.created_at) }); }
+    return rawSeeds.map((s) => {
+      const bl = by.get(s.id), bo = buys.get(s.id);
+      if (!bl && !bo) return s;
+      return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}) };
+    });
+  }, [rawSeeds, blessings, purchases]);
   useEffect(() => { setSignposts(signs); }, [signs]);
   const [plantings, setPlantings] = useState<Planting[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
