@@ -434,7 +434,7 @@ function overviewMap() {
     if (sm) { const q = ((py % sm.n) * sm.n + (px % sm.n)) * 4; r = sm.d[q]!; gg = sm.d[q + 1]!; b = sm.d[q + 2]!; }
     else { const c0 = rgb.get(tr)!; r = c0[0]; gg = c0[1]; b = c0[2]; }
     if (tr === "deep") { r *= 0.6; gg *= 0.7; b *= 0.8; }
-    if (tr === "forest") { r *= 0.78; gg *= 0.85; b *= 0.75; }
+    if (tr === "forest") { r = r * 0.8 + 18; gg = gg * 0.85 + 34; b = b * 0.8 + 12; }
     if (tr === "mountain") { const m = 0.9 + hash(tx, ty, 3) * 0.2; r *= m; gg *= m; b *= m; }
     img.data[o] = r; img.data[o + 1] = gg; img.data[o + 2] = b; img.data[o + 3] = 255;
   }
@@ -487,10 +487,15 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
   }
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.font = `700 ${Math.round(18 * dpr)}px Georgia, 'Times New Roman', serif`; c.textAlign = "center";
-  for (const s of seeds) {
+  const placed: [number, number][] = [];
+  const order = [...seeds].sort((a, b) => effAge(b, seeds, now) - effAge(a, seeds, now));
+  for (const s of order) {
     const [ix, iy] = iso(s.x, s.y);
     const R = radiusOf(effAge(s, seeds, now)) * TH * 0.5 * z;
     const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2 - R - 12 * dpr;
+    const tw = c.measureText(s.name).width;
+    if (placed.some(([px2, py2]) => Math.abs(px2 - sx) < tw && Math.abs(py2 - sy) < 22 * dpr)) continue; // biggest town keeps its name
+    placed.push([sx, sy]);
     c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(s.name, sx, sy);
     c.fillStyle = INK; c.fillText(s.name, sx, sy);
   }
