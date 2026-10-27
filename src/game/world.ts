@@ -290,30 +290,52 @@ export function links(seeds: Seed[]): Link[] {
   return linkCache;
 }
 
+/**
+ * Trade road follows the terrain (A* on a 4-connected grid): land is cheap, hills cost more and
+ * water is very expensive, so a road only bridges a river where it truly has to cross it, taking
+ * the shortest crossing from one bank to the other.
+ */
 function buildLink(a: Seed, b: Seed, d: number): Link | null {
   const sn = (seedNum(a) ^ seedNum(b)) & 4095;
-  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-  const px = -(b.y - a.y) / d, py = (b.x - a.x) / d;
-  const bend = (hash(sn, 7, 3) - 0.5) * d * 0.45;
-  const cx = mx + px * bend, cy = my + py * bend;
-  const tiles: [number, number][] = [], water: boolean[] = [];
-  let deep = 0, lx = Math.round(a.x), ly = Math.round(a.y);
-  const push = (x: number, y: number) => {
+  const ax = Math.round(a.x), ay = Math.round(a.y), bx = Math.round(b.x), by = Math.round(b.y);
+  const pad = 24;
+  const x0 = Math.max(0, Math.min(ax, bx) - pad), y0 = Math.max(0, Math.min(ay, by) - pad);
+  const x1 = Math.min(MAP - 1, Math.max(ax, bx) + pad), y1 = Math.min(MAP - 1, Math.max(ay, by) + pad);
+  const W = x1 - x0 + 1, H = y1 - y0 + 1, N = W * H;
+  const cost = (x: number, y: number) => {
     const t = terrain(x, y);
-    if (t === "deep") deep++;
-    if (t === "hill" && tiles.length) { /* roads may climb hills */ }
-    tiles.push([x, y]); water.push(isWater(t));
+    if (t === "deep") return 400;
+    if (isWater(t)) return 40;
+    if (t === "mountain") return 30;
+    if (t === "hill") return 2.5;
+    if (t === "forest") return 1.8;
+    return 1 + vnoise(x * 0.15, y * 0.15, sn) * 0.6; // gentle meander
   };
-  push(lx, ly);
-  const n = Math.ceil(d * 3);
-  for (let k = 1; k <= n; k++) {
-    const u = k / n, iu = 1 - u;
-    const wob = (vnoise(u * 6, 3.1, sn) - 0.5) * 3 * Math.sin(u * Math.PI);
-    const x = Math.round(iu * iu * a.x + 2 * iu * u * cx + u * u * b.x + px * wob);
-    const y = Math.round(iu * iu * a.y + 2 * iu * u * cy + u * u * b.y + py * wob);
-    if (x === lx && y === ly) continue;
-    if (x !== lx && y !== ly) push(x, ly); // keep 4-connected so the road reads continuous
-    push(x, y); lx = x; ly = y;
+  const g = new Float64Array(N).fill(Infinity), from = new Int32Array(N).fill(-1), done = new Uint8Array(N);
+  const heap: [number, number][] = [];
+  const push = (f: number, i: number) => { heap.push([f, i]); let k = heap.length - 1; while (k > 0) { const p = (k - 1) >> 1; if (heap[p]![0] <= heap[k]![0]) break; [heap[p], heap[k]] = [heap[k]!, heap[p]!]; k = p; } };
+  const pop = () => { const top = heap[0]!, last = heap.pop()!; if (heap.length) { heap[0] = last; let k = 0; for (;;) { const l = 2 * k + 1, r = l + 1; let m = k; if (l < heap.length && heap[l]![0] < heap[m]![0]) m = l; if (r < heap.length && heap[r]![0] < heap[m]![0]) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k]!, heap[m]!]; k = m; } } return top; };
+  const s0 = (ay - y0) * W + (ax - x0), goal = (by - y0) * W + (bx - x0);
+  g[s0] = 0; push(0, s0);
+  while (heap.length) {
+    const [, i] = pop(); if (done[i]) continue; done[i] = 1;
+    if (i === goal) break;
+    const x = i % W, y = (i / W) | 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const j = ny * W + nx; if (done[j]) continue;
+      const ng = g[i]! + cost(nx + x0, ny + y0);
+      if (ng < g[j]!) { g[j] = ng; from[j] = i; push(ng + Math.abs(nx + x0 - bx) + Math.abs(ny + y0 - by), j); }
+    }
+  }
+  if (from[goal] === -1 && goal !== s0) return null;
+  const rev: number[] = []; for (let i = goal; i !== -1; i = from[i]!) rev.push(i);
+  const tiles: [number, number][] = [], water: boolean[] = [];
+  let deep = 0;
+  for (let k = rev.length - 1; k >= 0; k--) {
+    const i = rev[k]!, x = (i % W) + x0, y = ((i / W) | 0) + y0, t = terrain(x, y);
+    if (t === "deep") deep++;
+    tiles.push([x, y]); water.push(isWater(t));
   }
   if (deep > 6) return null; // no roads across the open sea
   return { a, b, d, since: Math.max(Date.parse(a.created_at), Date.parse(b.created_at)) + ROAD_AT * 3.6e6, tiles, water };
