@@ -47,6 +47,7 @@ export function Game() {
 
   const dpr = useRef(1);
   const [fs, setFs] = useState(false);
+  useEffect(() => { prewarmOverview(); }, []);
   useEffect(() => {
     const on = () => setFs(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", on);
