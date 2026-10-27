@@ -2,7 +2,7 @@ import { boonHours, type Decision } from "./encounters";
 // Pure, deterministic world + town growth logic (shared by every player).
 export const MAP = 1024;
 
-export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; firstRoad?: { target: string; at: number }; decisions?: Decision[] };
+export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; firstRoad?: { target: string; at: number }; decisions?: Decision[]; votes?: { partner: string; pact: PactKind; at: number }[]; works?: { partner: string; work: WorkKind; cost: number; at: number }[] };
 export type Planting = { id: string; seed_id: string; kind: "tree" | "flower" | "lantern"; x: number; y: number; created_at: string };
 
 export function hash(x: number, y: number, s = 0): number {
@@ -423,6 +423,8 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
   const c = scache.get(ck);
   if (c !== undefined) return c;
   let best: Structure | null = null;
+  const tw = twinSites(seeds, now).get(ck);
+  if (tw) { best = { kind: tw.kind, seed: tw.seed, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
   for (const s of seeds) {
     if (!s.bought?.length) continue;
     const sp = specialSites(s).get(ck);
@@ -447,7 +449,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
   }
   if (!best) {
     const rd = roadAt(x, y, seeds, now);
-    if (rd) best = { kind: rd.bridge ? "bridge" : "road", seed: rd.link.a, v: hash(x, y, 5) };
+    if (rd) best = { kind: rd.bridge ? "bridge" : isTwin(rd.link, seeds, now) ? "street" : "road", seed: rd.link.a, v: hash(x, y, 5) };
   }
   scache.set(ck, best);
   return best;
@@ -638,6 +640,9 @@ export function speedOf(s: Seed, seeds: Seed[], now: number) {
 
 /** Effective age: real age plus bonus hours accumulated since each road was founded (monotonic, deterministic). */
 export function effAge(s: Seed, seeds: Seed[], now: number) {
+  return effAgeBase(s, seeds, now) + twinHours(s, seeds, now);
+}
+function effAgeBase(s: Seed, seeds: Seed[], now: number) {
   let h = ageHours(s, now) + blessHours(s, now) + boonHours(s.decisions ?? [], now);
   if (s.charter?.path === "farm" && now > s.charter.at) h += (now - s.charter.at) / 3.6e6 * FARM_BONUS;
   const base = h;
@@ -670,10 +675,134 @@ export function tradeHints(s: Seed, seeds: Seed[], now: number) {
   });
 }
 
+// ---------------- twin towns ----------------
+export type PactKind = "trade" | "shield" | "culture";
+export const PACTS: PactKind[] = ["trade", "shield", "culture"];
+export type WorkKind = "bridge" | "hall" | "tower";
+/** Each side pays this half (Taler); mirrors the database guard. */
+export const TWIN_WORKS: Record<WorkKind, number> = { bridge: 200, hall: 300, tower: 250 };
+export const TWIN_BONUS = 0.1, PACT_WAIT = 7 * 864e5, WORK_BUILD = 48 * 3.6e6, WORK_BONUS = 0.05;
+export const PACT_GROWTH: Record<PactKind, number> = { trade: 0.1, shield: 0, culture: 0.05 };
+const WORK_KIND: Record<WorkKind, Kind> = { bridge: "townhall", hall: "markethall", tower: "church" };
+const pairHash = (l: Link) => hash(l.a.x + l.b.x, l.a.y + l.b.y, 21);
+
+const sinceMemo = new WeakMap<Seed[], Map<string, number | null>>();
+/** First moment (minute precision) the outskirts of both towns touch; null if not within three years. Pure. */
+export function twinSince(l: Link, seeds: Seed[]): number | null {
+  let m = sinceMemo.get(seeds); if (!m) { m = new Map(); sinceMemo.set(seeds, m); }
+  const k = `${l.a.id}|${l.b.id}`;
+  if (m.has(k)) return m.get(k)!;
+  const touch = (t: number) => radiusOf(effAgeBase(l.a, seeds, t)) + radiusOf(effAgeBase(l.b, seeds, t)) >= l.d;
+  let lo = Math.max(Date.parse(l.a.created_at), Date.parse(l.b.created_at)), hi = lo + 3 * 365 * 864e5;
+  let r: number | null = null;
+  if (touch(hi)) {
+    if (touch(lo)) hi = lo;
+    else while (hi - lo > 60000) { const mid = (lo + hi) / 2; if (touch(mid)) hi = mid; else lo = mid; }
+    r = Math.ceil(hi / 60000) * 60000;
+  }
+  m.set(k, r);
+  return r;
+}
 /** Two towns whose outskirts touch become a twin town. */
 export function isTwin(l: Link, seeds: Seed[], now: number) {
-  return radiusOf(effAge(l.a, seeds, now)) + radiusOf(effAge(l.b, seeds, now)) >= l.d;
+  const t = twinSince(l, seeds);
+  return t !== null && now >= t;
 }
+export function twinLinks(s: Seed, seeds: Seed[], now: number) {
+  return links(seeds).filter((l) => (l.a.id === s.id || l.b.id === s.id) && isTwin(l, seeds, now));
+}
+const latest = <T extends { partner: string; at: number }>(xs: T[] | undefined, id: string, now: number) =>
+  (xs ?? []).filter((v) => v.partner === id && v.at <= now).sort((a, b) => b.at - a.at)[0];
+
+/** Agreed pact between two twins, derived from both votes; sample towns follow the player, silence for 7 days adopts the partner's choice. */
+export function pactOf(s: Seed, o: Seed, seeds: Seed[], now: number): { kind: PactKind; at: number } | null {
+  const l = links(seeds).find((k) => (k.a.id === s.id && k.b.id === o.id) || (k.a.id === o.id && k.b.id === s.id));
+  if (!l) return null;
+  const ts = twinSince(l, seeds); if (ts === null || now < ts) return null;
+  const mine = latest(s.votes, o.id, now), theirs = latest(o.votes, s.id, now);
+  let r: { kind: PactKind; at: number } | null = null;
+  if (!s.user_id && !o.user_id) r = { kind: PACTS[Math.floor(pairHash(l) * 3) % 3]!, at: ts };
+  else if (!o.user_id || !s.user_id) { const v = mine ?? theirs; r = v ? { kind: v.pact, at: v.at } : null; }
+  else if (mine && theirs) {
+    if (mine.pact === theirs.pact) r = { kind: mine.pact, at: Math.max(mine.at, theirs.at) };
+    else { const nw = mine.at > theirs.at ? mine : theirs; r = { kind: nw.pact, at: nw.at + PACT_WAIT }; }
+  } else { const v = mine ?? theirs; r = v ? { kind: v.pact, at: v.at + PACT_WAIT } : null; }
+  return r && r.at <= now ? r : null;
+}
+/** What the town still has to decide for the pact with `o`: "vote" (no vote yet), "wait" (partner differs or has not voted) or null. */
+export function pactPending(s: Seed, o: Seed, seeds: Seed[], now: number) {
+  if (pactOf(s, o, seeds, now)) return null;
+  const mine = latest(s.votes, o.id, now), theirs = latest(o.votes, s.id, now);
+  if (!mine) return "vote" as const;
+  if (theirs && theirs.pact !== mine.pact && theirs.at > mine.at) return "vote" as const;
+  return "wait" as const;
+}
+/** Joint building: both halves paid (sample towns pay instantly), then WORK_BUILD hours of construction. */
+export function workOf(s: Seed, o: Seed, now: number) {
+  const a = latest(s.works, o.id, now), b = latest(o.works, s.id, now) ?? (a && !o.user_id ? { ...a } : undefined);
+  const work = a?.work ?? b?.work ?? null;
+  const start = a && b ? Math.max(a.at, b.at) : null;
+  return { work, mine: !!a, theirs: !!b, start, done: start !== null ? start + WORK_BUILD : null };
+}
+/** Weekly market day at the gate and monthly twin festival (UTC days, from the pair). */
+export const marketDay = (l: Link, now: number) => (Math.floor(now / 864e5) + 3) % 7 === Math.floor(pairHash(l) * 7);
+export const festivalDay = (l: Link, at: number) => new Date(at).getUTCDate() === 1 + Math.floor(pairHash(l) * 28);
+const utcDay = (t: number) => Math.floor(t / 864e5);
+
+/** Growth hours from being a twin: +10 % since touching, pact and joint work bonuses, doubled blessings on festival days. */
+function twinHours(s: Seed, seeds: Seed[], now: number) {
+  let h = 0;
+  for (const l of links(seeds)) {
+    if (l.a.id !== s.id && l.b.id !== s.id) continue;
+    const ts = twinSince(l, seeds); if (ts === null || now < ts) continue;
+    const o = l.a.id === s.id ? l.b : l.a;
+    h += TWIN_BONUS * (now - ts) / 3.6e6;
+    const p = pactOf(s, o, seeds, now);
+    if (p) h += PACT_GROWTH[p.kind] * (now - p.at) / 3.6e6;
+    const w = workOf(s, o, now);
+    if (w.done !== null && now > w.done) h += WORK_BONUS * (now - w.done) / 3.6e6;
+    for (const b of s.blessed ?? []) {
+      if (b < ts || b > now || !festivalDay(l, b)) continue;
+      if ((o.blessed ?? []).some((x) => utcDay(x) === utcDay(b)) || !o.user_id) h += Math.min(now - b, BLESS_MS) / 3.6e6 * BLESS_BONUS;
+    }
+  }
+  return h;
+}
+/** Gate square, border well, market stalls and the joint building on the twin road's midpoint. Pure. */
+const siteMemo = new WeakMap<Seed[], { key: number; map: Map<number, { kind: Kind; seed: Seed }> }>();
+export function twinSites(seeds: Seed[], now: number) {
+  const key = Math.floor(now / 60000), c = siteMemo.get(seeds);
+  if (c && c.key === key) return c.map;
+  const map = new Map<number, { kind: Kind; seed: Seed }>();
+  for (const l of links(seeds)) {
+    if (!isTwin(l, seeds, now) || l.tiles.length < 7) continue;
+    const m = Math.floor(l.tiles.length / 2);
+    const put = (i: number, kind: Kind, dx = 0, dy = 0) => {
+      const t = l.tiles[i]; if (!t || l.water[i]) return;
+      const x = t[0] + dx, y = t[1] + dy;
+      if (dx || dy) { if (!buildable(terrain(x, y))) return; }
+      map.set(y * MAP + x, { kind, seed: i < m ? l.a : l.b });
+    };
+    put(m, "well"); put(m - 1, "square"); put(m + 1, "square");
+    if (marketDay(l, now)) { put(m - 2, "market"); put(m + 2, "market"); }
+    const w = workOf(l.a, l.b, now);
+    if (w.work && w.done !== null && now >= w.done) {
+      const [ax, ay] = l.tiles[m - 1]!, [bx, by] = l.tiles[m + 1]!;
+      const px = -Math.sign(by - ay) * 2, py = Math.sign(bx - ax) * 2;
+      put(m, WORK_KIND[w.work], px || 2, py);
+    }
+  }
+  siteMemo.set(seeds, { key, map });
+  return map;
+}
+/** Twin pair whose gate stands on (or next to) this tile. */
+export function twinGateAt(x: number, y: number, seeds: Seed[], now: number) {
+  return links(seeds).find((l) => {
+    if (!isTwin(l, seeds, now)) return false;
+    const t = l.tiles[Math.floor(l.tiles.length / 2)]; return !!t && Math.hypot(t[0] - x, t[1] - y) <= 2;
+  }) ?? null;
+}
+
 
 
 // ---------------- daily blessing (bell / decorated well) ----------------
