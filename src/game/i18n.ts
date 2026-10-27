@@ -115,6 +115,9 @@ const de = {
   exitFullscreen: "Vollbild beenden",
   tradeBonus: (p: number) => `+${p}% Wachstum durch Handel`,
   twinWith: (n: string) => `Zwillingsstadt mit ${n}`,
+  hud: { build: "Bauen", rituals: "Zuwendung", signs: "Wegweiser", towns: "Dörfer", plant: "Samen setzen", settings: "Einstellungen", menu: "Menü", zoomIn: "Hineinzoomen", zoomOut: "Herauszoomen", close: "Schließen", noTown: "Setze zuerst deinen Samen.", login: "Melde dich an, um ein Dorf zu gründen.", language: "Sprache" },
+  perDay: (n: number) => `+${n}/Tag`,
+  people: (n: number) => `${n} Bewohner`,
 };
 
 const en: typeof de = {
@@ -232,6 +235,9 @@ const en: typeof de = {
   exitFullscreen: "Exit fullscreen",
   tradeBonus: (p) => `+${p}% growth from trade`,
   twinWith: (n) => `Twin town with ${n}`,
+  hud: { build: "Build", rituals: "Care", signs: "Signposts", towns: "Villages", plant: "Plant seed", settings: "Settings", menu: "Menu", zoomIn: "Zoom in", zoomOut: "Zoom out", close: "Close", noTown: "Plant your seed first.", login: "Sign in to found a village.", language: "Language" },
+  perDay: (n: number) => `+${n}/day`,
+  people: (n: number) => `${n} residents`,
 };
 
 export const DICT = { de, en };
