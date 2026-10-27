@@ -294,17 +294,22 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, bob: numbe
 }
 
 // ---------------- villagers ----------------
-const SKIN = ["#f1d3b8", "#e6bf9c", "#d4a27c", "#b47e58", "#8d5a3b"];
-const HAIR = ["#2e2119", "#5a3b26", "#8a5a33", "#c8964f", "#e2c47a", "#a8452c"];
-const CLOTH = ["#7d9a6a", "#b5503e", "#4f6d8a", "#c99a4a", "#8a6a9a", "#6b8f8a", "#a8735a", "#5d6b4a", "#c77b6a", "#efe3c8"];
-const PANTS = ["#4a4038", "#5a5f6b", "#6b5440", "#3f4a5a"];
+// Muted, earthy period palette (Commandos-like): no saturated toy colours.
+const SKIN = ["#e2bf9f", "#d3a985", "#bf9068", "#9c6d4a", "#74492f"];
+const HAIR = ["#2a1e16", "#4a3222", "#6e4a2c", "#a07a45", "#bfa36a", "#7f3c25"];
+const CLOTH = ["#6b7552", "#8a4a38", "#4e5d6c", "#9c8150", "#6a5a66", "#5a6e66", "#8a6650", "#525a40", "#a07a62", "#cfc3a5"];
+const PANTS = ["#3e362f", "#4b4e55", "#5a4736", "#363d47"];
+/** Villagers are drawn at this fraction of their modelled size so they match doors, fences and fields. */
+const PERSON_SCALE = 0.55;
 /** Screen-space people currently drawn (for clicking). */
 export const lastPeople: { x: number; y: number; q: Pose }[] = [];
 function limb(c: C, pts: Pt[], col: string, w: number) {
   c.lineCap = "round"; c.lineJoin = "round";
   c.beginPath(); c.moveTo(pts[0]![0], pts[0]![1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i]![0], pts[i]![1]);
-  c.strokeStyle = "rgba(30,22,15,0.4)"; c.lineWidth = w + 0.16; c.stroke();
+  c.strokeStyle = "rgba(22,16,10,0.85)"; c.lineWidth = w + 0.45; c.stroke();
   c.strokeStyle = col; c.lineWidth = w; c.stroke();
+  // soft top-left light, like painted sprite shading
+  c.strokeStyle = "rgba(255,235,200,0.16)"; c.lineWidth = w * 0.35; c.stroke();
 }
 function bubble(c: C, x: number, y: number, icon: number) {
   c.beginPath(); c.ellipse(x, y, 2.6, 1.9, 0, 0, 7);
