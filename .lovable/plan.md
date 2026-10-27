@@ -1,70 +1,53 @@
-# Klangkonzept für Samenland
+# Neue Spieloberfläche im SimCity-Stil
 
-Ziel: Die Welt klingt so, wie sie aussieht – leise, natürlich, gemütlich. Was man sieht, hört man; was weit weg ist, verschwindet sanft.
+## Ziel
+Die verstreuten Panels (Login oben links, Dorfliste, „Mein Dorf“-Kasten, Einzelknöpfe oben rechts) werden durch eine klare, gemütliche Spiel-Oberfläche ersetzt: eine obere Leiste mit den wichtigsten Werten und ein Bau-Menü am linken Rand. Optik: warmes Holz/Pergament passend zur detaillierten Grafik, keine flache Standard-Optik.
 
-## 1. Grundprinzip: Klang folgt der Kamera
-- **Zoomstufe bestimmt die Klangebene:**
-  - Ganz draußen (Kartenübersicht): Wind, Möwen an der Küste, ferne Brandung.
-  - Mittlere Höhe: Wind wird leiser, Landschaft kommt dazu (Wald, Flüsse, Vögel).
-  - Nah am Dorf: Dorfleben – Stimmengemurmel, Schritte, Werkzeuge, Tiere.
-- **Was im Bild ist, ist hörbar.** Quellen am Bildrand leiser, links/rechts im Stereobild passend zur Position.
-- **Weiche Überblendungen** (1–2 s), nie hartes Ein-/Ausschalten.
+## Aufbau
 
-## 2. Umgebungsflächen (Dauerklänge)
-| Quelle | Klang | Wann |
-|---|---|---|
-| Hohe Zoomstufe | Wind, böig | Stärke wechselt langsam |
-| Wald/Bäume | Blätterrauschen | lauter mit Baumdichte im Bild |
-| Bach/Fluss | Plätschern, Fließen | lauter nah am Wasser |
-| Küste/Meer | Brandung, Möwen | Küste im Bild |
-| Dorf | Stimmengemurmel | Anzahl Bewohner im Bild, nachts leiser |
-| Felder | Grillen (Sommer), Feldlerche | je nach Jahreszeit |
+```text
++--------------------------------------------------------------+
+| [Wappen] Dönerville  | 12G 34S 56K (+18/Tag) | Bewohner 42 |  |
+| Nahrung ▓▓░ Gesundh. ▓▓▓ Wohlst. ▓░░ | Datum/Jahreszeit | ⚙ 🔊 ⛶ |
++----+---------------------------------------------------------+
+|Bau |                                                         |
+| 🏠 |                                                         |
+| 🐟 |                  Spielwelt                              |
+| 🌾 |                                                         |
+| ⛪ |                                    [Info-Karte rechts]  |
+| 🔔 |                                                         |
+| 🪧 |                                                         |
++----+------------------------------[Minikarte / Zoom +/-]-----+
+```
 
-## 3. Punktquellen (an Gebäuden/Objekten)
-- Lagerfeuer: Prasseln, gelegentliches Knacken.
-- Schmiede: Hammerschläge auf Amboss.
-- Windmühle: Knarzen der Flügel; Wassermühle: Rad plätschert.
-- Sägewerk: Sägen; Baustellen: Hämmern, Schaufeln.
-- Holzfäller: Axthiebe, selten fallender Baum; Steinmetz: Meißeln.
-- Kirche: Glocke zur vollen Stunde (echte Uhrzeit).
-- Karren: Holzräder rumpeln, Ochse schnaubt; Boote: Wellenschlag.
+### 1. Obere Leiste (wie SimCity)
+- Links: Dorfname mit Wappen, Epoche (Weiler … Metropole).
+- Mitte: Kasse in Gold/Silber/Kupfer mit täglicher Steuer, Bewohnerzahl, drei kleine Balken für Nahrung, Gesundheit, Wohlstand.
+- Rechts: Datum und Jahreszeit, Tageszeit, Knöpfe für Ton, Vollbild, Einstellungen (Sprache, Konto/Abmelden).
+- Ohne Anmeldung: Leiste zeigt „Anmelden“-Knopf statt Kasse; Anmeldung öffnet sich als Fenster (Google, Apple, E-Mail).
 
-## 4. Bewohner & Gespräche
-- Keine echte Sprache, sondern gemütliches „Simlish“-Murmeln (kurze Silbenlaute), passend zur Sprechblase und zum Sprecher (Kind/Erwachsener/Alt).
-- Nur die nächsten 2–3 Gespräche hörbar, Rest als Gemurmel.
-- Schritte: leise, nur ganz nah, Untergrund (Gras/Weg).
+### 2. Bau-Menü links
+Senkrechte Leiste mit Symbol-Kategorien; Klick klappt ein Fach mit Karten aus:
+- **Gebäude:** Fischerhütte, Scheune, Heiler(in), Schule – Bild, Preis, Bonus, Kaufen-Knopf (ausgegraut bei zu wenig Geld oder falscher Epoche).
+- **Zuwendung:** Glocke läuten / Brunnen schmücken mit Abklingzeit.
+- **Wegweiser:** Grüße an Nachbardörfer.
+- **Dörfer:** Liste aller Dörfer zum Hinspringen (ersetzt die bisherige Dorfliste).
+- **Samen setzen** für Spieler ohne Dorf.
 
-## 5. Tag, Nacht & Jahreszeiten
-- Morgen: Hahn, Vogelchor. Abend: Amsel. Nacht: Grillen, Eule, Feuer lauter, Dorf still.
-- Winter: gedämpft, kein Blätterrauschen, kalter Wind. Herbst: raschelndes Laub. Frühling: mehr Vögel.
+### 3. Info-Karten
+Bewohner-, Gebäude-, Baustellen- und Wegweiser-Karten erscheinen einheitlich gestaltet rechts unten (mobil als Blatt von unten).
 
-## 6. Interaktion (Klick-Reaktionen)
-- Schaf anklicken: „Mäh!“ und Schaf hüpft kurz.
-- Huhn: Gackern; Ochse: Muhen; Bewohner: kurzes „Hm?“ / Gruß.
-- Gebäude anklicken: passender Kurzklang (Tür, Glocke, Hammer).
-- Samen setzen: weiches Erde-Geräusch und kleines Glöckchen.
-- Meilenstein/neue Wachstumsstufe: kurze warme Melodie (Laute/Flöte).
+### 4. Unten rechts
+Kleine Minikarte (vorhandene Übersichtskarte) mit Kamera-Rahmen, Klick springt dorthin; Zoom-Knöpfe + / – / „Zu meinem Dorf“.
 
-## 7. Musik (optional)
-- Sehr sparsame, akustische Musikstücke (Gitarre, Flöte), die nur gelegentlich spielen, dazwischen lange Ruhe.
-
-## 8. Bedienung
-- Lautsprecher-Symbol neben dem Vollbild-Knopf: an/aus.
-- Einstellungen: Gesamtlautstärke, Umgebung, Effekte, Musik.
-- Ton startet erst nach erster Berührung (Browser-Pflicht), standardmäßig an mit leiser Lautstärke; Einstellung wird gemerkt.
-- Tab im Hintergrund = stumm.
-
-## 9. Umsetzung in Schritten
-1. Grundgerüst + Lautsprecherknopf + Wind/Dorfgemurmel nach Zoom.
-2. Landschaft: Blätter, Wasser, Meer, Feuer – an echte Positionen im Bild gebunden.
-3. Klick-Reaktionen (Schaf „Mäh!“, Huhn, Bewohner).
-4. Handwerk & Baustellen, Kirchenglocke, Tag/Nacht/Jahreszeit.
-5. Optional Musik.
+### 5. Smartphone
+- Obere Leiste kompakt: Geld, Bewohner, Menü-Knopf.
+- Bau-Menü wird zur unteren Symbolleiste; Fächer öffnen sich als Blatt von unten.
+- Kein Vollbild-Knopf (wie bisher).
 
 ## Technische Details
-- Web Audio API: ein `AudioContext`, Mixer-Busse (ambient/sfx/music) mit GainNodes, `StereoPannerNode` je Punktquelle.
-- Neues Modul `src/game/audio.ts`; Render-Schleife übergibt pro ~200 ms eine Zusammenfassung des sichtbaren Bereichs (Zoom, Anzahl Bäume/Wasserkacheln/Bewohner, nächste Punktquellen) – keine Audio-Logik pro Frame.
-- Dauerklänge als nahtlose Loops, Punktquellen aus kleinen Pools mit zufälliger Tonhöhe/Pause, max. ~12 gleichzeitige Stimmen.
-- Klänge: lizenzfreie Aufnahmen (CC0) oder per KI erzeugt, als kleine komprimierte Dateien (Ziel < 2 MB gesamt), vorab geladen.
-- Klänge sind rein lokal und abgeleitet – nichts wird gespeichert, passt zum deterministischen Weltmodell.
-- Texte der Einstellungen in i18n.ts (de/en).
+- `Game.tsx` (822 Zeilen) wird aufgeteilt in `src/components/hud/`: `TopBar`, `BuildMenu` (+ Fächer `BuildingsTab`, `RitualsTab`, `SignsTab`, `TownsTab`), `InfoCard`, `Minimap`, `AuthDialog`. Spiel-Zustand bleibt in `Game.tsx`, wird per Props übergeben.
+- Neue Design-Tokens in `src/styles.css` (Holz-, Pergament-, Messingtöne, Schatten); keine fest codierten Farben.
+- Alle neuen Texte in `src/game/i18n.ts` (de/en).
+- Spiel-Logik, Datenbank und Kaufregeln bleiben unverändert; vorhandene Tests müssen weiter grün sein.
+- Prüfung per Screenshot auf Desktop- und Smartphone-Größe, angemeldet und abgemeldet.
