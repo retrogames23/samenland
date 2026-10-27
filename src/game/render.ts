@@ -286,9 +286,8 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, bob: numbe
   const a = P(-3.3, 0, 2), b = P(2, 0, 2);
   const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, hw = Math.max(1.6, Math.hypot(b[0] - a[0], b[1] - a[1]) / 2);
   c.beginPath(); c.ellipse(mx, my, hw, 3.4, Math.atan2(b[1] - a[1], b[0] - a[0]), Math.PI, Math.PI * 2); c.closePath();
-  c.fillStyle = "#efe3c8"; c.fill(); c.strokeStyle = INK; c.lineWidth = 0.55; c.stroke();
+  c.fillStyle = cover; c.fill(); c.strokeStyle = INK; c.lineWidth = 0.55; c.stroke();
   c.globalAlpha = 0.5; line(c, [mx, my], [mx, my - 3.3], sd + 6, 0.4); c.globalAlpha = 1;
-  void cover;
 }
 
 let overview: HTMLCanvasElement | null = null;
@@ -513,7 +512,7 @@ export function draw(
       const bob = Math.sin(t / 180 + k) * 0.4;
       let dx = (bx - ax) * (fwd ? 1 : -1), dy = (by - ay) * (fwd ? 1 : -1);
       const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
-      if (hash(sn, k, 3) < 0.55) drawCart(c, x, y, dx, dy, bob, sn + k, hsl(30 + hash(sn, k, 4) * 30, 40, 55), t);
+      if (hash(sn, k, 3) < 0.55) drawCart(c, x, y, dx, dy, bob, sn + k, hsl(35 + hash(sn, k, 4) * 20, 35, 82), t);
       else {
         // wanderer
         line(c, [x, y], [x, y - 4 + bob], sn + k, 0.7);
