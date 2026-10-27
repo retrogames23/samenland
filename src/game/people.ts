@@ -1,6 +1,6 @@
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { hash, vnoise, structureAt, effAge, radiusOf, terrain, buildable, FLAT, type Seed, type Kind } from "./world";
+import { hash, structureAt, effAge, radiusOf, terrain, buildable, FLAT, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
