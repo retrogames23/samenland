@@ -28,3 +28,4 @@
 - Building night lighting uses aligned, light-only sprite layers with the daylight sprite dimensions and anchors; schedules and flicker live in night.ts so windows stay aligned at every zoom without replacing daytime art.
 - Encounters: the day's event is derived in src/game/encounters.ts from (seed id, UTC day); only the chosen answer is stored, with prices and one-per-day enforced by a database guard — keeps all clients identical and spending tamper-proof.
 - Day/night, villager routines, lights and bell use one world clock (src/game/time.ts, Europe/Berlin); never read the client's local hour, so all players see the same scene.
+- Four realms (seeds.realm: us-west/us-east/europe/asia) are separate maps, each with its own shared clock in src/game/time.ts; players land by browser UTC offset, only admins (user_roles) may override — keeps day/night shared within a map.
