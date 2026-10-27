@@ -30,3 +30,4 @@
 - Day/night, villager routines, lights and bell use one world clock (src/game/time.ts, Europe/Berlin); never read the client's local hour, so all players see the same scene.
 - Four realms (seeds.realm: us-west/us-east/europe/asia) are separate maps, each with its own shared clock in src/game/time.ts; players land by browser UTC offset, only admins (user_roles) may override — keeps day/night shared within a map.
 - Twin towns: touch time (twinSince), pacts, joint works, gate sites and festival bonuses are derived in world.ts from seeds + twin_votes/twin_works rows (DB guard charges halves); never store twin state — all clients agree.
+- Landmarks relocate from their nominal offset to the nearest dry tile via landmarkSpots(seed) in world.ts (pure, cached) — so coastal/mountain towns never lose landmarks to water.

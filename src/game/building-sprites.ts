@@ -21,6 +21,10 @@ import millSails from "@/assets/sprites/mill-sails.webp";
 import inn from "@/assets/sprites/inn.webp";
 import bakery from "@/assets/sprites/bakery.webp";
 import townhouse from "@/assets/sprites/townhouse.webp";
+import townhouse2 from "@/assets/sprites/townhouse2.webp";
+import patrician from "@/assets/sprites/patrician.webp";
+import villa from "@/assets/sprites/villa.webp";
+import tenement from "@/assets/sprites/tenement.webp";
 import workshop from "@/assets/sprites/workshop.webp";
 import smithy from "@/assets/sprites/smithy.webp";
 import warehouse from "@/assets/sprites/warehouse.webp";
@@ -99,6 +103,10 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   inn: { url: inn, crop: [0, 0, 982, 925], width: 26, base: 5 },
   bakery: { url: bakery, crop: [0, 0, 921, 908], width: 24, base: 5 },
   townhouse: { url: townhouse, crop: [0, 0, 498, 1010], width: 19, base: 4 },
+  townhouse2: { url: townhouse2, crop: [0, 0, 240, 480], width: 18, base: 4 },
+  patrician: { url: patrician, crop: [0, 0, 274, 480], width: 21, base: 4 },
+  villa: { url: villa, crop: [0, 0, 480, 479], width: 27, base: 4 },
+  tenement: { url: tenement, crop: [0, 0, 480, 471], width: 28, base: 4 },
   workshop: { url: workshop, crop: [0, 0, 994, 857], width: 24, base: 5 },
   smithy: { url: smithy, crop: [0, 0, 1008, 868], width: 25, base: 5 },
   warehouse: { url: warehouse, crop: [0, 0, 993, 705], width: 29, base: 5 },
