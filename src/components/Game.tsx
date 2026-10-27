@@ -43,6 +43,7 @@ const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coa
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, plantError, type Lang } from "@/game/i18n";
 import { ITEMS, GUILD, canBuy, dailyTax, attributes, treasury, type Item, type Purchase } from "@/game/economy";
+import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,9 @@ export function Game() {
   const [charterOpen, setCharterOpen] = useState(false);
   const [firstRoads, setFirstRoads] = useState<{ id: string; seed_id: string; target_id: string; created_at: string }[]>([]);
   const [roadOpen, setRoadOpen] = useState(false);
+  type EncRow = { id: string; seed_id: string; event: string; choice: string; cost: number; created_at: string };
+  const [encounters, setEncounters] = useState<EncRow[]>([]);
+  const [encOpen, setEncOpen] = useState(false);
   const [roadPick, setRoadPick] = useState<string | null>(null);
   const [charterPick, setCharterPick] = useState<CharterPath | null>(null);
   const [signs, setSigns] = useState<Signpost[]>([]);
@@ -67,13 +71,15 @@ export function Game() {
     const by = new Map<string, number[]>();
     for (const b of blessings) { if (!by.has(b.seed_id)) by.set(b.seed_id, []); by.get(b.seed_id)!.push(Date.parse(b.created_at)); }
     const buys = new Map<string, NonNullable<Seed["bought"]>>();
+    const decs = new Map<string, Decision[]>();
+    for (const e of encounters) { if (!decs.has(e.seed_id)) decs.set(e.seed_id, []); decs.get(e.seed_id)!.push({ event: e.event, choice: e.choice, cost: e.cost, at: Date.parse(e.created_at) }); }
     for (const p of purchases) { if (!buys.has(p.seed_id)) buys.set(p.seed_id, []); buys.get(p.seed_id)!.push({ item: p.item, at: Date.parse(p.created_at), x: p.x ?? null, y: p.y ?? null }); }
     return rawSeeds.map((s) => {
-      const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id), fr = firstRoads.find((f) => f.seed_id === s.id);
-      if (!bl && !bo && !ch && !fr) return s;
-      return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { firstRoad: { target: fr.target_id, at: Date.parse(fr.created_at) } } : {}) };
+      const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id), fr = firstRoads.find((f) => f.seed_id === s.id), de = decs.get(s.id);
+      if (!bl && !bo && !ch && !fr && !de) return s;
+      return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { firstRoad: { target: fr.target_id, at: Date.parse(fr.created_at) } } : {}), ...(de ? { decisions: de.sort((a, b) => a.at - b.at) } : {}) };
     });
-  }, [rawSeeds, blessings, purchases, charters, firstRoads]);
+  }, [rawSeeds, blessings, purchases, charters, firstRoads, encounters]);
   useEffect(() => { setSignposts(signs); }, [signs]);
   const [plantings, setPlantings] = useState<Planting[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -162,6 +168,7 @@ export function Game() {
         supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y"),
       ]);
       supabase.from("charters").select("id, seed_id, path, created_at").then(({ data }) => setCharters(data ?? []));
+      supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").then(({ data }) => setEncounters(data ?? []));
       supabase.from("first_roads").select("id, seed_id, target_id, created_at").then(({ data }) => setFirstRoads(data ?? []));
       setBlessings(bl.data ?? []);
       setPurchases(pu.data ?? []);
@@ -191,6 +198,10 @@ export function Game() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "charters" }, (p) => {
         const n = p.new as { id: string; seed_id: string; path: string; created_at: string };
         setCharters((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "encounters" }, (p) => {
+        const n = p.new as EncRow;
+        setEncounters((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "first_roads" }, (p) => {
         const n = p.new as { id: string; seed_id: string; target_id: string; created_at: string };
@@ -375,6 +386,13 @@ export function Game() {
     if (error || !data) return setMsg(t.road.fail);
     setFirstRoads((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
     bell(0); setRoadOpen(false); setMsg(t.road.sealed(seeds.find((s) => s.id === roadPick)?.name ?? ""));
+  };
+  const decide = async (event: string, choice: string) => {
+    if (!my || !userId) return;
+    const { data, error } = await supabase.from("encounters").insert({ seed_id: my.id, user_id: userId, event, choice }).select("id, seed_id, event, choice, cost, created_at").single();
+    if (error || !data) return setMsg(t.enc.fail);
+    setEncounters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
+    bell(0); setEncOpen(false); setMsg(t.enc.done);
   };
   const myStats = my ? townStats(my, seeds, Date.now()) : null;
   const switchLang = (l: Lang) => {
@@ -646,6 +664,11 @@ export function Game() {
                 <span aria-hidden>🛤</span>{t.road.btn}
               </button>
             )}
+            {my && my.user_id === userId && pendingEncounter(my, my.decisions ?? [], Date.now()) && (
+              <button type="button" onClick={() => setEncOpen(true)} className="pointer-events-auto mt-0.5 flex items-center gap-1 rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
+                <span aria-hidden>📜</span>{t.enc.btn}
+              </button>
+            )}
             {my && !myCharter && my.user_id === userId && (
               <button type="button" onClick={() => { setCharterPick(null); setCharterOpen(true); }} className="pointer-events-auto mt-0.5 flex items-center gap-1 rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
                 <span aria-hidden className="grid h-3.5 w-3.5 place-items-center rounded-full bg-destructive text-[8px] text-destructive-foreground">✦</span>{t.charter.seal}
@@ -732,6 +755,54 @@ export function Game() {
         </Panel>
       </div>
 
+      {encOpen && my && (() => {
+        const ev = pendingEncounter(my, my.decisions ?? [], Date.now());
+        const fxText = (e: string, c: string) => {
+          const ch = choiceOf(e, c)!; const f = ch.fx as { h?: number; growth?: number; food?: number; health?: number; wealth?: number };
+          const parts = [f.growth ? t.enc.growth(Math.round(f.growth * 100)) : "", f.food ? `+${f.food} ${t.enc.food}` : "", f.health ? `+${f.health} ${t.enc.health}` : "", f.wealth ? `+${f.wealth} ${t.enc.wealth}` : ""].filter(Boolean);
+          return parts.length && f.h ? `${parts.join(" · ")} · ${t.enc.lasts(f.h)}` : parts.join(" · ");
+        };
+        const created = Date.parse(my.created_at);
+        return (
+          <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/30 p-4" onClick={() => setEncOpen(false)}>
+            <div onClick={(e) => e.stopPropagation()} className="max-h-full w-full max-w-xl overflow-auto">
+              <Panel inner="p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="font-display text-4xl leading-none text-wood">{ev ? t.enc.events[ev]![0] : t.enc.title}</h2>
+                  <button type="button" aria-label={t.hud.close} onClick={() => setEncOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+                </div>
+                {!ev ? <p className="mt-2 text-sm text-muted-foreground">{t.enc.decided}</p> : (
+                  <>
+                    <p className="mt-2 text-sm italic text-muted-foreground">{t.enc.events[ev]![1]}</p>
+                    <div className="mt-4 grid gap-2">
+                      {Object.keys(ENCOUNTERS[ev]).map((c) => {
+                        const cost = choiceOf(ev, c)!.cost, poor = cost > cash, fx = fxText(ev, c);
+                        return (
+                          <button key={c} type="button" disabled={poor} onClick={() => decide(ev, c)} className="rounded-md border-2 border-border p-2 text-left hover:border-brass hover:bg-brass/20 disabled:opacity-50">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-semibold text-wood">{t.enc.choices[`${ev}:${c}`]}</span>
+                              <span className="text-xs font-semibold tabular-nums">{cost > 0 ? t.taler(cost) : cost < 0 ? t.enc.gain(-cost) : t.enc.free}</span>
+                            </div>
+                            {(fx || poor) && <div className="text-xs text-muted-foreground">{poor ? t.enc.poor : fx}</div>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+                <h3 className="mt-5 font-display text-2xl text-wood">{t.enc.chronicle}</h3>
+                {(my.decisions ?? []).length === 0 ? <p className="text-xs text-muted-foreground">{t.enc.none}</p> : (
+                  <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                    {[...(my.decisions ?? [])].reverse().slice(0, 8).map((d) => (
+                      <li key={d.at}>{t.day} {Math.floor((d.at - created) / 86400000) + 1}: {t.enc.events[d.event]?.[0]} – {t.enc.choices[`${d.event}:${d.choice}`]}</li>
+                    ))}
+                  </ul>
+                )}
+              </Panel>
+            </div>
+          </div>
+        );
+      })()}
       {roadOpen && my && (
         <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/30 p-4" onClick={() => setRoadOpen(false)}>
           <div onClick={(e) => e.stopPropagation()} className="max-h-full w-full max-w-xl overflow-auto">
