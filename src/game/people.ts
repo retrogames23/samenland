@@ -1,6 +1,6 @@
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { hash, vnoise, structureAt, effAge, radiusOf, terrain, buildable, FLAT, type Seed, type Kind } from "./world";
+import { hash, structureAt, effAge, radiusOf, terrain, buildable, FLAT, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -142,7 +142,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       people.push({
         id, seed: s, first: pick(sex === "f" ? F : M, h(10)), last, sex, age, job, home, work,
         workIndoor: !OUTDOOR_WORK.has(job) && job !== "homemaker",
-        speed: (kid ? 0.8 : old ? 0.36 : 0.55) * (0.85 + h(11) * 0.3),
+        speed: (kid ? 0.3 : old ? 0.15 : 0.22) * (0.85 + h(11) * 0.3),
         looks: { skin: h(12), hair: old ? -1 : h(13), shirt: h(14), pants: h(15), hat: h(16) < (job === "farmer" ? 0.7 : 0.25), stick: old && h(17) < 0.6 },
         haul: null,
       });
@@ -344,6 +344,19 @@ export function planOf(p: Person, t: Town): Entry[] {
 
 export const hourOf = (now: number) => { const d = new Date(now); return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600 + d.getMilliseconds() / 3.6e6; };
 
+const STRIDE = 0.18; // tiles per step cycle of the scaled figure – keeps feet from sliding
+/** Distance covered after `secs` on a path of `len`, easing in and out over the first/last few tenths of a tile. */
+function travelled(secs: number, len: number, v: number): number {
+  const r = Math.min(0.25, len / 2), tr = (2 * r) / v; // ramp distance and time (avg half speed)
+  if (secs <= 0) return 0;
+  if (secs < tr) { const u = secs / tr; return r * u * u; }
+  const cruise = (len - 2 * r) / v;
+  if (secs < tr + cruise) return r + (secs - tr) * v;
+  const u = Math.min(1, (secs - tr - cruise) / tr);
+  return len - r * (1 - u) * (1 - u);
+}
+const travelTime = (len: number, v: number) => { const r = Math.min(0.25, len / 2); return (len - 2 * r) / v + (4 * r) / v; };
+
 export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const hr = hourOf(now);
   const pl = planOf(p, t);
@@ -361,15 +374,16 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
     const pts = [pa, ...route(t, ra, rb, seeds).slice(1, -1), pb];
     let len = 0; const seg: number[] = [];
     for (let k = 1; k < pts.length; k++) { const d = Math.hypot(pts[k]![0] - pts[k - 1]![0], pts[k]![1] - pts[k - 1]![1]); seg.push(d); len += d; }
-    let dd = secs * p.speed;
-    arrive = len / p.speed;
+    let dd = travelled(secs, len, p.speed);
+    arrive = travelTime(len, p.speed);
+    const ph = dd / STRIDE;
     if (dd < len) {
       for (let k = 0; k < seg.length; k++) {
         if (dd <= seg[k]! || k === seg.length - 1) {
           const a = pts[k]!, b = pts[k + 1]!, u = seg[k]! ? dd / seg[k]! : 0;
           const dl = seg[k]! || 1;
           const x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
-          return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, dir: [(b[0] - a[0]) / dl, (b[1] - a[1]) / dl], phase: (secs * p.speed) / 0.32 };
+          return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, dir: [(b[0] - a[0]) / dl, (b[1] - a[1]) / dl], phase: ph };
         }
         dd -= seg[k]!;
       }
@@ -387,12 +401,12 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
     const ok = (rr: number) => Array.from({ length: 24 }, (_, k) => k * 0.2618).every((q) => freeAt(t, c0[0] + Math.cos(q) * rr, c0[1] + Math.sin(q) * rr, seeds));
     while (r > 0.12 && !ok(r)) r -= 0.08;
     if (r <= 0.12) return { ...base, dir: [1, 0.3] };
-    return { ...base, x: c0[0] + Math.cos(a) * r, y: c0[1] + Math.sin(a) * r, walking: true, dir: [-Math.sin(a) * Math.sign(w), Math.cos(a) * Math.sign(w)], phase: tt * 0.8 / 0.32 * Math.abs(w) * 1.6 };
+    return { ...base, x: c0[0] + Math.cos(a) * r, y: c0[1] + Math.sin(a) * r, walking: true, dir: [-Math.sin(a) * Math.sign(w), Math.cos(a) * Math.sign(w)], phase: tt * Math.abs(w) * r / STRIDE };
   }
-  const wx = (vnoise(tt / 40, p.id % 997, 811) - 0.5) * 0.25, wy = (vnoise(tt / 40, p.id % 991, 812) - 0.5) * 0.25;
-  const face = hash(p.id, Math.floor(tt / 30), 813) < 0.5 ? 1 : -1;
-  const ok = freeAt(t, c0[0] + wx, c0[1] + wy, seeds);
-  return { ...base, x: c0[0] + (ok ? wx : 0), y: c0[1] + (ok ? wy : 0), dir: [face, 0.3], working: e.act === "work" };
+  // standing still: no drifting – only turning to look around now and then (per-person rhythm)
+  const look = 20 + hash(p.id, 3, 813) * 25;
+  const face = hash(p.id, Math.floor((tt + p.id * 7.3) / look), 813) < 0.5 ? 1 : -1;
+  return { ...base, dir: [face, 0.3], working: e.act === "work" };
 }
 
 const LOAD = 25; // seconds spent loading / unloading at each end
@@ -418,7 +432,7 @@ function haulPose(p: Person, t: Town, seeds: Seed[], secs: number, base: Pose): 
       const a = pts[k]!, b = pts[k + 1]!, f = seg[k]! ? Math.min(1, dd / seg[k]!) : 0, dl = seg[k]! || 1, sg = out ? 1 : -1;
       const x = a[0] + (b[0] - a[0]) * f, y = a[1] + (b[1] - a[1]) * f;
       return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, working: false,
-        dir: [sg * (b[0] - a[0]) / dl, sg * (b[1] - a[1]) / dl], phase: (u * p.speed) / 0.32, carry: out ? H.good : null, dest: H.dest };
+        dir: [sg * (b[0] - a[0]) / dl, sg * (b[1] - a[1]) / dl], phase: dd / STRIDE, carry: out ? H.good : null, dest: H.dest };
     }
     dd -= seg[k]!;
   }
@@ -429,7 +443,8 @@ function haulPose(p: Person, t: Town, seeds: Seed[], secs: number, base: Pose): 
 export function townPoses(s: Seed, seeds: Seed[], now: number): Pose[] {
   const t = townOf(s, seeds, now);
   const out = t.people.map((p) => poseOf(p, t, seeds, now)).filter((q) => q.visible);
-  const slot = Math.floor(now / 180000); // conversations change every 3 minutes
+  const toff = hash(t.people[0]?.id ?? 0, 7, 899) * 180000;
+  const slot = Math.floor((now + toff) / 180000); // pairings change every 3 minutes, offset per town
   const idle = out.filter((q) => !q.walking && (q.act === "leisure" || q.act === "lunch"));
   idle.sort((a, b) => hash(a.p.id, slot, 900) - hash(b.p.id, slot, 900));
   for (let k = 0; k + 1 < idle.length; k += 2) {
@@ -439,10 +454,20 @@ export function townPoses(s: Seed, seeds: Seed[], now: number): Pose[] {
     if (!freeAt(t, mx - 0.22, my, seeds) || !freeAt(t, mx + 0.22, my, seeds)) continue;
     a.x = mx - 0.22; a.y = my; b.x = mx + 0.22; b.y = my;
     a.dir = [1, -1]; b.dir = [-1, 1];
-    const icon = Math.floor(hash(a.p.id, slot, 902) * 6);
-    a.talk = icon; b.talk = Math.floor(hash(b.p.id, slot, 903) * 6);
-    const turn = Math.floor(now / 2600) % 2 === 0;
-    a.talkTurn = turn; b.talkTurn = !turn;
+    a.talk = b.talk = null;
+    const sp = talkState(a.p.id, b.p.id, now);
+    if (sp) { const who = sp.a ? a : b; who.talk = sp.icon; who.talkTurn = true; }
   }
   return out;
+}
+
+/** Who is speaking in a pair right now: each pair has its own clock, irregular 3–9 s turns and silent pauses. */
+export function talkState(ia: number, ib: number, now: number): { a: boolean; icon: number } | null {
+  const k = ia * 31 + ib, sec = now / 1000 + hash(k, 1, 904) * 997;
+  const cell = 9, c = Math.floor(sec / cell), within = sec - c * cell;
+  const r = hash(k, c, 905);
+  if (r < 0.35) return null; // pause – just standing together
+  const start = hash(k, c, 906) * 3, len = 3 + hash(k, c, 907) * (6 - start);
+  if (within < start || within > start + len) return null;
+  return { a: r < 0.675, icon: Math.floor(hash(k, c, 908) * 6) };
 }
