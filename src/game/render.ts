@@ -589,7 +589,7 @@ export function draw(
       const pr = RANK[tr]!;
       let lower = false;
       for (const [dx, dy] of NB8) if (RANK[terrain(x + dx, y + dy)]! < pr) { lower = true; break; }
-      if (lower) {
+      if (lower && !wet) {
         c.beginPath();
         const k = 9;
         for (let i = 0; i <= k; i++) {
@@ -604,7 +604,7 @@ export function draw(
         c.closePath();
         c.fillStyle = fill; c.fill();
         if (isWater(terrain(x + 1, y)) || isWater(terrain(x, y + 1)) || isWater(terrain(x - 1, y)) || isWater(terrain(x, y - 1))) {
-          if (!isWater(tr) && detail) {
+          if (detail) {
             const f = 0.25 + 0.2 * Math.sin(t / 900 + x * 0.7 + y * 0.5);
             c.strokeStyle = `rgba(250,250,240,${f})`; c.lineWidth = 0.8; c.stroke();
           }
@@ -618,11 +618,6 @@ export function draw(
         else if (st?.kind === "field") { c.fillStyle = texture(c, st.v > 0.5 ? "wheat" : "crops") ?? hsl(44, 45, 66); c.fill(); }
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square")) { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#cdb084"; diamond(c, cx, cy, 0.85); c.fill(); }
         continue;
-      }
-      if (isWater(tr) && hash(x, y, 15) > 0.82) {
-        const ph = Math.sin(t / 1500 + x + y) * 1.2;
-        c.strokeStyle = "rgba(255,255,255,0.35)"; c.lineWidth = 0.5;
-        c.beginPath(); c.moveTo(cx - 4 + ph, cy); c.quadraticCurveTo(cx - 2 + ph, cy - 1.5, cx + ph, cy); c.quadraticCurveTo(cx + 2 + ph, cy + 1.5, cx + 4 + ph, cy); c.stroke();
       }
       if (tr === "hill" || tr === "mountain") {
         const rs = resourceAt(x, y);
