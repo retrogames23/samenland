@@ -10,6 +10,9 @@ import {
   speedOf,
   townStats,
   terrain,
+  buildable,
+  resourceAt,
+  MAP,
   stageOf,
   type Planting,
   type Seed,
@@ -86,7 +89,7 @@ export function Game() {
       const { data: u } = await supabase.auth.getUser();
       const my = ss.find((s) => u.user && s.user_id === u.user.id) ?? ss[0];
       if (my) focus(my.x, my.y);
-      else focus(256, 256);
+      else focus(MAP / 2, MAP / 2);
     })();
     const ch = supabase
       .channel(`world-${Math.random().toString(36).slice(2)}`)
@@ -197,7 +200,7 @@ export function Game() {
       if (!my) return;
       if (Math.hypot(x - my.x, y - my.y) > radiusOf(effAge(my, seeds, Date.now())) + 3)
         return setMsg(t.nearOnly);
-      if (!["grass", "meadow", "sand", "forest"].includes(terrain(x, y))) return setMsg(t.noGrow);
+      if (!buildable(terrain(x, y))) return setMsg(t.noGrow);
       const { data } = await supabase
         .from("plantings")
         .insert({ seed_id: my.id, kind: mode, x, y })
@@ -490,7 +493,7 @@ export function Game() {
         )}
         {hover && (
           <div className="rounded bg-card/80 px-2 py-1 text-xs text-muted-foreground">
-            {t.terrain[terrain(hover[0], hover[1])]} · {hover[0]}, {hover[1]}
+            {t.terrain[terrain(hover[0], hover[1])]}{resourceAt(hover[0], hover[1]) ? ` · ${t.resource[resourceAt(hover[0], hover[1])!]}` : ""} · {hover[0]}, {hover[1]}
           </div>
         )}
       </div>

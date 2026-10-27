@@ -1,4 +1,4 @@
-import { hash, structureAt, terrain, isWater, MAP, FLAT, links, roadProgress, isTwin, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { hash, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -14,6 +14,7 @@ const INK = "#4a3526";
 const TERRAIN: Record<string, [number, number, number]> = {
   deep: [205, 38, 62], water: [198, 40, 70], sand: [42, 52, 80], grass: [88, 30, 66],
   meadow: [76, 36, 70], forest: [100, 24, 58], hill: [70, 22, 62],
+  fertile: [72, 38, 54], mountain: [30, 10, 60],
 };
 const hsl = (h: number, s: number, l: number, a = 1) => `hsla(${h} ${s}% ${l}% / ${a})`;
 
@@ -250,13 +251,13 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
 const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge"]);
 
 /** Whole map fits ~1000px wide at this zoom. */
-export const MIN_ZOOM = 0.05;
+export const MIN_ZOOM = 0.025;
 const OVERVIEW_BELOW = 0.45;
 let overview: HTMLCanvasElement | null = null;
 /** Cached map picture at 1/8 iso scale (built once; terrain is static). */
 function overviewMap() {
   if (overview) return overview;
-  const S = 8, W = (MAP * TW) / S, H = (MAP * TH) / S;
+  const S = 16, W = (MAP * TW) / S, H = (MAP * TH) / S;
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const g = cv.getContext("2d")!; const img = g.createImageData(W, H);
   const rgb = new Map<string, [number, number, number]>();
@@ -358,6 +359,13 @@ export function draw(
         c.strokeStyle = "rgba(255,255,255,0.55)"; c.lineWidth = 0.5;
         c.beginPath(); c.moveTo(cx - 4 + ph, cy); c.quadraticCurveTo(cx - 2 + ph, cy - 1.5, cx + ph, cy); c.quadraticCurveTo(cx + 2 + ph, cy + 1.5, cx + 4 + ph, cy); c.stroke();
       }
+      if (tr === "fertile" && !st && hash(x, y, 24) > 0.6) { c.globalAlpha = 0.3; line(c, [cx - 6, cy + 1], [cx + 6, cy - 1], x * 5 + y, 0.4, "#5b4a2a"); c.globalAlpha = 1; }
+      if (tr === "hill" || tr === "mountain") {
+        const rs = resourceAt(x, y);
+        if (rs === "ore") for (let i = 0; i < 4; i++) blob(c, cx + (hash(x, y, 90 + i) - 0.5) * 16, cy + (hash(x, y, 95 + i) - 0.5) * 7, 1.1, "#b0603a", x * 3 + y + i, i === 0);
+        else if (rs === "coal") { c.globalAlpha = 0.7; for (let i = 0; i < 3; i++) line(c, [cx - 7, cy - 2 + i * 2], [cx + 6, cy - 3 + i * 2], x * 11 + y + i, 0.9, "#2d2620"); c.globalAlpha = 1; }
+        else if (rs === "stone") blob(c, cx, cy, 2.4, "#c9c2b3", x * 13 + y);
+      }
       if (tr === "hill") { c.globalAlpha = 0.35; line(c, [cx - 8, cy + 2], [cx - 2, cy - 3], x * 9 + y, 0.5); line(c, [cx - 2, cy - 3], [cx + 5, cy + 1], x * 9 + y + 1, 0.5); c.globalAlpha = 1; }
       if (tr === "meadow" && !st) for (let i = 0; i < 3; i++) if (hash(x, y, 20 + i) > 0.5) { c.fillStyle = ["#f2e6a0", "#e9a3b4", "#f7f2e6"][i]!; c.beginPath(); c.arc(cx + (hash(x, y, 30 + i) - 0.5) * 18, cy + (hash(x, y, 40 + i) - 0.5) * 8, 0.8, 0, 7); c.fill(); }
 
@@ -414,6 +422,11 @@ export function draw(
         c.fillStyle = hsl(rh!, rs!, rl!); c.fill(); c.strokeStyle = INK; c.lineWidth = 0.8; c.stroke();
       } else if (tr === "forest" && !st && hash(x, y, 19) > 0.3) blob(c, cx, cy - 3, 7, hsl(100, 26, 44), x * 3 + y, false);
       continue;
+    }
+    if (tr === "mountain") {
+      const sd = x * 29 + y, hh = 9 + hash(x, y, 26) * 7, ox = (hash(x, y, 27) - 0.5) * 6;
+      shape(c, [[cx - 11 + ox, cy + 3], [cx + ox, cy - hh], [cx + 11 + ox, cy + 3]], sd, hsl(30, 10, 58 + hash(x, y, 28) * 8), true, false);
+      if (hh > 12) shape(c, [[cx - 3.5 + ox, cy - hh + 4], [cx + ox, cy - hh], [cx + 3.5 + ox, cy - hh + 4]], sd + 1, "#f4efe4", false);
     }
     if (tr === "forest" && !st) {
       tree(c, cx - 5, cy + 2, 0.85 + hash(x, y, 17) * 0.35, t, hash(x, y, 18), x * 13 + y);
