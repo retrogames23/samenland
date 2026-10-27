@@ -1,7 +1,7 @@
 // Pure, deterministic world + town growth logic (shared by every player).
 export const MAP = 512;
 
-export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string };
+export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null };
 export type Planting = { id: string; seed_id: string; kind: "tree" | "flower" | "lantern"; x: number; y: number; created_at: string };
 
 export function hash(x: number, y: number, s = 0): number {
