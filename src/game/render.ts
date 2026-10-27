@@ -499,6 +499,7 @@ export function draw(
       const f = fwd ? ph : n * 2 - ph;
       const i = Math.min(n - 2, Math.floor(f)), u = f - i;
       // travellers only show on open road – inside towns they are "between the houses"
+      (globalThis as any).__ta = ((globalThis as any).__ta ?? 0) + 1;
       const [tx, ty] = l.tiles[i]!;
       const st = structureAt(tx, ty, seeds, now);
       if (!st || (st.kind !== "road" && st.kind !== "bridge")) continue;
