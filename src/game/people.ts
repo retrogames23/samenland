@@ -344,7 +344,7 @@ export function planOf(p: Person, t: Town): Entry[] {
 
 export const hourOf = (now: number) => { const d = new Date(now); return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600 + d.getMilliseconds() / 3.6e6; };
 
-const STRIDE = 0.18; // tiles per step cycle of the scaled figure – keeps feet from sliding
+const STRIDE = 0.18 / (2 * Math.PI); // 0.18 tiles per full gait cycle (two steps), phase in radians
 /** Distance covered after `secs` on a path of `len`, easing in and out over the first/last few tenths of a tile. */
 function travelled(secs: number, len: number, v: number): number {
   const r = Math.min(0.25, len / 2), tr = (2 * r) / v; // ramp distance and time (avg half speed)
