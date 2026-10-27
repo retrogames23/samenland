@@ -803,20 +803,6 @@ function drawBridgeSpan(c: C, A: Pt, B: Pt, sd: number, t: number) {
   c.restore();
 }
 
-function drawRails(c: C, l: ReturnType<typeof links>[number], seeds: Seed[], now: number) {
-  c.save(); c.lineCap = "butt";
-  for (let i=1;i<l.tiles.length;i++) {
-    const a=l.tiles[i-1], b=l.tiles[i]; if (!a || !b) continue;
-    const st=structureAt(b[0],b[1],seeds,now); if (st && st.kind!=="road" && st.kind!=="bridge" && st.kind!=="rail") continue;
-    const [ax,ay]=iso(a[0],a[1]), [bx,by]=iso(b[0],b[1]);
-    const dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;
-    c.strokeStyle="#6a5340"; c.lineWidth=1.4;
-    for(let j=0;j<4;j++){const f=j/4,x=ax+dx*f,y=ay+dy*f;c.beginPath();c.moveTo(x-nx*2.4,y-ny*2.4);c.lineTo(x+nx*2.4,y+ny*2.4);c.stroke();}
-    c.strokeStyle="#b6b8af";c.lineWidth=0.75;
-    for(const sign of [-1,1]){c.beginPath();c.moveTo(ax+nx*sign*1.6,ay+ny*sign*1.6);c.lineTo(bx+nx*sign*1.6,by+ny*sign*1.6);c.stroke();}
-  }
-  c.restore();
-}
 
 type GroundEdge = { x: number; y: number; cx: number; cy: number; tr: string; r: number; coast: boolean };
 /** Water + layered land for a tile range; returns border tiles for frayed edges. */
