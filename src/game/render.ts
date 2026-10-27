@@ -755,29 +755,48 @@ export function draw(
       const sd = x * 1000 + y;
       const pp = P(cx, cy);
       if (st.kind === "bridge") {
-        // one continuous deck: a segment towards every connected bridge/road neighbour, posts in the water
+        // One straight deck along the bridge axis (4-neighbours only, no diagonal stubs or joint discs).
         const dirs: [number, number][] = [];
-        for (const [dx, dy] of NB8) {
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) {
           const o = structureAt(x + dx, y + dy, seeds, now);
           if (o && PATHLIKE.has(o.kind)) dirs.push([dx, dy]);
         }
-        if (!dirs.length) dirs.push([1, 0], [-1, 0]);
-        const W = 0.2;
-        // posts first (under the deck), slightly into the water
-        c.fillStyle = "rgba(55,38,22,0.9)";
-        for (const s of [-1, 1]) { const [px, py] = pp(s * W * 0.7, -s * W * 0.7); c.fillRect(px - 0.7, py, 1.4, 3.2); }
-        for (const [dx, dy] of dirs) {
-          const len = Math.hypot(dx, dy), nx = -dy / len * W, ny = dx / len * W;
-          const ex = dx * 0.56, ey = dy * 0.56;
-          const q = [pp(nx, ny), pp(ex + nx, ey + ny), pp(ex - nx, ey - ny), pp(-nx, -ny)];
-          c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
-          c.fillStyle = "#9a7650"; c.fill();
-          c.strokeStyle = "rgba(60,42,25,0.35)"; c.lineWidth = 0.4;
-          for (let k = 1; k < 6; k++) { const f = k / 6; const a = pp(ex * f + nx, ey * f + ny), b = pp(ex * f - nx, ey * f - ny); c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); }
-          c.strokeStyle = "rgba(50,35,20,0.6)"; c.lineWidth = 0.7;
-          for (const sg of [1, -1]) { const a = pp(sg * nx, sg * ny), b = pp(ex + sg * nx, ey + sg * ny); c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); }
+        const alongX = dirs.length ? dirs.some(([dx]) => dx !== 0) : true;
+        const ax: [number, number] = alongX ? [1, 0] : [0, 1];
+        const W = 0.22, E = 0.53; // half width, half length (slight overlap so tiles join seamlessly)
+        const nx = -ax[1] * W, ny = ax[0] * W, ex = ax[0] * E, ey = ax[1] * E;
+        const quad = (o: number, h: number) => [pp(-ex + nx * o, -ey + ny * o), pp(ex + nx * o, ey + ny * o), pp(ex - nx * o, ey - ny * o), pp(-ex - nx * o, -ey - ny * o)].map(([a, b]) => [a, b - h] as Pt);
+        const fillQ = (q: Pt[], f: string | CanvasGradient) => { c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath(); c.fillStyle = f; c.fill(); };
+        const H = 2.2;
+        // shadow on the water
+        fillQ(quad(1.25, -1.2), "rgba(10,25,25,0.32)");
+        // posts reaching into the water
+        if (isWater(tr)) for (const s of [-1, 1]) for (const f of [-0.5, 0.5]) {
+          const [px, py] = pp(ex * f + nx * s * 0.95, ey * f + ny * s * 0.95);
+          c.fillStyle = "#3b2a1a"; c.fillRect(px - 0.55, py - H, 1.1, H + 2.4);
+          c.fillStyle = "rgba(200,215,205,0.18)"; c.beginPath(); c.ellipse(px, py + 2.4, 1.2, 0.35, 0, 0, 7); c.fill();
         }
-        c.beginPath(); c.ellipse(cx, cy, TW * W * 0.75, TH * W * 0.75, 0, 0, 7); c.fillStyle = "#9a7650"; c.fill();
+        // side beam
+        const top = quad(1, H), side = quad(1, H - 1);
+        fillQ([top[3]!, top[2]!, side[2]!, side[3]!], "#4c3622");
+        fillQ([top[2]!, top[1]!, side[1]!, side[2]!], "#5a4029");
+        // deck planks, each slightly different
+        const N = 6;
+        for (let k = 0; k < N; k++) {
+          const f0 = -1 + (2 * k) / N, f1 = -1 + (2 * (k + 1)) / N - 0.04;
+          const pq = [pp(ex * f0 + nx, ey * f0 + ny), pp(ex * f1 + nx, ey * f1 + ny), pp(ex * f1 - nx, ey * f1 - ny), pp(ex * f0 - nx, ey * f0 - ny)].map(([a, b]) => [a, b - H] as Pt);
+          const l = 36 + hash(x, y, 500 + k) * 10;
+          fillQ(pq, `hsl(30,32%,${l}%)`);
+        }
+        c.strokeStyle = "rgba(35,24,14,0.45)"; c.lineWidth = 0.25;
+        for (let k = 0; k <= N; k++) { const f = -1 + (2 * k) / N; const a = pp(ex * f + nx, ey * f + ny), b = pp(ex * f - nx, ey * f - ny); c.beginPath(); c.moveTo(a[0], a[1] - H); c.lineTo(b[0], b[1] - H); c.stroke(); }
+        // railings
+        for (const s of [1, -1]) {
+          const a = pp(-ex + nx * s, -ey + ny * s), b = pp(ex + nx * s, ey + ny * s);
+          c.strokeStyle = "#3e2c1b"; c.lineWidth = 0.35;
+          for (const f of [0.15, 0.85]) { const px = a[0] + (b[0] - a[0]) * f, py = a[1] + (b[1] - a[1]) * f; c.beginPath(); c.moveTo(px, py - H); c.lineTo(px, py - H - 2.4); c.stroke(); }
+          c.strokeStyle = "#6e5034"; c.lineWidth = 0.45; c.beginPath(); c.moveTo(a[0], a[1] - H - 2.2); c.lineTo(b[0], b[1] - H - 2.2); c.stroke();
+        }
       } else if (st.kind === "path" || st.kind === "street" || st.kind === "road" || st.kind === "avenue" || st.kind === "rail") {
         const street = st.kind === "street" || st.kind === "avenue";
         const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
