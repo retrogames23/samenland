@@ -915,7 +915,7 @@ export function draw(
   renderNow = now; setArtTime(now); setNatureTime(now);
   lastPeople.length = 0;
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
-  const t = performance.now();
+  const t = performance.now(); setSpriteTime(t);
   const z = cam.zoom * dpr;
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.fillStyle = hsl(205, 30, 58); c.fillRect(0, 0, w, h);
