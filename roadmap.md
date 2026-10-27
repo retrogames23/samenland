@@ -5,4 +5,4 @@
 - [x] Handgezeichneter Look, Gebäudearten pro Entwicklungsstufe, kleiner Start
 - [x] Login, 1 Samen pro Spieler
 - [x] Spiel auf Deutsch und Englisch
-- [ ] Detaillierte Gebäudebilder im gewählten Stil einbauen und auf der Karte prüfen
+- [x] Detaillierte Gebäudebilder im gewählten Stil einbauen und auf der Karte prüfen
