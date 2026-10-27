@@ -1,7 +1,7 @@
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
 import { drawBuildingSprite } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, setNatureTime, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, setNatureTime, boatImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -256,7 +256,6 @@ const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well",
 export const MIN_ZOOM = 0.025;
 const OVERVIEW_BELOW = 0.45;
 const smoothCache = new WeakMap<object, Pt[]>();
-const boatRange = new WeakMap<object, [number, number]>();
 /** Road tiles are 4-connected (stair steps); travellers follow a smoothed curve through them. */
 function smoothRoad(l: { tiles: [number, number][] }): Pt[] {
   const hit = smoothCache.get(l); if (hit) return hit;
@@ -890,7 +889,7 @@ export function draw(
       if (built) {
         const [ax, ay] = iso(A[0], A[1]), [bx, by] = iso(B[0], B[1]);
         if (Math.max(ax, bx) > cs0x - 60 && Math.min(ax, bx) < cs1x + 60 && Math.max(ay, by) > cs0y - 60 && Math.min(ay, by) < cs1y + 60)
-          drawBridgeSpan(c, [ax, ay], [bx, by], l.tiles.slice(i, j + 1), A[0] * 31 + A[1]);
+          drawBridgeSpan(c, [ax, ay], [bx, by], A[0] * 31 + A[1], t);
       }
       i = j;
     }
