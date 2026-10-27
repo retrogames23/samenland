@@ -825,23 +825,27 @@ export function draw(
       } else if (st.kind === "path" || st.kind === "street" || st.kind === "road" || st.kind === "avenue" || st.kind === "rail") {
         const street = st.kind === "street" || st.kind === "avenue";
         const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
-        const wBase = street ? 7.5 : 5;
-        c.lineCap = "butt"; c.lineJoin = "round";
-        let any = false;
-        for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
-          if (!i && !j) continue;
-          const o = structureAt(x + i, y + j, seeds, now);
-          if (!o || !PATHLIKE.has(o.kind)) continue;
-          any = true;
-          const m = pp(i * 0.56, j * 0.56);
-          // soft worn verge, then the track itself; width wobbles slightly so it never looks piped
-          const wv = wBase * (0.9 + hash(x, y, 300 + i * 3 + j) * 0.2);
-          c.strokeStyle = "rgba(70,55,35,0.18)"; c.lineWidth = wv + 2.2; c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke();
-          c.strokeStyle = col; c.lineWidth = wv; c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke();
+        const wBase = street ? 7 : 4.6;
+        const isP = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && PATHLIKE.has(o.kind); };
+        // Connect orthogonal neighbours; a diagonal only when no orthogonal step already links them,
+        // so adjacent path tiles never form a lattice of crossing strokes.
+        const con: [number, number][] = [];
+        for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) if (isP(i, j)) con.push([i, j]);
+        for (const [i, j] of [[1, 1], [-1, -1], [1, -1], [-1, 1]] as [number, number][]) if (isP(i, j) && !isP(i, 0) && !isP(0, j)) con.push([i, j]);
+        c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = col;
+        for (const [i, j] of con) {
+          const m = pp(i * 0.5, j * 0.5);
+          c.lineWidth = wBase * (0.92 + hash(x + i, y + j, 300) * 0.16);
+          c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke();
         }
-        // centre patch joins the segments without round "sausage" caps
-        c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, wBase * 0.5 * (any ? 1 : 0.8), wBase * 0.3, 0, 0, 7); c.fill();
-        if (!street) { c.fillStyle = "rgba(60,45,28,0.12)"; c.beginPath(); c.ellipse(cx + (hash(x, y, 33) - 0.5) * 4, cy, 1.6, 0.6, 0, 0, 7); c.fill(); }
+        if (con.length === 1) {
+          // dead end: the track tapers out into the grass instead of stopping abruptly
+          const [i, j] = con[0]!; const e = pp(-i * 0.3, -j * 0.3);
+          c.globalAlpha = 0.6; c.lineWidth = wBase * 0.55; c.beginPath(); c.moveTo(cx, cy); c.lineTo(e[0], e[1]); c.stroke(); c.globalAlpha = 1;
+        } else {
+          c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, wBase * 0.5, wBase * 0.32, 0, 0, 7); c.fill();
+        }
+        if (!street && hash(x, y, 34) > 0.6) { c.fillStyle = "rgba(60,45,28,0.12)"; c.beginPath(); c.ellipse(cx + (hash(x, y, 33) - 0.5) * 3, cy, 1.3, 0.5, 0, 0, 7); c.fill(); }
       } else if (st.kind === "square" || st.kind === "market" || st.kind === "well") {
         c.beginPath(); c.ellipse(cx, cy, TW * (0.56 + hash(x, y, 71) * 0.1), TH * (0.56 + hash(x, y, 72) * 0.1), 0, 0, 7);
         c.fillStyle = texture(c, "cobble") ?? "#d3cab6"; c.fill();
