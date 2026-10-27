@@ -99,6 +99,11 @@ import planksUrl from "@/assets/terrain/planks.jpg";
 if (typeof window !== "undefined") { img(boatUrl); img(planksUrl); }
 /** Rowing-boat sprite (bow pointing upper-left in the image), null while loading. */
 export const boatImage = () => img(boatUrl);
+import sheepGraze from "@/assets/sprites/sheep-graze.webp";
+import sheepStand from "@/assets/sprites/sheep-stand.webp";
+if (typeof window !== "undefined") { img(sheepGraze); img(sheepStand); }
+/** Painted sheep sprite (facing right, feet at bottom), null while loading. */
+export const sheepImage = (graze: boolean) => img(graze ? sheepGraze : sheepStand);
 const plankPats = new WeakMap<C, CanvasPattern>();
 /** Plank pattern; planks run along the image x-axis, 512px ≈ 8 planks. */
 export function planksPattern(c: C): CanvasPattern | null {
