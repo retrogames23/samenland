@@ -35,6 +35,7 @@ const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "ma
 export type Town = {
   seed: Seed; people: Person[]; well: Tile; meet: Tile; meets: Tile[]; plays: Tile[]; school: Tile | null; play: Tile;
   x0: number; y0: number; x1: number; y1: number; routes: Map<string, Tile[]>; now: number;
+  freeC: Map<number, boolean>; doors: Map<number, Tile>;
 };
 
 const towns = new Map<string, Town>();
@@ -129,8 +130,39 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       });
     }
   }
-  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now };
+  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), doors: new Map() };
 }
+
+// ---------------- collision ----------------
+/** Walkable ground: open buildable land or a flat structure (paths, squares, fields…). */
+function free(t: Town, x: number, y: number, seeds: Seed[]): boolean {
+  const k = x * 4096 + y;
+  const hit = t.freeC.get(k);
+  if (hit !== undefined) return hit;
+  const st = structureAt(x, y, seeds, t.now);
+  const ok = st ? WALK.has(st.kind) || (FLAT.has(st.kind) && st.kind !== "hay") : buildable(terrain(x, y));
+  t.freeC.set(k, ok);
+  return ok;
+}
+const freeAt = (t: Town, x: number, y: number, seeds: Seed[]) => free(t, Math.round(x), Math.round(y), seeds);
+/** The tile in front of a building where people step in and out (never through the walls). */
+function doorOf(t: Town, tl: Tile, seeds: Seed[]): Tile {
+  const tx = Math.round(tl[0]), ty = Math.round(tl[1]);
+  if (free(t, tx, ty, seeds)) return [tx, ty];
+  const k = tx * 4096 + ty;
+  const hit = t.doors.get(k); if (hit) return hit;
+  let best: Tile = [tx, ty], bs = Infinity;
+  for (const [dx, dy, pr] of [[0, 1, 0], [1, 0, 0.1], [-1, 0, 0.2], [0, -1, 0.3], [1, 1, 1], [-1, 1, 1.1], [1, -1, 1.2], [-1, -1, 1.3]] as const) {
+    const nx = tx + dx, ny = ty + dy;
+    if (!free(t, nx, ny, seeds)) continue;
+    const st = structureAt(nx, ny, seeds, t.now);
+    const sc = pr + (st && WALK.has(st.kind) ? 0 : 0.5);
+    if (sc < bs) { bs = sc; best = [nx, ny]; }
+  }
+  t.doors.set(k, best);
+  return best;
+}
+
 
 // ---------------- routing ----------------
 function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
