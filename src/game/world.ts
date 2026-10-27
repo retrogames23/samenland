@@ -1,7 +1,7 @@
 // Pure, deterministic world + town growth logic (shared by every player).
 export const MAP = 1024;
 
-export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null; blessed?: number[] };
+export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number }[] };
 export type Planting = { id: string; seed_id: string; kind: "tree" | "flower" | "lantern"; x: number; y: number; created_at: string };
 
 export function hash(x: number, y: number, s = 0): number {
@@ -194,7 +194,8 @@ export type Kind =
   | "townhouse" | "workshop" | "smithy" | "warehouse" | "market"
   | "factory" | "sawmill" | "road" | "bridge"
   | "campfire" | "hut" | "coop" | "fence" | "chapel" | "watermill" | "harbor"
-  | "stall" | "townhall" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue";
+  | "stall" | "townhall" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue"
+  | "fishery" | "granary" | "infirmary" | "school";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). */
 export type Structure = { kind: Kind; seed: Seed; v: number; build?: number };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
@@ -357,15 +358,65 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   return weighted(h,[["townhouse",65],["stall",15],["cottage",20]]);
 }
 
+/** Player-bought buildings: the shop item → building kind, built over SPECIAL_BUILD real ms after purchase. */
+export const SPECIAL_KIND: Record<string, Kind> = { fisher: "fishery", granary: "granary", healer: "infirmary", school: "school" };
+export const SPECIAL_BUILD = 6 * 3600000;
+const CORE_SPOTS = new Set([...Object.keys(CORE), ...LANDMARKS.map((l) => `${l.dx},${l.dy}`), "0,0"]);
+const siteCache = new Map<string, Map<number, { kind: Kind; at: number }>>();
+/**
+ * Where each bought building stands: a pure function of the seed and its purchases. The fishery
+ * looks for the shore, the healer for the forest edge, the school for the village core, the granary for the fields.
+ */
+export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
+  const items = (s.bought ?? []).filter((b) => SPECIAL_KIND[b.item]);
+  const key = `${s.id}:${s.x}:${s.y}:${items.map((b) => b.item + b.at).join(",")}`;
+  const hit = siteCache.get(key); if (hit) return hit;
+  const out = new Map<number, { kind: Kind; at: number }>();
+  const seen = new Set<string>();
+  for (const b of [...items].sort((a, c) => a.at - c.at)) {
+    if (seen.has(b.item)) continue; seen.add(b.item);
+    const kind = SPECIAL_KIND[b.item]!;
+    let best = -1, bs = Infinity;
+    for (let dy = -9; dy <= 9; dy++) for (let dx = -9; dx <= 9; dx++) {
+      const x = s.x + dx, y = s.y + dy, d = Math.hypot(dx, dy), k = y * MAP + x;
+      if (d < 2.4 || d > 9 || out.has(k) || CORE_SPOTS.has(`${dx},${dy}`)) continue;
+      if (!buildable(terrain(x, y)) || terrain(x, y) === "forest" || pathAt(x, y, s, 20000, 10)) continue;
+      let water = 0, forest = 0;
+      for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) { const t = terrain(x + i, y + j); if (isWater(t)) water++; else if (t === "forest") forest++; }
+      let sc = d + hash(x, y, 777) * 1.5;
+      if (kind === "fishery") sc += water ? -12 - Math.min(water, 6) : 0;
+      if (kind === "infirmary") sc += forest ? -4 - Math.min(forest, 5) * 0.5 : 0;
+      if (kind === "school") sc -= d < 5 ? 2 : 0;
+      if (kind === "granary") sc += Math.abs(d - 6);
+      if (sc < bs) { bs = sc; best = k; }
+    }
+    if (best >= 0) out.set(best, { kind, at: b.at });
+  }
+  if (siteCache.size > 200) siteCache.clear();
+  siteCache.set(key, out);
+  return out;
+}
+/** Cache key that changes whenever seed positions, ages or purchases change. */
+export const seedsKey = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${s.bought?.length ?? 0}`).join(";");
+
 let cacheKey = "";
 const scache = new Map<number, Structure | null>();
 export function structureAt(x: number, y: number, seeds: Seed[], now: number): Structure | null {
-  const key = `${Math.floor(now / 60000)}|${seeds.map(s => `${s.id}:${s.x}:${s.y}:${s.created_at}`).join(";")}`;
+  const key = `${Math.floor(now / 60000)}|${seedsKey(seeds)}`;
   if (key !== cacheKey) { cacheKey = key; scache.clear(); }
   const ck = y * MAP + x;
   const c = scache.get(ck);
   if (c !== undefined) return c;
   let best: Structure | null = null;
+  for (const s of seeds) {
+    if (!s.bought?.length) continue;
+    const sp = specialSites(s).get(ck);
+    if (!sp || now < sp.at) continue;
+    const p = (now - sp.at) / SPECIAL_BUILD;
+    best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p } : {}) };
+    scache.set(ck, best);
+    return best;
+  }
   if (buildable(terrain(x, y))) {
     let bestD = Infinity;
     for (const s of seeds) {
