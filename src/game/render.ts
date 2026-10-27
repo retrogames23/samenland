@@ -1319,22 +1319,22 @@ export function draw(
     mg.addColorStop(0, `rgba(150,170,230,${0.12 * night})`); mg.addColorStop(1, "rgba(150,170,230,0)");
     c.fillStyle = mg; c.fillRect(0, 0, w, h);
     c.globalCompositeOperation = "lighter";
-    const late = hr >= 23 || hr < 5; // most windows go dark late at night
     for (let i = 0; i < L.length; i++) {
       const l = L[i]!;
-      if (late && l.r < 4 && (i * 2654435761 >>> 0) % 4 !== 0) continue;
       const sx = (l.x - cam.x) * z + w / 2, sy = (l.y - cam.y) * z + h / 2;
-      const r = l.r * z * 2.2;
+      const r = l.r * z * (l.win ? 1.6 : 2.2);
       if (sx < -r || sy < -r || sx > w + r || sy > h + r) continue;
-      const fl = 0.9 + 0.1 * Math.sin(t * 7 + i * 1.7);
+      const fl = l.win ? 0.97 + 0.03 * Math.sin(t * 3 + i * 1.7) : 0.88 + 0.12 * Math.sin(t * 7 + i * 1.7);
       const g = c.createRadialGradient(sx, sy, 0, sx, sy, r);
-      g.addColorStop(0, `rgba(255,190,100,${0.7 * night * fl})`);
-      g.addColorStop(0.25, `rgba(255,150,60,${0.32 * night * fl})`);
+      g.addColorStop(0, `rgba(255,190,100,${(l.win ? 0.4 : 0.7) * night * fl})`);
+      g.addColorStop(0.3, `rgba(255,150,60,${(l.win ? 0.14 : 0.32) * night * fl})`);
       g.addColorStop(1, "rgba(255,130,50,0)");
       c.fillStyle = g; c.fillRect(sx - r, sy - r, r * 2, r * 2);
-      // bright window core
-      const cr = Math.max(1.2, l.r * z * 0.18);
-      c.fillStyle = `rgba(255,220,140,${0.85 * night})`; c.fillRect(sx - cr / 2, sy - cr / 2, cr, cr * 1.3);
+      if (l.win) {
+        // the pane itself: small upright rectangle with a dark cross bar
+        const pw = Math.max(1.5, 1.6 * z), ph = pw * 1.4;
+        c.fillStyle = `rgba(255,214,130,${0.9 * night * fl})`; c.fillRect(sx - pw / 2, sy - ph / 2, pw, ph);
+      }
     }
     c.globalCompositeOperation = "source-over";
   }
