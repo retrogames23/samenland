@@ -1,3 +1,17 @@
+import { seasonalImage } from "./season-art";
+import campfire from "@/assets/sprites/campfire.webp";
+import hut from "@/assets/sprites/hut.webp";
+import coop from "@/assets/sprites/coop.webp";
+import fence from "@/assets/sprites/fence.webp";
+import chapel from "@/assets/sprites/chapel.webp";
+import watermill from "@/assets/sprites/watermill.webp";
+import harbor from "@/assets/sprites/harbor.webp";
+import stall from "@/assets/sprites/stall.webp";
+import townhall from "@/assets/sprites/townhall.webp";
+import manufactory from "@/assets/sprites/manufactory.webp";
+import steamworks from "@/assets/sprites/steamworks.webp";
+import station from "@/assets/sprites/station.webp";
+import suburb from "@/assets/sprites/suburb.webp";
 import farmhouse from "@/assets/sprites/farmhouse.webp";
 import cottage from "@/assets/sprites/cottage.webp";
 import barn from "@/assets/sprites/barn.webp";
@@ -19,6 +33,19 @@ import type { Kind } from "./world";
 type Sprite = { url: string; crop: [number, number, number, number]; width: number; base: number; image?: HTMLImageElement };
 // Alpha bounds remove unequal transparent margins. Width is in world pixels, not screen pixels.
 const sprites: Partial<Record<Kind, Sprite>> = {
+  campfire: { url: campfire, crop: [0, 0, 480, 346], width: 12, base: 4 },
+  hut: { url: hut, crop: [0, 0, 470, 480], width: 20, base: 4 },
+  coop: { url: coop, crop: [0, 0, 480, 450], width: 22, base: 4 },
+  fence: { url: fence, crop: [0, 0, 480, 256], width: 22, base: 4 },
+  chapel: { url: chapel, crop: [0, 0, 471, 480], width: 24, base: 4 },
+  watermill: { url: watermill, crop: [0, 0, 480, 464], width: 28, base: 4 },
+  harbor: { url: harbor, crop: [0, 0, 480, 418], width: 26, base: 4 },
+  stall: { url: stall, crop: [0, 0, 480, 395], width: 23, base: 4 },
+  townhall: { url: townhall, crop: [0, 0, 391, 480], width: 30, base: 4 },
+  manufactory: { url: manufactory, crop: [0, 0, 480, 344], width: 30, base: 4 },
+  steamworks: { url: steamworks, crop: [0, 0, 480, 465], width: 28, base: 4 },
+  station: { url: station, crop: [0, 0, 480, 462], width: 30, base: 4 },
+  suburb: { url: suburb, crop: [0, 0, 436, 480], width: 24, base: 4 },
   farmhouse: { url: farmhouse, crop: [0, 0, 933, 799], width: 24, base: 5 },
   cottage: { url: cottage, crop: [0, 0, 996, 872], width: 22, base: 5 },
   barn: { url: barn, crop: [0, 0, 1000, 933], width: 25, base: 5 },
@@ -54,7 +81,7 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   c.save();
   c.imageSmoothingEnabled = true;
   c.imageSmoothingQuality = "high";
-  c.drawImage(image, x - width / 2, y + sprite.base - height, width, height);
+  c.drawImage(seasonalImage(image), x - width / 2, y + sprite.base - height, width, height);
   c.restore();
   return true;
 }

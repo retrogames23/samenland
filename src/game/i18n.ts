@@ -26,7 +26,9 @@ const de = {
   flower: "Blumen",
   lantern: "Laterne",
   hint: "Mausrad: zoomen · Ziehen: bewegen",
-  stages: ["Hof", "Weiler", "Dorf", "Kleinstadt", "Industriestadt"],
+  seasons: { winter: "Winter", spring: "Frühling", summer: "Sommer", autumn: "Herbst" },
+  kinds: { hut: "Hütte", campfire: "Lagerfeuer", coop: "Hühnerstall", chapel: "Kapelle", watermill: "Wassermühle", harbor: "Fischerhafen", stall: "Marktbuden", townhall: "Rathaus", manufactory: "Manufaktur", steamworks: "Dampfmaschinenhalle", station: "Bahnhof", suburb: "Vorstadthaus", rail: "Schienen", avenue: "Allee", fence: "Zaun" },
+  stages: ["Ursprung", "Weiler", "Dorf", "Kleinstadt", "Handelsstadt", "Metropole"],
   terrain: {
     deep: "Tiefes Meer",
     water: "Wasser",
@@ -98,7 +100,9 @@ const en: typeof de = {
   flower: "Flowers",
   lantern: "Lantern",
   hint: "Scroll: zoom · Drag: move",
-  stages: ["Farmstead", "Hamlet", "Village", "Small town", "Industrial town"],
+  seasons: { winter: "Winter", spring: "Spring", summer: "Summer", autumn: "Autumn" },
+  kinds: { hut: "Hut", campfire: "Campfire", coop: "Chicken coop", chapel: "Chapel", watermill: "Watermill", harbor: "Fishing harbor", stall: "Market stalls", townhall: "Town hall", manufactory: "Manufactory", steamworks: "Steam engine works", station: "Station", suburb: "Suburban house", rail: "Railway", avenue: "Avenue", fence: "Fence" },
+  stages: ["Origin", "Hamlet", "Village", "Small town", "Trading town", "Metropolis"],
   terrain: {
     deep: "Deep sea",
     water: "Water",
