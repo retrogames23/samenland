@@ -9,11 +9,11 @@ import dirt from "@/assets/terrain/dirt.jpg";
 import cobble from "@/assets/terrain/cobble.jpg";
 import wheat from "@/assets/terrain/wheat.jpg";
 import crops from "@/assets/terrain/crops.jpg";
-import oak from "@/assets/sprites/oak.png";
-import fir from "@/assets/sprites/fir.png";
-import birch from "@/assets/sprites/birch.png";
-import crag from "@/assets/sprites/crag.png";
-import bush from "@/assets/sprites/bush.png";
+import oak from "@/assets/sprites/oak.webp";
+import fir from "@/assets/sprites/fir.webp";
+import birch from "@/assets/sprites/birch.webp";
+import crag from "@/assets/sprites/crag.webp";
+import bush from "@/assets/sprites/bush.webp";
 
 type C = CanvasRenderingContext2D;
 export type Tex = "grass" | "meadow" | "forest" | "sand" | "water" | "fertile" | "rock" | "dirt" | "cobble" | "wheat" | "crops";
@@ -46,11 +46,11 @@ export function texture(c: C, t: Tex, shift = 0): CanvasPattern | null {
 
 type Sprite = { url: string; crop: [number, number, number, number]; width: number };
 const NATURE = {
-  oak: { url: oak, crop: [50, 45, 716, 726], width: 24 },
-  fir: { url: fir, crop: [229, 26, 358, 763], width: 13 },
-  birch: { url: birch, crop: [180, 33, 459, 744], width: 15 },
-  crag: { url: crag, crop: [12, 79, 791, 669], width: 40 },
-  bush: { url: bush, crop: [163, 181, 490, 454], width: 9 },
+  oak: { url: oak, crop: [0, 0, 716, 726], width: 24 },
+  fir: { url: fir, crop: [0, 0, 358, 763], width: 13 },
+  birch: { url: birch, crop: [0, 0, 459, 744], width: 15 },
+  crag: { url: crag, crop: [0, 0, 791, 669], width: 40 },
+  bush: { url: bush, crop: [0, 0, 490, 454], width: 9 },
 } satisfies Record<string, Sprite>;
 export type NatureKind = keyof typeof NATURE;
 
