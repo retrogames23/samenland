@@ -212,7 +212,7 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
   const sm = out.map((p, i) => {
     if (i === 0 || i === out.length - 1) return p;
     const q = out[i - 1]!, n = out[i + 1]!;
-    return [(q[0] + p[0] * 2 + n[0]) / 4, (q[1] + p[1] * 2 + n[1]) / 4] as Tile;
+    return [(q[0] + p[0] * 4 + n[0]) / 6, (q[1] + p[1] * 4 + n[1]) / 6] as Tile;
   });
   t.routes.set(key, sm);
   return sm;
@@ -317,6 +317,7 @@ export function townPoses(s: Seed, seeds: Seed[], now: number): Pose[] {
     const a = idle[k]!, b = idle[k + 1]!;
     if (Math.hypot(a.x - b.x, a.y - b.y) > 1.6 || hash(a.p.id, slot, 901) > 0.75) continue;
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    if (!freeAt(t, mx, my, seeds)) continue;
     a.x = mx - 0.22; a.y = my; b.x = mx + 0.22; b.y = my;
     a.dir = [1, -1]; b.dir = [-1, 1];
     const icon = Math.floor(hash(a.p.id, slot, 902) * 6);
