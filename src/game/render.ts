@@ -284,11 +284,11 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, bob: numbe
   shape(c, [P(-3.5, 1.8, 1.8), P(2.2, 1.8, 1.8), P(2.2, -1.8, 1.8), P(-3.5, -1.8, 1.8)], sd + 3, "#a07a52");
   // arched canvas hood over the bed
   const a = P(-3.3, 0, 2), b = P(2, 0, 2);
-  c.beginPath(); c.moveTo(a[0], a[1]);
-  c.bezierCurveTo(a[0], a[1] - 5.5, b[0], b[1] - 5.5, b[0], b[1]); c.closePath();
+  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, hw = Math.max(1.6, Math.hypot(b[0] - a[0], b[1] - a[1]) / 2);
+  c.beginPath(); c.ellipse(mx, my, hw, 3.4, Math.atan2(b[1] - a[1], b[0] - a[0]), Math.PI, Math.PI * 2); c.closePath();
   c.fillStyle = "#efe3c8"; c.fill(); c.strokeStyle = INK; c.lineWidth = 0.55; c.stroke();
-  c.globalAlpha = 0.5; line(c, P(-0.65, 0, 2), P(-0.65, 0, 6), sd + 6, 0.4); c.globalAlpha = 1;
-  c.fillStyle = cover; c.fillRect(Math.min(a[0], b[0]), a[1] - 1.6, Math.abs(b[0] - a[0]), 0.9);
+  c.globalAlpha = 0.5; line(c, [mx, my], [mx, my - 3.3], sd + 6, 0.4); c.globalAlpha = 1;
+  void cover;
 }
 
 let overview: HTMLCanvasElement | null = null;
@@ -495,7 +495,7 @@ export function draw(
     const pts = smoothRoad(l);
     const n = pts.length;
     const mature = Math.min(1, Math.min(ageHours(l.a, now), ageHours(l.b, now)) / 240);
-    const count = 40; //TMP
+    const count = 1 + Math.round(mature * 3);
     const sn = l.a.x * 7 + l.b.y * 13;
     for (let k = 0; k < count; k++) {
       const secsPerTile = 1.6 + hash(sn, k, 1) * 1.2;
@@ -504,7 +504,6 @@ export function draw(
       const f = fwd ? ph : n * 2 - ph;
       const i = Math.min(n - 2, Math.floor(f)), u = f - i;
       // travellers only show on open road – inside towns they are "between the houses"
-      (globalThis as any).__ta = ((globalThis as any).__ta ?? 0) + 1;
       const [tx, ty] = l.tiles[i]!;
       const st = structureAt(tx, ty, seeds, now);
       if (!st || (st.kind !== "road" && st.kind !== "bridge")) continue;
@@ -514,7 +513,6 @@ export function draw(
       const bob = Math.sin(t / 180 + k) * 0.4;
       let dx = (bx - ax) * (fwd ? 1 : -1), dy = (by - ay) * (fwd ? 1 : -1);
       const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
-      (globalThis as any).__tc = ((globalThis as any).__tc ?? 0) + 1;
       if (hash(sn, k, 3) < 0.55) drawCart(c, x, y, dx, dy, bob, sn + k, hsl(30 + hash(sn, k, 4) * 30, 40, 55), t);
       else {
         // wanderer
