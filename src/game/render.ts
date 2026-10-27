@@ -253,6 +253,39 @@ const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well",
 /** Whole map fits ~1000px wide at this zoom. */
 export const MIN_ZOOM = 0.025;
 const OVERVIEW_BELOW = 0.45;
+const smoothCache = new WeakMap<object, Pt[]>();
+/** Road tiles are 4-connected (stair steps); travellers follow a smoothed curve through them. */
+function smoothRoad(l: { tiles: [number, number][] }): Pt[] {
+  const hit = smoothCache.get(l); if (hit) return hit;
+  const raw = l.tiles.map(([x, y]) => iso(x, y) as unknown as Pt);
+  const R = 3;
+  const out = raw.map((_, i) => {
+    let sx = 0, sy = 0, c = 0;
+    for (let j = Math.max(0, i - R); j <= Math.min(raw.length - 1, i + R); j++) { sx += raw[j]![0]; sy += raw[j]![1]; c++; }
+    return [sx / c, sy / c] as Pt;
+  });
+  smoothCache.set(l, out); return out;
+}
+
+/** Ox pulling a covered cart, oriented along the travel direction (screen-space unit dx,dy). */
+function drawCart(c: C, x: number, y: number, dx: number, dy: number, bob: number, sd: number, cover: string, t: number) {
+  const px = -dy, py = dx; // side vector
+  const P = (f: number, s: number, h = 0): Pt => [x + dx * f + px * s, y + dy * f * 0.5 + py * s * 0.5 - h];
+  const step = Math.sin(t / 160 + sd) * 0.5;
+  // ox: legs, body, head
+  for (const [f, s] of [[5, 1], [5, -1], [8, 1], [8, -1]] as const) line(c, P(f + (s > 0 ? step : -step), s * 0.9), P(f, s * 0.9, 2.2), sd + f + s, 0.55);
+  blob(c, ...P(6.5, 0, 3 + bob * 0.5), 2.2, "#8a6a4c", sd, true);
+  blob(c, ...P(9.3, 0, 3.4 + bob * 0.5), 1.1, "#6f533b", sd + 1, true);
+  line(c, P(4.5, 0, 2.5), P(2.2, 0, 2.2), sd + 2, 0.5); // shaft
+  // wheels
+  c.fillStyle = INK;
+  for (const s of [1.8, -1.8]) { const q = P(-1, s, 1); c.beginPath(); c.ellipse(q[0], q[1], 1.3, 1.3, 0, 0, 7); c.fill(); }
+  // cart bed + canvas cover
+  shape(c, [P(-3.5, 1.8, 1.8), P(2.2, 1.8, 1.8), P(2.2, -1.8, 1.8), P(-3.5, -1.8, 1.8)], sd + 3, "#a07a52");
+  shape(c, [P(-3.5, 0, 6), P(2.2, 0, 6), P(2.2, 1.8, 2.2), P(-3.5, 1.8, 2.2)], sd + 4, cover);
+  shape(c, [P(-3.5, 0, 6), P(2.2, 0, 6), P(2.2, -1.8, 2.2), P(-3.5, -1.8, 2.2)], sd + 5, "#efe3c8");
+}
+
 let overview: HTMLCanvasElement | null = null;
 /** Cached map picture at 1/8 iso scale (built once; terrain is static). */
 function overviewMap() {
@@ -454,7 +487,8 @@ export function draw(
   if (detail) for (const l of links(seeds)) {
     const prog = roadProgress(l, now);
     if (prog < 1) continue;
-    const n = l.tiles.length;
+    const pts = smoothRoad(l);
+    const n = pts.length;
     const mature = Math.min(1, Math.min(ageHours(l.a, now), ageHours(l.b, now)) / 240);
     const count = 1 + Math.round(mature * 3);
     const sn = l.a.x * 7 + l.b.y * 13;
@@ -464,18 +498,18 @@ export function draw(
       const fwd = ph < n;
       const f = fwd ? ph : n * 2 - ph;
       const i = Math.min(n - 2, Math.floor(f)), u = f - i;
-      const [ax, ay] = iso(l.tiles[i]![0], l.tiles[i]![1]), [bx, by] = iso(l.tiles[i + 1]![0], l.tiles[i + 1]![1]);
+      // travellers only show on open road – inside towns they are "between the houses"
+      const [tx, ty] = l.tiles[i]!;
+      const st = structureAt(tx, ty, seeds, now);
+      if (!st || (st.kind !== "road" && st.kind !== "bridge")) continue;
+      const [ax, ay] = pts[i]!, [bx, by] = pts[i + 1]!;
       const x = ax + (bx - ax) * u, y = ay + (by - ay) * u;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
       const bob = Math.sin(t / 180 + k) * 0.4;
-      if (hash(sn, k, 3) < 0.55) {
-        // merchant cart with ox
-        const dir = (bx - ax) * (fwd ? 1 : -1) >= 0 ? 1 : -1;
-        blob(c, x + dir * 4.5, y - 2 + bob, 1.8, "#8a6a4c", sn + k, true);
-        shape(c, [[x - 3, y - 5], [x + 3, y - 5], [x + 3, y - 1.5], [x - 3, y - 1.5]], sn + k + 1, hsl(30 + hash(sn, k, 4) * 30, 40, 55));
-        shape(c, [[x - 3.2, y - 5], [x, y - 8], [x + 3.2, y - 5]], sn + k + 2, "#efe3c8");
-        c.fillStyle = INK; c.beginPath(); c.arc(x - 2, y - 1, 1, 0, 7); c.arc(x + 2, y - 1, 1, 0, 7); c.fill();
-      } else {
+      let dx = (bx - ax) * (fwd ? 1 : -1), dy = (by - ay) * (fwd ? 1 : -1);
+      const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
+      if (hash(sn, k, 3) < 0.55) drawCart(c, x, y, dx, dy, bob, sn + k, hsl(30 + hash(sn, k, 4) * 30, 40, 55), t);
+      else {
         // wanderer
         line(c, [x, y], [x, y - 4 + bob], sn + k, 0.7);
         blob(c, x, y - 5.2 + bob, 1.2, "#e8c9a3", sn + k + 3, true);
