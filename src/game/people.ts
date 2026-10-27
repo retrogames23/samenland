@@ -208,7 +208,7 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
       out = path.reverse();
     }
   }
-  if ((globalThis as any).__dbg) console.log("res", a, b, out.length);
+  if ((globalThis as any).__dbg) { let v = 0; for (const d of dist) if (d < Infinity) v++; console.log("res", a, b, out.length, v, cost(a[0]+1,a[1]), cost(a[0],a[1]+1), String(structureAt(a[0]+1,a[1],seeds,t.now)?.kind), terrain(a[0]+1,a[1])); }
   // gentle curve through the tile centres (endpoints kept)
   const sm = out.map((p, i) => {
     if (i === 0 || i === out.length - 1) return p;
