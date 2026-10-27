@@ -15,7 +15,7 @@
 - Seed ownership is enforced in the database (seeds.user_id UNIQUE + RLS on auth.uid()); UI strings live in src/game/i18n.ts (de/en), game logic returns codes not text.
 - Trade roads, synergy and twin towns are derived from seed pairs in src/game/world.ts (links/effAge); growth uses effective age, never stored state — keeps all clients identical.
 - Villagers (src/game/people.ts) are a pure function of seed, buildings and clock time; never store them — every client sees the same people.
-- Growth stages, water-adjacent landmarks and rail eligibility are derived in world.ts; retain sublinear expansion and core densification rather than saving progress, so offline growth remains reproducible.
+- Growth stages and water-adjacent landmarks are derived in world.ts; the world stays pre-industrial (no steam, no rails) so old and young towns share one era; retain sublinear expansion and core densification rather than saving progress, so offline growth remains reproducible.
 - Calendar weights live in season.ts using UTC; season-art.ts caches alpha-preserving recolored images and nature/overview caches include the season key, so seasonal changes remain consistent without per-frame pixel processing.
 - World, trade and population caches include seed positions and creation timestamps, so replacing equal-sized seed sets cannot reuse stale geometry or progression.
 - Construction sites are derived, not stored: a building's site phase is the buildTime() window before its birth age (Structure.build); builders/woodcutters/masons are assigned in people.ts from that — keeps every client identical.
