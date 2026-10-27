@@ -185,6 +185,7 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
   const push = (d: number, i: number) => { heap.push([d, i]); let k = heap.length - 1; while (k > 0) { const p = (k - 1) >> 1; if (heap[p]![0] <= heap[k]![0]) break; [heap[p], heap[k]] = [heap[k]!, heap[p]!]; k = p; } };
   const pop = () => { const top = heap[0]!; const last = heap.pop()!; if (heap.length) { heap[0] = last; let k = 0; for (;;) { const l = k * 2 + 1, r = l + 1; let m = k; if (l < heap.length && heap[l]![0] < heap[m]![0]) m = l; if (r < heap.length && heap[r]![0] < heap[m]![0]) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k]!, heap[m]!]; k = m; } } return top; };
   let out: Tile[] = [a, b];
+  if ((globalThis as any).__dbg) console.log("route", a, b, inside(a[0], a[1]), inside(b[0], b[1]), t.x0, t.x1, t.y0, t.y1);
   if (inside(a[0], a[1]) && inside(b[0], b[1])) {
     const si = idx(a[0], a[1]), gi = idx(b[0], b[1]);
     dist[si] = 0; push(0, si);
