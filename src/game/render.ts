@@ -5,6 +5,7 @@ import { seasonKey } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
+import { folkImage, bannerCloth, type FolkSprite } from "./folk-sprites";
 import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
@@ -360,7 +361,33 @@ function bubble(c: C, x: number, y: number, icon: number) {
   else if (icon === 4) { c.fillStyle = INK; for (const k of [-0.9, 0, 0.9]) { c.beginPath(); c.arc(x + k, y, 0.28, 0, 7); c.fill(); } }
   else { c.fillStyle = INK; c.beginPath(); c.ellipse(x - 0.4, y + 0.6, 0.45, 0.35, -0.4, 0, 7); c.fill(); c.strokeStyle = INK; c.beginPath(); c.moveTo(x - 0.0, y + 0.6); c.lineTo(x, y - 1); c.quadraticCurveTo(x + 0.8, y - 0.7, x + 0.9, y - 0.2); c.stroke(); }
 }
+/** Which painted figure represents this villager right now. */
+function folkOf(q: Pose): FolkSprite {
+  const p = q.p;
+  if (p.age < 15) return "child";
+  if (q.carry) return "porter";
+  if (p.job === "builder" || p.job === "woodcutter" || p.job === "mason" || p.job === "farmer" || p.job === "priest") return p.job;
+  if (p.age >= 65) return "elder";
+  return p.sex === "f" ? "woman" : "man";
+}
+/** Painted villager sprite: faces the walking direction, bobs while walking, sways while working. */
+function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
+  const k = folkOf(q), im = folkImage(k); if (!im) return null;
+  const kid = k === "child", hgt = kid ? 3.2 + q.p.age * 0.08 : 5.2;
+  const w = (hgt * im.naturalWidth) / im.naturalHeight;
+  const sdx = q.dir[0] - q.dir[1], face = sdx >= 0 ? 1 : -1, ph = q.phase + q.p.id;
+  const bob = q.walking ? Math.abs(Math.sin(ph)) * 0.22 : 0;
+  const tilt = q.walking ? Math.sin(ph) * 0.04 : q.working ? Math.sin(t / 420 + q.p.id) * 0.07 : 0;
+  c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
+  c.save(); c.translate(X, Y - bob); if (face < 0) c.scale(-1, 1); c.rotate(tilt);
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  c.drawImage(im, -w / 2, -hgt, w, hgt);
+  c.restore();
+  return [X, Y - hgt - bob];
+}
 function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
+  const sp = drawFolk(c, X, Y, q, t);
+  if (sp) { if (q.talk !== null && q.talkTurn) bubble(c, sp[0] + 1.8, sp[1] + 0.6, q.talk); return; }
   c.save(); c.translate(X, Y); c.scale(PERSON_SCALE, PERSON_SCALE); c.translate(-X, -Y);
   const head = personBody(c, X, Y, q, t, simple);
   c.restore();
@@ -1005,12 +1032,10 @@ function drawFestive(c: C, cx: number, cy: number, t: number, sd: number, L: Lig
 }
 /** Carved wooden waymark standing beside the road at the village edge. */
 function drawSignpost(c: C, cx: number, cy: number, sd: number) {
-  const x = cx + 5, y = cy + 1;
-  c.fillStyle = "rgba(25,18,10,0.25)"; c.beginPath(); c.ellipse(x + 1, y + 0.3, 2, 0.7, 0, 0, 7); c.fill();
-  line(c, [x, y], [x, y - 10], sd, 0.8, "#5a3f2a");
-  c.fillStyle = "#9c7a52"; c.strokeStyle = "rgba(40,28,16,0.9)"; c.lineWidth = 0.35;
-  c.beginPath(); c.moveTo(x - 4, y - 9.6); c.lineTo(x + 3, y - 9.6); c.lineTo(x + 4.6, y - 8.4); c.lineTo(x + 3, y - 7.2); c.lineTo(x - 4, y - 7.2); c.closePath(); c.fill(); c.stroke();
-  c.strokeStyle = "rgba(60,40,22,0.6)"; c.beginPath(); c.moveTo(x - 3, y - 8.4); c.lineTo(x + 2.4, y - 8.4); c.stroke();
+  const im = folkImage("signpost"); if (!im) return;
+  const x = cx + 5, y = cy + 1, h = 11, w = (h * im.naturalWidth) / im.naturalHeight;
+  c.fillStyle = "rgba(25,18,10,0.25)"; c.beginPath(); c.ellipse(x + 1, y + 0.3, 2.2, 0.7, 0, 0, 7); c.fill();
+  c.save(); c.translate(x, y); if (sd % 2) c.scale(-1, 1); c.drawImage(im, -w * 0.47, -h * 0.97, w, h); c.restore();
 }
 
 export function draw(
