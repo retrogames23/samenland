@@ -26,3 +26,4 @@
 - Bought buildings are placed by specialSites(seed) in world.ts from purchase rows merged into Seed.bought; newcomers (Person.arrive) derive from bornAt() — both pure, so all clients agree.
 
 - Building night lighting uses aligned, light-only sprite layers with the daylight sprite dimensions and anchors; schedules and flicker live in night.ts so windows stay aligned at every zoom without replacing daytime art.
+- Encounters: the day's event is derived in src/game/encounters.ts from (seed id, UTC day); only the chosen answer is stored, with prices and one-per-day enforced by a database guard — keeps all clients identical and spending tamper-proof.
