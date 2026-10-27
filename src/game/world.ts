@@ -1,7 +1,7 @@
 // Pure, deterministic world + town growth logic (shared by every player).
 export const MAP = 1024;
 
-export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number } };
+export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; firstRoad?: { target: string; at: number } };
 export type Planting = { id: string; seed_id: string; kind: "tree" | "flower" | "lantern"; x: number; y: number; created_at: string };
 
 export function hash(x: number, y: number, s = 0): number {
@@ -403,7 +403,7 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
   return out;
 }
 /** Cache key that changes whenever seed positions, ages or purchases change. */
-export const seedsKey = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}`).join(";");
+export const seedsKey = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}:${s.firstRoad?.target ?? ""}`).join(";");
 
 /** Growth hour at which the building on this tile is finished (0 for the founding core). */
 export function bornAt(x: number, y: number, s: Seed): number {
@@ -488,19 +488,40 @@ let linkCache: Link[] = [];
 const roadIdx = new Map<number, { link: Link; i: number }>();
 
 export function links(seeds: Seed[]): Link[] {
-  const key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}`).join("|");
+  const key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${s.firstRoad?.target ?? ""}:${s.firstRoad?.at ?? ""}`).join("|");
   if (key === linkKey) return linkCache;
   linkKey = key; linkCache = []; roadIdx.clear();
   for (let i = 0; i < seeds.length; i++) for (let j = i + 1; j < seeds.length; j++) {
     const a = seeds[i]!, b = seeds[j]!;
     const d = Math.hypot(a.x - b.x, a.y - b.y);
     if (d > TRADE_DIST) continue;
+    const gate = roadGate(a, b);
+    if (gate === null) continue;
     const l = buildLink(a, b, d);
-    if (l) linkCache.push(l);
+    if (l) { l.since = Math.max(l.since, gate); linkCache.push(l); }
   }
   for (const l of linkCache) l.tiles.forEach(([x, y], i) => { const k = y * MAP + x; if (!roadIdx.has(k)) roadIdx.set(k, { link: l, i }); });
   return linkCache;
 }
+
+/**
+ * Player villages choose their first road themselves; until then they stay unconnected. The chosen
+ * road starts at the moment of choice, all other roads follow automatically one build period later.
+ * Returns the earliest start time, or null when the road may not exist (yet).
+ */
+export function roadGate(a: Seed, b: Seed): number | null {
+  let t = -Infinity;
+  for (const [s, o] of [[a, b], [b, a]] as const) {
+    if (!s.user_id) continue;
+    if (!s.firstRoad) return null;
+    t = Math.max(t, s.firstRoad.target === o.id ? s.firstRoad.at : s.firstRoad.at + ROAD_BUILD * 3.6e6);
+  }
+  return t;
+}
+/** Neighbours a player village may pick as its first road. */
+export const roadCandidates = (s: Seed, seeds: Seed[]) =>
+  seeds.filter((o) => o.id !== s.id && Math.hypot(o.x - s.x, o.y - s.y) <= TRADE_DIST)
+    .sort((p, q) => Math.hypot(p.x - s.x, p.y - s.y) - Math.hypot(q.x - s.x, q.y - s.y));
 
 /**
  * Trade road follows the terrain (A* on a 4-connected grid): land is cheap, hills cost more and
