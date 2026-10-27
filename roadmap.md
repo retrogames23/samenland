@@ -1,4 +1,5 @@
 # Samenland Roadmap
-- [x] Prototyp: isometrische Pixel-Art-Karte, sanfter Zoom, Siedlungskern setzen
-- [x] Echtzeit-Wachstum (auch ohne Zuschauen), Multiplayer über gemeinsame Karte
+- [x] Prototyp: Karte, sanfter Zoom, Siedlungskern setzen
+- [x] Echtzeit-Wachstum, gemeinsame Karte
 - [x] Kleine Eingriffe (Bäume, Blumen, Laternen)
+- [x] Handgezeichneter Look, Gebäudearten pro Entwicklungsstufe, kleiner Start

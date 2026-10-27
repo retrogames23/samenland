@@ -306,7 +306,7 @@ export function draw(
       const pp = P(cx, cy);
       if (st.kind === "path" || st.kind === "street") {
         const street = st.kind === "street";
-        const col = street ? "#bdb5a4" : "#cfb287";
+        const col = street ? "#b3aa98" : "#c49e6c";
         c.strokeStyle = col; c.lineWidth = street ? 8 : 5.5; c.lineCap = "round";
         let any = false;
         for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
