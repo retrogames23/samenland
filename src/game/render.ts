@@ -327,18 +327,18 @@ function personBody(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   const hair = L.hair < 0 ? "#d8d4cc" : HAIR[Math.floor(L.hair * HAIR.length)]!;
   const ph = q.phase + p.id;
   const walk = q.walking ? 1 : 0;
-  const bounce = walk * Math.abs(Math.sin(ph)) * 0.1 * s + (kid && q.act === "play" ? Math.max(0, Math.sin(ph * 0.5)) * 0.5 : 0);
+  const bounce = walk * Math.abs(Math.cos(ph)) * 0.12 * s + (kid && q.act === "play" ? Math.max(0, Math.sin(ph * 0.5)) * 0.5 : 0);
   // shadow
   // grounded: soft ambient shadow cast to the lower right + dark contact patch under the feet
   c.fillStyle = "rgba(25,20,10,0.18)"; c.beginPath(); c.ellipse(X + 1.1 * s, Y + 0.25, 2.3 * s, 0.85 * s, 0.15, 0, 7); c.fill();
   c.fillStyle = "rgba(20,15,8,0.38)"; c.beginPath(); c.ellipse(X, Y, 1.05 * s, 0.42 * s, 0, 0, 7); c.fill();
   if (simple) {
     // Cheap but proportioned figure for mid zoom: two striding legs, tapered torso, arms, hair/hat.
-    const sw = Math.sin(ph) * 0.9 * walk * s, hipY = Y - 3.5 * s - bounce, shY = hipY - 2.5 * s;
+    const sw = Math.sin(ph) * 0.9 * walk * s * Math.abs(fx), swy = Math.sin(ph) * 0.45 * walk * s * fy, hipY = Y - 3.5 * s - bounce, shY = hipY - 2.5 * s;
     const fem = p.sex === "f" && !kid;
     const lc = fem ? skin : pants;
-    limb(c, [[X - 0.3 * s, hipY], [X - 0.3 * s - sw * face, Y - 0.2]], lc, 0.75 * s);
-    limb(c, [[X + 0.3 * s, hipY], [X + 0.3 * s + sw * face, Y - 0.2]], lc, 0.75 * s);
+    limb(c, [[X - 0.3 * s, hipY], [X - 0.3 * s - sw * face, Y - 0.2 - swy]], lc, 0.75 * s);
+    limb(c, [[X + 0.3 * s, hipY], [X + 0.3 * s + sw * face, Y - 0.2 + swy]], lc, 0.75 * s);
     limb(c, [[X - 0.85 * s, shY + 0.3], [X - 0.95 * s + sw * 0.5 * face, hipY + 0.3]], shirt, 0.6 * s);
     c.beginPath(); c.moveTo(X - 0.85 * s, shY); c.lineTo(X + 0.85 * s, shY);
     if (fem) { c.lineTo(X + 1.3 * s, hipY + 2.2 * s); c.lineTo(X - 1.3 * s, hipY + 2.2 * s); }
@@ -362,10 +362,15 @@ function personBody(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   const stoop = old ? 0.45 * face : 0;
   const sh: Pt = [X + stoop, hip[1] - 2.5 * s];
   const legPts = (l: number): Pt[] => {
-    const a = Math.sin(ph + (l > 0 ? 0 : Math.PI)) * 0.55 * walk;
-    const bend = walk * Math.max(0, Math.sin(ph + (l > 0 ? 0 : Math.PI) + 1.2)) * 0.7;
-    const knee: Pt = [hip[0] + Math.sin(a) * leg * side * face, hip[1] + Math.cos(a) * leg];
-    const foot: Pt = [knee[0] + Math.sin(a - bend) * leg * side * face, knee[1] + Math.cos(a - bend) * leg];
+    const lp = ph + (l > 0 ? 0 : Math.PI);
+    const a = Math.sin(lp) * 0.5 * walk;
+    // knee bends only while the leg swings forward (cos>0); stance leg stays straight
+    const bend = walk * Math.max(0, Math.cos(lp)) * 0.8;
+    // swing along the real screen direction: sideways part for left/right, depth part for up/down
+    const kx = Math.sin(a) * leg * fx, ky = Math.sin(a) * leg * fy * 0.5;
+    const knee: Pt = [hip[0] + kx, hip[1] + Math.cos(a) * leg + ky];
+    const fa = a - bend;
+    const foot: Pt = [knee[0] + Math.sin(fa) * leg * fx, knee[1] + Math.cos(fa) * leg + Math.sin(fa) * leg * fy * 0.5 - walk * Math.max(0, Math.cos(lp)) * 0.35 * s];
     return [[hip[0] + l * 0.28 * s * (1 - side * 0.6), hip[1]], knee, foot];
   };
   const dress = p.sex === "f" && !kid ? true : p.sex === "f" && L.pants > 0.4;
