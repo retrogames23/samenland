@@ -322,7 +322,7 @@ export function townPoses(s: Seed, seeds: Seed[], now: number): Pose[] {
     const a = idle[k]!, b = idle[k + 1]!;
     if (Math.hypot(a.x - b.x, a.y - b.y) > 1.6 || hash(a.p.id, slot, 901) > 0.75) continue;
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-    if (!freeAt(t, mx, my, seeds)) continue;
+    if (!freeAt(t, mx - 0.22, my, seeds) || !freeAt(t, mx + 0.22, my, seeds)) continue;
     a.x = mx - 0.22; a.y = my; b.x = mx + 0.22; b.y = my;
     a.dir = [1, -1]; b.dir = [-1, 1];
     const icon = Math.floor(hash(a.p.id, slot, 902) * 6);
