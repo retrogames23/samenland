@@ -18,7 +18,7 @@ const TERRAIN: Record<string, string[]> = {
   forest: ["#6f9d58", "#6a9854", "#73a15c"],
   hill: ["#a6b56f", "#9fae69"],
 };
-const pick = (arr: string[], x: number, y: number) => arr[Math.floor(hash(x, y, 11) * arr.length)];
+const pick = (arr: string[] | undefined, x: number, y: number) => (arr ? arr[Math.floor(hash(x, y, 11) * arr.length)] : undefined) ?? "#8fb86a";
 const hsl = (h: number, s: number, l: number) => `hsl(${h} ${s}% ${l}%)`;
 
 function diamond(c: CanvasRenderingContext2D, cx: number, cy: number, w = TW / 2, h = TH / 2) {
@@ -137,7 +137,7 @@ export function draw(
         if (pl.kind === "tree") tree(c, cx, cy + 1, 1.1, t, hash(x, y, 30));
         if (pl.kind === "flower") {
           for (let i = 0; i < 6; i++) {
-            c.fillStyle = ["#e9a3b4", "#f2e6a0", "#f4f1ea", "#b9a3e0"][i % 4];
+            c.fillStyle = ["#e9a3b4", "#f2e6a0", "#f4f1ea", "#b9a3e0"][i % 4]!;
             c.fillRect(cx - 6 + hash(x, y, 40 + i) * 12, cy - 3 + hash(x, y, 50 + i) * 6, 2, 2);
           }
         }
