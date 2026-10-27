@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { MAP, terrain, type Seed } from "@/game/world";
 
 const N = 96;
-const PAL: Record<string, string> = { deep: "#2f5566", water: "#4f7f8a", sand: "#cdb98a", forest: "#4d6a3a", mountain: "#857a6c", rock: "#857a6c", grass: "#7f9a52" };
+const PAL: Record<string, string> = { deep: "#2f5566", water: "#4f7f8a", sand: "#cdb98a", forest: "#4d6a3a", mountain: "#857a6c", rock: "#857a6c", grass: "#7f9a52", hill: "#8f8a5a", fertile: "#6f8a42", meadow: "#8aa45a" };
 
 /** Top-down overview of the whole map; click jumps the camera. */
 export function Minimap({ seeds, mine, view, onJump }: { seeds: Seed[]; mine: string | null; view: { x: number; y: number; span: number }; onJump: (x: number, y: number) => void }) {
@@ -13,7 +13,7 @@ export function Minimap({ seeds, mine, view, onJump }: { seeds: Seed[]; mine: st
     c.width = c.height = N;
     const g = c.getContext("2d")!;
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-      g.fillStyle = PAL[terrain(Math.floor(((i + 0.5) * MAP) / N), Math.floor(((j + 0.5) * MAP) / N))] ?? PAL.grass!;
+      g.fillStyle = PAL[terrain(Math.floor(((i + 0.5) * MAP) / N), Math.floor(((j + 0.5) * MAP) / N))] ?? PAL["grass"]!;
       g.fillRect(i, j, 1, 1);
     }
     bg.current = c;
