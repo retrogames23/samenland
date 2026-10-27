@@ -91,6 +91,7 @@ export function Game() {
   const onClick = async (x: number, y: number) => {
     setMsg(null);
     if (mode === "seed") {
+      if (!form.name.trim() || !form.owner.trim()) return setMsg("Gib erst beide Namen ein.");
       const err = canPlant(x, y, seeds);
       if (err) return setMsg(err);
       const { data, error } = await supabase.from("seeds").insert({ name: form.name.trim(), owner: form.owner.trim(), x, y, hue: Math.floor(Math.random() * 360) }).select().single();
