@@ -242,6 +242,8 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
   }
 }
 
+const RANK: Record<string, number> = { deep: 0, water: 1, sand: 2, fertile: 3, meadow: 3, grass: 4, hill: 5, forest: 6, mountain: 7 };
+const NB8: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
 const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge"]);
 
 /** Whole map fits ~1000px wide at this zoom. */
@@ -518,6 +520,7 @@ export function draw(
       const st = structureAt(x, y, seeds, now);
       tiles.push({ x, y, cx, cy, st });
       if (!detail) {
+        c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
         if (st && !FLAT.has(st.kind)) { /* drawn in pass 2 */ }
         else if (st?.kind === "field") { c.fillStyle = hsl(st.v > 0.5 ? 44 : 78, 45, 66, 0.9); c.fill(); }
         else if (st && PATHLIKE.has(st.kind)) { c.fillStyle = "#cdb084"; c.fill(); }
@@ -564,8 +567,7 @@ export function draw(
         const q = [pp(-0.47, -0.47), pp(0.47, -0.47), pp(0.47, 0.47), pp(-0.47, 0.47)];
         c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
         c.fillStyle = texture(c, ripe ? "wheat" : "crops") ?? hsl(ripe ? 44 : 80, 50, 60); c.fill();
-        c.strokeStyle = "rgba(70,50,25,0.35)"; c.lineWidth = 0.6; c.stroke();
-      } else if (st.kind === "garden") {
+              } else if (st.kind === "garden") {
         const q = [pp(-0.34, -0.34), pp(0.34, -0.34), pp(0.34, 0.34), pp(-0.34, 0.34)];
         c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
         c.fillStyle = texture(c, "crops") ?? "#a98663"; c.fill();
@@ -620,17 +622,6 @@ export function draw(
     if (fk) {
       fk.sort((a, b) => a.x + a.y - b.x - b.y);
       for (const q of fk) { const [px, py] = iso(q.x, q.y); drawPerson(c, px, py, q, t, simpleFolk); lastPeople.push({ x: px, y: py, q }); }
-    }
-    const pl = plantings.get(`${x},${y}`);
-    if (pl) {
-      const sd = x * 77 + y;
-      if (pl.kind === "tree") tree(c, cx, cy + 2, 1.15, t, hash(x, y, 30), sd);
-      if (pl.kind === "flower") for (let i = 0; i < 7; i++) blob(c, cx - 7 + hash(x, y, 40 + i) * 14, cy - 3 + hash(x, y, 50 + i) * 6, 1, ["#e9a3b4", "#f2e6a0", "#f7f2e6", "#b9a3e0"][i % 4]!, sd + i, false);
-      if (pl.kind === "lantern") {
-        line(c, [cx, cy], [cx, cy - 11], sd, 0.8);
-        shape(c, [[cx - 1.4, cy - 11], [cx + 1.4, cy - 11], [cx + 1.4, cy - 14], [cx - 1.4, cy - 14]], sd + 1, "#f2c66b");
-        L.push({ x: cx, y: cy - 12.5, r: 14 });
-      }
     }
     if (hover && hover[0] === x && hover[1] === y) {
       c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();

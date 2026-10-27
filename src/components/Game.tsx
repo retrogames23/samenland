@@ -479,21 +479,6 @@ export function Game() {
         </ul>
       </aside>
 
-      {my && (
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2 rounded-md border-2 border-border bg-card/90 p-2 shadow-[var(--shadow-cozy)] backdrop-blur">
-          {(["look", "tree", "flower", "lantern"] as Mode[]).map((m) => (
-            <Button
-              key={m}
-              size="sm"
-              variant={mode === m ? "default" : "ghost"}
-              onClick={() => setMode(m)}
-            >
-              {{ look: t.look, tree: t.tree, flower: t.flower, lantern: t.lantern, seed: "" }[m]}
-            </Button>
-          ))}
-        </div>
-      )}
-
       <div className="pointer-events-none absolute bottom-4 left-4 space-y-2 text-sm">
         {msg && (
           <div className="rounded-md border-2 border-border bg-card/95 px-3 py-2 text-foreground">
