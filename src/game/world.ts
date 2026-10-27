@@ -404,7 +404,7 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
   return out;
 }
 /** Cache key that changes whenever seed positions, ages or purchases change. */
-export const seedsKey = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}:${s.firstRoad?.target ?? ""}`).join(";");
+export const seedsKey = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}:${s.firstRoad?.target ?? ""}:${(s.works ?? []).length}`).join(";");
 
 /** Growth hour at which the building on this tile is finished (0 for the founding core). */
 export function bornAt(x: number, y: number, s: Seed): number {
