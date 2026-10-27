@@ -176,7 +176,7 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
     if ((x === b[0] && y === b[1]) || (x === a[0] && y === a[1])) return 1;
     const st = structureAt(x, y, seeds, t.now);
     if (st && WALK.has(st.kind)) return 1;
-    if (st && !FLAT.has(st.kind) && st.kind !== "hay") return Infinity; // buildings
+    if (st && !FLAT.has(st.kind) && st.kind !== "hay") return 40; // through a building only as a last resort – hidden there (back door / courtyard)
     if (!buildable(terrain(x, y))) return Infinity;
     return 2.4;
   };
@@ -208,7 +208,6 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
       out = path.reverse();
     }
   }
-  if ((globalThis as any).__dbg) { let v = 0; for (const d of dist) if (d < Infinity) v++; console.log("res", a, b, out.length, v, cost(a[0]+1,a[1]), cost(a[0],a[1]+1), String(structureAt(a[0]+1,a[1],seeds,t.now)?.kind), terrain(a[0]+1,a[1])); }
   // gentle curve through the tile centres (endpoints kept)
   const sm = out.map((p, i) => {
     if (i === 0 || i === out.length - 1) return p;
@@ -283,7 +282,8 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
         if (dd <= seg[k]! || k === seg.length - 1) {
           const a = pts[k]!, b = pts[k + 1]!, u = seg[k]! ? dd / seg[k]! : 0;
           const dl = seg[k]! || 1;
-          return { ...base, x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, visible: true, walking: true, dir: [(b[0] - a[0]) / dl, (b[1] - a[1]) / dl], phase: (secs * p.speed) / 0.32 };
+          const x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
+          return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, dir: [(b[0] - a[0]) / dl, (b[1] - a[1]) / dl], phase: (secs * p.speed) / 0.32 };
         }
         dd -= seg[k]!;
       }
