@@ -195,7 +195,7 @@ export function landShape(s: { id: string; x: number; y: number }) {
     if (buildable(terrain(Math.round(s.x) + i, Math.round(s.y) + j))) { land++; vx += i / d; vy += j / d; }
   }
   const f = tot ? land / tot : 1, m = Math.hypot(vx, vy);
-  const out = m > 1e-6 && f < 0.9 ? { ux: vx / m, uy: vy / m, k: Math.min(2, 1 + (0.9 - f) * 2.2) } : { ux: 1, uy: 0, k: 1 };
+  const out = m > 1e-6 && f < 0.9 ? { ux: vx / m, uy: vy / m, k: Math.min(2.8, 1 + (0.9 - f) * 3.6) } : { ux: 1, uy: 0, k: 1 };
   shapeCache.set(ck, out);
   return out;
 }
