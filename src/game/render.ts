@@ -422,6 +422,12 @@ function personBody(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   c.fillStyle = shirt; c.fill();
   { const g = c.createLinearGradient(sh[0] - 0.85 * s, 0, sh[0] + 0.85 * s, 0); g.addColorStop(0, "rgba(255,240,210,0.18)"); g.addColorStop(1, "rgba(20,12,5,0.28)"); c.fillStyle = g; c.fill(); }
   c.strokeStyle = "rgba(22,16,10,0.85)"; c.lineWidth = 0.45; c.stroke();
+  if (p.job === "mayor") {
+    // chain of office with a medallion
+    c.strokeStyle = "#d8b24a"; c.lineWidth = 0.32 * s; c.beginPath();
+    c.moveTo(sh[0] - 0.7 * s, sh[1] + 0.1); c.quadraticCurveTo(sh[0], sh[1] + 1.6 * s, sh[0] + 0.7 * s, sh[1] + 0.1); c.stroke();
+    c.fillStyle = "#f0cf68"; c.beginPath(); c.arc(sh[0], sh[1] + 0.95 * s, 0.32 * s, 0, 7); c.fill();
+  }
   if (dress) {
     const sk = CLOTH[(Math.floor(L.shirt * CLOTH.length) + 3) % CLOTH.length]!;
     const fl = walk * Math.sin(ph) * 0.25;
