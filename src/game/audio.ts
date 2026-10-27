@@ -85,6 +85,14 @@ export function hm(pan = 0) {
   if (!ctx || !enabled) return;
   tone(pan, 0.14, 210, 260, 0.28, "triangle", 700);
 }
+/** Festive bell: a few slowly decaying, slightly inharmonic strikes. */
+export function bell(pan = 0) {
+  if (!ctx || !enabled) return;
+  for (let k = 0; k < 3; k++) setTimeout(() => {
+    if (!ctx || !enabled) return;
+    tone(pan, 0.2, 392, 390, 2.4, "sine", 3000); tone(pan, 0.08, 940, 935, 1.6, "sine", 3000); tone(pan, 0.05, 1290, 1285, 1.0, "triangle", 3000);
+  }, k * 1100);
+}
 export function tap(pan = 0) {
   if (!ctx || !enabled) return;
   burst(pan, 0.18, 300, 0.12, "lowpass"); tone(pan, 0.05, 880, 860, 0.5, "sine");
