@@ -34,6 +34,7 @@ import granary from "@/assets/sprites/granary.webp";
 import infirmary from "@/assets/sprites/infirmary.webp";
 import school from "@/assets/sprites/school.webp";
 import markethall from "@/assets/sprites/markethall.webp";
+import gatehouse from "@/assets/sprites/gatehouse.webp";
 import guildhall from "@/assets/sprites/guildhall.webp";
 import library from "@/assets/sprites/library.webp";
 import dairy from "@/assets/sprites/dairy.webp";
@@ -110,6 +111,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   granary: { url: granary, crop: [0, 0, 480, 450], width: 25, base: 4 },
   infirmary: { url: infirmary, crop: [0, 0, 480, 477], width: 23, base: 4 },
   school: { url: school, crop: [0, 0, 480, 478], width: 24, base: 4 },
+  gatehouse: { url: gatehouse, crop: [0, 0, 323, 480], width: 26, base: 4 },
   markethall: { url: markethall, crop: [0, 0, 480, 437], width: 27, base: 4 },
   guildhall: { url: guildhall, crop: [0, 0, 450, 480], width: 24, base: 4 },
   library: { url: library, crop: [0, 0, 480, 478], width: 24, base: 4 },
