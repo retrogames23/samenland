@@ -1,4 +1,5 @@
 import { drawBuildingSprite } from "./building-sprites";
+import { texture, drawNature, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -12,7 +13,8 @@ export type Camera = { x: number; y: number; zoom: number };
 type C = CanvasRenderingContext2D;
 type Pt = [number, number];
 
-const INK = "#4a3526";
+const INK = "rgba(34,26,18,0.72)";
+const TEX_OF: Record<string, Tex> = { deep: "water", water: "water", sand: "sand", grass: "grass", meadow: "meadow", forest: "forest", hill: "grass", fertile: "fertile", mountain: "rock" };
 const TERRAIN: Record<string, [number, number, number]> = {
   deep: [205, 38, 62], water: [198, 40, 70], sand: [42, 52, 80], grass: [88, 30, 66],
   meadow: [76, 36, 70], forest: [100, 24, 58], hill: [70, 22, 62],
@@ -21,7 +23,7 @@ const TERRAIN: Record<string, [number, number, number]> = {
 const hsl = (h: number, s: number, l: number, a = 1) => `hsla(${h} ${s}% ${l}% / ${a})`;
 
 // ---------- hand-drawn helpers ----------
-function jit(p: Pt, sd: number, i: number, amt = 0.45): Pt {
+function jit(p: Pt, sd: number, i: number, amt = 0.08): Pt {
   return [p[0] + (hash(sd, i, 71) - 0.5) * amt, p[1] + (hash(sd, i, 72) - 0.5) * amt];
 }
 function shape(c: C, pts: Pt[], sd: number, fill: string | null, ink = true, close = true) {
@@ -84,13 +86,11 @@ function doorV(c: C, p: ReturnType<typeof P>, u: number, v: number, sd: number, 
   shape(c, [p(u - w, v, 0), p(u + w, v, 0), p(u + w, v, hh), p(u - w, v, hh)], sd, col);
 }
 
-function tree(c: C, x: number, y: number, s: number, t: number, v: number, sd: number) {
-  const sway = Math.sin(t / 1100 + v * 10) * 0.4;
-  c.strokeStyle = INK; c.lineWidth = 1.2 * s; c.beginPath(); c.moveTo(x, y); c.lineTo(x + sway * 0.3, y - 5 * s); c.stroke();
-  const g = v > 0.5 ? 104 : 92;
-  blob(c, x + sway - 2 * s, y - 7 * s, 3.4 * s, hsl(g, 30, 42), sd);
-  blob(c, x + sway + 2 * s, y - 7.5 * s, 3.2 * s, hsl(g, 30, 46), sd + 1);
-  blob(c, x + sway, y - 10 * s, 3.4 * s, hsl(g - 6, 32, 52), sd + 2);
+function tree(c: C, x: number, y: number, s: number, t: number, v: number, sd: number, conifer = 0.5) {
+  const sway = Math.sin(t / 1300 + v * 10) * 0.6;
+  const k = v < conifer ? "fir" : v > 0.82 ? "birch" : "oak";
+  if (drawNature(c, k, x, y, s, sway, hash(sd, 5, 5) > 0.5)) return;
+  blob(c, x, y - 7 * s, 4 * s, hsl(100, 30, 40), sd, false);
 }
 function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
   for (let i = 0; i < 4; i++) {
@@ -98,23 +98,6 @@ function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
     c.fillStyle = `rgba(236,232,224,${0.55 * (1 - ph)})`;
     c.beginPath(); c.arc(x + ph * 6 * big + Math.sin(ph * 6 + sd) * 1.2, y - ph * 16 * big, (1 + ph * 3) * big, 0, Math.PI * 2); c.fill();
   }
-}
-
-let paper: CanvasPattern | null = null;
-function paperPattern(c: C) {
-  if (paper) return paper;
-  const o = document.createElement("canvas"); o.width = o.height = 256;
-  const g = o.getContext("2d")!;
-  const img = g.createImageData(256, 256);
-  for (let i = 0; i < 256 * 256; i++) {
-    const x = i % 256, y = (i / 256) | 0;
-    const n = hash(x, y, 91) * 0.6 + hash(x >> 3, y >> 3, 92) * 0.4;
-    const v = 200 + n * 55;
-    img.data[i * 4] = v; img.data[i * 4 + 1] = v * 0.96; img.data[i * 4 + 2] = v * 0.86; img.data[i * 4 + 3] = 255;
-  }
-  g.putImageData(img, 0, 0);
-  paper = c.createPattern(o, "repeat");
-  return paper;
 }
 
 export type Light = { x: number; y: number; r: number };
@@ -312,7 +295,7 @@ export const lastPeople: { x: number; y: number; q: Pose }[] = [];
 function limb(c: C, pts: Pt[], col: string, w: number) {
   c.lineCap = "round"; c.lineJoin = "round";
   c.beginPath(); c.moveTo(pts[0]![0], pts[0]![1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i]![0], pts[i]![1]);
-  c.strokeStyle = INK; c.lineWidth = w + 0.42; c.stroke();
+  c.strokeStyle = "rgba(30,22,15,0.55)"; c.lineWidth = w + 0.22; c.stroke();
   c.strokeStyle = col; c.lineWidth = w; c.stroke();
 }
 function bubble(c: C, x: number, y: number, icon: number) {
@@ -464,15 +447,13 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
     c.fillStyle = hsl(s.hue, 45, 52, 0.85); c.fill(); c.strokeStyle = INK; c.lineWidth = 1.2 * dpr * px; c.stroke();
   }
   c.setTransform(1, 0, 0, 1, 0, 0);
-  c.font = `700 ${Math.round(18 * dpr)}px 'Caveat', cursive`; c.textAlign = "center";
+  c.font = `700 ${Math.round(18 * dpr)}px Georgia, 'Times New Roman', serif`; c.textAlign = "center";
   for (const s of seeds) {
     const [ix, iy] = iso(s.x, s.y);
     const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2 - 10 * dpr;
     c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(s.name, sx, sy);
     c.fillStyle = INK; c.fillText(s.name, sx, sy);
   }
-  const pat = paperPattern(c);
-  if (pat) { c.globalCompositeOperation = "multiply"; c.globalAlpha = 0.35; c.fillStyle = pat; c.fillRect(0, 0, w, h); c.globalAlpha = 1; c.globalCompositeOperation = "source-over"; }
 }
 
 export function draw(
@@ -505,7 +486,13 @@ export function draw(
       const n = hash(x, y, 11) - 0.5;
       c.beginPath();
       c.moveTo(cx, cy - TH / 2 - 0.6); c.lineTo(cx + TW / 2 + 0.6, cy); c.lineTo(cx, cy + TH / 2 + 0.6); c.lineTo(cx - TW / 2 - 0.6, cy); c.closePath();
-      c.fillStyle = hsl(hh + n * 6, ss, ll + n * 3); c.fill();
+      const isDeep = tr === "deep";
+      const tp = texture(c, TEX_OF[tr]!, isWater(tr) ? (t / 400) % 816 : 0);
+      c.fillStyle = tp ?? hsl(hh + n * 6, ss, ll + n * 3); c.fill();
+      if (tp) {
+        const tint = isDeep ? "rgba(10,40,70,0.45)" : tr === "hill" ? "rgba(90,80,40,0.18)" : n > 0 ? `rgba(255,240,200,${n * 0.12})` : `rgba(20,30,10,${-n * 0.18})`;
+        c.fillStyle = tint; c.fill();
+      }
       const st = structureAt(x, y, seeds, now);
       tiles.push({ x, y, cx, cy, st });
       if (!detail) {
@@ -515,26 +502,27 @@ export function draw(
         continue;
       }
       // watercolor blotch
-      if (hash(x, y, 12) > 0.55) { blob(c, cx + n * 14, cy + (hash(x, y, 13) - 0.5) * 8, 7 + hash(x, y, 14) * 8, hsl(hh, ss + 6, ll - 6, 0.14), x * 7 + y, false); }
       // coast / river ink
       if (!isWater(tr)) {
         const pp = P(cx, cy);
         const edges: [number, number, Pt, Pt][] = [[1, 0, pp(0.5, -0.5), pp(0.5, 0.5)], [0, 1, pp(0.5, 0.5), pp(-0.5, 0.5)], [-1, 0, pp(-0.5, 0.5), pp(-0.5, -0.5)], [0, -1, pp(-0.5, -0.5), pp(0.5, -0.5)]];
-        for (const [dx, dy, a, b] of edges) if (isWater(terrain(x + dx, y + dy))) line(c, a, b, x * 31 + y * 17 + dx * 3 + dy, 0.6);
+        for (const [dx, dy, a, b] of edges) if (isWater(terrain(x + dx, y + dy))) {
+          const f = 0.35 + 0.25 * Math.sin(t / 900 + x * 0.7 + y * 0.5);
+          c.lineCap = "round";
+          c.strokeStyle = "rgba(60,45,25,0.35)"; c.lineWidth = 1.4; c.beginPath(); c.moveTo(a[0], a[1] + 0.6); c.lineTo(b[0], b[1] + 0.6); c.stroke();
+          c.strokeStyle = `rgba(250,250,240,${f})`; c.lineWidth = 0.9; c.beginPath(); c.moveTo(a[0], a[1] + 1.4); c.lineTo(b[0], b[1] + 1.4); c.stroke();
+        }
       } else if (hash(x, y, 15) > 0.82) {
         const ph = Math.sin(t / 1500 + x + y) * 1.2;
         c.strokeStyle = "rgba(255,255,255,0.55)"; c.lineWidth = 0.5;
         c.beginPath(); c.moveTo(cx - 4 + ph, cy); c.quadraticCurveTo(cx - 2 + ph, cy - 1.5, cx + ph, cy); c.quadraticCurveTo(cx + 2 + ph, cy + 1.5, cx + 4 + ph, cy); c.stroke();
       }
-      if (tr === "fertile" && !st && hash(x, y, 24) > 0.6) { c.globalAlpha = 0.3; line(c, [cx - 6, cy + 1], [cx + 6, cy - 1], x * 5 + y, 0.4, "#5b4a2a"); c.globalAlpha = 1; }
       if (tr === "hill" || tr === "mountain") {
         const rs = resourceAt(x, y);
         if (rs === "ore") for (let i = 0; i < 4; i++) blob(c, cx + (hash(x, y, 90 + i) - 0.5) * 16, cy + (hash(x, y, 95 + i) - 0.5) * 7, 1.1, "#b0603a", x * 3 + y + i, i === 0);
         else if (rs === "coal") { c.globalAlpha = 0.7; for (let i = 0; i < 3; i++) line(c, [cx - 7, cy - 2 + i * 2], [cx + 6, cy - 3 + i * 2], x * 11 + y + i, 0.9, "#2d2620"); c.globalAlpha = 1; }
         else if (rs === "stone") blob(c, cx, cy, 2.4, "#c9c2b3", x * 13 + y);
       }
-      if (tr === "hill") { c.globalAlpha = 0.35; line(c, [cx - 8, cy + 2], [cx - 2, cy - 3], x * 9 + y, 0.5); line(c, [cx - 2, cy - 3], [cx + 5, cy + 1], x * 9 + y + 1, 0.5); c.globalAlpha = 1; }
-      if (tr === "meadow" && !st) for (let i = 0; i < 3; i++) if (hash(x, y, 20 + i) > 0.5) { c.fillStyle = ["#f2e6a0", "#e9a3b4", "#f7f2e6"][i]!; c.beginPath(); c.arc(cx + (hash(x, y, 30 + i) - 0.5) * 18, cy + (hash(x, y, 40 + i) - 0.5) * 8, 0.8, 0, 7); c.fill(); }
 
       if (!st) continue;
       const sd = x * 1000 + y;
@@ -548,7 +536,7 @@ export function draw(
         line(c, pp(-0.45, -0.45), pp(0.45, -0.45), sd + 20, 0.6); line(c, pp(-0.45, 0.45), pp(0.45, 0.45), sd + 21, 0.6);
       } else if (st.kind === "path" || st.kind === "street" || st.kind === "road") {
         const street = st.kind === "street";
-        const col = street ? "#b3aa98" : st.kind === "road" ? "#c9a878" : "#c49e6c";
+        const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
         c.strokeStyle = col; c.lineWidth = street ? 8 : 5.5; c.lineCap = "round";
         let any = false;
         for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
@@ -556,25 +544,24 @@ export function draw(
           const o = structureAt(x + i, y + j, seeds, now);
           if (o && PATHLIKE.has(o.kind)) { any = true; const m = pp(i * 0.55, j * 0.55); c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke(); }
         }
-        if (!any) blob(c, cx, cy, 3, col, sd, false);
-        if (street) { c.fillStyle = "rgba(90,80,70,0.35)"; for (let k = 0; k < 4; k++) c.fillRect(cx + (hash(x, y, 50 + k) - 0.5) * 10, cy + (hash(x, y, 60 + k) - 0.5) * 4, 0.8, 0.6); }
+        if (!any) { c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, 3.5, 2, 0, 0, 7); c.fill(); }
       } else if (st.kind === "square" || st.kind === "market" || st.kind === "well") {
-        shape(c, [pp(0, -0.5), pp(0.5, 0), pp(0, 0.5), pp(-0.5, 0)].map((p) => [p[0], p[1]] as Pt), sd, "#cfc6b2", false);
-        c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
-        c.fillStyle = "#d3cab6"; c.fill();
-        c.fillStyle = "rgba(90,80,70,0.25)"; for (let k = 0; k < 6; k++) c.fillRect(cx + (hash(x, y, 70 + k) - 0.5) * 22, cy + (hash(x, y, 80 + k) - 0.5) * 9, 1.2, 0.7);
+        c.beginPath(); c.moveTo(cx, cy - TH / 2 - 0.4); c.lineTo(cx + TW / 2 + 0.4, cy); c.lineTo(cx, cy + TH / 2 + 0.4); c.lineTo(cx - TW / 2 - 0.4, cy); c.closePath();
+        c.fillStyle = texture(c, "cobble") ?? "#d3cab6"; c.fill();
       } else if (st.kind === "field") {
         const ripe = st.v > 0.5;
-        shape(c, [pp(-0.45, -0.45), pp(0.45, -0.45), pp(0.45, 0.45), pp(-0.45, 0.45)], sd, hsl(ripe ? 44 : 80, ripe ? 55 : 35, ripe ? 68 : 58), true);
-        c.globalAlpha = 0.5;
-        for (let k = -3; k <= 3; k++) { const u = k * 0.12; if (st.v > 0.25 && st.v < 0.75) line(c, pp(u, -0.42), pp(u, 0.42), sd + k + 9, 0.4); else line(c, pp(-0.42, u), pp(0.42, u), sd + k + 9, 0.4); }
-        c.globalAlpha = 1;
+        const q = [pp(-0.47, -0.47), pp(0.47, -0.47), pp(0.47, 0.47), pp(-0.47, 0.47)];
+        c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
+        c.fillStyle = texture(c, ripe ? "wheat" : "crops") ?? hsl(ripe ? 44 : 80, 50, 60); c.fill();
+        c.strokeStyle = "rgba(70,50,25,0.35)"; c.lineWidth = 0.6; c.stroke();
       } else if (st.kind === "garden") {
-        shape(c, [pp(-0.32, -0.32), pp(0.32, -0.32), pp(0.32, 0.32), pp(-0.32, 0.32)], sd, "#a98663", true);
-        for (let k = 0; k < 6; k++) { const q = pp(-0.22 + (k % 3) * 0.22, -0.15 + Math.floor(k / 3) * 0.3); blob(c, q[0], q[1] - 0.8, 1.3, hsl(100, 38, 45), sd + k, false); }
+        const q = [pp(-0.34, -0.34), pp(0.34, -0.34), pp(0.34, 0.34), pp(-0.34, 0.34)];
+        c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
+        c.fillStyle = texture(c, "crops") ?? "#a98663"; c.fill();
+        c.strokeStyle = "rgba(90,65,35,0.6)"; c.lineWidth = 0.6; c.stroke();
       } else if (st.kind === "pasture") {
         c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
-        c.fillStyle = hsl(84, 34, 70, 0.6); c.fill();
+        c.fillStyle = texture(c, "meadow") ?? hsl(84, 34, 70, 0.6); c.fill();
       }
     }
   }
@@ -604,15 +591,19 @@ export function draw(
       } else if (tr === "forest" && !st && hash(x, y, 19) > 0.3) blob(c, cx, cy - 3, 7, hsl(100, 26, 44), x * 3 + y, false);
       continue;
     }
-    if (tr === "mountain") {
-      const sd = x * 29 + y, hh = 9 + hash(x, y, 26) * 7, ox = (hash(x, y, 27) - 0.5) * 6;
-      shape(c, [[cx - 11 + ox, cy + 3], [cx + ox, cy - hh], [cx + 11 + ox, cy + 3]], sd, hsl(30, 10, 58 + hash(x, y, 28) * 8), true, false);
-      if (hh > 12) shape(c, [[cx - 3.5 + ox, cy - hh + 4], [cx + ox, cy - hh], [cx + 3.5 + ox, cy - hh + 4]], sd + 1, "#f4efe4", false);
+    if (tr === "mountain" && hash(x, y, 26) > 0.55) {
+      const sc = 0.55 + hash(x, y, 27) * 0.5;
+      if (!drawNature(c, "crag", cx + (hash(x, y, 28) - 0.5) * 6, cy + 4, sc, 0, hash(x, y, 29) > 0.5)) {
+        shape(c, [[cx - 11, cy + 3], [cx, cy - 12], [cx + 11, cy + 3]], x * 29 + y, hsl(30, 10, 58), true, false);
+      }
     }
     if (tr === "forest" && !st) {
-      tree(c, cx - 5, cy + 2, 0.85 + hash(x, y, 17) * 0.35, t, hash(x, y, 18), x * 13 + y);
-      if (hash(x, y, 19) > 0.35) tree(c, cx + 5, cy - 1, 0.7 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y);
-    } else if ((tr === "grass" || tr === "meadow") && !st && hash(x, y, 22) > 0.95) tree(c, cx, cy + 1, 0.9, t, hash(x, y, 23), x * 19 + y);
+      if (hash(x, y, 19) > 0.35) tree(c, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6);
+      tree(c, cx - 5, cy + 3, 0.85 + hash(x, y, 17) * 0.35, t, hash(x, y, 18), x * 13 + y, 0.6);
+    } else if ((tr === "grass" || tr === "meadow" || tr === "hill") && !st) {
+      if (hash(x, y, 22) > 0.95) tree(c, cx, cy + 1, 0.9, t, hash(x, y, 23), x * 19 + y, 0.2);
+      else if (hash(x, y, 22) > 0.9) drawNature(c, "bush", cx + (hash(x, y, 24) - 0.5) * 12, cy + 2, 0.8 + hash(x, y, 25) * 0.5);
+    }
     if (st) drawStructure(c, st, cx, cy, x, y, t, L);
     const fk = folk.get(y * MAP + x);
     if (fk) {
@@ -692,10 +683,8 @@ export function draw(
 
   // ---- paper, light, labels (screen space) ----
   c.setTransform(1, 0, 0, 1, 0, 0);
-  const pat = paperPattern(c);
-  if (pat) { c.globalCompositeOperation = "multiply"; c.globalAlpha = 0.35; c.fillStyle = pat; c.fillRect(0, 0, w, h); c.globalAlpha = 1; c.globalCompositeOperation = "source-over"; }
   const vg = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
-  vg.addColorStop(0, "rgba(120,90,50,0)"); vg.addColorStop(1, "rgba(120,90,50,0.28)");
+  vg.addColorStop(0, "rgba(20,15,10,0)"); vg.addColorStop(1, "rgba(20,15,10,0.32)");
   c.fillStyle = vg; c.fillRect(0, 0, w, h);
 
   const hr = new Date().getHours() + new Date().getMinutes() / 60;
@@ -716,7 +705,7 @@ export function draw(
     c.globalCompositeOperation = "source-over";
   }
 
-  c.font = `700 ${Math.round(22 * dpr)}px 'Caveat', cursive`; c.textAlign = "center";
+  c.font = `700 ${Math.round(22 * dpr)}px Georgia, 'Times New Roman', serif`; c.textAlign = "center";
   c.lineJoin = "round";
   for (const sd of seeds) {
     const [ix, iy] = iso(sd.x, sd.y);
@@ -725,7 +714,7 @@ export function draw(
     c.fillStyle = INK; c.fillText(sd.name, sx, sy);
   }
   // twin towns get a joint ribbon label between them
-  c.font = `600 ${Math.round(17 * dpr)}px 'Caveat', cursive`;
+  c.font = `600 ${Math.round(17 * dpr)}px Georgia, 'Times New Roman', serif`;
   for (const l of links(seeds)) {
     if (!isTwin(l, seeds, now)) continue;
     const [ix, iy] = iso((l.a.x + l.b.x) / 2, (l.a.y + l.b.y) / 2);
