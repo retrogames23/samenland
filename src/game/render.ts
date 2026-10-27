@@ -1,3 +1,4 @@
+import { worldHour } from "./time";
 import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
@@ -112,7 +113,7 @@ export type Light = { x: number; y: number; r: number; building?: { kind: Kind; 
 
 /** Local clock hour, cached per second (house lights depend on it). */
 let hrCache = { at: 0, hr: 12 };
-const localHour = () => { const n = Date.now(); if (n - hrCache.at > 1000) { const d = new Date(n); hrCache = { at: n, hr: d.getHours() + d.getMinutes() / 60 }; } return hrCache.hr; };
+const localHour = () => { const n = Date.now(); if (n - hrCache.at > 1000) { const d = new Date(n); hrCache = { at: n, hr: worldHour(n) }; void d; } return hrCache.hr; };
 /** Hovered / selected villager ids, set by the UI so the canvas can highlight them. */
 export const peopleFocus: { hover: string | null; sel: string | null } = { hover: null, sel: null };
 
@@ -1269,7 +1270,7 @@ export function draw(
   vg.addColorStop(0, "rgba(20,15,10,0)"); vg.addColorStop(1, "rgba(20,15,10,0.32)");
   c.fillStyle = vg; c.fillRect(0, 0, w, h);
 
-  const hr = new Date().getHours() + new Date().getMinutes() / 60;
+  const hr = worldHour(Date.now());
   // darkness: 0 by day, ramps through dusk (18–21:30) and dawn (5–7:30), full at night
   const sm = (a: number, b: number, x: number) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
   const night = hr >= 12 ? sm(18, 21.5, hr) : 1 - sm(5, 7.5, hr);

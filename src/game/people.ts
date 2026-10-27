@@ -1,3 +1,4 @@
+import { worldHour } from "./time";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
 import { hash, structureAt, effAge, radiusOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, type Seed, type Kind } from "./world";
@@ -379,7 +380,7 @@ export function planOf(p: Person, t: Town): Entry[] {
   ];
 }
 
-export const hourOf = (now: number) => { const d = new Date(now); return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600 + d.getMilliseconds() / 3.6e6; };
+export const hourOf = (now: number) => worldHour(now);
 
 const STRIDE = 0.18 / (2 * Math.PI); // 0.18 tiles per full gait cycle (two steps), phase in radians
 /** Distance covered after `secs` on a path of `len`, easing in and out over the first/last few tenths of a tile. */
