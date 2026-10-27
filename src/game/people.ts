@@ -1,11 +1,11 @@
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { hash, structureAt, effAge, radiusOf, terrain, buildable, FLAT, type Seed, type Kind } from "./world";
+import { hash, structureAt, effAge, radiusOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
   | "farmer" | "baker" | "smith" | "innkeeper" | "miller" | "crafter" | "worker"
-  | "sawyer" | "builder" | "woodcutter" | "mason" | "merchant" | "priest" | "carter" | "mayor" | "homemaker" | "retired" | "child";
+  | "sawyer" | "builder" | "woodcutter" | "mason" | "merchant" | "priest" | "carter" | "mayor" | "fisher" | "healer" | "teacher" | "homemaker" | "retired" | "child";
 export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play";
 type Tile = [number, number];
 export type Person = {
@@ -13,10 +13,12 @@ export type Person = {
   home: Tile; work: Tile | null; workIndoor: boolean; speed: number;
   looks: { skin: number; hair: number; shirt: number; pants: number; hat: boolean; stick: boolean };
   haul: Haul | null;
+  /** Newly moved-in household: walks in from the village edge with a bundle (real ms start). */
+  arrive?: { from: Tile; t0: number } | null;
 };
 /** Goods carried along the supply chains (wood → sawmill → site, grain → mill → bakery → inn). */
-export type Good = "log" | "stone" | "planks" | "grain" | "flour" | "bread";
-export type Dest = "sawmill" | "site" | "store" | "mill" | "bakery" | "inn" | "market";
+export type Good = "log" | "stone" | "planks" | "grain" | "flour" | "bread" | "bundle";
+export type Dest = "sawmill" | "site" | "store" | "mill" | "bakery" | "inn" | "market" | "home";
 export type Haul = { from: Tile; to: Tile; fromIn: boolean; toIn: boolean; good: Good; dest: Dest };
 export type Pose = {
   p: Person; x: number; y: number; visible: boolean; walking: boolean;
@@ -35,8 +37,9 @@ const SLOTS: Partial<Record<Kind, [Job, number]>> = {
   watermill: ["miller", 2], chapel: ["priest", 1], manufactory: ["worker", 4], steamworks: ["worker", 4], station: ["carter", 2], stall: ["merchant", 2], harbor: ["carter", 2], townhall: ["crafter", 2],
   bakery: ["baker", 2], smithy: ["smith", 2], inn: ["innkeeper", 2], mill: ["miller", 1], workshop: ["crafter", 2],
   factory: ["worker", 6], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
+  fishery: ["fisher", 1], infirmary: ["healer", 1], school: ["teacher", 1], granary: ["carter", 1],
 };
-const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["mayor", "farmer", "merchant", "carter", "builder", "woodcutter", "mason"]);
+const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["mayor", "farmer", "merchant", "carter", "builder", "woodcutter", "mason", "fisher", "healer"]);
 const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge", "rail", "avenue"]);
 
 export type Town = {
@@ -47,7 +50,7 @@ export type Town = {
 
 const towns = new Map<string, Town>();
 export function townOf(s: Seed, seeds: Seed[], now: number): Town {
-  const key = `${s.id}|${Math.floor(now / 60000)}|${seeds.map(s => `${s.id}:${s.x}:${s.y}:${s.created_at}`).join(";")}`;
+  const key = `${s.id}|${Math.floor(now / 60000)}|${seedsKey(seeds)}`;
   const hit = towns.get(key);
   if (hit) return hit;
   for (const k of towns.keys()) if (k.startsWith(s.id + "|")) towns.delete(k);
@@ -87,7 +90,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   for (const k of ["inn", "church", "chapel", "townhall", "stall", "bakery"] as Kind[]) for (const tl of byKind.get(k) ?? []) { const f = front(tl); if (f) meets.push(f); }
   meets.push(...(byKind.get("market") ?? []), ...(byKind.get("square") ?? []).slice(0, 6));
   if (!meets.length) meets.push([s.x + 1, s.y + 1]);
-  const school = byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
+  const school = byKind.get("school")?.[0] ?? byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
   const meet = meets[0]!;
   const plays: Tile[] = [...(byKind.get("pasture") ?? []), ...(byKind.get("square") ?? [])].slice(0, 8);
   if (!plays.length) plays.push([s.x + 1, s.y - 2]);
@@ -106,6 +109,19 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   sites.sort((a, b) => Math.hypot(a[0] - s.x, a[1] - s.y) - Math.hypot(b[0] - s.x, b[1] - s.y));
   for (const at of sites.slice(0, 4).reverse()) { const fr = front(at) ?? at; slots.unshift({ job: "builder", at: fr }, { job: "builder", at: fr }); }
 
+  const shore = (from: Tile): Tile => {
+    let b = from, bd = Infinity;
+    for (let j = -4; j <= 4; j++) for (let i = -4; i <= 4; i++) {
+      const x = from[0] + i, y = from[1] + j;
+      if (!open(x, y) || !isWater(terrain(x + 1, y)) && !isWater(terrain(x, y + 1)) && !isWater(terrain(x - 1, y)) && !isWater(terrain(x, y - 1))) continue;
+      const d = Math.hypot(i, j); if (d < bd) { bd = d; b = [x, y]; }
+    }
+    return b;
+  };
+  for (const sl of slots) {
+    if (sl.job === "fisher") sl.at = shore(sl.at);
+    else if (sl.job === "healer" && wood && Math.hypot(wood[0] - sl.at[0], wood[1] - sl.at[1]) < 12) sl.at = wood;
+  }
   const homes: Tile[] = [];
   for (const k of Object.keys(HOMES) as Kind[]) homes.push(...(byKind.get(k) ?? []));
   homes.sort((a, b) => Math.hypot(a[0] - s.x, a[1] - s.y) - Math.hypot(b[0] - s.x, b[1] - s.y) || a[0] - b[0] || a[1] - b[1]);
@@ -120,6 +136,15 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     const last = pick(S, hh(1));
     const pa = 24 + Math.floor(hh(2) * 30);
     const yrs = (now - created) / 3.15576e10;
+    const since = age - bornAt(home[0], home[1], s);
+    let arrive: Person["arrive"] = null;
+    if (since >= 0 && since < 1 && Math.hypot(home[0] - s.x, home[1] - s.y) > 1.5) {
+      // a new family comes in from the village edge on the side facing their house
+      const a = Math.atan2(home[1] - s.y, home[0] - s.x) + (hh(30) - 0.5) * 0.8;
+      let from: Tile = [Math.round(s.x + Math.cos(a) * (r + 1.5)), Math.round(s.y + Math.sin(a) * (r + 1.5))];
+      if (!open(from[0], from[1])) from = [Math.round(s.x + Math.cos(a) * r), Math.round(s.y + Math.sin(a) * r)];
+      arrive = { from, t0: now - (since / Math.max(0.1, speedOf(s, seeds, now))) * 3600000 };
+    }
     for (let m = 0; m < size; m++) {
       const id = (home[0] * 1024 + home[1]) * 8 + m;
       const h = (i: number) => hash(id, 77, i);
@@ -145,6 +170,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
         speed: (kid ? 0.3 : old ? 0.15 : 0.22) * (0.85 + h(11) * 0.3),
         looks: { skin: h(12), hair: old ? -1 : h(13), shirt: h(14), pants: h(15), hat: h(16) < (job === "farmer" ? 0.7 : 0.25), stick: old && h(17) < 0.6 },
         haul: null,
+        arrive: arrive ? { from: arrive.from, t0: arrive.t0 + m * 2500 } : null,
       });
     }
   }
@@ -376,6 +402,19 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const e = pl[i]!, prev = pl[(i - 1 + pl.length) % pl.length]!;
   const base: Pose = { p, x: e.place[0], y: e.place[1], visible: !e.indoor, walking: false, dir: [0, 1], phase: 0, act: e.act, working: false, talk: null, talkTurn: false, carry: null, dest: null };
   const secs = (hr - e.at) * 3600;
+  if (p.arrive && now >= p.arrive.t0) {
+    const A = p.arrive.from, B = doorOf(t, p.home, seeds);
+    const pts = [A, ...route(t, A, [Math.round(B[0]), Math.round(B[1])], seeds).slice(1, -1), B];
+    let dd = ((now - p.arrive.t0) / 1000) * ARRIVE_SPEED;
+    for (let k = 1; k < pts.length; k++) {
+      const a = pts[k - 1]!, b = pts[k]!, sl = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (dd <= sl) {
+        const u = sl ? dd / sl : 0, x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u, dl = sl || 1;
+        return { ...base, x, y, visible: true, walking: true, act: "home", dir: [(b[0] - a[0]) / dl, (b[1] - a[1]) / dl], phase: (((now - p.arrive.t0) / 1000) * ARRIVE_SPEED) / STRIDE, carry: p.age >= 12 ? "bundle" : null, dest: "home" };
+      }
+      dd -= sl;
+    }
+  }
   // indoor places are entered through their door; outdoor spots on a roof/rock move to the nearest open tile
   const at = (en: Entry): Tile => en.indoor || !freeAt(t, en.place[0], en.place[1], seeds) ? doorOf(t, en.place, seeds) : en.place;
   const pa = at(prev), pb = at(e);
@@ -420,6 +459,8 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   return { ...base, dir: [face, 0.3], working: e.act === "work" };
 }
 
+/** Newcomers walk slowly, laden with their belongings. */
+export const ARRIVE_SPEED = 0.16;
 const LOAD = 25; // seconds spent loading / unloading at each end
 function haulPose(p: Person, t: Town, seeds: Seed[], secs: number, base: Pose): Pose | null {
   const H = p.haul!;

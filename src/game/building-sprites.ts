@@ -29,6 +29,10 @@ import sawmill from "@/assets/sprites/sawmill.webp";
 import well from "@/assets/sprites/well.webp";
 import market from "@/assets/sprites/market.webp";
 import hay from "@/assets/sprites/hay.webp";
+import fishery from "@/assets/sprites/fishery.webp";
+import granary from "@/assets/sprites/granary.webp";
+import infirmary from "@/assets/sprites/infirmary.webp";
+import school from "@/assets/sprites/school.webp";
 import type { Kind } from "./world";
 
 type Sprite = { url: string; crop: [number, number, number, number]; width: number; base: number; image?: HTMLImageElement };
@@ -63,6 +67,10 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   well: { url: well, crop: [0, 0, 677, 946], width: 12, base: 3 },
   market: { url: market, crop: [0, 0, 990, 665], width: 26, base: 5 },
   hay: { url: hay, crop: [0, 0, 966, 827], width: 15, base: 3 },
+  fishery: { url: fishery, crop: [0, 0, 480, 436], width: 22, base: 4 },
+  granary: { url: granary, crop: [0, 0, 480, 450], width: 25, base: 4 },
+  infirmary: { url: infirmary, crop: [0, 0, 480, 477], width: 23, base: 4 },
+  school: { url: school, crop: [0, 0, 480, 478], width: 24, base: 4 },
 };
 
 /** Browser images are created only when the canvas draws, never during SSR. */
