@@ -34,7 +34,10 @@ const de = {
     meadow: "Blumenwiese",
     forest: "Wald",
     hill: "Hügel",
+    mountain: "Gebirge",
+    fertile: "Fruchtbare Aue",
   } as Record<string, string>,
+  resource: { ore: "Eisenerz", coal: "Kohle", stone: "Bruchstein" } as Record<string, string>,
   age: (h: number) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))} Min.`
@@ -97,7 +100,10 @@ const en: typeof de = {
     meadow: "Flower meadow",
     forest: "Forest",
     hill: "Hills",
+    mountain: "Mountains",
+    fertile: "Fertile floodplain",
   },
+  resource: { ore: "iron ore", coal: "coal", stone: "quarry stone" },
   age: (h) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))} min`
