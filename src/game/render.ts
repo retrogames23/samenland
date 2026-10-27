@@ -1,7 +1,7 @@
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
 import { drawBuildingSprite } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, setNatureTime, boatImage, planksPattern, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, setNatureTime, boatImage, sheepImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -108,20 +108,14 @@ export const peopleFocus: { hover: string | null; sel: string | null } = { hover
 
 /** Small shaded sheep (~hip height of a villager), grazing with an occasional head lift. */
 function drawSheep(c: C, x: number, y: number, flip: boolean, t: number) {
-  const d = flip ? -1 : 1;
   const graze = Math.sin(t / 2600) > -0.3;
-  c.fillStyle = "rgba(30,36,22,0.28)"; c.beginPath(); c.ellipse(x, y + 0.3, 2.6, 0.9, 0, 0, 7); c.fill();
-  c.strokeStyle = "#2b2420"; c.lineWidth = 0.45; c.lineCap = "round";
-  for (const lx of [-1.3, -0.5, 0.6, 1.3]) { c.beginPath(); c.moveTo(x + lx * d, y - 1); c.lineTo(x + lx * d, y + 0.1); c.stroke(); }
-  const g = c.createRadialGradient(x - 0.6 * d, y - 2.6, 0.3, x, y - 1.8, 2.6);
-  g.addColorStop(0, "#fbf6ea"); g.addColorStop(0.7, "#e2d8c4"); g.addColorStop(1, "#b9ad96");
-  c.fillStyle = g; c.beginPath();
-  for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2; const r = 0.75 + 0.15 * Math.sin(i * 2.3); c.ellipse(x + Math.cos(a) * 1.3, y - 1.9 + Math.sin(a) * 0.6, r, r * 0.8, 0, 0, 7); }
-  c.fill();
-  c.strokeStyle = "rgba(70,58,44,0.55)"; c.lineWidth = 0.25; c.stroke();
-  const hx = x + 2.3 * d, hy = graze ? y - 1.1 : y - 2.6;
-  c.fillStyle = "#3a302a"; c.beginPath(); c.ellipse(hx, hy, 0.7, 0.55, graze ? 0.6 * d : 0, 0, 7); c.fill();
-  c.beginPath(); c.ellipse(hx - 0.4 * d, hy - 0.45, 0.35, 0.18, -0.5 * d, 0, 7); c.fill();
+  const im = sheepImage(graze); if (!im) return;
+  const w = 5.2, h = (w * im.naturalHeight) / im.naturalWidth;
+  c.fillStyle = "rgba(30,36,22,0.3)"; c.beginPath(); c.ellipse(x, y, 2.4, 0.8, 0, 0, 7); c.fill();
+  c.save(); c.translate(x, y); if (flip) c.scale(-1, 1);
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  c.drawImage(im, -w / 2, -h * 0.95, w, h);
+  c.restore();
 }
 
 /** Faceted rock with light, mid and dark faces (ore gets a rusty vein glint). */
