@@ -595,13 +595,43 @@ export function bonusOf(d: number, neighbourAgeH: number) {
   return 0.1 + 0.15 * close * mature;
 }
 
+// ---------------- complementary trade ----------------
+export type TradeGood = "grain" | "wool" | "wood" | "ore" | "stone" | "fish" | "salt" | "hides" | "cloth" | "ironware" | "beer" | "timber";
+export const TRADE_TABLE: Record<Character, { exports: TradeGood[]; imports: TradeGood[]; refined: TradeGood }> = {
+  plains: { exports: ["grain", "wool"], imports: ["wood", "ore"], refined: "cloth" },
+  mountain: { exports: ["stone", "ore"], imports: ["grain", "fish"], refined: "ironware" },
+  coast: { exports: ["fish", "salt"], imports: ["wood", "grain"], refined: "beer" },
+  forest: { exports: ["wood", "hides"], imports: ["salt", "stone"], refined: "timber" },
+};
+/** Raw exports/imports from geography; refined goods join the exports from the Kleinstadt era on (real age). */
+export function tradeProfile(s: Seed, now: number) {
+  const row = TRADE_TABLE[characterOf(s.x, s.y)];
+  const exports = stageOf(ageHours(s, now)) >= 3 ? [...row.exports, row.refined] : [...row.exports];
+  return { exports, imports: [...row.imports] };
+}
+/** How many raw goods each town supplies that the other lacks (0..4). */
+export function matches(a: Seed, b: Seed) {
+  const A = TRADE_TABLE[characterOf(a.x, a.y)], B = TRADE_TABLE[characterOf(b.x, b.y)];
+  return A.exports.filter((g) => B.imports.includes(g)).length + B.exports.filter((g) => A.imports.includes(g)).length;
+}
+export const COMPLEMENT_MIN = 0.6, COMPLEMENT_MAX = 1.5, KONTOR_BONUS = 0.15;
+/** 0.6 for twins in character, rising to 1.5 for a perfect fit. */
+export const complement = (a: Seed, b: Seed) => COMPLEMENT_MIN + (COMPLEMENT_MAX - COMPLEMENT_MIN) * Math.min(4, matches(a, b)) / 4;
+/** Trade factor town `s` gets from a road to `o`: complement, +15 % with a Hansekontor era (Handelsstadt+, real age); trade charter lifts the cap. */
+export function tradeFactor(s: Seed, o: Seed, now: number) {
+  let f = complement(s, o);
+  if (stageOf(ageHours(s, now)) >= 4) f += KONTOR_BONUS;
+  const cap = s.charter?.path === "trade" && now > s.charter.at ? 1.75 : COMPLEMENT_MAX;
+  return Math.min(cap, f);
+}
+
 /** Current growth speed multiplier: 1 + sum of neighbour bonuses. */
 export function speedOf(s: Seed, seeds: Seed[], now: number) {
   let sp = 1 + (isBlessed(s, now) ? BLESS_BONUS : 0) + (s.charter?.path === "farm" && now > s.charter.at ? FARM_BONUS : 0);
   for (const l of links(seeds)) {
     if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
     const o = l.a.id === s.id ? l.b : l.a;
-    sp += bonusOf(l.d, ageHours(o, now)) * roadProgress(l, now);
+    sp += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * roadProgress(l, now);
   }
   return sp;
 }
@@ -614,9 +644,30 @@ export function effAge(s: Seed, seeds: Seed[], now: number) {
   for (const l of links(seeds)) {
     if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
     const o = l.a.id === s.id ? l.b : l.a;
-    h += bonusOf(l.d, ageHours(o, now)) * (now - l.since) / 3.6e6;
+    h += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * (now - l.since) / 3.6e6;
   }
   return Math.max(base, h);
+}
+
+/** Trade partners of a town with the goods flowing each way. */
+export function tradePartners(s: Seed, seeds: Seed[], now: number) {
+  const mine = tradeProfile(s, now);
+  return links(seeds).filter((l) => now >= l.since && (l.a.id === s.id || l.b.id === s.id)).map((l) => {
+    const o = l.a.id === s.id ? l.b : l.a, theirs = tradeProfile(o, now);
+    return {
+      seed: o, factor: tradeFactor(s, o, now), bonus: bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now),
+      buy: theirs.exports.filter((g) => mine.imports.includes(g)), sell: mine.exports.filter((g) => theirs.imports.includes(g)),
+    };
+  });
+}
+/** Imports nobody delivers yet, with the nearest town (any distance) that could. */
+export function tradeHints(s: Seed, seeds: Seed[], now: number) {
+  const got = new Set(tradePartners(s, seeds, now).flatMap((p) => p.buy));
+  return tradeProfile(s, now).imports.filter((g) => !got.has(g)).map((g) => {
+    const o = seeds.filter((x) => x.id !== s.id && TRADE_TABLE[characterOf(x.x, x.y)].exports.includes(g))
+      .sort((p, q) => Math.hypot(p.x - s.x, p.y - s.y) - Math.hypot(q.x - s.x, q.y - s.y))[0];
+    return { good: g, from: o ?? null };
+  });
 }
 
 /** Two towns whose outskirts touch become a twin town. */

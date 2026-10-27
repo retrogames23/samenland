@@ -19,6 +19,9 @@ import {
   ageHours,
   effAge,
   speedOf,
+  tradeProfile,
+  tradePartners,
+  tradeHints,
   townStats,
   terrain,
   buildable,
@@ -572,6 +575,23 @@ export function Game() {
             : <Button type="submit" size="sm" className="w-full" disabled={!form.name.trim() || !form.owner.trim()}>{t.plant}</Button>}
         </form>
       ))}
+      {tab === "towns" && my && (() => {
+        const g = (xs: string[]) => xs.map((x) => t.trade.goods[x] ?? x).join(", ");
+        const prof = tradeProfile(my, now), parts = tradePartners(my, seeds, now), hints = tradeHints(my, seeds, now);
+        return (
+          <div className="mb-2 space-y-1 border-b border-border pb-2 text-xs text-muted-foreground">
+            <div className="font-display text-sm text-foreground">{t.trade.title}</div>
+            <div>{t.trade.exports}: {g(prof.exports)}</div>
+            <div>{t.trade.imports}: {g(prof.imports)}</div>
+            <div className="text-foreground">{t.trade.partners}</div>
+            {parts.length === 0 && <div>{t.trade.none}</div>}
+            {parts.map((p) => (
+              <div key={p.seed.id}>{t.trade.partner(p.seed.name, Math.round(p.bonus * 100), t.trade.fit(p.factor))}<span className="block">{t.trade.flow(g(p.buy), g(p.sell))}</span></div>
+            ))}
+            {hints.map((h) => <div key={h.good} className="italic">{t.trade.hint(t.trade.goods[h.good] ?? h.good, h.from?.name ?? null)}</div>)}
+          </div>
+        );
+      })()}
       {tab === "towns" && (
         <ul className="max-h-[50vh] space-y-1 overflow-auto">
           {seeds.map((s) => (

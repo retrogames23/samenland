@@ -12,7 +12,8 @@
 - [x] Kalender-Jahreszeiten in Nahansicht und Übersicht
 - [x] Wachstumsregeln und Jahreszeiten testen, im Spiel prüfen
 - [x] Baustellen statt plötzlich auftauchender Häuser, Zimmerleute, Holzfäller und Steinmetze
-- [ ] Sichtbare Warenflüsse und Lieferketten (Holz → Sägewerk → Baustelle, Korn → Mühle → Bäckerei)
+- [x] Sichtbare Warenflüsse und Lieferketten (Holz → Sägewerk → Baustelle, Korn → Mühle → Bäckerei)
 - [x] Soundeffekte mit Ton an/aus
 
 - [x] Gebäudespezifische Nachtbilder mit passgenauen Fenstern und sanftem Flackern erstellen und prüfen
+- [x] Komplementärer Handel zwischen Dörfern (Bonus nach Ergänzung, Händler mit Waren, Handelsinfos)
