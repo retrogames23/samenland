@@ -490,7 +490,7 @@ export function draw(
     const pts = smoothRoad(l);
     const n = pts.length;
     const mature = Math.min(1, Math.min(ageHours(l.a, now), ageHours(l.b, now)) / 240);
-    const count = 1 + Math.round(mature * 3);
+    const count = 40; //TMP
     const sn = l.a.x * 7 + l.b.y * 13;
     for (let k = 0; k < count; k++) {
       const secsPerTile = 1.6 + hash(sn, k, 1) * 1.2;
@@ -508,6 +508,7 @@ export function draw(
       const bob = Math.sin(t / 180 + k) * 0.4;
       let dx = (bx - ax) * (fwd ? 1 : -1), dy = (by - ay) * (fwd ? 1 : -1);
       const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
+      (globalThis as any).__tc = ((globalThis as any).__tc ?? 0) + 1;
       if (hash(sn, k, 3) < 0.55) drawCart(c, x, y, dx, dy, bob, sn + k, hsl(30 + hash(sn, k, 4) * 30, 40, 55), t);
       else {
         // wanderer
