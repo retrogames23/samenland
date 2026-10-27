@@ -107,6 +107,7 @@ function rivers(): Float32Array {
       const off = (vnoise(i / 26, me * 3.1, 66) - 0.5) * 9 * ramp;
       cur.push([sm[i]![0] - ty * off, sm[i]![1] + tx * off]);
     }
+    cur.push(...path.slice(-3).map(([a, b]) => [a, b] as [number, number])); // reach the actual mouth / junction
     // stamp densely along the curve: a brook at the spring, widening towards the mouth
     for (let i = 0; i + 1 < cur.length; i++) {
       const [ax, ay] = cur[i]!, [bx, by] = cur[i + 1]!;
