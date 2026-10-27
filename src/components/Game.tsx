@@ -175,6 +175,8 @@ export function Game() {
     ];
   };
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ dist: number; mx: number; my: number } | null>(null);
 
   const onClick = async (x: number, y: number) => {
     setMsg(null);
@@ -250,10 +252,32 @@ export function Game() {
         ref={canvasRef}
         className="absolute inset-0 h-full w-full cursor-grab touch-none"
         onPointerDown={(e) => {
-          drag.current = { x: e.clientX, y: e.clientY, moved: false };
+          touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
           (e.target as Element).setPointerCapture(e.pointerId);
+          if (touches.current.size >= 2) { pinch.current = null; if (drag.current) drag.current.moved = true; return; }
+          drag.current = { x: e.clientX, y: e.clientY, moved: false };
         }}
         onPointerMove={(e) => {
+          const tp = touches.current;
+          if (tp.has(e.pointerId)) tp.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          if (tp.size >= 2) {
+            // two-finger pinch: zoom around the midpoint and pan with it
+            const [a, b] = [...tp.values()];
+            const dist = Math.hypot(a!.x - b!.x, a!.y - b!.y), mx = (a!.x + b!.x) / 2, my = (a!.y + b!.y) / 2;
+            const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
+            const p = pinch.current;
+            if (p && p.dist > 0) {
+              const nz = Math.min(7, Math.max(MIN_ZOOM, c.zoom * (dist / p.dist)));
+              const ox = p.mx - r.left - r.width / 2, oy = p.my - r.top - r.height / 2;
+              const wx = ox / c.zoom + c.x, wy = oy / c.zoom + c.y;
+              const nx = mx - r.left - r.width / 2, ny = my - r.top - r.height / 2;
+              c.zoom = nz; c.x = wx - nx / nz; c.y = wy - ny / nz;
+              target.current = { zoom: nz, ax: 0, ay: 0 };
+            }
+            pinch.current = { dist, mx, my };
+            if (drag.current) drag.current.moved = true;
+            return;
+          }
           const d = drag.current;
           if (d && e.buttons) {
             const dx = e.clientX - d.x,
@@ -268,7 +292,17 @@ export function Game() {
           }
           setHover(tileAt(e));
         }}
+        onPointerCancel={(e) => { touches.current.delete(e.pointerId); pinch.current = null; drag.current = null; }}
         onPointerUp={(e) => {
+          touches.current.delete(e.pointerId);
+          if (touches.current.size > 0) {
+            // one finger left after a pinch: continue as a drag from there, no click
+            pinch.current = null;
+            const [rest] = [...touches.current.values()];
+            drag.current = { x: rest!.x, y: rest!.y, moved: true };
+            return;
+          }
+          pinch.current = null;
           const d = drag.current;
           drag.current = null;
           if (d && !d.moved) {
