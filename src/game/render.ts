@@ -597,6 +597,29 @@ export function prewarmOverview() {
   ric ? ric(go) : setTimeout(go, 800);
 }
 
+/** Screen-space dusk + night grade shared by every zoom level; returns the night strength 0..1. */
+function skyTint(c: C, w: number, h: number): number {
+  const hr = worldHour(clock());
+  // darkness: 0 by day, ramps through dusk (18–21:30) and dawn (5–7:30), full at night
+  const sm = (a: number, b: number, x: number) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+  const night = hr >= 12 ? sm(18, 21.5, hr) : 1 - sm(5, 7.5, hr);
+  const dusk = Math.max(0, 1 - Math.abs(hr - 19) / 1.8) + Math.max(0, 1 - Math.abs(hr - 6.5) / 1.3);
+  if (dusk > 0) { c.fillStyle = `rgba(240,140,80,${dusk * 0.14})`; c.fillRect(0, 0, w, h); }
+  if (night > 0.02) {
+    // deep indigo multiply keeps the painting legible but truly dark
+    c.globalCompositeOperation = "multiply";
+    c.fillStyle = `rgba(${Math.round(255 - night * 205)},${Math.round(255 - night * 195)},${Math.round(255 - night * 140)},1)`;
+    c.fillRect(0, 0, w, h);
+    c.globalCompositeOperation = "source-over";
+    c.fillStyle = `rgba(14,18,44,${night * 0.25})`; c.fillRect(0, 0, w, h);
+    // cool moonlight sheen from the upper right
+    const mg = c.createRadialGradient(w * 0.85, -h * 0.1, 0, w * 0.85, -h * 0.1, Math.max(w, h));
+    mg.addColorStop(0, `rgba(150,170,230,${0.12 * night})`); mg.addColorStop(1, "rgba(150,170,230,0)");
+    c.fillStyle = mg; c.fillRect(0, 0, w, h);
+  }
+  return night;
+}
+
 function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], now: number) {
   const z = cam.zoom * dpr;
   c.setTransform(1, 0, 0, 1, 0, 0);
@@ -646,6 +669,21 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
     }
   }
   c.setTransform(1, 0, 0, 1, 0, 0);
+  // same dusk/night grade as the close view, so zooming out never jumps to daylight
+  const night = skyTint(c, w, h);
+  if (night > 0.02) {
+    c.globalCompositeOperation = "lighter";
+    for (const s of seeds) {
+      const [ix, iy] = iso(s.x, s.y);
+      const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2;
+      const r = Math.max(6 * dpr, radiusOf(effAge(s, seeds, now)) * TW * 0.5 * z);
+      if (sx < -r || sy < -r || sx > w + r || sy > h + r) continue;
+      const g = c.createRadialGradient(sx, sy, 0, sx, sy, r);
+      g.addColorStop(0, `rgba(255,170,80,${0.22 * night})`); g.addColorStop(1, "rgba(255,140,60,0)");
+      c.fillStyle = g; c.fillRect(sx - r, sy - r, r * 2, r * 2);
+    }
+    c.globalCompositeOperation = "source-over";
+  }
   c.font = `700 ${Math.round(18 * dpr)}px Georgia, 'Times New Roman', serif`; c.textAlign = "center";
   const placed: [number, number][] = [];
   const order = [...seeds].sort((a, b) => effAge(b, seeds, now) - effAge(a, seeds, now));
@@ -1294,23 +1332,8 @@ export function draw(
   vg.addColorStop(0, "rgba(20,15,10,0)"); vg.addColorStop(1, "rgba(20,15,10,0.32)");
   c.fillStyle = vg; c.fillRect(0, 0, w, h);
 
-  const hr = worldHour(clock());
-  // darkness: 0 by day, ramps through dusk (18–21:30) and dawn (5–7:30), full at night
-  const sm = (a: number, b: number, x: number) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
-  const night = hr >= 12 ? sm(18, 21.5, hr) : 1 - sm(5, 7.5, hr);
-  const dusk = Math.max(0, 1 - Math.abs(hr - 19) / 1.8) + Math.max(0, 1 - Math.abs(hr - 6.5) / 1.3);
-  if (dusk > 0) { c.fillStyle = `rgba(240,140,80,${dusk * 0.14})`; c.fillRect(0, 0, w, h); }
+  const night = skyTint(c, w, h);
   if (night > 0.02) {
-    // deep indigo multiply keeps the painting legible but truly dark
-    c.globalCompositeOperation = "multiply";
-    c.fillStyle = `rgba(${Math.round(255 - night * 205)},${Math.round(255 - night * 195)},${Math.round(255 - night * 140)},1)`;
-    c.fillRect(0, 0, w, h);
-    c.globalCompositeOperation = "source-over";
-    c.fillStyle = `rgba(14,18,44,${night * 0.25})`; c.fillRect(0, 0, w, h);
-    // cool moonlight sheen from the upper right
-    const mg = c.createRadialGradient(w * 0.85, -h * 0.1, 0, w * 0.85, -h * 0.1, Math.max(w, h));
-    mg.addColorStop(0, `rgba(150,170,230,${0.12 * night})`); mg.addColorStop(1, "rgba(150,170,230,0)");
-    c.fillStyle = mg; c.fillRect(0, 0, w, h);
     c.globalCompositeOperation = "lighter";
     for (let i = 0; i < L.length; i++) {
       const l = L[i];
