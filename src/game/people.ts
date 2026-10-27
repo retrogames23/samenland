@@ -2,7 +2,7 @@ import { cacheTick } from "./time";
 import { worldHour } from "./time";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { hash, structureAt, effAge, radiusOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, type TradeGood, type Seed, type Kind } from "./world";
+import { hash, structureAt, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -66,7 +66,7 @@ export function townOf(s: Seed, seeds: Seed[], now: number): Town {
 }
 
 function buildTown(s: Seed, seeds: Seed[], now: number): Town {
-  const r = radiusOf(effAge(s, seeds, now));
+  const r = reachOf(s, radiusOf(effAge(s, seeds, now)));
   const x0 = Math.floor(s.x - r - 2), x1 = Math.ceil(s.x + r + 2), y0 = Math.floor(s.y - r - 2), y1 = Math.ceil(s.y + r + 2);
   const byKind = new Map<Kind, Tile[]>();
   const sites: Tile[] = [];
