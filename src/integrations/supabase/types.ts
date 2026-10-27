@@ -56,6 +56,7 @@ export type Database = {
           id: string
           name: string
           owner: string
+          user_id: string | null
           x: number
           y: number
         }
@@ -65,6 +66,7 @@ export type Database = {
           id?: string
           name: string
           owner: string
+          user_id?: string | null
           x: number
           y: number
         }
@@ -74,6 +76,7 @@ export type Database = {
           id?: string
           name?: string
           owner?: string
+          user_id?: string | null
           x?: number
           y?: number
         }
