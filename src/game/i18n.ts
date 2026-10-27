@@ -47,6 +47,16 @@ const de = {
   livesIn: (town: string) => `wohnt in ${town}`,
   carrying: (g: string, d: string) => `trägt ${({ log: "Holzstämme", stone: "Steinblöcke", planks: "Bretter", grain: "Getreide", flour: "Mehl", bread: "Brot" } as Record<string, string>)[g]} ${({ sawmill: "zum Sägewerk", site: "zur Baustelle", store: "zum Lager", mill: "zur Mühle", bakery: "zur Bäckerei", inn: "ins Wirtshaus", market: "zum Markt" } as Record<string, string>)[d]}`,
   close: "Schließen",
+  kind: { well: "Brunnen", farmhouse: "Bauernhaus", barn: "Scheune", field: "Acker", garden: "Gemüsegarten", hay: "Heuhaufen", cottage: "Häuschen", church: "Kirche", mill: "Windmühle", inn: "Gasthaus", bakery: "Bäckerei", townhouse: "Stadthaus", workshop: "Werkstatt", smithy: "Schmiede", warehouse: "Lagerhaus", market: "Marktplatz", factory: "Fabrik", sawmill: "Sägewerk", campfire: "Lagerfeuer", hut: "Hütte", coop: "Hühnerstall", chapel: "Kapelle", watermill: "Wassermühle", harbor: "Fischerhafen", stall: "Marktbude", townhall: "Rathaus", manufactory: "Manufaktur", steamworks: "Dampfmaschinenhalle", station: "Bahnhof", suburb: "Vorstadthaus" } as Record<string, string>,
+  purpose: { well: "Frisches Wasser und Treffpunkt zur Mittagszeit.", farmhouse: "Wohnhaus einer Bauernfamilie.", barn: "Lagert Heu, Stroh und Ernte.", field: "Hier wächst Getreide für die Mühle.", garden: "Gemüse für die Küche nebenan.", hay: "Futter für den Winter.", cottage: "Ein kleines Wohnhaus.", church: "Gottesdienst, Glocken und Feste.", mill: "Mahlt Getreide zu Mehl.", inn: "Bier, Brot und Geschichten am Abend.", bakery: "Backt aus Mehl frisches Brot.", townhouse: "Wohnhaus in der Stadt.", workshop: "Handwerker fertigen Waren.", smithy: "Schmiedet Werkzeug und Beschläge.", warehouse: "Lagert Stein, Bretter und Waren.", market: "Hier wird Brot und Ware verkauft.", factory: "Industrielle Fertigung.", sawmill: "Schneidet Stämme zu Brettern.", campfire: "Das Herz der ersten Siedler.", hut: "Die erste einfache Unterkunft.", coop: "Hühner legen hier Eier.", chapel: "Ein kleiner Ort der Andacht.", watermill: "Das Bachwasser mahlt Getreide zu Mehl.", harbor: "Fischer fahren von hier hinaus.", stall: "Händler bieten Waren an.", townhall: "Sitz der Stadtverwaltung.", manufactory: "Viele Hände fertigen Tuch und Gerät.", steamworks: "Dampfkraft treibt die Maschinen.", station: "Züge verbinden die Städte.", suburb: "Wohnhaus am Stadtrand." } as Record<string, string>,
+  site: (k: string) => `${k} im Bau`,
+  progress: (p: number) => `Baufortschritt: ${p} %`,
+  needs: "Benötigt: Bretter, Steinblöcke und Stämme",
+  residents: "Bewohner",
+  workers: "Arbeiter",
+  builders: "Zimmerleute vor Ort",
+  nobody: "niemand gerade",
+  inTown: (k: string, town: string) => `${k} in ${town}`,
   age: (h: number) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))} Min.`
