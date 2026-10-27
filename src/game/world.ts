@@ -443,7 +443,9 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
   return out;
 }
 /** Cache key that changes whenever seed positions, ages or purchases change. */
-export const seedsKey = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}:${s.firstRoad?.target ?? ""}:${(s.works ?? []).length}`).join(";");
+const skMemo = new WeakMap<Seed[], string>();
+export const seedsKey = (seeds: Seed[]) => { let k = skMemo.get(seeds); if (k === undefined) { k = seedsKeyRaw(seeds); skMemo.set(seeds, k); } return k; };
+const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}:${s.firstRoad?.target ?? ""}:${(s.works ?? []).length}`).join(";");
 
 /** Growth hour at which the building on this tile is finished (0 for the founding core). */
 export function bornAt(x: number, y: number, s: Seed): number {
@@ -679,8 +681,13 @@ export function speedOf(s: Seed, seeds: Seed[], now: number) {
 }
 
 /** Effective age: real age plus bonus hours accumulated since each road was founded (monotonic, deterministic). */
+const ageMemo = new WeakMap<Seed[], { now: number; m: Map<string, number> }>();
 export function effAge(s: Seed, seeds: Seed[], now: number) {
-  return effAgeBase(s, seeds, now) + twinHours(s, seeds, now);
+  let c = ageMemo.get(seeds);
+  if (!c || c.now !== now) { c = { now, m: new Map() }; ageMemo.set(seeds, c); }
+  let v = c.m.get(s.id);
+  if (v === undefined) { v = effAgeBase(s, seeds, now) + twinHours(s, seeds, now); c.m.set(s.id, v); }
+  return v;
 }
 function effAgeBase(s: Seed, seeds: Seed[], now: number) {
   let h = ageHours(s, now) + blessHours(s, now) + boonHours(s.decisions ?? [], now);
