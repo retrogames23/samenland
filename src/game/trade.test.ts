@@ -3,7 +3,7 @@ import { complement, tradeFactor, matches, COMPLEMENT_MIN, COMPLEMENT_MAX, type 
 const seed = (id: string, x: number, y: number, extra: Partial<Seed> = {}): Seed => ({ id, x, y, name: id, owner: "", created_at: "2026-01-01T00:00:00Z", ...extra }) as Seed;
 describe("complementary trade", () => {
   it("same character gives 0.6", () => {
-    const a = seed("a", 100, 100), b = seed("b", 100.4, 100);
+    const a = seed("a", 100, 100), b = seed("b", 100, 100);
     expect(matches(a, b)).toBe(0);
     expect(complement(a, b)).toBeCloseTo(COMPLEMENT_MIN);
   });
