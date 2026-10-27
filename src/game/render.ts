@@ -1018,7 +1018,7 @@ export function draw(
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
 ) {
   renderNow = now; setArtTime(now); setNatureTime(now);
-  lastPeople.length = 0; lastSources.length = 0;
+  lastPeople.length = 0; lastTraders.length = 0; lastSources.length = 0;
   signpostMap(seeds);
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
   const t = performance.now(); setSpriteTime(t);
