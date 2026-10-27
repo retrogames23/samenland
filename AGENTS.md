@@ -32,3 +32,4 @@
 - Twin towns: touch time (twinSince), pacts, joint works, gate sites and festival bonuses are derived in world.ts from seeds + twin_votes/twin_works rows (DB guard charges halves); never store twin state — all clients agree.
 - Landmarks relocate from their nominal offset to the nearest dry tile via landmarkSpots(seed) in world.ts (pure, cached) — so coastal/mountain towns never lose landmarks to water.
 - Villagers, waymarks, border banners/stones and construction props are painted sprites (src/game/folk-sprites.ts); banner cloth is tinted per town hue at runtime and drawn in world space so night lighting applies — no flat vector figures next to painted art.
+- Admin test map (realm "lab") warps the game clock via clock() in src/game/time.ts; all game code must read time through clock(), never Date.now(), so the time-lapse applies everywhere.
