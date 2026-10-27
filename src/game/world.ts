@@ -195,7 +195,7 @@ export type Kind =
   | "townhouse" | "workshop" | "smithy" | "warehouse" | "market"
   | "factory" | "sawmill" | "road" | "bridge"
   | "campfire" | "hut" | "coop" | "fence" | "chapel" | "watermill" | "harbor"
-  | "stall" | "townhall" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue"
+  | "stall" | "townhall" | "gatehouse" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue"
   | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). */
 export type Structure = { kind: Kind; seed: Seed; v: number; build?: number };
@@ -683,7 +683,7 @@ export type WorkKind = "bridge" | "hall" | "tower";
 export const TWIN_WORKS: Record<WorkKind, number> = { bridge: 200, hall: 300, tower: 250 };
 export const TWIN_BONUS = 0.1, PACT_WAIT = 7 * 864e5, WORK_BUILD = 48 * 3.6e6, WORK_BONUS = 0.05;
 export const PACT_GROWTH: Record<PactKind, number> = { trade: 0.1, shield: 0, culture: 0.05 };
-const WORK_KIND: Record<WorkKind, Kind> = { bridge: "townhall", hall: "markethall", tower: "church" };
+const WORK_KIND: Record<WorkKind, Kind> = { bridge: "gatehouse", hall: "markethall", tower: "church" };
 const pairHash = (l: Link) => hash(l.a.x + l.b.x, l.a.y + l.b.y, 21);
 
 const sinceMemo = new WeakMap<Seed[], Map<string, number | null>>();
