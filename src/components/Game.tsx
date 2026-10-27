@@ -152,7 +152,8 @@ export function Game() {
     document.addEventListener("fullscreenchange", on);
     return () => document.removeEventListener("fullscreenchange", on);
   }, []);
-  const cam = useRef<Camera>({ x: 0, y: 0, zoom: 2.6 });
+  // start over the settled heartland, never the empty ocean at tile (0,0)
+  const cam = useRef<Camera>((() => { const [x, y] = iso(320, 440); return { x, y, zoom: 2.6 }; })());
   const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
   const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as Item | null });
   st.current.seeds = seeds;
@@ -189,15 +190,23 @@ export function Game() {
         setUserId(session?.user.id ?? null);
     });
     (async () => {
-      const { data: u0 } = await supabase.auth.getUser();
       let r = detectRealm();
-      if (u0.user) {
-        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u0.user.id);
-        const adm = !!roles?.some((x) => x.role === "admin");
-        setIsAdmin(adm);
-        const o = localStorage.getItem("samenland-realm") as Realm | null;
-        if (adm && o && REALMS.includes(o)) r = o;
-      }
+      let uid: string | null = null;
+      try {
+        // guests must never wait on auth: local session only, with a short cap
+        const sess = await Promise.race([
+          supabase.auth.getSession().then((x) => x.data.session),
+          new Promise<null>((res) => setTimeout(() => res(null), 1500)),
+        ]);
+        uid = sess?.user.id ?? null;
+        if (uid) {
+          const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+          const adm = !!roles?.some((x) => x.role === "admin");
+          setIsAdmin(adm);
+          const o = localStorage.getItem("samenland-realm") as Realm | null;
+          if (adm && o && REALMS.includes(o)) r = o;
+        }
+      } catch { /* play as guest */ }
       setRealm(r);
       realmRef.current = r;
       setRealmState(r);
