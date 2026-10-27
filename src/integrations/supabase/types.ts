@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      plantings: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          seed_id: string
+          x: number
+          y: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          seed_id: string
+          x: number
+          y: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          seed_id?: string
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plantings_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seeds: {
         Row: {
           created_at: string
