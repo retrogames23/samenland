@@ -1,5 +1,5 @@
 // Pure, deterministic world + town growth logic (shared by every player).
-export const MAP = 512;
+export const MAP = 1024;
 
 export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null };
 export type Planting = { id: string; seed_id: string; kind: "tree" | "flower" | "lantern"; x: number; y: number; created_at: string };
@@ -24,30 +24,63 @@ function fbm(x: number, y: number, s: number) {
   return t / 0.9375;
 }
 
-export type Terrain = "deep" | "water" | "sand" | "grass" | "meadow" | "forest" | "hill";
-const tcache = new Map<number, Terrain>();
+export type Terrain = "deep" | "water" | "sand" | "grass" | "meadow" | "fertile" | "forest" | "hill" | "mountain";
+const TLIST: Terrain[] = ["deep", "water", "sand", "grass", "meadow", "fertile", "forest", "hill", "mountain"];
+const tcache = new Uint8Array(MAP * MAP); // 0 = not computed, else index+1
+
+/** Island height with an irregular, bay-and-cape coastline (domain-warped radial falloff). */
+function heightAt(x: number, y: number) {
+  const wx = x + (fbm(x / 160, y / 160, 21) - 0.5) * 140;
+  const wy = y + (fbm(x / 160, y / 160, 22) - 0.5) * 140;
+  const cx = wx / MAP - 0.5, cy = wy / MAP - 0.5;
+  const ang = Math.atan2(cy, cx);
+  // angular noise → deep bays and long capes
+  const coast = 0.72 + (vnoise(Math.cos(ang) * 3 + 10, Math.sin(ang) * 3 + 10, 23) - 0.5) * 0.32;
+  const edge = Math.max(0, Math.hypot(cx, cy) * 2 - coast) * 2.2;
+  const ridge = 1 - Math.abs(fbm(x / 120, y / 120, 25) * 2 - 1); // mountain chains
+  return fbm(x / 90, y / 90, 1) * 0.75 + ridge * ridge * 0.3 - edge;
+}
+/** 0 on a river centreline. Main rivers + narrower tributaries. */
+function riverDist(x: number, y: number) {
+  const main = Math.abs(fbm(x / 170, y / 170, 9) - 0.5);
+  const trib = Math.abs(fbm(x / 70, y / 70, 31) - 0.5) * 1.8;
+  return Math.min(main, trib);
+}
 export function terrain(x: number, y: number): Terrain {
   if (x < 0 || y < 0 || x >= MAP || y >= MAP) return "deep";
   const k = y * MAP + x;
-  const c = tcache.get(k);
-  if (c) return c;
-  const cx = x / MAP - 0.5, cy = y / MAP - 0.5;
-  const edge = Math.max(0, Math.hypot(cx, cy) * 2 - 0.75) * 1.6;
-  const h = fbm(x / 70, y / 70, 1) - edge;
-  const river = Math.abs(fbm(x / 110, y / 110, 9) - 0.5);
+  const c = tcache[k]!;
+  if (c) return TLIST[c - 1]!;
+  const h = heightAt(x, y);
+  const rv = riverDist(x, y);
+  // rivers widen as they approach the sea and vanish high in the mountains
+  const w = 0.006 + Math.max(0, 0.62 - h) * 0.03;
   let t: Terrain;
   if (h < 0.3) t = "deep";
-  else if (h < 0.36 || (river < 0.012 && h < 0.7)) t = "water";
-  else if (h < 0.39 || river < 0.02) t = "sand";
+  else if (h < 0.35 || (rv < w && h < 0.74)) t = "water";
+  else if (h < 0.375 || (rv < w + 0.005 && h < 0.74)) t = "sand";
+  else if (h > 0.8) t = "mountain";
   else if (h > 0.68) t = "hill";
+  else if (rv < w + 0.03 && h < 0.55) t = "fertile";
   else if (fbm(x / 25, y / 25, 5) > 0.58) t = "forest";
   else if (fbm(x / 18, y / 18, 7) > 0.6) t = "meadow";
   else t = "grass";
-  tcache.set(k, t);
+  tcache[k] = TLIST.indexOf(t) + 1;
   return t;
 }
-export const buildable = (t: Terrain) => t === "grass" || t === "meadow" || t === "forest" || t === "sand";
+export const buildable = (t: Terrain) => t === "grass" || t === "meadow" || t === "fertile" || t === "forest" || t === "sand";
 export const isWater = (t: Terrain) => t === "water" || t === "deep";
+
+export type Resource = "ore" | "coal" | "stone";
+/** Mineral deposits in the uplands (future industry bonus). Deterministic per tile. */
+export function resourceAt(x: number, y: number): Resource | null {
+  const t = terrain(x, y);
+  if (t !== "hill" && t !== "mountain") return null;
+  if (fbm(x / 14, y / 14, 41) > 0.66) return "ore";
+  if (fbm(x / 16, y / 16, 43) > 0.67) return "coal";
+  if (hash(x, y, 45) > 0.93) return "stone";
+  return null;
+}
 
 export const ageHours = (s: Seed, now: number) => Math.max(0, (now - Date.parse(s.created_at)) / 3.6e6);
 
