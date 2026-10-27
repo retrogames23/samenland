@@ -118,16 +118,21 @@ function drawSheep(c: C, x: number, y: number, flip: boolean, t: number) {
   c.restore();
 }
 
-/** Faceted rock with light, mid and dark faces (ore gets a rusty vein glint). */
+/** Weathered, half-buried boulder: rounded, lit from the top-left, settled into the ground. */
 function rock(c: C, x: number, y: number, s: number, lit: string, mid: string, dark: string, glint: boolean) {
-  c.fillStyle = "rgba(30,26,20,0.3)"; c.beginPath(); c.ellipse(x + 0.3 * s, y + 0.2 * s, 1.3 * s, 0.5 * s, 0, 0, 7); c.fill();
-  const top: Pt = [x - 0.2 * s, y - 1.3 * s];
-  const face = (pts: Pt[], col: string) => { c.fillStyle = col; c.beginPath(); c.moveTo(...pts[0]!); for (const p of pts.slice(1)) c.lineTo(...p); c.closePath(); c.fill(); };
-  face([[x - 1.2 * s, y], top, [x + 0.1 * s, y + 0.3 * s]], lit);
-  face([top, [x + 1.1 * s, y - 0.3 * s], [x + 0.1 * s, y + 0.3 * s]], mid);
-  face([[x + 1.1 * s, y - 0.3 * s], [x + 1.2 * s, y], [x + 0.1 * s, y + 0.3 * s]], dark);
-  c.strokeStyle = "rgba(25,20,16,0.5)"; c.lineWidth = 0.25; c.beginPath(); c.moveTo(x - 1.2 * s, y); c.lineTo(...top); c.lineTo(x + 1.1 * s, y - 0.3 * s); c.lineTo(x + 1.2 * s, y); c.lineTo(x + 0.1 * s, y + 0.3 * s); c.closePath(); c.stroke();
-  if (glint) { c.fillStyle = "#d98a4a"; c.fillRect(x - 0.3 * s, y - 0.7 * s, 0.35 * s, 0.25 * s); }
+  c.fillStyle = "rgba(30,26,20,0.28)"; c.beginPath(); c.ellipse(x + 0.35 * s, y + 0.15 * s, 1.35 * s, 0.45 * s, 0, 0, 7); c.fill();
+  const g = c.createRadialGradient(x - 0.45 * s, y - 0.75 * s, 0.1 * s, x, y - 0.3 * s, 1.4 * s);
+  g.addColorStop(0, lit); g.addColorStop(0.55, mid); g.addColorStop(1, dark);
+  c.fillStyle = g; c.beginPath();
+  c.moveTo(x - 1.15 * s, y);
+  c.bezierCurveTo(x - 1.2 * s, y - 0.6 * s, x - 0.5 * s, y - 1.05 * s, x + 0.1 * s, y - 0.95 * s);
+  c.bezierCurveTo(x + 0.8 * s, y - 0.85 * s, x + 1.2 * s, y - 0.4 * s, x + 1.1 * s, y);
+  c.bezierCurveTo(x + 0.7 * s, y + 0.3 * s, x - 0.7 * s, y + 0.3 * s, x - 1.15 * s, y);
+  c.fill();
+  c.strokeStyle = "rgba(25,20,16,0.35)"; c.lineWidth = 0.2; c.stroke();
+  // grass creeping over the foot so it sits in the ground
+  c.fillStyle = "rgba(70,88,40,0.45)"; c.beginPath(); c.ellipse(x, y + 0.12 * s, 1.15 * s, 0.22 * s, 0, 0, Math.PI); c.fill();
+  if (glint) { c.fillStyle = "rgba(217,138,74,0.8)"; c.beginPath(); c.ellipse(x - 0.2 * s, y - 0.5 * s, 0.25 * s, 0.12 * s, -0.4, 0, 7); c.fill(); }
 }
 const roofHue = (s: Structure, slate = false) => slate ? [215, 12, 46] : [12 + s.v * 18 + (s.seed.hue % 20) - 10, 48, 50];
 
@@ -277,7 +282,6 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
   }
 }
 
-const RANK: Record<string, number> = { deep: 0, water: 1, sand: 2, fertile: 3, meadow: 3, grass: 4, hill: 5, forest: 6, mountain: 7 };
 const LAYER: Record<string, number> = { deep: 0, water: 0, sand: 1, fertile: 2, meadow: 3, grass: 4, hill: 5, forest: 6, mountain: 7 };
 const LAYER_T = ["water", "sand", "fertile", "meadow", "grass", "hill", "forest", "mountain"];
 const NB8: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
@@ -812,7 +816,7 @@ export function draw(
       for (let i = 0; i < n; i++) {
         const a = hash(e.x, e.y, 410 + i) * Math.PI * 2;
         const px = e.cx + Math.cos(a) * TW * 0.42, py = e.cy + Math.sin(a) * TH * 0.42;
-        if (e.r >= 3) {
+        if (e.r >= 2) {
           c.strokeStyle = "rgba(78,96,46,0.45)"; c.lineWidth = 0.35; c.beginPath();
           for (let b = -1; b <= 1; b++) { c.moveTo(px + b * 0.4, py); c.lineTo(px + b * 0.8, py - 1.2 - hash(e.x, i, b + 5) * 0.6); }
           c.stroke();
