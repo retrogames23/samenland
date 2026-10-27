@@ -196,6 +196,7 @@ export type Kind =
   | "factory" | "sawmill" | "road" | "bridge"
   | "campfire" | "hut" | "coop" | "fence" | "chapel" | "watermill" | "harbor"
   | "stall" | "townhall" | "gatehouse" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue"
+  | "patrician" | "villa" | "tenement" | "townhouse2"
   | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). */
 export type Structure = { kind: Kind; seed: Seed; v: number; build?: number };
@@ -212,9 +213,40 @@ const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
   { dx: -4, dy: 1, at: 2500, kind: "warehouse" },
   { dx: 3, dy: -4, at: 4380, kind: "townhall" }, { dx: 2, dy: -2, at: 4500, kind: "church" },
   { dx: 8, dy: 6, at: 8760, kind: "manufactory" }, { dx: -7, dy: -6, at: 9200, kind: "steamworks" },
-  { dx: -9, dy: 5, at: 10000, kind: "station" }, { dx: 6, dy: -9, at: 12000, kind: "factory" },
+  { dx: -9, dy: 5, at: 10000, kind: "station" }, { dx: 5, dy: 2, at: 7000, kind: "factory" },
   { dx: 12, dy: 3, at: 14500, kind: "sawmill" },
 ];
+const lmCache = new Map<string, Map<string, number[]>>();
+/**
+ * Landmarks keep their nominal offset when the ground is dry; otherwise they move to the nearest
+ * buildable tile (pure function of seed position), so coastal and mountain towns get them too.
+ */
+function landmarkSpots(s: Seed): Map<string, number[]> {
+  const ck = `${s.id}:${s.x}:${s.y}`; const hit = lmCache.get(ck); if (hit) return hit;
+  const out = new Map<string, number[]>(), used = new Set<string>(Object.keys(CORE)); used.add("0,0");
+  const ok = (dx: number, dy: number) => !used.has(`${dx},${dy}`) && buildable(terrain(s.x + dx, s.y + dy)) && Math.hypot(dx, dy) >= 1.6;
+  // the same nominal tile can host successive landmarks (chapel -> church): share its relocation
+  const moved = new Map<string, string>();
+  LANDMARKS.forEach((l, i) => {
+    const nom = `${l.dx},${l.dy}`;
+    let key = moved.get(nom);
+    if (!key) {
+      key = nom;
+      if (!ok(l.dx, l.dy)) {
+        let best = "", bs = Infinity;
+        for (let j = -6; j <= 6; j++) for (let k = -6; k <= 6; k++) {
+          const dx = l.dx + k, dy = l.dy + j; if (!ok(dx, dy)) continue;
+          const sc = Math.hypot(k, j) + Math.hypot(dx, dy) * 0.15; if (sc < bs) { bs = sc; best = `${dx},${dy}`; }
+        }
+        if (best) key = best;
+      }
+      moved.set(nom, key); used.add(key);
+    }
+    const a = out.get(key) ?? []; a.push(i); out.set(key, a);
+  });
+  if (lmCache.size > 200) lmCache.clear();
+  lmCache.set(ck, out); return out;
+}
 const SPOKE_AT = [0, 0, 48, 168, 720, 2160, 4380, 8760];
 const RINGS = [{ r: 5, at: 240 }, { r: 10, at: 2160 }, { r: 16, at: 4380 }, { r: 24, at: 8760 }, { r: 34, at: 15000 }];
 const waterNearCache = new Map<number, boolean>();
@@ -322,9 +354,10 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
     return stage >= 3 ? "square" : core;
   }
   // Later landmarks replace earlier ones at the same site.
-  for (let i = LANDMARKS.length - 1; i >= 0; i--) {
-    const l = LANDMARKS[i]; if (!l) continue;
-    if (l.dx !== dx || l.dy !== dy || age < l.at - buildTime(l.at)) continue;
+  const here = landmarkSpots(s).get(`${dx},${dy}`) ?? [];
+  for (let n = here.length - 1; n >= 0; n--) {
+    const l = LANDMARKS[here[n]!]; if (!l) continue;
+    if (age < l.at - buildTime(l.at)) continue;
     if (age < l.at) buildP = 1 - (l.at - age) / buildTime(l.at);
     return l.kind === "watermill" && !waterNearby(x,y) ? "mill" : l.kind;
   }
@@ -352,11 +385,17 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   if (stage === 2) return weighted(h,[["cottage",55],["farmhouse",20],["barn",10],["garden",15]]);
   // Stable sectors form residential, craft and market districts.
   const sector = ((Math.atan2(dy,dx) + Math.PI + hash(seedNum(s),1,81)*2) % (2*Math.PI))/(2*Math.PI);
-  if (stage === 3) return weighted(h,[["townhouse",55],["workshop",20],["cottage",15],["stall",10]]);
-  if (d < r * 0.4) return weighted(h,[["townhouse",75],["workshop",10],["stall",10],["garden",5]]);
-  if (stage === 5 && d > r * 0.72 && sector < 0.55) return "suburb";
-  if (sector < 0.4) return stage >= 5 ? weighted(h,[["manufactory",25],["steamworks",8],["warehouse",25],["workshop",42]]) : weighted(h,[["workshop",65],["smithy",15],["warehouse",20]]);
-  return weighted(h,[["townhouse",65],["stall",15],["cottage",20]]);
+  if (stage === 3) return weighted(h,[["townhouse",32],["townhouse2",23],["workshop",20],["cottage",15],["stall",10]]);
+  // Districts: patrician core, workers' quarter by the crafts sector, villas on the quiet green edge.
+  if (d < r * 0.4) return weighted(h,[["patrician",30],["suburb",10],["townhouse",22],["townhouse2",20],["workshop",6],["stall",8],["garden",4]]);
+  if (sector < 0.4) {
+    if (h < 0.35) return "tenement";
+    const g = hash(x,y,6);
+    return stage >= 5 ? weighted(g,[["manufactory",25],["steamworks",8],["warehouse",25],["workshop",42]]) : weighted(g,[["workshop",65],["smithy",15],["warehouse",20]]);
+  }
+  if (sector < 0.5) return weighted(h,[["tenement",45],["townhouse",25],["townhouse2",20],["stall",10]]);
+  if (d > r * 0.7 && sector > 0.55) return weighted(h,[["villa",55],["garden",25],["cottage",20]]);
+  return weighted(h,[["townhouse",30],["townhouse2",30],["stall",12],["cottage",14],["patrician",8],["garden",6]]);
 }
 
 /** Player-bought buildings: the shop item → building kind, built over SPECIAL_BUILD real ms after purchase. */
@@ -410,7 +449,8 @@ export const seedsKey = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.
 export function bornAt(x: number, y: number, s: Seed): number {
   const dx = x - s.x, dy = y - s.y;
   if (CORE[`${dx},${dy}`] || (!dx && !dy)) return 0;
-  for (let i = LANDMARKS.length - 1; i >= 0; i--) { const l = LANDMARKS[i]!; if (l.dx === dx && l.dy === dy) return l.at; }
+  const here = landmarkSpots(s).get(`${dx},${dy}`);
+  if (here?.length) return LANDMARKS[here[here.length - 1]!]!.at;
   return tileBirth(Math.hypot(dx, dy)) * (0.75 + 0.5 * hash(x, y, 3));
 }
 
