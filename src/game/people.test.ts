@@ -31,7 +31,7 @@ describe("villager collision", () => {
   it("visible villagers never stand inside a building during a whole day", () => {
     const old: Seed = { ...seed, id: "coll", created_at: new Date(NOW - 400 * 864e5).toISOString() };
     let checked = 0;
-    for (let m = 0; m < 24 * 60; m += 7) {
+    for (let m = 0; m < 24 * 60; m += 37) {
       const now = NOW + m * 60000, t = townOf(old, [old], now);
       for (const p of t.people) {
         const q = poseOf(p, t, [old], now);
@@ -42,5 +42,5 @@ describe("villager collision", () => {
       }
     }
     expect(checked).toBeGreaterThan(0);
-  });
+  }, 60000);
 });

@@ -174,6 +174,7 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
   const inside = (x: number, y: number) => x >= t.x0 && x <= t.x1 && y >= t.y0 && y <= t.y1;
   const cost = (x: number, y: number) => {
     if ((x === b[0] && y === b[1]) || (x === a[0] && y === a[1])) return 1;
+    if (!free(t, x, y, seeds)) return buildable(terrain(x, y)) ? 40 : Infinity;
     const st = structureAt(x, y, seeds, t.now);
     if (st && WALK.has(st.kind)) return 1;
     if (st && !FLAT.has(st.kind) && st.kind !== "hay") return 40; // through a building only as a last resort – hidden there (back door / courtyard)
