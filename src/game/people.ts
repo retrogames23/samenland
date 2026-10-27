@@ -33,7 +33,7 @@ const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["farmer", "merchant", "carter"])
 const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge"]);
 
 export type Town = {
-  seed: Seed; people: Person[]; well: Tile; meet: Tile; school: Tile | null; play: Tile;
+  seed: Seed; people: Person[]; well: Tile; meet: Tile; meets: Tile[]; school: Tile | null; play: Tile;
   x0: number; y0: number; x1: number; y1: number; routes: Map<string, Tile[]>; now: number;
 };
 
@@ -70,8 +70,15 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     return best;
   };
   const well: Tile = [s.x, s.y];
-  const meet = byKind.get("inn")?.[0] ?? byKind.get("market")?.[0] ?? byKind.get("square")?.[0] ?? well;
+  // gathering spots sit in front of the inn / on market and squares, never on a roof
+  const open = (x: number, y: number) => { const st = structureAt(x, y, seeds, now); return buildable(terrain(x, y)) && (!st || FLAT.has(st.kind)); };
+  const front = (tl: Tile): Tile | null => { for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]] as const) if (open(tl[0] + dx, tl[1] + dy)) return [tl[0] + dx, tl[1] + dy]; return null; };
+  const meets: Tile[] = [];
+  for (const k of ["inn", "church", "bakery"] as Kind[]) for (const tl of byKind.get(k) ?? []) { const f = front(tl); if (f) meets.push(f); }
+  meets.push(...(byKind.get("market") ?? []), ...(byKind.get("square") ?? []).slice(0, 6));
+  if (!meets.length) meets.push([s.x + 1, s.y + 1]);
   const school = byKind.get("church")?.[0] ?? null;
+  const meet = meets[0]!;
   const play = byKind.get("pasture")?.[0] ?? byKind.get("garden")?.[0] ?? [s.x + 1, s.y - 2] as Tile;
 
   const slots: { job: Job; at: Tile }[] = [];
@@ -120,7 +127,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       });
     }
   }
-  return { seed: s, people, well, meet, school, play, x0, y0, x1, y1, routes: new Map(), now };
+  return { seed: s, people, well, meet, meets, school, play, x0, y0, x1, y1, routes: new Map(), now };
 }
 
 // ---------------- routing ----------------
@@ -181,6 +188,8 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
 type Entry = { at: number; act: Activity; place: Tile; indoor: boolean };
 const off = (p: Person, i: number, amt = 0.38): Tile => [(hash(p.id, i, 601) - 0.5) * amt * 2, (hash(p.id, i, 602) - 0.5) * amt * 2];
 const add = (a: Tile, b: Tile): Tile => [a[0] + b[0], a[1] + b[1]];
+const ring = (p: Person, i: number, c: Tile): Tile => { const a = hash(p.id, i, 603) * Math.PI * 2, r = 0.75 + hash(p.id, i, 604) * 0.5; return [c[0] + Math.cos(a) * r, c[1] + Math.sin(a) * r]; };
+const spot = (p: Person, t: Town, i: number): Tile => add(t.meets[Math.floor(hash(p.id, i, 605) * t.meets.length)]!, off(p, i, 0.42));
 
 export function planOf(p: Person, t: Town): Entry[] {
   const j = (i: number) => (hash(p.id, i, 700) - 0.5) * 0.8; // ± 24 min jitter
@@ -199,17 +208,17 @@ export function planOf(p: Person, t: Town): Entry[] {
     ];
   }
   if (p.job === "retired") return [
-    E(0, "sleep", H, true), E(8, "home", H, true), E(10 + j(1), "leisure", add(t.well, off(p, 1)), false),
-    E(12, "home", H, true), E(15 + j(2), "leisure", add(t.meet, off(p, 2)), false), E(18 + j(3), "home", H, true), E(21, "sleep", H, true),
+    E(0, "sleep", H, true), E(8, "home", H, true), E(10 + j(1), "leisure", ring(p, 1, t.well), false),
+    E(12, "home", H, true), E(15 + j(2), "leisure", spot(p, t, 2), false), E(18 + j(3), "home", H, true), E(21, "sleep", H, true),
   ];
   const W = p.work ?? H;
   const wp: Tile = p.workIndoor ? W : add(W, off(p, 3, 0.3));
   return [
     E(0, "sleep", H, true),
     E(6.5 + j(1), "work", wp, p.workIndoor),
-    E(12 + j(2) * 0.3, "lunch", add(t.well, off(p, 4)), false),
+    E(12 + j(2) * 0.3, "lunch", hash(p.id, 4, 606) < 0.5 ? ring(p, 4, t.well) : spot(p, t, 4), false),
     E(13 + j(3) * 0.3, "work", wp, p.workIndoor),
-    E(17.2 + j(4), "leisure", add(t.meet, off(p, 5)), false),
+    E(17.2 + j(4), "leisure", spot(p, t, 5), false),
     E(19.6 + j(5), "home", H, true),
     E(21.8 + j(6), "sleep", H, true),
   ];
