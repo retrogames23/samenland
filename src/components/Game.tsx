@@ -163,8 +163,23 @@ export function Game() {
       />
 
       <header className="pointer-events-none absolute left-4 top-4 max-w-xs">
-        <div className="pointer-events-auto rounded-md border-2 border-border bg-card/90 p-4 shadow-[var(--shadow-cozy)] backdrop-blur">
-          <h1 className="font-display text-4xl leading-none text-primary">Samenland</h1>
+        <div className={`pointer-events-auto rounded-md border-2 border-border bg-card/90 shadow-[var(--shadow-cozy)] backdrop-blur ${open ? "p-4" : "p-3"}`}>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="font-display text-4xl leading-none text-primary">Samenland</h1>
+            <button
+              type="button"
+              onClick={() => { const next = !open; setOpen(next); localStorage.setItem("samenland-panel", next ? "open" : "closed"); }}
+              aria-expanded={open}
+              aria-label={open ? t.collapse : t.expand}
+              title={open ? t.collapse : t.expand}
+              className="-mr-1 -mt-1 shrink-0 rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true" className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6l5 5 5-5" /></svg>
+            </button>
+          </div>
+          {!open && <p className="mt-1 text-xs text-muted-foreground">{t.taglineShort}</p>}
+          {open && (
+            <>
           <p className="mt-1 text-sm text-muted-foreground">{t.tagline}</p>
           {my && myStats ? (
             <div className="mt-3 space-y-1 text-sm">
@@ -194,15 +209,17 @@ export function Game() {
               <p className="text-xs text-muted-foreground">{form.name.trim() && form.owner.trim() ? t.clickLand : t.needNames}</p>
               <Button type="button" size="sm" variant="ghost" onClick={() => setMode("look")}>{t.cancel}</Button>
             </form>
+              )}
+              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                <div className="flex gap-1">
+                  {(["de", "en"] as Lang[]).map((l) => (
+                    <button key={l} className={`rounded px-1.5 py-0.5 uppercase ${lang === l ? "bg-accent text-foreground" : "hover:text-foreground"}`} onClick={() => switchLang(l)}>{l}</button>
+                  ))}
+                </div>
+                {userId && <button className="underline hover:text-foreground" onClick={() => supabase.auth.signOut()}>{t.signOut}</button>}
+              </div>
+            </>
           )}
-          <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex gap-1">
-              {(["de", "en"] as Lang[]).map((l) => (
-                <button key={l} className={`rounded px-1.5 py-0.5 uppercase ${lang === l ? "bg-accent text-foreground" : "hover:text-foreground"}`} onClick={() => switchLang(l)}>{l}</button>
-              ))}
-            </div>
-            {userId && <button className="underline hover:text-foreground" onClick={() => supabase.auth.signOut()}>{t.signOut}</button>}
-          </div>
         </div>
       </header>
 
