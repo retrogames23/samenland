@@ -268,9 +268,15 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
     if (LIT_KINDS.has(s.kind)) {
-      const big = s.kind === "smithy" || s.kind === "inn" || s.kind === "townhall" || s.kind === "church";
-      L.push({ x: cx - 3, y: cy - 7, r: big ? 5 : 3 });
-      if (big || s.kind === "townhouse" || s.kind === "markethall" || s.kind === "guildhall") L.push({ x: cx + 4, y: cy - 5, r: 3 });
+      const hr = localHour();
+      if (s.kind === "smithy") { if (hr >= 6 && hr < 22) L.push({ x: cx - 2, y: cy - 4, r: 5 }); }
+      else if (houseLit(s.kind, sd, hr)) {
+        const ws = WINDOWS[s.kind] ?? [[-4, -6]];
+        let any = false;
+        ws.forEach(([dx, dy], i) => {
+          if (hash(sd, i, 813) < 0.65 || (!any && i === ws.length - 1)) { any = true; L.push({ x: cx + dx, y: cy + dy, r: 2.6, win: true }); }
+        });
+      }
     }
     if (["factory", "manufactory", "steamworks", "smithy", "bakery", "inn"].includes(s.kind)) {
       smoke(c, cx + 4, cy - (s.kind === "factory" ? 24 : 18), t, sd, s.kind === "factory" ? 1.5 : 0.6);
