@@ -25,3 +25,22 @@ describe("villagers", () => {
     for (const p of townOf(seed, [seed], NOW).people) if (p.age < 16) expect(p.job).toBe("child");
   });
 });
+
+import { structureAt, FLAT } from "./world";
+describe("villager collision", () => {
+  it("visible villagers never stand inside a building during a whole day", () => {
+    const old: Seed = { ...seed, id: "coll", created_at: new Date(NOW - 400 * 864e5).toISOString() };
+    let checked = 0;
+    for (let m = 0; m < 24 * 60; m += 7) {
+      const now = NOW + m * 60000, t = townOf(old, [old], now);
+      for (const p of t.people) {
+        const q = poseOf(p, t, [old], now);
+        if (!q.visible) continue;
+        const st = structureAt(Math.round(q.x), Math.round(q.y), [old], now);
+        checked++;
+        if (st) expect(FLAT.has(st.kind) || ["path", "street", "square", "well", "market", "road", "bridge"].includes(st.kind), `${p.first} in ${st.kind}`).toBe(true);
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+});
