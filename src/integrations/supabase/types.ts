@@ -78,6 +78,44 @@ export type Database = {
           },
         ]
       }
+      encounters: {
+        Row: {
+          choice: string
+          cost: number
+          created_at: string
+          event: string
+          id: string
+          seed_id: string
+          user_id: string
+        }
+        Insert: {
+          choice: string
+          cost?: number
+          created_at?: string
+          event: string
+          id?: string
+          seed_id: string
+          user_id: string
+        }
+        Update: {
+          choice?: string
+          cost?: number
+          created_at?: string
+          event?: string
+          id?: string
+          seed_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounters_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       first_roads: {
         Row: {
           created_at: string
@@ -277,6 +315,7 @@ export type Database = {
         Args: { _at: string; _charter: string; _created: string }
         Returns: number
       }
+      village_balance: { Args: { _seed: string }; Returns: number }
       village_tax: { Args: { _at: string; _created: string }; Returns: number }
     }
     Enums: {

@@ -71,6 +71,13 @@
       "when": 1793133524206,
       "tag": "0009_first_roads",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793135616889,
+      "tag": "0010_encounters",
+      "breakpoints": true
     }
   ]
 }

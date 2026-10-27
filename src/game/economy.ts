@@ -1,3 +1,4 @@
+import { activeBoons } from "./encounters";
 import { radiusOf, stageOf, effAge, links, waterNearby, type Seed, type CharterPath } from "./world";
 
 /** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
@@ -32,7 +33,8 @@ export const dailyTax = (s: Seed, h: number) => { const p = popAt(h); return p +
 
 export function treasury(s: Seed, purchases: Purchase[], now: number) {
   const spent = purchases.filter((p) => p.seed_id === s.id).reduce((a, p) => a + p.cost, 0);
-  return START_TALER + taxEarned(s, now) - spent;
+  const ev = (s.decisions ?? []).reduce((a, d) => a + d.cost, 0);
+  return START_TALER + taxEarned(s, now) - spent - ev;
 }
 
 
@@ -49,5 +51,6 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   const health = clamp(40 + (has("healer") ? 30 : 0) + (food - 50) * 0.3 + (path === "culture" ? 15 : 0) + (has("library") ? 10 : 0));
   const wealth = clamp(25 + Math.min(30, trade * 10) + (has("school") ? 20 : 0) + stage * 5 + (path === "craft" ? 10 : 0)
     + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 5 : 0));
-  return { food, health, wealth, has };
+  const b = activeBoons(s.decisions ?? [], now);
+  return { food: clamp(food + b.food), health: clamp(health + b.health), wealth: clamp(wealth + b.wealth), has };
 }
