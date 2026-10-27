@@ -191,21 +191,10 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
   }
   c.restore();
   if (!detail) return;
-  // scaffold poles and planks around the rising house
+  // timber scaffold around the rising house
   if (p > 0.25 && p < 0.97) {
-    const top = Math.min(box ? box.h * 0.8 : 18, 6 + p * (box ? box.h * 0.8 : 18));
-    const posts: Pt[] = [[cx - hw * 0.85, cy], [cx, cy + hh * 0.85], [cx + hw * 0.85, cy], [cx, cy - hh * 0.85]];
-    for (const [px, py] of posts) {
-      c.strokeStyle = "#6e5236"; c.lineWidth = 0.7; c.beginPath(); c.moveTo(px, py); c.lineTo(px, py - top); c.stroke();
-      c.strokeStyle = "rgba(25,16,8,0.6)"; c.lineWidth = 0.25; c.stroke();
-    }
-    for (let lv = 0.45; lv < 1; lv += 0.5) {
-      c.strokeStyle = "#9a7a52"; c.lineWidth = 0.9; c.beginPath();
-      c.moveTo(posts[0]![0], posts[0]![1] - top * lv); c.lineTo(posts[1]![0], posts[1]![1] - top * lv); c.lineTo(posts[2]![0], posts[2]![1] - top * lv); c.stroke();
-      c.strokeStyle = "rgba(25,16,8,0.55)"; c.lineWidth = 0.25; c.stroke();
-    }
-    // diagonal brace
-    c.strokeStyle = "#7d5f3f"; c.lineWidth = 0.45; c.beginPath(); c.moveTo(posts[0]![0], posts[0]![1]); c.lineTo(posts[1]![0], posts[1]![1] - top * 0.9); c.stroke();
+    const im = folkImage("scaffold");
+    if (im) { const sw = w * 1.05, sh = (sw * im.naturalHeight) / im.naturalWidth; c.drawImage(im, cx - sw / 2, cy + hh * 1.1 - sh, sw, sh); }
   }
   // stakes and string while the plot is still being marked out
   if (p < 0.3) {
@@ -217,19 +206,9 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
   }
   // material piles: timber stack and stone blocks, used up as the house grows
   const left = Math.max(0, 1 - p);
-  const bx = cx + hw * 0.95, by = cy + hh * 0.55;
-  const logs = Math.ceil(4 * left);
-  for (let i = 0; i < logs; i++) {
-    const ly = by - i * 0.85, lx = bx + (i % 2) * 0.4;
-    c.strokeStyle = "#5a4028"; c.lineWidth = 1.05; c.beginPath(); c.moveTo(lx - 3, ly - 1.2); c.lineTo(lx + 2.6, ly + 1.2); c.stroke();
-    c.strokeStyle = "#a07850"; c.lineWidth = 0.7; c.stroke();
-    c.fillStyle = "#d8b98a"; c.beginPath(); c.arc(lx + 2.6, ly + 1.2, 0.42, 0, 7); c.fill();
-  }
-  const stones = Math.ceil(5 * left);
-  for (let i = 0; i < stones; i++) {
-    const sx = cx - hw * 0.95 + (i % 3) * 1.5 - 0.5, sy = cy + hh * 0.5 - Math.floor(i / 3) * 0.9 + (i % 3) * 0.4;
-    c.fillStyle = hsl(30, 6, 62 + hash(sd, i, 1) * 10); c.fillRect(sx - 0.7, sy - 0.7, 1.4, 0.9);
-    c.fillStyle = "rgba(40,32,24,0.45)"; c.fillRect(sx - 0.7, sy + 0.1, 1.4, 0.25);
+  if (left > 0) {
+    prop(c, "logs", cx + hw * 0.95, cy + hh * 0.6, 3 + 5 * left);
+    prop(c, "blocks", cx - hw * 0.95, cy + hh * 0.55, 2.5 + 4.5 * left);
   }
   // fresh sawdust / dust puff from hammering
   if (p > 0.25 && p < 0.97 && Math.sin(t / 300 + sd) > 0.7) {
@@ -737,37 +716,24 @@ function drawRoadWorks(c: C, x: number, y: number, dx: number, dy: number, t: nu
   }
   // freshly dug earth and gravel heap
   c.fillStyle = "rgba(92,70,48,0.85)"; c.beginPath(); c.ellipse(x + dx * 3, y + dy * 3, 4.2, 1.8, 0, 0, 7); c.fill();
-  const gx = x - nx * 5, gy = y - ny * 2.5;
-  const gg = c.createRadialGradient(gx - 0.6, gy - 1.2, 0.2, gx, gy, 2.6);
-  gg.addColorStop(0, "#b6ab98"); gg.addColorStop(1, "#6e6556");
-  c.fillStyle = gg; c.beginPath(); c.moveTo(gx - 2.6, gy); c.quadraticCurveTo(gx, gy - 3, gx + 2.6, gy); c.closePath(); c.fill();
-  // log pile
-  const lx = x + nx * 5.5, ly = y + ny * 2.8;
-  c.fillStyle = "rgba(20,15,10,0.3)"; c.beginPath(); c.ellipse(lx, ly + 0.3, 3.4, 1, 0, 0, 7); c.fill();
-  for (const [ox, oy] of [[-1.2, 0], [1.2, 0], [0, -1.1]] as const) {
-    c.strokeStyle = "#6b4a2e"; c.lineWidth = 1.1; c.lineCap = "round";
-    c.beginPath(); c.moveTo(lx + ox - 2, ly + oy - 0.4); c.lineTo(lx + ox + 2, ly + oy + 0.4); c.stroke();
-    c.fillStyle = "#c79a64"; c.beginPath(); c.arc(lx + ox + 2, ly + oy + 0.4, 0.5, 0, 7); c.fill();
-  }
-  // two workers swinging spades
+  prop(c, "blocks", x - nx * 5, y - ny * 2.5, 6);
+  prop(c, "logs", x + nx * 5.5, y + ny * 2.8, 7);
+  // two workers with pick and mallet
   for (let w = 0; w < 2; w++) {
     const wx = x + dx * (2 + w * 3) + nx * (w ? -1.5 : 1.5), wy = y + dy * (2 + w * 3) + ny * (w ? -0.8 : 0.8);
-    const sw = Math.sin(t / 420 + sd + w * 2.1), dip = Math.max(0, sw) * 0.5;
-    const dir = (dx >= 0 ? 1 : -1) * (w ? -1 : 1);
-    c.save(); c.translate(wx, wy); c.scale(dir * 0.9, 0.9);
-    c.fillStyle = "rgba(20,15,10,0.3)"; c.beginPath(); c.ellipse(0, 0, 1.4, 0.45, 0, 0, 7); c.fill();
-    c.strokeStyle = "#3a3026"; c.lineWidth = 0.45; c.lineCap = "round";
-    c.beginPath(); c.moveTo(0, -2.1); c.lineTo(0.5, 0); c.moveTo(0, -2.1); c.lineTo(-0.5, 0); c.stroke();
-    c.save(); c.translate(0, -2.1 + dip); c.rotate(0.25 + dip * 0.6);
-    c.fillStyle = w ? "#5d5244" : "#6a4e3a"; c.beginPath(); c.moveTo(-0.7, -2.3); c.lineTo(0.7, -2.3); c.lineTo(0.8, 0); c.lineTo(-0.8, 0); c.closePath(); c.fill();
-    c.fillStyle = "#d4ae88"; c.beginPath(); c.arc(0.15, -2.9, 0.5, 0, 7); c.fill();
-    c.fillStyle = "#7a6a4a"; c.beginPath(); c.ellipse(0.15, -3.25, 0.75, 0.22, 0, 0, 7); c.fill();
-    // spade
-    const a = 0.9 + sw * 0.45;
-    c.strokeStyle = "#5c4430"; c.lineWidth = 0.25; c.beginPath(); c.moveTo(0.6, -1.6); c.lineTo(0.6 + Math.sin(a) * 3, -1.6 + Math.cos(a) * 3); c.stroke();
-    c.fillStyle = "#77787a"; c.beginPath(); c.arc(0.6 + Math.sin(a) * 3.2, -1.6 + Math.cos(a) * 3.2, 0.45, 0, 7); c.fill();
-    c.restore(); c.restore();
+    const im = folkImage(w ? "builder" : "mason"); if (!im) continue;
+    const h = 5.2, iw = (h * im.naturalWidth) / im.naturalHeight, sw = Math.sin(t / 420 + sd + w * 2.1);
+    c.fillStyle = "rgba(20,15,10,0.25)"; c.beginPath(); c.ellipse(wx + 0.5, wy, iw * 0.5, 0.55, 0, 0, 7); c.fill();
+    c.save(); c.translate(wx, wy); if ((dx >= 0 ? 1 : -1) * (w ? -1 : 1) < 0) c.scale(-1, 1); c.rotate(sw * 0.08);
+    c.drawImage(im, -iw / 2, -h, iw, h); c.restore();
   }
+}
+/** Painted prop (timber stack, stone blocks) of the given width, standing on (x, y), with a soft shadow. */
+function prop(c: C, k: FolkSprite, x: number, y: number, w: number) {
+  const im = folkImage(k); if (!im || w <= 0.2) return;
+  const h = (w * im.naturalHeight) / im.naturalWidth;
+  c.fillStyle = "rgba(20,15,10,0.28)"; c.beginPath(); c.ellipse(x + 0.4, y, w * 0.5, w * 0.16, 0, 0, 7); c.fill();
+  c.drawImage(im, x - w / 2, y - h * 0.85, w, h);
 }
 
 /**
@@ -1300,6 +1266,28 @@ export function draw(
     }
   }
 
+  // border banners in both town colours and the carved border stone at the twin gate
+  for (const l of links(seeds)) {
+    if (!isTwin(l, seeds, now)) continue;
+    const g = l.tiles[Math.floor(l.tiles.length / 2)]; if (!g) continue;
+    const [gx, gy] = iso(g[0], g[1]);
+    if (gx < cs0x - 40 || gx > cs1x + 40 || gy < cs0y - 40 || gy > cs1y + 40) continue;
+    const pole = folkImage("bannerPole");
+    for (const [k, sd] of [[-1, l.a], [1, l.b]] as const) {
+      const cloth = bannerCloth(sd.hue); if (!pole || !cloth) continue;
+      const h = 17, w = (h * pole.naturalWidth) / pole.naturalHeight, bx = gx + k * 8, by = gy + 1;
+      const sway = Math.sin(t / 700 + k) * 0.04;
+      c.fillStyle = "rgba(20,15,10,0.25)"; c.beginPath(); c.ellipse(bx + 1, by, 2, 0.6, 0, 0, 7); c.fill();
+      c.save(); c.translate(bx, by); if (k < 0) c.scale(-1, 1);
+      const ox = -w * 0.195;
+      c.drawImage(pole, ox, -h, w, h);
+      c.translate(ox + w * 0.2, -h * 0.85); c.transform(1, sway, 0, 1 + sway * 0.5, 0, 0);
+      c.drawImage(cloth, -w * 0.2, -h * 0.15, w, h);
+      c.restore();
+    }
+    prop(c, "stone", gx + 3.5, gy + 3, 3.4);
+  }
+
   // ---- paper, light, labels (screen space) ----
   c.setTransform(1, 0, 0, 1, 0, 0);
   const vg = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
@@ -1365,15 +1353,5 @@ export function draw(
     const txt = `${l.a.name} ∞ ${l.b.name}`;
     c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(txt, sx, sy);
     c.fillStyle = hsl(20, 45, 38); c.fillText(txt, sx, sy);
-    const g = l.tiles[Math.floor(l.tiles.length / 2)];
-    if (g && z > 0.6) {
-      const [gx, gy] = iso(g[0], g[1]);
-      const px = (gx - cam.x) * z + w / 2, py = (gy - cam.y) * z + h / 2;
-      for (const [k, sd] of [[-1, l.a], [1, l.b]] as const) {
-        const bx = px + k * 7 * z, top = py - 16 * z, wave = Math.sin(now / 700 + k) * 1.5 * z;
-        c.strokeStyle = INK; c.lineWidth = Math.max(1, 0.8 * z); c.beginPath(); c.moveTo(bx, py); c.lineTo(bx, top); c.stroke();
-        c.fillStyle = hsl(sd.hue, 55, 45); c.beginPath(); c.moveTo(bx, top); c.lineTo(bx + k * 6 * z, top + 2 * z + wave); c.lineTo(bx, top + 4 * z); c.closePath(); c.fill();
-      }
-    }
   }
 }
