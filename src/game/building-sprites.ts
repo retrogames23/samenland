@@ -71,11 +71,16 @@ import steamworksLight from "@/assets/sprites/night/steamworks.webp";
 import suburbLight from "@/assets/sprites/night/suburb.webp";
 import townhallLight from "@/assets/sprites/night/townhall.webp";
 import townhouseLight from "@/assets/sprites/night/townhouse.webp";
+import townhouse2Light from "@/assets/sprites/night/townhouse2.webp";
+import patricianLight from "@/assets/sprites/night/patrician.webp";
+import villaLight from "@/assets/sprites/night/villa.webp";
+import tenementLight from "@/assets/sprites/night/tenement.webp";
+import gatehouseLight from "@/assets/sprites/night/gatehouse.webp";
 import warehouseLight from "@/assets/sprites/night/warehouse.webp";
 import watermillLight from "@/assets/sprites/night/watermill.webp";
 import workshopLight from "@/assets/sprites/night/workshop.webp";
 
-const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, townhouse: townhouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
+const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, townhouse: townhouseLight, townhouse2: townhouse2Light, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
 export const hasNightSprite = (kind: Kind) => Boolean(nightUrls[kind]);
 
