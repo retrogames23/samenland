@@ -309,6 +309,93 @@ export type Database = {
           },
         ]
       }
+      twin_votes: {
+        Row: {
+          created_at: string
+          id: string
+          pact: string
+          partner_id: string
+          seed_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pact: string
+          partner_id: string
+          seed_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pact?: string
+          partner_id?: string
+          seed_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twin_votes_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twin_votes_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      twin_works: {
+        Row: {
+          cost: number
+          created_at: string
+          id: string
+          partner_id: string
+          seed_id: string
+          user_id: string
+          work: string
+        }
+        Insert: {
+          cost?: number
+          created_at?: string
+          id?: string
+          partner_id: string
+          seed_id: string
+          user_id: string
+          work: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          id?: string
+          partner_id?: string
+          seed_id?: string
+          user_id?: string
+          work?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twin_works_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twin_works_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string

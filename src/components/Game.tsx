@@ -44,6 +44,7 @@ import {
   charterReady,
   charterFits,
   type CharterPath,
+  twinLinks, pactOf, pactPending, workOf, marketDay, festivalDate, twinGateAt, PACTS, TWIN_WORKS, PACT_WAIT, type PactKind, type WorkKind,
 } from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
@@ -68,6 +69,10 @@ export function Game() {
   const [roadOpen, setRoadOpen] = useState(false);
   type EncRow = { id: string; seed_id: string; event: string; choice: string; cost: number; created_at: string };
   const [encounters, setEncounters] = useState<EncRow[]>([]);
+  const [votes, setVotes] = useState<{ id: string; seed_id: string; partner_id: string; pact: string; created_at: string }[]>([]);
+  const [works, setWorks] = useState<{ id: string; seed_id: string; partner_id: string; work: string; cost: number; created_at: string }[]>([]);
+  const [pactOpen, setPactOpen] = useState(false);
+  const [pactPick, setPactPick] = useState<PactKind | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const [barH, setBarH] = useState(88);
   useEffect(() => {
@@ -89,12 +94,17 @@ export function Game() {
     const decs = new Map<string, Decision[]>();
     for (const e of encounters) { if (!decs.has(e.seed_id)) decs.set(e.seed_id, []); decs.get(e.seed_id)!.push({ event: e.event, choice: e.choice, cost: e.cost, at: Date.parse(e.created_at) }); }
     for (const p of purchases) { if (!buys.has(p.seed_id)) buys.set(p.seed_id, []); buys.get(p.seed_id)!.push({ item: p.item, at: Date.parse(p.created_at), x: p.x ?? null, y: p.y ?? null }); }
-    return rawSeeds.map((s) => {
+    const vo = new Map<string, NonNullable<Seed["votes"]>>(), wo = new Map<string, NonNullable<Seed["works"]>>();
+    for (const v of votes) { if (!vo.has(v.seed_id)) vo.set(v.seed_id, []); vo.get(v.seed_id)!.push({ partner: v.partner_id, pact: v.pact as PactKind, at: Date.parse(v.created_at) }); }
+    for (const w of works) { if (!wo.has(w.seed_id)) wo.set(w.seed_id, []); wo.get(w.seed_id)!.push({ partner: w.partner_id, work: w.work as WorkKind, cost: w.cost, at: Date.parse(w.created_at) }); }
+    return rawSeeds.map((s0) => {
+      const v0 = vo.get(s0.id), w0 = wo.get(s0.id);
+      const s: Seed = v0 || w0 ? { ...s0, ...(v0 ? { votes: v0 } : {}), ...(w0 ? { works: w0 } : {}) } : s0;
       const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id), fr = firstRoads.find((f) => f.seed_id === s.id), de = decs.get(s.id);
       if (!bl && !bo && !ch && !fr && !de) return s;
       return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { firstRoad: { target: fr.target_id, at: Date.parse(fr.created_at) } } : {}), ...(de ? { decisions: de.sort((a, b) => a.at - b.at) } : {}) };
     });
-  }, [rawSeeds, blessings, purchases, charters, firstRoads, encounters]);
+  }, [rawSeeds, blessings, purchases, charters, firstRoads, encounters, votes, works]);
   useEffect(() => { setSignposts(signs); }, [signs]);
   const [plantings, setPlantings] = useState<Planting[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -200,6 +210,8 @@ export function Game() {
       supabase.from("charters").select("id, seed_id, path, created_at").then(({ data }) => setCharters(data ?? []));
       supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").then(({ data }) => setEncounters(data ?? []));
       supabase.from("first_roads").select("id, seed_id, target_id, created_at").then(({ data }) => setFirstRoads(data ?? []));
+      supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").then(({ data }) => setVotes(data ?? []));
+      supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").then(({ data }) => setWorks(data ?? []));
       setBlessings(bl.data ?? []);
       setPurchases(pu.data ?? []);
       setSigns((sg.data ?? []) as Signpost[]);
@@ -427,6 +439,20 @@ export function Game() {
     setEncounters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
     bell(0); setEncOpen(false); setMsg(t.enc.done);
   };
+  const twinsOfMine = my ? twinLinks(my, seeds, Date.now()).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
+  const pactPartner = twinsOfMine.find((o) => pactPending(my!, o, seeds, Date.now()) === "vote") ?? null;
+  const sealPact = async () => {
+    if (!my || !userId || !pactPartner || !pactPick) return;
+    const { data, error } = await supabase.from("twin_votes").insert({ seed_id: my.id, partner_id: pactPartner.id, user_id: userId, pact: pactPick }).select("id, seed_id, partner_id, pact, created_at").single();
+    if (error || !data) return setMsg(t.twin.fail);
+    setVotes((v) => [...v, data]); bell(0); setPactOpen(false);
+  };
+  const payWork = async (o: Seed, work: WorkKind) => {
+    if (!my || !userId) return;
+    const { data, error } = await supabase.from("twin_works").insert({ seed_id: my.id, partner_id: o.id, user_id: userId, work }).select("id, seed_id, partner_id, work, cost, created_at").single();
+    if (error || !data) return setMsg(t.twin.poor);
+    setWorks((w) => [...w, data]); tap();
+  };
   const myStats = my ? townStats(my, seeds, Date.now()) : null;
   const switchLang = (l: Lang) => {
     setLang(l);
@@ -459,13 +485,14 @@ export function Game() {
   const decision = pickDecision({
     road: owner && !myRoad && roadCandidates(my!, seeds).length > 0,
     charter: owner && !myCharter && charterReady(my!.created_at, now),
+    pact: owner && !!pactPartner,
     encounter: owner && !!pendingEncounter(my!, my!.decisions ?? [], now),
   }, (k) => (snooze[k] ?? 0) > now);
-  const anyOpen = roadOpen || charterOpen || encOpen;
+  const anyOpen = roadOpen || charterOpen || encOpen || pactOpen;
   const sealShown = !anyOpen && !decision.open && decision.due.length > 0;
   function later(k: DecisionKind) {
     setSnooze((m) => ({ ...m, [k]: Date.now() + 3.6e6 }));
-    if (k === "road") setRoadOpen(false); else if (k === "charter") setCharterOpen(false); else setEncOpen(false);
+    if (k === "road") setRoadOpen(false); else if (k === "charter") setCharterOpen(false); else if (k === "pact") setPactOpen(false); else setEncOpen(false);
   }
   function reopen() { setSnooze({}); }
   const cash = my ? treasury(my, purchases, now) : 0;
@@ -608,6 +635,34 @@ export function Game() {
               <div key={p.seed.id}>{t.trade.partner(p.seed.name, Math.round(p.bonus * 100), t.trade.fit(p.factor))}<span className="block">{t.trade.flow(g(p.buy), g(p.sell))}</span></div>
             ))}
             {hints.map((h) => <div key={h.good} className="italic">{t.trade.hint(t.trade.goods[h.good] ?? h.good, h.from?.name ?? null)}</div>)}
+            {twinLinks(my, seeds, now).map((l) => {
+              const o = l.a.id === my.id ? l.b : l.a, p = pactOf(my, o, seeds, now), pend = pactPending(my, o, seeds, now), w = workOf(my, o, now);
+              const mine = (my.votes ?? []).filter((v) => v.partner === o.id).sort((a, b) => b.at - a.at)[0];
+              return (
+                <div key={o.id} className="mt-2 space-y-1 rounded border border-border p-2">
+                  <div className="font-display text-sm text-foreground">{t.twin.title(my.name, o.name)}</div>
+                  <div>{t.twin.bonus}</div>
+                  {p ? <div className="text-foreground">{t.twin.agreed(t.twin.pacts[p.kind]![0])}</div>
+                    : pend === "wait" && mine ? <div>{t.twin.waiting(Math.max(1, Math.ceil((mine.at + PACT_WAIT - now) / 864e5)))}</div>
+                    : owner ? <Button size="sm" variant="secondary" onClick={() => { setPactPick(null); setPactOpen(true); }}>{t.twin.seal}</Button> : null}
+                  {marketDay(l, now) && <div>{t.twin.market}</div>}
+                  <div>{t.twin.festival(festivalDate(l))}</div>
+                  {p && (
+                    <div className="space-y-1">
+                      <div className="text-foreground">{t.twin.workTitle}</div>
+                      {w.done !== null ? <div>{now >= w.done ? t.twin.built(t.twin.works[w.work!]!) : t.twin.building}</div>
+                        : w.mine ? <div>{t.twin.paid}</div>
+                        : <>
+                            <div>{t.twin.workIntro}</div>
+                            {(Object.keys(TWIN_WORKS) as WorkKind[]).filter((k) => !w.work || w.work === k).map((k) => (
+                              <Button key={k} size="sm" variant="secondary" className="mr-1" disabled={!owner || cash < TWIN_WORKS[k]} onClick={() => payWork(o, k)}>{t.twin.works[k]} · {t.twin.pay(TWIN_WORKS[k])}</Button>
+                            ))}
+                          </>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         );
       })()}
@@ -635,6 +690,7 @@ export function Game() {
     if (roadOpen && !decision.due.includes("road")) setRoadOpen(false);
     if (charterOpen && !decision.due.includes("charter")) setCharterOpen(false);
     if (encOpen && !decision.due.includes("encounter")) setEncOpen(false);
+    if (pactOpen && !decision.due.includes("pact")) setPactOpen(false);
   }, [dueKey]);
   useEffect(() => {
     if (anyOpen || !decision.open) return;
@@ -643,6 +699,7 @@ export function Game() {
     const id = setTimeout(() => {
       if (k === "road") { setRoadPick(null); setRoadOpen(true); }
       else if (k === "charter") { setCharterPick(null); setCharterOpen(true); }
+      else if (k === "pact") { setPactPick(null); setPactOpen(true); }
       else setEncOpen(true);
     }, 2500);
     return () => clearTimeout(id);
@@ -721,6 +778,9 @@ export function Game() {
                 const tr = lastTraders.find((f) => Math.hypot(f.x - wx, f.y - 3 - wy) < Math.max(4, 16 / c.zoom));
                 if (tr) { tap(pan); setWho(null); setPlace(null); return setMsg(t.trade.trader(tr.cart, tr.good ? t.trade.goods[tr.good] ?? tr.good : "–", tr.from, tr.to)); } }
               const [tx, ty] = tileAt(e);
+              { const g = twinGateAt(tx, ty, seeds, Date.now());
+                if (g) { tap(pan); setWho(null); setPlace(null); const p = pactOf(g.a, g.b, seeds, Date.now());
+                  return setMsg(`${t.twin.gate(g.a.name, g.b.name)}${p ? ` · ${t.twin.pacts[p.kind]![0]}` : ""}${marketDay(g, Date.now()) ? ` · ${t.twin.market}` : ""}`); } }
               const sm = signpostMap(seeds);
               for (const [dx, dy] of [[0, 0], [1, 1], [1, 0], [0, 1], [-1, 0], [0, -1]] as const) {
                 const sp = sm.get((ty + dy) * MAP + tx + dx);
@@ -902,6 +962,25 @@ export function Game() {
         </Parchment>
       )}
 
+      {pactOpen && my && pactPartner && (() => {
+        const theirs = (pactPartner.votes ?? []).filter((v) => v.partner === my.id).sort((a, b) => b.at - a.at)[0];
+        return (
+          <Parchment image={ART["charter"]} title={t.twin.title(my.name, pactPartner.name)} later={t.enc.later} onLater={() => later("pact")}>
+            <p className="mt-2 text-sm text-center">{t.twin.intro}</p>
+            {theirs && <p className="mt-2 text-center text-sm font-semibold">{t.twin.partnerChose(t.twin.pacts[theirs.pact]![0])}</p>}
+            <div className="mt-4 grid gap-2">
+              {PACTS.map((p) => (
+                <button key={p} type="button" aria-pressed={pactPick === p} onClick={() => setPactPick(p)}
+                  className={`rounded-md border-2 p-2 text-left ${pactPick === p ? "border-brass bg-brass/20" : "border-border hover:border-brass/60"}`}>
+                  <div className="font-semibold text-wood">{t.twin.pacts[p]![0]}</div>
+                  <div className="text-xs text-muted-foreground">{t.twin.pacts[p]![1]}</div>
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-end"><Button disabled={!pactPick} onClick={sealPact}>{t.twin.seal}</Button></div>
+          </Parchment>
+        );
+      })()}
       {charterOpen && my && (
         <Parchment wide image={ART["charter"]} title={`${t.charter.title} · ${my.name}`} later={t.enc.later} onLater={() => later("charter")}>
               <p className="mt-2 text-sm text-center">{t.charter.intro}</p>
