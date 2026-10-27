@@ -120,8 +120,8 @@ function animate(c: CanvasRenderingContext2D, kind: Kind, left: number, top: num
 
 function millSailsAt(c: CanvasRenderingContext2D, x: number, y: number, d: number, t: number, sd: number) {
   if (!sailsImg?.complete || !sailsImg.naturalWidth) return;
-  const gust = 1 + 0.25 * Math.sin(t / 9000 + sd);
-  const a = (t / 2600) * gust + sd;
+  // integrated angle: steady ~19 s per turn with gentle gusts (multiplying t by a gust factor made it spin wildly)
+  const a = t / 3000 - (0.25 * 9000 / 3000) * Math.cos(t / 9000 + sd) + sd;
   c.save(); c.translate(x, y);
   c.transform(0.62, 0.22, 0, 1, 0, 0); // sails face the viewer at an angle, like the cap
   c.rotate(a);
