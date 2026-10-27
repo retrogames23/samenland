@@ -670,12 +670,29 @@ export function draw(
       const sd = x * 1000 + y;
       const pp = P(cx, cy);
       if (st.kind === "bridge") {
-        const pl: Pt[] = [pp(-0.42, -0.42), pp(0.42, -0.42), pp(0.42, 0.42), pp(-0.42, 0.42)];
-        shape(c, pl, sd, "#a07a52", true);
-        c.globalAlpha = 0.55;
-        for (let k = -3; k <= 3; k++) line(c, pp(k * 0.12, -0.4), pp(k * 0.12, 0.4), sd + k + 5, 0.35);
-        c.globalAlpha = 1;
-        line(c, pp(-0.45, -0.45), pp(0.45, -0.45), sd + 20, 0.6); line(c, pp(-0.45, 0.45), pp(0.45, 0.45), sd + 21, 0.6);
+        // one continuous deck: a segment towards every connected bridge/road neighbour, posts in the water
+        const dirs: [number, number][] = [];
+        for (const [dx, dy] of NB8) {
+          const o = structureAt(x + dx, y + dy, seeds, now);
+          if (o && PATHLIKE.has(o.kind)) dirs.push([dx, dy]);
+        }
+        if (!dirs.length) dirs.push([1, 0], [-1, 0]);
+        const W = 0.2;
+        // posts first (under the deck), slightly into the water
+        c.fillStyle = "rgba(55,38,22,0.9)";
+        for (const s of [-1, 1]) { const [px, py] = pp(s * W * 0.7, -s * W * 0.7); c.fillRect(px - 0.7, py, 1.4, 3.2); }
+        for (const [dx, dy] of dirs) {
+          const len = Math.hypot(dx, dy), nx = -dy / len * W, ny = dx / len * W;
+          const ex = dx * 0.56, ey = dy * 0.56;
+          const q = [pp(nx, ny), pp(ex + nx, ey + ny), pp(ex - nx, ey - ny), pp(-nx, -ny)];
+          c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
+          c.fillStyle = "#9a7650"; c.fill();
+          c.strokeStyle = "rgba(60,42,25,0.35)"; c.lineWidth = 0.4;
+          for (let k = 1; k < 6; k++) { const f = k / 6; const a = pp(ex * f + nx, ey * f + ny), b = pp(ex * f - nx, ey * f - ny); c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); }
+          c.strokeStyle = "rgba(50,35,20,0.6)"; c.lineWidth = 0.7;
+          for (const sg of [1, -1]) { const a = pp(sg * nx, sg * ny), b = pp(ex + sg * nx, ey + sg * ny); c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); }
+        }
+        c.beginPath(); c.ellipse(cx, cy, TW * W * 0.75, TH * W * 0.75, 0, 0, 7); c.fillStyle = "#9a7650"; c.fill();
       } else if (st.kind === "path" || st.kind === "street" || st.kind === "road" || st.kind === "avenue" || st.kind === "rail") {
         const street = st.kind === "street" || st.kind === "avenue";
         const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
