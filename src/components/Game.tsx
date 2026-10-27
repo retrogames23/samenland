@@ -44,6 +44,7 @@ import {
   charterReady,
   charterFits,
   type CharterPath,
+  twinLinks, pactOf, pactPending, workOf, marketDay, festivalDate, twinGateAt, PACTS, TWIN_WORKS, PACT_WAIT, type PactKind, type WorkKind,
 } from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
@@ -644,7 +645,7 @@ export function Game() {
                     : pend === "wait" && mine ? <div>{t.twin.waiting(Math.max(1, Math.ceil((mine.at + PACT_WAIT - now) / 864e5)))}</div>
                     : owner ? <Button size="sm" variant="secondary" onClick={() => { setPactPick(null); setPactOpen(true); }}>{t.twin.seal}</Button> : null}
                   {marketDay(l, now) && <div>{t.twin.market}</div>}
-                  <div>{t.twin.festival(1 + Math.floor(((l.a.x + l.b.x) >= 0 ? 0 : 0) + new Date(0).getUTCDate() - 1) || 1)}</div>
+                  <div>{t.twin.festival(festivalDate(l))}</div>
                   {p && (
                     <div className="space-y-1">
                       <div className="text-foreground">{t.twin.workTitle}</div>

@@ -746,7 +746,8 @@ export function workOf(s: Seed, o: Seed, now: number) {
 }
 /** Weekly market day at the gate and monthly twin festival (UTC days, from the pair). */
 export const marketDay = (l: Link, now: number) => (Math.floor(now / 864e5) + 3) % 7 === Math.floor(pairHash(l) * 7);
-export const festivalDay = (l: Link, at: number) => new Date(at).getUTCDate() === 1 + Math.floor(pairHash(l) * 28);
+export const festivalDate = (l: Link) => 1 + Math.floor(pairHash(l) * 28);
+export const festivalDay = (l: Link, at: number) => new Date(at).getUTCDate() === festivalDate(l);
 const utcDay = (t: number) => Math.floor(t / 864e5);
 
 /** Growth hours from being a twin: +10 % since touching, pact and joint work bonuses, doubled blessings on festival days. */
