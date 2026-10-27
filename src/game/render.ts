@@ -80,7 +80,10 @@ export function draw(
       }
       diamond(c, cx, cy - lift, TW / 2 + 0.3, TH / 2 + 0.3);
       c.fillStyle = col; c.fill();
-      if (!detail) continue;
+      if (!detail) {
+        if (st?.kind === "house") { diamond(c, cx, cy - 3, 7, 3.5); c.fillStyle = hsl(st.seed.hue, 45, 45); c.fill(); }
+        continue;
+      }
 
       if (st?.kind === "field") {
         c.fillStyle = st.v > 0.5 ? "#c49f45" : "#86a84c";
