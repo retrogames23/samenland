@@ -189,10 +189,11 @@ export function townStats(s: Seed, now: number) {
 }
 
 export const MIN_SEED_DISTANCE = 40;
+/** Returns an error code ("hill" | "water" | "near:<name>") or null; UI translates it. */
 export function canPlant(x: number, y: number, seeds: Seed[]): string | null {
   const tt = terrain(x, y);
-  if (tt === "hill") return "Auf den Hügeln wird nicht gebaut.";
-  if (!buildable(tt)) return "Hier ist kein festes Land.";
-  for (const s of seeds) if (Math.hypot(x - s.x, y - s.y) < MIN_SEED_DISTANCE) return `Zu nah an ${s.name}.`;
+  if (tt === "hill") return "hill";
+  if (!buildable(tt)) return "water";
+  for (const s of seeds) if (Math.hypot(x - s.x, y - s.y) < MIN_SEED_DISTANCE) return `near:${s.name}`;
   return null;
 }
