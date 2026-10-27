@@ -282,8 +282,13 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, bob: numbe
   for (const s of [1.8, -1.8]) { const q = P(-1, s, 1); c.beginPath(); c.ellipse(q[0], q[1], 1.3, 1.3, 0, 0, 7); c.fill(); }
   // cart bed + canvas cover
   shape(c, [P(-3.5, 1.8, 1.8), P(2.2, 1.8, 1.8), P(2.2, -1.8, 1.8), P(-3.5, -1.8, 1.8)], sd + 3, "#a07a52");
-  shape(c, [P(-3.5, 0, 6), P(2.2, 0, 6), P(2.2, 1.8, 2.2), P(-3.5, 1.8, 2.2)], sd + 4, cover);
-  shape(c, [P(-3.5, 0, 6), P(2.2, 0, 6), P(2.2, -1.8, 2.2), P(-3.5, -1.8, 2.2)], sd + 5, "#efe3c8");
+  // arched canvas hood over the bed
+  const a = P(-3.3, 0, 2), b = P(2, 0, 2);
+  c.beginPath(); c.moveTo(a[0], a[1]);
+  c.bezierCurveTo(a[0], a[1] - 5.5, b[0], b[1] - 5.5, b[0], b[1]); c.closePath();
+  c.fillStyle = "#efe3c8"; c.fill(); c.strokeStyle = INK; c.lineWidth = 0.55; c.stroke();
+  c.globalAlpha = 0.5; line(c, P(-0.65, 0, 2), P(-0.65, 0, 6), sd + 6, 0.4); c.globalAlpha = 1;
+  c.fillStyle = cover; c.fillRect(Math.min(a[0], b[0]), a[1] - 1.6, Math.abs(b[0] - a[0]), 0.9);
 }
 
 let overview: HTMLCanvasElement | null = null;
