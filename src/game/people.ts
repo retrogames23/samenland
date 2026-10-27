@@ -301,8 +301,9 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
     // children run little loops – shrunk until the whole loop stays on open ground
     let r = 0.5 + hash(p.id, 1, 810) * 0.4;
     const w = 0.35 * (hash(p.id, 2, 810) < 0.5 ? 1 : -1), a = tt * w + p.id;
-    while (r > 0.05 && ![0, 1.57, 3.14, 4.71].every((q) => freeAt(t, c0[0] + Math.cos(q) * r, c0[1] + Math.sin(q) * r, seeds))) r -= 0.15;
-    if (r <= 0.05) return { ...base, dir: [1, 0.3] };
+    const ok = (rr: number) => [0, 0.785, 1.57, 2.36, 3.14, 3.93, 4.71, 5.5].every((q) => freeAt(t, c0[0] + Math.cos(q) * rr, c0[1] + Math.sin(q) * rr, seeds));
+    while (r > 0.12 && !ok(r)) r -= 0.08;
+    if (r <= 0.12) return { ...base, dir: [1, 0.3] };
     return { ...base, x: c0[0] + Math.cos(a) * r, y: c0[1] + Math.sin(a) * r, walking: true, dir: [-Math.sin(a) * Math.sign(w), Math.cos(a) * Math.sign(w)], phase: tt * 0.8 / 0.32 * Math.abs(w) * 1.6 };
   }
   const wx = (vnoise(tt / 40, p.id % 997, 811) - 0.5) * 0.25, wy = (vnoise(tt / 40, p.id % 991, 812) - 0.5) * 0.25;
