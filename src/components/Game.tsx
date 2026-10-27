@@ -590,6 +590,13 @@ export function Game() {
     </div>
   );
 
+  useEffect(() => {
+    if (anyOpen || !decision.open) return;
+    if (decision.open === "road") { setRoadPick(null); setRoadOpen(true); }
+    else if (decision.open === "charter") { setCharterPick(null); setCharterOpen(true); }
+    else setEncOpen(true);
+  }, [decision.open, anyOpen]);
+
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
       <canvas
