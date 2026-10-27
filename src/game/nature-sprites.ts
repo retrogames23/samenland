@@ -59,6 +59,8 @@ const NATURE = {
   bush: { url: bush, crop: [0, 0, 490, 454], width: 9 },
 } satisfies Record<string, Sprite>;
 export type NatureKind = keyof typeof NATURE;
+/** True once every tree/rock sprite has loaded (used before caching baked ground). */
+export const natureReady = () => Object.values(NATURE).every((s) => !!img(s.url));
 
 /** Draws a nature sprite with its foot at (x,y); sway skews the crown slightly. */
 export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: number, sway = 0, flip = false): boolean {

@@ -1,7 +1,7 @@
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
 import { drawBuildingSprite } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, setNatureTime, boatImage, sheepImage, planksPattern, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, ageHours, effAge, radiusOf, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -487,9 +487,11 @@ let renderNow = 0;
 function overviewMap() {
   const sk = seasonKey(renderNow);
   if (overview && overviewSeason === sk) return overview;
-  overviewSeason = sk;
   const ready = allTexturesReady();
-  const S = 8, W = (MAP * TW) / S, H = (MAP * TH) / S;
+  // never rebuild every frame while textures load: keep the last picture (or a cheap one) until ready
+  if (!ready && overview) return overview;
+  overviewSeason = sk;
+  const S = 16, W = (MAP * TW) / S, H = (MAP * TH) / S;
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const g = cv.getContext("2d")!; const img = g.createImageData(W, H);
   const rgb = new Map<string, [number, number, number]>();
@@ -517,8 +519,17 @@ function overviewMap() {
   // soften once more so coasts and rivers look painted, not pixelated
   const out = document.createElement("canvas"); out.width = W; out.height = H;
   const og = out.getContext("2d")!; og.filter = "blur(0.8px)"; og.drawImage(cv, 0, 0);
-  if (ready) overview = out;
+  overview = out;
+  if (!ready) overviewSeason = "";
   return out;
+}
+
+/** Builds the overview picture in idle time so zooming out never stalls. */
+export function prewarmOverview() {
+  if (typeof window === "undefined") return;
+  const go = () => { renderNow = renderNow || Date.now(); if (!allTexturesReady()) return void setTimeout(go, 400); overviewMap(); };
+  const ric = (window as Window & { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback;
+  ric ? ric(go) : setTimeout(go, 800);
 }
 
 function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], now: number) {
