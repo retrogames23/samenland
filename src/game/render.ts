@@ -297,7 +297,7 @@ export const lastPeople: { x: number; y: number; q: Pose }[] = [];
 function limb(c: C, pts: Pt[], col: string, w: number) {
   c.lineCap = "round"; c.lineJoin = "round";
   c.beginPath(); c.moveTo(pts[0]![0], pts[0]![1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i]![0], pts[i]![1]);
-  c.strokeStyle = "rgba(30,22,15,0.55)"; c.lineWidth = w + 0.22; c.stroke();
+  c.strokeStyle = "rgba(30,22,15,0.4)"; c.lineWidth = w + 0.16; c.stroke();
   c.strokeStyle = col; c.lineWidth = w; c.stroke();
 }
 function bubble(c: C, x: number, y: number, icon: number) {
@@ -325,9 +325,11 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   const hair = L.hair < 0 ? "#d8d4cc" : HAIR[Math.floor(L.hair * HAIR.length)]!;
   const ph = q.phase + p.id;
   const walk = q.walking ? 1 : 0;
-  const bounce = walk * Math.abs(Math.sin(ph)) * 0.25 * s + (kid && q.act === "play" ? Math.max(0, Math.sin(ph * 0.5)) * 0.5 : 0);
+  const bounce = walk * Math.abs(Math.sin(ph)) * 0.1 * s + (kid && q.act === "play" ? Math.max(0, Math.sin(ph * 0.5)) * 0.5 : 0);
   // shadow
-  c.fillStyle = "rgba(60,40,25,0.22)"; c.beginPath(); c.ellipse(X, Y, 1.5 * s, 0.6 * s, 0, 0, 7); c.fill();
+  // grounded: soft ambient shadow cast to the lower right + dark contact patch under the feet
+  c.fillStyle = "rgba(25,20,10,0.18)"; c.beginPath(); c.ellipse(X + 1.1 * s, Y + 0.25, 2.3 * s, 0.85 * s, 0.15, 0, 7); c.fill();
+  c.fillStyle = "rgba(20,15,8,0.38)"; c.beginPath(); c.ellipse(X, Y, 1.05 * s, 0.42 * s, 0, 0, 7); c.fill();
   if (simple) {
     limb(c, [[X, Y - 0.2], [X, Y - 3.4 * s - bounce]], pants, 0.9 * s);
     limb(c, [[X, Y - 3.4 * s - bounce], [X, Y - 5.6 * s - bounce]], shirt, 1.4 * s);
@@ -368,7 +370,9 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   c.beginPath();
   c.moveTo(sh[0] - 0.85 * s, sh[1]); c.lineTo(sh[0] + 0.85 * s, sh[1]);
   c.lineTo(hip[0] + 0.75 * s, hip[1] + 0.2); c.lineTo(hip[0] - 0.75 * s, hip[1] + 0.2); c.closePath();
-  c.fillStyle = shirt; c.fill(); c.strokeStyle = INK; c.lineWidth = 0.32; c.stroke();
+  c.fillStyle = shirt; c.fill();
+  { const g = c.createLinearGradient(sh[0] - 0.85 * s, 0, sh[0] + 0.85 * s, 0); g.addColorStop(0, "rgba(255,240,210,0.18)"); g.addColorStop(1, "rgba(20,12,5,0.28)"); c.fillStyle = g; c.fill(); }
+  c.strokeStyle = "rgba(30,22,15,0.45)"; c.lineWidth = 0.2; c.stroke();
   if (dress) {
     const sk = CLOTH[(Math.floor(L.shirt * CLOTH.length) + 3) % CLOTH.length]!;
     const fl = walk * Math.sin(ph) * 0.25;
@@ -382,7 +386,7 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   const hr = (kid ? 1.15 : 0.95) * s;
   const hc: Pt = [sh[0] + face * 0.1 * s + stoop * 0.6, sh[1] - hr - 0.25 * s];
   limb(c, [[sh[0], sh[1]], [hc[0], hc[1] + hr * 0.6]], skin, 0.5 * s);
-  c.beginPath(); c.arc(hc[0], hc[1], hr, 0, 7); c.fillStyle = skin; c.fill(); c.strokeStyle = INK; c.lineWidth = 0.3; c.stroke();
+  c.beginPath(); c.arc(hc[0], hc[1], hr, 0, 7); c.fillStyle = skin; c.fill(); c.strokeStyle = "rgba(30,22,15,0.4)"; c.lineWidth = 0.18; c.stroke();
   // hair
   c.fillStyle = hair; c.beginPath();
   if (away) c.arc(hc[0], hc[1], hr * 1.02, 0, 7);

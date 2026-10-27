@@ -35,6 +35,7 @@ const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "ma
 export type Town = {
   seed: Seed; people: Person[]; well: Tile; meet: Tile; meets: Tile[]; plays: Tile[]; school: Tile | null; play: Tile;
   x0: number; y0: number; x1: number; y1: number; routes: Map<string, Tile[]>; now: number;
+  freeC: Map<number, boolean>; costC: Map<number, number>; doors: Map<number, Tile>;
 };
 
 const towns = new Map<string, Town>();
@@ -129,8 +130,39 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       });
     }
   }
-  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now };
+  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map() };
 }
+
+// ---------------- collision ----------------
+/** Walkable ground: open buildable land or a flat structure (paths, squares, fields…). */
+function free(t: Town, x: number, y: number, seeds: Seed[]): boolean {
+  const k = x * 4096 + y;
+  const hit = t.freeC.get(k);
+  if (hit !== undefined) return hit;
+  const st = structureAt(x, y, seeds, t.now);
+  const ok = st ? WALK.has(st.kind) || (FLAT.has(st.kind) && st.kind !== "hay") : buildable(terrain(x, y));
+  t.freeC.set(k, ok);
+  return ok;
+}
+const freeAt = (t: Town, x: number, y: number, seeds: Seed[]) => free(t, Math.round(x), Math.round(y), seeds);
+/** The tile in front of a building where people step in and out (never through the walls). */
+function doorOf(t: Town, tl: Tile, seeds: Seed[]): Tile {
+  const tx = Math.round(tl[0]), ty = Math.round(tl[1]);
+  if (free(t, tx, ty, seeds)) return [tx, ty];
+  const k = tx * 4096 + ty;
+  const hit = t.doors.get(k); if (hit) return hit;
+  let best: Tile = [tx, ty], bs = Infinity;
+  for (const [dx, dy, pr] of [[0, 1, 0], [1, 0, 0.1], [-1, 0, 0.2], [0, -1, 0.3], [1, 1, 1], [-1, 1, 1.1], [1, -1, 1.2], [-1, -1, 1.3]] as const) {
+    const nx = tx + dx, ny = ty + dy;
+    if (!free(t, nx, ny, seeds)) continue;
+    const st = structureAt(nx, ny, seeds, t.now);
+    const sc = pr + (st && WALK.has(st.kind) ? 0 : 0.5);
+    if (sc < bs) { bs = sc; best = [nx, ny]; }
+  }
+  t.doors.set(k, best);
+  return best;
+}
+
 
 // ---------------- routing ----------------
 function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
@@ -142,24 +174,28 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
   const inside = (x: number, y: number) => x >= t.x0 && x <= t.x1 && y >= t.y0 && y <= t.y1;
   const cost = (x: number, y: number) => {
     if ((x === b[0] && y === b[1]) || (x === a[0] && y === a[1])) return 1;
+    const k = x * 4096 + y;
+    const hit = t.costC.get(k); if (hit !== undefined) return hit;
     const st = structureAt(x, y, seeds, t.now);
-    if (st && WALK.has(st.kind)) return 1;
-    if (st && !FLAT.has(st.kind) && st.kind !== "hay") return Infinity; // buildings
-    if (!buildable(terrain(x, y))) return Infinity;
-    return 2.4;
+    const v = !free(t, x, y, seeds) ? (buildable(terrain(x, y)) ? 40 : Infinity) : st && WALK.has(st.kind) ? 1 : 2.4;
+    t.costC.set(k, v);
+    return v; // 40 = through a building only as a last resort (hidden there: courtyard / back door)
   };
-  const dist = new Float32Array(W * H).fill(Infinity), prev = new Int32Array(W * H).fill(-1);
+  const dist = new Float64Array(W * H).fill(Infinity), prev = new Int32Array(W * H).fill(-1);
   const heap: [number, number][] = [];
   const push = (d: number, i: number) => { heap.push([d, i]); let k = heap.length - 1; while (k > 0) { const p = (k - 1) >> 1; if (heap[p]![0] <= heap[k]![0]) break; [heap[p], heap[k]] = [heap[k]!, heap[p]!]; k = p; } };
   const pop = () => { const top = heap[0]!; const last = heap.pop()!; if (heap.length) { heap[0] = last; let k = 0; for (;;) { const l = k * 2 + 1, r = l + 1; let m = k; if (l < heap.length && heap[l]![0] < heap[m]![0]) m = l; if (r < heap.length && heap[r]![0] < heap[m]![0]) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k]!, heap[m]!]; k = m; } } return top; };
   let out: Tile[] = [a, b];
   if (inside(a[0], a[1]) && inside(b[0], b[1])) {
     const si = idx(a[0], a[1]), gi = idx(b[0], b[1]);
-    dist[si] = 0; push(0, si);
+    // A*: manhattan distance is admissible (cheapest step costs 1) and keeps the search tiny
+    const hh = (i: number) => Math.abs(t.x0 + (i % W) - b[0]) + Math.abs(t.y0 + Math.floor(i / W) - b[1]);
+    dist[si] = 0; push(hh(si), si);
     while (heap.length) {
-      const [d, i] = pop();
+      const [f, i] = pop();
       if (i === gi) break;
-      if (d > dist[i]!) continue;
+      if (f - hh(i) > dist[i]!) continue;
+      const d = dist[i]!;
       const x = t.x0 + (i % W), y = t.y0 + Math.floor(i / W);
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
         const nx = x + dx, ny = y + dy;
@@ -167,7 +203,7 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
         const c = cost(nx, ny);
         if (c === Infinity) continue;
         const ni = idx(nx, ny), nd = d + c;
-        if (nd < dist[ni]!) { dist[ni] = nd; prev[ni] = i; push(nd, ni); }
+        if (nd < dist[ni]!) { dist[ni] = nd; prev[ni] = i; push(nd + hh(ni), ni); }
       }
     }
     if (prev[gi] !== -1) {
@@ -180,7 +216,7 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
   const sm = out.map((p, i) => {
     if (i === 0 || i === out.length - 1) return p;
     const q = out[i - 1]!, n = out[i + 1]!;
-    return [(q[0] + p[0] * 2 + n[0]) / 4, (q[1] + p[1] * 2 + n[1]) / 4] as Tile;
+    return [(q[0] + p[0] * 4 + n[0]) / 6, (q[1] + p[1] * 4 + n[1]) / 6] as Tile;
   });
   t.routes.set(key, sm);
   return sm;
@@ -236,9 +272,12 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const e = pl[i]!, prev = pl[(i - 1 + pl.length) % pl.length]!;
   const base: Pose = { p, x: e.place[0], y: e.place[1], visible: !e.indoor, walking: false, dir: [0, 1], phase: 0, act: e.act, working: false, talk: null, talkTurn: false };
   const secs = (hr - e.at) * 3600;
-  const ra: Tile = [Math.round(prev.place[0]), Math.round(prev.place[1])], rb: Tile = [Math.round(e.place[0]), Math.round(e.place[1])];
-  if (ra[0] !== rb[0] || ra[1] !== rb[1] || prev.place[0] !== e.place[0]) {
-    const pts = [prev.place, ...route(t, ra, rb, seeds).slice(1, -1), e.place];
+  // indoor places are entered through their door; outdoor spots on a roof/rock move to the nearest open tile
+  const at = (en: Entry): Tile => en.indoor || !freeAt(t, en.place[0], en.place[1], seeds) ? doorOf(t, en.place, seeds) : en.place;
+  const pa = at(prev), pb = at(e);
+  const ra: Tile = [Math.round(pa[0]), Math.round(pa[1])], rb: Tile = [Math.round(pb[0]), Math.round(pb[1])];
+  if (ra[0] !== rb[0] || ra[1] !== rb[1] || pa[0] !== pb[0] || pa[1] !== pb[1]) {
+    const pts = [pa, ...route(t, ra, rb, seeds).slice(1, -1), pb];
     let len = 0; const seg: number[] = [];
     for (let k = 1; k < pts.length; k++) { const d = Math.hypot(pts[k]![0] - pts[k - 1]![0], pts[k]![1] - pts[k - 1]![1]); seg.push(d); len += d; }
     let dd = secs * p.speed;
@@ -247,7 +286,8 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
         if (dd <= seg[k]! || k === seg.length - 1) {
           const a = pts[k]!, b = pts[k + 1]!, u = seg[k]! ? dd / seg[k]! : 0;
           const dl = seg[k]! || 1;
-          return { ...base, x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, visible: true, walking: true, dir: [(b[0] - a[0]) / dl, (b[1] - a[1]) / dl], phase: (secs * p.speed) / 0.32 };
+          const x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
+          return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, dir: [(b[0] - a[0]) / dl, (b[1] - a[1]) / dl], phase: (secs * p.speed) / 0.32 };
         }
         dd -= seg[k]!;
       }
@@ -255,14 +295,21 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   }
   if (e.indoor) return base;
   const tt = now / 1000;
+  const c0 = pb;
+  base.x = c0[0]; base.y = c0[1];
   if (e.act === "play") {
-    // children run little loops
-    const r = 0.5 + hash(p.id, 1, 810) * 0.4, w = 0.35 * (hash(p.id, 2, 810) < 0.5 ? 1 : -1), a = tt * w + p.id;
-    return { ...base, x: e.place[0] + Math.cos(a) * r, y: e.place[1] + Math.sin(a) * r, walking: true, dir: [-Math.sin(a) * Math.sign(w), Math.cos(a) * Math.sign(w)], phase: tt * 0.8 / 0.32 * Math.abs(w) * 1.6 };
+    // children run little loops – shrunk until the whole loop stays on open ground
+    let r = 0.5 + hash(p.id, 1, 810) * 0.4;
+    const w = 0.35 * (hash(p.id, 2, 810) < 0.5 ? 1 : -1), a = tt * w + p.id;
+    const ok = (rr: number) => Array.from({ length: 24 }, (_, k) => k * 0.2618).every((q) => freeAt(t, c0[0] + Math.cos(q) * rr, c0[1] + Math.sin(q) * rr, seeds));
+    while (r > 0.12 && !ok(r)) r -= 0.08;
+    if (r <= 0.12) return { ...base, dir: [1, 0.3] };
+    return { ...base, x: c0[0] + Math.cos(a) * r, y: c0[1] + Math.sin(a) * r, walking: true, dir: [-Math.sin(a) * Math.sign(w), Math.cos(a) * Math.sign(w)], phase: tt * 0.8 / 0.32 * Math.abs(w) * 1.6 };
   }
   const wx = (vnoise(tt / 40, p.id % 997, 811) - 0.5) * 0.25, wy = (vnoise(tt / 40, p.id % 991, 812) - 0.5) * 0.25;
   const face = hash(p.id, Math.floor(tt / 30), 813) < 0.5 ? 1 : -1;
-  return { ...base, x: e.place[0] + wx, y: e.place[1] + wy, dir: [face, 0.3], working: e.act === "work" };
+  const ok = freeAt(t, c0[0] + wx, c0[1] + wy, seeds);
+  return { ...base, x: c0[0] + (ok ? wx : 0), y: c0[1] + (ok ? wy : 0), dir: [face, 0.3], working: e.act === "work" };
 }
 
 /** All visible villagers of a town right now, with conversations paired deterministically. */
@@ -276,6 +323,7 @@ export function townPoses(s: Seed, seeds: Seed[], now: number): Pose[] {
     const a = idle[k]!, b = idle[k + 1]!;
     if (Math.hypot(a.x - b.x, a.y - b.y) > 1.6 || hash(a.p.id, slot, 901) > 0.75) continue;
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    if (!freeAt(t, mx - 0.22, my, seeds) || !freeAt(t, mx + 0.22, my, seeds)) continue;
     a.x = mx - 0.22; a.y = my; b.x = mx + 0.22; b.y = my;
     a.dir = [1, -1]; b.dir = [-1, 1];
     const icon = Math.floor(hash(a.p.id, slot, 902) * 6);
