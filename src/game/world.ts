@@ -1,7 +1,8 @@
+import { boonHours, type Decision } from "./encounters";
 // Pure, deterministic world + town growth logic (shared by every player).
 export const MAP = 1024;
 
-export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; firstRoad?: { target: string; at: number } };
+export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; firstRoad?: { target: string; at: number }; decisions?: Decision[] };
 export type Planting = { id: string; seed_id: string; kind: "tree" | "flower" | "lantern"; x: number; y: number; created_at: string };
 
 export function hash(x: number, y: number, s = 0): number {
@@ -607,7 +608,7 @@ export function speedOf(s: Seed, seeds: Seed[], now: number) {
 
 /** Effective age: real age plus bonus hours accumulated since each road was founded (monotonic, deterministic). */
 export function effAge(s: Seed, seeds: Seed[], now: number) {
-  let h = ageHours(s, now) + blessHours(s, now);
+  let h = ageHours(s, now) + blessHours(s, now) + boonHours(s.decisions ?? [], now);
   if (s.charter?.path === "farm" && now > s.charter.at) h += (now - s.charter.at) / 3.6e6 * FARM_BONUS;
   const base = h;
   for (const l of links(seeds)) {
