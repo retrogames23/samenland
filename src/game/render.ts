@@ -1,6 +1,7 @@
+import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
-import { drawBuildingSprite, spriteBox, setSpriteTime } from "./building-sprites";
+import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, railReady, acreOf, ageHours, effAge, radiusOf, isBlessed, signTile, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
@@ -107,35 +108,11 @@ function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
 }
 
 /** win: a small window pane (rendered as a warm rectangle), otherwise an open flame/forge. */
-export type Light = { x: number; y: number; r: number; win?: boolean };
+export type Light = { x: number; y: number; r: number; building?: { kind: Kind; variant: number; seed: number } };
 
 /** Local clock hour, cached per second (house lights depend on it). */
 let hrCache = { at: 0, hr: 12 };
 const localHour = () => { const n = Date.now(); if (n - hrCache.at > 1000) { const d = new Date(n); hrCache = { at: n, hr: d.getHours() + d.getMinutes() / 60 }; } return hrCache.hr; };
-/** Hours since 18:00 (wraps), so evening and night compare on one axis. */
-const sinceEve = (h: number) => (h - 18 + 24) % 24;
-/**
- * Deterministic per house: whether it is lit right now. Each household switches on at dusk
- * (some never), off between 21:00 and 23:30; the inn stays lit until 0:45. From 1:00 every window
- * is dark; a few early risers light up 5:30–7:00.
- */
-function houseLit(kind: string, sd: number, hr: number): boolean {
-  const a = hash(sd, 7, 811), b = hash(sd, 7, 812), e = sinceEve(hr);
-  if (hr >= 5.5 && hr < 7.2) return a < 0.3 && hr >= 5.5 + b * 1.2;
-  if (e > 6.6) return false; // 0:36 onwards everything dark (inn below)
-  const on = 0.3 + b * 1.4; // 18:18–19:42
-  const off = kind === "inn" ? 6.75 : kind === "church" || kind === "townhall" ? 2.5 + a : 3 + a * 2.5; // 21:00–23:30
-  if (kind !== "inn" && a > 0.75) return false; // some homes stay dark all evening
-  return e >= on && e < off;
-}
-/** Plausible window panes on the two visible walls, relative to the sprite foot. */
-const WINDOWS: Record<string, [number, number][]> = {
-  hut: [[-4, -5]], cottage: [[-5, -6], [4, -5]], farmhouse: [[-7, -7], [-3, -6], [5, -6]], suburb: [[-5, -6], [4, -6]],
-  townhouse: [[-6, -9], [-6, -15], [5, -9], [5, -15]], inn: [[-8, -7], [-4, -6], [5, -7], [8, -8]], bakery: [[-5, -6], [5, -6]],
-  workshop: [[-5, -6], [5, -6]], townhall: [[-8, -9], [-4, -8], [4, -8], [8, -9]], church: [[-6, -10], [5, -10]], chapel: [[-3, -7]],
-  market: [[-4, -5]], markethall: [[-7, -7], [6, -7]], guildhall: [[-6, -9], [5, -9]], library: [[-6, -8], [5, -8]],
-  infirmary: [[-5, -6], [5, -6]], school: [[-6, -7], [5, -7]], station: [[-7, -7], [6, -7]], fishery: [[-4, -5]], harbor: [[4, -6]],
-};
 /** Hovered / selected villager ids, set by the UI so the canvas can highlight them. */
 export const peopleFocus: { hover: string | null; sel: string | null } = { hover: null, sel: null };
 
@@ -257,7 +234,6 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
     c.fillStyle = "rgba(210,190,150,0.35)"; c.beginPath(); c.ellipse(cx + Math.sin(sd) * hw * 0.4, cy - 4 - p * 6, 1.6, 0.8, 0, 0, 7); c.fill();
   }
 }
-const LIT_KINDS = new Set<string>(["farmhouse", "cottage", "inn", "bakery", "townhouse", "smithy", "hut", "townhall", "church", "chapel", "suburb", "workshop", "market", "markethall", "guildhall", "library", "infirmary", "school", "station", "fishery", "harbor"]);
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
   if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
@@ -267,16 +243,8 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
-    if (LIT_KINDS.has(s.kind)) {
-      const hr = localHour();
-      if (s.kind === "smithy") { if (hr >= 6 && hr < 22) L.push({ x: cx - 2, y: cy - 4, r: 5 }); }
-      else if (houseLit(s.kind, sd, hr)) {
-        const ws = WINDOWS[s.kind] ?? [[-4, -6]];
-        let any = false;
-        ws.forEach(([dx, dy], i) => {
-          if (hash(sd, i, 813) < 0.65 || (!any && i === ws.length - 1)) { any = true; L.push({ x: cx + dx, y: cy + dy, r: 2.6, win: true }); }
-        });
-      }
+    if (hasNightSprite(s.kind) && houseLit(s.kind, sd, localHour())) {
+      L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd } });
     }
     if (["factory", "manufactory", "steamworks", "smithy", "bakery", "inn"].includes(s.kind)) {
       smoke(c, cx + 4, cy - (s.kind === "factory" ? 24 : 18), t, sd, s.kind === "factory" ? 1.5 : 0.6);
@@ -1320,15 +1288,23 @@ export function draw(
     c.fillStyle = mg; c.fillRect(0, 0, w, h);
     c.globalCompositeOperation = "lighter";
     for (let i = 0; i < L.length; i++) {
-      const l = L[i]!;
+      const l = L[i];
+      if (!l) continue;
       const sx = (l.x - cam.x) * z + w / 2, sy = (l.y - cam.y) * z + h / 2;
       const r = l.r * z * 2.2;
       if (sx < -r || sy < -r || sx > w + r || sy > h + r) continue;
-      // candle/hearth flicker: two incommensurate waves per light
-      const fl = 0.86 + 0.08 * Math.sin(t * 7 + i * 1.7) + 0.06 * Math.sin(t * 11.3 + i * 0.9);
+      // Window light is painted from the actual image, never guessed wall coordinates.
+      const fl = candleFlicker(t, l.building?.seed ?? l.x * 7 + l.y * 13);
+      if (l.building) {
+        c.save();
+        c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
+        drawBuildingNight(c, l.building.kind, l.x, l.y, l.building.variant, night * fl);
+        c.restore();
+        continue;
+      }
       const g = c.createRadialGradient(sx, sy, 0, sx, sy, r);
-      g.addColorStop(0, `rgba(255,190,100,${(l.win ? 0.55 : 0.7) * night * fl})`);
-      g.addColorStop(0.25, `rgba(255,150,60,${(l.win ? 0.24 : 0.32) * night * fl})`);
+      g.addColorStop(0, `rgba(255,190,100,${0.7 * night * fl})`);
+      g.addColorStop(0.25, `rgba(255,150,60,${0.32 * night * fl})`);
       g.addColorStop(1, "rgba(255,130,50,0)");
       c.fillStyle = g; c.fillRect(sx - r, sy - r, r * 2, r * 2);
     }

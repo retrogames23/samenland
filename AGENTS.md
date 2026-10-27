@@ -24,3 +24,5 @@
 - Dorfsegen: blessings table with a 24h DB trigger cooldown; blessing timestamps are merged into Seed.blessed client-side and effAge adds the bonus purely — keeps growth deterministic across clients.
 - Signposts sit on derived road tiles (signTile in world.ts); only the message is stored.
 - Bought buildings are placed by specialSites(seed) in world.ts from purchase rows merged into Seed.bought; newcomers (Person.arrive) derive from bornAt() — both pure, so all clients agree.
+
+- Building night lighting uses aligned, light-only sprite layers with the daylight sprite dimensions and anchors; schedules and flicker live in night.ts so windows stay aligned at every zoom without replacing daytime art.

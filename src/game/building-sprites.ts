@@ -39,6 +39,41 @@ import library from "@/assets/sprites/library.webp";
 import dairy from "@/assets/sprites/dairy.webp";
 import type { Kind } from "./world";
 
+import bakeryLight from "@/assets/sprites/night/bakery.webp";
+import barnLight from "@/assets/sprites/night/barn.webp";
+import chapelLight from "@/assets/sprites/night/chapel.webp";
+import churchLight from "@/assets/sprites/night/church.webp";
+import cottageLight from "@/assets/sprites/night/cottage.webp";
+import dairyLight from "@/assets/sprites/night/dairy.webp";
+import factoryLight from "@/assets/sprites/night/factory.webp";
+import farmhouseLight from "@/assets/sprites/night/farmhouse.webp";
+import fisheryLight from "@/assets/sprites/night/fishery.webp";
+import granaryLight from "@/assets/sprites/night/granary.webp";
+import guildhallLight from "@/assets/sprites/night/guildhall.webp";
+import harborLight from "@/assets/sprites/night/harbor.webp";
+import hutLight from "@/assets/sprites/night/hut.webp";
+import infirmaryLight from "@/assets/sprites/night/infirmary.webp";
+import innLight from "@/assets/sprites/night/inn.webp";
+import libraryLight from "@/assets/sprites/night/library.webp";
+import manufactoryLight from "@/assets/sprites/night/manufactory.webp";
+import markethallLight from "@/assets/sprites/night/markethall.webp";
+import millLight from "@/assets/sprites/night/mill.webp";
+import sawmillLight from "@/assets/sprites/night/sawmill.webp";
+import schoolLight from "@/assets/sprites/night/school.webp";
+import smithyLight from "@/assets/sprites/night/smithy.webp";
+import stationLight from "@/assets/sprites/night/station.webp";
+import steamworksLight from "@/assets/sprites/night/steamworks.webp";
+import suburbLight from "@/assets/sprites/night/suburb.webp";
+import townhallLight from "@/assets/sprites/night/townhall.webp";
+import townhouseLight from "@/assets/sprites/night/townhouse.webp";
+import warehouseLight from "@/assets/sprites/night/warehouse.webp";
+import watermillLight from "@/assets/sprites/night/watermill.webp";
+import workshopLight from "@/assets/sprites/night/workshop.webp";
+
+const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, townhouse: townhouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
+const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
+export const hasNightSprite = (kind: Kind) => Boolean(nightUrls[kind]);
+
 type Sprite = { url: string; crop: [number, number, number, number]; width: number; base: number; image?: HTMLImageElement };
 // Alpha bounds remove unequal transparent margins. Width is in world pixels, not screen pixels.
 const sprites: Partial<Record<Kind, Sprite>> = {
@@ -115,9 +150,25 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   return true;
 }
 
+/** The light-only layer uses exactly the daylight sprite's framing and scale. */
+export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, intensity: number) {
+  const image = nightImages[kind], box = spriteBox(kind, variant);
+  if (!image?.complete || !image.naturalWidth || !box) return;
+  c.save();
+  c.globalAlpha *= intensity;
+  c.imageSmoothingEnabled = true;
+  c.imageSmoothingQuality = "high";
+  c.drawImage(image, x - box.w / 2, y + box.base - box.h, box.w, box.h);
+  c.restore();
+}
+
 /** Starts loading every building image right away so towns appear complete. */
 export function preloadBuildingSprites() {
   if (typeof Image === "undefined") return;
+  for (const [kind, url] of Object.entries(nightUrls)) {
+    const k = kind as Kind;
+    if (!nightImages[k]) { const im = new Image(); im.decoding = "async"; im.src = url; nightImages[k] = im; }
+  }
   for (const s of Object.values(sprites)) if (s && !s.image) { s.image = new Image(); s.image.decoding = "async"; s.image.src = s.url; }
 }
 if (typeof window !== "undefined") preloadBuildingSprites();
