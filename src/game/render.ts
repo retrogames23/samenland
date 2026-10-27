@@ -242,6 +242,8 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
   }
 }
 
+const RANK: Record<string, number> = { deep: 0, water: 1, sand: 2, fertile: 3, meadow: 3, grass: 4, hill: 5, forest: 6, mountain: 7 };
+const NB8: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
 const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge"]);
 
 /** Whole map fits ~1000px wide at this zoom. */
@@ -483,38 +485,50 @@ export function draw(
       const [cx, cy] = iso(x, y);
       const tr = terrain(x, y);
       const [hh, ss, ll] = TERRAIN[tr]!;
-      const n = hash(x, y, 11) - 0.5;
-      c.beginPath();
-      c.moveTo(cx, cy - TH / 2 - 0.6); c.lineTo(cx + TW / 2 + 0.6, cy); c.lineTo(cx, cy + TH / 2 + 0.6); c.lineTo(cx - TW / 2 - 0.6, cy); c.closePath();
       const isDeep = tr === "deep";
       const tp = texture(c, TEX_OF[tr]!, isWater(tr) ? (t / 400) % 816 : 0);
-      c.fillStyle = tp ?? hsl(hh + n * 6, ss, ll + n * 3); c.fill();
-      if (tp) {
-        const tint = isDeep ? "rgba(10,40,70,0.45)" : tr === "hill" ? "rgba(90,80,40,0.18)" : n > 0 ? `rgba(255,240,200,${n * 0.12})` : `rgba(20,30,10,${-n * 0.18})`;
-        c.fillStyle = tint; c.fill();
+      const fill = tp ?? hsl(hh, ss, ll);
+      c.beginPath();
+      c.moveTo(cx, cy - TH / 2 - 0.6); c.lineTo(cx + TW / 2 + 0.6, cy); c.lineTo(cx, cy + TH / 2 + 0.6); c.lineTo(cx - TW / 2 - 0.6, cy); c.closePath();
+      c.fillStyle = fill; c.fill();
+      if (isDeep && tp) { c.fillStyle = "rgba(10,40,70,0.45)"; c.fill(); }
+      // organic edges: higher-ranked ground spills over lower neighbours as an irregular blob
+      const pr = RANK[tr]!;
+      let lower = false;
+      for (const [dx, dy] of NB8) if (RANK[terrain(x + dx, y + dy)]! < pr) { lower = true; break; }
+      if (lower) {
+        c.beginPath();
+        const k = 9;
+        for (let i = 0; i <= k; i++) {
+          const a = (i / k) * Math.PI * 2;
+          const r = 0.62 + (hash(x * 3 + i, y * 5 - i, 61) - 0.5) * 0.28;
+          const px = cx + Math.cos(a) * r * TW * 0.78, py = cy + Math.sin(a) * r * TH * 0.78;
+          if (i === 0) c.moveTo(px, py); else {
+            const am = ((i - 0.5) / k) * Math.PI * 2;
+            c.quadraticCurveTo(cx + Math.cos(am) * r * TW * 0.84, cy + Math.sin(am) * r * TH * 0.84, px, py);
+          }
+        }
+        c.closePath();
+        c.fillStyle = fill; c.fill();
+        if (isWater(terrain(x + 1, y)) || isWater(terrain(x, y + 1)) || isWater(terrain(x - 1, y)) || isWater(terrain(x, y - 1))) {
+          if (!isWater(tr) && detail) {
+            const f = 0.25 + 0.2 * Math.sin(t / 900 + x * 0.7 + y * 0.5);
+            c.strokeStyle = `rgba(250,250,240,${f})`; c.lineWidth = 0.8; c.stroke();
+          }
+        }
       }
       const st = structureAt(x, y, seeds, now);
       tiles.push({ x, y, cx, cy, st });
       if (!detail) {
+        c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
         if (st && !FLAT.has(st.kind)) { /* drawn in pass 2 */ }
         else if (st?.kind === "field") { c.fillStyle = hsl(st.v > 0.5 ? 44 : 78, 45, 66, 0.9); c.fill(); }
         else if (st && PATHLIKE.has(st.kind)) { c.fillStyle = "#cdb084"; c.fill(); }
         continue;
       }
-      // watercolor blotch
-      // coast / river ink
-      if (!isWater(tr)) {
-        const pp = P(cx, cy);
-        const edges: [number, number, Pt, Pt][] = [[1, 0, pp(0.5, -0.5), pp(0.5, 0.5)], [0, 1, pp(0.5, 0.5), pp(-0.5, 0.5)], [-1, 0, pp(-0.5, 0.5), pp(-0.5, -0.5)], [0, -1, pp(-0.5, -0.5), pp(0.5, -0.5)]];
-        for (const [dx, dy, a, b] of edges) if (isWater(terrain(x + dx, y + dy))) {
-          const f = 0.35 + 0.25 * Math.sin(t / 900 + x * 0.7 + y * 0.5);
-          c.lineCap = "round";
-          c.strokeStyle = "rgba(60,45,25,0.35)"; c.lineWidth = 1.4; c.beginPath(); c.moveTo(a[0], a[1] + 0.6); c.lineTo(b[0], b[1] + 0.6); c.stroke();
-          c.strokeStyle = `rgba(250,250,240,${f})`; c.lineWidth = 0.9; c.beginPath(); c.moveTo(a[0], a[1] + 1.4); c.lineTo(b[0], b[1] + 1.4); c.stroke();
-        }
-      } else if (hash(x, y, 15) > 0.82) {
+      if (isWater(tr) && hash(x, y, 15) > 0.82) {
         const ph = Math.sin(t / 1500 + x + y) * 1.2;
-        c.strokeStyle = "rgba(255,255,255,0.55)"; c.lineWidth = 0.5;
+        c.strokeStyle = "rgba(255,255,255,0.35)"; c.lineWidth = 0.5;
         c.beginPath(); c.moveTo(cx - 4 + ph, cy); c.quadraticCurveTo(cx - 2 + ph, cy - 1.5, cx + ph, cy); c.quadraticCurveTo(cx + 2 + ph, cy + 1.5, cx + 4 + ph, cy); c.stroke();
       }
       if (tr === "hill" || tr === "mountain") {
@@ -546,15 +560,14 @@ export function draw(
         }
         if (!any) { c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, 3.5, 2, 0, 0, 7); c.fill(); }
       } else if (st.kind === "square" || st.kind === "market" || st.kind === "well") {
-        c.beginPath(); c.moveTo(cx, cy - TH / 2 - 0.4); c.lineTo(cx + TW / 2 + 0.4, cy); c.lineTo(cx, cy + TH / 2 + 0.4); c.lineTo(cx - TW / 2 - 0.4, cy); c.closePath();
+        c.beginPath(); c.ellipse(cx, cy, TW * (0.56 + hash(x, y, 71) * 0.1), TH * (0.56 + hash(x, y, 72) * 0.1), 0, 0, 7);
         c.fillStyle = texture(c, "cobble") ?? "#d3cab6"; c.fill();
       } else if (st.kind === "field") {
         const ripe = st.v > 0.5;
         const q = [pp(-0.47, -0.47), pp(0.47, -0.47), pp(0.47, 0.47), pp(-0.47, 0.47)];
         c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
         c.fillStyle = texture(c, ripe ? "wheat" : "crops") ?? hsl(ripe ? 44 : 80, 50, 60); c.fill();
-        c.strokeStyle = "rgba(70,50,25,0.35)"; c.lineWidth = 0.6; c.stroke();
-      } else if (st.kind === "garden") {
+              } else if (st.kind === "garden") {
         const q = [pp(-0.34, -0.34), pp(0.34, -0.34), pp(0.34, 0.34), pp(-0.34, 0.34)];
         c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
         c.fillStyle = texture(c, "crops") ?? "#a98663"; c.fill();
@@ -609,17 +622,6 @@ export function draw(
     if (fk) {
       fk.sort((a, b) => a.x + a.y - b.x - b.y);
       for (const q of fk) { const [px, py] = iso(q.x, q.y); drawPerson(c, px, py, q, t, simpleFolk); lastPeople.push({ x: px, y: py, q }); }
-    }
-    const pl = plantings.get(`${x},${y}`);
-    if (pl) {
-      const sd = x * 77 + y;
-      if (pl.kind === "tree") tree(c, cx, cy + 2, 1.15, t, hash(x, y, 30), sd);
-      if (pl.kind === "flower") for (let i = 0; i < 7; i++) blob(c, cx - 7 + hash(x, y, 40 + i) * 14, cy - 3 + hash(x, y, 50 + i) * 6, 1, ["#e9a3b4", "#f2e6a0", "#f7f2e6", "#b9a3e0"][i % 4]!, sd + i, false);
-      if (pl.kind === "lantern") {
-        line(c, [cx, cy], [cx, cy - 11], sd, 0.8);
-        shape(c, [[cx - 1.4, cy - 11], [cx + 1.4, cy - 11], [cx + 1.4, cy - 14], [cx - 1.4, cy - 14]], sd + 1, "#f2c66b");
-        L.push({ x: cx, y: cy - 12.5, r: 14 });
-      }
     }
     if (hover && hover[0] === x && hover[1] === y) {
       c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
