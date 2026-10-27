@@ -102,7 +102,9 @@ export function townStats(s: Seed, now: number) {
 }
 
 export function canPlant(x: number, y: number, seeds: Seed[]): string | null {
-  if (!buildable(terrain(x, y))) return "Hier ist kein festes Land.";
+  const tt = terrain(x, y);
+  if (tt === "hill") return "Auf den Hügeln wird nicht gebaut.";
+  if (!buildable(tt)) return "Hier ist kein festes Land.";
   for (const s of seeds) if (Math.hypot(x - s.x, y - s.y) < 24) return `Zu nah an ${s.name}.`;
   return null;
 }
