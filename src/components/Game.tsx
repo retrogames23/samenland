@@ -31,7 +31,7 @@ import {
   type Seed,
 } from "@/game/world";
 import { DICT, plantError, type Lang } from "@/game/i18n";
-import { ITEMS, attributes, coins, popAt, treasury, type Item, type Purchase } from "@/game/economy";
+import { ITEMS, attributes, popAt, treasury, type Item, type Purchase } from "@/game/economy";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -346,7 +346,6 @@ export function Game() {
 
   const now = Date.now();
   const cash = my ? treasury(my, purchases, now) : 0;
-  const co = coins(Math.max(0, cash));
   const at = my ? attributes(my, seeds, purchases, now) : null;
   const pop = my ? popAt(ageHours(my, now)) : 0;
   const sw = seasonAt(now);
@@ -390,9 +389,6 @@ export function Game() {
     ] : [{ k: "plant" as Tab, icon: Sprout, label: t.hud.plant }]),
     { k: "towns", icon: MapIcon, label: t.hud.towns },
   ];
-  const Coin = ({ n, c, l }: { n: number; c: string; l: string }) => (
-    <span className="flex items-center gap-1" title={l}><span className={`h-3 w-3 rounded-full border border-wood ${c}`} />{n}</span>
-  );
   const Head = ({ children }: { children: React.ReactNode }) => <div className="font-display text-2xl leading-none text-wood">{children}</div>;
 
   const drawer = tab && (
@@ -404,12 +400,11 @@ export function Game() {
       {tab === "build" && my && at && (
         <div className="space-y-2">
           {(Object.keys(ITEMS) as Item[]).map((it) => {
-            const p = coins(ITEMS[it]);
             return (
               <div key={it} className="rounded-md border border-border bg-secondary/60 p-2">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="font-semibold">{t.items[it]![0]}</span>
-                  <span className="text-xs text-muted-foreground">{p.silver > 0 && `${p.silver} ${t.coin.silver}`}{p.copper > 0 && ` ${p.copper} ${t.coin.copper}`}</span>
+                  <span className="text-xs text-muted-foreground">{t.taler(ITEMS[it])}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">{t.items[it]![1]}</div>
                 <div className="mt-1.5">
@@ -581,9 +576,10 @@ export function Game() {
           {my && at ? (
             <>
               <div className="flex items-center gap-2 text-sm font-semibold tabular-nums">
-                {co.gold > 0 && <Coin n={co.gold} c="bg-brass" l={t.coin.gold} />}
-                <Coin n={co.silver} c="bg-muted" l={t.coin.silver} />
-                <Coin n={co.copper} c="bg-chart-1" l={t.coin.copper} />
+                <span className="flex items-center gap-1.5" title={t.taler(Math.max(0, cash))}>
+                  <span aria-hidden className="grid h-5 w-5 place-items-center rounded-full border border-wood bg-[radial-gradient(circle_at_35%_30%,var(--color-coin-shine),var(--color-brass)_55%,var(--color-coin-edge))] text-[10px] font-bold leading-none text-wood shadow-[inset_0_-1px_0_var(--color-coin-edge)]">T</span>
+                  {t.taler(Math.max(0, cash))}
+                </span>
                 <span className="hidden text-xs font-normal text-primary sm:inline">{t.perDay(pop)}</span>
               </div>
               <div className="hidden text-sm sm:block">{t.people(pop)}</div>

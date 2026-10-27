@@ -73,8 +73,8 @@ const de = {
   signTitle: "Wegweiser",
   noNeighbours: "Noch keine Handelswege zu Nachbardörfern.",
   treasury: "Dorfkasse",
-  taxInfo: (n: number) => `${n} Bewohner zahlen je 1 Kupfer am Tag`,
-  coin: { gold: "G", silver: "S", copper: "K" },
+  taxInfo: (n: number) => `${n} Bewohner zahlen je 1 Taler am Tag`,
+  taler: (n: number) => `${n.toLocaleString("de-DE")} Taler`,
   attrs: { food: "Nahrung", health: "Gesundheit", wealth: "Wohlstand" },
   shop: "Bauen & Anwerben",
   items: {
@@ -193,8 +193,8 @@ const en: typeof de = {
   signTitle: "Signpost",
   noNeighbours: "No trade roads to neighbouring villages yet.",
   treasury: "Village treasury",
-  taxInfo: (n) => `${n} residents pay 1 copper each per day`,
-  coin: { gold: "G", silver: "S", copper: "C" },
+  taxInfo: (n) => `${n} residents pay 1 thaler each per day`,
+  taler: (n) => `${n.toLocaleString("en-US")} thaler`,
   attrs: { food: "Food", health: "Health", wealth: "Prosperity" },
   shop: "Build & hire",
   items: {

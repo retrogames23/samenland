@@ -57,6 +57,8 @@
   --color-wood-foreground: var(--wood-foreground);
   --color-wood-light: var(--wood-light);
   --color-brass: var(--brass);
+  --color-coin-shine: var(--coin-shine);
+  --color-coin-edge: var(--coin-edge);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -92,6 +94,8 @@
   --wood-light: oklch(0.46 0.06 55);
   --wood-foreground: oklch(0.95 0.03 85);
   --brass: oklch(0.76 0.12 80);
+  --coin-shine: oklch(0.95 0.08 95);
+  --coin-edge: oklch(0.55 0.11 65);
   --shadow-panel: 0 3px 0 0 oklch(0.25 0.04 45 / 0.6), 0 10px 24px -8px oklch(0.2 0.03 45 / 0.5);
   --shadow-cozy: 4px 4px 0 0 oklch(0.35 0.05 50 / 0.35);
   --chart-1: oklch(0.646 0.222 41.116);

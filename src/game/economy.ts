@@ -1,15 +1,15 @@
 import { radiusOf, stageOf, effAge, links, waterNearby, type Seed } from "./world";
 
-/** Starting treasury and fixed prices (copper). Prices mirror the database purchase guard. */
-export const START_COPPER = 100;
-export const ITEMS = { fisher: 300, granary: 500, healer: 800, school: 1500 } as const;
+/** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
+export const START_TALER = 150;
+export const ITEMS = { fisher: 120, granary: 300, healer: 900, school: 3000 } as const;
 export type Item = keyof typeof ITEMS;
 export type Purchase = { id: string; seed_id: string; item: string; cost: number; created_at: string };
 
 /** Residents at a given real age (hours); same formula as the database tax function. */
 export const popAt = (h: number) => Math.floor(3 + 0.9 * Math.pow(radiusOf(Math.max(0, h)), 1.6));
 
-/** Taxes: 1 copper per resident for every completed day since founding. */
+/** Taxes: 1 Taler per resident for every completed day since founding. */
 export function taxEarned(s: Seed, now: number) {
   const days = Math.floor((now - Date.parse(s.created_at)) / 86400000);
   let t = 0;
@@ -19,11 +19,9 @@ export function taxEarned(s: Seed, now: number) {
 
 export function treasury(s: Seed, purchases: Purchase[], now: number) {
   const spent = purchases.filter((p) => p.seed_id === s.id).reduce((a, p) => a + p.cost, 0);
-  return START_COPPER + taxEarned(s, now) - spent;
+  return START_TALER + taxEarned(s, now) - spent;
 }
 
-/** Split copper into gold / silver / copper (100:1 each). */
-export const coins = (c: number) => ({ gold: Math.floor(c / 10000), silver: Math.floor((c % 10000) / 100), copper: c % 100 });
 
 const clamp = (v: number) => Math.round(Math.max(0, Math.min(100, v)));
 
