@@ -306,7 +306,7 @@ export function acreOf(x: number, y: number, s: Seed) {
 }
 
 function pathAt(x: number, y: number, s: Seed, age: number, r: number): boolean {
-  const dx = x - s.x, dy = y - s.y, d = Math.hypot(dx, dy);
+  const dx = x - s.x, dy = y - s.y, d = townDist(x, y, s);
   if (d < 0.8 || d > r + 0.3) return false;
   if (!buildable(terrain(x, y))) return false;
   const sn = seedNum(s);
@@ -343,11 +343,11 @@ const keptCache = new Map<string, Set<number>>();
 function keptPaths(s: Seed, age: number, r: number): Set<number> {
   const ck = `${s.id}|${Math.floor(age * 60)}`;
   const hit = keptCache.get(ck); if (hit) return hit;
-  const R = Math.ceil(r + 1), cx = Math.round(s.x), cy = Math.round(s.y);
+  const R = Math.ceil(reachOf(s, r) + 1), cx = Math.round(s.x), cy = Math.round(s.y);
   const paths = new Set<number>(), anchor = new Set<number>();
   for (let y = cy - R; y <= cy + R; y++) for (let x = cx - R; x <= cx + R; x++) {
     if (x < 0 || y < 0 || x >= MAP || y >= MAP || !buildable(terrain(x, y))) continue;
-    const d = Math.hypot(x - s.x, y - s.y);
+    const d = townDist(x, y, s);
     if (d > r + 0.5) continue;
     if (pathAt(x, y, s, age, r)) { paths.add(y * MAP + x); continue; }
     const k = forSeed(x, y, s, age, r, d, true);
@@ -509,7 +509,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
   if (buildable(terrain(x, y))) {
     let bestD = Infinity;
     for (const s of seeds) {
-      const d = Math.hypot(x - s.x, y - s.y);
+      const d = townDist(x, y, s);
       const age = effAge(s, seeds, now);
       const r = radiusOf(age);
       if (d > r + 0.5 || d >= bestD) continue;
@@ -529,10 +529,10 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
 
 export function townStats(s: Seed, seeds: Seed[], now: number) {
   const age = effAge(s, seeds, now);
-  const r = radiusOf(age);
+  const r = radiusOf(age), R = reachOf(s, r);
   let buildings = 0;
-  for (let y = Math.floor(s.y - r); y <= s.y + r; y++)
-    for (let x = Math.floor(s.x - r); x <= s.x + r; x++) {
+  for (let y = Math.floor(s.y - R); y <= s.y + R; y++)
+    for (let x = Math.floor(s.x - R); x <= s.x + R; x++) {
       const st = structureAt(x, y, seeds, now);
       if (st && st.seed.id === s.id && st.build === undefined && !FLAT.has(st.kind) && st.kind !== "well" && st.kind !== "hay") buildings++;
     }
@@ -922,7 +922,7 @@ export function signTile(seeds: Seed[], fromId: string, toId: string): [number, 
  */
 export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, seeds: Seed[], now: number): string | null {
   const kind = SPECIAL_KIND[item]; if (!kind) return "ground";
-  const d = Math.hypot(x - s.x, y - s.y);
+  const d = townDist(x, y, s);
   if (d > Math.max(4, radiusOf(effAge(s, seeds, now)) + 2) || d < 1) return "far";
   const tt = terrain(x, y);
   if (!buildable(tt) || tt === "forest") return "ground";
