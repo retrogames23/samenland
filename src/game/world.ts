@@ -170,7 +170,41 @@ function weighted<T>(h: number, opts: [T, number][]): T {
   return opts[opts.length - 1]![0];
 }
 
-function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: number): Kind | null {
+const NOT_ANCHOR: ReadonlySet<Kind> = new Set(["path", "street", "avenue", "field", "pasture", "garden", "hay", "fence"]);
+const keptCache = new Map<string, Set<number>>();
+/**
+ * Village paths that actually lead somewhere: raw spokes/rings are pruned from their loose ends
+ * until every remaining end touches a building or the village square.
+ */
+function keptPaths(s: Seed, age: number, r: number): Set<number> {
+  const ck = `${s.id}|${Math.floor(age * 60)}`;
+  const hit = keptCache.get(ck); if (hit) return hit;
+  const R = Math.ceil(r + 1), cx = Math.round(s.x), cy = Math.round(s.y);
+  const paths = new Set<number>(), anchor = new Set<number>();
+  for (let y = cy - R; y <= cy + R; y++) for (let x = cx - R; x <= cx + R; x++) {
+    if (x < 0 || y < 0 || x >= MAP || y >= MAP || !buildable(terrain(x, y))) continue;
+    const d = Math.hypot(x - s.x, y - s.y);
+    if (d > r + 0.5) continue;
+    if (pathAt(x, y, s, age, r)) { paths.add(y * MAP + x); continue; }
+    const k = forSeed(x, y, s, age, r, d, true);
+    if (k && !NOT_ANCHOR.has(k)) anchor.add(y * MAP + x);
+  }
+  const nbrs = (k: number) => { const x = k % MAP, y = (k / MAP) | 0, o: number[] = []; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (i || j) o.push((y + j) * MAP + x + i); return o; };
+  const anchored = (k: number) => nbrs(k).some((n) => anchor.has(n));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const k of [...paths]) {
+      if (anchored(k)) continue;
+      if (nbrs(k).filter((n) => paths.has(n)).length <= 1) { paths.delete(k); changed = true; }
+    }
+  }
+  if (keptCache.size > 200) keptCache.clear();
+  keptCache.set(ck, paths);
+  return paths;
+}
+
+function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: number, raw = false): Kind | null {
   const dx = x - s.x, dy = y - s.y, stage = stageOf(age);
   if (dx === 0 && dy === 0) return age < 0.15 ? "campfire" : "well";
   const core = CORE[`${dx},${dy}`];
@@ -188,7 +222,10 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
     return l.kind === "watermill" && !waterNearby(x,y) ? "mill" : l.kind;
   }
   if (stage >= 3 && d > 3 && d < r * 0.8 && waterNearby(x,y) && hash(x,y,89) > 0.985) return "harbor";
-  if (pathAt(x,y,s,age,r)) return stage >= 4 && d > r * 0.55 ? "avenue" : stage >= 3 && d < r * 0.6 ? "street" : "path";
+  if (pathAt(x,y,s,age,r)) {
+    if (!raw && !keptPaths(s, age, r).has(y * MAP + x)) return null;
+    return stage >= 4 && d > r * 0.55 ? "avenue" : stage >= 3 && d < r * 0.6 ? "street" : "path";
+  }
   if (stage >= 2 && d < 1.6) return "square";
   if (stage === 0) return null;
   const birth = tileBirth(d) * (0.75 + 0.5 * hash(x,y,3));
