@@ -590,11 +590,23 @@ export function Game() {
     </div>
   );
 
+  const dueKey = decision.due.join(",");
+  useEffect(() => {
+    // close a popup whose decision is no longer due (e.g. answered on another device)
+    if (roadOpen && !decision.due.includes("road")) setRoadOpen(false);
+    if (charterOpen && !decision.due.includes("charter")) setCharterOpen(false);
+    if (encOpen && !decision.due.includes("encounter")) setEncOpen(false);
+  }, [dueKey]);
   useEffect(() => {
     if (anyOpen || !decision.open) return;
-    if (decision.open === "road") { setRoadPick(null); setRoadOpen(true); }
-    else if (decision.open === "charter") { setCharterPick(null); setCharterOpen(true); }
-    else setEncOpen(true);
+    const k = decision.open;
+    // let all village records arrive before asking, so nothing pops up that is already settled
+    const id = setTimeout(() => {
+      if (k === "road") { setRoadPick(null); setRoadOpen(true); }
+      else if (k === "charter") { setCharterPick(null); setCharterOpen(true); }
+      else setEncOpen(true);
+    }, 2500);
+    return () => clearTimeout(id);
   }, [decision.open, anyOpen]);
 
   return (
