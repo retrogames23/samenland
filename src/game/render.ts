@@ -595,6 +595,63 @@ function drawWanderer(c: C, x: number, y: number, dir: number, t: number, sd: nu
   c.restore();
 }
 
+/**
+ * Straight timber bridge from bank A to bank B: deck rests on both abutments and rises
+ * in a gentle arch, carried by pile pairs (trestles) standing on the riverbed under the deck.
+ */
+function drawBridgeSpan(c: C, A: Pt, B: Pt, water: [number, number][], sd: number) {
+  const dx = B[0] - A[0], dy = B[1] - A[1], len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len;
+  // deck half-width, perpendicular in iso ground space (flatten y)
+  let nx = -uy, ny = ux * 0.5; const nl = Math.hypot(nx, ny) || 1; nx = nx / nl * 3.6; ny = ny / nl * 3.6;
+  const rise = Math.min(4, 1.2 + len * 0.025);
+  const H = (f: number) => 0.6 + rise * Math.sin(Math.PI * f); // height above ground
+  const at = (f: number, s: number): Pt => [A[0] + dx * f + nx * s, A[1] + dy * f + ny * s - H(f)];
+  const ground = (f: number, s: number): Pt => [A[0] + dx * f + nx * s, A[1] + dy * f + ny * s];
+  const poly = (pts: Pt[], fill: string | CanvasGradient) => { c.beginPath(); pts.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath(); c.fillStyle = fill; c.fill(); };
+  const S = 24, fs = Array.from({ length: S + 1 }, (_, i) => i / S);
+  c.save(); c.lineCap = "round";
+  // shadow on the water, offset with the light
+  poly([...fs.map((f) => { const g = ground(f, 1.2); return [g[0] + 2, g[1] + 2.5] as Pt; }), ...fs.slice().reverse().map((f) => { const g = ground(f, -1.2); return [g[0] + 2, g[1] + 2.5] as Pt; })], "rgba(8,22,22,0.3)");
+  // stone abutments at both banks
+  for (const f of [0, 1]) {
+    const g = ground(f, 0);
+    c.fillStyle = "#7d766a"; c.beginPath(); c.ellipse(g[0], g[1] + 0.4, 4.8, 2.2, 0, 0, 7); c.fill();
+    c.fillStyle = "rgba(40,36,30,0.35)"; c.beginPath(); c.ellipse(g[0], g[1] + 1, 4.8, 1.6, 0, 0, Math.PI); c.fill();
+  }
+  // trestles: pile pairs standing in the water, from riverbed up to the deck underside
+  const piles = Math.max(1, Math.round(len / 22));
+  for (let k = 1; k <= piles; k++) {
+    const f = k / (piles + 1);
+    for (const s of [-0.85, 0.85]) {
+      const g = ground(f, s), top = at(f, s);
+      c.fillStyle = "#33251a"; c.fillRect(g[0] - 0.6, top[1], 1.2, g[1] - top[1] + 1.8);
+      c.fillStyle = "rgba(200,215,205,0.2)"; c.beginPath(); c.ellipse(g[0], g[1] + 1.8, 1.4, 0.4, 0, 0, 7); c.fill();
+    }
+    // cross brace between the pair
+    const a = at(f, -0.85), b = ground(f, 0.85);
+    c.strokeStyle = "#3b2b1c"; c.lineWidth = 0.4; c.beginPath(); c.moveTo(a[0], a[1] + 0.8); c.lineTo(b[0], b[1]); c.stroke();
+  }
+  // side beam (visible fascia under the deck)
+  poly([...fs.map((f) => at(f, 1)), ...fs.slice().reverse().map((f) => { const p = at(f, 1); return [p[0], p[1] + 1.1] as Pt; })], "#4a3420");
+  // deck planks across the span
+  const planks = Math.max(8, Math.round(len / 2.6));
+  for (let k = 0; k < planks; k++) {
+    const f0 = k / planks, f1 = (k + 0.86) / planks;
+    poly([at(f0, -1), at(f1, -1), at(f1, 1), at(f0, 1)], `hsl(30,30%,${34 + hash(sd, k, 7) * 12}%)`);
+  }
+  // railings with posts
+  for (const s of [-1, 1]) {
+    const posts = Math.max(3, Math.round(len / 10));
+    c.strokeStyle = "#3a2a1a"; c.lineWidth = 0.4;
+    for (let k = 0; k <= posts; k++) { const p = at(k / posts, s); c.beginPath(); c.moveTo(p[0], p[1]); c.lineTo(p[0], p[1] - 2.6); c.stroke(); }
+    c.strokeStyle = "#6e5034"; c.lineWidth = 0.5; c.beginPath();
+    fs.forEach((f, i) => { const p = at(f, s); i ? c.lineTo(p[0], p[1] - 2.4) : c.moveTo(p[0], p[1] - 2.4); }); c.stroke();
+  }
+  void water;
+  c.restore();
+}
+
 function drawRails(c: C, l: ReturnType<typeof links>[number], seeds: Seed[], now: number) {
   c.save(); c.lineCap = "butt";
   for (let i=1;i<l.tiles.length;i++) {
