@@ -100,23 +100,6 @@ function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
   }
 }
 
-let paper: CanvasPattern | null = null;
-function paperPattern(c: C) {
-  if (paper) return paper;
-  const o = document.createElement("canvas"); o.width = o.height = 256;
-  const g = o.getContext("2d")!;
-  const img = g.createImageData(256, 256);
-  for (let i = 0; i < 256 * 256; i++) {
-    const x = i % 256, y = (i / 256) | 0;
-    const n = hash(x, y, 91) * 0.6 + hash(x >> 3, y >> 3, 92) * 0.4;
-    const v = 200 + n * 55;
-    img.data[i * 4] = v; img.data[i * 4 + 1] = v * 0.96; img.data[i * 4 + 2] = v * 0.86; img.data[i * 4 + 3] = 255;
-  }
-  g.putImageData(img, 0, 0);
-  paper = c.createPattern(o, "repeat");
-  return paper;
-}
-
 export type Light = { x: number; y: number; r: number };
 const roofHue = (s: Structure, slate = false) => slate ? [215, 12, 46] : [12 + s.v * 18 + (s.seed.hue % 20) - 10, 48, 50];
 
