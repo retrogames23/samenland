@@ -93,3 +93,17 @@ export function texSample(t: Tex) {
   const r = { d: g.getImageData(0, 0, n, n).data, n }; if (samples.size > 44) samples.clear(); samples.set(key, r); return r;
 }
 export const allTexturesReady = () => (Object.keys(TEX) as Tex[]).every((t) => texSample(t));
+
+import boatUrl from "@/assets/sprites/boat.webp";
+import planksUrl from "@/assets/terrain/planks.jpg";
+if (typeof window !== "undefined") { img(boatUrl); img(planksUrl); }
+/** Rowing-boat sprite (bow pointing upper-left in the image), null while loading. */
+export const boatImage = () => img(boatUrl);
+const plankPats = new WeakMap<C, CanvasPattern>();
+/** Plank pattern; planks run along the image x-axis, 512px ≈ 8 planks. */
+export function planksPattern(c: C): CanvasPattern | null {
+  let p = plankPats.get(c); if (p) return p;
+  const i = img(planksUrl); if (!i) return null;
+  p = c.createPattern(i, "repeat") ?? undefined; if (!p) return null;
+  plankPats.set(c, p); return p;
+}
