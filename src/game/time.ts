@@ -55,3 +55,5 @@ export const labJump = () => jumpH;
 export function clock(real = Date.now()): number {
   return lab ? LAB_EPOCH + (real - LAB_EPOCH) * LAB_SPEED + jumpH * 3.6e6 : real;
 }
+/** Bucket for structure/town caches: one game minute, or ~1 real second on the lab map. */
+export const cacheTick = (now: number) => Math.floor(now / (lab ? 60000 * 16 : 60000));

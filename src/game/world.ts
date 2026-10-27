@@ -1,3 +1,4 @@
+import { cacheTick } from "./time";
 import { boonHours, type Decision } from "./encounters";
 // Pure, deterministic world + town growth logic (shared by every player).
 export const MAP = 1024;
@@ -459,7 +460,7 @@ export function bornAt(x: number, y: number, s: Seed): number {
 let cacheKey = "";
 const scache = new Map<number, Structure | null>();
 export function structureAt(x: number, y: number, seeds: Seed[], now: number): Structure | null {
-  const key = `${Math.floor(now / 60000)}|${seedsKey(seeds)}`;
+  const key = `${cacheTick(now)}|${seedsKey(seeds)}`;
   if (key !== cacheKey) { cacheKey = key; scache.clear(); }
   const ck = y * MAP + x;
   const c = scache.get(ck);
@@ -819,7 +820,7 @@ function twinHours(s: Seed, seeds: Seed[], now: number) {
 /** Gate square, border well, market stalls and the joint building on the twin road's midpoint. Pure. */
 const siteMemo = new WeakMap<Seed[], { key: number; map: Map<number, { kind: Kind; seed: Seed }> }>();
 export function twinSites(seeds: Seed[], now: number) {
-  const key = Math.floor(now / 60000), c = siteMemo.get(seeds);
+  const key = cacheTick(now), c = siteMemo.get(seeds);
   if (c && c.key === key) return c.map;
   const map = new Map<number, { kind: Kind; seed: Seed }>();
   for (const l of links(seeds)) {

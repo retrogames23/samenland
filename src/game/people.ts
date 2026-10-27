@@ -1,3 +1,4 @@
+import { cacheTick } from "./time";
 import { worldHour } from "./time";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
@@ -51,7 +52,7 @@ export type Town = {
 
 const towns = new Map<string, Town>();
 export function townOf(s: Seed, seeds: Seed[], now: number): Town {
-  const key = `${s.id}|${Math.floor(now / 60000)}|${seedsKey(seeds)}`;
+  const key = `${s.id}|${cacheTick(now)}|${seedsKey(seeds)}`;
   const hit = towns.get(key);
   if (hit) return hit;
   for (const k of towns.keys()) if (k.startsWith(s.id + "|")) towns.delete(k);
