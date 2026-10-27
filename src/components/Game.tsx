@@ -28,6 +28,7 @@ import {
   type Seed,
 } from "@/game/world";
 import { DICT, plantError, type Lang } from "@/game/i18n";
+import { ITEMS, attributes, coins, popAt, treasury, type Item, type Purchase } from "@/game/economy";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,7 @@ export function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rawSeeds, setSeeds] = useState<Seed[]>([]);
   const [blessings, setBlessings] = useState<{ id: string; seed_id: string; created_at: string }[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [signs, setSigns] = useState<Signpost[]>([]);
   const [signDraft, setSignDraft] = useState<Record<string, string>>({});
   // blessing timestamps travel with the seed, so growth stays a pure function of shared rows
@@ -119,13 +121,15 @@ export function Game() {
         setUserId(session?.user.id ?? null);
     });
     (async () => {
-      const [a, b, bl, sg] = await Promise.all([
+      const [a, b, bl, sg, pu] = await Promise.all([
         supabase.from("seeds").select("*").order("created_at"),
         supabase.from("plantings").select("*"),
         supabase.from("blessings").select("id, seed_id, created_at"),
         supabase.from("signposts").select("id, seed_id, target_id, user_id, message"),
+        supabase.from("purchases").select("id, seed_id, item, cost, created_at"),
       ]);
       setBlessings(bl.data ?? []);
+      setPurchases(pu.data ?? []);
       setSigns((sg.data ?? []) as Signpost[]);
       const ss = (a.data ?? []) as Seed[];
       setSeeds(ss);
@@ -145,6 +149,10 @@ export function Game() {
           s.some((x) => x.id === (p.new as Planting).id) ? s : [...s, p.new as Planting],
         ),
       )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "purchases" }, (p) => {
+        const n = p.new as Purchase;
+        setPurchases((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+      })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "blessings" }, (p) => {
         const n = p.new as { id: string; seed_id: string; created_at: string };
         setBlessings((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
@@ -481,9 +489,47 @@ export function Game() {
                       setSigns((s) => [...s.filter((x) => x.id !== data.id), data as Signpost]);
                       setMsg(t.signSaved);
                     };
+                    const cash = treasury(my, purchases, now);
+                    const co = coins(Math.max(0, cash));
+                    const at = attributes(my, seeds, purchases, now);
+                    const buy = async (item: Item) => {
+                      const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item }).select("id, seed_id, item, cost, created_at").single();
+                      if (error || !data) return setMsg(t.poor);
+                      setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
+                      tap();
+                      setMsg(t.bought(t.items[item]![0]));
+                    };
                     return (
                       <div className="mt-3 space-y-2 border-t border-border pt-2">
-                        <div className="text-xs font-semibold">{t.ritual}</div>
+                        <div className="text-xs font-semibold">{t.treasury}</div>
+                        <div className="text-sm">
+                          {co.gold > 0 && <>{co.gold} {t.coin.gold} · </>}{co.silver > 0 && <>{co.silver} {t.coin.silver} · </>}{co.copper} {t.coin.copper}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{t.taxInfo(popAt(ageHours(my, now)))}</div>
+                        <div className="space-y-1">
+                          {(["food", "health", "wealth"] as const).map((k) => (
+                            <div key={k} className="flex items-center gap-2 text-xs">
+                              <span className="w-20">{t.attrs[k]}</span>
+                              <div className="h-1.5 flex-1 rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${at[k]}%` }} /></div>
+                              <span className="w-6 text-right">{at[k]}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="pt-1 text-xs font-semibold">{t.shop}</div>
+                        {(Object.keys(ITEMS) as Item[]).map((it) => {
+                          const p = coins(ITEMS[it]);
+                          return (
+                            <div key={it} className="flex items-center gap-2 text-xs">
+                              <div className="flex-1"><div>{t.items[it]![0]}</div><div className="text-muted-foreground">{t.items[it]![1]}</div></div>
+                              {at.has(it) ? <span className="text-primary">{t.owned}</span> : (
+                                <Button size="sm" variant="secondary" disabled={cash < ITEMS[it]} onClick={() => buy(it)}>
+                                  {p.silver > 0 && `${p.silver} ${t.coin.silver}`}{p.copper > 0 && ` ${p.copper} ${t.coin.copper}`}
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                        <div className="pt-1 text-xs font-semibold">{t.ritual}</div>
                         {live && <div className="text-xs text-primary">{t.festive(Math.ceil((last + BLESS_MS - now) / 3.6e6))}</div>}
                         {cd > 0 ? (
                           <div className="text-xs text-muted-foreground">{t.blessAgain(Math.ceil(cd / 3.6e6))}</div>
