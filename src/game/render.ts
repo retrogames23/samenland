@@ -94,11 +94,15 @@ function tree(c: C, x: number, y: number, s: number, t: number, v: number, sd: n
   if (drawNature(c, k, x, y, s, sway, hash(sd, 5, 5) > 0.5)) return;
   blob(c, x, y - 7 * s, 4 * s, hsl(100, 30, 40), sd, false);
 }
+/** Soft drifting smoke haze: feathered puffs with no hard edge, fading as they rise. */
 function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
-  for (let i = 0; i < 4; i++) {
-    const ph = (t / (3200 * big) + hash(sd, 1, 1) + i / 4) % 1;
-    c.fillStyle = `rgba(236,232,224,${0.55 * (1 - ph)})`;
-    c.beginPath(); c.arc(x + ph * 6 * big + Math.sin(ph * 6 + sd) * 1.2, y - ph * 16 * big, (1 + ph * 3) * big, 0, Math.PI * 2); c.fill();
+  for (let i = 0; i < 5; i++) {
+    const ph = (t / (3600 * big) + hash(sd, 1, 1) + i / 5) % 1;
+    const px = x + ph * 6 * big + Math.sin(ph * 5 + sd) * 1.2, py = y - ph * 16 * big, r = (1.6 + ph * 4.5) * big;
+    const a = 0.22 * Math.sin(Math.PI * Math.min(1, ph * 1.3));
+    const g = c.createRadialGradient(px, py, 0, px, py, r);
+    g.addColorStop(0, `rgba(214,210,202,${a})`); g.addColorStop(1, "rgba(214,210,202,0)");
+    c.fillStyle = g; c.fillRect(px - r, py - r, r * 2, r * 2);
   }
 }
 
@@ -306,27 +310,15 @@ function smoothRoad(l: { tiles: [number, number][] }): Pt[] {
   smoothCache.set(l, out); return out;
 }
 
-/** Ox pulling a covered cart, oriented along the travel direction (screen-space unit dx,dy). */
-function drawCart(c: C, x: number, y: number, dx: number, dy: number, bob: number, sd: number, cover: string, t: number) {
-  const px = -dy, py = dx; // side vector
-  const P = (f: number, s: number, h = 0): Pt => [x + dx * f + px * s, y + dy * f * 0.5 + py * s * 0.5 - h];
-  const step = Math.sin(t / 160 + sd) * 0.5;
-  // ox: legs, body, head
-  for (const [f, s] of [[5, 1], [5, -1], [8, 1], [8, -1]] as const) line(c, P(f + (s > 0 ? step : -step), s * 0.9), P(f, s * 0.9, 2.2), sd + f + s, 0.55);
-  blob(c, ...P(6.5, 0, 3 + bob * 0.5), 2.2, "#8a6a4c", sd, true);
-  blob(c, ...P(9.3, 0, 3.4 + bob * 0.5), 1.1, "#6f533b", sd + 1, true);
-  line(c, P(4.5, 0, 2.5), P(2.2, 0, 2.2), sd + 2, 0.5); // shaft
-  // wheels
-  c.fillStyle = INK;
-  for (const s of [1.8, -1.8]) { const q = P(-1, s, 1); c.beginPath(); c.ellipse(q[0], q[1], 1.3, 1.3, 0, 0, 7); c.fill(); }
-  // cart bed + canvas cover
-  shape(c, [P(-3.5, 1.8, 1.8), P(2.2, 1.8, 1.8), P(2.2, -1.8, 1.8), P(-3.5, -1.8, 1.8)], sd + 3, "#a07a52");
-  // arched canvas hood over the bed
-  const a = P(-3.3, 0, 2), b = P(2, 0, 2);
-  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, hw = Math.max(1.6, Math.hypot(b[0] - a[0], b[1] - a[1]) / 2);
-  c.beginPath(); c.ellipse(mx, my, hw, 3.4, Math.atan2(b[1] - a[1], b[0] - a[0]), Math.PI, Math.PI * 2); c.closePath();
-  c.fillStyle = cover; c.fill(); c.strokeStyle = INK; c.lineWidth = 0.55; c.stroke();
-  c.globalAlpha = 0.5; line(c, [mx, my], [mx, my - 3.3], sd + 6, 0.4); c.globalAlpha = 1;
+/** Painted ox cart, facing the travel direction (screen-space dx). */
+function drawCart(c: C, x: number, y: number, dx: number, _dy: number, bob: number, _sd: number, _cover: string, _t: number) {
+  const im = cartImage(); if (!im) return;
+  const w = 15, h = (w * im.naturalHeight) / im.naturalWidth;
+  c.fillStyle = "rgba(20,15,10,0.28)"; c.beginPath(); c.ellipse(x, y, 6.5, 1.6, 0, 0, 7); c.fill();
+  c.save(); c.translate(x, y - bob * 0.3); if (dx < 0) c.scale(-1, 1);
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  c.drawImage(im, -w / 2, -h * 0.92, w, h);
+  c.restore();
 }
 
 // ---------------- villagers ----------------
@@ -618,19 +610,13 @@ function drawBoat(c: C, x: number, y: number, flip: boolean, t: number, sd: numb
 
 /** Traveller on the open road, same muted style as villagers. */
 function drawWanderer(c: C, x: number, y: number, dir: number, t: number, sd: number) {
-  const ph = t / 260 + sd, st = Math.sin(ph) * 0.55, bob = Math.abs(Math.cos(ph)) * 0.15;
-  const coat = ["#5d5244", "#4f5a4a", "#6a4e3a", "#4c4f58"][Math.floor(hash(sd, 1, 7) * 4)]!;
-  c.save(); c.translate(x, y); c.scale(dir * 0.9, 0.9);
-  c.fillStyle = "rgba(20,15,10,0.3)"; c.beginPath(); c.ellipse(0, 0, 1.4, 0.45, 0, 0, 7); c.fill();
-  c.strokeStyle = "#3a3026"; c.lineWidth = 0.45; c.lineCap = "round";
-  c.beginPath(); c.moveTo(0, -2.2 - bob); c.lineTo(st, 0); c.moveTo(0, -2.2 - bob); c.lineTo(-st, 0); c.stroke();
-  const g = c.createLinearGradient(-0.8, 0, 0.8, 0); g.addColorStop(0, coat); g.addColorStop(1, "#2e2820");
-  c.beginPath(); c.moveTo(-0.7, -4.4 - bob); c.lineTo(0.7, -4.4 - bob); c.lineTo(0.85, -1.9 - bob); c.lineTo(-0.85, -1.9 - bob); c.closePath();
-  c.fillStyle = g; c.fill(); c.strokeStyle = "rgba(25,20,15,0.6)"; c.lineWidth = 0.18; c.stroke();
-  c.fillStyle = "#7a5a3a"; c.fillRect(-1.2, -4.1 - bob, 0.6, 1.3); // bundle on back
-  c.fillStyle = "#d4ae88"; c.beginPath(); c.arc(0.1, -5 - bob, 0.5, 0, 7); c.fill();
-  c.fillStyle = "#4a3c2c"; c.beginPath(); c.ellipse(0.1, -5.35 - bob, 0.85, 0.22, 0, 0, 7); c.fill(); c.fillRect(-0.3, -5.8 - bob, 0.8, 0.45);
-  c.strokeStyle = "#5c4430"; c.lineWidth = 0.25; c.beginPath(); c.moveTo(0.9, -3.4 - bob); c.lineTo(1.3 + st * 0.3, 0); c.stroke();
+  const im = wandererImage(); if (!im) return;
+  const bob = Math.abs(Math.sin(t / 260 + sd)) * 0.15;
+  const h = 5.4, w = (h * im.naturalWidth) / im.naturalHeight;
+  c.fillStyle = "rgba(20,15,10,0.3)"; c.beginPath(); c.ellipse(x, y, 1.4, 0.45, 0, 0, 7); c.fill();
+  c.save(); c.translate(x, y - bob); c.scale(dir, 1);
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  c.drawImage(im, -w / 2, -h, w, h);
   c.restore();
 }
 
