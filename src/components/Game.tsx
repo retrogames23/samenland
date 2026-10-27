@@ -494,7 +494,7 @@ export function Game() {
               <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { focus(s.x, s.y); setTab(null); }}>
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {t.stages[stageOf(effAge(s, seeds, now))]} · {s.owner} · {t.age(ageHours(s, now))}
+                  {t.character[characterOf(s.x, s.y)]![0]} · {t.stages[stageOf(effAge(s, seeds, now))]} · {s.owner} · {t.age(ageHours(s, now))}
                   {speedOf(s, seeds, now) > 1.005 && <span className="block">{t.tradeBonus(Math.round((speedOf(s, seeds, now) - 1) * 100))}</span>}
                 </span>
               </button>
@@ -594,9 +594,9 @@ export function Game() {
       <div className="pointer-events-none absolute inset-x-2 top-2 z-30 md:inset-x-3 md:top-3">
         <Panel inner="flex items-center gap-3 px-3 py-1.5 md:gap-5">
           <div className="min-w-0 shrink">
-            <div className="truncate font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
+            <div title={my ? t.character[characterOf(my.x, my.y)]![1] : undefined} className="truncate font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
-              {my && myStats ? `${t.stages[stageOf(myStats.age)]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
+              {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]} · ${t.stages[stageOf(myStats.age)]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
           </div>
           {my && at ? (

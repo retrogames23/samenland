@@ -648,3 +648,26 @@ export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, see
   }
   return null;
 }
+
+// ---------------- village character from geography ----------------
+export type Character = "plains" | "mountain" | "coast" | "forest";
+const charCache = new Map<string, Character>();
+/** Dominant landscape within 14 tiles of the seed; pure function of position. */
+export function characterOf(x: number, y: number): Character {
+  const key = `${x}:${y}`;
+  const hit = charCache.get(key); if (hit) return hit;
+  const sc = { plains: 0, mountain: 0, coast: 0, forest: 0 };
+  const R = 14;
+  for (let j = -R; j <= R; j += 2) for (let i = -R; i <= R; i += 2) {
+    if (i * i + j * j > R * R) continue;
+    const t = terrain(x + i, y + j);
+    if (t === "water" || t === "deep") sc.coast += 1.6;
+    else if (t === "hill" || t === "mountain") sc.mountain += resourceAt(x + i, y + j) ? 2.2 : 1.3;
+    else if (t === "forest") sc.forest += 1;
+    else if (t === "fertile") sc.plains += 1.4;
+    else if (t === "grass" || t === "meadow") sc.plains += 0.55;
+  }
+  const c = (Object.keys(sc) as Character[]).reduce((a, b) => (sc[b] > sc[a] ? b : a));
+  charCache.set(key, c);
+  return c;
+}
