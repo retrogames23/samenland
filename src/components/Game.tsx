@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { draw, iso, toTile, MIN_ZOOM, lastPeople, peopleFocus, type Camera } from "@/game/render";
+import { draw, iso, toTile, MIN_ZOOM, lastPeople, peopleFocus, prewarmOverview, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townOf, poseOf, type Person } from "@/game/people";
 import { Maximize2, Minimize2 } from "lucide-react";
