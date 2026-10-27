@@ -188,11 +188,14 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
   let out: Tile[] = [a, b];
   if (inside(a[0], a[1]) && inside(b[0], b[1])) {
     const si = idx(a[0], a[1]), gi = idx(b[0], b[1]);
-    dist[si] = 0; push(0, si);
+    // A*: manhattan distance is admissible (cheapest step costs 1) and keeps the search tiny
+    const hh = (i: number) => Math.abs(t.x0 + (i % W) - b[0]) + Math.abs(t.y0 + Math.floor(i / W) - b[1]);
+    dist[si] = 0; push(hh(si), si);
     while (heap.length) {
-      const [d, i] = pop();
+      const [f, i] = pop();
       if (i === gi) break;
-      if (d > dist[i]!) continue;
+      if (f - hh(i) > dist[i]!) continue;
+      const d = dist[i]!;
       const x = t.x0 + (i % W), y = t.y0 + Math.floor(i / W);
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
         const nx = x + dx, ny = y + dy;
@@ -200,7 +203,7 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
         const c = cost(nx, ny);
         if (c === Infinity) continue;
         const ni = idx(nx, ny), nd = d + c;
-        if (nd < dist[ni]!) { dist[ni] = nd; prev[ni] = i; push(nd, ni); }
+        if (nd < dist[ni]!) { dist[ni] = nd; prev[ni] = i; push(nd + hh(ni), ni); }
       }
     }
     if (prev[gi] !== -1) {
