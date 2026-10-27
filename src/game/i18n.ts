@@ -72,6 +72,21 @@ const de = {
   signFrom: (n: string) => `Wegweiser von ${n}`,
   signTitle: "Wegweiser",
   noNeighbours: "Noch keine Handelswege zu Nachbardörfern.",
+  treasury: "Dorfkasse",
+  taxInfo: (n: number) => `${n} Bewohner zahlen je 1 Kupfer am Tag`,
+  coin: { gold: "G", silver: "S", copper: "K" },
+  attrs: { food: "Nahrung", health: "Gesundheit", wealth: "Wohlstand" },
+  shop: "Bauen & Anwerben",
+  items: {
+    fisher: ["Fischerhütte", "Mehr Nahrung – besonders nah am Wasser"],
+    granary: ["Scheune", "Nahrung hält länger"],
+    healer: ["Heiler(in)", "Bewohner leben gesünder und länger"],
+    school: ["Schule", "Hebt den Wohlstand"],
+  } as Record<string, [string, string]>,
+  buy: "Kaufen",
+  owned: "gebaut",
+  bought: (n: string) => `${n} gehört jetzt zum Dorf.`,
+  poor: "Dafür reicht das Geld noch nicht.",
   age: (h: number) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))} Min.`
@@ -174,6 +189,21 @@ const en: typeof de = {
   signFrom: (n) => `Signpost from ${n}`,
   signTitle: "Signpost",
   noNeighbours: "No trade roads to neighbouring villages yet.",
+  treasury: "Village treasury",
+  taxInfo: (n) => `${n} residents pay 1 copper each per day`,
+  coin: { gold: "G", silver: "S", copper: "C" },
+  attrs: { food: "Food", health: "Health", wealth: "Prosperity" },
+  shop: "Build & hire",
+  items: {
+    fisher: ["Fisher's hut", "More food – especially near water"],
+    granary: ["Granary", "Food keeps longer"],
+    healer: ["Healer", "Villagers live healthier and longer"],
+    school: ["School", "Raises prosperity"],
+  },
+  buy: "Buy",
+  owned: "built",
+  bought: (n) => `${n} is now part of the village.`,
+  poor: "Not enough money yet.",
   age: (h) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))} min`
