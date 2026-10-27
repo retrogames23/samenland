@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { draw, iso, toTile, MIN_ZOOM, lastPeople, type Camera } from "@/game/render";
+import { draw, iso, toTile, MIN_ZOOM, lastPeople, peopleFocus, type Camera } from "@/game/render";
+const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townOf, poseOf, type Person } from "@/game/people";
 import { Maximize2, Minimize2 } from "lucide-react";
 import {
@@ -178,6 +179,15 @@ export function Game() {
   const touches = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ dist: number; mx: number; my: number } | null>(null);
 
+  /** Villager under the pointer; hit radius is in screen pixels so it stays easy to tap at any zoom. */
+  const personAt = (e: { clientX: number; clientY: number }): Person | null => {
+    const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
+    const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
+    let best: Person | null = null, bd = Math.max(3, 16 / c.zoom);
+    for (const f of lastPeople) { const dd = Math.hypot(f.x - wx, f.y - 2.5 - wy); if (dd < bd) { bd = dd; best = f.q.p; } }
+    return best;
+  };
+  useEffect(() => { peopleFocus.sel = who ? pkey(who) : null; }, [who]);
   const onClick = async (x: number, y: number) => {
     setMsg(null);
     if (mode === "seed") {
@@ -291,6 +301,9 @@ export function Game() {
             }
           }
           setHover(tileAt(e));
+          const hp = mode === "look" && !drag.current?.moved ? personAt(e) : null;
+          peopleFocus.hover = hp ? pkey(hp) : null;
+          (e.target as HTMLElement).style.cursor = hp ? "pointer" : "";
         }}
         onPointerCancel={(e) => { touches.current.delete(e.pointerId); pinch.current = null; drag.current = null; }}
         onPointerUp={(e) => {
@@ -307,10 +320,7 @@ export function Game() {
           drag.current = null;
           if (d && !d.moved) {
             if (mode === "look") {
-              const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
-              const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
-              let best: Person | null = null, bd = 4.5;
-              for (const f of lastPeople) { const dd = Math.hypot(f.x - wx, f.y - 3.5 - wy); if (dd < bd) { bd = dd; best = f.q.p; } }
+              const best = personAt(e);
               if (best) return setWho(best);
             }
             const [x, y] = tileAt(e);

@@ -104,7 +104,7 @@ function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
 
 export type Light = { x: number; y: number; r: number };
 /** Hovered / selected villager ids, set by the UI so the canvas can highlight them. */
-export const peopleFocus: { hover: string | number | null; sel: string | number | null } = { hover: null, sel: null };
+export const peopleFocus: { hover: string | null; sel: string | null } = { hover: null, sel: null };
 
 /** Small shaded sheep (~hip height of a villager), grazing with an occasional head lift. */
 function drawSheep(c: C, x: number, y: number, flip: boolean, t: number) {
@@ -965,7 +965,7 @@ export function draw(
       fk.sort((a, b) => a.x + a.y - b.x - b.y);
       for (const q of fk) {
         const [px, py] = iso(q.x, q.y);
-        const sel = peopleFocus.sel === q.p.id, hov = peopleFocus.hover === q.p.id;
+        const pk = `${q.p.seed.id}:${q.p.id}`, sel = peopleFocus.sel === pk, hov = peopleFocus.hover === pk;
         if (sel || hov) {
           const pulse = 0.5 + Math.sin(t / 300) * 0.15;
           c.fillStyle = `rgba(255,214,140,${sel ? 0.35 : pulse * 0.4})`; c.beginPath(); c.ellipse(px, py, 4, 2, 0, 0, 7); c.fill();
