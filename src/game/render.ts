@@ -324,6 +324,12 @@ function bubble(c: C, x: number, y: number, icon: number) {
   else { c.fillStyle = INK; c.beginPath(); c.ellipse(x - 0.4, y + 0.6, 0.45, 0.35, -0.4, 0, 7); c.fill(); c.strokeStyle = INK; c.beginPath(); c.moveTo(x - 0.0, y + 0.6); c.lineTo(x, y - 1); c.quadraticCurveTo(x + 0.8, y - 0.7, x + 0.9, y - 0.2); c.stroke(); }
 }
 function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
+  c.save(); c.translate(X, Y); c.scale(PERSON_SCALE, PERSON_SCALE); c.translate(-X, -Y);
+  const head = personBody(c, X, Y, q, t, simple);
+  c.restore();
+  if (head && q.talk !== null && q.talkTurn) bubble(c, X + (head[0] - X) * PERSON_SCALE + 1.8, Y + (head[1] - Y) * PERSON_SCALE - 2.6, q.talk);
+}
+function personBody(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean): Pt | null {
   const p = q.p, L = p.looks;
   const kid = p.age < 15, old = p.age >= 65;
   const s = kid ? 0.52 + p.age * 0.03 : 1;
@@ -345,7 +351,7 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
     limb(c, [[X, Y - 0.2], [X, Y - 3.4 * s - bounce]], pants, 0.9 * s);
     limb(c, [[X, Y - 3.4 * s - bounce], [X, Y - 5.6 * s - bounce]], shirt, 1.4 * s);
     c.fillStyle = skin; c.beginPath(); c.arc(X, Y - 6.6 * s - bounce, 0.9 * s, 0, 7); c.fill();
-    return;
+    return null;
   }
   const leg = (old ? 1.65 : 1.8) * s;
   const hip: Pt = [X, Y - leg * 2 - bounce];
@@ -383,7 +389,7 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   c.lineTo(hip[0] + 0.75 * s, hip[1] + 0.2); c.lineTo(hip[0] - 0.75 * s, hip[1] + 0.2); c.closePath();
   c.fillStyle = shirt; c.fill();
   { const g = c.createLinearGradient(sh[0] - 0.85 * s, 0, sh[0] + 0.85 * s, 0); g.addColorStop(0, "rgba(255,240,210,0.18)"); g.addColorStop(1, "rgba(20,12,5,0.28)"); c.fillStyle = g; c.fill(); }
-  c.strokeStyle = "rgba(30,22,15,0.45)"; c.lineWidth = 0.2; c.stroke();
+  c.strokeStyle = "rgba(22,16,10,0.85)"; c.lineWidth = 0.45; c.stroke();
   if (dress) {
     const sk = CLOTH[(Math.floor(L.shirt * CLOTH.length) + 3) % CLOTH.length]!;
     const fl = walk * Math.sin(ph) * 0.25;
@@ -397,14 +403,15 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   const hr = (kid ? 1.15 : 0.95) * s;
   const hc: Pt = [sh[0] + face * 0.1 * s + stoop * 0.6, sh[1] - hr - 0.25 * s];
   limb(c, [[sh[0], sh[1]], [hc[0], hc[1] + hr * 0.6]], skin, 0.5 * s);
-  c.beginPath(); c.arc(hc[0], hc[1], hr, 0, 7); c.fillStyle = skin; c.fill(); c.strokeStyle = "rgba(30,22,15,0.4)"; c.lineWidth = 0.18; c.stroke();
+  c.beginPath(); c.arc(hc[0], hc[1], hr, 0, 7); c.fillStyle = skin; c.fill(); c.strokeStyle = "rgba(22,16,10,0.85)"; c.lineWidth = 0.4; c.stroke();
+  { const g = c.createRadialGradient(hc[0] - hr * 0.4, hc[1] - hr * 0.4, 0, hc[0], hc[1], hr * 1.1); g.addColorStop(0, "rgba(255,235,205,0.25)"); g.addColorStop(1, "rgba(40,20,10,0.3)"); c.fillStyle = g; c.fill(); }
   // hair
   c.fillStyle = hair; c.beginPath();
   if (away) c.arc(hc[0], hc[1], hr * 1.02, 0, 7);
   else c.arc(hc[0] - face * 0.15 * hr, hc[1] - 0.1 * hr, hr * 1.02, Math.PI * 1.05, Math.PI * 1.95 + face * 0.2);
   c.fill();
   if (p.sex === "f" && L.hair >= 0) { c.beginPath(); c.ellipse(hc[0] - face * hr * 0.75, hc[1] + hr * 0.6, hr * 0.35, hr * 0.9, 0, 0, 7); c.fill(); }
-  if (!away) { c.fillStyle = INK; c.beginPath(); c.arc(hc[0] + face * hr * 0.42, hc[1] - hr * 0.05, 0.13 * s + 0.05, 0, 7); c.fill(); }
+  if (!away) { c.fillStyle = "rgba(30,20,12,0.55)"; c.beginPath(); c.arc(hc[0] + face * hr * 0.45, hc[1] - hr * 0.05, 0.12 * s, 0, 7); c.fill(); }
   if (L.hat && !kid) {
     c.fillStyle = p.job === "farmer" ? "#d9bf7a" : "#4a3a30";
     c.beginPath(); c.ellipse(hc[0], hc[1] - hr * 0.55, hr * 1.55, hr * 0.38, 0, 0, 7); c.fill(); c.stroke();
@@ -417,7 +424,7 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   c.fillStyle = skin; c.beginPath(); c.arc(hand[0], hand[1], 0.32 * s, 0, 7); c.fill();
   if (q.working && p.job === "farmer") line(c, [hand[0] - face * 1.2, hand[1] - 1.2], [hand[0] + face * 1.4, hand[1] + 2.6 + Math.sin(t / 420 + p.id) * 0.5], p.id, 0.4, "#7a5a3c");
   if (L.stick) line(c, hand, [hand[0] + face * 0.5, Y], p.id + 1, 0.35, "#6f533b");
-  if (q.talk !== null && q.talkTurn) bubble(c, hc[0] + face * 2.6, hc[1] - 3.2, q.talk);
+  return hc;
 }
 
 let overview: HTMLCanvasElement | null = null;
@@ -712,16 +719,16 @@ export function draw(
       } else if (st.kind === "square" || st.kind === "market" || st.kind === "well") {
         c.beginPath(); c.ellipse(cx, cy, TW * (0.56 + hash(x, y, 71) * 0.1), TH * (0.56 + hash(x, y, 72) * 0.1), 0, 0, 7);
         c.fillStyle = texture(c, "cobble") ?? "#d3cab6"; c.fill();
-      } else if (st.kind === "field") {
-        const ripe = st.v > 0.5;
-        const q = [pp(-0.47, -0.47), pp(0.47, -0.47), pp(0.47, 0.47), pp(-0.47, 0.47)];
+      } else if (st.kind === "field" || st.kind === "garden") {
+        // Neighbouring plots merge into one acre: fill slightly past the tile, edge only towards non-fields.
+        const ripe = st.kind === "field" && st.v > 0.5;
+        const q = [pp(-0.52, -0.52), pp(0.52, -0.52), pp(0.52, 0.52), pp(-0.52, 0.52)];
         c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
         c.fillStyle = texture(c, ripe ? "wheat" : "crops") ?? hsl(ripe ? 44 : 80, 50, 60); c.fill();
-              } else if (st.kind === "garden") {
-        const q = [pp(-0.34, -0.34), pp(0.34, -0.34), pp(0.34, 0.34), pp(-0.34, 0.34)];
-        c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
-        c.fillStyle = texture(c, "crops") ?? "#a98663"; c.fill();
-        c.strokeStyle = "rgba(90,65,35,0.6)"; c.lineWidth = 0.6; c.stroke();
+        const same = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && (o.kind === "field" || o.kind === "garden"); };
+        c.strokeStyle = "rgba(70,52,30,0.4)"; c.lineWidth = 0.9; c.lineCap = "round";
+        const sides: [number, number, number, number][] = [[0, -1, 0, 1], [1, 0, 1, 2], [0, 1, 2, 3], [-1, 0, 3, 0]];
+        for (const [i, j, a, b] of sides) if (!same(i, j)) { c.beginPath(); c.moveTo(q[a]![0], q[a]![1]); c.lineTo(q[b]![0], q[b]![1]); c.stroke(); }
       } else if (st.kind === "pasture") {
         c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
         c.fillStyle = texture(c, "meadow") ?? hsl(84, 34, 70, 0.6); c.fill();
