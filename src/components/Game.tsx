@@ -487,8 +487,6 @@ export function Game() {
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
-  return (
-    <div className="relative h-screen w-full overflow-hidden bg-background">
       <canvas
         ref={canvasRef}
         className="absolute inset-0 h-full w-full cursor-grab touch-none"
