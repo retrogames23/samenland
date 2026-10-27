@@ -7,3 +7,7 @@
 - [x] Spiel auf Deutsch und Englisch
 - [x] Detaillierte Gebäudebilder im gewählten Stil einbauen und auf der Karte prüfen
 - [x] Landschaft, Bäume, Felder, Wege, Wasser und Menschen an den detaillierten Stil anpassen
+- [ ] Sechs Entwicklungsstufen mit Verdichtung und standortgerechten Gebäuden
+- [ ] Neue Gebäudebilder, Alleen und Schienenverbindungen
+- [ ] Kalender-Jahreszeiten in Nahansicht und Übersicht
+- [ ] Wachstumsregeln und Jahreszeiten testen, im Spiel prüfen
