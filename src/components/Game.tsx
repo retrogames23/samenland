@@ -8,6 +8,7 @@ import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { setScene, setSound, unlock, baa, hm, tap, disposeAudio } from "@/game/audio";
 import {
   canPlant,
+  structureAt,
   radiusOf,
   ageHours,
   effAge,
@@ -362,6 +363,7 @@ export function Game() {
               if (best) { hm(pan); setPlace(null); return setWho(best); }
               const [tx, ty] = tileAt(e);
               const ins = inspectAt(tx, ty, seeds, Date.now());
+              if (!ins && structureAt(tx, ty, seeds, Date.now())?.kind === "pasture") baa(pan);
               if (ins) { if (ins.kind === "pasture") baa(pan); else tap(pan); setWho(null); return setPlace(ins); }
               setPlace(null);
             }
