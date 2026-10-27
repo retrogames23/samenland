@@ -103,6 +103,38 @@ function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
 }
 
 export type Light = { x: number; y: number; r: number };
+/** Hovered / selected villager ids, set by the UI so the canvas can highlight them. */
+export const peopleFocus: { hover: string | null; sel: string | null } = { hover: null, sel: null };
+
+/** Small shaded sheep (~hip height of a villager), grazing with an occasional head lift. */
+function drawSheep(c: C, x: number, y: number, flip: boolean, t: number) {
+  const d = flip ? -1 : 1;
+  const graze = Math.sin(t / 2600) > -0.3;
+  c.fillStyle = "rgba(30,36,22,0.28)"; c.beginPath(); c.ellipse(x, y + 0.3, 2.6, 0.9, 0, 0, 7); c.fill();
+  c.strokeStyle = "#2b2420"; c.lineWidth = 0.45; c.lineCap = "round";
+  for (const lx of [-1.3, -0.5, 0.6, 1.3]) { c.beginPath(); c.moveTo(x + lx * d, y - 1); c.lineTo(x + lx * d, y + 0.1); c.stroke(); }
+  const g = c.createRadialGradient(x - 0.6 * d, y - 2.6, 0.3, x, y - 1.8, 2.6);
+  g.addColorStop(0, "#fbf6ea"); g.addColorStop(0.7, "#e2d8c4"); g.addColorStop(1, "#b9ad96");
+  c.fillStyle = g; c.beginPath();
+  for (let i = 0; i < 9; i++) { const a = (i / 9) * Math.PI * 2; const r = 0.75 + 0.15 * Math.sin(i * 2.3); c.ellipse(x + Math.cos(a) * 1.3, y - 1.9 + Math.sin(a) * 0.6, r, r * 0.8, 0, 0, 7); }
+  c.fill();
+  c.strokeStyle = "rgba(70,58,44,0.55)"; c.lineWidth = 0.25; c.stroke();
+  const hx = x + 2.3 * d, hy = graze ? y - 1.1 : y - 2.6;
+  c.fillStyle = "#3a302a"; c.beginPath(); c.ellipse(hx, hy, 0.7, 0.55, graze ? 0.6 * d : 0, 0, 7); c.fill();
+  c.beginPath(); c.ellipse(hx - 0.4 * d, hy - 0.45, 0.35, 0.18, -0.5 * d, 0, 7); c.fill();
+}
+
+/** Faceted rock with light, mid and dark faces (ore gets a rusty vein glint). */
+function rock(c: C, x: number, y: number, s: number, lit: string, mid: string, dark: string, glint: boolean) {
+  c.fillStyle = "rgba(30,26,20,0.3)"; c.beginPath(); c.ellipse(x + 0.3 * s, y + 0.2 * s, 1.3 * s, 0.5 * s, 0, 0, 7); c.fill();
+  const top: Pt = [x - 0.2 * s, y - 1.3 * s];
+  const face = (pts: Pt[], col: string) => { c.fillStyle = col; c.beginPath(); c.moveTo(...pts[0]!); for (const p of pts.slice(1)) c.lineTo(...p); c.closePath(); c.fill(); };
+  face([[x - 1.2 * s, y], top, [x + 0.1 * s, y + 0.3 * s]], lit);
+  face([top, [x + 1.1 * s, y - 0.3 * s], [x + 0.1 * s, y + 0.3 * s]], mid);
+  face([[x + 1.1 * s, y - 0.3 * s], [x + 1.2 * s, y], [x + 0.1 * s, y + 0.3 * s]], dark);
+  c.strokeStyle = "rgba(25,20,16,0.5)"; c.lineWidth = 0.25; c.beginPath(); c.moveTo(x - 1.2 * s, y); c.lineTo(...top); c.lineTo(x + 1.1 * s, y - 0.3 * s); c.lineTo(x + 1.2 * s, y); c.lineTo(x + 0.1 * s, y + 0.3 * s); c.closePath(); c.stroke();
+  if (glint) { c.fillStyle = "#d98a4a"; c.fillRect(x - 0.3 * s, y - 0.7 * s, 0.35 * s, 0.25 * s); }
+}
 const roofHue = (s: Structure, slate = false) => slate ? [215, 12, 46] : [12 + s.v * 18 + (s.seed.hue % 20) - 10, 48, 50];
 
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
@@ -230,8 +262,11 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
       line(c, p(0.48, -0.48, 1.5), p(0.48, 0.48, 1.5), sd + 1, 0.5, "#6b4a32");
       c.globalAlpha = 1;
       if (v > 0.35) {
-        const wob = Math.sin(t / 3000 + v * 20) * 1.5;
-        blob(c, cx - 3 + wob, cy, 1.8, "#f4efe4", sd + 2); blob(c, cx + 4 - wob, cy + 2, 1.6, "#f4efe4", sd + 3);
+        const n = v > 0.7 ? 3 : 2;
+        for (let k = 0; k < n; k++) {
+          const ph = t / 9000 + v * 20 + k * 2.1;
+          drawSheep(c, cx + Math.sin(ph) * 5 + (k - 1) * 4, cy + Math.cos(ph * 0.7) * 2 + (k % 2) * 2, Math.cos(ph) > 0, t + k * 1700 + sd);
+        }
       }
       break;
     }
@@ -812,9 +847,11 @@ export function draw(
       }
       if (tr === "hill" || tr === "mountain") {
         const rs = resourceAt(x, y);
-        if (rs === "ore") for (let i = 0; i < 4; i++) blob(c, cx + (hash(x, y, 90 + i) - 0.5) * 16, cy + (hash(x, y, 95 + i) - 0.5) * 7, 1.1, "#b0603a", x * 3 + y + i, i === 0);
-        else if (rs === "coal") { c.globalAlpha = 0.7; for (let i = 0; i < 3; i++) line(c, [cx - 7, cy - 2 + i * 2], [cx + 6, cy - 3 + i * 2], x * 11 + y + i, 0.9, "#2d2620"); c.globalAlpha = 1; }
-        else if (rs === "stone") blob(c, cx, cy, 2.4, "#c9c2b3", x * 13 + y);
+        if (rs) {
+          const n = rs === "stone" ? 2 : 4;
+          const [lit, mid, dark] = rs === "ore" ? ["#b98a6a", "#8a5a3e", "#4e3426"] : rs === "coal" ? ["#5a544e", "#36312d", "#1d1a18"] : ["#d6d0c4", "#a9a295", "#6e685e"];
+          for (let i = 0; i < n; i++) rock(c, cx + (hash(x, y, 90 + i) - 0.5) * 14, cy + (hash(x, y, 95 + i) - 0.5) * 6, (rs === "stone" ? 2.6 : 1.4) * (0.7 + hash(x, y, 99 + i) * 0.6), lit, mid, dark, rs === "ore" && i === 0);
+        }
       }
 
       if (!st) continue;
@@ -926,7 +963,22 @@ export function draw(
     const fk = folk.get(y * MAP + x);
     if (fk) {
       fk.sort((a, b) => a.x + a.y - b.x - b.y);
-      for (const q of fk) { const [px, py] = iso(q.x, q.y); drawPerson(c, px, py, q, t, simpleFolk); lastPeople.push({ x: px, y: py, q }); }
+      for (const q of fk) {
+        const [px, py] = iso(q.x, q.y);
+        const pk = `${q.p.seed.id}:${q.p.id}`, sel = peopleFocus.sel === pk, hov = peopleFocus.hover === pk;
+        if (sel || hov) {
+          const pulse = 0.5 + Math.sin(t / 300) * 0.15;
+          c.fillStyle = `rgba(255,214,140,${sel ? 0.35 : pulse * 0.4})`; c.beginPath(); c.ellipse(px, py, 4, 2, 0, 0, 7); c.fill();
+          c.strokeStyle = sel ? "rgba(255,226,160,0.95)" : "rgba(255,236,190,0.7)"; c.lineWidth = sel ? 0.8 : 0.6; c.stroke();
+        }
+        drawPerson(c, px, py, q, t, simpleFolk); lastPeople.push({ x: px, y: py, q });
+        if (hov && !sel) {
+          c.font = "600 4px system-ui, sans-serif"; c.textAlign = "center";
+          const w = c.measureText(q.p.first).width + 3;
+          c.fillStyle = "rgba(40,32,24,0.75)"; c.fillRect(px - w / 2, py - 11, w, 5);
+          c.fillStyle = "#f6ecd6"; c.fillText(q.p.first, px, py - 7.3);
+        }
+      }
     }
     if (hover && hover[0] === x && hover[1] === y) {
       c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
