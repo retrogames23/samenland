@@ -699,8 +699,10 @@ function effAgeBase(s: Seed, seeds: Seed[], now: number) {
     const o = l.a.id === s.id ? l.b : l.a;
     h += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * (now - l.since) / 3.6e6;
   }
-  return Math.max(base, h);
+  // neighbour bonuses speed growth, but never more than TRADE_CAP of the town's own age
+  return base + Math.min(Math.max(0, h - base), base * TRADE_CAP);
 }
+export const TRADE_CAP = 0.35;
 
 /** Trade partners of a town with the goods flowing each way. */
 export function tradePartners(s: Seed, seeds: Seed[], now: number) {
