@@ -953,23 +953,6 @@ export function draw(
         drawWanderer(c, x, y, dx >= 0 ? 1 : -1, t, sn + k);
       }
     }
-    // boats drift under bridges
-    const wi = l.water.indexOf(true);
-    if (wi >= 0) {
-      const [bx, by] = iso(l.tiles[wi]![0], l.tiles[wi]![1]);
-      // the boat only drifts across the stretch of water around the bridge
-      let rng = boatRange.get(l);
-      if (!rng) {
-        const wet = (o: number) => { const [tx, ty] = toTile(bx + o, by + 6 + o * 0.5); return isWater(terrain(tx, ty)); };
-        let lo = 0, hi = 0;
-        if (wet(0)) { while (lo > -40 && wet(lo - 1)) lo--; while (hi < 40 && wet(hi + 1)) hi++; }
-        rng = [lo + 4, hi - 4]; boatRange.set(l, rng);
-      }
-      if (rng[1] <= rng[0]) continue;
-      const sw = rng[0] + (rng[1] - rng[0]) * (0.5 + 0.5 * Math.sin(t / 4000 + sn));
-      const x = bx + sw, y = by + 6 + sw * 0.5 + Math.sin(t / 600) * 0.4;
-      drawBoat(c, x, y, Math.cos(t / 4000 + sn) >= 0 ? 1 : -1, t, sn);
-    }
   }
 
   // ---- paper, light, labels (screen space) ----
