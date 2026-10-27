@@ -387,9 +387,12 @@ export function Game() {
     setSigns((s) => [...s.filter((x) => x.id !== data.id), data as Signpost]);
     setMsg(t.signSaved);
   };
-  const buy = async (item: Item) => {
+  const buy = async (item: Item, x: number, y: number) => {
     if (!my) return;
-    const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item }).select("id, seed_id, item, cost, created_at, x, y").single();
+    const err = canPlaceSpecial(item, x, y, my, seeds, Date.now());
+    if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore"]);
+    setPlacing(null);
+    const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x, y }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) return setMsg(t.poor);
     setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
     tap();

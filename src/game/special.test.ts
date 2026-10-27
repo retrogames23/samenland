@@ -29,3 +29,15 @@ describe("bought buildings", () => {
     expect(structureAt(k! % MAP, Math.floor(k! / MAP), [s], NOW)?.kind).not.toBe("infirmary");
   });
 });
+
+import { canPlaceSpecial as cps, specialSites as sps } from "./world";
+describe("player-chosen building spot", () => {
+  const s0 = { id: "p", name: "P", owner: "o", x: 400, y: 540, hue: 0, created_at: new Date(Date.UTC(2026, 0, 1)).toISOString() };
+  it("a chosen spot is used exactly", () => {
+    const s = { ...s0, bought: [{ item: "school", at: 1, x: 403, y: 541 }] };
+    expect(sps(s).get(541 * 1024 + 403)?.kind).toBe("school");
+  });
+  it("rejects spots far from the village", () => {
+    expect(cps("school", 400 + 60, 540, s0, [s0], Date.UTC(2026, 0, 2))).toBe("far");
+  });
+});
