@@ -6,6 +6,9 @@ import { townOf, poseOf, type Person } from "@/game/people";
 import { inspectAt, type Inspect } from "@/game/inspect";
 import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, X, LogIn } from "lucide-react";
 import { Panel, WoodButton } from "@/components/hud/Panel";
+import { Parchment, WaxSeal } from "@/components/hud/Parchment";
+import { ART, pickDecision } from "@/game/decisions";
+import type { DecisionKind } from "@/game/decision-order";
 import { Minimap } from "@/components/hud/Minimap";
 import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/game/audio";
@@ -69,6 +72,7 @@ export function Game() {
     ro.observe(el); return () => ro.disconnect();
   }, []);
   const [encOpen, setEncOpen] = useState(false);
+  const [snooze, setSnooze] = useState<Partial<Record<DecisionKind, number>>>({});
   const [roadPick, setRoadPick] = useState<string | null>(null);
   const [charterPick, setCharterPick] = useState<CharterPath | null>(null);
   const [signs, setSigns] = useState<Signpost[]>([]);
@@ -429,6 +433,19 @@ export function Game() {
   };
 
   const now = Date.now();
+  const owner = !!my && !!userId && my.user_id === userId;
+  const decision = pickDecision({
+    road: owner && !myRoad && roadCandidates(my!, seeds).length > 0,
+    charter: owner && !myCharter && charterReady(my!.created_at, now),
+    encounter: owner && !!pendingEncounter(my!, my!.decisions ?? [], now),
+  }, (k) => (snooze[k] ?? 0) > now);
+  const anyOpen = roadOpen || charterOpen || encOpen;
+  const sealShown = !anyOpen && !decision.open && decision.due.length > 0;
+  function later(k: DecisionKind) {
+    setSnooze((m) => ({ ...m, [k]: Date.now() + 3.6e6 }));
+    if (k === "road") setRoadOpen(false); else if (k === "charter") setCharterOpen(false); else setEncOpen(false);
+  }
+  function reopen() { setSnooze({}); }
   const cash = my ? treasury(my, purchases, now) : 0;
   const at = my ? attributes(my, seeds, purchases, now) : null;
   const pop = my ? dailyTax(my, ageHours(my, now)) : 0;
@@ -573,6 +590,25 @@ export function Game() {
     </div>
   );
 
+  const dueKey = decision.due.join(",");
+  useEffect(() => {
+    // close a popup whose decision is no longer due (e.g. answered on another device)
+    if (roadOpen && !decision.due.includes("road")) setRoadOpen(false);
+    if (charterOpen && !decision.due.includes("charter")) setCharterOpen(false);
+    if (encOpen && !decision.due.includes("encounter")) setEncOpen(false);
+  }, [dueKey]);
+  useEffect(() => {
+    if (anyOpen || !decision.open) return;
+    const k = decision.open;
+    // let all village records arrive before asking, so nothing pops up that is already settled
+    const id = setTimeout(() => {
+      if (k === "road") { setRoadPick(null); setRoadOpen(true); }
+      else if (k === "charter") { setCharterPick(null); setCharterOpen(true); }
+      else setEncOpen(true);
+    }, 2500);
+    return () => clearTimeout(id);
+  }, [decision.open, anyOpen]);
+
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
       <canvas
@@ -666,23 +702,6 @@ export function Game() {
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
               {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[stageOf(myStats.age)]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
-            <div className="mt-0.5 flex flex-wrap gap-1">
-            {my && !myRoad && my.user_id === userId && (
-              <button type="button" onClick={() => { setRoadPick(null); setRoadOpen(true); }} className="pointer-events-auto flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
-                <span aria-hidden>🛤</span>{t.road.btn}
-              </button>
-            )}
-            {my && my.user_id === userId && pendingEncounter(my, my.decisions ?? [], Date.now()) && (
-              <button type="button" onClick={() => setEncOpen(true)} className="pointer-events-auto flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
-                <span aria-hidden>📜</span>{t.enc.btn}
-              </button>
-            )}
-            {my && !myCharter && my.user_id === userId && (
-              <button type="button" onClick={() => { setCharterPick(null); setCharterOpen(true); }} className="pointer-events-auto flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-brass bg-brass/20 px-2 py-0.5 text-[11px] font-semibold text-wood hover:bg-brass/40">
-                <span aria-hidden className="grid h-3.5 w-3.5 place-items-center rounded-full bg-destructive text-[8px] text-destructive-foreground">✦</span>{t.charter.seal}
-              </button>
-            )}
-            </div>
           </div>
           {my && at ? (
             <>
@@ -773,16 +792,10 @@ export function Game() {
         };
         const created = Date.parse(my.created_at);
         return (
-          <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/30 p-4" onClick={() => setEncOpen(false)}>
-            <div onClick={(e) => e.stopPropagation()} className="max-h-full w-full max-w-xl overflow-auto">
-              <Panel inner="p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <h2 className="font-display text-4xl leading-none text-wood">{ev ? t.enc.events[ev]![0] : t.enc.title}</h2>
-                  <button type="button" aria-label={t.hud.close} onClick={() => setEncOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-                </div>
+          <Parchment image={ev ? ART[ev] : undefined} title={ev ? t.enc.events[ev]![0] : t.enc.title} later={t.enc.later} onLater={() => later("encounter")}>
                 {!ev ? <p className="mt-2 text-sm text-muted-foreground">{t.enc.decided}</p> : (
                   <>
-                    <p className="mt-2 text-sm italic text-muted-foreground">{t.enc.events[ev]![1]}</p>
+                    <p className="mt-2 text-center font-display text-xl leading-snug">{t.enc.events[ev]![1]}</p>
                     <div className="mt-4 grid gap-2">
                       {Object.keys(ENCOUNTERS[ev]).map((c) => {
                         const cost = choiceOf(ev, c)!.cost, poor = cost > cash, fx = fxText(ev, c);
@@ -807,20 +820,12 @@ export function Game() {
                     ))}
                   </ul>
                 )}
-              </Panel>
-            </div>
-          </div>
+          </Parchment>
         );
       })()}
       {roadOpen && my && (
-        <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/30 p-4" onClick={() => setRoadOpen(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="max-h-full w-full max-w-xl overflow-auto">
-            <Panel inner="p-5">
-              <div className="flex items-start justify-between gap-3">
-                <h2 className="font-display text-4xl leading-none text-wood">{t.road.title}</h2>
-                <button type="button" aria-label={t.hud.close} onClick={() => setRoadOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">{t.road.intro}</p>
+        <Parchment image={ART["road"]} title={t.road.title} later={t.enc.later} onLater={() => later("road")}>
+              <p className="mt-2 text-sm text-center">{t.road.intro}</p>
               {roadCandidates(my, seeds).length === 0 ? <p className="mt-4 text-sm font-semibold">{t.road.none}</p> : (
                 <>
                   <div className="mt-4 grid gap-2">
@@ -832,7 +837,7 @@ export function Game() {
                             <div className="font-semibold text-wood">{o.name}</div>
                             <div className="text-xs text-muted-foreground">{t.road.dist(Math.round(Math.hypot(o.x - my.x, o.y - my.y)))} · {CHAR_ICON[c]} {t.character[c]![0]}{ch ? ` · ${PATH_ICON[ch]} ${t.charter.paths[ch]![0]}` : ""}</div>
                           </button>
-                          <Button size="sm" variant="secondary" onClick={() => { focus(o.x, o.y); setRoadOpen(false); }}>{t.road.look}</Button>
+                          <Button size="sm" variant="secondary" onClick={() => { focus(o.x, o.y); later("road"); }}>{t.road.look}</Button>
                         </div>
                       );
                     })}
@@ -843,20 +848,12 @@ export function Game() {
                   </div>
                 </>
               )}
-            </Panel>
-          </div>
-        </div>
+        </Parchment>
       )}
 
       {charterOpen && my && (
-        <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/30 p-4" onClick={() => setCharterOpen(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="max-h-full w-full max-w-2xl overflow-auto">
-            <Panel inner="p-5">
-              <div className="flex items-start justify-between">
-                <h2 className="font-display text-4xl leading-none text-wood">{t.charter.title} · {my.name}</h2>
-                <button type="button" aria-label={t.hud.close} onClick={() => setCharterOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">{t.charter.intro}</p>
+        <Parchment wide image={ART["charter"]} title={`${t.charter.title} · ${my.name}`} later={t.enc.later} onLater={() => later("charter")}>
+              <p className="mt-2 text-sm text-center">{t.charter.intro}</p>
               {!charterReady(my.created_at, now) ? (
                 <p className="mt-4 text-sm font-semibold">{t.charter.locked}</p>
               ) : (
@@ -883,8 +880,12 @@ export function Game() {
                   </div>
                 </>
               )}
-            </Panel>
-          </div>
+        </Parchment>
+      )}
+
+      {sealShown && (
+        <div className="absolute right-3 z-30" style={{ top: barH + 8 }}>
+          <WaxSeal label={t.enc.waiting} onClick={reopen} />
         </div>
       )}
 
