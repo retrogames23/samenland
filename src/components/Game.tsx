@@ -39,6 +39,8 @@ export function Game() {
   const [form, setForm] = useState({ name: "", owner: "" });
   const [msg, setMsg] = useState<string | null>(null);
   const [open, setOpen] = useState(true);
+  const [listOpen, setListOpen] = useState(true);
+  const [sheet, setSheet] = useState<"me" | "towns" | null>(null);
   const [who, setWho] = useState<Person | null>(null);
   const [, tick] = useState(0);
 
@@ -70,6 +72,7 @@ export function Game() {
       saved === "en" || saved === "de" ? saved : navigator.language.startsWith("de") ? "de" : "en",
     );
     if (localStorage.getItem("samenland-panel") === "closed") setOpen(false);
+    if (localStorage.getItem("samenland-towns") === "closed") setListOpen(false);
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
     const { data: sub } = supabase.auth.onAuthStateChange((ev, session) => {
       if (
@@ -240,6 +243,7 @@ export function Game() {
     if (r?.error) setMsg(t.authFail);
   };
 
+  const show = open || sheet === "me";
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
       <canvas
@@ -282,9 +286,9 @@ export function Game() {
         onPointerLeave={() => setHover(null)}
       />
 
-      <header className="pointer-events-none absolute left-4 top-4 max-w-xs">
+      <header className={`pointer-events-none ${sheet === "me" ? "absolute inset-x-2 bottom-16 z-20 max-h-[70vh] overflow-auto" : "hidden"} md:absolute md:inset-auto md:left-4 md:top-4 md:z-auto md:block md:max-h-none md:max-w-xs md:overflow-visible`}>
         <div
-          className={`pointer-events-auto rounded-md border-2 border-border bg-card/90 shadow-[var(--shadow-cozy)] backdrop-blur ${open ? "p-4" : "p-3"}`}
+          className={`pointer-events-auto rounded-md border-2 border-border bg-card/95 shadow-[var(--shadow-cozy)] backdrop-blur ${show ? "p-4" : "p-3"}`}
         >
           <div className="flex items-start justify-between gap-3">
             <h1 className="font-display text-4xl leading-none text-primary">Samenland</h1>
@@ -314,8 +318,8 @@ export function Game() {
               </svg>
             </button>
           </div>
-          {!open && <p className="mt-1 text-xs text-muted-foreground">{t.taglineShort}</p>}
-          {open && (
+          {!show && <p className="mt-1 text-xs text-muted-foreground">{t.taglineShort}</p>}
+          {show && (
             <>
               <p className="mt-1 text-sm text-muted-foreground">{t.tagline}</p>
               {my && myStats ? (
@@ -454,14 +458,34 @@ export function Game() {
         {fs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
       </button>
 
-      <aside className="absolute right-4 top-14 w-56 rounded-md border-2 border-border bg-card/90 p-3 shadow-[var(--shadow-cozy)] backdrop-blur">
-        <h2 className="font-display text-lg text-foreground">{t.towns}</h2>
-        <ul className="mt-1 max-h-60 space-y-1 overflow-auto text-sm">
+      <aside
+        className={`${sheet === "towns" ? "absolute inset-x-2 bottom-16 z-20" : "hidden"} rounded-md border-2 border-border bg-card/95 p-3 shadow-[var(--shadow-cozy)] backdrop-blur md:absolute md:inset-auto md:right-4 md:top-14 md:z-auto md:block ${listOpen ? "md:w-56" : "md:w-auto"}`}
+      >
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-2 text-left"
+          aria-expanded={listOpen}
+          onClick={() => {
+            if (sheet === "towns") return setSheet(null);
+            const next = !listOpen;
+            setListOpen(next);
+            localStorage.setItem("samenland-towns", next ? "open" : "closed");
+          }}
+        >
+          <h2 className="font-display text-lg text-foreground">
+            {t.towns} <span className="text-sm text-muted-foreground">({seeds.length})</span>
+          </h2>
+          <svg viewBox="0 0 16 16" aria-hidden="true" className={`h-4 w-4 text-muted-foreground transition-transform ${listOpen || sheet === "towns" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6l5 5 5-5" />
+          </svg>
+        </button>
+        {(listOpen || sheet === "towns") && (
+        <ul className="mt-1 max-h-[50vh] space-y-1 overflow-auto text-sm md:max-h-60">
           {seeds.map((s) => (
             <li key={s.id}>
               <button
                 className="w-full rounded px-2 py-1 text-left hover:bg-accent"
-                onClick={() => focus(s.x, s.y)}
+                onClick={() => { focus(s.x, s.y); setSheet(null); }}
               >
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
@@ -477,9 +501,10 @@ export function Game() {
             </li>
           ))}
         </ul>
+        )}
       </aside>
 
-      <div className="pointer-events-none absolute bottom-4 left-4 space-y-2 text-sm">
+      <div className="pointer-events-none absolute bottom-16 left-2 right-2 space-y-2 text-sm md:bottom-4 md:left-4 md:right-auto">
         {msg && (
           <div className="rounded-md border-2 border-border bg-card/95 px-3 py-2 text-foreground">
             {msg}
@@ -500,14 +525,28 @@ export function Game() {
           );
         })()}
         {hover && (
-          <div className="rounded bg-card/80 px-2 py-1 text-xs text-muted-foreground">
+          <div className="hidden rounded bg-card/80 px-2 py-1 text-xs text-muted-foreground md:block">
             {t.terrain[terrain(hover[0], hover[1])]}{resourceAt(hover[0], hover[1]) ? ` · ${t.resource[resourceAt(hover[0], hover[1])!]}` : ""} · {hover[0]}, {hover[1]}
           </div>
         )}
       </div>
-      <div className="pointer-events-none absolute bottom-4 right-4 text-xs text-muted-foreground">
+      <div className="pointer-events-none absolute bottom-4 right-4 hidden text-xs text-muted-foreground md:block">
         {t.hint}
       </div>
+
+      <nav className="absolute inset-x-2 bottom-2 z-20 flex gap-2 rounded-md border-2 border-border bg-card/95 p-1.5 shadow-[var(--shadow-cozy)] backdrop-blur md:hidden">
+        {(["me", "towns"] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            aria-pressed={sheet === k}
+            onClick={() => setSheet(sheet === k ? null : k)}
+            className={`flex-1 rounded px-3 py-2 text-sm ${sheet === k ? "bg-accent text-foreground" : "text-muted-foreground"}`}
+          >
+            {k === "me" ? (my ? t.myTown : t.signIn) : `${t.towns} (${seeds.length})`}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
