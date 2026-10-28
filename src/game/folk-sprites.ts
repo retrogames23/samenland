@@ -4,6 +4,7 @@ import manWalk from "@/assets/sprites/folk/man-walk.webp";
 import legsM from "@/assets/sprites/folk/legs-m.webp";
 import woman from "@/assets/sprites/folk/woman.webp";
 import child from "@/assets/sprites/folk/child.webp";
+import childWalk from "@/assets/sprites/folk/child-walk.webp";
 import elder from "@/assets/sprites/folk/elder.webp";
 import builder from "@/assets/sprites/folk/builder.webp";
 import builderF from "@/assets/sprites/folk/builder-f.webp";
@@ -29,7 +30,7 @@ import blocks from "@/assets/sprites/folk/blocks.webp";
 import bannerPole from "@/assets/sprites/folk/banner-pole.webp";
 import bannerClothUrl from "@/assets/sprites/folk/banner-cloth.webp";
 
-const URLS = { man, manWalk, legsM, woman, child, elder, builder, builderF, woodcutter, mason, farmer, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl };
+const URLS = { man, manWalk, legsM, woman, child, childWalk, elder, builder, builderF, woodcutter, mason, farmer, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl };
 export type FolkSprite = keyof typeof URLS;
 const cache = new Map<string, HTMLImageElement>();
 function load(u: string) {
@@ -56,5 +57,5 @@ export function bannerCloth(hue: number): HTMLCanvasElement | null {
 
 /** Painted walk cycles: horizontal strips of WALK_FRAMES frames (contact, down, passing, up, …). */
 export const WALK_FRAMES = 6;
-const WALKS: Partial<Record<FolkSprite, FolkSprite>> = {}; // men now use the shared legs-m cycle in render.ts
+const WALKS: Partial<Record<FolkSprite, FolkSprite>> = { child: "childWalk" }; // men now use the shared legs-m cycle in render.ts
 export const walkSheet = (k: FolkSprite) => { const w = WALKS[k]; return w ? folkImage(w) : null; };

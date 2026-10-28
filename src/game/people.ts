@@ -603,7 +603,7 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
       const a = pts[k - 1]!, b = pts[k]!, sl = Math.hypot(b[0] - a[0], b[1] - a[1]);
       if (dd <= sl) {
         const u = sl ? dd / sl : 0, x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
-        return { ...base, x, y, visible: true, walking: true, act: "home", dir: pathHeading(pts, k - 1 + u), phase: (((now - p.arrive.t0) / 1000) * ARRIVE_SPEED) / STRIDE, carry: p.age >= 12 ? "bundle" : null, dest: "home" };
+        return { ...base, x, y, visible: true, walking: true, act: "home", dir: pathHeading(pts, k - 1 + u, true, 0.5), phase: (((now - p.arrive.t0) / 1000) * ARRIVE_SPEED) / STRIDE, carry: p.age >= 12 ? "bundle" : null, dest: "home" };
       }
       dd -= sl;
     }
@@ -625,7 +625,7 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
         if (dd <= seg[k]! || k === seg.length - 1) {
           const a = pts[k]!, b = pts[k + 1]!, u = seg[k]! ? dd / seg[k]! : 0;
           const x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
-          return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, dir: pathHeading(pts, k + u), phase: ph };
+          return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, dir: pathHeading(pts, k + u, true, 0.5), phase: ph };
         }
         dd -= seg[k]!;
       }
@@ -666,7 +666,7 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
 function along(pts: Tile[], dd: number): { x: number; y: number; dir: [number, number] } | null {
   for (let k = 1; k < pts.length; k++) {
     const a = pts[k - 1]!, b = pts[k]!, sl = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    if (dd <= sl) { const u = sl ? dd / sl : 0; return { x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, dir: pathHeading(pts, k - 1 + u) }; }
+    if (dd <= sl) { const u = sl ? dd / sl : 0; return { x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, dir: pathHeading(pts, k - 1 + u, true, 0.5) }; }
     dd -= sl;
   }
   return null;
@@ -720,7 +720,7 @@ function haulPose(p: Person, t: Town, seeds: Seed[], secs: number, base: Pose): 
       const a = pts[k]!, b = pts[k + 1]!, f = seg[k]! ? Math.min(1, dd / seg[k]!) : 0;
       const x = a[0] + (b[0] - a[0]) * f, y = a[1] + (b[1] - a[1]) * f;
       return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, working: false,
-        dir: pathHeading(pts, k + f, out), phase: dd / STRIDE, carry: out ? H.good : null, dest: H.dest };
+        dir: pathHeading(pts, k + f, out, 0.5), phase: dd / STRIDE, carry: out ? H.good : null, dest: H.dest };
     }
     dd -= seg[k]!;
   }

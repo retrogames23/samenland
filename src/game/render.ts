@@ -409,7 +409,7 @@ function folkOf(q: Pose): FolkSprite {
   if (p.age >= 65) return f ? "elderF" : "elder";
   return f ? "woman" : "man";
 }
-const HIPS: Partial<Record<FolkSprite, [number, number]>> = { man: [0.45, 0.63], farmer: [0.38, 0.66], porter: [0.47, 0.65], builder: [0.45, 0.64], woodcutter: [0.5, 0.62], mason: [0.42, 0.62], elder: [0.45, 0.7], robber: [0.47, 0.72] };
+const HIPS: Partial<Record<FolkSprite, [number, number]>> = { man: [0.45, 0.63], farmer: [0.28, 0.66], porter: [0.47, 0.65], builder: [0.45, 0.64], woodcutter: [0.5, 0.62], mason: [0.42, 0.62], elder: [0.45, 0.7], robber: [0.47, 0.72] };
 const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride"] as FolkSprite[]);
 const TOOL_WORK: ReadonlySet<FolkSprite> = new Set(["farmer", "farmerF", "woodcutter", "woodcutterF", "mason", "masonF", "builder", "builderF"] as FolkSprite[]);
 /** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
@@ -419,7 +419,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const k = folkOf(q), im = folkImage(k); if (!im) return null;
   const kid = k === "child", hgt = kid ? 3.2 + q.p.age * 0.08 : 5.2;
   const w = (hgt * im.naturalWidth) / im.naturalHeight;
-  const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + q.p.id;
+  const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + hash(q.p.id, 77, 5) * 6.2832;
   const painted = q.walking && (!!walkSheet(k) || legsFor(q));
   const bob = q.walking ? Math.abs(Math.sin(ph)) * 0.07 : 0;
   // working: asymmetric tool rhythm — slow wind-up, quick stroke, short rest (not a pendulum)
@@ -475,6 +475,12 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
 function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
   // workers sharing one site door stand apart instead of stacking (stable per person)
   if (q.working) { const a = hash(q.p.id, 911, 3) * 6.283; X += Math.cos(a) * 3.2; Y += Math.sin(a) * 1.6; }
+  // walkers keep a stable lane beside the path centre, so people on the same route walk side by side, not stacked
+  else if (q.walking) {
+    const sx = q.dir[0] - q.dir[1], sy = (q.dir[0] + q.dir[1]) / 2, l = Math.hypot(sx, sy) || 1;
+    const lane = (hash(q.p.id, 913, 7) - 0.5) * 5;
+    X += (-sy / l) * lane; Y += (sx / l) * lane * 0.5;
+  }
   const sp = drawFolk(c, X, Y, q, t);
   if (sp) { if (q.talk !== null && q.talkTurn) bubble(c, sp[0] + 1.8, sp[1] + 0.6, q.talk); return; }
   c.save(); c.translate(X, Y); c.scale(PERSON_SCALE, PERSON_SCALE); c.translate(-X, -Y);
