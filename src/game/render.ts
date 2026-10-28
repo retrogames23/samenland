@@ -6,7 +6,7 @@ import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, planksPattern, type Tex } from "./nature-sprites";
-import { townPoses, type Pose } from "./people";
+import { townPoses, sickHome, type Pose } from "./people";
 import { folkImage, bannerCloth, type FolkSprite } from "./folk-sprites";
 import { hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -116,6 +116,12 @@ export type Light = { x: number; y: number; r: number; building?: { kind: Kind; 
 
 /** Local clock hour, cached per second (house lights depend on it). */
 let hrCache = { at: 0, hr: 12 };
+/** A candle burns all night in homes nursing a sick villager (same derivation as people.ts). */
+function sickLit(x: number, y: number): boolean {
+  let best: Seed | null = null, bd = Infinity;
+  for (const o of renderSeeds) { const d = Math.hypot(o.x - x, o.y - y); if (d < bd) { bd = d; best = o; } }
+  return !!best && sickHome(best, x * 1024 + y, renderNow);
+}
 const localHour = () => { const n = clock(); if (n - hrCache.at > 1000) { const d = new Date(n); hrCache = { at: n, hr: worldHour(n) }; void d; } return hrCache.hr; };
 /** Hovered / selected villager ids, set by the UI so the canvas can highlight them. */
 export const peopleFocus: { hover: string | null; sel: string | null } = { hover: null, sel: null };
@@ -211,7 +217,7 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
-    if (hasNightSprite(s.kind) && houseLit(s.kind, sd, localHour())) {
+    if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour()) || sickLit(x, y))) {
       L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip } });
     }
     if (["steamworks", "smithy", "bakery", "inn"].includes(s.kind)) {
@@ -330,6 +336,7 @@ function bubble(c: C, x: number, y: number, icon: number) {
 /** Which painted figure represents this villager right now. */
 function folkOf(q: Pose): FolkSprite {
   const p = q.p;
+  if (q.festive) return q.festive;
   if (p.age < 15) return "child";
   if (q.carry) return "porter";
   if (p.job === "builder" || p.job === "woodcutter" || p.job === "mason" || p.job === "farmer" || p.job === "priest") return p.job;

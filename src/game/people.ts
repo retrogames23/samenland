@@ -625,10 +625,10 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   base.x = c0[0]; base.y = c0[1];
   // never show anyone standing on water (shore tiles whose only exits are wet)
   if (!freeAt(t, c0[0], c0[1], seeds)) return { ...base, visible: false };
-  if (e.act === "play") {
+  if (e.act === "play" || e.act === "stroll") {
     // children run little loops – shrunk until the whole loop stays on open ground
     let r = 0.5 + hash(p.id, 1, 810) * 0.4;
-    const w = 0.35 * (hash(p.id, 2, 810) < 0.5 ? 1 : -1), a = tt * w + p.id;
+    const w = (e.act === "stroll" ? 0.14 : 0.35) * (hash(p.id, 2, 810) < 0.5 ? 1 : -1), a = tt * w + p.id;
     const ok = (rr: number) => Array.from({ length: 24 }, (_, k) => k * 0.2618).every((q) => freeAt(t, c0[0] + Math.cos(q) * rr, c0[1] + Math.sin(q) * rr, seeds));
     while (r > 0.12 && !ok(r)) r -= 0.08;
     if (r <= 0.12) return { ...base, dir: [1, 0.3] };
