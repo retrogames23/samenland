@@ -14,3 +14,17 @@ describe("chronicle", () => {
     expect(c.popTo).toBeGreaterThan(c.popFrom);
   });
 });
+
+import { homesBetween, CHRON_DETAIL } from "./chronicle";
+describe("small milestones", () => {
+  it("lists finished homes with a family moving in", () => {
+    const c = chronicle(s, [s], t0 + 20 * 864e5, t0 + 24 * 864e5);
+    const homes = homesBetween(s, [s], t0 + 20 * 864e5, t0 + 24 * 864e5);
+    if (homes.length <= CHRON_DETAIL) expect(c.events.filter((e) => e.code === "house").length).toBe(homes.length);
+    else expect(c.events.some((e) => e.code === "houses")).toBe(true);
+  });
+  it("summarises more than six homes into one line", () => {
+    const c = chronicle(s, [s], t0, t0 + 120 * 864e5);
+    expect(c.events.filter((e) => e.code === "house").length).toBeLessThanOrEqual(CHRON_DETAIL);
+  });
+});
