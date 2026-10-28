@@ -981,6 +981,36 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
 // ---- mid-zoom ground cache: static terrain (+ forests, crags) baked per 32x32-tile chunk ----
 const CH = 32, PAD_TOP = 40;
 const chunkCache = new Map<string, HTMLCanvasElement>();
+// Tiles a town could ever cover: their trees/rocks are drawn live (and cleared by buildings);
+// everywhere else they are baked into ground chunks — same placement either way, so zoom never changes the scene.
+let maskKey = "", mask: { x: number; y: number; r2: number }[] = [];
+function nearTown(x: number, y: number) {
+  const k = renderSeeds.map((s) => s.id + s.x + "," + s.y).join("|");
+  if (k !== maskKey) { maskKey = k; mask = renderSeeds.map((s) => { const r = reachOf(s, radiusOf(30000)) + 4; return { x: s.x, y: s.y, r2: r * r }; }); chunkCache.clear(); }
+  for (const m of mask) { const dx = x - m.x, dy = y - m.y; if (dx * dx + dy * dy <= m.r2) return true; }
+  return false;
+}
+/** Wild trees, bushes, crags and ore rocks of one tile — the single source for every zoom level. */
+function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean) {
+  const tr = terrain(x, y);
+  if (tr === "hill" || tr === "mountain") {
+    const rs = resourceAt(x, y);
+    if (rs) {
+      const n = rs === "stone" ? 2 : 4;
+      const [lit, mid, dark] = rs === "ore" ? ["#b98a6a", "#8a5a3e", "#4e3426"] : rs === "coal" ? ["#5a544e", "#36312d", "#1d1a18"] : ["#b8b2a6", "#8c8679", "#57524a"];
+      for (let i = 0; i < n; i++) rock(g, cx + (hash(x, y, 90 + i) - 0.5) * 14, cy + (hash(x, y, 95 + i) - 0.5) * 6, (rs === "stone" ? 2.6 : 1.4) * (0.7 + hash(x, y, 99 + i) * 0.6), lit, mid, dark, rs === "ore" && i === 0);
+    }
+  }
+  if (!free) return;
+  if (tr === "mountain" && hash(x, y, 26) > 0.55) drawNature(g, "crag", cx + (hash(x, y, 28) - 0.5) * 6, cy + 4, 0.55 + hash(x, y, 27) * 0.5, 0, hash(x, y, 29) > 0.5);
+  if (tr === "forest") {
+    if (hash(x, y, 19) > 0.35) tree(g, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6);
+    tree(g, cx - 5, cy + 3, 0.85 + hash(x, y, 17) * 0.35, t, hash(x, y, 18), x * 13 + y, 0.6);
+  } else if (tr === "grass" || tr === "meadow" || tr === "hill") {
+    if (hash(x, y, 22) > 0.95) tree(g, cx, cy + 1, 0.9, t, hash(x, y, 23), x * 19 + y, 0.2);
+    else if (hash(x, y, 22) > 0.9) drawNature(g, "bush", cx + (hash(x, y, 24) - 0.5) * 12, cy + 2, 0.8 + hash(x, y, 25) * 0.5);
+  }
+}
 function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasElement | null {
   const key = `${ix},${iy},${q},${sk}`;
   const hit = chunkCache.get(key);
@@ -1000,10 +1030,10 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   g.restore();
   let missing = false;
   for (let s = X0 + Y0; s <= X1 + Y1; s++) for (let x = Math.max(X0, s - Y1); x <= Math.min(X1, s - Y0); x++) {
-    const y = s - x, tr = terrain(x, y);
+    const y = s - x;
+    if (nearTown(x, y)) continue;
     const [cx, cy] = iso(x, y);
-    if (tr === "forest" && hash(x, y, 19) > 0.25) tree(g, cx, cy + 2, 0.9 + hash(x, y, 20) * 0.3, 0, hash(x, y, 21), x * 13 + y, 0.6);
-    else if (tr === "mountain" && hash(x, y, 26) > 0.6) drawNature(g, "crag", cx, cy + 4, 0.6 + hash(x, y, 27) * 0.4, 0, hash(x, y, 29) > 0.5);
+    natureAt(g, x, y, cx, cy, 0, true);
   }
   if (!allTexturesReady() || !natureReady()) missing = true;
   (cv as HTMLCanvasElement & { ox?: number; oy?: number }).ox = left;
@@ -1100,13 +1130,13 @@ export function draw(
   const x0 = Math.max(0, Math.min(...cs.map((p) => p[0])) - 2), x1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[0])) + 2);
   const y0 = Math.max(0, Math.min(...cs.map((p) => p[1])) - 2), y1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[1])) + 5);
   // One rendering path at every map zoom: no threshold where trees, house facing or pastures switch.
-  const detail = true;
+  const detail = true, sharp = cam.zoom >= 1.3; // sharp: ground painted per tile (crisper texture only)
   const cs0x = cam.x - w / 2 / z, cs1x = cam.x + w / 2 / z, cs0y = cam.y - h / 2 / z, cs1y = cam.y + h / 2 / z;
   const L: Light[] = [];
   const tiles: { x: number; y: number; cx: number; cy: number; st: Structure | null }[] = [];
 
   let edges: GroundEdge[] = [];
-  if (detail) edges = drawGround(c, x0, x1, y0, y1, t, true);
+  if (sharp) edges = drawGround(c, x0, x1, y0, y1, t, true);
   else drawGroundChunks(c, x0, x1, y0, y1, z, cs0x, cs1x, cs0y, cs1y);
   // frayed edges: a few grass tufts and pebbles breaking up the borderline
   if (detail) {
@@ -1146,14 +1176,8 @@ export function draw(
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square")) { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#cdb084"; diamond(c, cx, cy, 0.85); c.fill(); }
         continue;
       }
-      if (tr === "hill" || tr === "mountain") {
-        const rs = resourceAt(x, y);
-        if (rs) {
-          const n = rs === "stone" ? 2 : 4;
-          const [lit, mid, dark] = rs === "ore" ? ["#b98a6a", "#8a5a3e", "#4e3426"] : rs === "coal" ? ["#5a544e", "#36312d", "#1d1a18"] : ["#b8b2a6", "#8c8679", "#57524a"];
-          for (let i = 0; i < n; i++) rock(c, cx + (hash(x, y, 90 + i) - 0.5) * 14, cy + (hash(x, y, 95 + i) - 0.5) * 6, (rs === "stone" ? 2.6 : 1.4) * (0.7 + hash(x, y, 99 + i) * 0.6), lit, mid, dark, rs === "ore" && i === 0);
-        }
-      }
+      const live = sharp || nearTown(x, y);
+      if (live) natureAt(c, x, y, cx, cy, t, false); // ore rocks
 
       if (!st) continue;
       const sd = x * 1000 + y;
@@ -1259,17 +1283,7 @@ export function draw(
       else if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
       continue; // forests and crags are baked into the ground chunks
     }
-    if (tr === "mountain" && hash(x, y, 26) > 0.55) {
-      const sc = 0.55 + hash(x, y, 27) * 0.5;
-      drawNature(c, "crag", cx + (hash(x, y, 28) - 0.5) * 6, cy + 4, sc, 0, hash(x, y, 29) > 0.5);
-    }
-    if (tr === "forest" && !st) {
-      if (hash(x, y, 19) > 0.35) tree(c, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6);
-      tree(c, cx - 5, cy + 3, 0.85 + hash(x, y, 17) * 0.35, t, hash(x, y, 18), x * 13 + y, 0.6);
-    } else if ((tr === "grass" || tr === "meadow" || tr === "hill") && !st) {
-      if (hash(x, y, 22) > 0.95) tree(c, cx, cy + 1, 0.9, t, hash(x, y, 23), x * 19 + y, 0.2);
-      else if (hash(x, y, 22) > 0.9) drawNature(c, "bush", cx + (hash(x, y, 24) - 0.5) * 12, cy + 2, 0.8 + hash(x, y, 25) * 0.5);
-    }
+    if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true);
     if (st?.flood) drawFlood(c, cx, cy, t, x * 7 + y);
     if (st) drawStructure(c, st, cx, cy, x, y, t, L);
     const rb = robbers.get(y * MAP + x);
