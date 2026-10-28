@@ -806,7 +806,7 @@ export function Game() {
         </div>
       ) : home ? (
         <div className="space-y-2">
-          <p className="text-xs">{t.hasTown.at(home.name, t.realms[home.realm] ?? home.realm)}</p>
+          <p className="text-xs">{t.hasTown.at(home.name, t.realms[home.realm ?? "europe"])}</p>
           <p className="text-xs text-muted-foreground">{t.hasTown.one}</p>
           {home.realm === realm && <Button size="sm" variant="secondary" className="w-full" onClick={() => focus(home.x, home.y)}>{t.hasTown.look}</Button>}
         </div>
