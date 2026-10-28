@@ -410,6 +410,8 @@ function folkOf(q: Pose): FolkSprite {
   return f ? "woman" : "man";
 }
 const HIPS: Partial<Record<FolkSprite, [number, number]>> = { man: [0.45, 0.63], farmer: [0.38, 0.66], porter: [0.47, 0.65], builder: [0.45, 0.64], woodcutter: [0.5, 0.62], mason: [0.42, 0.62], elder: [0.45, 0.7], robber: [0.47, 0.72] };
+const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride"] as FolkSprite[]);
+const TOOL_WORK: ReadonlySet<FolkSprite> = new Set(["farmer", "farmerF", "woodcutter", "woodcutterF", "mason", "masonF", "builder", "builderF"] as FolkSprite[]);
 /** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
 const legsFor = (q: Pose) => !!HIPS[folkOf(q)];
 /** Painted villager sprite: faces the walking direction, bobs while walking, sways while working. */
@@ -419,13 +421,15 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const w = (hgt * im.naturalWidth) / im.naturalHeight;
   const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + q.p.id;
   const painted = q.walking && (!!walkSheet(k) || legsFor(q));
-  const bob = q.walking ? Math.abs(Math.sin(ph)) * (painted ? 0.07 : 0.16) : 0;
+  const bob = q.walking ? Math.abs(Math.sin(ph)) * 0.07 : 0;
   // working: asymmetric tool rhythm — slow wind-up, quick stroke, short rest (not a pendulum)
-  let tilt = q.walking && !painted ? Math.sin(ph) * 0.02 : 0;
-  if (q.working) {
-    const per = q.p.job === "farmer" ? 1900 : 1300, u = ((t + q.p.id * 137) % per) / per;
+  const skirt = q.walking && !painted && SKIRTS.has(k);
+  let tilt = 0;
+  // only trades with a visible tool stroke move while working; everyone else stands still
+  if (q.working && TOOL_WORK.has(k)) {
+    const per = k === "farmer" || k === "farmerF" ? 1900 : 1300, u = ((t + q.p.id * 137) % per) / per;
     const s = u < 0.55 ? u / 0.55 : u < 0.7 ? 1 - (u - 0.55) / 0.15 : 0;
-    tilt = 0.03 - s * s * 0.16;
+    tilt = 0.02 - s * s * 0.1;
   }
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
   c.save(); c.translate(X, Y - bob); if (face < 0) c.scale(-1, 1); c.rotate(tilt);
@@ -447,6 +451,23 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     c.drawImage(legs, f * fw, 0, fw, legs.naturalHeight, -lw * 0.5, -lh, lw, lh);
     const sw = im.naturalWidth, sh = im.naturalHeight;
     c.drawImage(im, 0, 0, sw, sh * hem, -w * hx, -hgt, w, hgt * hem);
+  } else if (skirt) {
+    // long skirt: two painted shoes step out under the hem, the hem sways in strips with the stride
+    const foot = folkImage("footF"), sw = im.naturalWidth, sh = im.naturalHeight, top = 0.86;
+    const sway = Math.sin(ph), fs = hgt * 0.11, fw2 = foot ? (fs * foot.naturalWidth) / foot.naturalHeight : 0;
+    const drawFoot = (s: number) => {
+      if (!foot) return;
+      const fx = s * sway * w * 0.16, lift = Math.max(0, Math.cos(ph) * s) * hgt * 0.025;
+      c.drawImage(foot, fx - fw2 * 0.45, bob - fs - lift + hgt * 0.02, fw2, fs);
+    };
+    drawFoot(-1); drawFoot(1);
+    c.drawImage(im, 0, 0, sw, sh * top, -w / 2, -hgt, w, hgt * top);
+    const N = 4;
+    for (let i = 0; i < N; i++) {
+      const a = top + ((1 - top) * i) / N, b = top + ((1 - top) * (i + 1)) / N;
+      const dx = sway * w * 0.035 * ((i + 1) / N);
+      c.drawImage(im, 0, sh * a, sw, sh * (b - a) + 0.5, -w / 2 + dx, -hgt + hgt * a, w, hgt * (b - a) + 0.05);
+    }
   } else c.drawImage(im, -w / 2, -hgt, w, hgt);
   c.restore();
   return [X, Y - hgt - bob];
