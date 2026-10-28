@@ -125,6 +125,8 @@ export function Game() {
   useEffect(() => { setSignposts(signs); }, [signs]);
   const [plantings, setPlantings] = useState<Planting[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  /** the player's own village, wherever it stands — one account plants exactly one seed */
+  const [home, setHome] = useState<Seed | null>(null);
   const [lang, setLang] = useState<Lang>("de");
   const t = DICT[lang];
   const mine = seeds.find((s) => userId && s.user_id === userId)?.id ?? null;
@@ -187,6 +189,7 @@ export function Game() {
   };
   /** Entering seed mode: if the view centre is unplantable (hills, water), glide to the nearest free valley. */
   const startSeedMode = () => {
+    if (home) { setMsg(t.alreadyHave); return; }
     setPlantAsk(null);
     setMode("seed");
     const [cx, cy] = toTile(cam.current.x, cam.current.y);
@@ -201,6 +204,15 @@ export function Game() {
   const [ptr, setPtr] = useState<[number, number] | null>(null);
   const [plantAsk, setPlantAsk] = useState<[number, number] | null>(null);
   const [planting, setPlanting] = useState(false);
+  // one seed per account, on any map: find the player's village wherever it was planted
+  useEffect(() => {
+    if (!userId) { setHome(null); return; }
+    let live = true;
+    supabase.from("seeds").select("*").eq("user_id", userId).limit(1).then(({ data }) => {
+      if (live && data?.[0]) setHome(data[0] as Seed);
+    });
+    return () => { live = false; };
+  }, [userId]);
 
   useEffect(() => {
     const saved = localStorage.getItem("samenland-lang");
@@ -492,11 +504,17 @@ export function Game() {
       .select()
       .single();
     setPlanting(false);
-    if (error?.code === "23505") { setPlantAsk(null); return setMsg(t.alreadyHave); }
-    if (error || !data) return setMsg(t.plantFail);
+    // whatever the outcome, the seed is no longer held in the hand
     setPlantAsk(null);
-    setSeeds((s) => [...s, data as Seed]);
+    setPtr(null);
+    setHover(null);
     setMode("look");
+    if (error?.code === "23505") { setTab(null); return setMsg(t.alreadyHave); }
+    if (error || !data) return setMsg(t.plantFail);
+    setHome(data as Seed);
+    setSeeds((s) => [...s, data as Seed]);
+    setTab(null);
+    focus(x, y);
     setMsg(t.planted(data.name));
   };
 
