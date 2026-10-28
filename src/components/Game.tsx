@@ -198,6 +198,8 @@ export function Game() {
     }
   };
   const [ptr, setPtr] = useState<[number, number] | null>(null);
+  const [plantAsk, setPlantAsk] = useState<[number, number] | null>(null);
+  const [planting, setPlanting] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("samenland-lang");
@@ -462,26 +464,27 @@ export function Game() {
       if (!form.name.trim() || !form.owner.trim()) return setMsg(t.needNames);
       const err = canPlant(x, y, seeds);
       if (err) return setMsg(plantError(t, err));
-      const { data, error } = await supabase
-        .from("seeds")
-        .insert({
-          name: form.name.trim(),
-          owner: form.owner.trim(),
-          x,
-          y,
-          hue: Math.floor(Math.random() * 360),
-          user_id: userId,
-          realm,
-        })
-        .select()
-        .single();
-      if (error?.code === "23505") return setMsg(t.alreadyHave);
-      if (error || !data) return setMsg(t.plantFail);
-      setSeeds((s) => [...s, data as Seed]);
-      setMode("look");
-      setMsg(t.planted(data.name));
+      setPlantAsk([x, y]);
     } else if (mode === "tree" || mode === "flower" || mode === "lantern") {
-      const my = seeds.find((s) => s.id === mine);
+  const plantNow = async () => {
+    if (!plantAsk || !userId) return;
+    const [x, y] = plantAsk;
+    setPlanting(true);
+    const { data, error } = await supabase
+      .from("seeds")
+      .insert({ name: form.name.trim(), owner: form.owner.trim(), x, y, hue: Math.floor(Math.random() * 360), user_id: userId, realm })
+      .select()
+      .single();
+    setPlanting(false);
+    if (error?.code === "23505") { setPlantAsk(null); return setMsg(t.alreadyHave); }
+    if (error || !data) return setMsg(t.plantFail);
+    setPlantAsk(null);
+    setSeeds((s) => [...s, data as Seed]);
+    setMode("look");
+    setMsg(t.planted(data.name));
+  };
+
+  const my = seeds.find((s) => s.id === mine);
       if (!my) return;
       if (Math.hypot(x - my.x, y - my.y) > radiusOf(effAge(my, seeds, clock())) + 3)
         return setMsg(t.nearOnly);
