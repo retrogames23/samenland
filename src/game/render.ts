@@ -380,6 +380,7 @@ function folkOf(q: Pose): FolkSprite {
   if (q.festive) return q.festive;
   if (p.age < 15) return "child";
   if (q.carry) return "porter";
+  if (p.job === "builder" && p.sex === "f") return "builderF";
   if (p.job === "builder" || p.job === "woodcutter" || p.job === "mason" || p.job === "farmer" || p.job === "priest") return p.job;
   if (p.age >= 65) return "elder";
   return p.sex === "f" ? "woman" : "man";
@@ -400,6 +401,8 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   return [X, Y - hgt - bob];
 }
 function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
+  // workers sharing one site door stand apart instead of stacking (stable per person)
+  if (q.working) { const a = hash(q.p.id, 911, 3) * 6.283; X += Math.cos(a) * 3.2; Y += Math.sin(a) * 1.6; }
   const sp = drawFolk(c, X, Y, q, t);
   if (sp) { if (q.talk !== null && q.talkTurn) bubble(c, sp[0] + 1.8, sp[1] + 0.6, q.talk); return; }
   c.save(); c.translate(X, Y); c.scale(PERSON_SCALE, PERSON_SCALE); c.translate(-X, -Y);
