@@ -23,6 +23,8 @@ export type Person = {
   role?: Role; hh?: number;
   /** Marriage (derived from the wedding calendar): spouse id, wedding time, maiden name, craft alliance. */
   spouse?: number; wedAt?: number; maiden?: string; alliance?: boolean;
+  /** Birth household of a local couple that founded a new home (their parents live there). */
+  origin?: number;
 };
 export type Role = "head" | "spouse" | "child" | "elder" | "lodger" | "mayor";
 export type Wedding = { at: number; a: Person; b: Person; alliance: boolean };
@@ -225,16 +227,33 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
     const ageK = effAge(s, seeds, at);
     const free = people.filter((p) => (p.role === "child" || p.role === "lodger") && p.age >= 17 && p.age <= 45 && p.spouse == null && bornAt(p.home[0], p.home[1], s) <= ageK);
     const men = free.filter((p) => p.sex === "m"), women = free.filter((p) => p.sex === "f");
-    if (!men.length || !women.length) return;
-    const g = men[Math.floor(hash(k, s.x, 990) * men.length)]!;
-    const bs = women.filter((w) => w.hh !== g.hh);
-    if (!bs.length) return;
-    const b = bs[Math.floor(hash(k, s.y, 991) * bs.length)]!;
-    const fa = heads.get(g.hh!), fb = heads.get(b.hh!);
-    const alliance = !!fa && !!fb && CRAFT.has(fa.job) && CRAFT.has(fb.job);
-    g.spouse = b.id; b.spouse = g.id; g.wedAt = b.wedAt = at; g.alliance = b.alliance = alliance;
-    b.maiden = b.last; b.last = g.last; b.home = g.home;
-    out.push({ at, a: g, b, alliance });
+    const g = men.length ? men[Math.floor(hash(k, s.x, 990) * men.length)]! : null;
+    const bs = g ? women.filter((w) => w.hh !== g.hh) : [];
+    if (g && bs.length) {
+      const b = bs[Math.floor(hash(k, s.y, 991) * bs.length)]!;
+      const fa = heads.get(g.hh!), fb = heads.get(b.hh!);
+      const alliance = !!fa && !!fb && CRAFT.has(fa.job) && CRAFT.has(fb.job);
+      g.spouse = b.id; b.spouse = g.id; g.wedAt = b.wedAt = at; g.alliance = b.alliance = alliance;
+      b.maiden = b.last; b.last = g.last; b.home = g.home;
+      out.push({ at, a: g, b, alliance });
+      return;
+    }
+    // no singles yet: the young couple of the newest home are children of two older village families
+    const homes = [...heads.values()].filter((h) => h.age <= 40 && h.wedAt == null && bornAt(h.home[0], h.home[1], s) <= ageK)
+      .sort((p, q) => bornAt(q.home[0], q.home[1], s) - bornAt(p.home[0], p.home[1], s));
+    for (const h of homes) {
+      const sp = people.find((q) => q.hh === h.hh && q.role === "spouse");
+      const older = [...heads.values()].filter((o) => o.hh !== h.hh && o.age >= h.age + 18 && bornAt(o.home[0], o.home[1], s) < bornAt(h.home[0], h.home[1], s));
+      if (!sp || older.length < 2) continue;
+      const pa = older[Math.floor(hash(k, s.x, 992) * older.length)]!, pbList = older.filter((o) => o !== pa), pb = pbList[Math.floor(hash(k, s.y, 993) * pbList.length)]!;
+      const [m, f] = h.sex === "m" ? [h, sp] : [sp, h];
+      m.origin = pa.hh; f.origin = pb.hh; f.maiden = pb.last; m.last = pa.last; f.last = pa.last;
+      for (const q of people) if (q.hh === h.hh) q.last = pa.last;
+      const alliance = CRAFT.has(pa.job) && CRAFT.has(pb.job);
+      m.spouse = f.id; f.spouse = m.id; m.wedAt = f.wedAt = at; m.alliance = f.alliance = alliance;
+      out.push({ at, a: m, b: f, alliance });
+      return;
+    }
   });
   return out;
 }
@@ -243,9 +262,11 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
 export function kinOf(p: Person, t: Town) {
   const by = new Map(t.people.map((q) => [q.id, q]));
   const spouse = p.spouse != null ? by.get(p.spouse) ?? null : t.people.find((q) => q !== p && q.hh === p.hh && ((p.role === "head" && q.role === "spouse") || (p.role === "spouse" && q.role === "head"))) ?? null;
-  const parents = p.role === "child" ? t.people.filter((q) => q.hh === p.hh && (q.role === "head" || q.role === "spouse")) : [];
-  const children = p.role === "head" || p.role === "spouse" ? t.people.filter((q) => q.hh === p.hh && q.role === "child") : [];
-  const siblings = p.role === "child" ? t.people.filter((q) => q !== p && q.hh === p.hh && q.role === "child") : [];
+  const parent = (q: Person) => q.role === "head" || q.role === "spouse";
+  const birth = p.role === "child" ? p.hh : p.origin;
+  const parents = birth != null ? t.people.filter((q) => q.hh === birth && parent(q)) : [];
+  const children = parent(p) ? t.people.filter((q) => (q.hh === p.hh && q.role === "child" && q.origin == null) || q.origin === p.hh) : [];
+  const siblings = birth != null ? t.people.filter((q) => q !== p && ((q.hh === birth && q.role === "child") || (q.origin === birth && q.origin !== undefined))) : [];
   return { spouse, parents, children, siblings };
 }
 
