@@ -4,6 +4,7 @@
  */
 import { effAge, stageOf, radiusOf, reachOf, LANDMARKS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
 import { taxEarned } from "./economy";
+import { townOf } from "./people";
 import { seasonAt, type Season } from "./season";
 
 export type ChronEvent =
@@ -44,7 +45,8 @@ export type Chronicle = { from: number; to: number; events: ChronEvent[]; popFro
 /** Show the automatic letter after this long away; a quiet banner after a day. */
 export const CHRON_LETTER = 5 * 864e5, CHRON_BANNER = 864e5, CHRON_MAX = 120 * 864e5;
 const STEP = 6 * 3.6e6;
-const pop = (h: number) => Math.floor(3 + 0.9 * Math.pow(radiusOf(Math.max(0, h)), 1.6));
+/** Real residents: everyone living in a finished home (same list the map shows). */
+const pop = (s: Seed, seeds: Seed[], t: number) => townOf(s, seeds, t).people.length;
 const dominant = (now: number) => { const w = seasonAt(now); return (Object.keys(w) as Season[]).reduce((a, b) => (w[b] > w[a] ? b : a)); };
 
 export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chronicle {
@@ -73,5 +75,5 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
     ev.push({ at: to, code: "houses", n: homes.length }, { at: to, code: "families", n: homes.length });
   } else for (const h of homes) ev.push({ at: h.at, code: "house", kind: h.kind, x: h.x, y: h.y }, { at: Math.min(to, h.at + 6e5), code: "family", x: h.x, y: h.y });
   ev.sort((a, b) => a.at - b.at);
-  return { from, to, events: ev, popFrom: pop(effAge(s, seeds, from)), popTo: pop(effAge(s, seeds, to)), taler: taxEarned(s, to) - taxEarned(s, from) };
+  return { from, to, events: ev, popFrom: pop(s, seeds, from), popTo: pop(s, seeds, to), taler: taxEarned(s, to) - taxEarned(s, from) };
 }

@@ -576,6 +576,7 @@ export function Game() {
   const cash = my ? treasury(my, purchases, now) : 0;
   const at = my ? attributes(my, seeds, purchases, now) : null;
   const pop = my ? dailyTax(my, ageHours(my, now)) : 0;
+  const residents = my ? townOf(my, seeds, now).people.length : 0;
   const sw = seasonAt(now);
   const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
   const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
@@ -893,7 +894,7 @@ export function Game() {
                 </span>
                 <span className="hidden text-xs font-normal text-primary sm:inline">{t.perDay(pop)}</span>
               </div>
-              <div className="hidden text-sm sm:block">{t.people(pop)}</div>
+              <div className="hidden text-sm sm:block">{t.people(residents)}</div>
               <div className="hidden gap-3 lg:flex">
                 {(["food", "health", "wealth"] as const).map((k) => (
                   <div key={k} className="w-20 text-xs">
