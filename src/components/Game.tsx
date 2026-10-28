@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townOf, poseOf, kinOf, type Person } from "@/game/people";
+import { traitsOf, thoughtOf } from "@/game/traits";
 import { weddingJoy, DOWRY } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
 import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, X, LogIn } from "lucide-react";
@@ -1221,6 +1222,21 @@ export function Game() {
                   {row(t.fest.kinParents, kin.parents)}{row(t.fest.kinChildren, kin.children)}{row(t.fest.kinSiblings, kin.siblings)}
                 </div>
               )}
+              {(() => {
+                const sickOne = who.carer != null ? tw.people.find((x) => x.id === who.carer) : null;
+                const carer = who.sick ? tw.people.find((x) => x.carer === who.id) : null;
+                const sw = seasonAt(now), season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
+                const hr = worldHour(now);
+                const th = thoughtOf(who.id, { act: q.act, working: q.working || q.act === "work", sick: !!who.sick, caring: who.carer != null, sunday: isSunday(now), season, newlywed: !!who.wedAt && now - who.wedAt < 7 * 864e5, baby: tw.people.some((x) => x.hh === who.hh && x.age <= 1 && x.role === "child") && who.age >= 18, child: who.job === "child", night: hr < 5.5 || hr >= 22 }, now);
+                return (
+                  <div className="mt-1 space-y-0.5 text-xs">
+                    <div><span className="text-muted-foreground">{t.person.traitsL}: </span>{traitsOf(who.id).map((k) => t.person.traits[k]).join(", ")}</div>
+                    {carer && <div>{t.person.sickBy("")}{kl(carer)}</div>}
+                    {sickOne && <div>{t.person.caresFor("")}{kl(sickOne)}</div>}
+                    <div className="font-['Caveat'] text-base leading-tight">{t.person.thoughts[th]}</div>
+                  </div>
+                );
+              })()}
               <div className="text-xs text-muted-foreground">{t.livesIn(who.seed.name)} – {q.carry && q.dest ? t.carrying(q.carry, q.dest) : t.act[q.walking && q.act !== "play" ? "walking" : q.act]}</div>
             </div>
           );
