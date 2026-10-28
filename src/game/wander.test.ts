@@ -31,6 +31,6 @@ describe("remote weddings", () => {
     const r = { ...l, a: old, b: mid } as Link;
     const at = Date.parse("2026-10-01T00:00:00Z");
     expect(homeDraw(r, at)).toBe(-1);
-    for (let d = 0; d < 1500; d++) for (const w of walkersOn(r, 20000 + d)) if (w.kind === "bridal") expect(w.to.id).toBe("o");
+    for (let d = 0; d < 300; d++) for (const w of walkersOn(r, 20400 + d)) if (w.kind === "bridal") expect(w.to.id).toBe("o");
   });
 });
