@@ -1,5 +1,5 @@
 import { worldHour, clock } from "./time";
-import { sheepPose } from "./animals";
+import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
 import { roadMotion, screenFacing } from "./motion";
 import { walkersNow, walkProgress, type Walker } from "./wander";
 import { houseLit, candleFlicker } from "./night";
@@ -260,9 +260,9 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
       line(c, p(-0.48, 0.48, 1.5), p(0.48, 0.48, 1.5), sd, 0.5, "#6b4a32");
       line(c, p(0.48, -0.48, 1.5), p(0.48, 0.48, 1.5), sd + 1, 0.5, "#6b4a32");
       c.globalAlpha = 1;
-      if (v > 0.35) {
-        const n = v > 0.7 ? 3 : 2;
-        const flock = Array.from({ length: n }, (_, k) => ({ k, m: sheepPose(sd, k, renderNow) })).sort((a, b) => a.m.dy - b.m.dy);
+      // with villagers on the tile, sheep and people are resolved and depth-sorted together in pass 2
+      if (v > 0.35 && !sharedPasture.has(sd)) {
+        const flock = sheepSpots(sd, v, renderNow).sort((a, b) => a.m.dy - b.m.dy);
         for (const { k, m } of flock) {
           drawSheep(c, cx + m.dx, cy + m.dy, m.flip, t + k * 1700, m.walking, m.graze, m.sleeping);
         }
@@ -271,6 +271,8 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
 
 }
 
+/** Pasture tiles (x*1000+y) whose sheep are drawn with the villagers standing there. */
+const sharedPasture = new Set<number>();
 const LAYER: Record<string, number> = { deep: 0, water: 0, sand: 1, fertile: 2, meadow: 3, grass: 4, hill: 5, forest: 6, mountain: 7 };
 const LAYER_T = ["water", "sand", "fertile", "meadow", "grass", "hill", "forest", "mountain"];
 const NB8: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
@@ -1497,16 +1499,23 @@ export function draw(
     }
     if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true);
     if (st?.flood) drawFlood(c, cx, cy, t, x * 7 + y);
+    const fk = folk.get(y * MAP + x);
+    const sdT = x * 1000 + y, flock = fk && st?.kind === "pasture" && st.build === undefined ? sheepSpots(sdT, st.v, now) : [];
+    if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
     if (st) drawStructure(c, st, cx, cy, x, y, t, L);
     const rb = robbers.get(y * MAP + x);
     if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2]); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
     if (signMap.has(y * MAP + x)) drawSignpost(c, cx, cy, x * 13 + y);
-    const fk = folk.get(y * MAP + x);
     if (fk) {
-      fk.sort((a, b) => a.x + a.y - b.x - b.y);
-      for (const q of fk) {
-        const [px, py] = iso(q.x, q.y);
+      // personal space: people step aside for each other and for sheep; standing folk yield less than walkers
+      type Item = Body & { q?: Pose; sh?: (typeof flock)[number] };
+      const items: Item[] = fk.map((q) => { const [px, py] = iso(q.x, q.y); return { x: px, y: py, r: q.p.age < 15 ? FOOT.child : FOOT.adult, give: q.walking ? 1 : 0.5, q }; });
+      for (const sh of flock) items.push({ x: cx + sh.m.dx, y: cy + sh.m.dy, r: FOOT.sheep, give: 0.15, sh });
+      separate(items).sort((a, b) => a.y - b.y);
+      for (const it of items) {
+        if (it.sh) { const m = it.sh.m; drawSheep(c, it.x, it.y, m.flip, t + it.sh.k * 1700, m.walking, m.graze, m.sleeping); continue; }
+        const q = it.q!, px = it.x, py = it.y;
         const pk = `${q.p.seed.id}:${q.p.id}`, sel = peopleFocus.sel === pk, hov = peopleFocus.hover === pk;
         if (sel || hov) {
           const pulse = 0.5 + Math.sin(t / 300) * 0.15;
@@ -1567,8 +1576,10 @@ export function draw(
       const [dx, dy] = motion.direction;
       const from = fwd ? l.a : l.b, to = fwd ? l.b : l.a, ex = tradeProfile(from, now).exports;
       const good = ex[Math.floor(hash(sn, k, 5) * ex.length)] ?? null, cart = !twin && hash(sn, k, 3) < 0.55; // twins: porters walk straight from workshop to workshop
-      if (cart) { drawCart(c, x, y, dx, dy, bob, sn + k, "", t); }
-      else drawWanderer(c, x, y, dx, dy, t, sn + k, good ? CARRY_OF[good] : null);
+      // oncoming traffic passes on the right: carts keep a wide lane, walkers the verge
+      const [ox, oy] = keepRight(dx, dy, cart ? 3.2 : 4.2);
+      if (cart) { drawCart(c, x + ox, y + oy, dx, dy, bob, sn + k, "", t); }
+      else drawWanderer(c, x + ox, y + oy, dx, dy, t, sn + k, good ? CARRY_OF[good] : null);
       lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
     }
     // journeymen and messengers on their way to the neighbour
@@ -1579,7 +1590,8 @@ export function draw(
       const [tx, ty] = l.tiles[m.index]!;
       const st = structureAt(tx, ty, seeds, now);
       if (!st || (st.kind !== "road" && st.kind !== "bridge")) continue;
-      const [x, y] = m.position;
+      const cartW = w.kind === "family" || w.kind === "gift" || w.kind === "aid", [ox2, oy2] = keepRight(m.direction[0], m.direction[1], cartW ? 3.2 : 4.2);
+      const x = m.position[0] + ox2, y = m.position[1] + oy2;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
       if (w.kind === "family" || w.kind === "gift" || w.kind === "aid") { drawCart(c, x, y, m.direction[0], m.direction[1], Math.sin(t / 220) * 0.3, w.sd, "", t * 0.8); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: true, walker: w }); continue; }
       drawWanderer(c, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" || w.kind === "letter" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? (w.sex === "m" ? "groom" : "bride") : undefined);
