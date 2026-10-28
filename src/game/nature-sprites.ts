@@ -16,6 +16,9 @@ import fir from "@/assets/sprites/fir.webp";
 import birch from "@/assets/sprites/birch.webp";
 import crag from "@/assets/sprites/crag.webp";
 import bush from "@/assets/sprites/bush.webp";
+import boulder from "@/assets/sprites/boulder.webp";
+import oreRock from "@/assets/sprites/ore-rock.webp";
+import coalRock from "@/assets/sprites/coal-rock.webp";
 
 type C = CanvasRenderingContext2D;
 export type Tex = "grass" | "meadow" | "forest" | "sand" | "water" | "fertile" | "rock" | "dirt" | "cobble" | "wheat" | "crops";
@@ -57,6 +60,9 @@ const NATURE = {
   birch: { url: birch, crop: [0, 0, 459, 744], width: 15 },
   crag: { url: crag, crop: [0, 0, 791, 669], width: 40 },
   bush: { url: bush, crop: [0, 0, 490, 454], width: 9 },
+  boulder: { url: boulder, crop: [0, 0, 360, 223], width: 12 },
+  ore: { url: oreRock, crop: [0, 0, 360, 240], width: 11 },
+  coal: { url: coalRock, crop: [0, 0, 360, 239], width: 11 },
 } satisfies Record<string, Sprite>;
 export type NatureKind = keyof typeof NATURE;
 /** True once every tree/rock sprite has loaded (used before caching baked ground). */
