@@ -968,6 +968,44 @@ function drawBridgeSpan(c: C, A: Pt, B: Pt, sd: number, t: number) {
 
 
 type GroundEdge = { x: number; y: number; cx: number; cy: number; tr: string; r: number; coast: boolean };
+/** Surf along the water line: wet sand, a resting foam lace and waves that roll in, break and fade. */
+function drawSurf(c: C, shore: { a: Pt; b: Pt; w: Pt }[], t: number, live: boolean) {
+  c.save(); c.lineCap = "round";
+  const segs = shore.map((s) => {
+    const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], l = Math.hypot(dx, dy) || 1;
+    let nx = -dy / l, ny = dx / l;
+    const mx = (s.a[0] + s.b[0]) / 2, my = (s.a[1] + s.b[1]) / 2;
+    if (nx * (s.w[0] - mx) + ny * (s.w[1] - my) < 0) { nx = -nx; ny = -ny; }
+    return { ...s, nx, ny: ny * 0.6, mx, my };
+  });
+  const line = (d: number, w: number, col: string, list = segs) => {
+    c.beginPath(); for (const s of list) { c.moveTo(s.a[0] + s.nx * d, s.a[1] + s.ny * d); c.lineTo(s.b[0] + s.nx * d, s.b[1] + s.ny * d); }
+    c.strokeStyle = col; c.lineWidth = w; c.stroke();
+  };
+  // wet, darkened sand just above the water line
+  line(-1.2, 2.6, "rgba(50,42,28,0.22)");
+  line(0.2, 1.2, "rgba(28,40,36,0.3)");
+  // resting foam lace hugging the bank
+  line(0.9, 0.7, `rgba(236,240,232,${live ? 0.42 + 0.1 * Math.sin(t / 1300) : 0.38})`);
+  if (live) {
+    // three wave fronts, each rolling in from ~6 px out, cresting and breaking on the bank
+    const B = 6;
+    for (let w = 0; w < 3; w++) {
+      const buckets: typeof segs[] = Array.from({ length: B }, () => []);
+      for (const s of segs) {
+        const ph = ((t / 5200 + w / 3 + vnoise(s.mx * 0.02, s.my * 0.02, 5) * 0.6) % 1 + 1) % 1;
+        buckets[Math.min(B - 1, Math.floor(ph * B))]!.push(s);
+      }
+      buckets.forEach((list, i) => {
+        if (!list.length) return;
+        const ph = (i + 0.5) / B, d = (1 - ph) * 6 + 0.6, a = Math.sin(ph * Math.PI) * (ph > 0.75 ? 0.75 : 0.45);
+        line(d, 0.5 + ph * 0.9, `rgba(240,244,236,${a.toFixed(3)})`, list);
+        if (ph > 0.8) line(d - 0.6, 1.6, `rgba(250,252,246,${(a * 0.4).toFixed(3)})`, list); // broken surf spreading on the sand
+      });
+    }
+  }
+  c.restore();
+}
 /** Water + layered land for a tile range; returns border tiles for frayed edges. */
 function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: number, detail: boolean): GroundEdge[] {
   // ---- pass 0: one continuous water surface under everything (no tile seams) ----
@@ -1006,45 +1044,75 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
     for (const [dx, dy] of NB8) { const o = terrain(x + dx, y + dy); const q = LAYER[o]!; if (q < low) low = q; if (isWater(o)) coast = true; }
     if (low < r) { const [cx, cy] = iso(x, y); edges.push({ x, y, cx, cy, tr: terrain(x, y), r, coast }); }
   }
-  const cross = (ax: number, ay: number, bx: number, by: number, L: number): Pt => {
-    // a = inside tile, b = outside tile; position depends only on the edge, so neighbours agree
-    const mx = (ax + bx) / 2, my = (ay + by) / 2;
-    const n = vnoise(mx * 0.9, my * 0.9, 71 + L) * 0.6 + vnoise(mx * 2.3, my * 2.3, 83 + L) * 0.4;
-    const f = 0.5 + (n - 0.5) * 0.8;
+  // Soft membership field per layer: a blurred "is at least layer L" indicator plus a little noise.
+  // Contours are interpolated where it crosses 0.5, so borders curve instead of following tile steps.
+  const ind = (x: number, y: number, L: number) => L_(x, y) >= L ? 1 : 0;
+  const memo = new Float32Array(GW * GH * 8).fill(-1);
+  const M = (x: number, y: number, L: number) => {
+    const k = ((y - gy0) * GW + (x - gx0)) * 8 + L; const hv = memo[k]!; if (hv >= 0) return hv;
+    let s = ind(x, y, L) * 4, w = 4;
+    for (const [dx, dy] of NB8) {
+      const nx = x + dx, ny = y + dy; if (nx < gx0 || ny < gy0 || nx >= gx0 + GW || ny >= gy0 + GH) continue;
+      const f = dx && dy ? 0.5 : 1; s += ind(nx, ny, L) * f; w += f;
+    }
+    const v = s / w + (vnoise(x * 0.7, y * 0.7, 71) - 0.5) * 0.22;
+    memo[k] = v; return v;
+  };
+  const cross = (ax: number, ay: number, ma: number, bx: number, by: number, mb: number): Pt => {
+    const f = Math.max(0.08, Math.min(0.92, (0.5 - ma) / (mb - ma || 1e-6)));
     const p = iso(ax + (bx - ax) * f, ay + (by - ay) * f); return [p[0], p[1]];
   };
-  const shore: [Pt, Pt][] = [];
+  const shore: { a: Pt; b: Pt; w: Pt }[] = [];
   for (let L = 1; L <= 7; L++) {
     c.beginPath();
     let any = false;
     for (let y = gy0; y < gy0 + GH - 1; y++) for (let x = gx0; x < gx0 + GW - 1; x++) {
       const cs: [number, number][] = [[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]];
-      const v = cs.map(([a, b]) => L_(a, b));
-      const mn = Math.min(...v), mx = Math.max(...v);
-      if (mx < L || mn > L) continue; // empty, or fully covered by the next layer
+      const m = cs.map(([a, b]) => M(a, b, L));
+      if (Math.max(...m) < 0.5) continue;
       const pts: Pt[] = [], xs: Pt[] = [];
       for (let k = 0; k < 4; k++) {
         const [ax, ay] = cs[k]!, [bx, by] = cs[(k + 1) & 3]!;
-        const ia = v[k]! >= L, ib = v[(k + 1) & 3]! >= L;
+        const ia = m[k]! >= 0.5, ib = m[(k + 1) & 3]! >= 0.5;
         if (ia) { const p = iso(ax, ay); pts.push([p[0], p[1]]); }
-        if (ia !== ib) { const q = ia ? cross(ax, ay, bx, by, L) : cross(bx, by, ax, ay, L); pts.push(q); xs.push(q); }
+        if (ia !== ib) { const q = cross(ax, ay, m[k]!, bx, by, m[(k + 1) & 3]!); pts.push(q); xs.push(q); }
       }
       if (pts.length < 3) continue;
       any = true;
       c.moveTo(pts[0]![0], pts[0]![1]); for (let k = 1; k < pts.length; k++) c.lineTo(pts[k]![0], pts[k]![1]); c.closePath();
-      if (L === 1 && mn === 0) for (let k = 0; k + 1 < xs.length; k += 2) shore.push([xs[k]!, xs[k + 1]!]);
+      if (L === 1 && xs.length >= 2) {
+        let wx = 0, wy = 0, n = 0;
+        cs.forEach(([a, b], k) => { if (m[k]! < 0.5) { const p = iso(a, b); wx += p[0]; wy += p[1]; n++; } });
+        for (let k = 0; k + 1 < xs.length; k += 2) shore.push({ a: xs[k]!, b: xs[k + 1]!, w: [wx / n, wy / n] });
+      }
     }
     if (!any) continue;
+    if (L === 1 && shore.length) {
+      // shallow water: the sandy bed shimmers through before the bank begins
+      c.save(); c.lineCap = "round"; c.lineJoin = "round";
+      const band = (w: number, a: number, tex: Tex) => { c.beginPath(); for (const s of shore) { c.moveTo(s.a[0], s.a[1]); c.lineTo(s.b[0], s.b[1]); } c.globalAlpha = a; c.strokeStyle = texture(c, tex) ?? "#c8b48a"; c.lineWidth = w; c.stroke(); };
+      band(9, 0.22, "sand"); band(5, 0.3, "sand");
+      c.restore();
+      c.beginPath();
+      // re-trace the layer path (stroke consumed the current path)
+      for (let y = gy0; y < gy0 + GH - 1; y++) for (let x = gx0; x < gx0 + GW - 1; x++) {
+        const cs: [number, number][] = [[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]];
+        const m = cs.map(([a, b]) => M(a, b, 1));
+        if (Math.max(...m) < 0.5) continue;
+        const pts: Pt[] = [];
+        for (let k = 0; k < 4; k++) {
+          const [ax, ay] = cs[k]!, [bx, by] = cs[(k + 1) & 3]!;
+          const ia = m[k]! >= 0.5, ib = m[(k + 1) & 3]! >= 0.5;
+          if (ia) { const p = iso(ax, ay); pts.push([p[0], p[1]]); }
+          if (ia !== ib) pts.push(cross(ax, ay, m[k]!, bx, by, m[(k + 1) & 3]!));
+        }
+        if (pts.length < 3) continue;
+        c.moveTo(pts[0]![0], pts[0]![1]); for (let k = 1; k < pts.length; k++) c.lineTo(pts[k]![0], pts[k]![1]); c.closePath();
+      }
+    }
     c.fillStyle = texture(c, TEX_OF[LAYER_T[L]!]!) ?? "#7a8a50"; c.fill();
   }
-  // shoreline: soft dark wet band with a faint breathing glint, drawn only along the real water line
-  if (shore.length) {
-    c.lineCap = "round";
-    const stroke = (w: number, col: string) => { c.beginPath(); for (const [p, q] of shore) { c.moveTo(p[0], p[1]); c.lineTo(q[0], q[1]); } c.strokeStyle = col; c.lineWidth = w; c.stroke(); };
-    stroke(4, "rgba(30,40,32,0.12)");
-    stroke(1.6, "rgba(30,36,28,0.2)");
-    if (detail) stroke(2.4, `rgba(235,240,230,${0.05 + 0.04 * Math.sin(t / 1400)})`);
-  }
+  if (shore.length) drawSurf(c, shore, t, detail);
   return edges;
 }
 
@@ -1286,7 +1354,25 @@ export function draw(
         // Neighbouring plots merge into one acre: fill slightly past the tile, edge only towards non-fields.
         const ac = acreOf(x, y, st.seed), ripe = st.kind === "field" && ac.ripe;
         const q = [pp(-0.52, -0.52), pp(0.52, -0.52), pp(0.52, 0.52), pp(-0.52, 0.52)];
-        c.beginPath(); q.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath();
+        const sameA = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && o.kind === st.kind && acreOf(x + i, y + j, o.seed).id === ac.id; };
+        // organic acre outline: outer sides bow gently, outer corners are rounded off
+        const NS: [number, number][] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+        const outer = NS.map(([i, j]) => !sameA(i, j));
+        const lerp = (a: Pt, b: Pt, f: number): Pt => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+        const round = (k: number) => outer[(k + 3) & 3]! && outer[k]!;
+        c.beginPath();
+        const st0 = round(0) ? lerp(q[0]!, q[1]!, 0.35) : q[0]!; c.moveTo(st0[0], st0[1]);
+        for (let k = 0; k < 4; k++) {
+          const A = q[k]!, Bq = q[(k + 1) & 3]!, Cq = q[(k + 2) & 3]!, k1 = (k + 1) & 3;
+          const end = round(k1) ? lerp(Bq, A, 0.35) : Bq;
+          if (outer[k]) {
+            const mid = lerp(A, Bq, 0.5), wob = (hash(x * 2 + NS[k]![0], y * 2 + NS[k]![1], 77) - 0.5) * 0.25;
+            const ctl = lerp(mid, [cx, cy], wob);
+            c.quadraticCurveTo(ctl[0], ctl[1], end[0], end[1]);
+          } else c.lineTo(end[0], end[1]);
+          if (round(k1)) { const nx = lerp(Bq, Cq, 0.35); c.quadraticCurveTo(Bq[0], Bq[1], nx[0], nx[1]); }
+        }
+        c.closePath();
         c.fillStyle = texture(c, ripe ? "wheat" : "crops") ?? hsl(ripe ? 44 : 80, 50, 60); c.fill();
         const same = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && o.kind === st.kind && acreOf(x + i, y + j, o.seed).id === ac.id; };
         if (st.kind === "field") {
@@ -1299,9 +1385,14 @@ export function draw(
           }
           c.restore();
         }
-        c.strokeStyle = "rgba(70,52,30,0.4)"; c.lineWidth = 0.9; c.lineCap = "round";
-        const sides: [number, number, number, number][] = [[0, -1, 0, 1], [1, 0, 1, 2], [0, 1, 2, 3], [-1, 0, 3, 0]];
-        for (const [i, j, a, b] of sides) if (!same(i, j)) { c.beginPath(); c.moveTo(q[a]![0], q[a]![1]); c.lineTo(q[b]![0], q[b]![1]); c.stroke(); }
+        // field balk: a few grass tufts along the outer edges instead of a ruled line
+        c.strokeStyle = "rgba(78,96,46,0.5)"; c.lineWidth = 0.35; c.lineCap = "round"; c.beginPath();
+        for (let k = 0; k < 4; k++) if (outer[k] && !same(NS[k]![0], NS[k]![1])) for (let n = 0; n < 3; n++) {
+          const f = 0.2 + 0.3 * n + (hash(x, y, 500 + k * 3 + n) - 0.5) * 0.15;
+          const p = lerp(q[k]!, q[(k + 1) & 3]!, f);
+          for (let b = -1; b <= 1; b++) { c.moveTo(p[0] + b * 0.35, p[1]); c.lineTo(p[0] + b * 0.7, p[1] - 0.9 - hash(x + b, y + n, 510 + k) * 0.6); }
+        }
+        c.stroke();
       } else if (st.kind === "pasture") {
         c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
         c.fillStyle = texture(c, "meadow") ?? hsl(84, 34, 70, 0.6); c.fill();
