@@ -500,6 +500,7 @@ export function bornAt(x: number, y: number, s: Seed): number {
   return tileBirth(Math.hypot(dx, dy)) * (0.75 + 0.5 * hash(x, y, 3));
 }
 
+const ROAD_YIELDS: ReadonlySet<Kind> = new Set<Kind>(["field", "garden", "pasture", "hay", "fence"]);
 let cacheKey = "";
 const scache = new Map<number, Structure | null>();
 export function structureAt(x: number, y: number, seeds: Seed[], now: number): Structure | null {
