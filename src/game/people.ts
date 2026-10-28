@@ -2,6 +2,7 @@ import { cacheTick, isSunday } from "./time";
 import { weddingTimes, weddingJoy } from "./weddings";
 import { hasTrait } from "./traits";
 import { pathHeading } from "./motion";
+import { leaversOf } from "./wander";
 import { worldHour } from "./time";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
@@ -157,7 +158,14 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const workTiles = (["workshop", "warehouse", "market", "markethall", "manufactory", "guildhall", "smithy", "sawmill"] as Kind[]).flatMap((k) => byKind.get(k) ?? []);
   const people: Person[] = [];
   const created = Date.parse(s.created_at);
+  // households that moved to a neighbour: their house stands empty until newcomers arrive (never the oldest core homes)
+  const empty = new Set<string>();
+  if (homes.length > 6) for (const w of leaversOf(s, seeds, now)) {
+    const hm = homes[3 + Math.floor(hash(w.sd, 5, 1508) * (homes.length - 3))]!;
+    empty.add(hm.join(","));
+  }
   for (const home of homes) {
+    if (empty.has(home.join(","))) continue;
     const kind = structureAt(home[0], home[1], seeds, now)!.kind;
     const [lo, hi] = HOMES[kind]!;
     const hh = (i: number) => hash(home[0], home[1], 400 + i);

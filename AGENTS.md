@@ -42,3 +42,4 @@
 - Disasters (src/game/disasters.ts): fires, floods and raids are a pure calendar from (seed id, time window) plus purchases; structureAt applies burning/rebuild/flood via tileHits, raid losses are mirrored by DB village_raids — never store disaster state, so all clients and the treasury agree.
 - Mentor bonus (mentorHours in world.ts) is derived from links + creation dates and added to effAge outside TRADE_CAP; never stored — late joiners catch up identically on every client.
 - Journeymen and messengers between towns (src/game/wander.ts) are a pure calendar from road + UTC day; never stored — all clients see the same walkers.
+- Family moves (wander.ts "family") empty a source house for VACANT_DAYS; derived, not stored.

@@ -34,3 +34,14 @@ describe("remote weddings", () => {
     for (let d = 0; d < 300; d++) for (const w of walkersOn(r, 20400 + d)) if (w.kind === "bridal") expect(w.to.id).toBe("o");
   });
 });
+
+describe("family moves", () => {
+  it("families only move toward the more attractive town", async () => {
+    const { homeDraw: hd } = await import("./wander");
+    for (let d = 0; d < 600; d++) for (const w of walkersOn(l, 20000 + d)) if (w.kind === "family") {
+      const dir = hd(l, (20000 + d) * 864e5);
+      expect(dir).not.toBe(0);
+      expect(w.to.id).toBe(dir > 0 ? l.b.id : l.a.id);
+    }
+  });
+});
