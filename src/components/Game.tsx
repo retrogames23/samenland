@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
-import { townOf, poseOf, type Person } from "@/game/people";
+import { townOf, poseOf, kinOf, type Person } from "@/game/people";
+import { weddingJoy, DOWRY } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
 import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, X, LogIn } from "lucide-react";
 import { Panel, WoodButton } from "@/components/hud/Panel";
@@ -516,7 +517,7 @@ export function Game() {
   const [scribe, setScribe] = useState<string | null | undefined>(undefined);
   const askScribe = useServerFn(scribeGreeting);
   const chronDone = useRef<string | null>(null);
-  const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(t.items[e.item]?.[0] ?? e.item) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : t.chron.season(t.seasons[e.season]);
+  const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(t.items[e.item]?.[0] ?? e.item) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : e.code === "wedding" ? t.chron.wedding(e.a, e.b) : t.chron.season(t.seasons[e.season]);
   useEffect(() => {
     if (!owner || !my || seeds.length === 0 || chronDone.current === my.id) return;
     chronDone.current = my.id;
@@ -556,9 +557,10 @@ export function Game() {
     return () => window.clearInterval(id);
   }, [owner, my?.id, seeds]);
   const festNow = !anyOpen && !decision.open && !chronOpen ? fest[0] : undefined;
-  const festArt = (e: ChronEvent) => e.code === "house" ? ART["topping"] : e.code === "family" ? ART["newcomers"] : e.code === "road" ? ART["roadopen"] : e.code === "twin" ? ART["charter"] : ART["fair"];
+  const festArt = (e: ChronEvent) => e.code === "wedding" ? ART["wedding"] : e.code === "house" ? ART["topping"] : e.code === "family" ? ART["newcomers"] : e.code === "road" ? ART["roadopen"] : e.code === "twin" ? ART["charter"] : ART["fair"];
   const festText = (e: ChronEvent): [string, string] => {
     const n = my?.name ?? "";
+    if (e.code === "wedding") return [t.fest.wedding, t.fest.wedBody(e.a, e.b, DOWRY) + (e.alliance ? " " + t.fest.wedAlliance : "")];
     if (e.code === "house") return [t.fest.topping[0], t.fest.topping[1](t.kind[e.kind] ?? e.kind, n)];
     if (e.code === "family") return [t.fest.newcomers[0], t.fest.newcomers[1](n)];
     if (e.code === "road") return [t.fest.road[0], t.fest.road[1](e.other)];
@@ -574,9 +576,10 @@ export function Game() {
     setChronBanner(false); setChronOpen(true);
   }
   const cash = my ? treasury(my, purchases, now) : 0;
-  const at = my ? attributes(my, seeds, purchases, now) : null;
+  const myTown = my ? townOf(my, seeds, now) : null;
+  const at = my ? attributes(my, seeds, purchases, now, myTown!.weddings.filter((w) => w.alliance).length) : null;
   const pop = my ? dailyTax(my, ageHours(my, now)) : 0;
-  const residents = my ? townOf(my, seeds, now).people.length : 0;
+  const residents = myTown ? myTown.people.length : 0;
   const sw = seasonAt(now);
   const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
   const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
@@ -902,6 +905,7 @@ export function Game() {
                     <div className="h-1.5 rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${at[k]}%` }} /></div>
                   </div>
                 ))}
+                {my && weddingJoy(my, now) && <span className="self-center text-xs text-primary" title={t.fest.joy}>💍</span>}
               </div>
             </>
           ) : !userId ? (
@@ -1197,7 +1201,12 @@ export function Game() {
         )}
         {who && (() => {
           const now = clock();
-          const q = poseOf(who, townOf(who.seed, seeds, now), seeds, now);
+          const tw = townOf(who.seed, seeds, now);
+          const q = poseOf(who, tw, seeds, now);
+          const kin = kinOf(who, tw);
+          const pick = (p: Person) => { const z = poseOf(p, tw, seeds, now); focus(z.x, z.y); setWho(p); };
+          const kl = (p: Person) => <button key={p.id} type="button" className="underline-offset-2 hover:underline" onClick={() => pick(p)}>{p.first}{p.role === "child" ? ` (${p.age})` : ""}</button>;
+          const row = (label: string, ps: Person[]) => ps.length ? <div><span className="text-muted-foreground">{label}: </span>{ps.map((p, i) => <span key={p.id}>{i ? ", " : ""}{kl(p)}</span>)}</div> : null;
           return (
             <div className="pointer-events-auto w-full max-w-xs rounded-md border-2 border-border bg-card px-3 py-2 shadow-[var(--shadow-panel)] border-wood text-foreground shadow-[var(--shadow-cozy)]">
               <div className="flex items-start justify-between gap-3">
@@ -1205,6 +1214,13 @@ export function Game() {
                 <button type="button" aria-label={t.close} className="text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
               </div>
               <div className="text-sm">{t.personAge(who.age)} · {t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
+              {(kin.spouse || kin.parents.length || kin.children.length || kin.siblings.length || who.maiden) && (
+                <div className="mt-1 space-y-0.5 text-xs">
+                  {kin.spouse && <div>{t.fest.kinSpouse("")}{kl(kin.spouse)}{who.wedAt ? <span className="text-muted-foreground"> · {t.fest.kinWed(new Date(who.wedAt).toLocaleDateString(lang === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "short" }))}</span> : null}</div>}
+                  {who.maiden && <div className="text-muted-foreground">{t.fest.kinMaiden(who.maiden)}</div>}
+                  {row(t.fest.kinParents, kin.parents)}{row(t.fest.kinChildren, kin.children)}{row(t.fest.kinSiblings, kin.siblings)}
+                </div>
+              )}
               <div className="text-xs text-muted-foreground">{t.livesIn(who.seed.name)} – {q.carry && q.dest ? t.carrying(q.carry, q.dest) : t.act[q.walking && q.act !== "play" ? "walking" : q.act]}</div>
             </div>
           );
