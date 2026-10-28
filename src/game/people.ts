@@ -223,7 +223,7 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
   for (const p of people) if (p.role === "head") heads.set(p.hh!, p);
   weddingTimes(s, now).forEach((at, k) => {
     const ageK = effAge(s, seeds, at);
-    const free = people.filter((p) => (p.role === "child" || p.role === "lodger") && p.age >= 18 && p.age <= 36 && p.spouse == null && bornAt(p.home[0], p.home[1], s) <= ageK);
+    const free = people.filter((p) => (p.role === "child" || p.role === "lodger") && p.age >= 17 && p.age <= 45 && p.spouse == null && bornAt(p.home[0], p.home[1], s) <= ageK);
     const men = free.filter((p) => p.sex === "m"), women = free.filter((p) => p.sex === "f");
     if (!men.length || !women.length) return;
     const g = men[Math.floor(hash(k, s.x, 990) * men.length)]!;
