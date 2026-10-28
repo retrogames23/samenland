@@ -1046,32 +1046,22 @@ function drawSurf(c: C, shore: { a: Pt; b: Pt; w: Pt }[], t: number, live: boole
   c.restore();
 }
 /** Water + layered land for a tile range; returns border tiles for frayed edges. */
-function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: number, detail: boolean): GroundEdge[] {
-  // ---- pass 0: one continuous water surface under everything (no tile seams) ----
-  // Two slow, counter-drifting layers that breathe back and forth: calm, never a conveyor belt.
-  // Also laid under shore tiles, so the land outline may curve freely over it.
-  const wA = Math.sin(t / 9000) * 40 + t / 30000, wB = Math.cos(t / 7000) * 30 - t / 45000;
+type GroundGeom = { water: Path2D; deep: Pt[]; layers: (Path2D | null)[]; shoreLines: Path2D | null; shore: { a: Pt; b: Pt; w: Pt }[]; edges: GroundEdge[] };
+const geomCache = new Map<string, GroundGeom>();
+/** Terrain never changes, so the contour geometry of a tile block is built once and reused as Path2D. */
+function groundGeom(x0: number, x1: number, y0: number, y1: number): GroundGeom {
+  const key = `${x0},${x1},${y0},${y1}`;
+  const hit = geomCache.get(key);
+  if (hit) { geomCache.delete(key); geomCache.set(key, hit); return hit; }
   const nearWater = (x: number, y: number) => { if (isWater(terrain(x, y))) return true; for (const [dx, dy] of NB8) if (isWater(terrain(x + dx, y + dy))) return true; return false; };
-  for (let pass = 0; pass < 2; pass++) {
-    const wp = texture(c, "water", pass ? wB : wA);
-    c.globalAlpha = pass ? 0.35 + 0.1 * Math.sin(t / 5000) : 1;
-    c.beginPath();
-    for (let s = x0 + y0; s <= x1 + y1; s++) for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
-      const y = s - x; if (!nearWater(x, y)) continue;
-      const [cx, cy] = iso(x, y);
-      c.moveTo(cx, cy - TH / 2 - 1); c.lineTo(cx + TW / 2 + 1, cy); c.lineTo(cx, cy + TH / 2 + 1); c.lineTo(cx - TW / 2 - 1, cy); c.closePath();
-    }
-    c.fillStyle = wp ?? hsl(190, 30, 32); c.fill();
-  }
-  c.globalAlpha = 1;
+  const water = new Path2D(), deep: Pt[] = [];
   for (let s = x0 + y0; s <= x1 + y1; s++) for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
-    const y = s - x; if (terrain(x, y) !== "deep") continue;
+    const y = s - x;
+    if (terrain(x, y) === "deep") deep.push(iso(x, y) as Pt);
+    if (!nearWater(x, y)) continue;
     const [cx, cy] = iso(x, y);
-    c.fillStyle = "rgba(8,30,40,0.14)"; c.beginPath(); c.ellipse(cx, cy, TW * 0.8, TH * 0.8, 0, 0, 7); c.fill();
+    water.moveTo(cx, cy - TH / 2 - 1); water.lineTo(cx + TW / 2 + 1, cy); water.lineTo(cx, cy + TH / 2 + 1); water.lineTo(cx - TW / 2 - 1, cy); water.closePath();
   }
-  // ---- pass 1: land as stacked layers (sand < fields < meadow < grass < hill < forest < rock).
-  // Each layer is one marching-squares region with noise-shifted crossings, filled as a single
-  // path: borders run continuously across tiles, with no per-tile discs, rings or diamond corners.
   const edges: GroundEdge[] = [];
   const gx0 = x0 - 1, gy0 = y0 - 1, GW = x1 - x0 + 3, GH = y1 - y0 + 3;
   const lay = new Int8Array(GW * GH);
@@ -1102,8 +1092,9 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
     const p = iso(ax + (bx - ax) * f, ay + (by - ay) * f); return [p[0], p[1]];
   };
   const shore: { a: Pt; b: Pt; w: Pt }[] = [];
+  const layers: (Path2D | null)[] = [null];
   for (let L = 1; L <= 7; L++) {
-    c.beginPath();
+    const path = new Path2D();
     let any = false;
     for (let y = gy0; y < gy0 + GH - 1; y++) for (let x = gx0; x < gx0 + GW - 1; x++) {
       const cs: [number, number][] = [[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]];
@@ -1118,41 +1109,57 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
       }
       if (pts.length < 3) continue;
       any = true;
-      c.moveTo(pts[0]![0], pts[0]![1]); for (let k = 1; k < pts.length; k++) c.lineTo(pts[k]![0], pts[k]![1]); c.closePath();
+      path.moveTo(pts[0]![0], pts[0]![1]); for (let k = 1; k < pts.length; k++) path.lineTo(pts[k]![0], pts[k]![1]); path.closePath();
       if (L === 1 && xs.length >= 2) {
         let wx = 0, wy = 0, n = 0;
         cs.forEach(([a, b], k) => { if (m[k]! < 0.5) { const p = iso(a, b); wx += p[0]; wy += p[1]; n++; } });
         for (let k = 0; k + 1 < xs.length; k += 2) shore.push({ a: xs[k]!, b: xs[k + 1]!, w: [wx / n, wy / n] });
       }
     }
-    if (!any) continue;
-    if (L === 1 && shore.length) {
+    layers.push(any ? path : null);
+  }
+  let shoreLines: Path2D | null = null;
+  if (shore.length) { shoreLines = new Path2D(); for (const s of shore) { shoreLines.moveTo(s.a[0], s.a[1]); shoreLines.lineTo(s.b[0], s.b[1]); } }
+  const g = { water, deep, layers, shoreLines, shore, edges };
+  geomCache.set(key, g);
+  while (geomCache.size > 12) geomCache.delete(geomCache.keys().next().value!);
+  return g;
+}
+/** Water + layered land for a tile range; returns border tiles for frayed edges. */
+function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: number, detail: boolean): GroundEdge[] {
+  if (detail) { // live view: snap to 16-tile blocks so panning reuses the cached geometry
+    x0 = Math.max(0, Math.floor(x0 / 16) * 16); y0 = Math.max(0, Math.floor(y0 / 16) * 16);
+    x1 = Math.min(MAP - 1, Math.ceil((x1 + 1) / 16) * 16 - 1); y1 = Math.min(MAP - 1, Math.ceil((y1 + 1) / 16) * 16 - 1);
+  }
+  const G = groundGeom(x0, x1, y0, y1);
+  // ---- pass 0: one continuous water surface under everything (no tile seams) ----
+  // Two slow, counter-drifting layers that breathe back and forth: calm, never a conveyor belt.
+  const wA = Math.sin(t / 9000) * 40 + t / 30000, wB = Math.cos(t / 7000) * 30 - t / 45000;
+  for (let pass = 0; pass < 2; pass++) {
+    const wp = texture(c, "water", pass ? wB : wA);
+    c.globalAlpha = pass ? 0.35 + 0.1 * Math.sin(t / 5000) : 1;
+    c.fillStyle = wp ?? hsl(190, 30, 32); c.fill(G.water);
+  }
+  c.globalAlpha = 1;
+  if (G.deep.length) {
+    c.fillStyle = "rgba(8,30,40,0.14)"; c.beginPath();
+    for (const [cx, cy] of G.deep) { c.moveTo(cx + TW * 0.8, cy); c.ellipse(cx, cy, TW * 0.8, TH * 0.8, 0, 0, 7); }
+    c.fill();
+  }
+  // ---- pass 1: land as stacked layers (sand < fields < meadow < grass < hill < forest < rock).
+  for (let L = 1; L <= 7; L++) {
+    const path = G.layers[L]; if (!path) continue;
+    if (L === 1 && G.shoreLines) {
       // shallow water: the sandy bed shimmers through before the bank begins
       c.save(); c.lineCap = "round"; c.lineJoin = "round";
-      const band = (w: number, a: number, tex: Tex) => { c.beginPath(); for (const s of shore) { c.moveTo(s.a[0], s.a[1]); c.lineTo(s.b[0], s.b[1]); } c.globalAlpha = a; c.strokeStyle = texture(c, tex) ?? "#c8b48a"; c.lineWidth = w; c.stroke(); };
+      const band = (w: number, a: number, tex: Tex) => { c.globalAlpha = a; c.strokeStyle = texture(c, tex) ?? "#c8b48a"; c.lineWidth = w; c.stroke(G.shoreLines!); };
       band(9, 0.22, "sand"); band(5, 0.3, "sand");
       c.restore();
-      c.beginPath();
-      // re-trace the layer path (stroke consumed the current path)
-      for (let y = gy0; y < gy0 + GH - 1; y++) for (let x = gx0; x < gx0 + GW - 1; x++) {
-        const cs: [number, number][] = [[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]];
-        const m = cs.map(([a, b]) => M(a, b, 1));
-        if (Math.max(...m) < 0.5) continue;
-        const pts: Pt[] = [];
-        for (let k = 0; k < 4; k++) {
-          const [ax, ay] = cs[k]!, [bx, by] = cs[(k + 1) & 3]!;
-          const ia = m[k]! >= 0.5, ib = m[(k + 1) & 3]! >= 0.5;
-          if (ia) { const p = iso(ax, ay); pts.push([p[0], p[1]]); }
-          if (ia !== ib) pts.push(cross(ax, ay, m[k]!, bx, by, m[(k + 1) & 3]!));
-        }
-        if (pts.length < 3) continue;
-        c.moveTo(pts[0]![0], pts[0]![1]); for (let k = 1; k < pts.length; k++) c.lineTo(pts[k]![0], pts[k]![1]); c.closePath();
-      }
     }
-    c.fillStyle = texture(c, TEX_OF[LAYER_T[L]!]!) ?? "#7a8a50"; c.fill();
+    c.fillStyle = texture(c, TEX_OF[LAYER_T[L]!]!) ?? "#7a8a50"; c.fill(path);
   }
-  if (shore.length) drawSurf(c, shore, t, detail);
-  return edges;
+  if (G.shore.length) drawSurf(c, G.shore, t, detail);
+  return G.edges;
 }
 
 // ---- mid-zoom ground cache: static terrain (+ forests, crags) baked per 32x32-tile chunk ----
