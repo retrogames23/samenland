@@ -132,9 +132,10 @@ export const peopleFocus: { hover: string | null; sel: string | null } = { hover
 function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking: boolean, graze: boolean, sleeping: boolean) {
   const im = sheepImage(graze && !walking, sleeping); if (!im) return;
   const w = 5.2, h = (w * im.naturalHeight) / im.naturalWidth;
-  const step = walking ? t / 1000 * Math.PI * 2 * 2.2 : 0;
-  const bob = sleeping ? 0 : walking ? Math.abs(Math.sin(step)) * 0.35 : Math.sin(t / 1700) * 0.04;
-  const tilt = walking ? Math.sin(step) * 0.05 : 0;
+  // calm amble: low ground-hugging steps, gentle body roll, slow breathing when still
+  const step = walking ? t / 1000 * Math.PI * 2 * 1.3 : 0;
+  const bob = sleeping ? 0 : walking ? Math.abs(Math.sin(step)) * 0.07 : Math.sin(t / 1700) * 0.03;
+  const tilt = walking ? Math.sin(step * 0.5) * 0.015 : 0;
   c.fillStyle = "rgba(30,36,22,0.3)"; c.beginPath(); c.ellipse(x, y, 2.4 - bob, 0.8, 0, 0, 7); c.fill();
   c.save(); c.translate(x, y - bob); if (flip) c.scale(-1, 1); c.rotate(tilt);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
@@ -270,9 +271,9 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
       c.globalAlpha = 1;
       if (v > 0.35) {
         const n = v > 0.7 ? 3 : 2;
-        for (let k = 0; k < n; k++) {
-          const m = sheepPose(sd, k, renderNow);
-          drawSheep(c, cx + m.dx + (k - 1) * 3, cy + m.dy + (k % 2) * 1.5, m.flip, t + k * 1700, m.walking, m.graze, m.sleeping);
+        const flock = Array.from({ length: n }, (_, k) => ({ k, m: sheepPose(sd, k, renderNow) })).sort((a, b) => a.m.dy - b.m.dy);
+        for (const { k, m } of flock) {
+          drawSheep(c, cx + m.dx, cy + m.dy, m.flip, t + k * 1700, m.walking, m.graze, m.sleeping);
         }
       }
   }
@@ -330,8 +331,10 @@ function drawLoad(c: C, x: number, y: number, dx: number, dy: number, g: TradeGo
 
 /** Painted ox cart, facing the travel direction (screen-space dx). */
 function drawCart(c: C, x: number, y: number, dx: number, dy: number, bob: number, _sd: number, _cover: string, _t: number) {
-  const im = cartImage(); if (!im) return;
-  const w = 15, h = (w * im.naturalHeight) / im.naturalWidth;
+  // heading into the screen (up): rear view, otherwise the front 3/4 view
+  const away = dy < -0.15 * Math.abs(dx);
+  const im = away ? cartBackImage() ?? cartImage() : cartImage(); if (!im) return;
+  const w = away ? 13 : 15, h = (w * im.naturalHeight) / im.naturalWidth;
   c.fillStyle = "rgba(20,15,10,0.28)"; c.beginPath(); c.ellipse(x, y, 6.5, 1.6, 0, 0, 7); c.fill();
   c.save(); c.translate(x, y - bob * 0.3); if (screenFacing(dx, dy) < 0) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
@@ -391,12 +394,24 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const kid = k === "child", hgt = kid ? 3.2 + q.p.age * 0.08 : 5.2;
   const w = (hgt * im.naturalWidth) / im.naturalHeight;
   const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + q.p.id;
-  const bob = q.walking ? Math.abs(Math.sin(ph)) * 0.22 : 0;
-  const tilt = q.walking ? Math.sin(ph) * 0.04 : q.working ? Math.sin(t / 420 + q.p.id) * 0.07 : 0;
+  const bob = q.walking ? Math.abs(Math.sin(ph)) * 0.16 : 0;
+  // working: asymmetric tool rhythm — slow wind-up, quick stroke, short rest (not a pendulum)
+  let tilt = q.walking ? Math.sin(ph) * 0.02 : 0;
+  if (q.working) {
+    const per = q.p.job === "farmer" ? 1900 : 1300, u = ((t + q.p.id * 137) % per) / per;
+    const s = u < 0.55 ? u / 0.55 : u < 0.7 ? 1 - (u - 0.55) / 0.15 : 0;
+    tilt = 0.03 - s * s * 0.16;
+  }
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
   c.save(); c.translate(X, Y - bob); if (face < 0) c.scale(-1, 1); c.rotate(tilt);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  c.drawImage(im, -w / 2, -hgt, w, hgt);
+  if (q.walking) {
+    // stride: upper body steady, legs (lower 40%) swing about the hip
+    const sw = im.naturalWidth, sh = im.naturalHeight, cut = 0.6;
+    c.drawImage(im, 0, 0, sw, sh * cut, -w / 2, -hgt, w, hgt * cut);
+    c.translate(0, -hgt * (1 - cut)); c.transform(1, 0, Math.sin(ph) * 0.32, 1, 0, 0);
+    c.drawImage(im, 0, sh * cut - 1, sw, sh * (1 - cut) + 1, -w / 2, -0.04, w, hgt * (1 - cut) + 0.04);
+  } else c.drawImage(im, -w / 2, -hgt, w, hgt);
   c.restore();
   return [X, Y - hgt - bob];
 }
