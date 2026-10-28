@@ -1006,14 +1006,25 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
     for (const [dx, dy] of NB8) { const o = terrain(x + dx, y + dy); const q = LAYER[o]!; if (q < low) low = q; if (isWater(o)) coast = true; }
     if (low < r) { const [cx, cy] = iso(x, y); edges.push({ x, y, cx, cy, tr: terrain(x, y), r, coast }); }
   }
-  const cross = (ax: number, ay: number, bx: number, by: number, L: number): Pt => {
-    // a = inside tile, b = outside tile; position depends only on the edge, so neighbours agree
-    const mx = (ax + bx) / 2, my = (ay + by) / 2;
-    const n = vnoise(mx * 0.9, my * 0.9, 71 + L) * 0.6 + vnoise(mx * 2.3, my * 2.3, 83 + L) * 0.4;
-    const f = 0.5 + (n - 0.5) * 0.8;
+  // Soft membership field per layer: a blurred "is at least layer L" indicator plus a little noise.
+  // Contours are interpolated where it crosses 0.5, so borders curve instead of following tile steps.
+  const ind = (x: number, y: number, L: number) => L_(x, y) >= L ? 1 : 0;
+  const memo = new Float32Array(GW * GH * 8).fill(-1);
+  const M = (x: number, y: number, L: number) => {
+    const k = ((y - gy0) * GW + (x - gx0)) * 8 + L; const hv = memo[k]!; if (hv >= 0) return hv;
+    let s = ind(x, y, L) * 4, w = 4;
+    for (const [dx, dy] of NB8) {
+      const nx = x + dx, ny = y + dy; if (nx < gx0 || ny < gy0 || nx >= gx0 + GW || ny >= gy0 + GH) continue;
+      const f = dx && dy ? 0.5 : 1; s += ind(nx, ny, L) * f; w += f;
+    }
+    const v = s / w + (vnoise(x * 0.7, y * 0.7, 71) - 0.5) * 0.22;
+    memo[k] = v; return v;
+  };
+  const cross = (ax: number, ay: number, ma: number, bx: number, by: number, mb: number): Pt => {
+    const f = Math.max(0.08, Math.min(0.92, (0.5 - ma) / (mb - ma || 1e-6)));
     const p = iso(ax + (bx - ax) * f, ay + (by - ay) * f); return [p[0], p[1]];
   };
-  const shore: [Pt, Pt][] = [];
+  const shore: { a: Pt; b: Pt; w: Pt }[] = [];
   for (let L = 1; L <= 7; L++) {
     c.beginPath();
     let any = false;
@@ -1021,30 +1032,54 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
       const cs: [number, number][] = [[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]];
       const v = cs.map(([a, b]) => L_(a, b));
       const mn = Math.min(...v), mx = Math.max(...v);
-      if (mx < L || mn > L) continue; // empty, or fully covered by the next layer
+      if (mx < L - 1 || mn > L) continue;
+      const m = cs.map(([a, b]) => M(a, b, L));
+      if (Math.max(...m) < 0.5) continue;
       const pts: Pt[] = [], xs: Pt[] = [];
       for (let k = 0; k < 4; k++) {
         const [ax, ay] = cs[k]!, [bx, by] = cs[(k + 1) & 3]!;
-        const ia = v[k]! >= L, ib = v[(k + 1) & 3]! >= L;
+        const ia = m[k]! >= 0.5, ib = m[(k + 1) & 3]! >= 0.5;
         if (ia) { const p = iso(ax, ay); pts.push([p[0], p[1]]); }
-        if (ia !== ib) { const q = ia ? cross(ax, ay, bx, by, L) : cross(bx, by, ax, ay, L); pts.push(q); xs.push(q); }
+        if (ia !== ib) { const q = cross(ax, ay, m[k]!, bx, by, m[(k + 1) & 3]!); pts.push(q); xs.push(q); }
       }
       if (pts.length < 3) continue;
       any = true;
       c.moveTo(pts[0]![0], pts[0]![1]); for (let k = 1; k < pts.length; k++) c.lineTo(pts[k]![0], pts[k]![1]); c.closePath();
-      if (L === 1 && mn === 0) for (let k = 0; k + 1 < xs.length; k += 2) shore.push([xs[k]!, xs[k + 1]!]);
+      if (L === 1 && xs.length >= 2) {
+        let wx = 0, wy = 0, n = 0;
+        cs.forEach(([a, b], k) => { if (m[k]! < 0.5) { const p = iso(a, b); wx += p[0]; wy += p[1]; n++; } });
+        for (let k = 0; k + 1 < xs.length; k += 2) shore.push({ a: xs[k]!, b: xs[k + 1]!, w: [wx / n, wy / n] });
+      }
     }
     if (!any) continue;
+    if (L === 1 && shore.length) {
+      // shallow water: the sandy bed shimmers through before the bank begins
+      c.save(); c.lineCap = "round"; c.lineJoin = "round";
+      const band = (w: number, a: number, tex: Tex) => { c.beginPath(); for (const s of shore) { c.moveTo(s.a[0], s.a[1]); c.lineTo(s.b[0], s.b[1]); } c.globalAlpha = a; c.strokeStyle = texture(c, tex) ?? "#c8b48a"; c.lineWidth = w; c.stroke(); };
+      band(9, 0.22, "sand"); band(5, 0.3, "sand");
+      c.restore();
+      c.beginPath();
+      // re-trace the layer path (stroke consumed the current path)
+      for (let y = gy0; y < gy0 + GH - 1; y++) for (let x = gx0; x < gx0 + GW - 1; x++) {
+        const cs: [number, number][] = [[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]];
+        const v = cs.map(([a, b]) => L_(a, b));
+        if (Math.max(...v) < 0 || Math.min(...v) > 1) continue;
+        const m = cs.map(([a, b]) => M(a, b, 1));
+        if (Math.max(...m) < 0.5) continue;
+        const pts: Pt[] = [];
+        for (let k = 0; k < 4; k++) {
+          const [ax, ay] = cs[k]!, [bx, by] = cs[(k + 1) & 3]!;
+          const ia = m[k]! >= 0.5, ib = m[(k + 1) & 3]! >= 0.5;
+          if (ia) { const p = iso(ax, ay); pts.push([p[0], p[1]]); }
+          if (ia !== ib) pts.push(cross(ax, ay, m[k]!, bx, by, m[(k + 1) & 3]!));
+        }
+        if (pts.length < 3) continue;
+        c.moveTo(pts[0]![0], pts[0]![1]); for (let k = 1; k < pts.length; k++) c.lineTo(pts[k]![0], pts[k]![1]); c.closePath();
+      }
+    }
     c.fillStyle = texture(c, TEX_OF[LAYER_T[L]!]!) ?? "#7a8a50"; c.fill();
   }
-  // shoreline: soft dark wet band with a faint breathing glint, drawn only along the real water line
-  if (shore.length) {
-    c.lineCap = "round";
-    const stroke = (w: number, col: string) => { c.beginPath(); for (const [p, q] of shore) { c.moveTo(p[0], p[1]); c.lineTo(q[0], q[1]); } c.strokeStyle = col; c.lineWidth = w; c.stroke(); };
-    stroke(4, "rgba(30,40,32,0.12)");
-    stroke(1.6, "rgba(30,36,28,0.2)");
-    if (detail) stroke(2.4, `rgba(235,240,230,${0.05 + 0.04 * Math.sin(t / 1400)})`);
-  }
+  if (shore.length) drawSurf(c, shore, t, detail);
   return edges;
 }
 
