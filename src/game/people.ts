@@ -44,7 +44,7 @@ export type Pose = {
   dir: [number, number]; phase: number; act: Activity; working: boolean;
   talk: number | null; talkTurn: boolean;
   carry: Good | null; dest: Dest | null;
-  festive?: "bride" | "groom";
+  festive?: "bride" | "groom" | undefined;
 };
 
 const F = ["Greta", "Ida", "Frieda", "Lotte", "Marie", "Anna", "Clara", "Hedwig", "Emma", "Rosa", "Lina", "Mathilda", "Elsa", "Paula", "Wilma", "Martha", "Johanna", "Thea", "Ella", "Luise"];
