@@ -41,3 +41,11 @@ describe("player-chosen building spot", () => {
     expect(cps("school", 400 + 60, 540, s0, [s0], Date.UTC(2026, 0, 2))).toBe("far");
   });
 });
+describe("fisher hut reach", () => {
+  const s0 = { id: "f", name: "F", owner: "o", x: 400, y: 540, hue: 0, created_at: new Date(Date.UTC(2026, 0, 1)).toISOString() };
+  const t = Date.UTC(2026, 0, 2);
+  it("may stand 14 tiles out where a school may not", () => {
+    expect(cps("school", 414, 540, s0, [s0], t)).toBe("far");
+    expect(cps("fisher", 414, 540, s0, [s0], t)).not.toBe("far");
+  });
+});
