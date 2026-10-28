@@ -50,5 +50,5 @@ export function bannerCloth(hue: number): HTMLCanvasElement | null {
 
 /** Painted walk cycles: horizontal strips of WALK_FRAMES frames (contact, down, passing, up, …). */
 export const WALK_FRAMES = 6;
-const WALKS: Partial<Record<FolkSprite, FolkSprite>> = { man: "manWalk" };
+const WALKS: Partial<Record<FolkSprite, FolkSprite>> = {}; // men now use the shared legs-m cycle in render.ts
 export const walkSheet = (k: FolkSprite) => { const w = WALKS[k]; return w ? folkImage(w) : null; };

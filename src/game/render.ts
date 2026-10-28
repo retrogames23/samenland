@@ -398,7 +398,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const kid = k === "child", hgt = kid ? 3.2 + q.p.age * 0.08 : 5.2;
   const w = (hgt * im.naturalWidth) / im.naturalHeight;
   const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + q.p.id;
-  const painted = q.walking && !!walkSheet(k);
+  const painted = q.walking && (!!walkSheet(k) || legsFor(q));
   const bob = q.walking ? Math.abs(Math.sin(ph)) * (painted ? 0.07 : 0.16) : 0;
   // working: asymmetric tool rhythm — slow wind-up, quick stroke, short rest (not a pendulum)
   let tilt = q.walking && !painted ? Math.sin(ph) * 0.02 : 0;
