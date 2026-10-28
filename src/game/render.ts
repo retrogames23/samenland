@@ -1099,7 +1099,8 @@ export function draw(
   const cs = [inv(0, 0), inv(w, 0), inv(0, h), inv(w, h)];
   const x0 = Math.max(0, Math.min(...cs.map((p) => p[0])) - 2), x1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[0])) + 2);
   const y0 = Math.max(0, Math.min(...cs.map((p) => p[1])) - 2), y1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[1])) + 5);
-  const detail = cam.zoom >= 1.3;
+  // One rendering path at every map zoom: no threshold where trees, house facing or pastures switch.
+  const detail = true;
   const cs0x = cam.x - w / 2 / z, cs1x = cam.x + w / 2 / z, cs0y = cam.y - h / 2 / z, cs1y = cam.y + h / 2 / z;
   const L: Light[] = [];
   const tiles: { x: number; y: number; cx: number; cy: number; st: Structure | null }[] = [];
