@@ -1,6 +1,7 @@
 import { worldHour, clock } from "./time";
 import { sheepPose } from "./animals";
 import { roadMotion, screenFacing } from "./motion";
+import { walkersNow, walkProgress, type Walker } from "./wander";
 import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
@@ -343,7 +344,7 @@ const PANTS = ["#3e362f", "#4b4e55", "#5a4736", "#363d47"];
 const PERSON_SCALE = 0.55;
 /** Screen-space people currently drawn (for clicking). */
 /** Screen-space traders on trade roads (for clicking). */
-export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean }[] = [];
+export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean; walker?: Walker }[] = [];
 export const lastPeople: { x: number; y: number; q: Pose }[] = [];
 /** Sound-emitting structures drawn this frame (world-screen coords), read by the audio mixer. */
 export const lastSources: { x: number; y: number; k: string }[] = [];
@@ -1333,6 +1334,18 @@ export function draw(
       if (cart) { drawCart(c, x, y, dx, dy, bob, sn + k, "", t); if (good) drawLoad(c, x, y - bob * 0.3, dx, dy, good); }
       else drawWanderer(c, x, y, dx, dy, t, sn + k, good ? CARRY_OF[good] : null);
       lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
+    }
+    // journeymen and messengers on their way to the neighbour
+    if (n >= 2) for (const w of walkersNow(l, now)) {
+      const end = n - 1, pr = walkProgress(w, now) * end, fwd = w.from.id === l.a.id;
+      const m = roadMotion(pts, fwd ? pr : 2 * end - pr);
+      const [tx, ty] = l.tiles[m.index]!;
+      const st = structureAt(tx, ty, seeds, now);
+      if (!st || (st.kind !== "road" && st.kind !== "bridge")) continue;
+      const [x, y] = m.position;
+      if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
+      drawWanderer(c, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" ? 1.4 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null);
+      lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w });
     }
   }
 

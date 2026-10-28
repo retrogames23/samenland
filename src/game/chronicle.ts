@@ -7,6 +7,7 @@ import { taxEarned } from "./economy";
 import { dowryEarned } from "./weddings";
 import { fires, floods, raids, raidLoss } from "./disasters";
 import { townOf } from "./people";
+import { journeymenTo } from "./wander";
 import { seasonAt, type Season } from "./season";
 
 export type ChronEvent =
@@ -23,7 +24,9 @@ export type ChronEvent =
   | { at: number; code: "wedding"; a: string; b: string; alliance: boolean; x: number; y: number }
   | { at: number; code: "fire"; guarded: boolean; water: boolean; dead: boolean; x: number; y: number }
   | { at: number; code: "flood"; x: number; y: number }
-  | { at: number; code: "raid"; loss: number; caught: boolean; x: number; y: number };
+  | { at: number; code: "raid"; loss: number; caught: boolean; x: number; y: number }
+  | { at: number; code: "journeyman"; name: string; craft: string; sex: "f" | "m"; other: string }
+  | { at: number; code: "journeymen"; n: number };
 
 /** Homes whose completion brings a family (mirrors HOMES in people.ts). */
 export const HOME_KINDS = new Set<Kind>(["hut", "suburb", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement"] as Kind[]);
@@ -85,6 +88,9 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   for (const f of fires(s, to)) if (f.at > from) ev.push({ at: f.at, code: "fire", guarded: f.guarded, water: f.water, dead: f.dead, x: f.x, y: f.y });
   for (const f of floods(s, to)) if (f.at > from) ev.push({ at: f.at, code: "flood", x: f.x, y: f.y });
   for (const r of raids(s, to)) if (r.at > from) ev.push({ at: r.at, code: "raid", loss: r.loss, caught: r.caught, x: s.x, y: s.y });
+  const jm = journeymenTo(s, seeds, from, to);
+  if (jm.length > CHRON_DETAIL) ev.push({ at: to, code: "journeymen", n: jm.length });
+  else for (const w of jm) ev.push({ at: w.t1, code: "journeyman", name: w.name, craft: w.craft, sex: w.sex, other: w.from.name });
   ev.sort((a, b) => a.at - b.at);
   return { from, to, events: ev, popFrom: pop(s, seeds, from), popTo: pop(s, seeds, to), taler: taxEarned(s, to) - taxEarned(s, from) + dowryEarned(s, to) - dowryEarned(s, from) - raidLoss(s, to) + raidLoss(s, from) };
 }
