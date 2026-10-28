@@ -228,7 +228,7 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
     const free = people.filter((p) => (p.role === "child" || p.role === "lodger") && p.age >= 17 && p.age <= 45 && p.spouse == null && bornAt(p.home[0], p.home[1], s) <= ageK);
     const men = free.filter((p) => p.sex === "m"), women = free.filter((p) => p.sex === "f");
     const g = men.length ? men[Math.floor(hash(k, s.x, 990) * men.length)]! : null;
-    const bs = g ? women.filter((w) => w.hh !== g.hh) : [];
+    const bs = g ? women.filter((w) => w.hh !== g.hh && w.last !== g.last) : [];
     if (g && bs.length) {
       const b = bs[Math.floor(hash(k, s.y, 991) * bs.length)]!;
       const fa = heads.get(g.hh!), fb = heads.get(b.hh!);
@@ -247,7 +247,7 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
       if (!sp || !older.length) continue;
       const pa = older[Math.floor(hash(k, s.x, 992) * older.length)]!, pbList = older.filter((o) => o !== pa), pb = pbList[Math.floor(hash(k, s.y, 993) * pbList.length)]!;
       const [m, f] = h.sex === "m" ? [h, sp] : [sp, h];
-      m.origin = pa.hh; f.origin = pb.hh; f.maiden = pb.last; m.last = pa.last; f.last = pa.last;
+      m.origin = pa.hh!; f.origin = pb.hh!; f.maiden = pb.last; m.last = pa.last; f.last = pa.last;
       for (const q of people) if (q.hh === h.hh) q.last = pa.last;
       const alliance = CRAFT.has(pa.job) && CRAFT.has(pb.job);
       m.spouse = f.id; f.spouse = m.id; m.wedAt = f.wedAt = at; m.alliance = f.alliance = alliance;
