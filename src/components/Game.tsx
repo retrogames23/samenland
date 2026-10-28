@@ -19,7 +19,7 @@ import { Minimap } from "@/components/hud/Minimap";
 import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen } from "lucide-react";
+import { BookOpen, ArrowLeft } from "lucide-react";
 import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/game/audio";
 import {
@@ -1072,6 +1072,11 @@ export function Game() {
               <I className="h-5 w-5" /><span className="text-[10px] leading-none">{label}</span>
             </WoodButton>
           ))}
+          {(tab || placing) && (
+            <WoodButton label={t.hud.close} onClick={() => { setTab(null); setPlacing(null); }} className="h-11 flex-1 flex-col gap-0.5 md:h-14 md:w-14 md:flex-none">
+              <ArrowLeft className="h-5 w-5" /><span className="text-[10px] leading-none">{t.hud.close}</span>
+            </WoodButton>
+          )}
         </Panel>
       </div>
       {tab && (
