@@ -103,9 +103,10 @@ if (typeof window !== "undefined") { img(boatUrl); img(planksUrl); }
 export const boatImage = () => img(boatUrl);
 import sheepGraze from "@/assets/sprites/sheep-graze.webp";
 import sheepStand from "@/assets/sprites/sheep-stand.webp";
-if (typeof window !== "undefined") { img(sheepGraze); img(sheepStand); }
+import sheepSleep from "@/assets/sprites/sheep-sleep.webp";
+if (typeof window !== "undefined") { img(sheepGraze); img(sheepStand); img(sheepSleep); }
 /** Painted sheep sprite (facing right, feet at bottom), null while loading. */
-export const sheepImage = (graze: boolean) => img(graze ? sheepGraze : sheepStand);
+export const sheepImage = (graze: boolean, sleeping = false) => img(sleeping ? sheepSleep : graze ? sheepGraze : sheepStand);
 import cartUrl from "@/assets/sprites/cart.webp";
 import wandererUrl from "@/assets/sprites/wanderer.webp";
 if (typeof window !== "undefined") { img(cartUrl); img(wandererUrl); }
