@@ -1,4 +1,5 @@
 import { worldHour, clock } from "./time";
+import { sheepPose } from "./animals";
 import { roadMotion, screenFacing } from "./motion";
 import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
@@ -120,33 +121,17 @@ const localHour = () => { const n = clock(); if (n - hrCache.at > 1000) { const 
 export const peopleFocus: { hover: string | null; sel: string | null } = { hover: null, sel: null };
 
 /** Small shaded sheep (~hip height of a villager). Walking adds a trotting bob and nod; standing grazes. */
-function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking: boolean, graze: boolean) {
-  const im = sheepImage(graze && !walking); if (!im) return;
+function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking: boolean, graze: boolean, sleeping: boolean) {
+  const im = sheepImage(graze && !walking, sleeping); if (!im) return;
   const w = 5.2, h = (w * im.naturalHeight) / im.naturalWidth;
   const step = walking ? t / 1000 * Math.PI * 2 * 2.2 : 0;
-  const bob = walking ? Math.abs(Math.sin(step)) * 0.35 : Math.sin(t / 1700) * 0.04;
+  const bob = sleeping ? 0 : walking ? Math.abs(Math.sin(step)) * 0.35 : Math.sin(t / 1700) * 0.04;
   const tilt = walking ? Math.sin(step) * 0.05 : 0;
   c.fillStyle = "rgba(30,36,22,0.3)"; c.beginPath(); c.ellipse(x, y, 2.4 - bob, 0.8, 0, 0, 7); c.fill();
   c.save(); c.translate(x, y - bob); if (flip) c.scale(-1, 1); c.rotate(tilt);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   c.drawImage(im, -w / 2, -h * 0.95, w, h);
   c.restore();
-}
-/** Grazing rhythm: long stands at one tuft, then a short 2–3 s trot to the next. Pure clock function. */
-function sheepAt(sd: number, k: number, t: number): { dx: number; dy: number; walking: boolean; flip: boolean; graze: boolean } {
-  const CYC = 18000 + hash(sd, k, 5) * 14000, WALK_MS = 2200 + hash(sd, k, 6) * 900;
-  const tt = t + hash(sd, k, 7) * CYC, i = Math.floor(tt / CYC), u = tt - i * CYC;
-  const spot = (j: number): [number, number] => [(hash(sd, k * 31 + j, 8) - 0.5) * 10, (hash(sd, k * 31 + j, 9) - 0.5) * 4];
-  const a = spot(i), b = spot(i + 1);
-  const into = u - (CYC - WALK_MS);
-  if (into > 0) {
-    const f = into / WALK_MS, e = f * f * (3 - 2 * f);
-    return { dx: a[0] + (b[0] - a[0]) * e, dy: a[1] + (b[1] - a[1]) * e, walking: true, flip: b[0] < a[0], graze: false };
-  }
-  const prev = spot(i - 1);
-  // mostly head down; looks up briefly now and then
-  const look = Math.sin(u / 2300 + k) > 0.82;
-  return { dx: a[0], dy: a[1], walking: false, flip: a[0] < prev[0], graze: !look };
 }
 
 /** Weathered, half-buried boulder: rounded, lit from the top-left, settled into the ground. */
@@ -243,8 +228,8 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
       if (v > 0.35) {
         const n = v > 0.7 ? 3 : 2;
         for (let k = 0; k < n; k++) {
-          const m = sheepAt(sd, k, t);
-          drawSheep(c, cx + m.dx + (k - 1) * 3, cy + m.dy + (k % 2) * 1.5, m.flip, t + k * 1700, m.walking, m.graze);
+          const m = sheepPose(sd, k, renderNow);
+          drawSheep(c, cx + m.dx + (k - 1) * 3, cy + m.dy + (k % 2) * 1.5, m.flip, t + k * 1700, m.walking, m.graze, m.sleeping);
         }
       }
   }
