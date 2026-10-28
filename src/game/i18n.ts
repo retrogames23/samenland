@@ -225,6 +225,7 @@ const de = {
     goods: { grain: "Getreide", wool: "Wolle", wood: "Holz", ore: "Erz", stone: "Stein", fish: "Fisch", salt: "Salz", hides: "Leder", cloth: "Tuch", ironware: "Eisenwaren", beer: "Bier", timber: "Bauholz" } as Record<string, string>,
   },
   twinWith: (n: string) => `Zwillingsstadt mit ${n}`,
+  mentorBy: (n: string) => `🌱 Lernt von ${n} – wächst im ersten Jahr schneller`,
   twin: {
     title: (a: string, b: string) => `Doppelstadt ${a} ∞ ${b}`,
     intro: "Eure Städte sind zusammengewachsen. Jede behält Namen, Kasse und Charta – besiegelt nun gemeinsam einen Bund.",
@@ -470,6 +471,7 @@ const en: typeof de = {
     goods: { grain: "grain", wool: "wool", wood: "wood", ore: "ore", stone: "stone", fish: "fish", salt: "salt", hides: "hides", cloth: "cloth", ironware: "ironware", beer: "beer", timber: "timber" },
   },
   twinWith: (n) => `Twin town with ${n}`,
+  mentorBy: (n) => `🌱 Learning from ${n} – grows faster in its first year`,
   twin: {
     title: (a, b) => `Twin town ${a} ∞ ${b}`,
     intro: "Your towns have grown together. Each keeps its name, treasury and charter – now seal a pact together.",
