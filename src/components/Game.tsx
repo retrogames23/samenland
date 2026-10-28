@@ -1385,6 +1385,17 @@ export function Game() {
             <Button size="sm" variant="secondary" onClick={() => { setPlacing(null); setMsg(null); }}>{t.cancel}</Button>
           </div>
         )}
+        {placing && hover && ptr && (() => {
+          const own = seeds.find((s) => s.id === mine);
+          if (!own) return null;
+          const err = canPlaceSpecial(placing, hover[0], hover[1], own, seeds, clock()) as keyof typeof t.place | null;
+          const txt = err ? (t.place[err] as string) ?? t.place.ground : t.place.hint;
+          return (
+            <div className="pointer-events-none fixed z-50 max-w-[16rem] rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" style={{ left: ptr[0] + 18, top: ptr[1] + 18 }}>
+              <span className={err ? "text-destructive" : "text-primary"}>{err ? "✕ " : "✓ "}</span>{txt}
+            </div>
+          );
+        })()}
         {mode === "seed" && hover && ptr && (() => {
           const err = canPlant(hover[0], hover[1], seeds);
           let txt = t.seedHint.ok(form.name.trim());
