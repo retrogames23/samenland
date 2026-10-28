@@ -768,7 +768,7 @@ export function mentorOf(s: Seed, seeds: Seed[], now: number): Seed | undefined 
     if (born - Date.parse(o.created_at) < MENTOR_GAP) continue;
     if (l.since < since) { since = l.since; best = o; }
   }
-  return best && now < born + MENTOR_SPAN * 3.6e6 ? best : best && { ...best, id: best.id } ;
+  return best;
 }
 function mentorHours(s: Seed, seeds: Seed[], now: number) {
   const born = Date.parse(s.created_at);
