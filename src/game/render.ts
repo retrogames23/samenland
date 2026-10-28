@@ -445,7 +445,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     c.drawImage(im, 0, 0, sw, sh * hem, -w * hx, -hgt, w, hgt * hem);
   } else if (skirt) {
     // long skirt: two painted shoes step out under the hem, the hem sways in strips with the stride
-    const foot = folkImage("footF"), sw = im.naturalWidth, sh = im.naturalHeight, top = 0.86;
+    const foot = folkImage("footF"), sw = im.naturalWidth, sh = im.naturalHeight, top = 0.8;
     const sway = Math.sin(ph), fs = hgt * 0.11, fw2 = foot ? (fs * foot.naturalWidth) / foot.naturalHeight : 0;
     const drawFoot = (s: number) => {
       if (!foot) return;
@@ -454,9 +454,10 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     };
     drawFoot(-1); drawFoot(1);
     c.drawImage(im, 0, 0, sw, sh * top, -w / 2, -hgt, w, hgt * top);
-    const N = 4;
+    // the sprite's own painted feet (bottom ~7%) are cut off so only the stepping shoes show
+    const N = 4, end = 0.93;
     for (let i = 0; i < N; i++) {
-      const a = top + ((1 - top) * i) / N, b = top + ((1 - top) * (i + 1)) / N;
+      const a = top + ((end - top) * i) / N, b = top + ((end - top) * (i + 1)) / N;
       const dx = sway * w * 0.035 * ((i + 1) / N);
       c.drawImage(im, 0, sh * a, sw, sh * (b - a) + 0.5, -w / 2 + dx, -hgt + hgt * a, w, hgt * (b - a) + 0.05);
     }
