@@ -8,7 +8,7 @@ import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSp
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { folkImage, bannerCloth, type FolkSprite } from "./folk-sprites";
-import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -112,7 +112,7 @@ function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
 }
 
 /** win: a small window pane (rendered as a warm rectangle), otherwise an open flame/forge. */
-export type Light = { x: number; y: number; r: number; building?: { kind: Kind; variant: number; seed: number } };
+export type Light = { x: number; y: number; r: number; building?: { kind: Kind; variant: number; seed: number; flip?: boolean } };
 
 /** Local clock hour, cached per second (house lights depend on it). */
 let hrCache = { at: 0, hr: 12 };
@@ -1331,7 +1331,7 @@ export function draw(
       if (l.building) {
         c.save();
         c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
-        drawBuildingNight(c, l.building.kind, l.x, l.y, l.building.variant, night * fl);
+        drawBuildingNight(c, l.building.kind, l.x, l.y, l.building.variant, night * fl, l.building.flip);
         c.restore();
         continue;
       }
