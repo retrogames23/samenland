@@ -1,4 +1,4 @@
-import { worldHour, clock } from "./time";
+import { worldHour, clock, isSunday } from "./time";
 /**
  * Procedural soundscape (Web Audio, no sample files). The render loop hands in a scene summary a few
  * times per second; this module only mixes — it never touches game state, so worlds stay deterministic.
