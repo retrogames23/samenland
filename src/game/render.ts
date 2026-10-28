@@ -143,22 +143,6 @@ function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking
   c.restore();
 }
 
-/** Weathered, half-buried boulder: rounded, lit from the top-left, settled into the ground. */
-function rock(c: C, x: number, y: number, s: number, lit: string, mid: string, dark: string, glint: boolean) {
-  c.fillStyle = "rgba(30,26,20,0.28)"; c.beginPath(); c.ellipse(x + 0.35 * s, y + 0.15 * s, 1.35 * s, 0.45 * s, 0, 0, 7); c.fill();
-  const g = c.createRadialGradient(x - 0.45 * s, y - 0.75 * s, 0.1 * s, x, y - 0.3 * s, 1.4 * s);
-  g.addColorStop(0, lit); g.addColorStop(0.55, mid); g.addColorStop(1, dark);
-  c.fillStyle = g; c.beginPath();
-  c.moveTo(x - 1.15 * s, y);
-  c.bezierCurveTo(x - 1.2 * s, y - 0.6 * s, x - 0.5 * s, y - 1.05 * s, x + 0.1 * s, y - 0.95 * s);
-  c.bezierCurveTo(x + 0.8 * s, y - 0.85 * s, x + 1.2 * s, y - 0.4 * s, x + 1.1 * s, y);
-  c.bezierCurveTo(x + 0.7 * s, y + 0.3 * s, x - 0.7 * s, y + 0.3 * s, x - 1.15 * s, y);
-  c.fill();
-  c.strokeStyle = "rgba(25,20,16,0.35)"; c.lineWidth = 0.2; c.stroke();
-  // grass creeping over the foot so it sits in the ground
-  c.fillStyle = "rgba(70,88,40,0.45)"; c.beginPath(); c.ellipse(x, y + 0.12 * s, 1.15 * s, 0.22 * s, 0, 0, Math.PI); c.fill();
-  if (glint) { c.fillStyle = "rgba(217,138,74,0.8)"; c.beginPath(); c.ellipse(x - 0.2 * s, y - 0.5 * s, 0.25 * s, 0.12 * s, -0.4, 0, 7); c.fill(); }
-}
 const roofHue = (s: Structure, slate = false) => slate ? [215, 12, 46] : [12 + s.v * 18 + (s.seed.hue % 20) - 10, 48, 50];
 
 
@@ -1086,9 +1070,7 @@ function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number,
   if (tr === "hill" || tr === "mountain") {
     const rs = resourceAt(x, y);
     if (rs) {
-      const n = rs === "stone" ? 2 : 4;
-      const [lit, mid, dark] = rs === "ore" ? ["#b98a6a", "#8a5a3e", "#4e3426"] : rs === "coal" ? ["#5a544e", "#36312d", "#1d1a18"] : ["#b8b2a6", "#8c8679", "#57524a"];
-      for (let i = 0; i < n; i++) rock(g, cx + (hash(x, y, 90 + i) - 0.5) * 14, cy + (hash(x, y, 95 + i) - 0.5) * 6, (rs === "stone" ? 2.6 : 1.4) * (0.7 + hash(x, y, 99 + i) * 0.6), lit, mid, dark, rs === "ore" && i === 0);
+      drawNature(g, rs === "stone" ? "boulder" : rs, cx + (hash(x, y, 90) - 0.5) * 8, cy + 3, 0.75 + hash(x, y, 99) * 0.4, 0, hash(x, y, 95) > 0.5);
     }
   }
   if (!free) return;
