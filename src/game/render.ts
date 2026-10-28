@@ -6,7 +6,7 @@ import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, planksPattern, type Tex } from "./nature-sprites";
-import { townPoses, sickHome, type Pose } from "./people";
+import { townPoses, sickHome, isHomeKind, type Pose } from "./people";
 import { folkImage, bannerCloth, type FolkSprite } from "./folk-sprites";
 import { hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -217,7 +217,7 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
-    if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour()) || sickLit(x, y))) {
+    if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour()) || (isHomeKind(s.kind) && sickLit(x, y)))) {
       L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip } });
     }
     if (["steamworks", "smithy", "bakery", "inn"].includes(s.kind)) {
