@@ -405,7 +405,13 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
   c.save(); c.translate(X, Y - bob); if (face < 0) c.scale(-1, 1); c.rotate(tilt);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  if (q.walking) {
+  const sheet = q.walking ? walkSheet(k) : null;
+  if (sheet) {
+    // real painted walk cycle: frame follows the stride phase (one 2π = two steps)
+    const fw = sheet.naturalWidth / WALK_FRAMES, f = Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES;
+    const ww = (hgt * fw) / sheet.naturalHeight;
+    c.drawImage(sheet, f * fw, 0, fw, sheet.naturalHeight, -ww / 2, -hgt, ww, hgt);
+  } else if (q.walking) {
     // stride: upper body steady, legs (lower 40%) swing about the hip
     const sw = im.naturalWidth, sh = im.naturalHeight, cut = 0.6;
     c.drawImage(im, 0, 0, sw, sh * cut, -w / 2, -hgt, w, hgt * cut);
