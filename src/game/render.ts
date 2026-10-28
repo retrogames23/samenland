@@ -985,22 +985,38 @@ function drawSurf(c: C, shore: { a: Pt; b: Pt; w: Pt }[], t: number, live: boole
   // wet, darkened sand just above the water line
   line(-1.2, 2.6, "rgba(50,42,28,0.22)");
   line(0.2, 1.2, "rgba(28,40,36,0.3)");
-  // resting foam lace hugging the bank
-  line(0.9, 0.7, `rgba(236,240,232,${live ? 0.42 + 0.1 * Math.sin(t / 1300) : 0.38})`);
+  // foam as broken flecks (never ruled lines): noise in world space decides where spume gathers
+  const foam = (d: number, size: number, a: number, list: typeof segs, sd: number, drift = 0) => {
+    if (a <= 0.01) return;
+    c.beginPath();
+    for (const s of list) {
+      const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], n = Math.max(1, Math.round(Math.hypot(dx, dy) / 0.9));
+      for (let i = 0; i < n; i++) {
+        const f = (i + 0.5) / n, bx = s.a[0] + dx * f, by = s.a[1] + dy * f;
+        const v = vnoise(bx * 0.22 + drift, by * 0.4, sd) * 0.7 + vnoise(bx * 0.9, by * 1.3, sd + 3) * 0.3;
+        if (v < 0.5) continue;
+        const jit = (vnoise(bx * 0.5, by * 0.5, sd + 7) - 0.5) * 1.4, r = size * (0.4 + (v - 0.5) * 2.2);
+        const px = bx + s.nx * (d + jit), py = by + s.ny * (d + jit);
+        c.moveTo(px + r, py); c.ellipse(px, py, r, r * 0.45, 0, 0, 7);
+      }
+    }
+    c.fillStyle = `rgba(232,238,230,${a.toFixed(3)})`; c.fill();
+  };
+  // resting lace hugging the bank
+  foam(0.8, 0.55, live ? 0.3 + 0.06 * Math.sin(t / 1300) : 0.28, segs, 11);
   if (live) {
-    // three wave fronts, each rolling in from ~6 px out, cresting and breaking on the bank
-    const B = 6;
-    for (let w = 0; w < 3; w++) {
+    // two swells roll in from ~5 px out, gather into spume and dissolve on the bank
+    const B = 8;
+    for (let w = 0; w < 2; w++) {
       const buckets: typeof segs[] = Array.from({ length: B }, () => []);
       for (const s of segs) {
-        const ph = ((t / 5200 + w / 3 + vnoise(s.mx * 0.02, s.my * 0.02, 5) * 0.6) % 1 + 1) % 1;
+        const ph = ((t / 6400 + w / 2 + vnoise(s.mx * 0.015, s.my * 0.015, 5) * 0.8) % 1 + 1) % 1;
         buckets[Math.min(B - 1, Math.floor(ph * B))]!.push(s);
       }
       buckets.forEach((list, i) => {
         if (!list.length) return;
-        const ph = (i + 0.5) / B, d = (1 - ph) * 6 + 0.6, a = Math.sin(ph * Math.PI) * (ph > 0.75 ? 0.75 : 0.45);
-        line(d, 0.5 + ph * 0.9, `rgba(240,244,236,${a.toFixed(3)})`, list);
-        if (ph > 0.8) line(d - 0.6, 1.6, `rgba(250,252,246,${(a * 0.4).toFixed(3)})`, list); // broken surf spreading on the sand
+        const ph = (i + 0.5) / B, d = (1 - ph) * 5 + 0.9;
+        foam(d, 0.35 + ph * 0.35, Math.sin(ph * Math.PI) * 0.32, list, 21 + w * 5, w * 13 + ph * 2);
       });
     }
   }
