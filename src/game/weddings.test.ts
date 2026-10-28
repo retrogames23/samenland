@@ -1,3 +1,4 @@
+import { raidLoss } from "./disasters";
 import { describe, it, expect } from "vitest";
 import { weddingTimes, dowryEarned, weddingJoy, DOWRY } from "./weddings";
 import { treasury, START_TALER, taxEarned } from "./economy";
@@ -16,7 +17,7 @@ describe("weddings", () => {
     expect(DOWRY).toBe(40);
     const now = c0 + 16 * D;
     expect(dowryEarned(s, now)).toBe(80);
-    expect(treasury(s, [], now)).toBe(START_TALER + taxEarned(s, now) + 80);
+    expect(treasury(s, [], now) + raidLoss(s, now)).toBe(START_TALER + taxEarned(s, now) + 80);
   });
   it("wedding joy lasts 24 hours", () => {
     expect(weddingJoy(s, c0 + 6 * D + 23 * 3.6e6)).toBe(true);
