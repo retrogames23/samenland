@@ -11,6 +11,10 @@ import { Parchment, WaxSeal } from "@/components/hud/Parchment";
 import { ART, pickDecision } from "@/game/decisions";
 import type { DecisionKind } from "@/game/decision-order";
 import { Minimap } from "@/components/hud/Minimap";
+import { chronicle, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
+import { scribeGreeting } from "@/lib/chronicle.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { BookOpen } from "lucide-react";
 import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/game/audio";
 import {
@@ -505,6 +509,39 @@ export function Game() {
     if (k === "road") setRoadOpen(false); else if (k === "charter") setCharterOpen(false); else if (k === "pact") setPactOpen(false); else setEncOpen(false);
   }
   function reopen() { setSnooze({}); }
+  // Village chronicle: derived from time since the last visit (per village, per device)
+  const [chron, setChron] = useState<Chronicle | null>(null);
+  const [chronOpen, setChronOpen] = useState(false);
+  const [chronBanner, setChronBanner] = useState(false);
+  const [scribe, setScribe] = useState<string | null | undefined>(undefined);
+  const askScribe = useServerFn(scribeGreeting);
+  const chronDone = useRef<string | null>(null);
+  const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(t.items[e.item]?.[0] ?? e.item) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : t.chron.season(t.seasons[e.season]);
+  useEffect(() => {
+    if (!owner || !my || seeds.length === 0 || chronDone.current === my.id) return;
+    chronDone.current = my.id;
+    const k = `samenland-seen-${my.id}`, now = clock(), last = Number(localStorage.getItem(k) ?? 0);
+    localStorage.setItem(k, String(now));
+    const save = () => localStorage.setItem(k, String(clock()));
+    window.addEventListener("pagehide", save);
+    if (!last) return;
+    const gap = now - last;
+    if (gap < CHRON_BANNER) return;
+    const c = chronicle(my, seeds, last, now);
+    setChron(c);
+    if (gap >= CHRON_LETTER) {
+      setChronOpen(true);
+      const facts = [...c.events.filter((e) => e.code !== "season").slice(-8).map(chronLine), t.chron.pop(c.popFrom, c.popTo), t.chron.taler(c.taler)];
+      askScribe({ data: { lang, town: my.name, days: Math.floor(gap / 864e5), facts } }).then((r) => setScribe(r.text)).catch(() => setScribe(null));
+    } else { setChronBanner(true); setScribe(null); }
+  }, [owner, my?.id, seeds.length]);
+  function openChron() {
+    if (!my) return;
+    const now = clock();
+    setChron((c) => c ?? chronicle(my, seeds, now - 7 * 864e5, now));
+    setScribe((x) => (x === undefined ? null : x));
+    setChronBanner(false); setChronOpen(true);
+  }
   const cash = my ? treasury(my, purchases, now) : 0;
   const at = my ? attributes(my, seeds, purchases, now) : null;
   const pop = my ? dailyTax(my, ageHours(my, now)) : 0;
@@ -1041,6 +1078,37 @@ export function Game() {
                   </div>
                 </>
               )}
+        </Parchment>
+      )}
+
+      {chronBanner && !chronOpen && (
+        <button type="button" onClick={openChron} className="parchment absolute left-1/2 z-30 -translate-x-1/2 px-4 py-1.5 font-display text-lg text-ink shadow-lg" style={{ top: barH + 8 }}>
+          {t.chron.banner(Math.max(1, Math.floor(((chron?.to ?? 0) - (chron?.from ?? 0)) / 864e5)))}
+        </button>
+      )}
+      {owner && !chronOpen && !chronBanner && (
+        <button type="button" onClick={openChron} title={t.chron.open} aria-label={t.chron.open} className="absolute left-3 z-30 grid h-10 w-10 place-items-center rounded-full border-2 border-border bg-card/90 text-foreground shadow" style={{ top: barH + 8 }}>
+          <BookOpen className="h-5 w-5" />
+        </button>
+      )}
+      {chronOpen && chron && my && (
+        <Parchment title={t.chron.title} later={t.chron.close} onLater={() => setChronOpen(false)}>
+          <p className="text-center text-sm text-ink/70">{t.chron.away(Math.max(1, Math.round((chron.to - chron.from) / 864e5)))}</p>
+          <p className="mt-3 text-center font-display text-xl leading-snug text-ink">{scribe === undefined ? <span className="animate-pulse text-ink/60">{t.chron.writing}</span> : scribe ?? t.chron.greet}</p>
+          <div className="mt-4 flex justify-center gap-4 font-display text-lg text-ink">
+            <span>{t.chron.pop(chron.popFrom, chron.popTo)}</span><span>{t.chron.taler(chron.taler)}</span>
+          </div>
+          {chron.events.length === 0 ? <p className="mt-3 text-center text-sm text-ink/70">{t.chron.quiet}</p> : (
+            <ul className="mt-3 space-y-1 border-l-2 border-ink/20 pl-3">
+              {chron.events.slice(-14).map((e, i) => (
+                <li key={i}>
+                  <button type="button" className="text-left text-sm text-ink hover:underline" onClick={() => { if (e.code === "road") focus(e.x, e.y); else focus(my.x, my.y); setChronOpen(false); }}>
+                    <span className="mr-2 text-ink/60">{new Date(e.at).toLocaleDateString(lang === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "short" })}</span>{chronLine(e)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </Parchment>
       )}
 
