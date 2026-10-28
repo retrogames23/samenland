@@ -782,7 +782,7 @@ export function Game() {
           <Button size="sm" className="w-full" onClick={() => setAuthOpen(true)}>{t.signIn}</Button>
         </div>
       ) : (
-        <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); setMode("seed"); }}>
+        <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); startSeedMode(); }}>
           <Input placeholder={t.townName} maxLength={32} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <Input placeholder={t.yourName} maxLength={32} value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} />
           <p className="text-xs text-muted-foreground">{mode === "seed" ? t.clickLand : t.needNames}</p>
@@ -920,6 +920,7 @@ export function Game() {
             }
           }
           setHover(tileAt(e));
+          if (mode === "seed") setPtr([e.clientX, e.clientY]);
           const hp = mode === "look" && !placing && !drag.current?.moved ? personAt(e) : null;
           peopleFocus.hover = hp ? pkey(hp) : null;
           (e.target as HTMLElement).style.cursor = hp ? "pointer" : "";
@@ -1299,6 +1300,20 @@ export function Game() {
             <Button size="sm" variant="secondary" onClick={() => { setPlacing(null); setMsg(null); }}>{t.cancel}</Button>
           </div>
         )}
+        {mode === "seed" && hover && ptr && (() => {
+          const err = canPlant(hover[0], hover[1], seeds);
+          let txt = t.seedHint.ok(form.name.trim());
+          if (err?.startsWith("near:")) {
+            const o = seeds.find((s) => s.name === err.slice(5));
+            const d = o ? Math.max(1, Math.ceil(MIN_SEED_DISTANCE - Math.hypot(hover[0] - o.x, hover[1] - o.y))) : 1;
+            txt = t.seedHint.near(err.slice(5), d);
+          } else if (err) txt = err === "hill" ? t.seedHint.hill : t.seedHint.water;
+          return (
+            <div className="pointer-events-none fixed z-50 rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" style={{ left: ptr[0] + 18, top: ptr[1] + 18 }}>
+              <span className={err ? "text-destructive" : "text-primary"}>{err ? "✕ " : "✓ "}</span>{txt}
+            </div>
+          );
+        })()}
         {msg && (
           <div className="rounded-md border-2 border-border bg-card px-3 py-2 shadow-[var(--shadow-panel)] border-wood text-foreground">
             {msg}
