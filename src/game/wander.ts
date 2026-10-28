@@ -5,7 +5,7 @@
 import { ageHours, GROWTH_PACE, hash, links, roadProgress, stageOf, type Link, type Seed } from "./world";
 import { clock } from "./time";
 
-export type WalkerKind = "journeyman" | "messenger" | "bridal" | "family";
+export type WalkerKind = "journeyman" | "messenger" | "bridal" | "family" | "gift" | "aid" | "letter";
 export type Walker = { kind: WalkerKind; from: Seed; to: Seed; t0: number; t1: number; name: string; sex: "f" | "m"; craft: string; sd: number };
 
 const F = ["Greta", "Ida", "Frieda", "Lotte", "Marie", "Anna", "Clara", "Hedwig", "Rosa", "Lina"];
@@ -13,7 +13,7 @@ const M = ["Otto", "Karl", "Emil", "Fritz", "Hans", "Jakob", "Franz", "Ludwig", 
 /** Crafts a journeyman can learn (job codes from people.ts). */
 export const CRAFTS = ["smith", "baker", "mason", "builder", "miller", "crafter", "sawyer"];
 /** Walking speed in road tiles per real second. */
-export const SPEED: Record<WalkerKind, number> = { journeyman: 0.12, messenger: 0.3, bridal: 0.1, family: 0.07 };
+export const SPEED: Record<WalkerKind, number> = { journeyman: 0.12, messenger: 0.3, bridal: 0.1, family: 0.07, gift: 0.15, aid: 0.2, letter: 0.3 };
 const SUR = ["Müller", "Becker", "Wagner", "Krämer", "Vogt", "Hofmann", "Brandt", "Lindner", "Kessler", "Roth"];
 /** Days a house stands empty after its family moved away, before newcomers fill it again. */
 export const VACANT_DAYS = 12;
@@ -60,6 +60,7 @@ export function walkersNow(l: Link, now = clock()): Walker[] {
   if (roadProgress(l, now) < 1) return [];
   const d = Math.floor(now / DAY), out: Walker[] = [];
   for (const dd of [d - 1, d]) for (const w of walkersOn(l, dd)) if (w.t0 >= l.since && now >= w.t0 && now < w.t1) out.push(w);
+  for (const w of giftWalkers(l)) if (now >= w.t0 && now < w.t1) out.push(w);
   return out;
 }
 
@@ -107,6 +108,18 @@ export function leaversOf(s: Seed, seeds: Seed[], now: number): Walker[] {
     if (roadProgress(l, now) < 1) continue;
     for (let d = Math.floor(now / DAY) - VACANT_DAYS; d <= Math.floor(now / DAY); d++)
       for (const w of walkersOn(l, d)) if (w.kind === "family" && w.from.id === s.id && w.t0 >= l.since && w.t0 <= now && now < w.t0 + VACANT_DAYS * DAY) out.push(w);
+  }
+  return out;
+}
+
+/** Carts and letter-carriers for stored gift rows: they leave the sender when sent and travel the road. */
+export function giftWalkers(l: Link): Walker[] {
+  const out: Walker[] = [], n = l.tiles.length;
+  for (const [from, to] of [[l.a, l.b], [l.b, l.a]] as const) for (const g of from.sent ?? []) {
+    if (g.to !== to.id) continue;
+    const kind: WalkerKind = g.kind === "thanks" ? "letter" : g.kind, sd = Math.floor(hash(g.at % 1e9, 7, 1508) * 1e6);
+    const sex = hash(sd, 1, 1509) < 0.4 ? "f" : "m", names = sex === "f" ? F : M;
+    out.push({ kind, from, to, t0: g.at, t1: g.at + (n / SPEED[kind]) * 1000, sd, sex, name: names[Math.floor(hash(sd, 2, 1509) * names.length)]!, craft: "" });
   }
   return out;
 }
