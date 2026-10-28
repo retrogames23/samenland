@@ -1243,7 +1243,7 @@ export function Game() {
         </button>
       )}
       {owner && !chronOpen && !chronBanner && (
-        <button type="button" onClick={openChron} title={t.chron.open} aria-label={t.chron.open} className="absolute left-3 z-30 grid h-10 w-10 place-items-center rounded-full border-2 border-border bg-card/90 text-foreground shadow" style={{ top: barH + 8 }}>
+        <button type="button" onClick={openChron} title={t.chron.open} aria-label={t.chron.open} className="absolute right-3 z-30 grid h-10 w-10 place-items-center rounded-full border-2 border-border bg-card/90 text-foreground shadow" style={{ top: barH + 8 }}>
           <BookOpen className="h-5 w-5" />
         </button>
       )}
