@@ -751,11 +751,40 @@ function effAgeBase(s: Seed, seeds: Seed[], now: number) {
     h += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * (now - l.since) / 3.6e6;
   }
   // neighbour bonuses speed growth, but never more than TRADE_CAP of the town's own age
-  return (base + Math.min(Math.max(0, h - base), base * TRADE_CAP)) * GROWTH_PACE;
+  return (base + Math.min(Math.max(0, h - base), base * TRADE_CAP) + mentorHours(s, seeds, now)) * GROWTH_PACE;
 }
 export const TRADE_CAP = 0.35;
 /** Global pace: a town with typical neighbours reaches Metropole after ~2 real years. */
 export const GROWTH_PACE = 0.35;
+
+/** Mentor: a young town linked to a clearly older town grows MENTOR_RATE faster during its first MENTOR_SPAN hours. */
+export const MENTOR_RATE = 0.5, MENTOR_SPAN = 365 * 24, MENTOR_GAP = 30 * 24 * 3.6e6;
+export function mentorOf(s: Seed, seeds: Seed[], now: number): Seed | undefined {
+  const born = Date.parse(s.created_at);
+  let best: Seed | undefined, since = Infinity;
+  for (const l of links(seeds)) {
+    if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
+    const o = l.a.id === s.id ? l.b : l.a;
+    if (born - Date.parse(o.created_at) < MENTOR_GAP) continue;
+    if (l.since < since) { since = l.since; best = o; }
+  }
+  return best && now < born + MENTOR_SPAN * 3.6e6 ? best : best && { ...best, id: best.id } ;
+}
+function mentorHours(s: Seed, seeds: Seed[], now: number) {
+  const born = Date.parse(s.created_at);
+  let since = Infinity;
+  for (const l of links(seeds)) {
+    if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
+    const o = l.a.id === s.id ? l.b : l.a;
+    if (born - Date.parse(o.created_at) >= MENTOR_GAP) since = Math.min(since, l.since);
+  }
+  if (since === Infinity) return 0;
+  const end = Math.min(now, born + MENTOR_SPAN * 3.6e6), start = Math.max(since, born);
+  return Math.max(0, end - start) / 3.6e6 * MENTOR_RATE;
+}
+/** True while the mentor bonus is active for s. */
+export const mentoring = (s: Seed, seeds: Seed[], now: number) =>
+  now < Date.parse(s.created_at) + MENTOR_SPAN * 3.6e6 && mentorHours(s, seeds, now) > 0;
 
 /** Trade partners of a town with the goods flowing each way. */
 export function tradePartners(s: Seed, seeds: Seed[], now: number) {
