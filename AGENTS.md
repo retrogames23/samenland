@@ -38,3 +38,4 @@
 - Coastal towns grow in town-space distance (townDist/landShape in world.ts): landward tiles are compressed by a land-share stretch so harbour towns fan inland; bounding boxes must use reachOf(s, r).
 - Village chronicle (src/game/chronicle.ts) is derived from seeds between last visit (localStorage) and now; while the owner watches, Game.tsx diffs it periodically for illustrated celebrations — no stored history. Only the scribe greeting uses AI (authenticated server function, fixed fallback).
 - Weddings: calendar in src/game/weddings.ts (dowry mirrored by DB village_dowry in village_balance); couples/kin derived in people.ts marry()/kinOf — never stored, all clients agree.
+- Villager life (traits.ts, Sunday via isSunday() in time.ts, sickness/carers and wedding processions in people.ts) is derived from ids, homes and the clock; never store it — all clients see the same day.
