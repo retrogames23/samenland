@@ -46,7 +46,7 @@ export function worldHour(now: number): number {
 
 /** Admin test map: time runs LAB_SPEED times faster from LAB_EPOCH, plus an optional jump (game hours). */
 export const LAB_EPOCH = Date.parse("2026-10-27T23:40:00Z");
-export const LAB_SPEED = 1000;
+export const LAB_SPEED = 1;
 let lab = false, jumpH = 0;
 export const isLab = () => lab;
 export function setLabJump(h: number) { jumpH = Math.max(0, h); }
@@ -55,8 +55,8 @@ export const labJump = () => jumpH;
 export function clock(real = Date.now()): number {
   return lab ? LAB_EPOCH + (real - LAB_EPOCH) * LAB_SPEED + jumpH * 3.6e6 : real;
 }
-/** Bucket for structure/town caches: one game minute, or ~1 real second on the lab map. */
-export const cacheTick = (now: number) => Math.floor(now / (lab ? 60000 * 16 : 60000));
+/** Bucket for structure/town caches: one game minute, or ~1 real second while time is warped. */
+export const cacheTick = (now: number) => Math.floor(now / Math.max(60000, LAB_SPEED * 1000));
 
 /** Day of week (0 = Sunday) in the current realm's time; every player on a map shares the same Sunday. */
 let wdFmt: { tz: string; f: Intl.DateTimeFormat } | null = null;
