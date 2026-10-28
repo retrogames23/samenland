@@ -5,7 +5,7 @@
 import { ageHours, GROWTH_PACE, hash, links, roadProgress, stageOf, type Link, type Seed } from "./world";
 import { clock } from "./time";
 
-export type WalkerKind = "journeyman" | "messenger" | "bridal";
+export type WalkerKind = "journeyman" | "messenger" | "bridal" | "family";
 export type Walker = { kind: WalkerKind; from: Seed; to: Seed; t0: number; t1: number; name: string; sex: "f" | "m"; craft: string; sd: number };
 
 const F = ["Greta", "Ida", "Frieda", "Lotte", "Marie", "Anna", "Clara", "Hedwig", "Rosa", "Lina"];
@@ -13,7 +13,10 @@ const M = ["Otto", "Karl", "Emil", "Fritz", "Hans", "Jakob", "Franz", "Ludwig", 
 /** Crafts a journeyman can learn (job codes from people.ts). */
 export const CRAFTS = ["smith", "baker", "mason", "builder", "miller", "crafter", "sawyer"];
 /** Walking speed in road tiles per real second. */
-export const SPEED: Record<WalkerKind, number> = { journeyman: 0.12, messenger: 0.3, bridal: 0.1 };
+export const SPEED: Record<WalkerKind, number> = { journeyman: 0.12, messenger: 0.3, bridal: 0.1, family: 0.07 };
+const SUR = ["Müller", "Becker", "Wagner", "Krämer", "Vogt", "Hofmann", "Brandt", "Lindner", "Kessler", "Roth"];
+/** Days a house stands empty after its family moved away, before newcomers fill it again. */
+export const VACANT_DAYS = 12;
 const DAY = 864e5;
 
 const roadId = (l: Link) => (l.a.x * 7 + l.b.y * 13 + l.a.y * 31) | 0;
@@ -38,7 +41,8 @@ export function walkersOn(l: Link, d: number): Walker[] {
     // the spouse from the less attractive town walks over to the new shared home – bride or groom alike
     if (kind === "bridal") { const w = homeDraw(l, d * DAY); if (w) fwd = w > 0; }
     const sex = kind === "bridal" ? (hash(sd, 1, 1504) < 0.5 ? "f" : "m") : kind === "journeyman" ? (hash(sd, 1, 1504) < 0.2 ? "f" : "m") : (hash(sd, 1, 1504) < 0.4 ? "f" : "m");
-    const names = sex === "f" ? F : M;
+    if (kind === "family") { const w = homeDraw(l, d * DAY); fwd = w > 0; }
+    const names = kind === "family" ? SUR : sex === "f" ? F : M;
     out.push({ kind, from: fwd ? l.a : l.b, to: fwd ? l.b : l.a, t0, t1: t0 + (n / SPEED[kind]) * 1000, sd, sex,
       name: names[Math.floor(hash(sd, 2, 1504) * names.length)]!, craft: CRAFTS[Math.floor(hash(sd, 3, 1504) * CRAFTS.length)]! });
   };
@@ -46,6 +50,8 @@ export function walkersOn(l: Link, d: number): Walker[] {
   if (hash(sn, d, 1505) < 0.6) add("messenger", 1);
   // a bride from one town marries into the neighbour and walks over in her wedding dress (~every 25 days per road)
   if (hash(sn, d, 1506) < 0.04) add("bridal", 2);
+  // a household packs its cart and moves to the neighbour offering more (~every 20 days per road, only on an imbalance)
+  if (hash(sn, d, 1507) < 0.05 && homeDraw(l, d * DAY) !== 0) add("family", 3);
   return out;
 }
 
@@ -80,4 +86,27 @@ export function bridesOf(s: Seed, seeds: Seed[], from: number, to: number): Walk
       for (const w of walkersOn(l, d)) if (w.kind === "bridal" && w.t0 >= l.since && w.t1 > from && w.t1 <= to) out.push(w);
   }
   return out.sort((a, b) => a.t1 - b.t1);
+}
+
+/** Families that moved away from or into town s between two moments (either direction). */
+export function movesOf(s: Seed, seeds: Seed[], from: number, to: number): Walker[] {
+  const out: Walker[] = [];
+  for (const l of links(seeds)) {
+    if (l.a.id !== s.id && l.b.id !== s.id) continue;
+    for (let d = Math.floor(from / DAY) - 1; d <= Math.floor(to / DAY); d++)
+      for (const w of walkersOn(l, d)) if (w.kind === "family" && w.t0 >= l.since && w.t1 > from && w.t1 <= to) out.push(w);
+  }
+  return out.sort((a, b) => a.t1 - b.t1);
+}
+
+/** Families that left town s and whose house still stands empty at time now (house chosen by the walker's sd). */
+export function leaversOf(s: Seed, seeds: Seed[], now: number): Walker[] {
+  const out: Walker[] = [];
+  for (const l of links(seeds)) {
+    if (l.a.id !== s.id && l.b.id !== s.id) continue;
+    if (roadProgress(l, now) < 1) continue;
+    for (let d = Math.floor(now / DAY) - VACANT_DAYS; d <= Math.floor(now / DAY); d++)
+      for (const w of walkersOn(l, d)) if (w.kind === "family" && w.from.id === s.id && w.t0 >= l.since && w.t0 <= now && now < w.t0 + VACANT_DAYS * DAY) out.push(w);
+  }
+  return out;
 }
