@@ -420,11 +420,13 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     c.drawImage(sheet, f * fw, 0, fw, sheet.naturalHeight, -ww / 2, -hgt, ww, hgt);
   } else if (legs) {
     // modular figure: one hip-registered painted leg cycle shared by all trades, trade torso on top
-    const fw = legs.naturalWidth / WALK_FRAMES, f = frameOf(fw), cut = 0.6;
-    const lh = hgt * 0.44, lw = (lh * fw) / legs.naturalHeight;
+    // each trade sprite: measured hip x (fraction of width) and tunic hem (fraction of height)
+    const [hx, hem] = HIPS[k] ?? [0.46, 0.66];
+    const fw = legs.naturalWidth / WALK_FRAMES, f = frameOf(fw);
+    const lh = hgt * (1 - hem + 0.1), lw = (lh * fw) / legs.naturalHeight;
     c.drawImage(legs, f * fw, 0, fw, legs.naturalHeight, -lw * 0.5, -lh, lw, lh);
     const sw = im.naturalWidth, sh = im.naturalHeight;
-    c.drawImage(im, 0, 0, sw, sh * cut, -w / 2, -hgt, w, hgt * cut);
+    c.drawImage(im, 0, 0, sw, sh * hem, -w * hx, -hgt, w, hgt * hem);
   } else if (q.walking) {
     // stride: upper body steady, legs (lower 40%) swing about the hip
     const sw = im.naturalWidth, sh = im.naturalHeight, cut = 0.6;
