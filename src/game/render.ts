@@ -4,7 +4,7 @@ import { roadMotion, screenFacing } from "./motion";
 import { walkersNow, walkProgress, type Walker } from "./wander";
 import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
-import { seasonKey } from "./season";
+import { seasonKey, seasonAt } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, sickHome, isHomeKind, type Pose } from "./people";
@@ -1412,7 +1412,7 @@ export function draw(
           c.restore();
           // standing plants on every ridge, back to front, fringing past the acre edge like real stalks
           const row = fieldRowImage(ripe);
-          if (row && !seasonKey(now).startsWith("winter")) {
+          if (row && seasonAt(now).winter < 0.6) {
             const w = ripe ? 15 : 13, hgt = (w * row.height) / row.width, flipRow = !ac.along;
             for (let k = -2; k <= 2; k++) for (let m = -1; m <= 1; m += 2) {
               const f = k / 4, g = m * 0.26 + (hash(x * 5 + k, y * 3 + m, 640) - 0.5) * 0.08;
