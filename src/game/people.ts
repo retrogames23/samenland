@@ -244,7 +244,7 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
     for (const h of homes) {
       const sp = people.find((q) => q.hh === h.hh && q.role === "spouse");
       const older = [...heads.values()].filter((o) => o.hh !== h.hh && o.age >= h.age + 18 && bornAt(o.home[0], o.home[1], s) < bornAt(h.home[0], h.home[1], s));
-      if (!sp || older.length < 2) continue;
+      if (!sp || !older.length) continue;
       const pa = older[Math.floor(hash(k, s.x, 992) * older.length)]!, pbList = older.filter((o) => o !== pa), pb = pbList[Math.floor(hash(k, s.y, 993) * pbList.length)]!;
       const [m, f] = h.sex === "m" ? [h, sp] : [sp, h];
       m.origin = pa.hh; f.origin = pb.hh; f.maiden = pb.last; m.last = pa.last; f.last = pa.last;
