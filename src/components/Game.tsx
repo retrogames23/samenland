@@ -868,7 +868,7 @@ export function Game() {
               { const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
                 const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
                 const tr = lastTraders.find((f) => Math.hypot(f.x - wx, f.y - 3 - wy) < Math.max(4, 16 / c.zoom));
-                if (tr) { tap(pan); setWho(null); setPlace(null); if (tr.walker) { const w = tr.walker; return setMsg(t.walker(w.kind, w.name, t.job[w.craft]?.[w.sex === "f" ? 0 : 1] ?? w.craft, tr.from, tr.to)); } return setMsg(t.trade.trader(tr.cart, tr.good ? t.trade.goods[tr.good] ?? tr.good : "–", tr.from, tr.to)); } }
+                if (tr) { tap(pan); setWho(null); setPlace(null); if (tr.walker) { const w = tr.walker; return setMsg(t.walker(w.kind, w.name, w.kind === "bridal" ? w.sex : t.job[w.craft]?.[w.sex === "f" ? 0 : 1] ?? w.craft, tr.from, tr.to)); } return setMsg(t.trade.trader(tr.cart, tr.good ? t.trade.goods[tr.good] ?? tr.good : "–", tr.from, tr.to)); } }
               const [tx, ty] = tileAt(e);
               { const g = twinGateAt(tx, ty, seeds, clock());
                 if (g) { tap(pan); setWho(null); setPlace(null); const p = pactOf(g.a, g.b, seeds, clock());

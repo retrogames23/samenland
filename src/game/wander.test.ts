@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { walkersOn, walkProgress, SPEED } from "./wander";
+import { homeDraw, walkersOn, walkProgress, SPEED } from "./wander";
 import type { Link, Seed } from "./world";
 const s = (id: string, x: number): Seed => ({ id, x, y: 0, name: id, created_at: "2026-01-01T00:00:00Z" } as unknown as Seed);
 const l = { a: s("a", 0), b: s("b", 40), d: 40, since: 0, tiles: Array.from({ length: 40 }, (_, i) => [i, 0]), water: [] } as unknown as Link;
@@ -24,5 +24,13 @@ describe("remote weddings", () => {
     const sx = new Set<string>();
     for (let d = 0; d < 1200; d++) for (const w of walkersOn(l, 20000 + d)) if (w.kind === "bridal") sx.add(w.sex);
     expect([...sx].sort()).toEqual(["f", "m"]);
+  });
+  it("the couple settles in the more attractive town", () => {
+    const old = s("o", 0); old.created_at = "2024-01-01T00:00:00Z";
+    const mid = s("m", 40); mid.created_at = "2025-06-01T00:00:00Z";
+    const r = { ...l, a: old, b: mid } as Link;
+    const at = Date.parse("2026-10-01T00:00:00Z");
+    expect(homeDraw(r, at)).toBe(-1);
+    for (let d = 0; d < 1500; d++) for (const w of walkersOn(r, 20000 + d)) if (w.kind === "bridal") expect(w.to.id).toBe("o");
   });
 });

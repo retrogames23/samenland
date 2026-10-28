@@ -27,7 +27,7 @@ export type ChronEvent =
   | { at: number; code: "raid"; loss: number; caught: boolean; x: number; y: number }
   | { at: number; code: "journeyman"; name: string; craft: string; sex: "f" | "m"; other: string }
   | { at: number; code: "journeymen"; n: number }
-  | { at: number; code: "bride"; name: string; other: string; away: boolean };
+  | { at: number; code: "bride"; name: string; sex: "f" | "m"; other: string; away: boolean };
 
 /** Homes whose completion brings a family (mirrors HOMES in people.ts). */
 export const HOME_KINDS = new Set<Kind>(["hut", "suburb", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement"] as Kind[]);
