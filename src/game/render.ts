@@ -206,12 +206,13 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
   if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
   else if (s.build !== undefined && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: "site" });
   if (s.build !== undefined) { drawSite(c, s, cx, cy, t, true); return; }
-  if (drawBuildingSprite(c, s.kind, cx, cy, s.v)) {
+  const flip = faceFlip(s.kind, x, y, (i, j) => { const k = structureAt(i, j, renderSeeds, renderNow)?.kind; return !!k && PATHLIKE.has(k); });
+  if (drawBuildingSprite(c, s.kind, cx, cy, s.v, 1, flip)) {
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
     if (hasNightSprite(s.kind) && houseLit(s.kind, sd, localHour())) {
-      L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd } });
+      L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip } });
     }
     if (["steamworks", "smithy", "bakery", "inn"].includes(s.kind)) {
       smoke(c, cx + 4, cy - 18, t, sd, 0.6);
