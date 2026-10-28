@@ -24,6 +24,7 @@ import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/game/audio";
 import {
   canPlant,
+  MIN_SEED_DISTANCE,
   structureAt,
   radiusOf,
   ageHours,
