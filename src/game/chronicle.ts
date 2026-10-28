@@ -2,7 +2,7 @@
  * Village chronicle: what happened between two moments, derived purely from seeds and time
  * (same functions that drive growth), so it needs no stored history. Returns codes; i18n formats them.
  */
-import { effAge, stageOf, radiusOf, LANDMARKS, links, twinSince, type Seed, type Kind } from "./world";
+import { effAge, stageOf, radiusOf, reachOf, LANDMARKS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
 import { taxEarned } from "./economy";
 import { seasonAt, type Season } from "./season";
 
@@ -12,7 +12,31 @@ export type ChronEvent =
   | { at: number; code: "bought"; item: string }
   | { at: number; code: "road"; other: string; x: number; y: number }
   | { at: number; code: "twin"; other: string }
-  | { at: number; code: "season"; season: Season };
+  | { at: number; code: "season"; season: Season }
+  | { at: number; code: "house"; kind: Kind; x: number; y: number }
+  | { at: number; code: "family"; x: number; y: number }
+  | { at: number; code: "houses"; n: number }
+  | { at: number; code: "families"; n: number };
+
+/** Homes whose completion brings a family (mirrors HOMES in people.ts). */
+export const HOME_KINDS = new Set<Kind>(["hut", "suburb", "farmhouse", "cottage", "townhouse", "townhouse2", "patrician", "villa", "tenement"] as Kind[]);
+/** Over long absences many small moments are summarised into one line. */
+export const CHRON_DETAIL = 6;
+
+/** Homes finished between two moments; time is interpolated from growth age, so it is purely derived. */
+export function homesBetween(s: Seed, seeds: Seed[], from: number, to: number) {
+  const a0 = effAge(s, seeds, from), a1 = effAge(s, seeds, to), out: { at: number; kind: Kind; x: number; y: number }[] = [];
+  if (a1 <= a0) return out;
+  const R = Math.ceil(reachOf(s, radiusOf(a1))) + 1;
+  for (let y = s.y - R; y <= s.y + R; y++) for (let x = s.x - R; x <= s.x + R; x++) {
+    const b = bornAt(x, y, s);
+    if (!(b > a0 && b <= a1)) continue;
+    const st = structureAt(x, y, seeds, to);
+    if (!st || st.seed !== s.id || !HOME_KINDS.has(st.kind) || st.build != null) continue;
+    out.push({ at: from + ((b - a0) / (a1 - a0)) * (to - from), kind: st.kind, x, y });
+  }
+  return out.sort((p, q) => p.at - q.at);
+}
 export type Chronicle = { from: number; to: number; events: ChronEvent[]; popFrom: number; popTo: number; taler: number };
 
 /** Show the automatic letter after this long away; a quiet banner after a day. */
@@ -42,6 +66,10 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
     const tw = twinSince(l, seeds);
     if (tw != null && tw > from && tw <= to) ev.push({ at: tw, code: "twin", other: o.name });
   }
+  const homes = homesBetween(s, seeds, from, to);
+  if (homes.length > CHRON_DETAIL) {
+    ev.push({ at: to, code: "houses", n: homes.length }, { at: to, code: "families", n: homes.length });
+  } else for (const h of homes) ev.push({ at: h.at, code: "house", kind: h.kind, x: h.x, y: h.y }, { at: Math.min(to, h.at + 6e5), code: "family", x: h.x, y: h.y });
   ev.sort((a, b) => a.at - b.at);
   return { from, to, events: ev, popFrom: pop(effAge(s, seeds, from)), popTo: pop(effAge(s, seeds, to)), taler: taxEarned(s, to) - taxEarned(s, from) };
 }
