@@ -1,4 +1,5 @@
 import { activeBoons } from "./encounters";
+import { dowryEarned, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
 import { radiusOf, stageOf, effAge, links, waterNearby, twinLinks, pactOf, type Seed, type CharterPath } from "./world";
 
 /** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
@@ -35,14 +36,14 @@ export function treasury(s: Seed, purchases: Purchase[], now: number) {
   const spent = purchases.filter((p) => p.seed_id === s.id).reduce((a, p) => a + p.cost, 0);
   const ev = (s.decisions ?? []).reduce((a, d) => a + d.cost, 0);
   const tw = (s.works ?? []).reduce((a, w) => a + w.cost, 0);
-  return START_TALER + taxEarned(s, now) - spent - ev - tw;
+  return START_TALER + taxEarned(s, now) + dowryEarned(s, now) - spent - ev - tw;
 }
 
 
 const clamp = (v: number) => Math.round(Math.max(0, Math.min(100, v)));
 
 /** Village attributes 0–100, derived from age, trade, charter and purchased buildings. */
-export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: number) {
+export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: number, alliances = 0) {
   const has = (i: Item) => purchases.some((p) => p.seed_id === s.id && p.item === i);
   // twins share wells, healer and school at half strength; a protective pact adds health
   const twins = twinLinks(s, seeds, now).map((l) => (l.a.id === s.id ? l.b : l.a));
@@ -57,5 +58,8 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   const wealth = clamp(25 + Math.min(30, trade * 10) + (has("school") ? 20 : 0) + stage * 5 + (path === "craft" ? 10 : 0)
     + (near("school") ? 10 : 0) + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 5 : 0));
   const b = activeBoons(s.decisions ?? [], now);
+  // weddings: a day of joy (health, prosperity) and lasting craft alliances between families
+  const joy = weddingJoy(s, now);
+  b.health += joy ? 10 : 0; b.wealth += (joy ? 5 : 0) + Math.min(ALLIANCE_MAX, alliances * ALLIANCE_WEALTH);
   return { food: clamp(food + b.food), health: clamp(health + b.health), wealth: clamp(wealth + b.wealth), has };
 }
