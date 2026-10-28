@@ -17,6 +17,8 @@ import bride from "@/assets/sprites/folk/bride.webp";
 import groom from "@/assets/sprites/folk/groom.webp";
 import porterF from "@/assets/sprites/folk/porter-f.webp";
 import farmerF from "@/assets/sprites/folk/farmer-f.webp";
+import farmerMow from "@/assets/sprites/folk/farmer-mow.webp";
+import farmerFMow from "@/assets/sprites/folk/farmer-f-mow.webp";
 import elderF from "@/assets/sprites/folk/elder-f.webp";
 import masonF from "@/assets/sprites/folk/mason-f.webp";
 import woodcutterF from "@/assets/sprites/folk/woodcutter-f.webp";
@@ -30,7 +32,7 @@ import blocks from "@/assets/sprites/folk/blocks.webp";
 import bannerPole from "@/assets/sprites/folk/banner-pole.webp";
 import bannerClothUrl from "@/assets/sprites/folk/banner-cloth.webp";
 
-const URLS = { man, manWalk, legsM, woman, child, childWalk, elder, builder, builderF, woodcutter, mason, farmer, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl };
+const URLS = { man, manWalk, legsM, woman, child, childWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl };
 export type FolkSprite = keyof typeof URLS;
 const cache = new Map<string, HTMLImageElement>();
 function load(u: string) {
@@ -58,4 +60,7 @@ export function bannerCloth(hue: number): HTMLCanvasElement | null {
 /** Painted walk cycles: horizontal strips of WALK_FRAMES frames (contact, down, passing, up, …). */
 export const WALK_FRAMES = 6;
 const WALKS: Partial<Record<FolkSprite, FolkSprite>> = { child: "childWalk" }; // men now use the shared legs-m cycle in render.ts
+/** Painted 6-frame harvest cycles (scythe for men, sickle and sheaf for women), feet centred in each frame. */
+const WORKS: Partial<Record<FolkSprite, FolkSprite>> = { farmer: "farmerMow" as FolkSprite, farmerF: "farmerFMow" as FolkSprite };
+export const workSheet = (k: FolkSprite) => { const w = WORKS[k]; return w ? folkImage(w) : null; };
 export const walkSheet = (k: FolkSprite) => { const w = WALKS[k]; return w ? folkImage(w) : null; };
