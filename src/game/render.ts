@@ -1030,9 +1030,6 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
     let any = false;
     for (let y = gy0; y < gy0 + GH - 1; y++) for (let x = gx0; x < gx0 + GW - 1; x++) {
       const cs: [number, number][] = [[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]];
-      const v = cs.map(([a, b]) => L_(a, b));
-      const mn = Math.min(...v), mx = Math.max(...v);
-      if (mx < L - 1 || mn > L) continue;
       const m = cs.map(([a, b]) => M(a, b, L));
       if (Math.max(...m) < 0.5) continue;
       const pts: Pt[] = [], xs: Pt[] = [];
@@ -1062,8 +1059,6 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
       // re-trace the layer path (stroke consumed the current path)
       for (let y = gy0; y < gy0 + GH - 1; y++) for (let x = gx0; x < gx0 + GW - 1; x++) {
         const cs: [number, number][] = [[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]];
-        const v = cs.map(([a, b]) => L_(a, b));
-        if (Math.max(...v) < 0 || Math.min(...v) > 1) continue;
         const m = cs.map(([a, b]) => M(a, b, 1));
         if (Math.max(...m) < 0.5) continue;
         const pts: Pt[] = [];
