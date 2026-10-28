@@ -390,6 +390,7 @@ function folkOf(q: Pose): FolkSprite {
   if (p.age >= 65) return "elder";
   return p.sex === "f" ? "woman" : "man";
 }
+const HIPS: Partial<Record<FolkSprite, [number, number]>> = { man: [0.45, 0.63], farmer: [0.38, 0.66], porter: [0.47, 0.65], builder: [0.45, 0.64], woodcutter: [0.5, 0.62], mason: [0.42, 0.62], elder: [0.45, 0.7], robber: [0.47, 0.72] };
 /** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
 const legsFor = (q: Pose) => q.p.sex === "m" && q.p.age >= 15 && folkOf(q) !== "priest" && folkOf(q) !== "groom";
 /** Painted villager sprite: faces the walking direction, bobs while walking, sways while working. */
@@ -420,11 +421,13 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     c.drawImage(sheet, f * fw, 0, fw, sheet.naturalHeight, -ww / 2, -hgt, ww, hgt);
   } else if (legs) {
     // modular figure: one hip-registered painted leg cycle shared by all trades, trade torso on top
-    const fw = legs.naturalWidth / WALK_FRAMES, f = frameOf(fw), cut = 0.6;
-    const lh = hgt * 0.44, lw = (lh * fw) / legs.naturalHeight;
+    // each trade sprite: measured hip x (fraction of width) and tunic hem (fraction of height)
+    const [hx, hem] = HIPS[k] ?? [0.46, 0.66];
+    const fw = legs.naturalWidth / WALK_FRAMES, f = frameOf(fw);
+    const lh = hgt * (1 - hem + 0.1), lw = (lh * fw) / legs.naturalHeight;
     c.drawImage(legs, f * fw, 0, fw, legs.naturalHeight, -lw * 0.5, -lh, lw, lh);
     const sw = im.naturalWidth, sh = im.naturalHeight;
-    c.drawImage(im, 0, 0, sw, sh * cut, -w / 2, -hgt, w, hgt * cut);
+    c.drawImage(im, 0, 0, sw, sh * hem, -w * hx, -hgt, w, hgt * hem);
   } else if (q.walking) {
     // stride: upper body steady, legs (lower 40%) swing about the hip
     const sw = im.naturalWidth, sh = im.naturalHeight, cut = 0.6;
