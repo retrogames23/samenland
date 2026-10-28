@@ -8,7 +8,7 @@ import { seasonKey } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, cartBackImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, sickHome, isHomeKind, type Pose } from "./people";
-import { folkImage, bannerCloth, type FolkSprite } from "./folk-sprites";
+import { folkImage, walkSheet, WALK_FRAMES, bannerCloth, type FolkSprite } from "./folk-sprites";
 import { activeRaid, RAID_LEN } from "./disasters";
 import { hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -394,9 +394,10 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const kid = k === "child", hgt = kid ? 3.2 + q.p.age * 0.08 : 5.2;
   const w = (hgt * im.naturalWidth) / im.naturalHeight;
   const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + q.p.id;
-  const bob = q.walking ? Math.abs(Math.sin(ph)) * 0.16 : 0;
+  const painted = q.walking && !!walkSheet(k);
+  const bob = q.walking ? Math.abs(Math.sin(ph)) * (painted ? 0.07 : 0.16) : 0;
   // working: asymmetric tool rhythm — slow wind-up, quick stroke, short rest (not a pendulum)
-  let tilt = q.walking ? Math.sin(ph) * 0.02 : 0;
+  let tilt = q.walking && !painted ? Math.sin(ph) * 0.02 : 0;
   if (q.working) {
     const per = q.p.job === "farmer" ? 1900 : 1300, u = ((t + q.p.id * 137) % per) / per;
     const s = u < 0.55 ? u / 0.55 : u < 0.7 ? 1 - (u - 0.55) / 0.15 : 0;
