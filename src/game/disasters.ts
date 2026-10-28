@@ -37,7 +37,8 @@ export function fires(s: Seed, now: number): Fire[] {
     const at = c0 + w * WEEK + rnd(s.id, w, 11) * WEEK;
     if (at > now) break;
     const guarded = owns(s, "firehouse", at);
-    if (rnd(s.id, w, 12) > (guarded ? FIRE_CHANCE_GUARDED : FIRE_CHANCE)) continue;
+    const mo = new Date(at).getUTCMonth(), dry = mo >= 5 && mo <= 7 ? 1.6 : mo === 11 || mo <= 1 ? 1.1 : 0.75;
+    if (rnd(s.id, w, 12) > (guarded ? FIRE_CHANCE_GUARDED : FIRE_CHANCE) * dry) continue;
     const r = radiusOf(ageHours(s, at)) * 0.75;
     if (r < 2) continue;
     const a = rnd(s.id, w, 13) * Math.PI * 2, d = 1.5 + rnd(s.id, w, 14) * (r - 1.5);
@@ -82,11 +83,22 @@ export function floods(s: Seed, now: number): Flood[] {
   return out;
 }
 
+/** Integer seed hash both client and database can compute: first 8 hex digits of the id. */
+export const raidHash = (id: string) => parseInt(id.replace(/-/g, "").slice(0, 8), 16) || 0;
+/** Irregular raid calendar: gaps of 6–24 days, random hour, loot 12–45 Taler. Mirrored by DB village_raids. */
+export function raidPlan(id: string, k: number) {
+  const h = raidHash(id);
+  return { gap: 6 + ((h + k * 7919) % 19), hour: (h + k * 31) % 24, loss: 12 + ((h + k * 104729) % 34) };
+}
 export function raids(s: Seed, now: number): Raid[] {
   const c0 = Date.parse(s.created_at), out: Raid[] = [];
-  for (let at = c0 + RAID_FIRST; at <= now; at += RAID_EVERY) {
+  let day = 4;
+  for (let k = 0; ; k++) {
+    const p = raidPlan(s.id, k); day += p.gap;
+    const at = c0 + day * DAY + p.hour * H;
+    if (at > now) break;
     const caught = owns(s, "guard", at);
-    out.push({ at, end: at + RAID_LEN, caught, loss: caught ? 0 : RAID_LOSS });
+    out.push({ at, end: at + RAID_LEN, caught, loss: caught ? 0 : p.loss });
   }
   return out;
 }
