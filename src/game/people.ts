@@ -1,4 +1,5 @@
 import { cacheTick } from "./time";
+import { pathHeading } from "./motion";
 import { worldHour } from "./time";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
@@ -432,8 +433,8 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
     for (let k = 1; k < pts.length; k++) {
       const a = pts[k - 1]!, b = pts[k]!, sl = Math.hypot(b[0] - a[0], b[1] - a[1]);
       if (dd <= sl) {
-        const u = sl ? dd / sl : 0, x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u, dl = sl || 1;
-        return { ...base, x, y, visible: true, walking: true, act: "home", dir: [(b[0] - a[0]) / dl, (b[1] - a[1]) / dl], phase: (((now - p.arrive.t0) / 1000) * ARRIVE_SPEED) / STRIDE, carry: p.age >= 12 ? "bundle" : null, dest: "home" };
+        const u = sl ? dd / sl : 0, x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
+        return { ...base, x, y, visible: true, walking: true, act: "home", dir: pathHeading(pts, k - 1 + u), phase: (((now - p.arrive.t0) / 1000) * ARRIVE_SPEED) / STRIDE, carry: p.age >= 12 ? "bundle" : null, dest: "home" };
       }
       dd -= sl;
     }
@@ -454,9 +455,8 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
       for (let k = 0; k < seg.length; k++) {
         if (dd <= seg[k]! || k === seg.length - 1) {
           const a = pts[k]!, b = pts[k + 1]!, u = seg[k]! ? dd / seg[k]! : 0;
-          const dl = seg[k]! || 1;
           const x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
-          return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, dir: [(b[0] - a[0]) / dl, (b[1] - a[1]) / dl], phase: ph };
+          return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, dir: pathHeading(pts, k + u), phase: ph };
         }
         dd -= seg[k]!;
       }
@@ -506,10 +506,10 @@ function haulPose(p: Person, t: Town, seeds: Seed[], secs: number, base: Pose): 
   if (!out) dd = len - dd;
   for (let k = 0; k < seg.length; k++) {
     if (dd <= seg[k]! || k === seg.length - 1) {
-      const a = pts[k]!, b = pts[k + 1]!, f = seg[k]! ? Math.min(1, dd / seg[k]!) : 0, dl = seg[k]! || 1, sg = out ? 1 : -1;
+      const a = pts[k]!, b = pts[k + 1]!, f = seg[k]! ? Math.min(1, dd / seg[k]!) : 0;
       const x = a[0] + (b[0] - a[0]) * f, y = a[1] + (b[1] - a[1]) * f;
       return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, working: false,
-        dir: [sg * (b[0] - a[0]) / dl, sg * (b[1] - a[1]) / dl], phase: dd / STRIDE, carry: out ? H.good : null, dest: H.dest };
+        dir: pathHeading(pts, k + f, out), phase: dd / STRIDE, carry: out ? H.good : null, dest: H.dest };
     }
     dd -= seg[k]!;
   }
