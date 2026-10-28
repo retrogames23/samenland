@@ -12,9 +12,11 @@ export function sheepPose(sd: number, k: number, now: number) {
   const sleeping = animalsSleeping(now), hr = worldHour(now);
   const elapsed = hr >= 21 ? hr - 21 : hr + 3;
   const t = sleeping ? now - elapsed * 3.6e6 : now;
-  const cycle = 18000 + hash(sd, k, 5) * 14000, walkMs = 2200 + hash(sd, k, 6) * 900;
+  const cycle = 18000 + hash(sd, k, 5) * 14000, walkMs = 3800 + hash(sd, k, 6) * 1600;
   const tt = t + hash(sd, k, 7) * cycle, i = Math.floor(tt / cycle), u = tt - i * cycle;
-  const spot = (j: number): [number, number] => [(hash(sd, k * 31 + j, 8) - 0.5) * 10, (hash(sd, k * 31 + j, 9) - 0.5) * 4];
+  // each sheep keeps its own lane on the pasture (4px apart) so the flock never stacks
+  const lx = (k - 1) * 4, ly = (k % 2 ? 1.2 : -0.6);
+  const spot = (j: number): [number, number] => [lx + (hash(sd, k * 31 + j, 8) - 0.5) * 3.2, ly + (hash(sd, k * 31 + j, 9) - 0.5) * 1.4];
   const a = spot(i), b = spot(i + 1), into = u - (cycle - walkMs);
   if (into > 0) {
     const f = into / walkMs, e = f * f * (3 - 2 * f);
