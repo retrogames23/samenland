@@ -37,10 +37,4 @@
 - Admin test map (realm "lab") warps the game clock via clock() in src/game/time.ts; all game code must read time through clock(), never Date.now(), so the time-lapse applies everywhere.
 - Coastal towns grow in town-space distance (townDist/landShape in world.ts): landward tiles are compressed by a land-share stretch so harbour towns fan inland; bounding boxes must use reachOf(s, r).
 - Village chronicle (src/game/chronicle.ts) is derived from seeds between last visit (localStorage) and now; while the owner watches, Game.tsx diffs it periodically for illustrated celebrations — no stored history. Only the scribe greeting uses AI (authenticated server function, fixed fallback).
-- Weddings: calendar in src/game/weddings.ts (dowry mirrored by DB village_dowry in village_balance); couples/kin derived in people.ts marry()/kinOf — never stored, all clients agree.
-- Villager life (traits.ts, Sunday via isSunday() in time.ts, sickness/carers and wedding processions in people.ts) is derived from ids, homes and the clock; never store it — all clients see the same day.
-- Disasters (src/game/disasters.ts): fires, floods and raids are a pure calendar from (seed id, time window) plus purchases; structureAt applies burning/rebuild/flood via tileHits, raid losses are mirrored by DB village_raids — never store disaster state, so all clients and the treasury agree.
-- Mentor bonus (mentorHours in world.ts) is derived from links + creation dates and added to effAge outside TRADE_CAP; never stored — late joiners catch up identically on every client.
-- Journeymen and messengers between towns (src/game/wander.ts) are a pure calendar from road + UTC day; never stored — all clients see the same walkers.
-- Family moves (wander.ts "family") empty a source house for VACANT_DAYS; derived, not stored.
-- Neighbour gifts/aid/thanks: only gift rows are stored (DB gift_guard: prices, 1/day, treasury); carts (wander.giftWalkers), faster rebuild (Seed.aid → aidFactor) and balances are derived.
+- Subdirectories have their own AGENTS.md (src/game/AGENTS.md) – read it before changing files there.
