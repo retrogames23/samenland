@@ -267,7 +267,7 @@ const en: typeof de = {
   hill: "Nothing is built in the mountains.",
   water: "This isn't solid ground.",
   near: (n) => `Too close to ${n}.`,
-  seedHint: { ok: (n: string) => `Free land – click to found ${n || "your village"}`, hill: "Hills – look for a valley", water: "Water – look for solid ground", near: (n: string, d: number) => `Too close to ${n} (${d} more tiles)` },
+  seedHint: { ok: (n: string) => `Free land – click to found ${n || "your village"}`, hill: "Mountains – look for a valley", water: "Water – look for solid ground", near: (n: string, d: number) => `Too close to ${n} (${d} more tiles)` },
   plantAsk: { title: "Plant the seed?", intro: (n: string) => `${n} should take root here.`, land: "Land", owner: "Headman", spread: "First year", first: (r: number) => `up to ${r} tiles wide`, nearest: "Nearest village", near: (n: string, d: number) => `${n} · ${d} tiles away`, none: "no other village in reach", ok: "Yes, plant it here", wait: "One moment…" },
   since: "for",
   buildings: "buildings",
