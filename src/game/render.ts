@@ -332,7 +332,7 @@ function drawLoad(c: C, x: number, y: number, dx: number, dy: number, g: TradeGo
 /** Painted ox cart: ox-less wagon + separate 4-frame ox walk cycle, both standing on the ground line. */
 // layout measured in sprite pixels: wagon bottom-left origin, ox bottom-centre offset, ox scale, combo centre
 const CART_LAYOUT = { front: { k: 0.04, cx: 200, ox: [315, 25], os: 1.35 }, back: { k: 0.042, cx: 150, ox: [245, -60], os: 1.45 } } as const;
-function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: number, _sd: number, _cover: string, t: number) {
+function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: number, sd: number, _cover: string, t: number) {
   const away = dy < -0.15 * Math.abs(dx);
   const wag = wagonImage(away), ox = oxWalkImage(away);
   c.save(); c.translate(x, y); if (screenFacing(dx, dy) < 0) c.scale(-1, 1);
@@ -351,7 +351,7 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
   c.beginPath(); c.ellipse(wx + ww * 0.42, -0.5, ww * 0.42, 1.2, 0, 0, 7); c.fill();
   c.beginPath(); c.ellipse(oxX, oxY - 0.3, ow * 0.38, 0.8, 0, 0, 7); c.fill();
   // steady four-beat ox gait (one frame per ~0.32 s), offset per cart so teams don't march in sync
-  const f = Math.floor((t + (x * 37 + y * 11) * 10) / 320) & 3;
+  const f = Math.floor((t + sd * 997) / 320) & 3;
   const drawOx = () => c.drawImage(ox, f * fw, 0, fw, ox.naturalHeight, oxX - ow / 2, oxY - oh, ow, oh);
   if (away) drawOx();
   c.drawImage(wag, wx, -wh, ww, wh);
