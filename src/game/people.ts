@@ -505,7 +505,7 @@ const ring = (p: Person, i: number, c: Tile): Tile => { const a = hash(p.id, i, 
 /** Where a child plays: mostly right outside its own home; only a few households' kids meet on the shared meadows/squares. */
 const kidSpot = (p: Person, t: Town, i: number): Tile => {
   const out = hash(p.home[0], p.home[1], 606 + i) < 0.12 + (p.age >= 8 ? 0.08 : 0);
-  return out ? add(t.plays[Math.floor(hash(p.home[0], p.home[1], 608 + i) * t.plays.length)]!, off(p, i, 0.9)) : ring(p, 30 + i, p.home);
+  return out ? add(t.plays[Math.floor(hash(p.home[0], p.home[1], 608 + i) * t.plays.length)]!, off(p, i, 0.9)) : p.home; // resolves to the free tile in front of the door
 };
 const spot = (p: Person, t: Town, i: number): Tile => add(t.meets[Math.floor(hash(p.id, i, 605) * t.meets.length)]!, off(p, i, 0.42));
 
