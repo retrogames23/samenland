@@ -229,7 +229,7 @@ export type Kind =
   | "patrician" | "villa" | "tenement" | "townhouse2" | "fachwerk" | "steinhaus" | "handwerker"
   | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). */
-export type Structure = { kind: Kind; seed: Seed; v: number; build?: number };
+export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; fire?: boolean; flood?: boolean };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
 export const buildTime = (at: number) => Math.min(96, Math.max(1.5, at * 0.06));
 let buildP = 1;
@@ -529,6 +529,14 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
       const k = forSeed(x, y, s, age, r, d);
       if (k && buildP < 1 && (FLAT.has(k) || k === "hay" || k === "fence")) continue;
       if (k) { best = { kind: k, seed: s, v: hash(x, y, 5), ...(buildP < 1 ? { build: Math.max(0, buildP) } : {}) }; bestD = d; }
+    }
+  }
+  if (best && best.build === undefined) {
+    const hit = tileHits(best.seed, now).get(ck);
+    if (hit?.flood) best = { ...best, flood: true };
+    if (hit && canBurn(best.kind)) {
+      if (hit.fire) best = { ...best, fire: true };
+      else if (hit.build !== undefined) best = { ...best, build: hit.build };
     }
   }
   if (!best) {
