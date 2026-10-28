@@ -1166,7 +1166,6 @@ export function draw(
     for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
       const y = s - x;
       const [cx, cy] = iso(x, y);
-      const tr = terrain(x, y);
       const st = structureAt(x, y, seeds, now);
       tiles.push({ x, y, cx, cy, st });
       if (!detail) {
@@ -1276,7 +1275,6 @@ export function draw(
 
   // ---- pass 2: standing objects in depth order ----
   for (const { x, y, cx, cy, st } of tiles) {
-    const tr = terrain(x, y);
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
     if (!detail) {
       if (st?.build !== undefined) drawSite(c, st, cx, cy, t, false);
