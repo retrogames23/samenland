@@ -1,4 +1,5 @@
 import { worldHour, clock } from "./time";
+import { roadMotion, screenFacing } from "./motion";
 import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
@@ -279,8 +280,8 @@ const LOAD: Record<TradeGood, [string, "sack" | "log" | "barrel" | "block"]> = {
   grain: ["#d4b25c", "sack"], wool: ["#e6dcc6", "sack"], salt: ["#ece8de", "sack"], fish: ["#7a6a52", "barrel"], beer: ["#6e4a2c", "barrel"],
   wood: ["#7a5232", "log"], timber: ["#c09a66", "log"], ore: ["#5a5450", "block"], stone: ["#a39d92", "block"], hides: ["#8a5a3a", "sack"], cloth: ["#8a3a3a", "sack"], ironware: ["#4b4e55", "block"],
 };
-function drawLoad(c: C, x: number, y: number, dx: number, g: TradeGood) {
-  const [col, shape] = LOAD[g]; const f = dx < 0 ? 1 : -1;
+function drawLoad(c: C, x: number, y: number, dx: number, dy: number, g: TradeGood) {
+  const [col, shape] = LOAD[g]; const f = -screenFacing(dx, dy);
   c.save(); c.translate(x + f * 1.6, y - 6.2); c.fillStyle = col; c.strokeStyle = "rgba(30,20,12,0.7)"; c.lineWidth = 0.35;
   for (let i = 0; i < 3; i++) {
     const ox = (i - 1) * 1.7, oy = i === 1 ? -0.6 : 0;
@@ -295,11 +296,11 @@ function drawLoad(c: C, x: number, y: number, dx: number, g: TradeGood) {
 }
 
 /** Painted ox cart, facing the travel direction (screen-space dx). */
-function drawCart(c: C, x: number, y: number, dx: number, _dy: number, bob: number, _sd: number, _cover: string, _t: number) {
+function drawCart(c: C, x: number, y: number, dx: number, dy: number, bob: number, _sd: number, _cover: string, _t: number) {
   const im = cartImage(); if (!im) return;
   const w = 15, h = (w * im.naturalHeight) / im.naturalWidth;
   c.fillStyle = "rgba(20,15,10,0.28)"; c.beginPath(); c.ellipse(x, y, 6.5, 1.6, 0, 0, 7); c.fill();
-  c.save(); c.translate(x, y - bob * 0.3); if (dx < 0) c.scale(-1, 1);
+  c.save(); c.translate(x, y - bob * 0.3); if (screenFacing(dx, dy) < 0) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   c.drawImage(im, -w / 2, -h * 0.92, w, h);
   c.restore();
@@ -354,7 +355,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const k = folkOf(q), im = folkImage(k); if (!im) return null;
   const kid = k === "child", hgt = kid ? 3.2 + q.p.age * 0.08 : 5.2;
   const w = (hgt * im.naturalWidth) / im.naturalHeight;
-  const sdx = q.dir[0] - q.dir[1], face = sdx >= 0 ? 1 : -1, ph = q.phase + q.p.id;
+  const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + q.p.id;
   const bob = q.walking ? Math.abs(Math.sin(ph)) * 0.22 : 0;
   const tilt = q.walking ? Math.sin(ph) * 0.04 : q.working ? Math.sin(t / 420 + q.p.id) * 0.07 : 0;
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
@@ -1281,24 +1282,21 @@ export function draw(
     const sn = l.a.x * 7 + l.b.y * 13;
     for (let k = 0; k < count; k++) {
       const secsPerTile = hash(sn, k, 3) < 0.55 ? 1.6 + hash(sn, k, 1) * 1.2 : 3.2 + hash(sn, k, 1) * 1.2;
-      const ph = ((t / 1000 / secsPerTile + hash(sn, k, 2) * n * 2) % (n * 2));
-      const fwd = ph < n;
-      const f = fwd ? ph : n * 2 - ph;
-      const i = Math.min(n - 2, Math.floor(f)), u = f - i;
+      if (n < 2) continue;
+      const motion = roadMotion(pts, t / 1000 / secsPerTile + hash(sn, k, 2) * (n - 1) * 2);
+      const fwd = motion.forward, i = motion.index;
       // travellers only show on open road – inside towns they are "between the houses"
       const [tx, ty] = l.tiles[i]!;
       const st = structureAt(tx, ty, seeds, now);
       const twin = isTwin(l, seeds, now);
       if (!st || (st.kind !== "road" && st.kind !== "bridge" && !(twin && st.kind === "street"))) continue;
-      const [ax, ay] = pts[i]!, [bx, by] = pts[i + 1]!;
-      const x = ax + (bx - ax) * u, y = ay + (by - ay) * u;
+      const [x, y] = motion.position;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
       const bob = Math.sin(t / 180 + k) * 0.4;
-      let dx = (bx - ax) * (fwd ? 1 : -1), dy = (by - ay) * (fwd ? 1 : -1);
-      const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
+      const [dx, dy] = motion.direction;
       const from = fwd ? l.a : l.b, to = fwd ? l.b : l.a, ex = tradeProfile(from, now).exports;
       const good = ex[Math.floor(hash(sn, k, 5) * ex.length)] ?? null, cart = !twin && hash(sn, k, 3) < 0.55; // twins: porters walk straight from workshop to workshop
-      if (cart) { drawCart(c, x, y, dx, dy, bob, sn + k, "", t); if (good) drawLoad(c, x, y - bob * 0.3, dx, good); }
+      if (cart) { drawCart(c, x, y, dx, dy, bob, sn + k, "", t); if (good) drawLoad(c, x, y - bob * 0.3, dx, dy, good); }
       else drawWanderer(c, x, y, dx, dy, t, sn + k, good ? CARRY_OF[good] : null);
       lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
     }

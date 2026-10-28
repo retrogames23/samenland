@@ -1,4 +1,5 @@
 # Samenland Roadmap
+- [x] Laufrichtungen glätten und Wendepunkte für Personen und Handelswagen prüfen
 - [x] Prototyp: Karte, sanfter Zoom, Siedlungskern setzen
 - [x] Echtzeit-Wachstum, gemeinsame Karte
 - [x] Kleine Eingriffe (Bäume, Blumen, Laternen)

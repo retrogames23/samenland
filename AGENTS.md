@@ -20,6 +20,7 @@
 - World, trade and population caches include seed positions and creation timestamps, so replacing equal-sized seed sets cannot reuse stale geometry or progression.
 - Construction sites are derived, not stored: a building's site phase is the buildTime() window before its birth age (Structure.build); builders/woodcutters/masons are assigned in people.ts from that — keeps every client identical.
 - Goods hauling (Person.haul in people.ts) is derived from jobs and nearby buildings and animated as a pure clock cycle; never store goods or stock — all clients see the same carriers.
+- Moving villagers and road traffic use pure path-neighbourhood headings in motion.ts; two-sided sprites share a screen-space facing rule and road loops span N-1 segments, preventing staircase flicker and endpoint overshoot without client-local facing state.
 
 - Dorfsegen: blessings table with a 24h DB trigger cooldown; blessing timestamps are merged into Seed.blessed client-side and effAge adds the bonus purely — keeps growth deterministic across clients.
 - Signposts sit on derived road tiles (signTile in world.ts); only the message is stored.
