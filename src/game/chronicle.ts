@@ -92,7 +92,7 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   const jm = journeymenTo(s, seeds, from, to);
   if (jm.length > CHRON_DETAIL) ev.push({ at: to, code: "journeymen", n: jm.length });
   else for (const w of jm) ev.push({ at: w.t1, code: "journeyman", name: w.name, craft: w.craft, sex: w.sex, other: w.from.name });
-  for (const w of bridesOf(s, seeds, from, to)) ev.push({ at: w.t1, code: "bride", name: w.name, away: w.from.id === s.id, other: (w.from.id === s.id ? w.to : w.from).name });
+  for (const w of bridesOf(s, seeds, from, to)) ev.push({ at: w.t1, code: "bride", name: w.name, sex: w.sex, away: w.from.id === s.id, other: (w.from.id === s.id ? w.to : w.from).name });
   ev.sort((a, b) => a.at - b.at);
   return { from, to, events: ev, popFrom: pop(s, seeds, from), popTo: pop(s, seeds, to), taler: taxEarned(s, to) - taxEarned(s, from) + dowryEarned(s, to) - dowryEarned(s, from) - raidLoss(s, to) + raidLoss(s, from) };
 }

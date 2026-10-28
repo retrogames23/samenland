@@ -20,7 +20,9 @@ describe("remote weddings", () => {
     const n = Array.from({ length: 400 }, (_, d) => walkersOn(l, 20000 + d).filter((w) => w.kind === "bridal").length).reduce((a, b) => a + b, 0);
     expect(n).toBeGreaterThan(4); expect(n).toBeLessThan(40);
   });
-  it("a bride is always a woman", () => {
-    for (let d = 0; d < 400; d++) for (const w of walkersOn(l, 20000 + d)) if (w.kind === "bridal") expect(w.sex).toBe("f");
+  it("both brides and grooms move to their spouse", () => {
+    const sx = new Set<string>();
+    for (let d = 0; d < 1200; d++) for (const w of walkersOn(l, 20000 + d)) if (w.kind === "bridal") sx.add(w.sex);
+    expect([...sx].sort()).toEqual(["f", "m"]);
   });
 });

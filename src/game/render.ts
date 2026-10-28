@@ -1344,7 +1344,7 @@ export function draw(
       if (!st || (st.kind !== "road" && st.kind !== "bridge")) continue;
       const [x, y] = m.position;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
-      drawWanderer(c, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? "bride" : undefined);
+      drawWanderer(c, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? (w.sex === "m" ? "groom" : "bride") : undefined);
       lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w });
     }
   }
