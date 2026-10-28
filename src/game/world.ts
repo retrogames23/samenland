@@ -235,7 +235,7 @@ export const buildTime = (at: number) => Math.min(96, Math.max(1.5, at * 0.06));
 let buildP = 1;
 export const FLAT: ReadonlySet<Kind> = new Set(["path", "street", "square", "field", "pasture", "garden", "market", "road", "bridge", "rail", "avenue"]);
 const CORE: Record<string, Kind> = { "1,0": "hut", "0,1": "hut", "1,1": "campfire", "-1,0": "garden", "-1,1": "field", "0,-1": "garden" };
-const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
+export const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
   { dx: 2, dy: -1, at: 30, kind: "coop" }, { dx: -2, dy: 1, at: 48, kind: "barn" },
   { dx: 2, dy: -2, at: 180, kind: "chapel" }, { dx: -3, dy: -3, at: 240, kind: "watermill" },
   { dx: 3, dy: 1, at: 280, kind: "inn" }, { dx: -2, dy: 2, at: 360, kind: "bakery" },
