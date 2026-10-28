@@ -17,7 +17,8 @@ export type ChronEvent =
   | { at: number; code: "house"; kind: Kind; x: number; y: number }
   | { at: number; code: "family"; x: number; y: number }
   | { at: number; code: "houses"; n: number }
-  | { at: number; code: "families"; n: number };
+  | { at: number; code: "families"; n: number }
+  | { at: number; code: "wedding"; a: string; b: string; alliance: boolean; x: number; y: number };
 
 /** Homes whose completion brings a family (mirrors HOMES in people.ts). */
 export const HOME_KINDS = new Set<Kind>(["hut", "suburb", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement"] as Kind[]);
@@ -74,6 +75,8 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   if (homes.length > CHRON_DETAIL) {
     ev.push({ at: to, code: "houses", n: homes.length }, { at: to, code: "families", n: homes.length });
   } else for (const h of homes) ev.push({ at: h.at, code: "house", kind: h.kind, x: h.x, y: h.y }, { at: Math.min(to, h.at + 6e5), code: "family", x: h.x, y: h.y });
+  for (const w of townOf(s, seeds, to).weddings) if (w.at > from && w.at <= to)
+    ev.push({ at: w.at, code: "wedding", a: `${w.a.first} ${w.a.last}`, b: `${w.b.first} ${w.b.maiden ?? w.b.last}`, alliance: w.alliance, x: w.a.home[0], y: w.a.home[1] });
   ev.sort((a, b) => a.at - b.at);
   return { from, to, events: ev, popFrom: pop(s, seeds, from), popTo: pop(s, seeds, to), taler: taxEarned(s, to) - taxEarned(s, from) };
 }
