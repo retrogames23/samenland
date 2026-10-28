@@ -502,6 +502,11 @@ type Entry = { at: number; act: Activity; place: Tile; indoor: boolean };
 const off = (p: Person, i: number, amt = 0.38): Tile => [(hash(p.id, i, 601) - 0.5) * amt * 2, (hash(p.id, i, 602) - 0.5) * amt * 2];
 const add = (a: Tile, b: Tile): Tile => [a[0] + b[0], a[1] + b[1]];
 const ring = (p: Person, i: number, c: Tile): Tile => { const a = hash(p.id, i, 603) * Math.PI * 2, r = 0.75 + hash(p.id, i, 604) * 0.5; return [c[0] + Math.cos(a) * r, c[1] + Math.sin(a) * r]; };
+/** Where a child plays: mostly right outside its own home; only a few households' kids meet on the shared meadows/squares. */
+const kidSpot = (p: Person, t: Town, i: number): Tile => {
+  const out = hash(p.home[0], p.home[1], 606 + i) < 0.12 + (p.age >= 8 ? 0.08 : 0);
+  return out ? add(t.plays[Math.floor(hash(p.home[0], p.home[1], 608 + i) * t.plays.length)]!, off(p, i, 0.9)) : ring(p, 30 + i, p.home);
+};
 const spot = (p: Person, t: Town, i: number): Tile => add(t.meets[Math.floor(hash(p.id, i, 605) * t.meets.length)]!, off(p, i, 0.42));
 
 /** Jobs that carry on on Sundays (bread, inn, herds, the sick, the service itself). */
@@ -518,9 +523,9 @@ export function planOf(p: Person, t: Town): Entry[] {
     const school = p.age >= 6 && t.school;
     return [
       E(0, "sleep", H, true),
-      E(7.6 + j(1) * 0.3, school ? "school" : "play", school ? t.school! : add(t.plays[Math.floor(hash(p.home[0], p.home[1], 608) * t.plays.length)]!, off(p, 1, 0.5)), !!school),
+      E(7.6 + j(1) * 0.3, school ? "school" : "play", school ? t.school! : kidSpot(p, t, 1), !!school),
       E(12.8 + j(2) * 0.3, "home", H, true),
-      E(14.3 + j(3), "play", add(t.plays[Math.floor(hash(p.home[0], p.home[1], 609) * t.plays.length)]!, off(p, 2, 0.5)), false),
+      p.age >= 11 && hash(p.id, 31, 700) < 0.45 ? E(14.3 + j(3), "home", H, true) : E(14.3 + j(3), "play", kidSpot(p, t, 2), false),
       E(18.4 + j(4), "home", H, true),
       E(20.3 + j(5) * 0.5, "sleep", H, true),
     ];
@@ -554,7 +559,7 @@ function sundayOf(p: Person, t: Town, E: (at: number, act: Activity, place: Tile
   const service = go ? (ch ? E(9.6 + j(1) * 0.2, "church", ch, false) : E(9.6 + j(1) * 0.2, "church", ring(p, 21, t.meet), false)) : E(9.6, "home", H, true);
   const nature = hasTrait(p.id, "nature");
   const pm: Entry = p.job === "child"
-    ? E(14 + j(3), "play", add(t.plays[Math.floor(hash(p.home[0], p.home[1], 609) * t.plays.length)]!, off(p, 2, 0.5)), false)
+    ? E(14 + j(3), "play", kidSpot(p, t, 2), false)
     : p.origin != null && hash(p.id, 22, 710) < 0.6 ? E(14.5 + j(3), "visit", hhTile(p.origin), true)
     : hasTrait(p.id, "homebody") ? E(14.5, "home", H, true)
     : E(14 + j(3), nature ? "stroll" : "leisure", nature ? add(t.plays[Math.floor(hash(p.id, 23, 710) * t.plays.length)]!, off(p, 4, 0.6)) : spot(p, t, 6), false);
@@ -638,11 +643,16 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   if (e.act === "play" || e.act === "stroll") {
     // children run little loops – shrunk until the whole loop stays on open ground
     let r = 0.5 + hash(p.id, 1, 810) * 0.4;
-    const w = (e.act === "stroll" ? 0.14 : 0.35) * (hash(p.id, 2, 810) < 0.5 ? 1 : -1), a = tt * w + p.id;
+    const w = (e.act === "stroll" ? 0.14 : 0.16) * (hash(p.id, 2, 810) < 0.5 ? 1 : -1);
+    // children dawdle: run a bit, then stand and watch for a while (per-child rhythm)
+    const cyc = 18 + hash(p.id, 4, 810) * 14, u = ((tt + p.id * 3.1) % cyc) / cyc, moveFrac = e.act === "stroll" ? 1 : 0.45;
+    const pausing = u > moveFrac;
+    const tm = Math.floor((tt + p.id * 3.1) / cyc) * cyc * moveFrac + Math.min(u, moveFrac) * cyc;
+    const a = tm * w + p.id;
     const ok = (rr: number) => Array.from({ length: 24 }, (_, k) => k * 0.2618).every((q) => freeAt(t, c0[0] + Math.cos(q) * rr, c0[1] + Math.sin(q) * rr, seeds));
     while (r > 0.12 && !ok(r)) r -= 0.08;
     if (r <= 0.12) return { ...base, dir: [1, 0.3] };
-    return { ...base, x: c0[0] + Math.cos(a) * r, y: c0[1] + Math.sin(a) * r, walking: true, dir: [-Math.sin(a) * Math.sign(w), Math.cos(a) * Math.sign(w)], phase: tt * Math.abs(w) * r / STRIDE };
+    return { ...base, x: c0[0] + Math.cos(a) * r, y: c0[1] + Math.sin(a) * r, walking: !pausing, dir: [-Math.sin(a) * Math.sign(w), Math.cos(a) * Math.sign(w)], phase: tt * Math.abs(w) * r / STRIDE };
   }
   // standing still: no drifting – only turning to look around now and then (per-person rhythm)
   const look = 20 + hash(p.id, 3, 813) * 25;
