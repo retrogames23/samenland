@@ -155,6 +155,54 @@ export type Database = {
           },
         ]
       }
+      gifts: {
+        Row: {
+          amount: number
+          created_at: string
+          from_seed: string
+          id: string
+          kind: string
+          note: number
+          to_seed: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          from_seed: string
+          id?: string
+          kind: string
+          note?: number
+          to_seed: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          from_seed?: string
+          id?: string
+          kind?: string
+          note?: number
+          to_seed?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gifts_from_seed_fkey"
+            columns: ["from_seed"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gifts_to_seed_fkey"
+            columns: ["to_seed"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plantings: {
         Row: {
           created_at: string

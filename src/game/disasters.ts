@@ -1,3 +1,4 @@
+import { aidFactor } from "./gifts";
 /**
  * Disasters: fires, floods and raids are a pure calendar per village, derived from (seed id, time window)
  * and purchases (fire house, town guard). Nothing is stored: every client sees the same fire at the same moment.
@@ -109,20 +110,22 @@ export type TileHit = { fire?: true; build?: number; flood?: true };
 const tcache = new Map<string, Map<number, TileHit>>();
 /** What disasters do to each tile right now: burning, rebuilding after fire/flood, or under water. */
 export function tileHits(s: Seed, now: number): Map<number, TileHit> {
-  const key = `${s.id}:${s.created_at}:${(s.bought ?? []).map((b) => b.item + b.at).join(",")}:${Math.floor(now / 6e4)}`;
+  const key = `${s.id}:${s.created_at}:${(s.bought ?? []).map((b) => b.item + b.at).join(",")}:${(s.aid ?? []).join(",")}:${Math.floor(now / 6e4)}`;
   const hit = tcache.get(key); if (hit) return hit;
   const m = new Map<number, TileHit>();
   for (const f of fires(s, now)) {
-    if (now >= f.end + FIRE_REBUILD) continue;
+    const k = aidFactor(s.aid, f.end);
+    if (now >= f.end + FIRE_REBUILD / k) continue;
     for (const t of f.tiles) {
       if (now < f.end) m.set(t, { fire: true });
-      else if (!f.guarded) m.set(t, { build: (now - f.end) / FIRE_REBUILD });
+      else if (!f.guarded) m.set(t, { build: ((now - f.end) * k) / FIRE_REBUILD });
     }
   }
   for (const f of floods(s, now)) {
-    if (now >= f.end + FLOOD_REBUILD) continue;
+    const k = aidFactor(s.aid, f.end);
+    if (now >= f.end + FLOOD_REBUILD / k) continue;
     if (now < f.end) for (const t of f.tiles) m.set(t, { ...m.get(t), flood: true });
-    else for (const t of f.ruined) m.set(t, { build: (now - f.end) / FLOOD_REBUILD });
+    else for (const t of f.ruined) m.set(t, { build: ((now - f.end) * k) / FLOOD_REBUILD });
   }
   if (tcache.size > 200) tcache.clear();
   tcache.set(key, m); return m;

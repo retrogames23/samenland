@@ -1,3 +1,5 @@
+import { tileHits } from "@/game/disasters";
+import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind } from "@/game/gifts";
 import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, type Realm } from "@/game/time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,6 +74,7 @@ export function Game() {
   const [rawSeeds, setSeeds] = useState<Seed[]>([]);
   const [blessings, setBlessings] = useState<{ id: string; seed_id: string; created_at: string }[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [gifts, setGifts] = useState<Gift[]>([]);
   const [charters, setCharters] = useState<{ id: string; seed_id: string; path: string; created_at: string }[]>([]);
   const [charterOpen, setCharterOpen] = useState(false);
   const [firstRoads, setFirstRoads] = useState<{ id: string; seed_id: string; target_id: string; created_at: string }[]>([]);
@@ -112,8 +115,12 @@ export function Game() {
       const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id), fr = firstRoads.find((f) => f.seed_id === s.id), de = decs.get(s.id);
       if (!bl && !bo && !ch && !fr && !de) return s;
       return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { firstRoad: { target: fr.target_id, at: Date.parse(fr.created_at) } } : {}), ...(de ? { decisions: de.sort((a, b) => a.at - b.at) } : {}) };
+    }).map((s) => {
+      const sent = gifts.filter((g) => g.from_seed === s.id).map((g) => ({ id: g.id, to: g.to_seed, kind: g.kind as GiftKind, at: Date.parse(g.created_at) }));
+      const aid = gifts.filter((g) => g.to_seed === s.id && g.kind === "aid").map((g) => Date.parse(g.created_at));
+      return sent.length || aid.length ? { ...s, ...(sent.length ? { sent } : {}), ...(aid.length ? { aid } : {}) } : s;
     });
-  }, [rawSeeds, blessings, purchases, charters, firstRoads, encounters, votes, works]);
+  }, [rawSeeds, blessings, purchases, charters, firstRoads, encounters, votes, works, gifts]);
   useEffect(() => { setSignposts(signs); }, [signs]);
   const [plantings, setPlantings] = useState<Planting[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -232,6 +239,7 @@ export function Game() {
       supabase.from("first_roads").select("id, seed_id, target_id, created_at").then(({ data }) => setFirstRoads(data ?? []));
       supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").then(({ data }) => setVotes(data ?? []));
       supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").then(({ data }) => setWorks(data ?? []));
+      supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").then(({ data }) => setGifts((data ?? []) as Gift[]));
       setBlessings(bl.data ?? []);
       setPurchases(pu.data ?? []);
       setSigns((sg.data ?? []) as Signpost[]);
@@ -269,6 +277,9 @@ export function Game() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "first_roads" }, (p) => {
         const n = p.new as { id: string; seed_id: string; target_id: string; created_at: string };
         setFirstRoads((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "gifts" }, (p) => {
+        const g = p.new as Gift; setGifts((q) => (q.some((x) => x.id === g.id) ? q : [...q, g]));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "blessings" }, (p) => {
         const n = p.new as { id: string; seed_id: string; created_at: string };
@@ -542,6 +553,8 @@ export function Game() {
   }, [owner, my?.id, seeds.length]);
   // Live celebrations: while the player watches, newly derived milestones open an illustrated parchment.
   const [fest, setFest] = useState<ChronEvent[]>([]);
+  const [seenGifts, setSeenGifts] = useState<string[]>([]);
+  useEffect(() => { try { setSeenGifts(JSON.parse(localStorage.getItem("samenland-gifts-seen") ?? "[]")); } catch { /* ignore */ } }, []);
   const liveFrom = useRef(0), lastSmall = useRef(0);
   useEffect(() => {
     if (!owner || !my || seeds.length === 0) return;
@@ -582,7 +595,7 @@ export function Game() {
     setScribe((x) => (x === undefined ? null : x));
     setChronBanner(false); setChronOpen(true);
   }
-  const cash = my ? treasury(my, purchases, now) : 0;
+  const cash = my ? treasury(my, purchases, now, gifts) : 0;
   const myStage = my ? stageOf(effAge(my, seeds, now)) : 0;
   const myTown = my ? townOf(my, seeds, now) : null;
   const at = my ? attributes(my, seeds, purchases, now, myTown!.weddings.filter((w) => w.alliance).length) : null;
@@ -598,6 +611,13 @@ export function Game() {
     setBlessings((s) => [...s, data]);
     if (kind === "bell") bell(); else tap();
     setMsg(t.blessed(my.name));
+  };
+  const sendGift = async (to: Seed, kind: GiftKind, note = 0) => {
+    if (!my || !userId) return;
+    const { data, error } = await supabase.from("gifts").insert({ from_seed: my.id, to_seed: to.id, user_id: userId, kind, note }).select("id, from_seed, to_seed, kind, amount, note, created_at").single();
+    if (error || !data) return setMsg(t.gifts.fail);
+    setGifts((q) => (q.some((x) => x.id === data.id) ? q : [...q, data as Gift]));
+    tap(); setMsg(kind === "thanks" ? t.gifts.thanked(to.name) : t.gifts.sent(to.name));
   };
   const saveSign = async (to: Seed) => {
     if (!my) return;
@@ -686,14 +706,22 @@ export function Game() {
         <div className="space-y-2">
           {nbs.length === 0 ? <div className="text-xs text-muted-foreground">{t.noNeighbours}</div> : nbs.map((o) => {
             const cur = signs.find((x) => x.seed_id === my.id && x.target_id === o.id);
+            const hurt = tileHits(o, now).size > 0, used = sentToday(my.id, gifts, now);
             return (
-              <form key={o.id} className="space-y-1" onSubmit={(e) => { e.preventDefault(); saveSign(o); }}>
+              <div key={o.id} className="space-y-1">
+              <div className="flex flex-wrap gap-1">
+                <Button size="sm" variant="secondary" disabled={used || cash < GIFT_TALER} onClick={() => sendGift(o, "gift")}>{t.gifts.give(GIFT_TALER)}</Button>
+                {hurt && <Button size="sm" disabled={used || cash < AID_TALER} onClick={() => sendGift(o, "aid")}>{t.gifts.aid(AID_TALER)}</Button>}
+              </div>
+              {used && <div className="text-xs text-muted-foreground">{t.gifts.once}</div>}
+              <form className="space-y-1" onSubmit={(e) => { e.preventDefault(); saveSign(o); }}>
                 <div className="text-xs">{t.signTo(o.name)}</div>
                 <div className="flex gap-1">
                   <Input className="h-8 text-xs" maxLength={80} placeholder={t.signPlaceholder} value={signDraft[o.id] ?? cur?.message ?? ""} onChange={(e) => setSignDraft({ ...signDraft, [o.id]: e.target.value })} />
                   <Button type="submit" size="sm" variant="secondary">{t.signSave}</Button>
                 </div>
               </form>
+              </div>
             );
           })}
         </div>
@@ -1137,6 +1165,23 @@ export function Game() {
           <BookOpen className="h-5 w-5" />
         </button>
       )}
+      {!festNow && my && !anyOpen && !decision.open && !chronOpen && (() => {
+        const g = thankable(my.id, gifts, now).find((x) => !seenGifts.includes(x.id));
+        const tl = !g ? gifts.find((x) => x.kind === "thanks" && x.to_seed === my.id && now - Date.parse(x.created_at) < 7 * 864e5 && !seenGifts.includes(x.id)) : undefined;
+        const e = g ?? tl; if (!e) return null;
+        const from = seeds.find((s) => s.id === e.from_seed); if (!from) return null;
+        const seen = () => { const n = [...seenGifts, e.id].slice(-50); setSeenGifts(n); localStorage.setItem("samenland-gifts-seen", JSON.stringify(n)); };
+        return (
+          <Parchment image={ART["fair"]} title={g ? t.gifts.gotTitle : t.gifts.letterTitle} later={t.fest.close} onLater={seen}>
+            {g ? (<>
+              <p className="text-center text-ink">{t.gifts.got(from.name, g.amount, g.kind === "aid")}</p>
+              <div className="mt-4 grid gap-2">{t.gifts.notes.map((n, i) => <Button key={i} variant="secondary" onClick={() => { seen(); sendGift(from, "thanks", i); }}>{n}</Button>)}</div>
+            </>) : (
+              <p className="text-center font-['Caveat'] text-xl text-ink">„{t.gifts.notes[tl!.note] ?? t.gifts.notes[0]}“ — {from.name}</p>
+            )}
+          </Parchment>
+        );
+      })()}
       {festNow && my && (() => { const [h, body] = festText(festNow); const go = () => { const e = festNow; if ("x" in e) focus(e.x, e.y); else focus(my.x, my.y); setFest((q) => q.slice(1)); }; return (
         <Parchment image={festArt(festNow)} title={h} later={t.fest.close} onLater={() => setFest((q) => q.slice(1))}>
           <p className="text-center font-display text-xl leading-snug text-ink">{body}</p>
