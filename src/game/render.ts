@@ -8,7 +8,7 @@ import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSp
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, type Pose } from "./people";
 import { folkImage, bannerCloth, type FolkSprite } from "./folk-sprites";
-import { hash, vnoise, structureAt, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -112,7 +112,7 @@ function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
 }
 
 /** win: a small window pane (rendered as a warm rectangle), otherwise an open flame/forge. */
-export type Light = { x: number; y: number; r: number; building?: { kind: Kind; variant: number; seed: number } };
+export type Light = { x: number; y: number; r: number; building?: { kind: Kind; variant: number; seed: number; flip?: boolean } };
 
 /** Local clock hour, cached per second (house lights depend on it). */
 let hrCache = { at: 0, hr: 12 };
@@ -206,12 +206,13 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
   if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
   else if (s.build !== undefined && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: "site" });
   if (s.build !== undefined) { drawSite(c, s, cx, cy, t, true); return; }
-  if (drawBuildingSprite(c, s.kind, cx, cy, s.v)) {
+  const flip = faceFlip(s.kind, x, y, (i, j) => { const k = structureAt(i, j, renderSeeds, renderNow)?.kind; return !!k && PATHLIKE.has(k); });
+  if (drawBuildingSprite(c, s.kind, cx, cy, s.v, 1, flip)) {
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
     if (hasNightSprite(s.kind) && houseLit(s.kind, sd, localHour())) {
-      L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd } });
+      L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip } });
     }
     if (["steamworks", "smithy", "bakery", "inn"].includes(s.kind)) {
       smoke(c, cx + 4, cy - 18, t, sd, 0.6);
@@ -532,8 +533,9 @@ function personBody(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
 }
 
 let overview: HTMLCanvasElement | null = null;
-let overviewSeason = "";
 let renderNow = 0;
+let renderSeeds: Seed[] = [];
+let overviewSeason = "";
 /** Cached map picture at 1/16 iso scale, coloured from the real ground textures (terrain is static). */
 function overviewMap() {
   const sk = seasonKey(renderNow);
@@ -1032,7 +1034,7 @@ export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
 ) {
-  renderNow = now; setArtTime(now); setNatureTime(now);
+  renderNow = now; renderSeeds = seeds; setArtTime(now); setNatureTime(now);
   lastPeople.length = 0; lastTraders.length = 0; lastSources.length = 0;
   signpostMap(seeds);
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
@@ -1329,7 +1331,7 @@ export function draw(
       if (l.building) {
         c.save();
         c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
-        drawBuildingNight(c, l.building.kind, l.x, l.y, l.building.variant, night * fl);
+        drawBuildingNight(c, l.building.kind, l.x, l.y, l.building.variant, night * fl, l.building.flip);
         c.restore();
         continue;
       }

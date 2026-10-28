@@ -135,13 +135,16 @@ const sprites: Partial<Record<Kind, Sprite>> = {
 export const spriteUrl = (kind: Kind) => sprites[kind]?.url;
 /** Browser images are created only when the canvas draws, never during SSR. */
 /** Drawn width/height and ground offset of a building sprite (null while unknown). */
+const HOME_SIZE: ReadonlySet<string> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "patrician", "villa", "tenement", "suburb"]);
+/** Homes vary ±9 % in size, other buildings ±3 %. */
+const scaleOf = (kind: Kind, variant: number) => HOME_SIZE.has(kind) ? 0.91 + variant * 0.18 : 0.97 + variant * 0.06;
 export function spriteBox(kind: Kind, variant: number): { w: number; h: number; base: number } | null {
   const sprite = sprites[kind]; if (!sprite) return null;
-  const [, , sw, sh] = sprite.crop, w = sprite.width * (0.97 + variant * 0.06);
+  const [, , sw, sh] = sprite.crop, w = sprite.width * scaleOf(kind, variant);
   return { w, h: w * sh / sw, base: sprite.base };
 }
 /** `reveal` < 1 draws only the lower part of the building (walls rising on a construction site). */
-export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, reveal = 1): boolean {
+export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, reveal = 1, flip = false): boolean {
   const sprite = sprites[kind];
   if (!sprite || typeof Image === "undefined") return false;
   if (!sprite.image) {
@@ -152,27 +155,29 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   const image = sprite.image;
   if (!image.complete || !image.naturalWidth) return true; // still loading: draw nothing, never the old vector art
   const [, , sw, sh] = sprite.crop;
-  const width = sprite.width * (0.97 + variant * 0.06);
+  const width = sprite.width * scaleOf(kind, variant);
   const height = width * sh / sw;
   c.save();
   c.imageSmoothingEnabled = true;
   c.imageSmoothingQuality = "high";
   if (reveal < 1) { const top = y + sprite.base - height * reveal; c.beginPath(); c.rect(x - width, top, width * 2, height * 2); c.clip(); }
   const left = x - width / 2, top = y + sprite.base - height;
+  if (flip) { c.translate(x * 2, 0); c.scale(-1, 1); }
   c.drawImage(seasonalImage(image), left, top, width, height);
   c.restore();
-  if (reveal >= 1) animate(c, kind, left, top, width / sw, x * 7 + y * 13);
+  if (reveal >= 1 && !flip) animate(c, kind, left, top, width / sw, x * 7 + y * 13);
   return true;
 }
 
-/** The light-only layer uses exactly the daylight sprite's framing and scale. */
-export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, intensity: number) {
+/** The light-only layer uses exactly the daylight sprite's framing, scale and mirroring. */
+export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, intensity: number, flip = false) {
   const image = nightImages[kind], box = spriteBox(kind, variant);
   if (!image?.complete || !image.naturalWidth || !box) return;
   c.save();
   c.globalAlpha *= intensity;
   c.imageSmoothingEnabled = true;
   c.imageSmoothingQuality = "high";
+  if (flip) { c.translate(x * 2, 0); c.scale(-1, 1); }
   c.drawImage(image, x - box.w / 2, y + box.base - box.h, box.w, box.h);
   c.restore();
 }

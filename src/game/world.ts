@@ -233,6 +233,18 @@ export type Structure = { kind: Kind; seed: Seed; v: number; build?: number };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
 export const buildTime = (at: number) => Math.min(96, Math.max(1.5, at * 0.06));
 let buildP = 1;
+/** Homes that may be mirrored so their front turns toward the street (pure, all clients agree). */
+export const MIRROR_KINDS: ReadonlySet<Kind> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "patrician", "villa", "tenement", "suburb", "barn", "workshop", "stall", "coop"]);
+/**
+ * Sprites face the lower-left (+y). A street only on the lower-right (+x) mirrors the house;
+ * without a clear street side, a stable hash breaks the clone pattern.
+ */
+export function faceFlip(kind: Kind, x: number, y: number, isRoad: (x: number, y: number) => boolean): boolean {
+  if (!MIRROR_KINDS.has(kind)) return false;
+  const px = isRoad(x + 1, y), py = isRoad(x, y + 1);
+  if (px !== py) return px;
+  return hash(x, y, 91) < 0.5;
+}
 export const FLAT: ReadonlySet<Kind> = new Set(["path", "street", "square", "field", "pasture", "garden", "market", "road", "bridge", "rail", "avenue"]);
 const CORE: Record<string, Kind> = { "1,0": "hut", "0,1": "hut", "1,1": "campfire", "-1,0": "garden", "-1,1": "field", "0,-1": "garden" };
 export const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
