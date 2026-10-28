@@ -533,7 +533,8 @@ function personBody(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
 }
 
 let overview: HTMLCanvasElement | null = null;
-let overviewSeason = "";
+let renderNow = 0;
+let renderSeeds: Seed[] = [];
 let renderNow = 0;
 /** Cached map picture at 1/16 iso scale, coloured from the real ground textures (terrain is static). */
 function overviewMap() {
@@ -1033,7 +1034,7 @@ export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
 ) {
-  renderNow = now; setArtTime(now); setNatureTime(now);
+  renderNow = now; renderSeeds = seeds; setArtTime(now); setNatureTime(now);
   lastPeople.length = 0; lastTraders.length = 0; lastSources.length = 0;
   signpostMap(seeds);
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
