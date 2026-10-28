@@ -390,6 +390,7 @@ function folkOf(q: Pose): FolkSprite {
   if (p.age >= 65) return "elder";
   return p.sex === "f" ? "woman" : "man";
 }
+const HIPS: Partial<Record<FolkSprite, [number, number]>> = { man: [0.45, 0.63], farmer: [0.38, 0.66], porter: [0.47, 0.65], builder: [0.45, 0.64], woodcutter: [0.5, 0.62], mason: [0.42, 0.62], elder: [0.45, 0.7], robber: [0.47, 0.72] };
 /** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
 const legsFor = (q: Pose) => q.p.sex === "m" && q.p.age >= 15 && folkOf(q) !== "priest" && folkOf(q) !== "groom";
 /** Painted villager sprite: faces the walking direction, bobs while walking, sways while working. */
