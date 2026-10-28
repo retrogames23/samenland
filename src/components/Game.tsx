@@ -291,7 +291,7 @@ export function Game() {
         setSigns((s) => [...s.filter((x) => x.id !== n.id), n]);
       })
       .subscribe();
-    const iv = setInterval(() => tick((n) => n + 1), isLab() ? 2000 : 30000);
+    const iv = setInterval(() => tick((n) => n + 1), isLab() && LAB_SPEED > 1 ? 2000 : 30000);
     return () => {
       supabase.removeChannel(ch);
       clearInterval(iv);

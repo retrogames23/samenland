@@ -243,7 +243,7 @@ const de = {
   },
   hud: { build: "Bauen", rituals: "Zuwendung", signs: "Wegweiser", towns: "Dörfer", plant: "Samen setzen", settings: "Einstellungen", menu: "Menü", zoomIn: "Hineinzoomen", zoomOut: "Herauszoomen", close: "Schließen", noTown: "Setze zuerst deinen Samen.", login: "Melde dich an, um ein Dorf zu gründen.", language: "Sprache", realm: "Karte (Admin)" },
   realms: { "us-west": "Amerika West", "us-east": "Amerika Ost", europe: "Europa", asia: "Asien-Pazifik", lab: "Testkarte" },
-  lab: { title: (k: number) => `Zeitraffer ${k}× · Sprung zu`, note: "Nur für Admins. Sprung gilt ab dem Start der Testkarte." },
+  lab: { title: (k: number) => (k > 1 ? `Zeitraffer ${k}× · Sprung zu` : "Normale Zeit · Sprung zu"), note: "Nur für Admins. Sprung gilt ab dem Start der Testkarte." },
   perDay: (n: number) => `+${n}/Tag`,
   people: (n: number) => `${n} Bewohner`,
 };
@@ -491,7 +491,7 @@ const en: typeof de = {
   },
   hud: { build: "Build", rituals: "Care", signs: "Signposts", towns: "Villages", plant: "Plant seed", settings: "Settings", menu: "Menu", zoomIn: "Zoom in", zoomOut: "Zoom out", close: "Close", noTown: "Plant your seed first.", login: "Sign in to found a village.", language: "Language", realm: "Map (admin)" },
   realms: { "us-west": "America West", "us-east": "America East", europe: "Europe", asia: "Asia-Pacific", lab: "Test map" },
-  lab: { title: (k: number) => `Time-lapse ${k}× · jump to`, note: "Admins only. Jump counts from the test map start." },
+  lab: { title: (k: number) => (k > 1 ? `Time-lapse ${k}× · jump to` : "Normal time · jump to"), note: "Admins only. Jump counts from the test map start." },
   perDay: (n: number) => `+${n}/day`,
   people: (n: number) => `${n} residents`,
 };
