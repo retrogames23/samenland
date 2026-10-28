@@ -6,7 +6,7 @@ import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, cartBackImage, wagonImage, oxWalkImage, planksPattern, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, oxWalkImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, sickHome, isHomeKind, type Pose } from "./people";
 import { folkImage, walkSheet, WALK_FRAMES, bannerCloth, type FolkSprite } from "./folk-sprites";
 import { activeRaid, RAID_LEN } from "./disasters";
