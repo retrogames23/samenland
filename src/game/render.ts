@@ -1385,9 +1385,14 @@ export function draw(
           }
           c.restore();
         }
-        c.strokeStyle = "rgba(70,52,30,0.4)"; c.lineWidth = 0.9; c.lineCap = "round";
-        const sides: [number, number, number, number][] = [[0, -1, 0, 1], [1, 0, 1, 2], [0, 1, 2, 3], [-1, 0, 3, 0]];
-        for (const [i, j, a, b] of sides) if (!same(i, j)) { c.beginPath(); c.moveTo(q[a]![0], q[a]![1]); c.lineTo(q[b]![0], q[b]![1]); c.stroke(); }
+        // field balk: a few grass tufts along the outer edges instead of a ruled line
+        c.strokeStyle = "rgba(78,96,46,0.5)"; c.lineWidth = 0.35; c.lineCap = "round"; c.beginPath();
+        for (let k = 0; k < 4; k++) if (outer[k] && !same(NS[k]![0], NS[k]![1])) for (let n = 0; n < 3; n++) {
+          const f = 0.2 + 0.3 * n + (hash(x, y, 500 + k * 3 + n) - 0.5) * 0.15;
+          const p = lerp(q[k]!, q[(k + 1) & 3]!, f);
+          for (let b = -1; b <= 1; b++) { c.moveTo(p[0] + b * 0.35, p[1]); c.lineTo(p[0] + b * 0.7, p[1] - 0.9 - hash(x + b, y + n, 510 + k) * 0.6); }
+        }
+        c.stroke();
       } else if (st.kind === "pasture") {
         c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
         c.fillStyle = texture(c, "meadow") ?? hsl(84, 34, 70, 0.6); c.fill();
