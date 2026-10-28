@@ -32,7 +32,7 @@ export function homesBetween(s: Seed, seeds: Seed[], from: number, to: number) {
     const b = bornAt(x, y, s);
     if (!(b > a0 && b <= a1)) continue;
     const st = structureAt(x, y, seeds, to);
-    if (!st || st.seed !== s.id || !HOME_KINDS.has(st.kind) || st.build != null) continue;
+    if (!st || st.seed.id !== s.id || !HOME_KINDS.has(st.kind) || st.build != null) continue;
     out.push({ at: from + ((b - a0) / (a1 - a0)) * (to - from), kind: st.kind, x, y });
   }
   return out.sort((p, q) => p.at - q.at);
