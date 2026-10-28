@@ -8,3 +8,4 @@
 - Family moves (wander.ts "family") empty a source house for VACANT_DAYS; derived, not stored.
 - Neighbour gifts/aid/thanks: only gift rows are stored (DB gift_guard: prices, 1/day, treasury); carts (wander.giftWalkers), faster rebuild (Seed.aid → aidFactor) and balances are derived.
 - Map zoom has one render path (no detail threshold): wild nature is placed by natureAt() in render.ts, baked into ground chunks only outside possible town reach — so trees, house facing and pastures never pop while zooming.
+- Personal space (src/game/space.ts): footprints + a pure separation pass at draw time (people vs. people/sheep, keep-right on roads); collisions are derived per frame, never stored — all clients agree.
