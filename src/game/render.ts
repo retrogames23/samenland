@@ -296,9 +296,14 @@ function smoothRoad(l: { tiles: [number, number][] }): Pt[] {
   const raw = l.tiles.map(([x, y]) => iso(x, y) as unknown as Pt);
   const R = 3;
   const out = raw.map((_, i) => {
-    let sx = 0, sy = 0, c = 0;
-    for (let j = Math.max(0, i - R); j <= Math.min(raw.length - 1, i + R); j++) { sx += raw[j]![0]; sy += raw[j]![1]; c++; }
-    return [sx / c, sy / c] as Pt;
+    // shrink the smoothing window until the curve no longer cuts across water (shore bends)
+    for (let r = R; r > 0; r--) {
+      let sx = 0, sy = 0, c = 0;
+      for (let j = Math.max(0, i - r); j <= Math.min(raw.length - 1, i + r); j++) { sx += raw[j]![0]; sy += raw[j]![1]; c++; }
+      const p: Pt = [sx / c, sy / c], [tx, ty] = toTile(p[0], p[1]);
+      if (!isWater(terrain(tx, ty)) || isWater(terrain(l.tiles[i]![0], l.tiles[i]![1]))) return p;
+    }
+    return raw[i]!;
   });
   smoothCache.set(l, out); return out;
 }
