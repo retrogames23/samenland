@@ -1343,7 +1343,8 @@ export function draw(
     // journeymen and messengers on their way to the neighbour
     if (n >= 2) for (const w of walkersNow(l, now)) {
       const end = n - 1, pr = walkProgress(w, now) * end, fwd = w.from.id === l.a.id;
-      const m = roadMotion(pts, fwd ? pr : 2 * end - pr);
+      // roadMotion's second half (phase end..2·end) already runs b→a with a reversed heading
+      const m = roadMotion(pts, fwd ? Math.min(pr, end - 1e-6) : end + pr);
       const [tx, ty] = l.tiles[m.index]!;
       const st = structureAt(tx, ty, seeds, now);
       if (!st || (st.kind !== "road" && st.kind !== "bridge")) continue;

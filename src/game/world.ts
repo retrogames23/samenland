@@ -533,6 +533,11 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
       if (k) { best = { kind: k, seed: s, v: hash(x, y, 5), ...(buildP < 1 ? { build: Math.max(0, buildP) } : {}) }; bestD = d; }
     }
   }
+  // trade roads keep their corridor: fields, gardens and pastures grow around them, never over them
+  if (best && ROAD_YIELDS.has(best.kind)) {
+    const rd = roadAt(x, y, seeds, now);
+    if (rd) best = { kind: rd.bridge ? "bridge" : isTwin(rd.link, seeds, now) ? "street" : "road", seed: rd.link.a, v: hash(x, y, 5) };
+  }
   if (best && best.build === undefined) {
     const hit = tileHits(best.seed, now).get(ck);
     if (hit?.flood) best = { ...best, flood: true };
