@@ -202,6 +202,7 @@ export function Game() {
     }
   };
   const [ptr, setPtr] = useState<[number, number] | null>(null);
+  const ptrRef = useRef<[number, number] | null>(null), tipRef = useRef<HTMLDivElement | null>(null);
   const [plantAsk, setPlantAsk] = useState<[number, number] | null>(null);
   const [planting, setPlanting] = useState(false);
   // one seed per account, on any map: find the player's village wherever it was planted
@@ -698,15 +699,20 @@ export function Game() {
     setScribe((x) => (x === undefined ? null : x));
     setChronBanner(false); setChronOpen(true);
   }
-  const cash = my ? treasury(my, purchases, now, gifts) : 0;
-  const myStage = my ? stageOf(effAge(my, seeds, now)) : 0;
-  const myTown = my ? townOf(my, seeds, now) : null;
-  const at = my ? attributes(my, seeds, purchases, now, myTown!.weddings.filter((w) => w.alliance).length) : null;
-  const pop = my ? dailyTax(my, ageHours(my, now)) : 0;
-  const residents = myTown ? myTown.people.length : 0;
-  const sw = seasonAt(now);
-  const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
-  const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
+  // heavy derivations refresh every 5 s of world time, not on every pointer move
+  const slow = Math.floor(now / 5000) * 5000;
+  const { cash, myStage, myTown, at, pop, residents, season, nbs } = useMemo(() => {
+    const cash = my ? treasury(my, purchases, slow, gifts) : 0;
+    const myStage = my ? stageOf(effAge(my, seeds, slow)) : 0;
+    const myTown = my ? townOf(my, seeds, slow) : null;
+    const at = my ? attributes(my, seeds, purchases, slow, myTown!.weddings.filter((w) => w.alliance).length) : null;
+    const pop = my ? dailyTax(my, ageHours(my, slow)) : 0;
+    const residents = myTown ? myTown.people.length : 0;
+    const sw = seasonAt(slow);
+    const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
+    const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
+    return { cash, myStage, myTown, at, pop, residents, season, nbs };
+  }, [my, seeds, purchases, gifts, slow]);
   const ring = async (kind: "bell" | "well") => {
     if (!my) return;
     const { data, error } = await supabase.from("blessings").insert({ seed_id: my.id, user_id: userId!, kind }).select("id, seed_id, created_at").single();
@@ -978,8 +984,15 @@ export function Game() {
               d.y = e.clientY;
             }
           }
-          setHover(tileAt(e));
-          if (mode === "seed" || placing) setPtr([e.clientX, e.clientY]);
+          if (!drag.current?.moved) {
+            const nt = tileAt(e), ph = st.current.hover;
+            if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) { st.current.hover = nt; setHover(nt); }
+          }
+          if (mode === "seed" || placing) {
+            ptrRef.current = [e.clientX, e.clientY];
+            if (tipRef.current) { tipRef.current.style.left = `${e.clientX + 18}px`; tipRef.current.style.top = `${e.clientY + 18}px`; }
+            if (!ptr) setPtr(ptrRef.current);
+          }
           const hp = mode === "look" && !placing && !drag.current?.moved ? personAt(e) : null;
           peopleFocus.hover = hp ? pkey(hp) : null;
           (e.target as HTMLElement).style.cursor = hp ? "pointer" : "";
@@ -1391,7 +1404,7 @@ export function Game() {
           const err = canPlaceSpecial(placing, hover[0], hover[1], own, seeds, clock()) as keyof typeof t.place | null;
           const txt = err ? (t.place[err] as string) ?? t.place.ground : t.place.hint;
           return (
-            <div className="pointer-events-none fixed z-50 max-w-[16rem] rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" style={{ left: ptr[0] + 18, top: ptr[1] + 18 }}>
+            <div className="pointer-events-none fixed z-50 max-w-[16rem] rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" ref={tipRef} style={{ left: (ptrRef.current ?? ptr)[0] + 18, top: (ptrRef.current ?? ptr)[1] + 18 }}>
               <span className={err ? "text-destructive" : "text-primary"}>{err ? "✕ " : "✓ "}</span>{txt}
             </div>
           );
@@ -1405,7 +1418,7 @@ export function Game() {
             txt = t.seedHint.near(err.slice(5), d);
           } else if (err) txt = err === "hill" ? t.seedHint.hill : t.seedHint.water;
           return (
-            <div className="pointer-events-none fixed z-50 rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" style={{ left: ptr[0] + 18, top: ptr[1] + 18 }}>
+            <div className="pointer-events-none fixed z-50 rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" ref={tipRef} style={{ left: (ptrRef.current ?? ptr)[0] + 18, top: (ptrRef.current ?? ptr)[1] + 18 }}>
               <span className={err ? "text-destructive" : "text-primary"}>{err ? "✕ " : "✓ "}</span>{txt}
             </div>
           );
