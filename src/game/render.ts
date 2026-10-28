@@ -6,7 +6,7 @@ import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, cartBackImage, wagonImage, oxWalkImage, planksPattern, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, oxWalkImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, sickHome, isHomeKind, type Pose } from "./people";
 import { folkImage, walkSheet, WALK_FRAMES, bannerCloth, type FolkSprite } from "./folk-sprites";
 import { activeRaid, RAID_LEN } from "./disasters";
@@ -130,16 +130,23 @@ export const peopleFocus: { hover: string | null; sel: string | null } = { hover
 
 /** Small shaded sheep (~hip height of a villager). Walking adds a trotting bob and nod; standing grazes. */
 function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking: boolean, graze: boolean, sleeping: boolean) {
+  const sheet = walking ? sheepWalkImage() : null;
   const im = sheepImage(graze && !walking, sleeping); if (!im) return;
-  const w = 5.2, h = (w * im.naturalHeight) / im.naturalWidth;
-  // calm amble: low ground-hugging steps, gentle body roll, slow breathing when still
-  const step = walking ? t / 1000 * Math.PI * 2 * 1.3 : 0;
-  const bob = sleeping ? 0 : walking ? Math.abs(Math.sin(step)) * 0.07 : Math.sin(t / 1700) * 0.03;
-  const tilt = walking ? Math.sin(step * 0.5) * 0.015 : 0;
-  c.fillStyle = "rgba(30,36,22,0.3)"; c.beginPath(); c.ellipse(x, y, 2.4 - bob, 0.8, 0, 0, 7); c.fill();
-  c.save(); c.translate(x, y - bob); if (flip) c.scale(-1, 1); c.rotate(tilt);
+  const w = 5.2;
+  // walking: real painted 4-frame leg cycle, cross-faded so steps flow; body dips on each hoof fall
+  const ph = walking ? t / 230 : 0, f0 = Math.floor(ph) & 3, mix = ph - Math.floor(ph);
+  const bob = sleeping ? 0 : walking ? Math.abs(Math.sin(ph * Math.PI)) * 0.04 : Math.sin(t / 1700) * 0.025;
+  c.fillStyle = "rgba(30,36,22,0.32)"; c.beginPath(); c.ellipse(x, y, 2.4, 0.8, 0, 0, 7); c.fill();
+  c.save(); c.translate(x, y - bob); if (flip) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  c.drawImage(im, -w / 2, -h * 0.95, w, h);
+  if (sheet) {
+    const fw = sheet.naturalWidth / 4, fh = sheet.naturalHeight, ww = w * 1.1, h = (ww * fh) / fw;
+    c.drawImage(sheet, f0 * fw, 0, fw, fh, -ww / 2, -h, ww, h);
+    if (mix > 0.5) { c.globalAlpha = (mix - 0.5) * 2; c.drawImage(sheet, ((f0 + 1) & 3) * fw, 0, fw, fh, -ww / 2, -h, ww, h); }
+  } else {
+    const h = (w * im.naturalHeight) / im.naturalWidth;
+    c.drawImage(im, -w / 2, -h * 0.95, w, h);
+  }
   c.restore();
 }
 

@@ -110,9 +110,12 @@ export const boatImage = () => img(boatUrl);
 import sheepGraze from "@/assets/sprites/sheep-graze.webp";
 import sheepStand from "@/assets/sprites/sheep-stand.webp";
 import sheepSleep from "@/assets/sprites/sheep-sleep.webp";
-if (typeof window !== "undefined") { img(sheepGraze); img(sheepStand); img(sheepSleep); }
+import sheepWalk from "@/assets/sprites/sheep-walk.webp";
+if (typeof window !== "undefined") { img(sheepGraze); img(sheepStand); img(sheepSleep); img(sheepWalk); }
 /** Painted sheep sprite (facing right, feet at bottom), null while loading. */
 export const sheepImage = (graze: boolean, sleeping = false) => img(sleeping ? sheepSleep : graze ? sheepGraze : sheepStand);
+/** 4-frame painted sheep walk cycle (facing right, hooves on bottom edge). */
+export const sheepWalkImage = () => img(sheepWalk);
 import cartUrl from "@/assets/sprites/cart.webp";
 import cartBackUrl from "@/assets/sprites/cart-back.webp";
 import wagonUrl from "@/assets/sprites/wagon.webp";
