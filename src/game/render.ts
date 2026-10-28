@@ -384,15 +384,19 @@ function folkOf(q: Pose): FolkSprite {
   const p = q.p;
   if (q.festive) return q.festive;
   if (p.age < 15) return "child";
-  if (q.carry) return "porter";
-  if (p.job === "builder" && p.sex === "f") return "builderF";
-  if (p.job === "builder" || p.job === "woodcutter" || p.job === "mason" || p.job === "farmer" || p.job === "priest") return p.job;
-  if (p.age >= 65) return "elder";
-  return p.sex === "f" ? "woman" : "man";
+  const f = p.sex === "f";
+  if (q.carry) return f ? "porterF" : "porter";
+  if (p.job === "builder") return f ? "builderF" : "builder";
+  if (p.job === "farmer") return f ? "farmerF" : "farmer";
+  if (p.job === "woodcutter") return f ? "woodcutterF" : "woodcutter";
+  if (p.job === "mason") return f ? "masonF" : "mason";
+  if (p.job === "priest") return "priest";
+  if (p.age >= 65) return f ? "elderF" : "elder";
+  return f ? "woman" : "man";
 }
 const HIPS: Partial<Record<FolkSprite, [number, number]>> = { man: [0.45, 0.63], farmer: [0.38, 0.66], porter: [0.47, 0.65], builder: [0.45, 0.64], woodcutter: [0.5, 0.62], mason: [0.42, 0.62], elder: [0.45, 0.7], robber: [0.47, 0.72] };
 /** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
-const legsFor = (q: Pose) => q.p.sex === "m" && q.p.age >= 15 && folkOf(q) !== "priest" && folkOf(q) !== "groom";
+const legsFor = (q: Pose) => !!HIPS[folkOf(q)];
 /** Painted villager sprite: faces the walking direction, bobs while walking, sways while working. */
 function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const k = folkOf(q), im = folkImage(k); if (!im) return null;
@@ -428,12 +432,6 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     c.drawImage(legs, f * fw, 0, fw, legs.naturalHeight, -lw * 0.5, -lh, lw, lh);
     const sw = im.naturalWidth, sh = im.naturalHeight;
     c.drawImage(im, 0, 0, sw, sh * hem, -w * hx, -hgt, w, hgt * hem);
-  } else if (q.walking) {
-    // stride: upper body steady, legs (lower 40%) swing about the hip
-    const sw = im.naturalWidth, sh = im.naturalHeight, cut = 0.6;
-    c.drawImage(im, 0, 0, sw, sh * cut, -w / 2, -hgt, w, hgt * cut);
-    c.translate(0, -hgt * (1 - cut)); c.transform(1, 0, Math.sin(ph) * 0.32, 1, 0, 0);
-    c.drawImage(im, 0, sh * cut - 1, sw, sh * (1 - cut) + 1, -w / 2, -0.04, w, hgt * (1 - cut) + 0.04);
   } else c.drawImage(im, -w / 2, -hgt, w, hgt);
   c.restore();
   return [X, Y - hgt - bob];

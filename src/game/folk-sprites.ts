@@ -14,6 +14,11 @@ import porter from "@/assets/sprites/folk/porter.webp";
 import priest from "@/assets/sprites/folk/priest.webp";
 import bride from "@/assets/sprites/folk/bride.webp";
 import groom from "@/assets/sprites/folk/groom.webp";
+import porterF from "@/assets/sprites/folk/porter-f.webp";
+import farmerF from "@/assets/sprites/folk/farmer-f.webp";
+import elderF from "@/assets/sprites/folk/elder-f.webp";
+import masonF from "@/assets/sprites/folk/mason-f.webp";
+import woodcutterF from "@/assets/sprites/folk/woodcutter-f.webp";
 import robber from "@/assets/sprites/folk/robber.webp";
 import stone from "@/assets/sprites/folk/stone.webp";
 import signpost from "@/assets/sprites/folk/signpost.webp";
@@ -23,7 +28,7 @@ import blocks from "@/assets/sprites/folk/blocks.webp";
 import bannerPole from "@/assets/sprites/folk/banner-pole.webp";
 import bannerClothUrl from "@/assets/sprites/folk/banner-cloth.webp";
 
-const URLS = { man, manWalk, legsM, woman, child, elder, builder, builderF, woodcutter, mason, farmer, porter, priest, bride, groom, robber, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl };
+const URLS = { man, manWalk, legsM, woman, child, elder, builder, builderF, woodcutter, mason, farmer, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl };
 export type FolkSprite = keyof typeof URLS;
 const cache = new Map<string, HTMLImageElement>();
 function load(u: string) {
