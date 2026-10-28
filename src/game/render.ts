@@ -4,9 +4,9 @@ import { roadMotion, screenFacing } from "./motion";
 import { walkersNow, walkProgress, type Walker } from "./wander";
 import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
-import { seasonKey } from "./season";
+import { seasonKey, seasonAt } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, oxWalkImage, planksPattern, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, sickHome, isHomeKind, type Pose } from "./people";
 import { folkImage, walkSheet, WALK_FRAMES, bannerCloth, type FolkSprite } from "./folk-sprites";
 import { activeRaid, RAID_LEN } from "./disasters";
@@ -1401,13 +1401,27 @@ export function draw(
         const same = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && o.kind === st.kind && acreOf(x + i, y + j, o.seed).id === ac.id; };
         if (st.kind === "field") {
           // furrows run the full length of the acre, continuing seamlessly across its tiles
-          c.save(); c.clip(); c.strokeStyle = ripe ? "rgba(120,88,40,0.22)" : "rgba(50,70,30,0.25)"; c.lineWidth = 0.6;
+          // modelled ridges: shaded trough below, sunlit crest above
+          c.save(); c.clip(); c.lineCap = "round";
           for (let k = -2; k <= 2; k++) {
             const f = k / 4;
             const [a0, a1] = ac.along ? [pp(-0.6, f), pp(0.6, f)] : [pp(f, -0.6), pp(f, 0.6)];
-            c.beginPath(); c.moveTo(a0[0], a0[1]); c.lineTo(a1[0], a1[1]); c.stroke();
+            c.strokeStyle = "rgba(35,24,12,0.38)"; c.lineWidth = 1.3; c.beginPath(); c.moveTo(a0[0], a0[1] + 0.9); c.lineTo(a1[0], a1[1] + 0.9); c.stroke();
+            c.strokeStyle = ripe ? "rgba(255,230,160,0.22)" : "rgba(170,140,100,0.25)"; c.lineWidth = 0.7; c.beginPath(); c.moveTo(a0[0], a0[1] - 0.3); c.lineTo(a1[0], a1[1] - 0.3); c.stroke();
           }
           c.restore();
+          // standing plants on every ridge, back to front, fringing past the acre edge like real stalks
+          const row = fieldRowImage(ripe);
+          if (row && seasonAt(now).winter < 0.6) {
+            const w = ripe ? 15 : 13, hgt = (w * row.height) / row.width, flipRow = !ac.along;
+            for (let k = -2; k <= 2; k++) for (let m = -1; m <= 1; m += 2) {
+              const f = k / 4, g = m * 0.26 + (hash(x * 5 + k, y * 3 + m, 640) - 0.5) * 0.08;
+              const [px, py] = ac.along ? pp(g, f) : pp(f, g);
+              c.fillStyle = "rgba(30,22,10,0.22)"; c.beginPath(); c.ellipse(px + 0.6, py + 0.3, w * 0.42, 1.2, 0, 0, 7); c.fill();
+              c.save(); c.translate(px, py); if (flipRow) c.scale(-1, 1);
+              c.drawImage(row, -w / 2, -hgt * 0.92, w, hgt); c.restore();
+            }
+          }
         }
         // field balk: a few grass tufts along the outer edges instead of a ruled line
         c.strokeStyle = "rgba(78,96,46,0.5)"; c.lineWidth = 0.35; c.lineCap = "round"; c.beginPath();

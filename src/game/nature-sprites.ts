@@ -139,3 +139,7 @@ export function planksPattern(c: C): CanvasPattern | null {
   p = c.createPattern(i, "repeat") ?? undefined; if (!p) return null;
   plankPats.set(c, p); return p;
 }
+import wheatRow from "@/assets/sprites/wheat-row.webp";
+import cropRow from "@/assets/sprites/crop-row.webp";
+/** Painted standing crop rows stamped along acre furrows (wheat: horizontal row; crops: ridge running up-right). */
+export const fieldRowImage = (ripe: boolean) => img(ripe ? wheatRow : cropRow);
