@@ -341,6 +341,42 @@ export function Game() {
       const h = s.hover;
       const ok = h && s.mode === "seed" ? canPlant(h[0], h[1], s.seeds) === null : null;
       draw(ctx, cv.width, cv.height, dpr.current, c, s.seeds, s.plantings, clock(), h, ok);
+      if (s.mode === "seed") {
+        // drawn above the night grade, so the founding marker stays readable at midnight
+        const z = c.zoom * dpr.current, k = Math.SQRT2;
+        ctx.save();
+        ctx.setTransform(z, 0, 0, z, cv.width / 2 - c.x * z, cv.height / 2 - c.y * z);
+        const lw = 1.5 / c.zoom;
+        for (const o of s.seeds) {
+          const [ox, oy] = iso(o.x, o.y), R = MIN_SEED_DISTANCE;
+          ctx.beginPath(); ctx.ellipse(ox, oy, R * 16 * k, R * 8 * k, 0, 0, 7);
+          ctx.fillStyle = "rgba(170,50,40,0.16)"; ctx.fill();
+          ctx.setLineDash([6 / c.zoom, 4 / c.zoom]); ctx.lineWidth = lw; ctx.strokeStyle = "rgba(200,70,55,0.75)"; ctx.stroke(); ctx.setLineDash([]);
+        }
+        if (h) {
+          const [gx, gy] = iso(h[0], h[1]);
+          ctx.globalCompositeOperation = "lighter";
+          const gr = ctx.createRadialGradient(gx, gy, 0, gx, gy, 90);
+          gr.addColorStop(0, "rgba(255,190,110,0.32)"); gr.addColorStop(1, "rgba(255,150,70,0)");
+          ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(gx, gy, 90, 50, 0, 0, 7); ctx.fill();
+          ctx.globalCompositeOperation = "source-over";
+          const col = ok ? "rgba(110,215,110,0.95)" : "rgba(235,85,70,0.95)";
+          if (ok) { // first-year village reach
+            ctx.beginPath(); ctx.ellipse(gx, gy, 5 * 16 * k, 5 * 8 * k, 0, 0, 7);
+            ctx.fillStyle = "rgba(110,215,110,0.12)"; ctx.fill(); ctx.lineWidth = lw; ctx.strokeStyle = "rgba(110,215,110,0.7)"; ctx.stroke();
+          }
+          ctx.beginPath(); ctx.moveTo(gx, gy - 8); ctx.lineTo(gx + 16, gy); ctx.lineTo(gx, gy + 8); ctx.lineTo(gx - 16, gy); ctx.closePath();
+          ctx.fillStyle = ok ? "rgba(110,215,110,0.3)" : "rgba(235,85,70,0.3)"; ctx.fill();
+          ctx.lineWidth = 2.2 / c.zoom; ctx.strokeStyle = col; ctx.stroke();
+          // founding stake with pennant
+          ctx.fillStyle = "rgba(20,14,8,0.35)"; ctx.beginPath(); ctx.ellipse(gx, gy, 3, 1.2, 0, 0, 7); ctx.fill();
+          ctx.fillStyle = "#6b4a2b"; ctx.fillRect(gx - 0.7, gy - 20, 1.4, 20);
+          const wv = Math.sin(performance.now() / 300) * 1.5;
+          ctx.beginPath(); ctx.moveTo(gx + 0.7, gy - 20); ctx.quadraticCurveTo(gx + 6, gy - 19 + wv, gx + 10, gy - 17 + wv); ctx.lineTo(gx + 0.7, gy - 14); ctx.closePath();
+          ctx.fillStyle = ok ? "#c9a227" : "#a33a2c"; ctx.fill();
+        }
+        ctx.restore();
+      }
       const own = s.seeds.find((x) => x.id === s.mine);
       if (s.placing && h && own) {
         // SimCity-style ghost: the building floats over the tile, tinted by whether it may stand there
