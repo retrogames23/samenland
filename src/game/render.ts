@@ -475,6 +475,12 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
 function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
   // workers sharing one site door stand apart instead of stacking (stable per person)
   if (q.working) { const a = hash(q.p.id, 911, 3) * 6.283; X += Math.cos(a) * 3.2; Y += Math.sin(a) * 1.6; }
+  // walkers keep a stable lane beside the path centre, so people on the same route walk side by side, not stacked
+  else if (q.walking) {
+    const sx = q.dir[0] - q.dir[1], sy = (q.dir[0] + q.dir[1]) / 2, l = Math.hypot(sx, sy) || 1;
+    const lane = (hash(q.p.id, 913, 7) - 0.5) * 5;
+    X += (-sy / l) * lane; Y += (sx / l) * lane * 0.5;
+  }
   const sp = drawFolk(c, X, Y, q, t);
   if (sp) { if (q.talk !== null && q.talkTurn) bubble(c, sp[0] + 1.8, sp[1] + 0.6, q.talk); return; }
   c.save(); c.translate(X, Y); c.scale(PERSON_SCALE, PERSON_SCALE); c.translate(-X, -Y);
