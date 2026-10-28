@@ -41,3 +41,12 @@ describe("travel directions", () => {
     expect(pathPoint(road, -1)).toEqual([0, 0]);
   });
 });
+describe("walkers heading b→a", () => {
+  it("start at b and face towards a", () => {
+    const road: MotionPoint[] = Array.from({ length: 10 }, (_, i) => [i * 10, i * 5]);
+    const end = road.length - 1;
+    const start = roadMotion(road, end + 0.5), mid = roadMotion(road, end + 4);
+    expect(start.position[0]).toBeGreaterThan(mid.position[0]);
+    expect(screenFacing(mid.direction[0], mid.direction[1])).toBe(-1);
+  });
+});
