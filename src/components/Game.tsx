@@ -768,8 +768,8 @@ export function Game() {
           <div className="rounded-md border border-brass/60 bg-brass/15 p-2 text-xs">
             {myCharter ? <><b>{PATH_ICON[myCharter]} {t.charter.paths[myCharter]![0]}:</b> {t.charter.bonus[myCharter]}</> : t.charter.guildLocked}
           </div>
-          {(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter))
-            .sort((a, b) => (Number(at.has(a)) - Number(at.has(b))) || (ITEMS[a] - ITEMS[b]))
+          {(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && !at.has(it) && (ITEM_STAGE[it] ?? 0) <= myStage)
+            .sort((a, b) => ITEMS[a] - ITEMS[b])
             .map((it) => {
             return (
               <div key={it} className="rounded-md border border-border bg-secondary/60 p-2">
