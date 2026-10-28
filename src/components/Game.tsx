@@ -466,8 +466,7 @@ export function Game() {
       if (err) return setMsg(plantError(t, err));
       setPlantAsk([x, y]);
     } else if (mode === "tree" || mode === "flower" || mode === "lantern") {
-
-  const my = seeds.find((s) => s.id === mine);
+      const my = seeds.find((s) => s.id === mine);
       if (!my) return;
       if (Math.hypot(x - my.x, y - my.y) > radiusOf(effAge(my, seeds, clock())) + 3)
         return setMsg(t.nearOnly);
