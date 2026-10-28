@@ -1,4 +1,5 @@
 import { cacheTick } from "./time";
+import { weddingTimes } from "./weddings";
 import { pathHeading } from "./motion";
 import { worldHour } from "./time";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
@@ -18,7 +19,15 @@ export type Person = {
   haul: Haul | null;
   /** Newly moved-in household: walks in from the village edge with a bundle (real ms start). */
   arrive?: { from: Tile; t0: number } | null;
+  /** Household role in the family home (birth household; hh = that home's tile key). */
+  role?: Role; hh?: number;
+  /** Marriage (derived from the wedding calendar): spouse id, wedding time, maiden name, craft alliance. */
+  spouse?: number; wedAt?: number; maiden?: string; alliance?: boolean;
 };
+export type Role = "head" | "spouse" | "child" | "elder" | "lodger" | "mayor";
+export type Wedding = { at: number; a: Person; b: Person; alliance: boolean };
+/** Families whose trades form an alliance when their children marry. */
+const CRAFT: ReadonlySet<Job> = new Set(["baker", "miller", "smith", "crafter", "sawyer", "innkeeper", "fisher", "mason", "merchant", "farmer"] as Job[]);
 /** Goods carried along the supply chains (wood → sawmill → site, grain → mill → bakery → inn). */
 export type Good = "log" | "stone" | "planks" | "grain" | "flour" | "bread" | "bundle";
 export type Dest = "sawmill" | "site" | "store" | "mill" | "bakery" | "inn" | "market" | "home";
@@ -49,6 +58,7 @@ export type Town = {
   seed: Seed; people: Person[]; well: Tile; meet: Tile; meets: Tile[]; plays: Tile[]; school: Tile | null; play: Tile;
   x0: number; y0: number; x1: number; y1: number; routes: Map<string, Tile[]>; now: number;
   freeC: Map<number, boolean>; costC: Map<number, number>; doors: Map<number, Tile>;
+  weddings: Wedding[];
 };
 
 /** Service buildings whose staff grows with the town (radius), so big towns get more bakers, innkeepers, priests. */
@@ -157,12 +167,12 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     for (let m = 0; m < size; m++) {
       const id = (home[0] * 1024 + home[1]) * 8 + m;
       const h = (i: number) => hash(id, 77, i);
-      let age: number, sex: Sex;
-      if (m === 0) { age = pa; sex = h(1) < 0.5 ? "f" : "m"; }
-      else if (m === 1 && h(9) < 0.85) { age = Math.max(20, pa + Math.floor((h(2) - 0.5) * 8)); sex = people[people.length - 1]!.sex === "f" ? "m" : "f"; }
-      else if (m === size - 1 && size >= 4 && h(3) < 0.4) { age = Math.max(pa + 22, 64 + Math.floor(h(2) * 20)); sex = h(1) < 0.55 ? "f" : "m"; }
-      else if (m >= 3 && h(4) < 0.5) { age = 17 + Math.floor(h(2) * 30); sex = h(1) < 0.5 ? "f" : "m"; } // lodger, journeyman, maid
-      else { age = Math.max(1, Math.min(pa - 19, 1 + Math.floor(h(2) * 14))); sex = h(1) < 0.5 ? "f" : "m"; }
+      let age: number, sex: Sex, role: Role;
+      if (m === 0) { age = pa; sex = h(1) < 0.5 ? "f" : "m"; role = "head"; }
+      else if (m === 1 && h(9) < 0.85) { age = Math.max(20, pa + Math.floor((h(2) - 0.5) * 8)); sex = people[people.length - 1]!.sex === "f" ? "m" : "f"; role = "spouse"; }
+      else if (m === size - 1 && size >= 4 && h(3) < 0.4) { age = Math.max(pa + 22, 64 + Math.floor(h(2) * 20)); sex = h(1) < 0.55 ? "f" : "m"; role = "elder"; }
+      else if (m >= 3 && h(4) < 0.5) { age = 17 + Math.floor(h(2) * 30); sex = h(1) < 0.5 ? "f" : "m"; role = "lodger"; } // lodger, journeyman, maid
+      else { age = Math.max(1, Math.min(pa - 19, 1 + Math.floor(h(2) * 14))); sex = h(1) < 0.5 ? "f" : "m"; role = "child"; }
       age += Math.floor(yrs);
       let job: Job = "child", work: Tile | null = null;
       if (age >= 66) job = "retired";
@@ -182,9 +192,11 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
         looks: { skin: h(12), hair: old ? -1 : h(13), shirt: h(14), pants: h(15), hat: h(16) < (job === "farmer" ? 0.7 : 0.25), stick: old && h(17) < 0.6 },
         haul: null,
         arrive: arrive ? { from: arrive.from, t0: arrive.t0 + m * 2500 } : null,
+        role, hh: home[0] * 1024 + home[1],
       });
     }
   }
+  const weddings = marry(s, people, seeds, now);
   // the player's own figure: the village mayor (Dorfschulze), walking between well, sites and meeting spots
   if (s.user_id) {
     const hall = byKind.get("townhall")?.[0];
@@ -193,11 +205,48 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     people.push({
       id: -(s.x * 1024 + s.y) - 1, seed: s, first: pick(sex === "f" ? F : M, h(1)), last: pick(S, h(2)), sex, age: 46 + Math.floor(h(3) * 14), job: "mayor",
       home: homes[0] ?? [s.x + 1, s.y + 1], work: hall ? (front(hall) ?? meet) : meet, workIndoor: false, speed: 0.2,
-      looks: { skin: h(4), hair: h(5), shirt: 0.99, pants: h(6), hat: true, stick: false }, haul: null,
+      looks: { skin: h(4), hair: h(5), shirt: 0.99, pants: h(6), hat: true, stick: false }, haul: null, role: "mayor",
     });
   }
   assignHauls(people, byKind, sites, front, well, tradePartners(s, seeds, now).flatMap((q) => q.buy));
-  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map() };
+  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings };
+}
+
+/**
+ * Weddings from the village calendar: each one pairs two unmarried young adults (grown children,
+ * journeymen, maids) from different households whose homes already stood that day. The bride moves
+ * into the groom's family home and takes his name; her parents' house stays with the rest of her family.
+ */
+function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[] {
+  const out: Wedding[] = [];
+  const heads = new Map<number, Person>();
+  for (const p of people) if (p.role === "head") heads.set(p.hh!, p);
+  weddingTimes(s, now).forEach((at, k) => {
+    const ageK = effAge(s, seeds, at);
+    const free = people.filter((p) => (p.role === "child" || p.role === "lodger") && p.age >= 18 && p.age <= 36 && p.spouse == null && bornAt(p.home[0], p.home[1], s) <= ageK);
+    const men = free.filter((p) => p.sex === "m"), women = free.filter((p) => p.sex === "f");
+    if (!men.length || !women.length) return;
+    const g = men[Math.floor(hash(k, s.x, 990) * men.length)]!;
+    const bs = women.filter((w) => w.hh !== g.hh);
+    if (!bs.length) return;
+    const b = bs[Math.floor(hash(k, s.y, 991) * bs.length)]!;
+    const fa = heads.get(g.hh!), fb = heads.get(b.hh!);
+    const alliance = !!fa && !!fb && CRAFT.has(fa.job) && CRAFT.has(fb.job);
+    g.spouse = b.id; b.spouse = g.id; g.wedAt = b.wedAt = at; g.alliance = b.alliance = alliance;
+    b.maiden = b.last; b.last = g.last; b.home = g.home;
+    out.push({ at, a: g, b, alliance });
+  });
+  return out;
+}
+
+/** Relatives of a person within the town: spouse, parents, children, siblings (all derived). */
+export function kinOf(p: Person, t: Town) {
+  const by = new Map(t.people.map((q) => [q.id, q]));
+  const spouse = p.spouse != null ? by.get(p.spouse) ?? null : t.people.find((q) => q !== p && q.hh === p.hh && ((p.role === "head" && q.role === "spouse") || (p.role === "spouse" && q.role === "head"))) ?? null;
+  const parents = p.role === "child" ? t.people.filter((q) => q.hh === p.hh && (q.role === "head" || q.role === "spouse")) : [];
+  const children = p.role === "head" || p.role === "spouse" ? t.people.filter((q) => q.hh === p.hh && q.role === "child") : [];
+  const siblings = p.role === "child" ? t.people.filter((q) => q !== p && q.hh === p.hh && q.role === "child") : [];
+  return { spouse, parents, children, siblings };
 }
 
 /** Imported trade good → what it looks like when carried, which buildings take it in. */
