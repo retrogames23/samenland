@@ -535,7 +535,7 @@ function personBody(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
 let overview: HTMLCanvasElement | null = null;
 let renderNow = 0;
 let renderSeeds: Seed[] = [];
-let renderNow = 0;
+let overviewSeason = "";
 /** Cached map picture at 1/16 iso scale, coloured from the real ground textures (terrain is static). */
 function overviewMap() {
   const sk = seasonKey(renderNow);
