@@ -6,7 +6,7 @@ import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
 import { seasonKey } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, cartBackImage, planksPattern, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, cartBackImage, wagonImage, oxWalkImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, sickHome, isHomeKind, type Pose } from "./people";
 import { folkImage, walkSheet, WALK_FRAMES, bannerCloth, type FolkSprite } from "./folk-sprites";
 import { activeRaid, RAID_LEN } from "./disasters";
@@ -329,18 +329,33 @@ function drawLoad(c: C, x: number, y: number, dx: number, dy: number, g: TradeGo
   c.restore();
 }
 
-/** Painted ox cart, facing the travel direction (screen-space dx). */
-function drawCart(c: C, x: number, y: number, dx: number, dy: number, bob: number, _sd: number, _cover: string, _t: number) {
-  // heading into the screen (up): rear view, otherwise the front 3/4 view
+/** Painted ox cart: ox-less wagon + separate 4-frame ox walk cycle, both standing on the ground line. */
+// layout measured in sprite pixels: wagon bottom-left origin, ox bottom-centre offset, ox scale, combo centre
+const CART_LAYOUT = { front: { k: 0.04, cx: 200, ox: [315, 25], os: 1.35 }, back: { k: 0.042, cx: 150, ox: [245, -60], os: 1.45 } } as const;
+function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: number, sd: number, _cover: string, t: number) {
   const away = dy < -0.15 * Math.abs(dx);
-  const im = away ? cartBackImage() ?? cartImage() : cartImage(); if (!im) return;
-  const w = away ? 13 : 15, h = (w * im.naturalHeight) / im.naturalWidth;
-  void bob; // wheels stay on the ground: no vertical bob
-  // contact shadow sits right under wheels/hooves (sprite bottom = ground line)
-  c.fillStyle = "rgba(20,15,10,0.32)"; c.beginPath(); c.ellipse(x, y - 0.4, w * 0.4, 1.1, 0, 0, 7); c.fill();
+  const wag = wagonImage(away), ox = oxWalkImage(away);
   c.save(); c.translate(x, y); if (screenFacing(dx, dy) < 0) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  c.drawImage(im, -w / 2, -h, w, h);
+  if (!wag || !ox) {
+    const im = away ? cartBackImage() ?? cartImage() : cartImage();
+    if (im) { const w = away ? 13 : 15, h = (w * im.naturalHeight) / im.naturalWidth; c.drawImage(im, -w / 2, -h, w, h); }
+    c.restore(); return;
+  }
+  const L = away ? CART_LAYOUT.back : CART_LAYOUT.front, k = L.k;
+  const ww = wag.naturalWidth * k, wh = wag.naturalHeight * k, wx = -L.cx * k;
+  const fw = ox.naturalWidth / 4, ow = fw * k * L.os, oh = ox.naturalHeight * k * L.os;
+  const oxX = wx + L.ox[0] * k, oxY = L.ox[1] * k;
+  // contact shadows under wheels and hooves
+  c.fillStyle = "rgba(20,15,10,0.3)";
+  c.beginPath(); c.ellipse(wx + ww * 0.42, -0.5, ww * 0.42, 1.2, 0, 0, 7); c.fill();
+  c.beginPath(); c.ellipse(oxX, oxY - 0.3, ow * 0.38, 0.8, 0, 0, 7); c.fill();
+  // steady four-beat ox gait (one frame per ~0.32 s), offset per cart so teams don't march in sync
+  const f = Math.floor((t + sd * 997) / 320) & 3;
+  const drawOx = () => c.drawImage(ox, f * fw, 0, fw, ox.naturalHeight, oxX - ow / 2, oxY - oh, ow, oh);
+  if (away) drawOx();
+  c.drawImage(wag, wx, -wh, ww, wh);
+  if (!away) drawOx();
   c.restore();
 }
 

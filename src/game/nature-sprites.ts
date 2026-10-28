@@ -109,11 +109,18 @@ if (typeof window !== "undefined") { img(sheepGraze); img(sheepStand); img(sheep
 export const sheepImage = (graze: boolean, sleeping = false) => img(sleeping ? sheepSleep : graze ? sheepGraze : sheepStand);
 import cartUrl from "@/assets/sprites/cart.webp";
 import cartBackUrl from "@/assets/sprites/cart-back.webp";
+import wagonUrl from "@/assets/sprites/wagon.webp";
+import wagonBackUrl from "@/assets/sprites/wagon-back.webp";
+import oxWalkUrl from "@/assets/sprites/ox-walk.webp";
+import oxWalkBackUrl from "@/assets/sprites/ox-walk-back.webp";
 import wandererUrl from "@/assets/sprites/wanderer.webp";
-if (typeof window !== "undefined") { img(cartUrl); img(cartBackUrl); img(wandererUrl); }
+if (typeof window !== "undefined") { img(cartUrl); img(cartBackUrl); img(wagonUrl); img(wagonBackUrl); img(oxWalkUrl); img(oxWalkBackUrl); img(wandererUrl); }
 /** Ox cart (ox facing right) and walking traveller (facing right), null while loading. */
 export const cartImage = () => img(cartUrl);
 export const cartBackImage = () => img(cartBackUrl);
+/** Ox-less wagons + 4-frame painted ox walk cycles (front 3/4 and rear 3/4). */
+export const wagonImage = (back: boolean) => img(back ? wagonBackUrl : wagonUrl);
+export const oxWalkImage = (back: boolean) => img(back ? oxWalkBackUrl : oxWalkUrl);
 export const wandererImage = () => img(wandererUrl);
 const plankPats = new WeakMap<C, CanvasPattern>();
 /** Plank pattern; planks run along the image x-axis, 512px ≈ 8 planks. */
