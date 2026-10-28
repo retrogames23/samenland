@@ -335,10 +335,12 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, bob: numbe
   const away = dy < -0.15 * Math.abs(dx);
   const im = away ? cartBackImage() ?? cartImage() : cartImage(); if (!im) return;
   const w = away ? 13 : 15, h = (w * im.naturalHeight) / im.naturalWidth;
-  c.fillStyle = "rgba(20,15,10,0.28)"; c.beginPath(); c.ellipse(x, y, 6.5, 1.6, 0, 0, 7); c.fill();
-  c.save(); c.translate(x, y - bob * 0.3); if (screenFacing(dx, dy) < 0) c.scale(-1, 1);
+  void bob; // wheels stay on the ground: no vertical bob
+  // contact shadow sits right under wheels/hooves (sprite bottom = ground line)
+  c.fillStyle = "rgba(20,15,10,0.32)"; c.beginPath(); c.ellipse(x, y - 0.4, w * 0.4, 1.1, 0, 0, 7); c.fill();
+  c.save(); c.translate(x, y); if (screenFacing(dx, dy) < 0) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  c.drawImage(im, -w / 2, -h * 0.92, w, h);
+  c.drawImage(im, -w / 2, -h, w, h);
   c.restore();
 }
 
@@ -388,13 +390,15 @@ function folkOf(q: Pose): FolkSprite {
   if (p.age >= 65) return "elder";
   return p.sex === "f" ? "woman" : "man";
 }
+/** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
+const legsFor = (q: Pose) => q.p.sex === "m" && q.p.age >= 15 && folkOf(q) !== "priest" && folkOf(q) !== "groom";
 /** Painted villager sprite: faces the walking direction, bobs while walking, sways while working. */
 function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const k = folkOf(q), im = folkImage(k); if (!im) return null;
   const kid = k === "child", hgt = kid ? 3.2 + q.p.age * 0.08 : 5.2;
   const w = (hgt * im.naturalWidth) / im.naturalHeight;
   const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + q.p.id;
-  const painted = q.walking && !!walkSheet(k);
+  const painted = q.walking && (!!walkSheet(k) || legsFor(q));
   const bob = q.walking ? Math.abs(Math.sin(ph)) * (painted ? 0.07 : 0.16) : 0;
   // working: asymmetric tool rhythm — slow wind-up, quick stroke, short rest (not a pendulum)
   let tilt = q.walking && !painted ? Math.sin(ph) * 0.02 : 0;
@@ -407,11 +411,20 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   c.save(); c.translate(X, Y - bob); if (face < 0) c.scale(-1, 1); c.rotate(tilt);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   const sheet = q.walking ? walkSheet(k) : null;
+  const legs = q.walking && !sheet && legsFor(q) ? folkImage("legsM") : null;
+  const frameOf = (fw: number) => { void fw; return Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES; };
   if (sheet) {
     // real painted walk cycle: frame follows the stride phase (one 2π = two steps)
-    const fw = sheet.naturalWidth / WALK_FRAMES, f = Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES;
+    const fw = sheet.naturalWidth / WALK_FRAMES, f = frameOf(fw);
     const ww = (hgt * fw) / sheet.naturalHeight;
     c.drawImage(sheet, f * fw, 0, fw, sheet.naturalHeight, -ww / 2, -hgt, ww, hgt);
+  } else if (legs) {
+    // modular figure: one hip-registered painted leg cycle shared by all trades, trade torso on top
+    const fw = legs.naturalWidth / WALK_FRAMES, f = frameOf(fw), cut = 0.6;
+    const lh = hgt * 0.44, lw = (lh * fw) / legs.naturalHeight;
+    c.drawImage(legs, f * fw, 0, fw, legs.naturalHeight, -lw * 0.5, -lh, lw, lh);
+    const sw = im.naturalWidth, sh = im.naturalHeight;
+    c.drawImage(im, 0, 0, sw, sh * cut, -w / 2, -hgt, w, hgt * cut);
   } else if (q.walking) {
     // stride: upper body steady, legs (lower 40%) swing about the hip
     const sw = im.naturalWidth, sh = im.naturalHeight, cut = 0.6;
@@ -1379,7 +1392,7 @@ export function draw(
       const [dx, dy] = motion.direction;
       const from = fwd ? l.a : l.b, to = fwd ? l.b : l.a, ex = tradeProfile(from, now).exports;
       const good = ex[Math.floor(hash(sn, k, 5) * ex.length)] ?? null, cart = !twin && hash(sn, k, 3) < 0.55; // twins: porters walk straight from workshop to workshop
-      if (cart) { drawCart(c, x, y, dx, dy, bob, sn + k, "", t); if (good) drawLoad(c, x, y - bob * 0.3, dx, dy, good); }
+      if (cart) { drawCart(c, x, y, dx, dy, bob, sn + k, "", t); }
       else drawWanderer(c, x, y, dx, dy, t, sn + k, good ? CARRY_OF[good] : null);
       lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
     }
