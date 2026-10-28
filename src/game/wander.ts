@@ -2,7 +2,7 @@
  * People between villages: journeymen (Wandergesellen) and messengers walking the trade roads.
  * A pure calendar from the road (seed pair) and the clock – nothing is stored, every client sees the same walkers.
  */
-import { hash, links, roadProgress, type Link, type Seed } from "./world";
+import { ageHours, GROWTH_PACE, hash, links, roadProgress, stageOf, type Link, type Seed } from "./world";
 import { clock } from "./time";
 
 export type WalkerKind = "journeyman" | "messenger" | "bridal";
@@ -18,13 +18,26 @@ const DAY = 864e5;
 
 const roadId = (l: Link) => (l.a.x * 7 + l.b.y * 13 + l.a.y * 31) | 0;
 
+/**
+ * Where a cross-village couple settles: the town offering more – prosperity (growth stage) plus room for a
+ * new household (towns in their first ~3 months are still building plenty of fresh houses). Ties: coin toss.
+ * Returns +1 to settle in l.b, -1 for l.a, 0 for a tie.
+ */
+export function homeDraw(l: Link, at: number): number {
+  const pull = (s: Seed) => { const h = ageHours(s, at); return stageOf(h * GROWTH_PACE) + (h < 2160 ? 1 : 0); };
+  return Math.sign(pull(l.b) - pull(l.a));
+}
+
 /** Walkers that start on road l during UTC day d (0–2 per day: a journeyman some days, a messenger most days). */
 export function walkersOn(l: Link, d: number): Walker[] {
   const sn = roadId(l), n = l.tiles.length, out: Walker[] = [];
   const add = (kind: WalkerKind, k: number) => {
-    const fwd = hash(sn, d * 4 + k, 1502) < 0.5, sd = sn * 31 + d * 5 + k;
+    let fwd = hash(sn, d * 4 + k, 1502) < 0.5;
+    const sd = sn * 31 + d * 5 + k;
     const t0 = d * DAY + (7 + hash(sn, d * 4 + k, 1503) * 8) * 3.6e6;
-    const sex = kind === "bridal" ? "f" : kind === "journeyman" ? (hash(sd, 1, 1504) < 0.2 ? "f" : "m") : (hash(sd, 1, 1504) < 0.4 ? "f" : "m");
+    // the spouse from the less attractive town walks over to the new shared home – bride or groom alike
+    if (kind === "bridal") { const w = homeDraw(l, d * DAY); if (w) fwd = w > 0; }
+    const sex = kind === "bridal" ? (hash(sd, 1, 1504) < 0.5 ? "f" : "m") : kind === "journeyman" ? (hash(sd, 1, 1504) < 0.2 ? "f" : "m") : (hash(sd, 1, 1504) < 0.4 ? "f" : "m");
     const names = sex === "f" ? F : M;
     out.push({ kind, from: fwd ? l.a : l.b, to: fwd ? l.b : l.a, t0, t1: t0 + (n / SPEED[kind]) * 1000, sd, sex,
       name: names[Math.floor(hash(sd, 2, 1504) * names.length)]!, craft: CRAFTS[Math.floor(hash(sd, 3, 1504) * CRAFTS.length)]! });
