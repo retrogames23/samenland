@@ -8,7 +8,7 @@ import { seasonKey, seasonAt } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, sickHome, isHomeKind, type Pose } from "./people";
-import { folkImage, walkSheet, WALK_FRAMES, bannerCloth, type FolkSprite } from "./folk-sprites";
+import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, type FolkSprite } from "./folk-sprites";
 import { activeRaid, RAID_LEN } from "./disasters";
 import { hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -412,6 +412,7 @@ const HIPS: Partial<Record<FolkSprite, [number, number]>> = { man: [0.45, 0.63],
 const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride"] as FolkSprite[]);
 const TOOL_WORK: ReadonlySet<FolkSprite> = new Set(["farmer", "farmerF", "woodcutter", "woodcutterF", "mason", "masonF", "builder", "builderF"] as FolkSprite[]);
 /** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
+const WORK_FRAMES = 6;
 const legsFor = (q: Pose) => !!HIPS[folkOf(q)];
 /** Painted villager sprite: faces the walking direction, bobs while walking, sways while working. */
 function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
@@ -433,6 +434,18 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
   c.save(); c.translate(X, Y - bob); if (face < 0) c.scale(-1, 1); c.rotate(tilt);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  const mow = q.working ? workSheet(k) : null;
+  if (mow) {
+    // painted harvest cycle; neighbouring frames cross-fade so the swing flows instead of flipping
+    c.rotate(-tilt);
+    const per = 2400, u = (((t + hash(q.p.id, 31, 9) * per) % per) / per) * WORK_FRAMES, f = Math.floor(u) % WORK_FRAMES, mix = u - Math.floor(u);
+    const fw = mow.naturalWidth / WORK_FRAMES, fh = mow.naturalHeight, hh = hgt * (k === "farmer" ? 1.3 : 1.15), ww = (hh * fw) / fh;
+    const ease = mix * mix * (3 - 2 * mix);
+    c.drawImage(mow, f * fw, 0, fw, fh, -ww / 2, -hh, ww, hh);
+    c.globalAlpha = ease; c.drawImage(mow, ((f + 1) % WORK_FRAMES) * fw, 0, fw, fh, -ww / 2, -hh, ww, hh); c.globalAlpha = 1;
+    c.restore();
+    return [X, Y - hgt];
+  }
   const sheet = q.walking ? walkSheet(k) : null;
   const legs = q.walking && !sheet && legsFor(q) ? folkImage("legsM") : null;
   const frameOf = (fw: number) => { void fw; return Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES; };
