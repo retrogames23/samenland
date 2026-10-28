@@ -1,5 +1,6 @@
 import { cacheTick } from "./time";
 import { boonHours, type Decision } from "./encounters";
+import { tileHits, canBurn } from "./disasters";
 // Pure, deterministic world + town growth logic (shared by every player).
 export const MAP = 1024;
 
