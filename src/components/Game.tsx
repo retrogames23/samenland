@@ -804,12 +804,18 @@ export function Game() {
           <p className="text-xs text-muted-foreground">{t.hud.login}</p>
           <Button size="sm" className="w-full" onClick={() => setAuthOpen(true)}>{t.signIn}</Button>
         </div>
+      ) : home ? (
+        <div className="space-y-2">
+          <p className="text-xs">{t.hasTown.at(home.name, t.realms[home.realm] ?? home.realm)}</p>
+          <p className="text-xs text-muted-foreground">{t.hasTown.one}</p>
+          {home.realm === realm && <Button size="sm" variant="secondary" className="w-full" onClick={() => focus(home.x, home.y)}>{t.hasTown.look}</Button>}
+        </div>
       ) : (
         <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); startSeedMode(); }}>
           <Input placeholder={t.townName} maxLength={32} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <Input placeholder={t.yourName} maxLength={32} value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} />
           <p className="text-xs text-muted-foreground">{mode === "seed" ? t.clickLand : t.needNames}</p>
-          {mode === "seed" ? <Button type="button" size="sm" variant="ghost" onClick={() => { setMode("look"); setPlantAsk(null); }}>{t.cancel}</Button>
+          {mode === "seed" ? <Button type="button" size="sm" variant="ghost" onClick={() => { setMode("look"); setPlantAsk(null); setPtr(null); }}>{t.cancel}</Button>
             : <Button type="submit" size="sm" className="w-full" disabled={!form.name.trim() || !form.owner.trim()}>{t.plant}</Button>}
         </form>
       ))}
