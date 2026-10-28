@@ -20,7 +20,7 @@ export type ChronEvent =
   | { at: number; code: "families"; n: number };
 
 /** Homes whose completion brings a family (mirrors HOMES in people.ts). */
-export const HOME_KINDS = new Set<Kind>(["hut", "suburb", "farmhouse", "cottage", "townhouse", "townhouse2", "patrician", "villa", "tenement"] as Kind[]);
+export const HOME_KINDS = new Set<Kind>(["hut", "suburb", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement"] as Kind[]);
 /** Over long absences many small moments are summarised into one line. */
 export const CHRON_DETAIL = 6;
 /** Live overlays for single houses/families appear at most this often (real ms). */
