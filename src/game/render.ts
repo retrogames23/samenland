@@ -751,7 +751,7 @@ function drawBoat(c: C, x: number, y: number, flip: boolean, t: number, sd: numb
 /** Traveller on the open road: a real villager figure with stick and hat, striding along the road. */
 const CARRY_OF: Record<TradeGood, Pose["carry"]> = { grain: "grain", wool: "bundle", wood: "log", timber: "planks", ore: "stone", stone: "stone", fish: "bundle", salt: "flour", hides: "bundle", cloth: "bundle", ironware: "bundle", beer: "bread" };
 const travellers = new Map<number, Pose["p"]>();
-function drawWanderer(c: C, x: number, y: number, dx: number, dy: number, t: number, sd: number, carry: Pose["carry"] = null) {
+function drawWanderer(c: C, x: number, y: number, dx: number, dy: number, t: number, sd: number, carry: Pose["carry"] = null, festive?: Pose["festive"]) {
   let p = travellers.get(sd);
   if (!p) {
     p = {
@@ -765,7 +765,7 @@ function drawWanderer(c: C, x: number, y: number, dx: number, dy: number, t: num
   const d0 = (dx + 2 * dy) / 2, d1 = (2 * dy - dx) / 2;
   const q: Pose = {
     p, x: 0, y: 0, visible: true, walking: true, dir: [d0, d1], phase: (t / 1000) * Math.PI * 2 * 0.95,
-    act: "work", working: false, talk: null, talkTurn: false, carry, dest: null,
+    act: "work", working: false, talk: null, talkTurn: false, carry, dest: null, festive,
   };
   drawPerson(c, x, y, q, t, false);
 }
@@ -1344,7 +1344,7 @@ export function draw(
       if (!st || (st.kind !== "road" && st.kind !== "bridge")) continue;
       const [x, y] = m.position;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
-      drawWanderer(c, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" ? 1.4 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null);
+      drawWanderer(c, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? "bride" : undefined);
       lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w });
     }
   }

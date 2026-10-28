@@ -7,7 +7,7 @@ import { taxEarned } from "./economy";
 import { dowryEarned } from "./weddings";
 import { fires, floods, raids, raidLoss } from "./disasters";
 import { townOf } from "./people";
-import { journeymenTo } from "./wander";
+import { journeymenTo, bridesOf } from "./wander";
 import { seasonAt, type Season } from "./season";
 
 export type ChronEvent =
@@ -26,7 +26,8 @@ export type ChronEvent =
   | { at: number; code: "flood"; x: number; y: number }
   | { at: number; code: "raid"; loss: number; caught: boolean; x: number; y: number }
   | { at: number; code: "journeyman"; name: string; craft: string; sex: "f" | "m"; other: string }
-  | { at: number; code: "journeymen"; n: number };
+  | { at: number; code: "journeymen"; n: number }
+  | { at: number; code: "bride"; name: string; other: string; away: boolean };
 
 /** Homes whose completion brings a family (mirrors HOMES in people.ts). */
 export const HOME_KINDS = new Set<Kind>(["hut", "suburb", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement"] as Kind[]);
@@ -91,6 +92,7 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   const jm = journeymenTo(s, seeds, from, to);
   if (jm.length > CHRON_DETAIL) ev.push({ at: to, code: "journeymen", n: jm.length });
   else for (const w of jm) ev.push({ at: w.t1, code: "journeyman", name: w.name, craft: w.craft, sex: w.sex, other: w.from.name });
+  for (const w of bridesOf(s, seeds, from, to)) ev.push({ at: w.t1, code: "bride", name: w.name, away: w.from.id === s.id, other: (w.from.id === s.id ? w.to : w.from).name });
   ev.sort((a, b) => a.at - b.at);
   return { from, to, events: ev, popFrom: pop(s, seeds, from), popTo: pop(s, seeds, to), taler: taxEarned(s, to) - taxEarned(s, from) + dowryEarned(s, to) - dowryEarned(s, from) - raidLoss(s, to) + raidLoss(s, from) };
 }
