@@ -4,6 +4,7 @@
  */
 import { effAge, stageOf, radiusOf, reachOf, LANDMARKS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
 import { taxEarned } from "./economy";
+import { dowryEarned } from "./weddings";
 import { townOf } from "./people";
 import { seasonAt, type Season } from "./season";
 
@@ -78,5 +79,5 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   for (const w of townOf(s, seeds, to).weddings) if (w.at > from && w.at <= to)
     ev.push({ at: w.at, code: "wedding", a: `${w.a.first} ${w.a.last}`, b: `${w.b.first} ${w.b.maiden ?? w.b.last}`, alliance: w.alliance, x: w.a.home[0], y: w.a.home[1] });
   ev.sort((a, b) => a.at - b.at);
-  return { from, to, events: ev, popFrom: pop(s, seeds, from), popTo: pop(s, seeds, to), taler: taxEarned(s, to) - taxEarned(s, from) };
+  return { from, to, events: ev, popFrom: pop(s, seeds, from), popTo: pop(s, seeds, to), taler: taxEarned(s, to) - taxEarned(s, from) + dowryEarned(s, to) - dowryEarned(s, from) };
 }
