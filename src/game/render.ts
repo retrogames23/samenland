@@ -984,9 +984,13 @@ const chunkCache = new Map<string, HTMLCanvasElement>();
 // Tiles a town could ever cover: their trees/rocks are drawn live (and cleared by buildings);
 // everywhere else they are baked into ground chunks — same placement either way, so zoom never changes the scene.
 let maskKey = "", mask: { x: number; y: number; r2: number }[] = [];
+let maskSeeds: Seed[] | null = null;
+function syncMask(seeds: Seed[]) {
+  if (seeds === maskSeeds) return; maskSeeds = seeds;
+  const k = seeds.map((s) => s.id + s.x + "," + s.y).join("|");
+  if (k !== maskKey) { maskKey = k; mask = seeds.map((s) => { const r = reachOf(s, radiusOf(30000)) + 4; return { x: s.x, y: s.y, r2: r * r }; }); chunkCache.clear(); }
+}
 function nearTown(x: number, y: number) {
-  const k = renderSeeds.map((s) => s.id + s.x + "," + s.y).join("|");
-  if (k !== maskKey) { maskKey = k; mask = renderSeeds.map((s) => { const r = reachOf(s, radiusOf(30000)) + 4; return { x: s.x, y: s.y, r2: r * r }; }); chunkCache.clear(); }
   for (const m of mask) { const dx = x - m.x, dy = y - m.y; if (dx * dx + dy * dy <= m.r2) return true; }
   return false;
 }
@@ -1115,7 +1119,7 @@ export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
 ) {
-  renderNow = now; renderSeeds = seeds; setArtTime(now); setNatureTime(now);
+  renderNow = now; renderSeeds = seeds; syncMask(seeds); setArtTime(now); setNatureTime(now);
   lastPeople.length = 0; lastTraders.length = 0; lastSources.length = 0;
   signpostMap(seeds);
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
