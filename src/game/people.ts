@@ -652,7 +652,9 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
     const ok = (rr: number) => Array.from({ length: 24 }, (_, k) => k * 0.2618).every((q) => freeAt(t, c0[0] + Math.cos(q) * rr, c0[1] + Math.sin(q) * rr, seeds));
     while (r > 0.12 && !ok(r)) r -= 0.08;
     if (r <= 0.12) return { ...base, dir: [1, 0.3] };
-    return { ...base, x: c0[0] + Math.cos(a) * r, y: c0[1] + Math.sin(a) * r, walking: !pausing, dir: [-Math.sin(a) * Math.sign(w), Math.cos(a) * Math.sign(w)], phase: tt * Math.abs(w) * r / STRIDE };
+    const lx = c0[0] + Math.cos(a) * r, ly = c0[1] + Math.sin(a) * r;
+    if (!freeAt(t, lx, ly, seeds)) return { ...base, dir: [1, 0.3] };
+    return { ...base, x: lx, y: ly, walking: !pausing, dir: [-Math.sin(a) * Math.sign(w), Math.cos(a) * Math.sign(w)], phase: tt * Math.abs(w) * r / STRIDE };
   }
   // standing still: no drifting – only turning to look around now and then (per-person rhythm)
   const look = 20 + hash(p.id, 3, 813) * 25;
