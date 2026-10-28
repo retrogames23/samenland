@@ -439,9 +439,39 @@ export function Game() {
       };
     };
     cv.addEventListener("wheel", onWheel, { passive: false });
+    // keyboard panning: WASD + arrow keys, smooth per frame
+    const keys = new Set<string>();
+    const KEYMAP: Record<string, [number, number]> = { w: [0, -1], arrowup: [0, -1], s: [0, 1], arrowdown: [0, 1], a: [-1, 0], arrowleft: [-1, 0], d: [1, 0], arrowright: [1, 0] };
+    const typing = (e: KeyboardEvent) => { const el = e.target as HTMLElement | null; return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable); };
+    const onKeyDown = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      if (!KEYMAP[k] || typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+      e.preventDefault(); keys.add(k);
+    };
+    const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
+    const onBlur = () => keys.clear();
+    let panRaf = 0, lastPan = performance.now();
+    const pan = () => {
+      const now = performance.now(), dt = Math.min(50, now - lastPan); lastPan = now;
+      if (keys.size) {
+        let dx = 0, dy = 0;
+        for (const k of keys) { const v = KEYMAP[k]; if (v) { dx += v[0]; dy += v[1]; } }
+        const sp = (0.6 * dt) / cam.current.zoom; // screen px per ms, independent of zoom
+        cam.current.x += dx * sp; cam.current.y += dy * sp;
+      }
+      panRaf = requestAnimationFrame(pan);
+    };
+    panRaf = requestAnimationFrame(pan);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
     return () => {
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(panRaf);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
       cv.removeEventListener("wheel", onWheel);
     };
   }, []);
