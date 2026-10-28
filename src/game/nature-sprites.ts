@@ -80,7 +80,7 @@ export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: num
   c.fillStyle = "rgba(25,30,15,0.28)";
   c.beginPath(); c.ellipse(w * 0.12, 0, w * 0.42, w * 0.16, 0, 0, 7); c.fill();
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  c.drawImage(seasonalImage(i, k === "fir" ? "fir" : k === "crag" ? "building" : "leaf"), -w / 2, -h + h * 0.02, w, h);
+  c.drawImage(seasonalImage(i, k === "fir" ? "fir" : k === "crag" || k === "boulder" || k === "ore" || k === "coal" ? "building" : "leaf"), -w / 2, -h + h * 0.02, w, h);
   c.restore();
   return true;
 }
