@@ -481,6 +481,25 @@ export function Game() {
     }
   };
 
+  /** Planting only after the player confirms the spot on the parchment. */
+  const plantNow = async () => {
+    if (!plantAsk || !userId) return;
+    const [x, y] = plantAsk;
+    setPlanting(true);
+    const { data, error } = await supabase
+      .from("seeds")
+      .insert({ name: form.name.trim(), owner: form.owner.trim(), x, y, hue: Math.floor(Math.random() * 360), user_id: userId, realm })
+      .select()
+      .single();
+    setPlanting(false);
+    if (error?.code === "23505") { setPlantAsk(null); return setMsg(t.alreadyHave); }
+    if (error || !data) return setMsg(t.plantFail);
+    setPlantAsk(null);
+    setSeeds((s) => [...s, data as Seed]);
+    setMode("look");
+    setMsg(t.planted(data.name));
+  };
+
   const my = seeds.find((s) => s.id === mine);
   const myCharter = my ? charters.find((c) => c.seed_id === my.id)?.path : undefined;
   const sealCharter = async () => {
