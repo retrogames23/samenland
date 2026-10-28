@@ -57,3 +57,12 @@ export function clock(real = Date.now()): number {
 }
 /** Bucket for structure/town caches: one game minute, or ~1 real second on the lab map. */
 export const cacheTick = (now: number) => Math.floor(now / (lab ? 60000 * 16 : 60000));
+
+/** Day of week (0 = Sunday) in the current realm's time; every player on a map shares the same Sunday. */
+let wdFmt: { tz: string; f: Intl.DateTimeFormat } | null = null;
+const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+export function worldWeekday(now: number): number {
+  if (!wdFmt || wdFmt.tz !== tz) wdFmt = { tz, f: new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short" }) };
+  return WD.indexOf(wdFmt.f.format(new Date(now)));
+}
+export const isSunday = (now: number) => worldWeekday(now) === 0;

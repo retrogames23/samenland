@@ -1,5 +1,6 @@
-import { cacheTick } from "./time";
-import { weddingTimes } from "./weddings";
+import { cacheTick, isSunday } from "./time";
+import { weddingTimes, weddingJoy } from "./weddings";
+import { hasTrait } from "./traits";
 import { pathHeading } from "./motion";
 import { worldHour } from "./time";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
@@ -10,7 +11,7 @@ export type Sex = "f" | "m";
 export type Job =
   | "farmer" | "baker" | "smith" | "innkeeper" | "miller" | "crafter" | "worker"
   | "sawyer" | "builder" | "woodcutter" | "mason" | "merchant" | "priest" | "carter" | "mayor" | "fisher" | "healer" | "teacher" | "homemaker" | "retired" | "child";
-export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play";
+export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play" | "sick" | "care" | "church" | "visit" | "stroll" | "wedding";
 type Tile = [number, number];
 export type Person = {
   id: number; seed: Seed; first: string; last: string; sex: Sex; age: number; job: Job;
@@ -25,6 +26,10 @@ export type Person = {
   spouse?: number; wedAt?: number; maiden?: string; alliance?: boolean;
   /** Birth household of a local couple that founded a new home (their parents live there). */
   origin?: number;
+  /** Sick at home today (derived), or caring for the sick housemate with this id. */
+  sick?: boolean; carer?: number;
+  /** Wedding procession: birth home → church → new home, starting at `at` (world ms); lag = seconds behind the couple. */
+  proc?: { at: number; from: Tile; to: Tile; lag: number; role: "bride" | "groom" | "guest" };
 };
 export type Role = "head" | "spouse" | "child" | "elder" | "lodger" | "mayor";
 export type Wedding = { at: number; a: Person; b: Person; alliance: boolean };
@@ -39,6 +44,7 @@ export type Pose = {
   dir: [number, number]; phase: number; act: Activity; working: boolean;
   talk: number | null; talkTurn: boolean;
   carry: Good | null; dest: Dest | null;
+  festive?: "bride" | "groom" | undefined;
 };
 
 const F = ["Greta", "Ida", "Frieda", "Lotte", "Marie", "Anna", "Clara", "Hedwig", "Emma", "Rosa", "Lina", "Mathilda", "Elsa", "Paula", "Wilma", "Martha", "Johanna", "Thea", "Ella", "Luise"];
@@ -47,6 +53,8 @@ const S = ["Hollmann", "Brandt", "Weber", "Müller", "Becker", "Lindner", "Kraus
 const pick = <T,>(a: readonly T[], h: number) => a[Math.floor(h * a.length) % a.length]!;
 
 const HOMES: Partial<Record<Kind, [number, number]>> = { hut: [2, 2], suburb: [2, 4], farmhouse: [2, 4], cottage: [2, 3], townhouse: [2, 4], townhouse2: [2, 4], fachwerk: [2, 5], steinhaus: [2, 5], handwerker: [2, 4], patrician: [2, 5], villa: [2, 4], tenement: [4, 8], inn: [2, 2], bakery: [2, 2] };
+/** Kinds people live in. */
+export const isHomeKind = (k: string) => k in HOMES && k !== "inn" && k !== "bakery";
 const SLOTS: Partial<Record<Kind, [Job, number]>> = {
   watermill: ["miller", 2], chapel: ["priest", 1], manufactory: ["crafter", 4], steamworks: ["smith", 3], station: ["merchant", 2], stall: ["merchant", 2], harbor: ["carter", 2], townhall: ["crafter", 2],
   bakery: ["baker", 2], smithy: ["smith", 2], inn: ["innkeeper", 2], mill: ["miller", 1], workshop: ["crafter", 2],
@@ -60,7 +68,7 @@ export type Town = {
   seed: Seed; people: Person[]; well: Tile; meet: Tile; meets: Tile[]; plays: Tile[]; school: Tile | null; play: Tile;
   x0: number; y0: number; x1: number; y1: number; routes: Map<string, Tile[]>; now: number;
   freeC: Map<number, boolean>; costC: Map<number, number>; doors: Map<number, Tile>;
-  weddings: Wedding[];
+  weddings: Wedding[]; church: Tile | null;
 };
 
 /** Service buildings whose staff grows with the town (radius), so big towns get more bakers, innkeepers, priests. */
@@ -199,6 +207,10 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     }
   }
   const weddings = marry(s, people, seeds, now);
+  falls(s, people, now);
+  const chT = byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
+  const church: Tile | null = chT ? (front(chT) ?? null) : null;
+  processions(weddings, people, church ?? meet, now);
   // the player's own figure: the village mayor (Dorfschulze), walking between well, sites and meeting spots
   if (s.user_id) {
     const hall = byKind.get("townhall")?.[0];
@@ -211,7 +223,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     });
   }
   assignHauls(people, byKind, sites, front, well, tradePartners(s, seeds, now).flatMap((q) => q.buy));
-  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings };
+  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings, church };
 }
 
 /**
@@ -258,6 +270,48 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
     }
   });
   return out;
+}
+
+/** Days a sickness lasts; each household rolls once per such window. */
+export const SICK_DAYS = 3;
+/** Chance a household has a sick member in a window: lower with a healer, none during wedding joy. */
+export function sickRate(s: Seed, now: number): number {
+  if (weddingJoy(s, now)) return 0;
+  return s.bought?.some((b) => (b.item === "healer" || b.item === "infirmary") && b.at <= now) ? 0.02 : 0.06;
+}
+/** Does the household at home key `hh` (x*1024+y) nurse a sick member right now? Pure in seed, home and time. */
+export const sickHome = (s: Seed, hh: number, now: number) => hash(hh, Math.floor(now / (SICK_DAYS * 864e5)), 1301) < sickRate(s, now);
+const hhTile = (hh: number): Tile => [Math.floor(hh / 1024), hh % 1024];
+/** Mark the sick villager of each affected home and the housemate who stays in to care for them. */
+function falls(s: Seed, people: Person[], now: number) {
+  const homes = new Map<number, Person[]>();
+  for (const p of people) { if (p.role === "mayor") continue; const k = p.home[0] * 1024 + p.home[1]; (homes.get(k) ?? homes.set(k, []).get(k)!).push(p); }
+  for (const [k, ms] of homes) {
+    if (ms.length < 2 || !sickHome(s, k, now)) continue;
+    const w = Math.floor(now / (SICK_DAYS * 864e5));
+    const ill = ms[Math.floor(hash(k, w, 1302) * ms.length)]!;
+    const by = ms.filter((q) => q !== ill && q.age >= 16);
+    if (!by.length) continue;
+    const cr = by.find((q) => q.id === ill.spouse) ?? by.find((q) => q.role === "head" || q.role === "spouse") ?? by[0]!;
+    ill.sick = true; cr.carer = ill.id;
+  }
+}
+/** Seconds of the wedding service inside the church. */
+export const SERVICE_SECS = 20 * 60;
+/** The couple walks from their birth homes to church and home together; their parents follow as guests. */
+function processions(ws: Wedding[], people: Person[], church: Tile, now: number) {
+  for (const w of ws) {
+    if (now < w.at || now - w.at > 3 * 3600e3) continue;
+    const birth = (p: Person) => p.origin ?? p.hh!;
+    const [g, b] = w.a.sex === "m" ? [w.a, w.b] : [w.b, w.a];
+    const to = g.home;
+    g.proc = { at: w.at, from: hhTile(birth(g)), to, lag: 0, role: "groom" };
+    b.proc = { at: w.at, from: hhTile(birth(b)), to, lag: 0, role: "bride" };
+    let k = 0;
+    for (const q of people) if (!q.proc && (q.role === "head" || q.role === "spouse") && (q.hh === birth(g) || q.hh === birth(b)) && q.spouse !== g.id && q.spouse !== b.id && q !== g && q !== b)
+      q.proc = { at: w.at, from: q.home, to, lag: 6 + 5 * k++, role: "guest" };
+    void church;
+  }
 }
 
 /** Relatives of a person within the town: spouse, parents, children, siblings (all derived). */
@@ -442,10 +496,15 @@ const add = (a: Tile, b: Tile): Tile => [a[0] + b[0], a[1] + b[1]];
 const ring = (p: Person, i: number, c: Tile): Tile => { const a = hash(p.id, i, 603) * Math.PI * 2, r = 0.75 + hash(p.id, i, 604) * 0.5; return [c[0] + Math.cos(a) * r, c[1] + Math.sin(a) * r]; };
 const spot = (p: Person, t: Town, i: number): Tile => add(t.meets[Math.floor(hash(p.id, i, 605) * t.meets.length)]!, off(p, i, 0.42));
 
+/** Jobs that carry on on Sundays (bread, inn, herds, the sick, the service itself). */
+const SUNDAY_WORK: ReadonlySet<Job> = new Set(["baker", "innkeeper", "priest", "healer", "mayor"] as Job[]);
 export function planOf(p: Person, t: Town): Entry[] {
   const j = (i: number) => (hash(p.id, i, 700) - 0.5) * 0.8; // ± 24 min jitter
   const H = p.home;
   const E = (at: number, act: Activity, place: Tile, indoor: boolean): Entry => ({ at, act, place, indoor });
+  if (p.sick) return [E(0, "sick", H, true)];
+  if (p.carer != null) return [E(0, "sleep", H, true), E(7, "care", H, true), E(22, "sleep", H, true)];
+  if (isSunday(t.now) && !SUNDAY_WORK.has(p.job) && !(p.job === "child" && p.age < 4)) return sundayOf(p, t, E, j);
   if (p.job === "child") {
     if (p.age < 4) return [E(0, "sleep", H, true), E(10 + j(1), "play", add(H, [0.6, 0.6]), false), E(12 + j(2), "home", H, true), E(15.5 + j(3), "play", add(H, [0.6, 0.6]), false), E(18 + j(4), "home", H, true), E(19.5, "sleep", H, true)];
     const school = p.age >= 6 && t.school;
@@ -464,14 +523,38 @@ export function planOf(p: Person, t: Town): Entry[] {
   ];
   const W = p.work ?? H;
   const wp: Tile = p.workIndoor ? W : add(W, off(p, 3, 0.3));
+  const early = hasTrait(p.id, "early") ? -0.8 : hasTrait(p.id, "owl") ? 0.5 : 0;
+  const late = hasTrait(p.id, "owl") ? 1.1 : hasTrait(p.id, "early") ? -0.6 : 0;
+  const out = hasTrait(p.id, "sociable") ? 0.75 : hasTrait(p.id, "homebody") ? 0.15 : 0.4;
   return [
     E(0, "sleep", H, true),
-    E(6.5 + j(1), "work", wp, p.workIndoor),
+    E(6.5 + early + j(1), "work", wp, p.workIndoor),
     hash(p.id, 4, 607) < 0.4 ? E(12 + j(2) * 0.3, "lunch", hash(p.id, 4, 606) < 0.5 ? ring(p, 4, t.well) : spot(p, t, 4), false) : E(12 + j(2) * 0.3, "work", wp, p.workIndoor),
     E(13 + j(3) * 0.3, "work", wp, p.workIndoor),
-    hash(p.id, 5, 607) < 0.4 ? E(17.2 + j(4), "leisure", spot(p, t, 5), false) : E(17.2 + j(4), "home", H, true),
-    E(19.6 + j(5), "home", H, true),
-    E(21.8 + j(6), "sleep", H, true),
+    hash(p.id, 5, 607) < out ? E(17.2 + j(4), "leisure", spot(p, t, 5), false) : E(17.2 + j(4), "home", H, true),
+    E(19.6 + j(5) + Math.max(0, late * 0.5), "home", H, true),
+    E(21.8 + late + j(6), "sleep", H, true),
+  ];
+}
+
+/** Sunday: church at ten, a walk or a family visit in the afternoon, no fieldwork or building. */
+function sundayOf(p: Person, t: Town, E: (at: number, act: Activity, place: Tile, indoor: boolean) => Entry, j: (i: number) => number): Entry[] {
+  const H = p.home;
+  const ch = t.church;
+  const wake = hasTrait(p.id, "early") ? 7 : hasTrait(p.id, "owl") ? 9 : 8;
+  const go = hasTrait(p.id, "pious") || hash(p.id, 21, 710) < 0.85;
+  const service = go ? (ch ? E(9.6 + j(1) * 0.2, "church", ch, false) : E(9.6 + j(1) * 0.2, "church", ring(p, 21, t.meet), false)) : E(9.6, "home", H, true);
+  const nature = hasTrait(p.id, "nature");
+  const pm: Entry = p.job === "child"
+    ? E(14 + j(3), "play", add(t.plays[Math.floor(hash(p.home[0], p.home[1], 609) * t.plays.length)]!, off(p, 2, 0.5)), false)
+    : p.origin != null && hash(p.id, 22, 710) < 0.6 ? E(14.5 + j(3), "visit", hhTile(p.origin), true)
+    : hasTrait(p.id, "homebody") ? E(14.5, "home", H, true)
+    : E(14 + j(3), nature ? "stroll" : "leisure", nature ? add(t.plays[Math.floor(hash(p.id, 23, 710) * t.plays.length)]!, off(p, 4, 0.6)) : spot(p, t, 6), false);
+  return [
+    E(0, "sleep", H, true), E(wake + j(2) * 0.3, "home", H, true), service,
+    E(11.2 + j(4) * 0.4, "home", H, true), pm,
+    E((nature ? 18.6 : 17.4) + j(5), "home", H, true),
+    E((p.job === "child" ? 20 : 21.8) + j(6), "sleep", H, true),
   ];
 }
 
@@ -498,6 +581,7 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const e = pl[i]!, prev = pl[(i - 1 + pl.length) % pl.length]!;
   const base: Pose = { p, x: e.place[0], y: e.place[1], visible: !e.indoor, walking: false, dir: [0, 1], phase: 0, act: e.act, working: false, talk: null, talkTurn: false, carry: null, dest: null };
   const secs = (hr - e.at) * 3600;
+  if (p.proc) { const pr = procPose(p, t, seeds, now, base); if (pr) return pr; }
   if (p.arrive && now >= p.arrive.t0) {
     const A = p.arrive.from, B = doorOf(t, p.home, seeds);
     const pts = [A, ...route(t, A, [Math.round(B[0]), Math.round(B[1])], seeds).slice(1, -1), B];
@@ -536,15 +620,17 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   }
   if (e.act === "work" && p.haul) { const hq = haulPose(p, t, seeds, secs - arrive, base); if (hq) return hq; }
   if (e.indoor) return base;
+  // during the service (10–11) churchgoers are inside; they gather in front before and after
+  if (e.act === "church" && t.church && hr >= 10 && hr < 11 + (hash(p.id, 24, 710) * 0.15)) return { ...base, visible: false };
   const tt = now / 1000;
   const c0 = pb;
   base.x = c0[0]; base.y = c0[1];
   // never show anyone standing on water (shore tiles whose only exits are wet)
   if (!freeAt(t, c0[0], c0[1], seeds)) return { ...base, visible: false };
-  if (e.act === "play") {
+  if (e.act === "play" || e.act === "stroll") {
     // children run little loops – shrunk until the whole loop stays on open ground
     let r = 0.5 + hash(p.id, 1, 810) * 0.4;
-    const w = 0.35 * (hash(p.id, 2, 810) < 0.5 ? 1 : -1), a = tt * w + p.id;
+    const w = (e.act === "stroll" ? 0.14 : 0.35) * (hash(p.id, 2, 810) < 0.5 ? 1 : -1), a = tt * w + p.id;
     const ok = (rr: number) => Array.from({ length: 24 }, (_, k) => k * 0.2618).every((q) => freeAt(t, c0[0] + Math.cos(q) * rr, c0[1] + Math.sin(q) * rr, seeds));
     while (r > 0.12 && !ok(r)) r -= 0.08;
     if (r <= 0.12) return { ...base, dir: [1, 0.3] };
@@ -554,6 +640,39 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const look = 20 + hash(p.id, 3, 813) * 25;
   const face = hash(p.id, Math.floor((tt + p.id * 7.3) / look), 813) < 0.5 ? 1 : -1;
   return { ...base, dir: [face, 0.3], working: e.act === "work" };
+}
+
+/** Walk along points: position at distance dd, or null when past the end. */
+function along(pts: Tile[], dd: number): { x: number; y: number; dir: [number, number] } | null {
+  for (let k = 1; k < pts.length; k++) {
+    const a = pts[k - 1]!, b = pts[k]!, sl = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (dd <= sl) { const u = sl ? dd / sl : 0; return { x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, dir: pathHeading(pts, k - 1 + u) }; }
+    dd -= sl;
+  }
+  return null;
+}
+const lenOf = (pts: Tile[]) => pts.reduce((a, q, i) => i ? a + Math.hypot(q[0] - pts[i - 1]![0], q[1] - pts[i - 1]![1]) : 0, 0);
+/** Wedding procession speed (tiles/s): a slow, festive pace. */
+export const PROC_SPEED = 0.12;
+/** Where a procession member is: walking to church, inside for the service, walking to the new home, then guests linger. */
+function procPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): Pose | null {
+  const pr = p.proc!, church = t.church ?? t.meet;
+  const leg = (A: Tile, B: Tile) => { const a = doorOf(t, A, seeds), b = t.church ? doorOf(t, B, seeds) : B; return [a, ...route(t, [Math.round(a[0]), Math.round(a[1])], [Math.round(b[0]), Math.round(b[1])], seeds).slice(1, -1), b]; };
+  const p1 = leg(pr.from, church), l1 = lenOf(p1);
+  const ch = p1[p1.length - 1]!;
+  const p2 = [ch, ...route(t, [Math.round(ch[0]), Math.round(ch[1])], [Math.round(pr.to[0]), Math.round(pr.to[1])], seeds).slice(1, -1), doorOf(t, pr.to, seeds)], l2 = lenOf(p2);
+  const secs = (now - pr.at) / 1000 - pr.lag;
+  if (secs < 0) return null;
+  const festive = pr.role === "guest" ? undefined : pr.role;
+  const walk = (pts: Tile[], dd: number) => { const q = along(pts, dd); return q ? { ...base, ...q, visible: true, walking: true, act: "wedding" as Activity, phase: dd / STRIDE, festive } : null; };
+  const t1 = l1 / PROC_SPEED;
+  if (secs < t1) return walk(p1, secs * PROC_SPEED);
+  if (secs < t1 + SERVICE_SECS) return { ...base, x: ch[0], y: ch[1], visible: !t.church, act: "wedding", festive };
+  const s2 = secs - t1 - SERVICE_SECS, t2 = l2 / PROC_SPEED;
+  if (s2 < t2) return walk(p2, s2 * PROC_SPEED);
+  // guests stand outside the new home for half an hour, the couple has gone in
+  if (pr.role === "guest" && s2 < t2 + 1800) { const d = doorOf(t, pr.to, seeds), o = off(p, 9, 0.6); return { ...base, x: d[0] + o[0], y: d[1] + o[1], visible: freeAt(t, d[0] + o[0], d[1] + o[1], seeds), act: "wedding", dir: [-o[0] || 1, -o[1]] }; }
+  return null;
 }
 
 /** Newcomers walk slowly, laden with their belongings. */

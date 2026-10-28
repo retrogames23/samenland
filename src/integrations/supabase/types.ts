@@ -431,6 +431,10 @@ export type Database = {
         Returns: boolean
       }
       village_balance: { Args: { _seed: string }; Returns: number }
+      village_dowry: {
+        Args: { _at: string; _created: string }
+        Returns: number
+      }
       village_tax: { Args: { _at: string; _created: string }; Returns: number }
     }
     Enums: {

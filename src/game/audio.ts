@@ -1,4 +1,4 @@
-import { worldHour, clock } from "./time";
+import { worldHour, clock, isSunday } from "./time";
 /**
  * Procedural soundscape (Web Audio, no sample files). The render loop hands in a scene summary a few
  * times per second; this module only mixes — it never touches game state, so worlds stay deterministic.
@@ -101,6 +101,7 @@ export function hm(pan = 0) {
   tone(pan, 0.14, 210, 260, 0.28, "triangle", 700);
 }
 /** Festive bell: a few slowly decaying, slightly inharmonic strikes. */
+let lastPeal = -1;
 export function bell(pan = 0) {
   if (!ctx || !enabled) return;
   for (let k = 0; k < 3; k++) setTimeout(() => {
@@ -152,6 +153,10 @@ function tick() {
   }
   // church bell at the full hour (real clock), when a church is in view
   const wh = worldHour(clock()), key = Math.floor(wh);
+  // Sunday morning: festive peal calling everyone to church (shared world clock)
+  if (isSunday(clock()) && wh >= 9.75 && wh < 9.75 + 1 / 60 && lastPeal !== Math.floor(clock() / 864e5)) {
+    lastPeal = Math.floor(clock() / 864e5); bell(0); setTimeout(() => ctx && enabled && bell(0), 2600);
+  }
   if (wh - key < 1 / 60 && lastBell !== key) {
     const ch = s.sources.find((x) => x.k === "church");
     if (ch) { lastBell = key; for (let i = 0; i < ((key % 12) || 12); i++) setTimeout(() => ctx && enabled && tone(ch.pan, 0.12 * ch.near, 392, 390, 2.4, "sine"), i * 1600); }
