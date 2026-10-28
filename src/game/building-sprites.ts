@@ -23,6 +23,9 @@ import bakery from "@/assets/sprites/bakery.webp";
 import townhouse from "@/assets/sprites/townhouse.webp";
 import townhouse2 from "@/assets/sprites/townhouse2.webp";
 import patrician from "@/assets/sprites/patrician.webp";
+import fachwerk from "@/assets/sprites/fachwerk.webp";
+import steinhaus from "@/assets/sprites/steinhaus.webp";
+import handwerker from "@/assets/sprites/handwerker.webp";
 import villa from "@/assets/sprites/villa.webp";
 import tenement from "@/assets/sprites/tenement.webp";
 import workshop from "@/assets/sprites/workshop.webp";
@@ -70,6 +73,9 @@ import stationLight from "@/assets/sprites/night/station.webp";
 import steamworksLight from "@/assets/sprites/night/steamworks.webp";
 import suburbLight from "@/assets/sprites/night/suburb.webp";
 import townhallLight from "@/assets/sprites/night/townhall.webp";
+import fachwerkLight from "@/assets/sprites/night/fachwerk.webp";
+import steinhausLight from "@/assets/sprites/night/steinhaus.webp";
+import handwerkerLight from "@/assets/sprites/night/handwerker.webp";
 import townhouseLight from "@/assets/sprites/night/townhouse.webp";
 import townhouse2Light from "@/assets/sprites/night/townhouse2.webp";
 import patricianLight from "@/assets/sprites/night/patrician.webp";
@@ -80,7 +86,7 @@ import warehouseLight from "@/assets/sprites/night/warehouse.webp";
 import watermillLight from "@/assets/sprites/night/watermill.webp";
 import workshopLight from "@/assets/sprites/night/workshop.webp";
 
-const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, townhouse: townhouseLight, townhouse2: townhouse2Light, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
+const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
 export const hasNightSprite = (kind: Kind) => Boolean(nightUrls[kind]);
 
@@ -109,6 +115,9 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   bakery: { url: bakery, crop: [0, 0, 921, 908], width: 24, base: 5 },
   townhouse: { url: townhouse, crop: [0, 0, 498, 1010], width: 19, base: 4 },
   townhouse2: { url: townhouse2, crop: [0, 0, 240, 480], width: 18, base: 4 },
+  fachwerk: { url: fachwerk, crop: [0, 0, 344, 480], width: 18, base: 4 },
+  steinhaus: { url: steinhaus, crop: [0, 0, 306, 480], width: 20, base: 4 },
+  handwerker: { url: handwerker, crop: [0, 0, 503, 480], width: 21, base: 4 },
   patrician: { url: patrician, crop: [0, 0, 274, 480], width: 21, base: 4 },
   villa: { url: villa, crop: [0, 0, 480, 479], width: 27, base: 4 },
   tenement: { url: tenement, crop: [0, 0, 480, 471], width: 28, base: 4 },
@@ -135,7 +144,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
 export const spriteUrl = (kind: Kind) => sprites[kind]?.url;
 /** Browser images are created only when the canvas draws, never during SSR. */
 /** Drawn width/height and ground offset of a building sprite (null while unknown). */
-const HOME_SIZE: ReadonlySet<string> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "patrician", "villa", "tenement", "suburb"]);
+const HOME_SIZE: ReadonlySet<string> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "suburb"]);
 /** Homes vary ±9 % in size, other buildings ±3 %. */
 const scaleOf = (kind: Kind, variant: number) => HOME_SIZE.has(kind) ? 0.91 + variant * 0.18 : 0.97 + variant * 0.06;
 export function spriteBox(kind: Kind, variant: number): { w: number; h: number; base: number } | null {

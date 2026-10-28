@@ -226,7 +226,7 @@ export type Kind =
   | "factory" | "sawmill" | "road" | "bridge"
   | "campfire" | "hut" | "coop" | "fence" | "chapel" | "watermill" | "harbor"
   | "stall" | "townhall" | "gatehouse" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue"
-  | "patrician" | "villa" | "tenement" | "townhouse2"
+  | "patrician" | "villa" | "tenement" | "townhouse2" | "fachwerk" | "steinhaus" | "handwerker"
   | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). */
 export type Structure = { kind: Kind; seed: Seed; v: number; build?: number };
@@ -234,7 +234,7 @@ export type Structure = { kind: Kind; seed: Seed; v: number; build?: number };
 export const buildTime = (at: number) => Math.min(96, Math.max(1.5, at * 0.06));
 let buildP = 1;
 /** Homes that may be mirrored so their front turns toward the street (pure, all clients agree). */
-export const MIRROR_KINDS: ReadonlySet<Kind> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "patrician", "villa", "tenement", "suburb", "barn", "workshop", "stall", "coop"]);
+export const MIRROR_KINDS: ReadonlySet<Kind> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "suburb", "barn", "workshop", "stall", "coop"]);
 /**
  * Sprites face the lower-left (+y). A street only on the lower-right (+x) mirrors the house;
  * without a clear street side, a stable hash breaks the clone pattern.
@@ -424,20 +424,20 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   }
   if (hash(x,y,2)>0.82) return h<0.5?"garden":null;
   if (stage <= 1) return weighted(h,[["farmhouse",50],["barn",25],["garden",15],["coop",10]]);
-  if (stage === 2) return weighted(h,[["cottage",55],["farmhouse",20],["barn",10],["garden",15]]);
+  if (stage === 2) return weighted(h,[["cottage",40],["handwerker",20],["farmhouse",15],["barn",10],["garden",15]]);
   // Stable sectors form residential, craft and market districts.
   const sector = ((Math.atan2(dy,dx) + Math.PI + hash(seedNum(s),1,81)*2) % (2*Math.PI))/(2*Math.PI);
-  if (stage === 3) return weighted(h,[["townhouse",32],["townhouse2",23],["workshop",20],["cottage",15],["stall",10]]);
+  if (stage === 3) return weighted(h,[["townhouse",20],["townhouse2",16],["fachwerk",16],["handwerker",10],["workshop",18],["cottage",10],["stall",10]]);
   // Districts: patrician core, workers' quarter by the crafts sector, villas on the quiet green edge.
-  if (d < r * 0.4) return weighted(h,[["patrician",30],["suburb",10],["townhouse",22],["townhouse2",20],["workshop",6],["stall",8],["garden",4]]);
+  if (d < r * 0.4) return weighted(h,[["patrician",22],["steinhaus",18],["suburb",8],["townhouse",14],["townhouse2",14],["fachwerk",8],["workshop",6],["stall",8],["garden",4]]);
   if (sector < 0.4) {
     if (h < 0.35) return "tenement";
     const g = hash(x,y,6);
     return stage >= 5 ? weighted(g,[["manufactory",25],["steamworks",8],["warehouse",25],["workshop",42]]) : weighted(g,[["workshop",65],["smithy",15],["warehouse",20]]);
   }
-  if (sector < 0.5) return weighted(h,[["tenement",45],["townhouse",25],["townhouse2",20],["stall",10]]);
+  if (sector < 0.5) return weighted(h,[["tenement",40],["handwerker",18],["fachwerk",14],["townhouse",10],["townhouse2",8],["stall",10]]);
   if (d > r * 0.7 && sector > 0.55) return weighted(h,[["villa",55],["garden",25],["cottage",20]]);
-  return weighted(h,[["townhouse",30],["townhouse2",30],["stall",12],["cottage",14],["patrician",8],["garden",6]]);
+  return weighted(h,[["townhouse",18],["townhouse2",18],["fachwerk",18],["steinhaus",8],["stall",12],["cottage",10],["handwerker",6],["patrician",4],["garden",6]]);
 }
 
 /** Player-bought buildings: the shop item → building kind, built over SPECIAL_BUILD real ms after purchase. */
