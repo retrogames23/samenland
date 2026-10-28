@@ -202,6 +202,7 @@ export function Game() {
     }
   };
   const [ptr, setPtr] = useState<[number, number] | null>(null);
+  const ptrRef = useRef<[number, number] | null>(null), tipRef = useRef<HTMLDivElement | null>(null);
   const [plantAsk, setPlantAsk] = useState<[number, number] | null>(null);
   const [planting, setPlanting] = useState(false);
   // one seed per account, on any map: find the player's village wherever it was planted
@@ -978,8 +979,15 @@ export function Game() {
               d.y = e.clientY;
             }
           }
-          setHover(tileAt(e));
-          if (mode === "seed" || placing) setPtr([e.clientX, e.clientY]);
+          if (!drag.current?.moved) {
+            const nt = tileAt(e), ph = st.current.hover;
+            if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) { st.current.hover = nt; setHover(nt); }
+          }
+          if (mode === "seed" || placing) {
+            ptrRef.current = [e.clientX, e.clientY];
+            if (tipRef.current) { tipRef.current.style.left = `${e.clientX + 18}px`; tipRef.current.style.top = `${e.clientY + 18}px`; }
+            if (!ptr) setPtr(ptrRef.current);
+          }
           const hp = mode === "look" && !placing && !drag.current?.moved ? personAt(e) : null;
           peopleFocus.hover = hp ? pkey(hp) : null;
           (e.target as HTMLElement).style.cursor = hp ? "pointer" : "";
@@ -1391,7 +1399,7 @@ export function Game() {
           const err = canPlaceSpecial(placing, hover[0], hover[1], own, seeds, clock()) as keyof typeof t.place | null;
           const txt = err ? (t.place[err] as string) ?? t.place.ground : t.place.hint;
           return (
-            <div className="pointer-events-none fixed z-50 max-w-[16rem] rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" style={{ left: ptr[0] + 18, top: ptr[1] + 18 }}>
+            <div className="pointer-events-none fixed z-50 max-w-[16rem] rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" ref={tipRef} style={{ left: (ptrRef.current ?? ptr)[0] + 18, top: (ptrRef.current ?? ptr)[1] + 18 }}>
               <span className={err ? "text-destructive" : "text-primary"}>{err ? "✕ " : "✓ "}</span>{txt}
             </div>
           );
@@ -1405,7 +1413,7 @@ export function Game() {
             txt = t.seedHint.near(err.slice(5), d);
           } else if (err) txt = err === "hill" ? t.seedHint.hill : t.seedHint.water;
           return (
-            <div className="pointer-events-none fixed z-50 rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" style={{ left: ptr[0] + 18, top: ptr[1] + 18 }}>
+            <div className="pointer-events-none fixed z-50 rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" ref={tipRef} style={{ left: (ptrRef.current ?? ptr)[0] + 18, top: (ptrRef.current ?? ptr)[1] + 18 }}>
               <span className={err ? "text-destructive" : "text-primary"}>{err ? "✕ " : "✓ "}</span>{txt}
             </div>
           );

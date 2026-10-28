@@ -1045,7 +1045,6 @@ function drawSurf(c: C, shore: { a: Pt; b: Pt; w: Pt }[], t: number, live: boole
   }
   c.restore();
 }
-/** Water + layered land for a tile range; returns border tiles for frayed edges. */
 type GroundGeom = { water: Path2D; deep: Pt[]; layers: (Path2D | null)[]; shoreLines: Path2D | null; shore: { a: Pt; b: Pt; w: Pt }[]; edges: GroundEdge[] };
 const geomCache = new Map<string, GroundGeom>();
 /** Terrain never changes, so the contour geometry of a tile block is built once and reused as Path2D. */
@@ -1327,6 +1326,7 @@ export function draw(
   // frayed edges: a few grass tufts and pebbles breaking up the borderline
   if (detail) {
     for (const e of edges) {
+      if (e.x < x0 || e.x > x1 || e.y < y0 || e.y > y1) continue;
       const n = hash(e.x, e.y, 401) < 0.5 ? 1 : 2;
       for (let i = 0; i < n; i++) {
         const a = hash(e.x, e.y, 410 + i) * Math.PI * 2;
