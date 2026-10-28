@@ -15,3 +15,12 @@ describe("wanderers", () => {
     expect(walkProgress(w, w.t0)).toBe(0); expect(walkProgress(w, w.t1)).toBe(1);
   });
 });
+describe("remote weddings", () => {
+  it("brides walk now and then (roughly every few weeks per road)", () => {
+    const n = Array.from({ length: 400 }, (_, d) => walkersOn(l, 20000 + d).filter((w) => w.kind === "bridal").length).reduce((a, b) => a + b, 0);
+    expect(n).toBeGreaterThan(4); expect(n).toBeLessThan(40);
+  });
+  it("a bride is always a woman", () => {
+    for (let d = 0; d < 400; d++) for (const w of walkersOn(l, 20000 + d)) if (w.kind === "bridal") expect(w.sex).toBe("f");
+  });
+});
