@@ -72,6 +72,7 @@ const de = {
   signposts: "Wegweiser zu Nachbardörfern",
   signTo: (n: string) => `Nach ${n}`,
   signPlaceholder: "Kurzer Willkommensgruß (max. 80 Zeichen)",
+  gifts: { give: (n: number) => `Geschenk schicken (${n} Taler)`, aid: (n: number) => `Nothilfe schicken (${n} Taler)`, once: "Heute wurde schon ein Geschenk verschickt.", fail: "Das ging nicht – vielleicht fehlt Geld oder heute wurde schon geschenkt.", sent: (n: string) => `Ein Karren mit Geschenken rollt nach ${n}.`, thanked: (n: string) => `Ein Dankesbrief ist unterwegs nach ${n}.`, gotTitle: "Ein Geschenk vom Nachbarn", letterTitle: "Ein Dankesbrief", got: (n: string, a: number, aid: boolean) => aid ? `${n} schickt Nothilfe: ${a} Taler und helfende Hände – der Wiederaufbau geht doppelt so schnell.` : `${n} schickt einen Karren mit ${a} Talern als Zeichen guter Nachbarschaft.`, notes: ["Habt herzlichen Dank, liebe Nachbarn!", "Eure Güte wird in unserer Chronik nicht vergessen.", "Möge Euer Dorf stets blühen – wir stehen in Eurer Schuld."] },
   signSave: "Aufstellen",
   signSaved: "Wegweiser steht.",
   signFrom: (n: string) => `Wegweiser von ${n}`,
@@ -225,7 +226,7 @@ const de = {
     goods: { grain: "Getreide", wool: "Wolle", wood: "Holz", ore: "Erz", stone: "Stein", fish: "Fisch", salt: "Salz", hides: "Leder", cloth: "Tuch", ironware: "Eisenwaren", beer: "Bier", timber: "Bauholz" } as Record<string, string>,
   },
   twinWith: (n: string) => `Zwillingsstadt mit ${n}`,
-  walker: (k: string, n: string, c: string, from: string, to: string) => k === "messenger" ? `Bote ${n}: bringt Briefe von ${from} nach ${to}` : k === "family" ? `Familie ${n} zieht mit Hab und Gut von ${from} nach ${to} – dort lockt mehr` : k === "bridal" ? (c === "m" ? `Bräutigam ${n} zieht von ${from} zu seiner Braut nach ${to} – dort ist mehr Platz` : `Braut ${n} zieht von ${from} zu ihrem Bräutigam nach ${to} – dort ist mehr Platz`) : `Wandergeselle ${n} (${c}) auf der Walz: von ${from} nach ${to}`,
+  walker: (k: string, n: string, c: string, from: string, to: string) => k === "gift" ? `Geschenkkarren von ${from} nach ${to}, gelenkt von ${n}` : k === "aid" ? `Nothilfe aus ${from} für ${to}: ${n} bringt Taler und Werkzeug` : k === "letter" ? `Bote ${n} trägt einen Dankesbrief von ${from} nach ${to}` : k === "messenger" ? `Bote ${n}: bringt Briefe von ${from} nach ${to}` : k === "family" ? `Familie ${n} zieht mit Hab und Gut von ${from} nach ${to} – dort lockt mehr` : k === "bridal" ? (c === "m" ? `Bräutigam ${n} zieht von ${from} zu seiner Braut nach ${to} – dort ist mehr Platz` : `Braut ${n} zieht von ${from} zu ihrem Bräutigam nach ${to} – dort ist mehr Platz`) : `Wandergeselle ${n} (${c}) auf der Walz: von ${from} nach ${to}`,
   mentorBy: (n: string) => `🌱 Lernt von ${n} – wächst im ersten Jahr schneller`,
   twin: {
     title: (a: string, b: string) => `Doppelstadt ${a} ∞ ${b}`,
@@ -319,6 +320,7 @@ const en: typeof de = {
   signposts: "Signposts to neighbouring villages",
   signTo: (n) => `To ${n}`,
   signPlaceholder: "Short welcome message (max. 80 characters)",
+  gifts: { give: (n: number) => `Send a gift (${n} Taler)`, aid: (n: number) => `Send relief (${n} Taler)`, once: "A gift was already sent today.", fail: "That didn't work – maybe not enough Taler, or a gift was already sent today.", sent: (n: string) => `A cart of gifts is rolling to ${n}.`, thanked: (n: string) => `A thank-you letter is on its way to ${n}.`, gotTitle: "A gift from the neighbours", letterTitle: "A thank-you letter", got: (n: string, a: number, aid: boolean) => aid ? `${n} sends relief: ${a} Taler and helping hands – rebuilding goes twice as fast.` : `${n} sends a cart with ${a} Taler as a sign of good neighbourship.`, notes: ["Heartfelt thanks, dear neighbours!", "Your kindness will not be forgotten in our chronicle.", "May your village always flourish – we are in your debt."] },
   signSave: "Put up",
   signSaved: "Signpost is up.",
   signFrom: (n) => `Signpost from ${n}`,
@@ -472,7 +474,7 @@ const en: typeof de = {
     goods: { grain: "grain", wool: "wool", wood: "wood", ore: "ore", stone: "stone", fish: "fish", salt: "salt", hides: "hides", cloth: "cloth", ironware: "ironware", beer: "beer", timber: "timber" },
   },
   twinWith: (n) => `Twin town with ${n}`,
-  walker: (k, n, c, from, to) => k === "messenger" ? `Messenger ${n}: carrying letters from ${from} to ${to}` : k === "family" ? `The ${n} family moves with all their goods from ${from} to ${to} – it offers more` : k === "bridal" ? (c === "m" ? `Groom ${n} walks from ${from} to his bride in ${to} – there is more room there` : `Bride ${n} walks from ${from} to her groom in ${to} – there is more room there`) : `Journeyman ${n} (${c}) on the road: from ${from} to ${to}`,
+  walker: (k, n, c, from, to) => k === "gift" ? `Gift cart from ${from} to ${to}, driven by ${n}` : k === "aid" ? `Relief from ${from} for ${to}: ${n} brings Taler and tools` : k === "letter" ? `Messenger ${n} carries a thank-you letter from ${from} to ${to}` : k === "messenger" ? `Messenger ${n}: carrying letters from ${from} to ${to}` : k === "family" ? `The ${n} family moves with all their goods from ${from} to ${to} – it offers more` : k === "bridal" ? (c === "m" ? `Groom ${n} walks from ${from} to his bride in ${to} – there is more room there` : `Bride ${n} walks from ${from} to her groom in ${to} – there is more room there`) : `Journeyman ${n} (${c}) on the road: from ${from} to ${to}`,
   mentorBy: (n) => `🌱 Learning from ${n} – grows faster in its first year`,
   twin: {
     title: (a, b) => `Twin town ${a} ∞ ${b}`,
