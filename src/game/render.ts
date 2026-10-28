@@ -1217,7 +1217,8 @@ export function draw(
   // ---- villagers, bucketed by tile for depth sorting ----
   const folk = new Map<number, Pose[]>();
   lastPeople.length = 0; lastTraders.length = 0;
-  if (detail) for (const sd of seeds) {
+  const folkOn = cam.zoom >= 0.9; // villagers are sub-pixel below this; skipping them changes nothing visible
+  if (folkOn) for (const sd of seeds) {
     const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 2;
     if (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1) continue;
     for (const q of townPoses(sd, seeds, now)) {
