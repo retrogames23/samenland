@@ -435,6 +435,10 @@ export type Database = {
         Args: { _at: string; _created: string }
         Returns: number
       }
+      village_raids: {
+        Args: { _at: string; _created: string; _seed: string }
+        Returns: number
+      }
       village_tax: { Args: { _at: string; _created: string }; Returns: number }
     }
     Enums: {

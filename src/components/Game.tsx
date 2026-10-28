@@ -11,6 +11,7 @@ import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignI
 import { Panel, WoodButton } from "@/components/hud/Panel";
 import { Parchment, WaxSeal } from "@/components/hud/Parchment";
 import { ART, pickDecision } from "@/game/decisions";
+import { ITEM_STAGE } from "@/game/disasters";
 import type { DecisionKind } from "@/game/decision-order";
 import { Minimap } from "@/components/hud/Minimap";
 import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
@@ -518,7 +519,7 @@ export function Game() {
   const [scribe, setScribe] = useState<string | null | undefined>(undefined);
   const askScribe = useServerFn(scribeGreeting);
   const chronDone = useRef<string | null>(null);
-  const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(t.items[e.item]?.[0] ?? e.item) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : e.code === "wedding" ? t.chron.wedding(e.a, e.b) : t.chron.season(t.seasons[e.season]);
+  const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(t.items[e.item]?.[0] ?? e.item) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : e.code === "wedding" ? t.chron.wedding(e.a, e.b) : e.code === "fire" ? (e.guarded ? t.chron.fireOut : t.chron.fire(e.dead)) : e.code === "flood" ? t.chron.flood : e.code === "raid" ? (e.caught ? t.chron.caught : t.chron.raid(e.loss)) : t.chron.season(t.seasons[e.season]);
   useEffect(() => {
     if (!owner || !my || seeds.length === 0 || chronDone.current === my.id) return;
     chronDone.current = my.id;
@@ -558,9 +559,12 @@ export function Game() {
     return () => window.clearInterval(id);
   }, [owner, my?.id, seeds]);
   const festNow = !anyOpen && !decision.open && !chronOpen ? fest[0] : undefined;
-  const festArt = (e: ChronEvent) => e.code === "wedding" ? ART["wedding"] : e.code === "house" ? ART["topping"] : e.code === "family" ? ART["newcomers"] : e.code === "road" ? ART["roadopen"] : e.code === "twin" ? ART["charter"] : ART["fair"];
+  const festArt = (e: ChronEvent) => e.code === "fire" ? ART["fire"] : e.code === "flood" ? ART["flood"] : e.code === "raid" ? ART["robber"] : e.code === "wedding" ? ART["wedding"] : e.code === "house" ? ART["topping"] : e.code === "family" ? ART["newcomers"] : e.code === "road" ? ART["roadopen"] : e.code === "twin" ? ART["charter"] : ART["fair"];
   const festText = (e: ChronEvent): [string, string] => {
     const n = my?.name ?? "";
+    if (e.code === "fire") return e.guarded ? [t.woe.fireGuarded[0], t.woe.fireGuarded[1](n)] : [t.woe.fire[0], t.woe.fire[1](n, e.water, e.dead)];
+    if (e.code === "flood") return [t.woe.flood[0], t.woe.flood[1](n)];
+    if (e.code === "raid") return e.caught ? [t.woe.caught[0], t.woe.caught[1](n)] : [t.woe.raid[0], t.woe.raid[1](n, e.loss)];
     if (e.code === "wedding") return [t.fest.wedding, t.fest.wedBody(e.a, e.b, DOWRY) + (e.alliance ? " " + t.fest.wedAlliance : "")];
     if (e.code === "house") return [t.fest.topping[0], t.fest.topping[1](t.kind[e.kind] ?? e.kind, n)];
     if (e.code === "family") return [t.fest.newcomers[0], t.fest.newcomers[1](n)];
@@ -577,6 +581,7 @@ export function Game() {
     setChronBanner(false); setChronOpen(true);
   }
   const cash = my ? treasury(my, purchases, now) : 0;
+  const myStage = my ? stageOf(effAge(my, seeds, now)) : 0;
   const myTown = my ? townOf(my, seeds, now) : null;
   const at = my ? attributes(my, seeds, purchases, now, myTown!.weddings.filter((w) => w.alliance).length) : null;
   const pop = my ? dailyTax(my, ageHours(my, now)) : 0;
@@ -651,6 +656,7 @@ export function Game() {
                 <div className="text-xs text-muted-foreground">{t.items[it]![1]}</div>
                 <div className="mt-1.5">
                   {at.has(it) ? <span className="text-xs font-semibold text-primary">{t.owned}</span> : (
+                    (ITEM_STAGE[it] ?? 0) > myStage ? <span className="text-xs text-muted-foreground">{t.needStage(t.stages[ITEM_STAGE[it]!] ?? "")}</span> :
                     <Button size="sm" className="h-7 w-full" disabled={cash < ITEMS[it]} onClick={() => { setPlacing(it); setTab(null); setMsg(t.place.pick(t.items[it]![0])); if (my) focus(my.x, my.y); }}>{t.hud.build}</Button>
                   )}
                 </div>

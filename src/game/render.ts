@@ -8,6 +8,7 @@ import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSp
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, cartImage, planksPattern, type Tex } from "./nature-sprites";
 import { townPoses, sickHome, isHomeKind, type Pose } from "./people";
 import { folkImage, bannerCloth, type FolkSprite } from "./folk-sprites";
+import { activeRaid, RAID_LEN } from "./disasters";
 import { hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
@@ -207,6 +208,39 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
     c.fillStyle = "rgba(210,190,150,0.35)"; c.beginPath(); c.ellipse(cx + Math.sin(sd) * hw * 0.4, cy - 4 - p * 6, 1.6, 0.8, 0, 0, 7); c.fill();
   }
 }
+/** Burning roof: flickering glow tongues, sparks and a thick smoke column; lights the night. */
+function drawFire(c: C, cx: number, cy: number, t: number, sd: number, L: Light[]) {
+  smoke(c, cx + 2, cy - 22, t * 2.5, sd, 1.6); smoke(c, cx - 3, cy - 18, t * 2, sd + 7, 1.2);
+  for (let i = 0; i < 7; i++) {
+    const ph = (t / 380 + hash(sd, i, 3)) % 1, fx = cx + (hash(sd, i, 4) - 0.5) * 16, fy = cy - 10 - hash(sd, i, 5) * 8 - ph * 7;
+    const r = (2.4 + hash(sd, i, 6) * 2.2) * (1 - ph * 0.6);
+    const g = c.createRadialGradient(fx, fy, 0, fx, fy, r);
+    g.addColorStop(0, `rgba(255,236,170,${0.9 - ph * 0.5})`); g.addColorStop(0.45, `rgba(250,140,40,${0.75 - ph * 0.5})`); g.addColorStop(1, "rgba(200,50,10,0)");
+    c.fillStyle = g; c.beginPath(); c.ellipse(fx, fy, r * 0.7, r * 1.4, 0, 0, 7); c.fill();
+  }
+  for (let i = 0; i < 4; i++) { const ph = (t / 900 + i / 4 + hash(sd, i, 8)) % 1; c.fillStyle = `rgba(255,190,90,${1 - ph})`; c.fillRect(cx + Math.sin(ph * 6 + i) * 6, cy - 16 - ph * 22, 0.6, 0.6); }
+  L.push({ x: cx, y: cy - 10, r: 26 });
+}
+/** Flood water over a tile: muddy translucent sheet with a slow shimmer. */
+function drawFlood(c: C, cx: number, cy: number, t: number, sd: number) {
+  const p = P(cx, cy), a = 0.5 + Math.sin(t / 1800 + sd) * 0.05;
+  c.fillStyle = `rgba(92,112,104,${a})`; c.beginPath();
+  const q = [p(-0.55, -0.55), p(0.55, -0.55), p(0.55, 0.55), p(-0.55, 0.55)]; c.moveTo(q[0]![0], q[0]![1]); for (const v of q) c.lineTo(v[0], v[1]); c.closePath(); c.fill();
+  c.fillStyle = "rgba(220,230,225,0.18)"; c.fillRect(cx - 4 + Math.sin(t / 900 + sd) * 2, cy - 0.5, 6, 0.5);
+}
+/** Robber: sneaks in from the forest edge, past the houses, and out again. */
+function drawRobber(c: C, X: number, Y: number, flip: boolean) {
+  const im = folkImage("robber"); if (!im) return;
+  const h = 5.2, w = (h * im.naturalWidth) / im.naturalHeight;
+  c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
+  c.save(); c.translate(X, Y); if (flip) c.scale(-1, 1); c.drawImage(im, -w / 2, -h, w, h); c.restore();
+}
+export function robberAt(s: Seed, now: number): [number, number, boolean] | null {
+  const r = activeRaid(s, now); if (!r) return null;
+  const ph = (now - r.at) / RAID_LEN, R = Math.max(3, radiusOf(effAge(s, renderSeeds, now)) * 0.8), a = hash(s.x, s.y, Math.floor(r.at / 864e5)) * 6.28;
+  const d = ph < 0.5 ? R * (1 - ph * 2) + 1.2 : R * (ph - 0.5) * 2 + 1.2, b = a + (ph < 0.5 ? 0 : 0.9);
+  return [s.x + Math.cos(b) * d, s.y + Math.sin(b) * d, ph >= 0.5];
+}
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
   if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
@@ -217,6 +251,7 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
+    if (s.fire) drawFire(c, cx, cy, t, sd, L);
     if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour()) || (isHomeKind(s.kind) && sickLit(x, y)))) {
       L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip } });
     }
@@ -1181,6 +1216,8 @@ export function draw(
       folk.get(k)!.push(q);
     }
   }
+  const robbers = new Map<number, [number, number, boolean]>();
+  if (detail) for (const sd of seeds) { const r = robberAt(sd, now); if (r) robbers.set(Math.round(r[1]) * MAP + Math.round(r[0]), r); }
   const simpleFolk = cam.zoom < 2.2;
 
   // ---- bridges: one straight span per water crossing, abutment to abutment ----
@@ -1222,7 +1259,10 @@ export function draw(
       if (hash(x, y, 22) > 0.95) tree(c, cx, cy + 1, 0.9, t, hash(x, y, 23), x * 19 + y, 0.2);
       else if (hash(x, y, 22) > 0.9) drawNature(c, "bush", cx + (hash(x, y, 24) - 0.5) * 12, cy + 2, 0.8 + hash(x, y, 25) * 0.5);
     }
+    if (st?.flood) drawFlood(c, cx, cy, t, x * 7 + y);
     if (st) drawStructure(c, st, cx, cy, x, y, t, L);
+    const rb = robbers.get(y * MAP + x);
+    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2]); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
     if (signMap.has(y * MAP + x)) drawSignpost(c, cx, cy, x * 13 + y);
     const fk = folk.get(y * MAP + x);
