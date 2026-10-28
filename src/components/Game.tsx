@@ -11,7 +11,7 @@ import { Parchment, WaxSeal } from "@/components/hud/Parchment";
 import { ART, pickDecision } from "@/game/decisions";
 import type { DecisionKind } from "@/game/decision-order";
 import { Minimap } from "@/components/hud/Minimap";
-import { chronicle, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
+import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen } from "lucide-react";
@@ -537,7 +537,7 @@ export function Game() {
   }, [owner, my?.id, seeds.length]);
   // Live celebrations: while the player watches, newly derived milestones open an illustrated parchment.
   const [fest, setFest] = useState<ChronEvent[]>([]);
-  const liveFrom = useRef(0);
+  const liveFrom = useRef(0), lastSmall = useRef(0);
   useEffect(() => {
     if (!owner || !my || seeds.length === 0) return;
     liveFrom.current = clock();
@@ -546,7 +546,11 @@ export function Game() {
       const now = clock(), c = chronicle(my, seeds, liveFrom.current, now);
       liveFrom.current = now;
       localStorage.setItem(`samenland-seen-${my.id}`, String(now));
-      const big = c.events.filter((e) => e.code !== "season" && e.code !== "houses" && e.code !== "families");
+      let big = c.events.filter((e) => e.code !== "season" && e.code !== "houses" && e.code !== "families");
+      // Small moments (one house + its family) at most every few minutes, so big towns don't flood the screen.
+      const small = big.filter((e) => e.code === "house" || e.code === "family");
+      big = big.filter((e) => e.code !== "house" && e.code !== "family");
+      if (small.length && Date.now() - lastSmall.current > FEST_GAP) { const h = small.find((e) => e.code === "house") ?? small[0]!; big.push(h, ...small.filter((e) => e.code === "family" && "x" in h && e.x === h.x && e.y === h.y)); lastSmall.current = Date.now(); }
       if (big.length) { setFest((q) => [...q, ...big].slice(-6)); bell(); }
     }, 15000);
     return () => window.clearInterval(id);

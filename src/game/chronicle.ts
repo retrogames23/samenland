@@ -22,6 +22,8 @@ export type ChronEvent =
 export const HOME_KINDS = new Set<Kind>(["hut", "suburb", "farmhouse", "cottage", "townhouse", "townhouse2", "patrician", "villa", "tenement"] as Kind[]);
 /** Over long absences many small moments are summarised into one line. */
 export const CHRON_DETAIL = 6;
+/** Live overlays for single houses/families appear at most this often (real ms). */
+export const FEST_GAP = 8 * 6e4;
 
 /** Homes finished between two moments; time is interpolated from growth age, so it is purely derived. */
 export function homesBetween(s: Seed, seeds: Seed[], from: number, to: number) {
