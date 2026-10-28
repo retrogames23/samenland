@@ -699,15 +699,20 @@ export function Game() {
     setScribe((x) => (x === undefined ? null : x));
     setChronBanner(false); setChronOpen(true);
   }
-  const cash = my ? treasury(my, purchases, now, gifts) : 0;
-  const myStage = my ? stageOf(effAge(my, seeds, now)) : 0;
-  const myTown = my ? townOf(my, seeds, now) : null;
-  const at = my ? attributes(my, seeds, purchases, now, myTown!.weddings.filter((w) => w.alliance).length) : null;
-  const pop = my ? dailyTax(my, ageHours(my, now)) : 0;
-  const residents = myTown ? myTown.people.length : 0;
-  const sw = seasonAt(now);
-  const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
-  const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
+  // heavy derivations refresh every 5 s of world time, not on every pointer move
+  const slow = Math.floor(now / 5000) * 5000;
+  const { cash, myStage, myTown, at, pop, residents, season, nbs } = useMemo(() => {
+    const cash = my ? treasury(my, purchases, slow, gifts) : 0;
+    const myStage = my ? stageOf(effAge(my, seeds, slow)) : 0;
+    const myTown = my ? townOf(my, seeds, slow) : null;
+    const at = my ? attributes(my, seeds, purchases, slow, myTown!.weddings.filter((w) => w.alliance).length) : null;
+    const pop = my ? dailyTax(my, ageHours(my, slow)) : 0;
+    const residents = myTown ? myTown.people.length : 0;
+    const sw = seasonAt(slow);
+    const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
+    const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
+    return { cash, myStage, myTown, at, pop, residents, season, nbs };
+  }, [my, seeds, purchases, gifts, slow]);
   const ring = async (kind: "bell" | "well") => {
     if (!my) return;
     const { data, error } = await supabase.from("blessings").insert({ seed_id: my.id, user_id: userId!, kind }).select("id, seed_id, created_at").single();
