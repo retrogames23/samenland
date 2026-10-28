@@ -187,6 +187,7 @@ export function Game() {
   };
   /** Entering seed mode: if the view centre is unplantable (hills, water), glide to the nearest free valley. */
   const startSeedMode = () => {
+    setPlantAsk(null);
     setMode("seed");
     const [cx, cy] = toTile(cam.current.x, cam.current.y);
     if (canPlant(cx, cy, seeds) === null) return;
