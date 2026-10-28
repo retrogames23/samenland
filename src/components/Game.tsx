@@ -169,7 +169,7 @@ export function Game() {
     return () => document.removeEventListener("fullscreenchange", on);
   }, []);
   // start over the settled heartland, never the empty ocean at tile (0,0)
-  const cam = useRef<Camera>((() => { const [x, y] = iso(320, 440); return { x, y, zoom: 2.6 }; })());
+  const cam = useRef<Camera>((() => { const [x, y] = iso(500, 500); return { x, y, zoom: 2.6 }; })());
   const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
   const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as Item | null });
   st.current.seeds = seeds;
@@ -184,6 +184,19 @@ export function Game() {
     cam.current.x = ix;
     cam.current.y = iy;
   };
+  /** Entering seed mode: if the view centre is unplantable (hills, water), glide to the nearest free valley. */
+  const startSeedMode = () => {
+    setMode("seed");
+    const [cx, cy] = toTile(cam.current.x, cam.current.y);
+    if (canPlant(cx, cy, seeds) === null) return;
+    for (let r = 2; r < 200; r += 2) for (let a = 0; a < 24; a++) {
+      const x = Math.round(cx + Math.cos((a / 24) * 6.283) * r), y = Math.round(cy + Math.sin((a / 24) * 6.283) * r);
+      if (canPlant(x, y, seeds) === null && canPlant(x + 3, y, seeds) === null && canPlant(x - 3, y, seeds) === null && canPlant(x, y + 3, seeds) === null && canPlant(x, y - 3, seeds) === null) {
+        focus(x, y); target.current = { ...target.current, zoom: Math.max(target.current.zoom, 1.4) }; return;
+      }
+    }
+  };
+  const [ptr, setPtr] = useState<[number, number] | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("samenland-lang");
