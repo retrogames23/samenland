@@ -1262,7 +1262,7 @@ export function draw(
     if (st?.flood) drawFlood(c, cx, cy, t, x * 7 + y);
     if (st) drawStructure(c, st, cx, cy, x, y, t, L);
     const rb = robbers.get(y * MAP + x);
-    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py + TH / 2, rb[2]); }
+    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2]); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
     if (signMap.has(y * MAP + x)) drawSignpost(c, cx, cy, x * 13 + y);
     const fk = folk.get(y * MAP + x);
