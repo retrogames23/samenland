@@ -979,7 +979,7 @@ export function Game() {
             }
           }
           setHover(tileAt(e));
-          if (mode === "seed") setPtr([e.clientX, e.clientY]);
+          if (mode === "seed" || placing) setPtr([e.clientX, e.clientY]);
           const hp = mode === "look" && !placing && !drag.current?.moved ? personAt(e) : null;
           peopleFocus.hover = hp ? pkey(hp) : null;
           (e.target as HTMLElement).style.cursor = hp ? "pointer" : "";

@@ -980,7 +980,9 @@ export function signTile(seeds: Seed[], fromId: string, toId: string): [number, 
 export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, seeds: Seed[], now: number): string | null {
   const kind = SPECIAL_KIND[item]; if (!kind) return "ground";
   const d = townDist(x, y, s);
-  if (d > Math.max(4, radiusOf(effAge(s, seeds, now)) + 2) || d < 1) return "far";
+  // the fisher walks to the shore, so his hut may stand well outside the village
+  const reach = radiusOf(effAge(s, seeds, now)) + 2;
+  if (d > (kind === "fishery" ? Math.max(16, reach + 12) : Math.max(4, reach)) || d < 1) return "far";
   const tt = terrain(x, y);
   if (!buildable(tt) || tt === "forest") return "ground";
   const st = structureAt(x, y, seeds, now);
