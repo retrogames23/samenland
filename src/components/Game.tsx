@@ -516,7 +516,7 @@ export function Game() {
   const [scribe, setScribe] = useState<string | null | undefined>(undefined);
   const askScribe = useServerFn(scribeGreeting);
   const chronDone = useRef<string | null>(null);
-  const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(t.items[e.item]?.[0] ?? e.item) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : t.chron.season(t.seasons[e.season]);
+  const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(t.items[e.item]?.[0] ?? e.item) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : t.chron.season(t.seasons[e.season]);
   useEffect(() => {
     if (!owner || !my || seeds.length === 0 || chronDone.current === my.id) return;
     chronDone.current = my.id;
@@ -535,6 +535,33 @@ export function Game() {
       askScribe({ data: { lang, town: my.name, days: Math.floor(gap / 864e5), facts } }).then((r) => setScribe(r.text)).catch(() => setScribe(null));
     } else { setChronBanner(true); setScribe(null); }
   }, [owner, my?.id, seeds.length]);
+  // Live celebrations: while the player watches, newly derived milestones open an illustrated parchment.
+  const [fest, setFest] = useState<ChronEvent[]>([]);
+  const liveFrom = useRef(0);
+  useEffect(() => {
+    if (!owner || !my || seeds.length === 0) return;
+    liveFrom.current = clock();
+    const id = window.setInterval(() => {
+      if (document.hidden) return;
+      const now = clock(), c = chronicle(my, seeds, liveFrom.current, now);
+      liveFrom.current = now;
+      localStorage.setItem(`samenland-seen-${my.id}`, String(now));
+      const big = c.events.filter((e) => e.code !== "season" && e.code !== "houses" && e.code !== "families");
+      if (big.length) { setFest((q) => [...q, ...big].slice(-6)); bell(); }
+    }, 15000);
+    return () => window.clearInterval(id);
+  }, [owner, my?.id, seeds]);
+  const festNow = !anyOpen && !decision.open && !chronOpen ? fest[0] : undefined;
+  const festArt = (e: ChronEvent) => e.code === "house" ? ART["topping"] : e.code === "family" ? ART["newcomers"] : e.code === "road" ? ART["roadopen"] : e.code === "twin" ? ART["charter"] : ART["fair"];
+  const festText = (e: ChronEvent): [string, string] => {
+    const n = my?.name ?? "";
+    if (e.code === "house") return [t.fest.topping[0], t.fest.topping[1](t.kind[e.kind] ?? e.kind, n)];
+    if (e.code === "family") return [t.fest.newcomers[0], t.fest.newcomers[1](n)];
+    if (e.code === "road") return [t.fest.road[0], t.fest.road[1](e.other)];
+    if (e.code === "twin") return [t.fest.twin[0], t.fest.twin[1](e.other)];
+    if (e.code === "stage") return [t.fest.stage[0], t.fest.stage[1](t.stages[e.stage] ?? "")];
+    return [t.fest.built[0], t.fest.built[1](chronLine(e).replace(/ (fertiggestellt|completed)$/, ""))];
+  };
   function openChron() {
     if (!my) return;
     const now = clock();
@@ -1091,6 +1118,12 @@ export function Game() {
           <BookOpen className="h-5 w-5" />
         </button>
       )}
+      {festNow && my && (() => { const [h, body] = festText(festNow); const go = () => { const e = festNow; if ("x" in e) focus(e.x, e.y); else focus(my.x, my.y); setFest((q) => q.slice(1)); }; return (
+        <Parchment image={festArt(festNow)} title={h} later={t.fest.close} onLater={() => setFest((q) => q.slice(1))}>
+          <p className="text-center font-display text-xl leading-snug text-ink">{body}</p>
+          <div className="mt-4 flex justify-center"><Button onClick={go}>{t.fest.go}</Button></div>
+        </Parchment>
+      ); })()}
       {chronOpen && chron && my && (
         <Parchment title={t.chron.title} later={t.chron.close} onLater={() => setChronOpen(false)}>
           <p className="text-center text-sm text-ink/70">{t.chron.away(Math.max(1, Math.round((chron.to - chron.from) / 864e5)))}</p>
