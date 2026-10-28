@@ -331,7 +331,8 @@ function drawLoad(c: C, x: number, y: number, dx: number, dy: number, g: TradeGo
 
 /** Painted ox cart: ox-less wagon + separate 4-frame ox walk cycle, both standing on the ground line. */
 // layout measured in sprite pixels: wagon bottom-left origin, ox bottom-centre offset, ox scale, combo centre
-const CART_LAYOUT = { front: { k: 0.04, cx: 200, ox: [315, 25], os: 1.35 }, back: { k: 0.042, cx: 150, ox: [245, -60], os: 1.45 } } as const;
+// ox y = hoof line (sprite pixels below the wheel line); feet sit at FOOT·frame height inside the sheet
+const CART_LAYOUT = { front: { k: 0.04, cx: 200, ox: [315, 18], os: 1.35, foot: 139 / 140 }, back: { k: 0.042, cx: 150, ox: [235, -34], os: 1.45, foot: 156 / 160 } } as const;
 function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: number, sd: number, _cover: string, t: number) {
   const away = dy < -0.15 * Math.abs(dx);
   const wag = wagonImage(away), ox = oxWalkImage(away);
@@ -346,15 +347,22 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
   const ww = wag.naturalWidth * k, wh = wag.naturalHeight * k, wx = -L.cx * k;
   const fw = ox.naturalWidth / 4, ow = fw * k * L.os, oh = ox.naturalHeight * k * L.os;
   const oxX = wx + L.ox[0] * k, oxY = L.ox[1] * k;
-  // contact shadows under wheels and hooves
-  c.fillStyle = "rgba(20,15,10,0.3)";
-  c.beginPath(); c.ellipse(wx + ww * 0.42, -0.5, ww * 0.42, 1.2, 0, 0, 7); c.fill();
-  c.beginPath(); c.ellipse(oxX, oxY - 0.3, ow * 0.38, 0.8, 0, 0, 7); c.fill();
-  // steady four-beat ox gait (one frame per ~0.32 s), offset per cart so teams don't march in sync
-  const f = Math.floor((t + sd * 997) / 320) & 3;
-  const drawOx = () => c.drawImage(ox, f * fw, 0, fw, ox.naturalHeight, oxX - ow / 2, oxY - oh, ow, oh);
+  // continuous gait clock (~150 ms per pose, 0.6 s per full stride) so legs don't freeze between poses
+  const g = (t / 150 + sd * 7.31) % 4, f = Math.floor(g), u = g - f, f2 = (f + 1) & 3;
+  // body weight: tiny dip on each hoof contact, wagon jolts slightly behind
+  const dip = Math.abs(Math.sin(g * Math.PI)) * 0.18, jolt = Math.abs(Math.sin(g * Math.PI + 1)) * 0.08;
+  // contact shadows directly on the road under wheels and hooves
+  c.fillStyle = "rgba(20,15,10,0.38)";
+  c.beginPath(); c.ellipse(wx + ww * 0.42, -0.3, ww * 0.42, 1.2, 0, 0, 7); c.fill();
+  c.beginPath(); c.ellipse(oxX, oxY - 0.15, ow * 0.4, 0.9, 0, 0, 7); c.fill();
+  const top = oxY - oh * L.foot + dip;
+  const drawOx = () => {
+    // short cross-blend into the next pose gives in-between leg positions instead of a flip-book cut
+    c.drawImage(ox, f * fw, 0, fw, ox.naturalHeight, oxX - ow / 2, top, ow, oh);
+    if (u > 0.55) { c.globalAlpha = (u - 0.55) / 0.45; c.drawImage(ox, f2 * fw, 0, fw, ox.naturalHeight, oxX - ow / 2, top, ow, oh); c.globalAlpha = 1; }
+  };
   if (away) drawOx();
-  c.drawImage(wag, wx, -wh, ww, wh);
+  c.drawImage(wag, wx, -wh + jolt, ww, wh);
   if (!away) drawOx();
   c.restore();
 }
