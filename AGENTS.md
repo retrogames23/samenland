@@ -37,3 +37,4 @@
 - Admin test map (realm "lab") warps the game clock via clock() in src/game/time.ts; all game code must read time through clock(), never Date.now(), so the time-lapse applies everywhere.
 - Coastal towns grow in town-space distance (townDist/landShape in world.ts): landward tiles are compressed by a land-share stretch so harbour towns fan inland; bounding boxes must use reachOf(s, r).
 - Village chronicle (src/game/chronicle.ts) is derived from seeds between last-visit and now (last visit kept in localStorage); only the scribe greeting comes from the AI gateway via an authenticated server function, with a fixed fallback text — no stored history.
+- Live celebrations reuse chronicle(): Game.tsx diffs the chronicle every 15s while the owner watches and shows illustrated parchments; small house/family moments are throttled — no separate event store, so live and offline milestones stay identical.
