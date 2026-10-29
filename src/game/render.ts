@@ -1013,7 +1013,7 @@ function drawSurf(c: C, shore: { a: Pt; b: Pt; w: Pt }[], t: number, live: boole
     if (a <= 0.01) return;
     c.beginPath();
     for (const s of list) {
-      const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], n = Math.max(1, Math.round(Math.hypot(dx, dy) / 0.9));
+      const dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], n = Math.max(1, Math.round(Math.hypot(dx, dy) / 1.6));
       for (let i = 0; i < n; i++) {
         const f = (i + 0.5) / n, bx = s.a[0] + dx * f, by = s.a[1] + dy * f;
         const v = vnoise(bx * 0.22 + drift, by * 0.4, sd) * 0.7 + vnoise(bx * 0.9, by * 1.3, sd + 3) * 0.3;

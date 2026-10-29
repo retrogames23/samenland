@@ -608,6 +608,11 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
       dd -= sl;
     }
   }
+  // fast path: already settled indoors (asleep, working inside) — skip doors and A* entirely
+  if (e.indoor && !(e.act === "work" && p.haul)) {
+    const crow = Math.abs(prev.place[0] - e.place[0]) + Math.abs(prev.place[1] - e.place[1]);
+    if (crow === 0 || secs > travelTime(crow * 3 + 6, p.speed)) return base;
+  }
   // indoor places are entered through their door; outdoor spots on a roof/rock move to the nearest open tile
   const at = (en: Entry): Tile => en.indoor || !freeAt(t, en.place[0], en.place[1], seeds) ? doorOf(t, en.place, seeds) : en.place;
   const pa = at(prev), pb = at(e);
