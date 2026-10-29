@@ -1,4 +1,7 @@
-import deerUrl from "@/assets/sprites/deer.webp";
+import deerWalkUrl from "@/assets/sprites/deer-walk.webp";
+import deerGrazeUrl from "@/assets/sprites/deer-graze.webp";
+import boarWalkUrl from "@/assets/sprites/boar-walk.webp";
+import hunterUrl from "@/assets/sprites/folk/hunter.webp";
 import { worldHour, clock } from "./time";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
 import { roadMotion, screenFacing } from "./motion";
@@ -235,21 +238,96 @@ export function robberAt(s: Seed, now: number): [number, number, boolean] | null
   const d = ph < 0.5 ? R * (1 - ph * 2) + 1.2 : R * (ph - 0.5) * 2 + 1.2, b = a + (ph < 0.5 ? 0 : 0.9);
   return [s.x + Math.cos(b) * d, s.y + Math.sin(b) * d, ph >= 0.5];
 }
-let deerIm: HTMLImageElement | null = null;
-/** Two roe deer graze at the forest edge behind the hunter's lodge by day; they drift slowly on the shared world clock and withdraw into the forest at night. */
-function drawDeer(c: C, cx: number, cy: number, sd: number) {
-  if (typeof Image === "undefined") return;
-  if (!deerIm) { deerIm = new Image(); deerIm.src = deerUrl; }
-  if (!deerIm.complete || !deerIm.naturalWidth) return;
-  const h = localHour(); if (h < 5.5 || h > 20.5) return;
-  const m = renderNow / 60000;
-  for (let k = 0; k < 2; k++) {
-    const ph = m / (9 + k * 4) + hash(sd, k, 41) * 6.28;
-    const dx = -14 + k * 22 + Math.sin(ph) * 5, dy = -9 + k * 4 + Math.cos(ph * 0.7) * 2.5;
-    const flip = Math.cos(ph) < 0, w = 7, hh = (w * deerIm.naturalHeight) / deerIm.naturalWidth;
-    const X = cx + dx, Y = cy + dy;
-    c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X, Y, w * 0.4, 0.7, 0, 0, 7); c.fill();
-    c.save(); c.translate(X, Y); if (flip) c.scale(-1, 1); c.drawImage(deerIm, -w / 2, -hh, w, hh); c.restore();
+const huntIms: Record<string, HTMLImageElement> = {};
+const huntIm = (k: string, u: string) => { if (typeof Image === "undefined") return null; let i = huntIms[k]; if (!i) { i = new Image(); i.src = u; huntIms[k] = i; } return i.complete && i.naturalWidth ? i : null; };
+/** Draw frame f (0-3) of a 4-frame sheet, feet at (X,Y), facing right unless flip. */
+function sheetFrame(c: C, im: HTMLImageElement, f: number, X: number, Y: number, h: number, flip: boolean, rot = 0, alpha = 1) {
+  const fw = im.naturalWidth / 4, w = (h * fw) / im.naturalHeight;
+  c.save(); c.globalAlpha *= alpha; c.translate(X, Y); if (flip) c.scale(-1, 1); if (rot) c.rotate(rot);
+  c.drawImage(im, (f & 3) * fw, 0, fw, im.naturalHeight, -w / 2, -h, w, h); c.restore();
+}
+const shadow = (c: C, X: number, Y: number, r: number, a = 0.24) => { c.fillStyle = `rgba(25,20,10,${a})`; c.beginPath(); c.ellipse(X, Y, r, r * 0.3, 0, 0, 7); c.fill(); };
+const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
+const ease = (k: number) => k * k * (3 - 2 * k);
+/** Animal on the move: walk sheet indexed by distance travelled, grazing/alert sheet when standing. */
+function drawBeast(c: C, walkIm: HTMLImageElement, standIm: HTMLImageElement | null, X: number, Y: number, h: number, flip: boolean, moving: number, dist: number, idle: number, alpha = 1) {
+  shadow(c, X, Y, h * 0.42);
+  if (moving > 0.02 || !standIm) {
+    const ph = dist / 1.1, f = Math.floor(ph), bob = Math.abs(Math.sin(ph * Math.PI)) * h * 0.02;
+    sheetFrame(c, walkIm, f, X, Y - bob, h, flip, 0, alpha);
+  } else sheetFrame(c, standIm, idle, X, Y, h, flip, 0, alpha);
+}
+/**
+ * Hunt at the hunter's lodge, a pure cycle on the shared world clock: two roe deer and a wild boar graze and
+ * root at the forest edge; the hunter sneaks up, kneels, looses a crossbow bolt, the shot deer drops, the
+ * others bolt into the forest, and he carries the deer home on his shoulders. Night: everything withdraws.
+ */
+function drawHunt(c: C, cx: number, cy: number, sd: number) {
+  const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl), bw = huntIm("bw", boarWalkUrl), hu = huntIm("hu", hunterUrl);
+  if (!dw || !dg || !bw || !hu) return;
+  const hr = localHour(); if (hr < 5.5 || hr > 20.5) return;
+  const P = 11 * 60000, n = renderNow + hash(sd, 3, 41) * P, k = (n % P) / P, cyc = Math.floor(n / P);
+  const side = hash(sd, cyc, 7) < 0.5 ? -1 : 1; // deer appear left or right of the lodge
+  const home: Pt = [cx + 6 * side, cy + 3];
+  // --- animals ---
+  const herd: { im: HTMLImageElement; st: HTMLImageElement | null; at: Pt; h: number; target: boolean }[] = [
+    { im: dw, st: dg, at: [cx - 24 * side, cy - 8], h: 6.4, target: true },
+    { im: dw, st: dg, at: [cx - 31 * side, cy - 12], h: 6, target: false },
+    { im: bw, st: null, at: [cx - 17 * side, cy - 15], h: 4.4, target: false },
+  ];
+  const dead = k > 0.64 && k < 0.72; // lying on the ground until the hunter lifts it
+  herd.forEach((a, i) => {
+    const g = n / 60000 / (5 + i * 2) + i * 2;
+    // gentle grazing drift: step a little, stop, graze; distance drives the leg cycle
+    const drift = Math.sin(g) * 3, moving = Math.abs(Math.cos(g)) > 0.75 ? 1 : 0;
+    let X = a.at[0] + drift, Y = a.at[1] + Math.sin(g * 0.6) * 1.2, flip = Math.cos(g) * side > 0 ? false : true;
+    if (side < 0) flip = !flip;
+    const idle = Math.floor(n / (a.target ? 1300 : 1700) + i) % 8 < 5 ? (Math.floor(n / 650) & 1) : (k > 0.4 && k < 0.64 ? 2 : 3);
+    if (a.target) {
+      if (k > 0.72 || k < 0.04) return; // carried off / not yet returned
+      if (k >= 0.62) { // struck: sinks onto its side
+        const fall = ease(Math.min(1, (k - 0.62) / 0.02));
+        shadow(c, X, Y, a.h * 0.5);
+        sheetFrame(c, dg, 3, X, Y, a.h, side > 0, fall * 1.45 * (side > 0 ? -1 : 1));
+        return;
+      }
+      const fade = k < 0.08 ? (k - 0.04) / 0.04 : 1;
+      drawBeast(c, a.im, a.st, X, Y, a.h, flip, moving, n / 400 + drift, idle, fade);
+      return;
+    }
+    // the others bolt into the forest after the shot and come back later
+    if (k >= 0.62 && k < 0.8) {
+      const r = ease(Math.min(1, (k - 0.62) / 0.06));
+      const fx = X - side * r * 26, fy = Y - r * 10, al = 1 - Math.max(0, (k - 0.66) / 0.04);
+      if (al <= 0) return;
+      drawBeast(c, a.im, a.st, fx, fy, a.h, side > 0, 1, n / 170, 0, Math.min(1, al)); return;
+    }
+    const back = k >= 0.8 && k < 0.86 ? (k - 0.8) / 0.06 : 1;
+    if (k >= 0.8 && k < 0.86) { X -= side * (1 - back) * 20; drawBeast(c, a.im, a.st, X, Y, a.h, side < 0, 1, n / 400, 0, back); return; }
+    if (a.im === bw) { // boar: trots a little, then roots with its snout (frame 3)
+      shadow(c, X, Y, a.h * 0.5);
+      if (moving) drawBeast(c, bw, null, X, Y, a.h, flip, 1, n / 350 + drift, 0);
+      else sheetFrame(c, bw, 3, X, Y - (Math.floor(n / 500) & 1) * 0.08, a.h, flip);
+      return;
+    }
+    drawBeast(c, a.im, a.st, X, Y, a.h, flip, moving, n / 400 + drift, idle);
+  });
+  // --- hunter ---
+  const tgt: Pt = [herd[0].at[0] + 12 * side, herd[0].at[1] + 3];
+  let X = home[0], Y = home[1], f = 0, flip = side < 0, walk = 0;
+  if (k < 0.3) { f = 0; flip = (Math.floor(n / 9000) & 1) === 1; } // stands guard by the lodge
+  else if (k < 0.55) { const r = ease((k - 0.3) / 0.25); X = lerp(home[0], tgt[0], r); Y = lerp(home[1], tgt[1], r); f = 1; flip = side > 0; walk = 1; }
+  else if (k < 0.64) { X = tgt[0]; Y = tgt[1]; f = 2; flip = side > 0; }
+  else if (k < 0.72) { const r = ease((k - 0.64) / 0.08); X = lerp(tgt[0], herd[0].at[0] + 2 * side, r); Y = lerp(tgt[1], herd[0].at[1] + 1, r); f = 0; flip = side > 0; walk = 1; }
+  else if (k < 0.95) { const r = ease((k - 0.72) / 0.23); X = lerp(herd[0].at[0], home[0], r); Y = lerp(herd[0].at[1], home[1], r); f = 3; flip = side < 0; walk = 1; }
+  const bob = walk ? Math.abs(Math.sin(n / 260)) * 0.15 : 0;
+  shadow(c, X, Y, 1.6, 0.3);
+  sheetFrame(c, hu, f, X, Y - bob, f === 2 ? 4.1 : f === 1 ? 4.6 : 5.4, flip);
+  // crossbow bolt in flight
+  if (k >= 0.6 && k < 0.62) {
+    const r = (k - 0.6) / 0.02, sx = X - side * 1.8, sy = Y - 3, ex = herd[0].at[0], ey = herd[0].at[1] - 3.5;
+    const bx = lerp(sx, ex, r), by = lerp(sy, ey, r);
+    c.strokeStyle = "rgba(60,40,22,0.9)"; c.lineWidth = 0.18; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx + side * 1.1, by + (sy - ey) * 0.03); c.stroke();
   }
 }
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
