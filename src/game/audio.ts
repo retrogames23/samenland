@@ -202,11 +202,8 @@ function tick() {
   lerp(water.gain, Math.min(1, s.water * 3) * 0.1 * land, 0.8);
   lerp(sea.gain, Math.min(1, s.sea * 1.5) * (0.06 + 0.1 * (0.5 + 0.5 * Math.sin(ctx.currentTime / 4.5))), 0.9);
   const rnd = Math.random, P = (pan = 0) => pan + (rnd() - 0.5) * 0.3;
-  // babbling water, birds
+  // babbling water (bird chirps removed: too shrill at close zoom)
   if (s.water > 0.02 && rnd() < s.water * 2 * dt * land) tone(P(), 0.02, 600 + rnd() * 700, 1500 + rnd() * 900, 0.05);
-  if ((s.forest > 0.05 || close > 0) && rnd() < 0.25 * dt * land) {
-    const f = 2200 + rnd() * 1800; for (let i = 0; i < 1 + Math.floor(rnd() * 3); i++) setTimeout(() => ctx && enabled && tone(P(), 0.025, f, f * 1.25, 0.08), i * 110);
-  }
   // villagers' chatter
   if (close > 0) {
     if (rnd() < s.talkers * 2.5 * dt) syllable(P(), 0.05 * close);
