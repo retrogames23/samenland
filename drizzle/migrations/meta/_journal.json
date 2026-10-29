@@ -253,6 +253,13 @@
       "when": 1793300000019,
       "tag": "0035_mayor_titles",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793300000020,
+      "tag": "0036_hide_referral_user",
+      "breakpoints": true
     }
   ]
 }
