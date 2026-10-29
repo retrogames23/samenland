@@ -315,7 +315,7 @@ function drawHens(c: C, cx: number, cy: number, sd: number) {
     const X = cx - 8 + i * 6 + Math.sin(g) * 3, Y = cy + 5 + Math.sin(g * 0.7 + i) * 1.5, moving = Math.abs(Math.cos(g)) > 0.8;
     const f = moving ? (Math.floor(n / 160) & 1) : (Math.floor(n / 900 + i) % 3 === 0 ? 3 : 2);
     shadow(c, X, Y, 1.1, 0.22);
-    sheetFrame(c, im, f, X, Y, 2.6, Math.cos(g) < 0);
+    sheetFrame(c, im, f, X, Y, 1.3, Math.cos(g) < 0);
   }
 }
 /** Gulls circle over the coast, crows over fields: painted flap cycle, gliding between strokes. */
@@ -1517,7 +1517,7 @@ function drawFestive(c: C, cx: number, cy: number, t: number, sd: number, L: Lig
 /** Carved wooden waymark standing beside the road at the village edge. */
 function drawSignpost(c: C, cx: number, cy: number, sd: number) {
   const im = folkImage("signpost"); if (!im) return;
-  const x = cx + 5, y = cy + 1, h = 11, w = (h * im.naturalWidth) / im.naturalHeight;
+  const x = cx + 5, y = cy + 1, h = 7, w = (h * im.naturalWidth) / im.naturalHeight;
   c.fillStyle = "rgba(25,18,10,0.25)"; c.beginPath(); c.ellipse(x + 1, y + 0.3, 2.2, 0.7, 0, 0, 7); c.fill();
   c.save(); c.translate(x, y); if (sd % 2) c.scale(-1, 1); c.drawImage(im, -w * 0.47, -h * 0.97, w, h); c.restore();
 }

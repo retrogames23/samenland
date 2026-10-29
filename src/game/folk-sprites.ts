@@ -86,9 +86,9 @@ export const walkSheet = (k: FolkSprite) => { const w = WALKS[k]; return w ? fol
 /** Trade work cycles keyed by job (fishers and smiths wear ordinary clothes, so the sprite alone can't pick them).
  *  scale: frame height relative to figure height (rods/raised hammers reach above the head); per: cycle ms. */
 export const JOB_WORK: Record<string, { m: FolkSprite; f: FolkSprite; scale: number; per: number }> = {
-  fisher: { m: "fisherCast", f: "fisherFCast", scale: 2.05, per: 9000 },
+  fisher: { m: "fisherCast", f: "fisherFCast", scale: 1.6, per: 9000 },
   smith: { m: "smithHammer", f: "smithHammer", scale: 1.22, per: 1500 },
-  woodcutter: { m: "woodcutterWork", f: "woodcutterFWork", scale: 1.32, per: 1800 },
+  woodcutter: { m: "woodcutterWork", f: "woodcutterFWork", scale: 1.15, per: 1800 },
   mason: { m: "masonWork", f: "masonFWork", scale: 1.12, per: 1600 },
   builder: { m: "builderWork", f: "builderFWork", scale: 1.15, per: 1400 },
   herbalist: { m: "gatherWork", f: "gatherFWork", scale: 1.01, per: 7000 },
