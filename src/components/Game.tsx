@@ -633,6 +633,10 @@ export function Game() {
   // Village chronicle: derived from time since the last visit (per village, per device)
   const [chron, setChron] = useState<Chronicle | null>(null);
   const [chronOpen, setChronOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  useEffect(() => {
+    if (userId && !localStorage.getItem("samenland-guide-seen")) { setGuideOpen(true); localStorage.setItem("samenland-guide-seen", "1"); }
+  }, [userId]);
   const [chronBanner, setChronBanner] = useState(false);
   const [scribe, setScribe] = useState<string | null | undefined>(undefined);
   const askScribe = useServerFn(scribeGreeting);
@@ -1151,6 +1155,9 @@ export function Game() {
               <ArrowLeft className="h-5 w-5" /><span className="text-[10px] leading-none">{t.hud.close}</span>
             </WoodButton>
           )}
+          <WoodButton label={t.guide.menu} active={guideOpen} onClick={() => setGuideOpen(true)} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
+            <BookOpen className="h-5 w-5" /><span className="text-[10px] leading-none">{t.guide.menu}</span>
+          </WoodButton>
         </Panel>
       </div>
       {tab && (
@@ -1308,6 +1315,17 @@ export function Game() {
                   </div>
                 </>
               )}
+        </Parchment>
+      )}
+
+      {guideOpen && (
+        <Parchment wide image={ART["guide"]} title={t.guide.title} later={t.guide.close} onLater={() => setGuideOpen(false)}>
+          <p className="text-center text-sm italic">{t.guide.intro}</p>
+          <ul className="mt-3 space-y-2 text-sm">
+            {t.guide.steps.map(([h, d]) => (
+              <li key={h}><b className="font-display text-lg text-ink">{h}</b> – {d}</li>
+            ))}
+          </ul>
         </Parchment>
       )}
 

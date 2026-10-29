@@ -254,6 +254,18 @@ const de = {
   lab: { title: (k: number) => (k > 1 ? `Zeitraffer ${k}× · Sprung zu` : "Normale Zeit · Sprung zu"), note: "Nur für Admins. Sprung gilt ab dem Start der Testkarte." },
   perDay: (n: number) => `+${n}/Tag`,
   people: (n: number) => `${n} Bewohner`,
+  guide: {
+    title: "Willkommen in Samenland", menu: "Anleitung", close: "Los geht's",
+    intro: "Ein langsames Spiel: Dein Dorf wächst in Echtzeit – auch wenn du nicht hinschaust.",
+    steps: [
+      ["Samen setzen", "Jeder Spieler gründet genau ein Dorf. Wasser, Wald, Acker oder Berge prägen, was es später gut kann."],
+      ["Zuschauen", "Häuser, Felder und Bewohner wachsen über rund zwei Jahre vom Weiler zur Metropole. Die Leute arbeiten, schlafen, heiraten und feiern sonntags."],
+      ["Taler & Bauen", "Jeder Bewohner zahlt täglich einen Taler. Damit kaufst du links unter „Bauen“ Gebäude, die Nahrung, Gesundheit oder Wohlstand stärken."],
+      ["Zuwendung", "Einmal am Tag kannst du dein Dorf segnen – das beschleunigt das Wachstum."],
+      ["Entscheidungen", "Ab und zu klopfen Besucher an oder eine Wahl steht an. Dann erscheint ein Pergament – du darfst auch später entscheiden."],
+      ["Nachbarn", "Straßen zu anderen Dörfern bringen Handel, Geschenke und Hilfe. Wachsen zwei Städte zusammen, werden sie zur Doppelstadt."],
+    ] as [string, string][],
+  },
 };
 
 const en: typeof de = {
@@ -510,6 +522,18 @@ const en: typeof de = {
   lab: { title: (k: number) => (k > 1 ? `Time-lapse ${k}× · jump to` : "Normal time · jump to"), note: "Admins only. Jump counts from the test map start." },
   perDay: (n: number) => `+${n}/day`,
   people: (n: number) => `${n} residents`,
+  guide: {
+    title: "Welcome to Samenland", menu: "Guide", close: "Let's go",
+    intro: "A slow game: your village grows in real time – even when you're not watching.",
+    steps: [
+      ["Plant a seed", "Every player founds exactly one village. Water, forest, farmland or hills shape what it will be good at."],
+      ["Watch", "Houses, fields and villagers grow over about two years from hamlet to metropolis. People work, sleep, marry and rest on Sundays."],
+      ["Taler & building", "Each resident pays one taler a day. Spend them under “Build” on the left for buildings that boost food, health or wealth."],
+      ["Care", "Once a day you can bless your village – it speeds up growth."],
+      ["Decisions", "Now and then visitors knock or a choice is due. A parchment appears – you may also decide later."],
+      ["Neighbours", "Roads to other villages bring trade, gifts and help. When two towns grow together they become twin towns."],
+    ],
+  },
 };
 
 export const DICT = { de, en };
