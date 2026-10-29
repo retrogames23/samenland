@@ -260,12 +260,12 @@ export function Game() {
   const [mailOn, setMailOn] = useState(false);
   useEffect(() => {
     if (!userId) { setMailOn(false); return; }
-    supabase.from("build_mail").select("enabled").eq("user_id", userId).maybeSingle().then(({ data }) => setMailOn(!!data?.enabled));
+    (supabase as unknown as import("@supabase/supabase-js").SupabaseClient).from("build_mail").select("enabled").eq("user_id", userId).maybeSingle().then(({ data }) => setMailOn(!!data?.enabled));
   }, [userId]);
   const toggleMail = async (on: boolean) => {
     if (!userId) return;
     setMailOn(on);
-    const { error } = await supabase.from("build_mail").upsert({ user_id: userId, enabled: on, lang });
+    const { error } = await (supabase as unknown as import("@supabase/supabase-js").SupabaseClient).from("build_mail").upsert({ user_id: userId, enabled: on, lang });
     if (error) setMailOn(!on);
   };
   // admin rights follow the login, even when the session arrives after the first map load

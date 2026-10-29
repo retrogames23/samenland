@@ -6,6 +6,7 @@ import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
 const WINDOW = 3 * 3600000;
 
 export const Route = createFileRoute("/api/public/build-mail")({
+  staticData: { sitemap: false },
   server: {
     handlers: {
       POST: async ({ request }) => {
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/api/public/build-mail")({
         const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
         const now = Date.now();
 
-        const { data: opts } = await supabaseAdmin.from("build_mail").select("user_id, lang").eq("enabled", true);
+        const { data: opts } = (await await (supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient).from("build_mail").select("user_id, lang").eq("enabled", true)) as { data: { user_id: string; lang: string }[] | null };
         if (!opts?.length) return Response.json({ sent: 0 });
         const { data: seeds } = await supabaseAdmin.from("seeds").select("*").in("user_id", opts.map((o) => o.user_id)).neq("realm", "lab");
         if (!seeds?.length) return Response.json({ sent: 0 });
