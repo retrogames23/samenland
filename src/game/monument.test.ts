@@ -30,7 +30,7 @@ describe("further prestige monuments", () => {
   it("cathedral: 5 steps of 800/1000/1200/1400/1600 from Handelsstadt", () => {
     expect(MONUMENTS.cathedral.prices).toEqual([800, 1000, 1200, 1400, 1600]);
     expect(MONUMENTS.cathedral.stage).toBe(4);
-    expect(MONUMENT_PRICE.cathedral5).toBe(1600);
+    expect(MONUMENT_PRICE["cathedral5"]).toBe(1600);
   });
   it("cathedral is no longer an automatic landmark", () => expect(LANDMARKS.some((l) => l.kind === "factory")).toBe(false));
   it("theater from Kleinstadt, opera from Metropole", () => {
