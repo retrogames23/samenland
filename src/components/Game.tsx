@@ -1885,7 +1885,14 @@ export function Game() {
           <Parchment image={ev ? ART[ev] : undefined} title={ev ? t.enc.events[ev]![0] : t.enc.title} later={t.enc.later} onLater={() => later("encounter")}>
                 {!ev ? <p className="mt-2 text-sm text-muted-foreground">{t.enc.decided}</p> : (
                   <>
-                    <p className="mt-2 text-center font-display text-xl leading-snug">{t.enc.events[ev]![1]}</p>
+                    {(() => {
+                      const w = ev === "wedding" ? townOf(my, seeds, clock()).weddings.filter((x) => x.at <= clock()).pop() : undefined;
+                      const live = w && clock() - w.at < 3 * 3600e3;
+                      return <>
+                        <p className="mt-2 text-center font-display text-xl leading-snug">{live ? t.enc.couple(`${w.a.first} ${w.a.last}`, `${w.b.first} ${w.b.maiden ?? w.b.last}`) : t.enc.events[ev]![1]}</p>
+                        {live && <div className="mt-2 text-center"><button type="button" className="rounded-md border-2 border-brass px-3 py-1 text-sm font-semibold text-wood hover:bg-brass/20" onClick={() => { const nw = clock(), tw = townOf(my, seeds, nw), p = tw.people.find((q) => q.id === w.a.id); const z = p ? poseOf(p, tw, seeds, nw) : null; later("encounter"); if (z) focus(z.x, z.y); if (p) setWho(p); }}>{t.enc.look}</button></div>}
+                      </>;
+                    })()}
                     <div className="mt-4 grid gap-2">
                       {Object.keys(ENCOUNTERS[ev]).map((c) => {
                         const cost = choiceOf(ev, c)!.cost, poor = cost > cash, fx = fxText(ev, c);
