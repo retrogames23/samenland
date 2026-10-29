@@ -1,4 +1,5 @@
 import { seasonalImage } from "./season-art";
+import waterWheelUrl from "@/assets/sprites/water-wheel.webp";
 import campfire from "@/assets/sprites/campfire.webp";
 import hut from "@/assets/sprites/hut.webp";
 import coop from "@/assets/sprites/coop.webp";
@@ -224,6 +225,8 @@ let animT = 0;
 export function setSpriteTime(t: number) { animT = t; }
 let sailsImg: HTMLImageElement | undefined;
 if (typeof Image !== "undefined") { sailsImg = new Image(); sailsImg.decoding = "async"; sailsImg.src = millSails; }
+let wheelImg: HTMLImageElement | undefined;
+if (typeof Image !== "undefined") { wheelImg = new Image(); wheelImg.decoding = "async"; wheelImg.src = waterWheelUrl; }
 
 function animate(c: CanvasRenderingContext2D, kind: Kind, left: number, top: number, k: number, sd: number) {
   const t = animT, P = (u: number, v: number): [number, number] => [left + u * k, top + v * k];
@@ -249,18 +252,11 @@ function waterWheel(c: CanvasRenderingContext2D, x: number, y: number, r: number
   c.save(); c.translate(x, y); c.transform(0.82, 0.12, 0, 1.12, 0, 0);
   // dark hollow of the wheel, hiding the painted still spokes
   c.fillStyle = "rgba(36,30,24,0.92)"; c.beginPath(); c.arc(0, 0, r * 0.93, 0, 7); c.fill();
-  c.lineCap = "round";
-  for (let i = 0; i < 8; i++) {
-    const q = a + (i * Math.PI) / 4, cx = Math.cos(q), sy = Math.sin(q);
-    c.strokeStyle = "#5a4130"; c.lineWidth = r * 0.07;
-    c.beginPath(); c.moveTo(0, 0); c.lineTo(cx * r * 0.86, sy * r * 0.86); c.stroke();
-    // paddle
-    c.strokeStyle = "#6e5038"; c.lineWidth = r * 0.16;
-    c.beginPath(); c.moveTo(cx * r * 0.78, sy * r * 0.78); c.lineTo(cx * r * 0.98, sy * r * 0.98); c.stroke();
+  // painted wheel, turning
+  if (wheelImg?.complete && wheelImg.naturalWidth) {
+    c.rotate(a); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+    c.drawImage(seasonalImage(wheelImg), -r * 1.05, -r * 1.05, r * 2.1, r * 2.1);
   }
-  c.strokeStyle = "#4a3426"; c.lineWidth = r * 0.09; c.beginPath(); c.arc(0, 0, r * 0.86, 0, 7); c.stroke();
-  c.strokeStyle = "rgba(160,120,80,0.5)"; c.lineWidth = r * 0.025; c.beginPath(); c.arc(0, 0, r * 0.82, Math.PI * 1.05, Math.PI * 1.6); c.stroke();
-  c.fillStyle = "#3a2a1e"; c.beginPath(); c.arc(0, 0, r * 0.13, 0, 7); c.fill();
   c.restore();
   // water spilling over the paddles and splashing below
   for (let i = 0; i < 9; i++) {

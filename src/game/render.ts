@@ -2,6 +2,9 @@ import deerWalkUrl from "@/assets/sprites/deer-walk.webp";
 import deerGrazeUrl from "@/assets/sprites/deer-graze.webp";
 import boarWalkUrl from "@/assets/sprites/boar-walk.webp";
 import hunterUrl from "@/assets/sprites/folk/hunter.webp";
+import henUrl from "@/assets/sprites/hen.webp";
+import gullUrl from "@/assets/sprites/gull.webp";
+import crowUrl from "@/assets/sprites/crow.webp";
 import { worldHour, clock } from "./time";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
 import { roadMotion, screenFacing } from "./motion";
@@ -287,6 +290,41 @@ function drawBeast(c: C, walkIm: HTMLImageElement, standIm: HTMLImageElement | n
     const ph = dist / 1.1, f = Math.floor(ph), bob = Math.abs(Math.sin(ph * Math.PI)) * h * 0.02;
     sheetFrame(c, walkIm, f, X, Y - bob, h, flip, 0, alpha);
   } else sheetFrame(c, standIm, idle, X, Y, h, flip, 0, alpha);
+}
+/** Free wildlife: a few forest tiles hold a roe deer or wild boar that grazes, steps and roots – daytime only, no hunter needed. */
+function drawWild(c: C, x: number, y: number, cx: number, cy: number) {
+  if (terrain(x, y) !== "forest" || hash(x, y, 311) > 0.012) return;
+  const hr = localHour(); if (hr < 5.5 || hr > 20.5) return;
+  const boar = hash(x, y, 312) < 0.35, n = renderNow + hash(x, y, 313) * 9e5;
+  const walk = boar ? huntIm("bw", boarWalkUrl) : huntIm("dw", deerWalkUrl), stand = boar ? null : huntIm("dg", deerGrazeUrl);
+  if (!walk) return;
+  const g = n / 60000 / (5 + hash(x, y, 314) * 3), drift = Math.sin(g) * 4, moving = Math.abs(Math.cos(g)) > 0.75 ? 1 : 0;
+  const X = cx + drift, Y = cy + Math.sin(g * 0.6) * 1.5, flip = Math.cos(g) < 0, h = boar ? 4.4 : 6.2;
+  if (boar && !moving) { shadow(c, X, Y, h * 0.5); sheetFrame(c, walk, 3, X, Y - (Math.floor(n / 500) & 1) * 0.08, h, flip); return; }
+  const idle = Math.floor(n / 1500) % 8 < 5 ? (Math.floor(n / 650) & 1) : 2;
+  drawBeast(c, walk, stand, X, Y, h, flip, moving, n / 400 + drift, idle);
+}
+/** Hens around the coop: short trots, pecking, looking up; they roost inside at night. */
+function drawHens(c: C, cx: number, cy: number, sd: number) {
+  const im = huntIm("hen", henUrl); if (!im) return;
+  const hr = localHour(); if (hr < 6 || hr > 20) return;
+  for (let i = 0; i < 3; i++) {
+    const n = renderNow + hash(sd, i, 7) * 1e5, g = n / 7000 + i * 2.1;
+    const X = cx - 8 + i * 6 + Math.sin(g) * 3, Y = cy + 5 + Math.sin(g * 0.7 + i) * 1.5, moving = Math.abs(Math.cos(g)) > 0.8;
+    const f = moving ? (Math.floor(n / 160) & 1) : (Math.floor(n / 900 + i) % 3 === 0 ? 3 : 2);
+    shadow(c, X, Y, 1.1, 0.22);
+    sheetFrame(c, im, f, X, Y, 2.6, Math.cos(g) < 0);
+  }
+}
+/** Gulls circle over the coast, crows over fields: painted flap cycle, gliding between strokes. */
+function drawBird(c: C, cx: number, cy: number, gull: boolean, sd: number) {
+  const im = huntIm(gull ? "gull" : "crow", gull ? gullUrl : crowUrl); if (!im) return;
+  const hr = localHour(); if (hr < 6 || hr > 20) return;
+  const n = renderNow + hash(sd, 1, 9) * 1e6, r = 14 + hash(sd, 2, 9) * 14, a = n / (gull ? 5200 : 3800) * (hash(sd, 3, 9) < 0.5 ? 1 : -1);
+  const X = cx + Math.cos(a) * r, Y = cy - 26 + Math.sin(a) * r * 0.45, dx = -Math.sin(a) * (hash(sd, 3, 9) < 0.5 ? 1 : -1);
+  const cyc = (n / 140) % 12, f = cyc < 4 ? Math.floor(cyc) : 3; // a few strokes, then glide
+  c.fillStyle = "rgba(25,20,10,0.12)"; c.beginPath(); c.ellipse(X, Y + 26, 1.4, 0.4, 0, 0, 7); c.fill();
+  sheetFrame(c, im, f, X, Y, gull ? 3.4 : 2.8, dx < 0);
 }
 /**
  * Hunt at the hunter's lodge, a pure cycle on the shared world clock: two roe deer and a wild boar graze and
@@ -1650,6 +1688,7 @@ export function draw(
   }
 
   // ---- pass 2: standing objects in depth order ----
+  const birds: [number, number, number, number][] = []; // gulls over the coast, crows over fields, drawn on top
   for (const { x, y, cx, cy, st } of tiles) {
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
     if (!detail) {
@@ -1658,6 +1697,10 @@ export function draw(
       continue; // forests and crags are baked into the ground chunks
     }
     if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true);
+    if (!st) drawWild(c, x, y, cx, cy);
+    if (st?.kind === "coop" && st.build === undefined) drawHens(c, cx, cy, x * 31 + y);
+    if (hash(x, y, 501) < 0.006) { const tr = st ? null : terrain(x, y); if (tr === "water" || (tr === "sand" && hash(x, y, 502) < 0.5)) birds.push([cx, cy, 1, x * 7 + y]); }
+    if (st?.kind === "field" && hash(x, y, 503) < 0.02) birds.push([cx, cy, 0, x * 7 + y]);
     if (st?.flood) drawFlood(c, cx, cy, t, x * 7 + y);
     const fk = folk.get(y * MAP + x);
     const sdT = x * 1000 + y, flock = fk && st?.kind === "pasture" && st.build === undefined ? sheepSpots(sdT, st.v, now) : [];
@@ -1696,6 +1739,7 @@ export function draw(
       c.fillStyle = ghostOk === false ? "rgba(180,80,60,0.18)" : "rgba(255,240,200,0.14)"; c.fill();
     }
   }
+  for (const [bx, by, gull, sd] of birds) drawBird(c, bx, by, gull === 1, sd);
 
 
   // ---- life on the trade roads ----
