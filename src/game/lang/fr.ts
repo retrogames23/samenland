@@ -188,8 +188,8 @@ export const fr: Dict = {
   soundOn: "Son activé",
   soundOff: "Son coupé",
   exitFullscreen: "Quitter le plein écran",
-  enc: { later: "Décider plus tard", waiting: "Une décision vous attend", btn: "Visiteur sur la place", title: "Une rencontre", decided: "Vous venez de trancher – restez un peu, un nouveau visiteur viendra bientôt.", free: "gratuit", gain: (n: number) => `+${n} talers`, fail: "La décision n'a pu être prise.", poor: "Point assez de talers", done: "Le bourgmestre a tranché.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} jours` : `${h} h`, growth: (p: number) => `+${p}% de croissance`, food: "Vivres", health: "Santé", wealth: "Prospérité", chronicle: "Chronique", dayN: (n: number) => `Jour ${n}`, none: "Nulle mention pour l'heure.",
   sapling: { btn: "Planter le plant", hint: "Touchez un pré libre du village pour planter l'arbre.", planted: "L'arbre est planté – il grandira au fil des saisons.", bad: "Aucun arbre ne peut pousser ici." },
+  enc: { later: "Décider plus tard", waiting: "Une décision vous attend", btn: "Visiteur sur la place", title: "Une rencontre", decided: "Vous venez de trancher – restez un peu, un nouveau visiteur viendra bientôt.", free: "gratuit", gain: (n: number) => `+${n} talers`, fail: "La décision n'a pu être prise.", poor: "Point assez de talers", done: "Le bourgmestre a tranché.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} jours` : `${h} h`, growth: (p: number) => `+${p}% de croissance`, food: "Vivres", health: "Santé", wealth: "Prospérité", chronicle: "Chronique", dayN: (n: number) => `Jour ${n}`, none: "Nulle mention pour l'heure.",
     events: {
       minstrel: ["Le ménestrel", "Un ménestrel au chapeau empanaché, luth sous le bras, demande à jouer ce soir sur la place du village."],
       widow: ["La veuve et ses petits", "Une veuve flanquée de trois enfants et d'une charrette à bras cherche un nouveau toit."],
