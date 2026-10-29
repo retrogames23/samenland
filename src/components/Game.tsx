@@ -9,7 +9,7 @@ import { townOf, poseOf, kinOf, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { weddingJoy, DOWRY } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
-import { larderOf, storedAt, chainOf, type Ware } from "@/game/goods";
+import { larderOf, storedAt, chainOf, boonsOf, type Ware } from "@/game/goods";
 import { WareIcon } from "@/components/hud/WareIcon";
 import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, X, LogIn } from "lucide-react";
 import { Panel, WoodButton } from "@/components/hud/Panel";
@@ -736,18 +736,19 @@ export function Game() {
   }
   // heavy derivations refresh every 5 s of world time, not on every pointer move
   const slow = Math.floor(now / 5000) * 5000;
-  const { cash, myStage, myTown, at, pop, residents, season, nbs, larder } = useMemo(() => {
+  const { cash, myStage, myTown, at, pop, residents, season, nbs, larder, boons } = useMemo(() => {
     const cash = my ? treasury(my, purchases, slow, gifts, claims) : 0;
     const myStage = my ? stageOf(effAge(my, seeds, slow)) : 0;
     const myTown = my ? townOf(my, seeds, slow) : null;
-    const at = my ? attributes(my, seeds, purchases, slow, myTown!.weddings.filter((w) => w.alliance).length) : null;
+    const larder = my ? larderOf(my, seeds, slow) : null;
+    const boons = larder ? boonsOf(larder) : null;
+    const at = my ? attributes(my, seeds, purchases, slow, myTown!.weddings.filter((w) => w.alliance).length, boons ?? undefined) : null;
     const pop = my ? dailyTax(my, ageHours(my, slow)) : 0;
     const residents = myTown ? myTown.people.length : 0;
     const sw = seasonAt(slow);
     const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
     const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
-    const larder = my ? larderOf(my, seeds, slow) : null;
-    return { cash, myStage, myTown, at, pop, residents, season, nbs, larder };
+    return { cash, myStage, myTown, at, pop, residents, season, nbs, larder, boons };
   }, [my, seeds, purchases, gifts, claims, slow]);
   const [larderOpen, setLarderOpen] = useState(false);
   const wareName = (w: Ware, n: number) => t.goods.ware[w]![n === 1 ? 0 : 1];
@@ -1311,6 +1312,15 @@ export function Game() {
             </tbody>
           </table>
           <p className="mt-2 text-xs text-muted-foreground">{t.goods.food(larder.food, larder.eaters)}</p>
+          {larder.flows.every((f) => !f.stock) && <p className="mt-2 text-sm italic">{t.goods.young}</p>}
+          <div className="mt-3 border-t border-border pt-2 text-sm">
+            <p className="mb-1 font-semibold">{t.goods.boonsTitle}</p>
+            <ul className="space-y-0.5">
+              {(["fed", "varied", "surplus"] as const).map((k) => (
+                <li key={k} className={boons?.[k] ? "text-primary" : "text-muted-foreground"}>{boons?.[k] ? "✓" : "○"} {t.goods.boons[k]}</li>
+              ))}
+            </ul>
+          </div>
         </Parchment>
       )}
       {quitOpen && home && (

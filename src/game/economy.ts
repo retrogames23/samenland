@@ -48,7 +48,7 @@ export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gif
 const clamp = (v: number) => Math.round(Math.max(0, Math.min(100, v)));
 
 /** Village attributes 0–100, derived from age, trade, charter and purchased buildings. */
-export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: number, alliances = 0) {
+export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: number, alliances = 0, stores?: { food: number; health: number; wealth: number }) {
   const has = (i: Item) => purchases.some((p) => p.seed_id === s.id && p.item === i);
   // twins share wells, healer and school at half strength; a protective pact adds health
   const twins = twinLinks(s, seeds, now).map((l) => (l.a.id === s.id ? l.b : l.a));
@@ -67,5 +67,6 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   // weddings: a day of joy (health, prosperity) and lasting craft alliances between families
   const joy = weddingJoy(s, now);
   b.health += joy ? 10 : 0; b.wealth += (joy ? 5 : 0) + Math.min(ALLIANCE_MAX, alliances * ALLIANCE_WEALTH);
+  if (stores) { b.food += stores.food; b.health += stores.health; b.wealth += stores.wealth; }
   return { food: clamp(food + b.food), health: clamp(health + b.health), wealth: clamp(wealth + b.wealth), has };
 }
