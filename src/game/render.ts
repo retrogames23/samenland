@@ -561,8 +561,9 @@ function folkOf(q: Pose): FolkSprite {
   if (p.age >= 65) return f ? "elderF" : "elder";
   return f ? "woman" : "man";
 }
-const HIPS: Partial<Record<FolkSprite, [number, number]>> = { man: [0.45, 0.63], farmer: [0.28, 0.66], porter: [0.47, 0.65], builder: [0.45, 0.64], woodcutter: [0.5, 0.62], mason: [0.42, 0.62], elder: [0.45, 0.7], robber: [0.47, 0.72] };
-const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride"] as FolkSprite[]);
+const HIPS: Partial<Record<FolkSprite, [number, number]>> = { man: [0.45, 0.63], farmer: [0.28, 0.66], porter: [0.47, 0.65], builder: [0.45, 0.64], woodcutter: [0.5, 0.62], mason: [0.42, 0.62], elder: [0.45, 0.7], robber: [0.47, 0.72], groom: [0.56, 0.74] };
+// long robes walk like skirts: two painted shoes step under the hem
+const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride", "priest"] as FolkSprite[]);
 const TOOL_WORK: ReadonlySet<FolkSprite> = new Set(["farmer", "farmerF", "woodcutter", "woodcutterF", "mason", "masonF", "builder", "builderF"] as FolkSprite[]);
 /** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
 const WORK_FRAMES = 6;
