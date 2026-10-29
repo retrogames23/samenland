@@ -31,9 +31,9 @@ describe("encounters", () => {
 });
 
 describe("encounter catalogue", () => {
-  it("has 24 encounters, each shown once per round of 24", () => {
-    expect(Object.keys(ENCOUNTERS).length).toBe(24);
-    const seen = new Set(Array.from({ length: 24 }, (_, n) => eventOf("s", 48 + n)));
-    expect(seen.size).toBe(24);
+  it("has 25 encounters, each shown once per round of 25", () => {
+    expect(Object.keys(ENCOUNTERS).length).toBe(25);
+    const seen = new Set(Array.from({ length: 25 }, (_, n) => eventOf("s", 50 + n)));
+    expect(seen.size).toBe(25);
   });
 });

@@ -29,6 +29,7 @@ export const ENCOUNTERS = {
   painter: { portrait: { cost: 45, fx: { h: 168, wealth: 10 } }, sign: { cost: 15, fx: { h: 72, wealth: 5 } }, pass: { cost: 0, fx: {} } },
   flood: { dam: { cost: 40, fx: { h: 120, food: 12 } }, meadow: { cost: 0, fx: { h: 72, food: 5 } } },
   tithe: { pay: { cost: 25, fx: { h: 168, health: 5, wealth: 5 } }, bargain: { cost: 10, fx: {} }, plead: { cost: 0, fx: {} } },
+  nursery: { cherry: { cost: 40, fx: { h: 168, health: 5 } }, quince: { cost: 35, fx: { h: 168, food: 8 } }, pass: { cost: 0, fx: {} } },
   maypole: { pole: { cost: 20, fx: { h: 96, health: 10 } }, games: { cost: 0, fx: { h: 48, health: 5 } } },
 } as const satisfies Record<string, Record<string, Choice>>;
 export type EventKey = keyof typeof ENCOUNTERS;
@@ -92,4 +93,17 @@ export function boonHours(decisions: Decision[], now: number) {
     h += Math.min(now - d.at, fx.h * 3.6e6) / 3.6e6 * fx.growth;
   }
   return h;
+}
+
+/** Rare tree kinds a nurseryman encounter grants (one sapling per decision; mirrored by DB sapling_guard). */
+export const SAPLINGS = ["cherry", "quince"] as const;
+export type Sapling = (typeof SAPLINGS)[number];
+/** Saplings bought but not yet planted: purely derived from decisions minus planted rows. */
+export function saplingsOwed(decisions: { event: string; choice: string }[], planted: { kind: string }[]): Sapling[] {
+  const out: Sapling[] = [];
+  for (const k of SAPLINGS) {
+    const n = decisions.filter((d) => d.event === "nursery" && d.choice === k).length - planted.filter((p) => p.kind === k).length;
+    for (let i = 0; i < n; i++) out.push(k);
+  }
+  return out;
 }

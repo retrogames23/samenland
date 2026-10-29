@@ -84,14 +84,14 @@ const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coa
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { TITLE_PRICE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
-import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/encounters";
+import { ENCOUNTERS, choiceOf, pendingEncounter, saplingsOwed, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { firstFreeSite, placeTap } from "@/game/placement";
 
-type Mode = "look" | "seed" | "tree" | "flower" | "lantern";
+type Mode = "look" | "seed" | "tree" | "flower" | "lantern" | "sapling";
 
 const SHEET = "pointer-events-auto w-full max-w-xs rounded-md border-2 border-wood bg-card px-3 py-2 text-foreground shadow-[var(--shadow-cozy)] max-md:max-h-[45dvh] max-md:max-w-none max-md:overflow-y-auto max-md:overscroll-contain max-md:rounded-t-2xl";
 /** swipe a phone sheet down to close it */
@@ -720,6 +720,16 @@ export function Game() {
       const err = canPlant(x, y, seeds);
       if (err) return setMsg(plantError(t, err));
       setPlantAsk([x, y]);
+    } else if (mode === "sapling") {
+      const my = seeds.find((s) => s.id === mine);
+      const kind = my ? saplingsOwed(my.decisions ?? [], plantings.filter((p) => p.seed_id === my.id))[0] : undefined;
+      if (!my || !kind) return setMode("look");
+      if (Math.hypot(x - my.x, y - my.y) > radiusOf(effAge(my, seeds, clock())) + 3) return setMsg(t.nearOnly);
+      if (!buildable(terrain(x, y)) || structureAt(x, y, seeds, clock()) || plantings.some((p) => p.x === x && p.y === y)) return setMsg(t.sapling.bad);
+      const { data } = await supabase.from("plantings").insert({ seed_id: my.id, kind, x, y }).select().single();
+      if (!data) return setMsg(t.sapling.bad);
+      setPlantings((p) => [...p, data as Planting]);
+      setMode("look"); setMsg(t.sapling.planted); jingle("fanfare");
     } else if (mode === "tree" || mode === "flower" || mode === "lantern") {
       const my = seeds.find((s) => s.id === mine);
       if (!my) return;
@@ -805,7 +815,8 @@ export function Game() {
     const { data, error } = await supabase.from("encounters").insert({ seed_id: my.id, user_id: userId, event, choice }).select("id, seed_id, event, choice, cost, created_at").single();
     if (error || !data) return setMsg(t.enc.fail);
     setEncounters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
-    bell(0); setEncOpen(false); setMsg(t.enc.done);
+    bell(0); setEncOpen(false);
+    if (event === "nursery" && choice !== "pass") { setMode("sapling"); setMsg(t.sapling.hint); } else setMsg(t.enc.done);
   };
   const twinsOfMine = my ? twinLinks(my, seeds, clock()).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
   const pactPartner = twinsOfMine.find((o) => pactPending(my!, o, seeds, clock()) === "vote") ?? null;
@@ -2126,6 +2137,14 @@ export function Game() {
             </ul>
           )}
         </Parchment>
+      )}
+
+      {my && owner && !walk && saplingsOwed(my.decisions ?? [], plantings.filter((p) => p.seed_id === my.id)).length > 0 && (
+        <div className="absolute left-1/2 z-30 -translate-x-1/2" style={{ top: barH + 8 }}>
+          <Button type="button" size="sm" variant={mode === "sapling" ? "default" : "outline"} onClick={() => { if (mode === "sapling") setMode("look"); else { setMode("sapling"); setMsg(t.sapling.hint); } }}>
+            🌱 {mode === "sapling" ? t.cancel : t.sapling.btn}
+          </Button>
+        </div>
       )}
 
       {sealShown && (
