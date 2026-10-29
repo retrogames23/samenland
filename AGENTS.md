@@ -40,3 +40,4 @@
 - Subdirectories have their own AGENTS.md (src/game/AGENTS.md) – read it before changing files there.
 - Village stocks (src/game/goods.ts larderOf/storedAt/chainOf) are derived from jobs, season, clock and floods; never store goods — all clients see the same larder.
 - Tavern chat (chat_messages/chat_blocks) is the only free-text player table besides signposts; length, rate limit and blocking are enforced by the chat_guard DB trigger, RLS limits letters to sender/recipient.
+- Neighbourhood: Saturday markets (stalls, traders, +growth) are derived from roads and the realm clock in wander.ts/world.ts; letters store only metadata publicly (riders/arrival derived from distance) while bodies sit in a sender/recipient-only table written via the send_letter function — every client sees the same riders, only the pair reads the text.
