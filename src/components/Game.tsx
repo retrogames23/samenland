@@ -392,6 +392,8 @@ export function Game() {
       clearInterval(iv);
       clearInterval(vi);
       sub.subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pageshow", onVis);
     };
   }, []);
 
