@@ -38,7 +38,7 @@ import {
   specialSites,
   specialBuild,
   monumentProgress,
-  MONUMENT_KEYS, MONUMENT_DEFS, monumentSteps,
+  MONUMENT_KEYS, MONUMENT_DEFS, monumentSteps, monumentOf,
   structureAt,
   radiusOf,
   ageHours,
@@ -998,7 +998,7 @@ export function Game() {
     if (error || !data) return setMsg(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
     setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
     tap();
-    if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { jingle("coins"); setMsg(t.bought(t.items[item]![0])); }
+    if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
   };
   const zoomBy = (f: number) => {
     const cv = canvasRef.current!;
