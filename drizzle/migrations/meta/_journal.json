@@ -162,6 +162,13 @@
       "when": 1793300000006,
       "tag": "0022_tavern_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793300000007,
+      "tag": "0023_market_days",
+      "breakpoints": true
     }
   ]
 }
