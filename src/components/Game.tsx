@@ -1483,11 +1483,12 @@ export function Game() {
             <button type="button" aria-label={fs ? t.exitFullscreen : t.fullscreen} title={fs ? t.exitFullscreen : t.fullscreen} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())} className="hidden h-8 w-8 place-items-center rounded-md hover:bg-accent md:grid">
               {fs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
-            <button type="button" aria-label={t.hud.settings} title={t.hud.settings} aria-expanded={settings} onClick={() => setSettings(!settings)} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent">
+            <button type="button" aria-label={t.hud.settings} title={t.hud.settings} aria-expanded={settings} onClick={() => { if (!settings) { setWho(null); setPlace(null); } setSettings(!settings); }} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent">
               <Settings className="h-4 w-4" />
             </button>
           </div>
         </Panel>
+        {settings && <div className="fixed inset-0 -z-10" aria-hidden onClick={() => setSettings(false)} />}
         {settings && (
           <Panel className="absolute right-0 top-full mt-2 w-64" inner="space-y-2 p-3 text-sm">
             <div className="text-xs text-muted-foreground">{t.hud.language}</div>
@@ -1854,7 +1855,7 @@ export function Game() {
         </Parchment>
       )}
 
-      {owner && quest && (
+      {owner && quest && !settings && !chronOpen && (
         <div className="absolute right-16 z-30 w-60 md:w-64" style={{ top: barH + 8 }}>
           <div className="parchment px-3 py-2 text-sm text-ink shadow">
             <button type="button" onClick={() => setQuestFold((f) => !f)} className="flex w-full items-center justify-between gap-2 text-left">
