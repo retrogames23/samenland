@@ -130,6 +130,7 @@ const de = {
   attrs: { food: "Nahrung", health: "Gesundheit", wealth: "Wohlstand" },
   shop: "Bauen & Anwerben",
   monument: { title: "Prestigebau: Stadtturm", steps: ["Fundament legen", "Mauerwerk hochziehen", "Glockenstube zimmern", "Glocke weihen"], step: (i: number, n: number) => `Abschnitt ${i} von ${n}`, pay: "Abschnitt bezahlen", building: "Die Bauleute arbeiten am aktuellen Abschnitt …", done: "Der Stadtturm überragt die Stadt.", wait: (h: number) => `Nächster Abschnitt in etwa ${h} Std.` },
+  rank: { title: "Zunftlade", ranks: ["Lehrling", "Geselle", "Meister"], exam: ["", "Gesellenprüfung", "Meisterrecht"], perks: { trade: ["+10 Wohlstand durch Kaufmannszüge", "Hanseprivileg: +10 Wohlstand, +10 Nahrung"], craft: ["Wandergesellen: alle gekauften Bauten 20 % schneller, +5 Wohlstand", "Meisterwerk: +15 Wohlstand"], culture: ["Schreibstube & Kräuterkunde: +10 Gesundheit", "Hohe Schule: +20 Gesundheit"], farm: ["Fruchtfolge: +40 Garben Speicher, +10 Nahrung", "Bannrecht: +10 Nahrung, +10 Wohlstand, Zunftbier"] } as Record<string, [string, string]>, need: { age: (s: string) => `Ab Stufe ${s}`, guild: "Erst den Zunftbau errichten", belfry: "Erst den Stadtturm vollenden", roads: (n: number) => `Mindestens ${n} fertige Handelsstraßen`, charter: "", max: "Die höchste Zunftwürde ist errungen." } as Record<string, unknown>, pay: "Prüfung ablegen", sealed: (r: string) => `Neues Siegel in der Zunftlade: ${r}!` },
   items: {
     belfry1: ["Stadtturm", "Prestigebau in 4 Bauabschnitten. Fertig: +15 Wohlstand, +5 Gesundheit, Glockenschlag zur vollen Stunde"],
     herbs: ["Kräuterhütte", "+10 Gesundheit – Kräuter vom Wiesen- und Waldrand"],
@@ -466,6 +467,7 @@ const en: typeof de = {
   attrs: { food: "Food", health: "Health", wealth: "Prosperity" },
   shop: "Build & hire",
   monument: { title: "Prestige build: Belfry", steps: ["Lay the foundation", "Raise the stonework", "Frame the bell chamber", "Consecrate the bell"], step: (i: number, n: number) => `Stage ${i} of ${n}`, pay: "Pay for stage", building: "The builders are at work on this stage …", done: "The belfry towers over the town.", wait: (h: number) => `Next stage in about ${h} h` },
+  rank: { title: "Guild chest", ranks: ["Apprentice", "Journeyman", "Master"], exam: ["", "Journeyman's exam", "Master's right"], perks: { trade: ["+10 prosperity from merchant trains", "Hanse privilege: +10 prosperity, +10 food"], craft: ["Travelling journeymen: bought buildings 20% faster, +5 prosperity", "Masterpiece: +15 prosperity"], culture: ["Scriptorium & herb lore: +10 health", "High school: +20 health"], farm: ["Crop rotation: +40 sheaves storage, +10 food", "Ban right: +10 food, +10 prosperity, guild ale"] }, need: { age: (s: string) => `From stage ${s}`, guild: "Build the guild building first", belfry: "Finish the belfry first", roads: (n: number) => `At least ${n} finished trade roads`, charter: "", max: "The highest guild honour is won." }, pay: "Take the exam", sealed: (r: string) => `New seal in the guild chest: ${r}!` },
   items: {
     belfry1: ["Belfry", "Prestige build in 4 stages. Finished: +15 prosperity, +5 health, a bell on every hour"],
     herbs: ["Herb hut", "+10 health – herbs from meadow and forest edge"],
@@ -802,6 +804,7 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
   attrs: { food: "食物", health: "健康", wealth: "繁荣" },
   shop: "建造与雇佣",
   monument: { title: "荣耀建筑：钟楼", steps: ["打地基", "砌石墙", "搭钟室", "为大钟祝圣"], step: (i: number, n: number) => `第${i}/${n}期`, pay: "支付本期", building: "工匠正在建造本期工程……", done: "钟楼高耸于城镇之上。", wait: (h: number) => `约${h}小时后可建下一期` },
+  rank: { title: "行会宝匣", ranks: ["学徒", "帮工", "师傅"], exam: ["", "帮工考试", "师傅资格"], perks: { trade: ["商队往来：+10繁荣", "汉萨特权：+10繁荣，+10食物"], craft: ["游历帮工：购买的建筑快20%，+5繁荣", "杰作：+15繁荣"], culture: ["抄书房与草药学：+10健康", "高等学堂：+20健康"], farm: ["轮作：粮仓多存40捆，+10食物", "专营权：+10食物，+10繁荣，行会啤酒"] }, need: { age: (s: string) => `需达到${s}阶段`, guild: "请先建成行会建筑", belfry: "请先建成钟楼", roads: (n: number) => `至少${n}条已建成的商路`, charter: "", max: "已获得最高行会荣誉。" }, pay: "参加考试", sealed: (r: string) => `行会宝匣新添印章：${r}！` },
   items: {
     belfry1: ["钟楼", "分4期建造的荣耀建筑。建成后：+15繁荣，+5健康"],
     herbs: ["草药屋", "+10健康——采自草甸与林边的草药"],
@@ -1139,6 +1142,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   attrs: { food: "食料", health: "健康", wealth: "繁栄" },
   shop: "建築と雇用",
   monument: { title: "誉れの建物：鐘楼", steps: ["基礎を据える", "石壁を積む", "鐘室を組む", "鐘を祝別する"], step: (i: number, n: number) => `第${i}段階 / ${n}`, pay: "この段階を支払う", building: "職人たちがこの段階を建設中…", done: "鐘楼が町を見下ろしています。", wait: (h: number) => `次の段階まで約${h}時間` },
+  rank: { title: "ギルドの櫃", ranks: ["徒弟", "職人", "親方"], exam: ["", "職人試験", "親方の権利"], perks: { trade: ["商隊で繁栄+10", "ハンザ特権：繁栄+10、食料+10"], craft: ["遍歴職人：購入した建物が20%早く完成、繁栄+5", "親方作品：繁栄+15"], culture: ["写字室と薬草学：健康+10", "高等学院：健康+20"], farm: ["輪作：穀物の貯蔵+40束、食料+10", "特権：食料+10、繁栄+10、ギルドのビール"] }, need: { age: (s: string) => `${s}の段階から`, guild: "先にギルドの建物を建ててください", belfry: "先に鐘楼を完成させてください", roads: (n: number) => `完成した交易路が${n}本以上必要`, charter: "", max: "最高のギルドの栄誉を得ました。" }, pay: "試験を受ける", sealed: (r: string) => `ギルドの櫃に新しい封印：${r}！` },
   items: {
     belfry1: ["鐘楼", "4段階で建てる誉れの建物。完成で繁栄+15、健康+5"],
     herbs: ["薬草小屋", "健康+10 — 草地と森の縁の薬草"],
