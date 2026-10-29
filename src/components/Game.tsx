@@ -25,6 +25,8 @@ import { BookOpen, ArrowLeft, ScrollText } from "lucide-react";
 import { QUESTS, questState, type Quest, type QuestClaim } from "@/game/quests";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { VillageRoll } from "@/components/VillageRoll";
+import { Tavern } from "@/components/Tavern";
+import { Beer } from "lucide-react";
 import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/game/audio";
 import {
@@ -659,6 +661,8 @@ export function Game() {
   const [chron, setChron] = useState<Chronicle | null>(null);
   const [chronOpen, setChronOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [tavernOpen, setTavernOpen] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
   const [rollOpen, setRollOpen] = useState(false);
   useEffect(() => {
     if (userId && !localStorage.getItem("samenland-guide-seen")) { setGuideOpen(true); localStorage.setItem("samenland-guide-seen", "1"); }
@@ -1244,6 +1248,10 @@ export function Game() {
               <ScrollText className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.menu}</span>
             </WoodButton>
           )}
+          <WoodButton label={t.tavern.menu} active={tavernOpen} onClick={() => setTavernOpen(true)} className="relative h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
+            <Beer className="h-5 w-5" /><span className="text-[10px] leading-none">{t.tavern.menu}</span>
+            {chatUnread > 0 && <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-destructive" />}
+          </WoodButton>
           <WoodButton label={t.guide.menu} active={guideOpen} onClick={() => setGuideOpen(true)} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
             <BookOpen className="h-5 w-5" /><span className="text-[10px] leading-none">{t.guide.menu}</span>
           </WoodButton>
@@ -1454,6 +1462,7 @@ export function Game() {
           setMsg(z.visible ? null : `${p.first} ${z.act === "sleep" || z.act === "home" || z.act === "sick" ? t.roll.home : t.roll.inside}`);
         }} />
       )}
+      <Tavern t={t} open={tavernOpen} onClose={() => setTavernOpen(false)} userId={userId} my={my} seeds={seeds} realm={realm} lang={lang} onUnread={setChatUnread} />
       {guideOpen && (
         <Parchment wide image={ART["guide"]} title={t.guide.title} later={t.guide.close} onLater={() => setGuideOpen(false)}>
           <p className="text-center text-sm italic">{t.guide.intro}</p>

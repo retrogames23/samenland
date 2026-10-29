@@ -39,3 +39,4 @@
 - Village chronicle (src/game/chronicle.ts) is derived from seeds between last visit (localStorage) and now; while the owner watches, Game.tsx diffs it periodically for illustrated celebrations — no stored history. Only the scribe greeting uses AI (authenticated server function, fixed fallback).
 - Subdirectories have their own AGENTS.md (src/game/AGENTS.md) – read it before changing files there.
 - Village stocks (src/game/goods.ts larderOf/storedAt/chainOf) are derived from jobs, season, clock and floods; never store goods — all clients see the same larder.
+- Tavern chat (chat_messages/chat_blocks) is the only free-text player table besides signposts; length, rate limit and blocking are enforced by the chat_guard DB trigger, RLS limits letters to sender/recipient.
