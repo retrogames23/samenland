@@ -600,7 +600,7 @@ export const TRADE_DIST = 80;
 /** Road is founded once the younger town is this many hours old, then built from both ends over ROAD_BUILD hours. */
 export const ROAD_AT = 6;
 export const ROAD_BUILD = 24;
-export type Link = { a: Seed; b: Seed; d: number; since: number; tiles: [number, number][]; water: boolean[] };
+export type Link = { a: Seed; b: Seed; d: number; since: number; build?: number; tiles: [number, number][]; water: boolean[] };
 
 let linkKey = "";
 let linkCache: Link[] = [];
@@ -617,7 +617,7 @@ export function links(seeds: Seed[]): Link[] {
     const gate = roadGate(a, b);
     if (gate === null) continue;
     const l = buildLink(a, b, d);
-    if (l) { l.since = Math.max(l.since, gate); linkCache.push(l); }
+    if (l) { l.since = Math.max(l.since, gate); l.build = roadDone(a, b)! - gate; linkCache.push(l); }
   }
   for (const l of linkCache) l.tiles.forEach(([x, y], i) => { const k = y * MAP + x; if (!roadIdx.has(k)) roadIdx.set(k, { link: l, i }); });
   return linkCache;
@@ -635,14 +635,38 @@ export function roadGate(a: Seed, b: Seed): number | null {
   for (const r of b.roads ?? []) if (r.target === a.id) t = Math.min(t, r.at);
   return t === Infinity ? null : t;
 }
+/**
+ * When the road between a and b is finished: one decision is enough (ROAD_BUILD hours); if the other
+ * mayor also decides while it is still being built, both crews dig towards each other and the
+ * remaining time halves. Null when no road has been decided.
+ */
+export function roadDone(a: Seed, b: Seed): number | null {
+  const first = (x: Seed, y: Seed) => Math.min(Infinity, ...(x.roads ?? []).filter((r) => r.target === y.id).map((r) => r.at));
+  const ta = first(a, b), tb = first(b, a), t0 = Math.min(ta, tb), t1 = Math.max(ta, tb);
+  if (t0 === Infinity) return null;
+  const end = t0 + ROAD_BUILD * 3.6e6;
+  return t1 < end ? t1 + (end - t1) / 2 : end;
+}
+/** A neighbour building a road towards s that s has not joined yet (one decision suffices; joining halves the rest). */
+export function roadIncoming(s: Seed, seeds: Seed[], now: number): { from: Seed; done: number } | null {
+  for (const o of seeds) {
+    if (o.id === s.id || (s.roads ?? []).some((r) => r.target === o.id)) continue;
+    const r = (o.roads ?? []).find((x) => x.target === s.id && x.at <= now);
+    const done = r ? roadDone(s, o) : null;
+    if (r && done && now < done) return { from: o, done };
+  }
+  return null;
+}
 /** Neighbours a village may still decide a road to (in reach, not yet connected). */
 export const roadCandidates = (s: Seed, seeds: Seed[]) =>
   seeds.filter((o) => o.id !== s.id && Math.hypot(o.x - s.x, o.y - s.y) <= TRADE_DIST && roadGate(s, o) === null)
     .sort((p, q) => Math.hypot(p.x - s.x, p.y - s.y) - Math.hypot(q.x - s.x, q.y - s.y));
 /** The road this village decided that is still being built (only one at a time), or null. */
-export function roadBuilding(s: Seed, now: number): { target: string; at: number; done: number } | null {
+export function roadBuilding(s: Seed, now: number, seeds?: Seed[]): { target: string; at: number; done: number } | null {
   const r = (s.roads ?? []).filter((x) => x.at <= now && now < x.at + ROAD_BUILD * 3.6e6).sort((a, b) => b.at - a.at)[0];
-  return r ? { ...r, done: r.at + ROAD_BUILD * 3.6e6 } : null;
+  if (!r) return null;
+  const o = seeds?.find((x) => x.id === r.target), done = o ? roadDone(s, o) ?? r.at + ROAD_BUILD * 3.6e6 : r.at + ROAD_BUILD * 3.6e6;
+  return now < done ? { ...r, done } : null;
 }
 
 /**
@@ -697,7 +721,7 @@ function buildLink(a: Seed, b: Seed, d: number): Link | null {
 }
 
 /** 0..1 how much of the road exists. */
-export const roadProgress = (l: Link, now: number) => Math.max(0, Math.min(1, (now - l.since) / (ROAD_BUILD * 3.6e6)));
+export const roadProgress = (l: Link, now: number) => Math.max(0, Math.min(1, (now - l.since) / (l.build ?? ROAD_BUILD * 3.6e6)));
 
 function roadAt(x: number, y: number, seeds: Seed[], now: number) {
   links(seeds);

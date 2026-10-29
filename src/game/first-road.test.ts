@@ -28,3 +28,18 @@ describe("roads are decided one by one", () => {
     expect(roadBuilding(a, ROAD_BUILD * H)).toBeNull();
   });
 });
+
+import { roadDone, roadIncoming } from "./world";
+describe("both sides may build, one is enough", () => {
+  it("one decision finishes after ROAD_BUILD hours", () => {
+    expect(roadDone(mk("a", "u", [{ target: "b", at: 0 }]), mk("b", "v"))).toBe(ROAD_BUILD * H);
+  });
+  it("joining halves the remaining time", () => {
+    expect(roadDone(mk("a", "u", [{ target: "b", at: 0 }]), mk("b", "v", [{ target: "a", at: 8 * H }]))).toBe(16 * H);
+  });
+  it("neighbour sees the incoming road until it is done", () => {
+    const a = mk("a", "u", [{ target: "b", at: 0 }]), b = mk("b", "v");
+    expect(roadIncoming(b, [a, b], H)?.from.id).toBe("a");
+    expect(roadIncoming(b, [a, b], ROAD_BUILD * H)).toBeNull();
+  });
+});
