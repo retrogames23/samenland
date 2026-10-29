@@ -467,6 +467,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      abandon_village: { Args: { _seed: string }; Returns: undefined }
       charter_tax: {
         Args: { _at: string; _charter: string; _created: string }
         Returns: number
