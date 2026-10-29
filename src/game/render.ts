@@ -1,3 +1,4 @@
+import deerUrl from "@/assets/sprites/deer.webp";
 import { worldHour, clock } from "./time";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
 import { roadMotion, screenFacing } from "./motion";
@@ -234,6 +235,23 @@ export function robberAt(s: Seed, now: number): [number, number, boolean] | null
   const d = ph < 0.5 ? R * (1 - ph * 2) + 1.2 : R * (ph - 0.5) * 2 + 1.2, b = a + (ph < 0.5 ? 0 : 0.9);
   return [s.x + Math.cos(b) * d, s.y + Math.sin(b) * d, ph >= 0.5];
 }
+let deerIm: HTMLImageElement | null = null;
+/** Two roe deer graze at the forest edge behind the hunter's lodge by day; they drift slowly on the shared world clock and withdraw into the forest at night. */
+function drawDeer(c: C, cx: number, cy: number, sd: number) {
+  if (typeof Image === "undefined") return;
+  if (!deerIm) { deerIm = new Image(); deerIm.src = deerUrl; }
+  if (!deerIm.complete || !deerIm.naturalWidth) return;
+  const h = localHour(); if (h < 5.5 || h > 20.5) return;
+  const m = renderNow / 60000;
+  for (let k = 0; k < 2; k++) {
+    const ph = m / (9 + k * 4) + hash(sd, k, 41) * 6.28;
+    const dx = -14 + k * 22 + Math.sin(ph) * 5, dy = -9 + k * 4 + Math.cos(ph * 0.7) * 2.5;
+    const flip = Math.cos(ph) < 0, w = 7, hh = (w * deerIm.naturalHeight) / deerIm.naturalWidth;
+    const X = cx + dx, Y = cy + dy;
+    c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X, Y, w * 0.4, 0.7, 0, 0, 7); c.fill();
+    c.save(); c.translate(X, Y); if (flip) c.scale(-1, 1); c.drawImage(deerIm, -w / 2, -hh, w, hh); c.restore();
+  }
+}
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
   if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
@@ -244,6 +262,7 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
+    if (s.kind === "lodge") drawDeer(c, cx, cy, sd);
     if (s.fire) drawFire(c, cx, cy, t, sd, L);
     if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour()) || (isHomeKind(s.kind) && sickLit(x, y)))) {
       L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip } });
