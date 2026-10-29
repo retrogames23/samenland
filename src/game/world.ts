@@ -624,23 +624,26 @@ export function links(seeds: Seed[]): Link[] {
 }
 
 /**
- * Player villages choose their first road themselves; until then they stay unconnected. The chosen
- * road starts at the moment of choice, all other roads follow automatically one build period later.
- * Returns the earliest start time, or null when the road may not exist (yet).
+ * Every road touching a player village must be decided by one of the two mayors; it starts at the
+ * earliest decision. Roads between two unowned sample villages open by themselves.
+ * Returns the start time, or null when no road has been decided.
  */
 export function roadGate(a: Seed, b: Seed): number | null {
-  let t = -Infinity;
-  for (const [s, o] of [[a, b], [b, a]] as const) {
-    if (!s.user_id) continue;
-    if (!s.firstRoad) return null;
-    t = Math.max(t, s.firstRoad.target === o.id ? s.firstRoad.at : s.firstRoad.at + ROAD_BUILD * 3.6e6);
-  }
-  return t;
+  if (!a.user_id && !b.user_id) return -Infinity;
+  let t = Infinity;
+  for (const r of a.roads ?? []) if (r.target === b.id) t = Math.min(t, r.at);
+  for (const r of b.roads ?? []) if (r.target === a.id) t = Math.min(t, r.at);
+  return t === Infinity ? null : t;
 }
-/** Neighbours a player village may pick as its first road. */
+/** Neighbours a village may still decide a road to (in reach, not yet connected). */
 export const roadCandidates = (s: Seed, seeds: Seed[]) =>
-  seeds.filter((o) => o.id !== s.id && Math.hypot(o.x - s.x, o.y - s.y) <= TRADE_DIST)
+  seeds.filter((o) => o.id !== s.id && Math.hypot(o.x - s.x, o.y - s.y) <= TRADE_DIST && roadGate(s, o) === null)
     .sort((p, q) => Math.hypot(p.x - s.x, p.y - s.y) - Math.hypot(q.x - s.x, q.y - s.y));
+/** The road this village decided that is still being built (only one at a time), or null. */
+export function roadBuilding(s: Seed, now: number): { target: string; at: number; done: number } | null {
+  const r = (s.roads ?? []).filter((x) => x.at <= now && now < x.at + ROAD_BUILD * 3.6e6).sort((a, b) => b.at - a.at)[0];
+  return r ? { ...r, done: r.at + ROAD_BUILD * 3.6e6 } : null;
+}
 
 /**
  * Trade road follows the terrain (A* on a 4-connected grid): land is cheap, hills cost more and
