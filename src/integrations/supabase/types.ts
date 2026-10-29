@@ -284,6 +284,7 @@ export type Database = {
           created_at: string
           hue: number
           id: string
+          mayor_gender: string | null
           name: string
           owner: string
           realm: string
@@ -295,6 +296,7 @@ export type Database = {
           created_at?: string
           hue?: number
           id?: string
+          mayor_gender?: string | null
           name: string
           owner: string
           realm?: string
@@ -306,6 +308,7 @@ export type Database = {
           created_at?: string
           hue?: number
           id?: string
+          mayor_gender?: string | null
           name?: string
           owner?: string
           realm?: string
