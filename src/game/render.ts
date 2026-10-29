@@ -247,11 +247,21 @@ function drawFlood(c: C, cx: number, cy: number, t: number, sd: number) {
   c.fillStyle = "rgba(220,230,225,0.18)"; c.fillRect(cx - 4 + Math.sin(t / 900 + sd) * 2, cy - 0.5, 6, 0.5);
 }
 /** Robber: sneaks in from the forest edge, past the houses, and out again. */
-function drawRobber(c: C, X: number, Y: number, flip: boolean) {
+function drawRobber(c: C, X: number, Y: number, flip: boolean, t: number) {
   const im = folkImage("robber"); if (!im) return;
   const h = 5.2, w = (h * im.naturalWidth) / im.naturalHeight;
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
-  c.save(); c.translate(X, Y); if (flip) c.scale(-1, 1); c.drawImage(im, -w / 2, -h, w, h); c.restore();
+  // sneaking: crouched torso on the shared painted leg cycle, slow careful steps
+  const ph = t / 260, legs = folkImage("legsM"), crouch = 0.04 + Math.abs(Math.sin(ph * Math.PI)) * 0.05;
+  c.save(); c.translate(X, Y); if (flip) c.scale(-1, 1);
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  if (legs) {
+    const [hx, hem] = HIPS.robber!, fw = legs.naturalWidth / WALK_FRAMES, f = Math.floor(ph) % WALK_FRAMES;
+    const lh = h * (1 - hem + 0.1), lw = (lh * fw) / legs.naturalHeight;
+    c.drawImage(legs, f * fw, 0, fw, legs.naturalHeight, -lw * 0.5, -lh, lw, lh);
+    c.drawImage(im, 0, 0, im.naturalWidth, im.naturalHeight * hem, -w * hx, -h + crouch, w, h * hem);
+  } else c.drawImage(im, -w / 2, -h, w, h);
+  c.restore();
 }
 export function robberAt(s: Seed, now: number): [number, number, boolean] | null {
   const r = activeRaid(s, now); if (!r) return null;
@@ -551,8 +561,9 @@ function folkOf(q: Pose): FolkSprite {
   if (p.age >= 65) return f ? "elderF" : "elder";
   return f ? "woman" : "man";
 }
-const HIPS: Partial<Record<FolkSprite, [number, number]>> = { man: [0.45, 0.63], farmer: [0.28, 0.66], porter: [0.47, 0.65], builder: [0.45, 0.64], woodcutter: [0.5, 0.62], mason: [0.42, 0.62], elder: [0.45, 0.7], robber: [0.47, 0.72] };
-const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride"] as FolkSprite[]);
+const HIPS: Partial<Record<FolkSprite, [number, number]>> = { man: [0.45, 0.63], farmer: [0.28, 0.66], porter: [0.47, 0.65], builder: [0.45, 0.64], woodcutter: [0.5, 0.62], mason: [0.42, 0.62], elder: [0.45, 0.7], robber: [0.47, 0.72], groom: [0.56, 0.74] };
+// long robes walk like skirts: two painted shoes step under the hem
+const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride", "priest"] as FolkSprite[]);
 const TOOL_WORK: ReadonlySet<FolkSprite> = new Set(["farmer", "farmerF", "woodcutter", "woodcutterF", "mason", "masonF", "builder", "builderF"] as FolkSprite[]);
 /** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
 const WORK_FRAMES = 6;
@@ -1653,7 +1664,7 @@ export function draw(
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
     if (st) drawStructure(c, st, cx, cy, x, y, t, L);
     const rb = robbers.get(y * MAP + x);
-    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2]); }
+    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
     if (signMap.has(y * MAP + x)) drawSignpost(c, cx, cy, x * 13 + y);
     if (fk) {
@@ -1709,16 +1720,29 @@ export function draw(
     const hr = worldHour(now), night = hr < 5 || hr >= 22;
     const count = night ? (mature > 0.5 ? 1 : 0) : 1 + Math.round(mature * 3 * complement(l.a, l.b));
     const sn = l.a.x * 7 + l.b.y * 13;
+    // share of open-road tiles in a 5-tile window: 1 on the open road, ramps to 0 just inside the town edge
+    const openMemo = new Map<number, boolean>();
+    const roadFade = (_l: typeof l, idx: number, twinOk: boolean) => {
+      let open = 0;
+      for (let d = -2; d <= 2; d++) {
+        const j = Math.max(0, Math.min(l.tiles.length - 1, idx + d));
+        let ok = openMemo.get(j);
+        if (ok === undefined) { const st = structureAt(l.tiles[j]![0], l.tiles[j]![1], seeds, now); ok = !!st && (st.kind === "road" || st.kind === "bridge" || (twinOk && st.kind === "street")); openMemo.set(j, ok); }
+        if (ok) open++;
+      }
+      const f = open / 5;
+      return f * f * (3 - 2 * f);
+    };
     for (let k = 0; k < count; k++) {
       const secsPerTile = hash(sn, k, 3) < 0.55 ? 1.6 + hash(sn, k, 1) * 1.2 : 3.2 + hash(sn, k, 1) * 1.2;
       if (n < 2) continue;
       const motion = roadMotion(pts, t / 1000 / secsPerTile + hash(sn, k, 2) * (n - 1) * 2);
       const fwd = motion.forward, i = motion.index;
-      // travellers only show on open road – inside towns they are "between the houses"
-      const [tx, ty] = l.tiles[i]!;
-      const st = structureAt(tx, ty, seeds, now);
+      // travellers show on open road and fade in/out over the last tiles into town – no popping
       const twin = isTwin(l, seeds, now);
-      if (!st || (st.kind !== "road" && st.kind !== "bridge" && !(twin && st.kind === "street"))) continue;
+      const fade = roadFade(l, i, twin);
+      if (fade <= 0) continue;
+      c.globalAlpha = fade;
       const [x, y] = motion.position;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
       const bob = Math.sin(t / 180 + k) * 0.4;
@@ -1736,9 +1760,9 @@ export function draw(
       const end = n - 1, pr = walkProgress(w, now) * end, fwd = w.from.id === l.a.id;
       // roadMotion's second half (phase end..2·end) already runs b→a with a reversed heading
       const m = roadMotion(pts, fwd ? Math.min(pr, end - 1e-6) : end + pr);
-      const [tx, ty] = l.tiles[m.index]!;
-      const st = structureAt(tx, ty, seeds, now);
-      if (!st || (st.kind !== "road" && st.kind !== "bridge")) continue;
+      const fade = roadFade(l, m.index, false);
+      if (fade <= 0) continue;
+      c.globalAlpha = fade;
       const cartW = w.kind === "family" || w.kind === "gift" || w.kind === "aid", [ox2, oy2] = keepRight(m.direction[0], m.direction[1], cartW ? 3.2 : 4.2);
       const x = m.position[0] + ox2, y = m.position[1] + oy2;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
@@ -1748,13 +1772,18 @@ export function draw(
       drawWanderer(c, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" || w.kind === "letter" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? (w.sex === "m" ? "groom" : "bride") : undefined);
       lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w });
     }
+    c.globalAlpha = 1;
   }
+  c.globalAlpha = 1;
 
   // Saturday market: painted stalls on both verges of every open road's midpoint, 9–17 realm time
   if (marketOpen(now)) for (const l of links(seeds)) {
     const n = l.tiles.length; if (n < 7 || roadProgress(l, now) < 1) continue;
-    const m = Math.floor(n / 2), a = l.tiles[m - 1]!, b = l.tiles[m + 1]!, mid = l.tiles[m]!;
-    if (l.water[m]) continue;
+    // nearest dry stretch to the midpoint, so stalls never stand on a bridge or over water
+    let m = -1;
+    for (let d = 0, c0 = Math.floor(n / 2); d < n / 2 && m < 0; d++) for (const q of [c0 - d, c0 + d]) if (m < 0 && q >= 2 && q < n - 2 && !l.water[q - 2] && !l.water[q - 1] && !l.water[q] && !l.water[q + 1] && !l.water[q + 2]) m = q;
+    if (m < 0) continue;
+    const a = l.tiles[m - 1]!, b = l.tiles[m + 1]!, mid = l.tiles[m]!;
     const tx = b[0] - a[0], ty = b[1] - a[1], len = Math.hypot(tx, ty) || 1, px = -ty / len, py = tx / len;
     const stalls: [number, number, Seed][] = [[mid[0] + px * 1.6, mid[1] + py * 1.6, l.a], [mid[0] - px * 1.6, mid[1] - py * 1.6, l.b]];
     if (n >= 11) stalls.push([mid[0] + px * 1.6 + tx / len * 2, mid[1] + py * 1.6 + ty / len * 2, l.b], [mid[0] - px * 1.6 - tx / len * 2, mid[1] - py * 1.6 - ty / len * 2, l.a]);

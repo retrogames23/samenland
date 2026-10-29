@@ -188,8 +188,9 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   const left = x - width / 2, top = y + sprite.base - height;
   if (flip) { c.translate(x * 2, 0); c.scale(-1, 1); }
   c.drawImage(seasonalImage(image), left, top, width, height);
+  // moving parts are drawn inside the same (possibly mirrored) frame, so mirrored mills keep turning
+  if (reveal >= 1) animate(c, kind, left, top, width / sw, x * 7 + y * 13);
   c.restore();
-  if (reveal >= 1 && !flip) animate(c, kind, left, top, width / sw, x * 7 + y * 13);
   return true;
 }
 
