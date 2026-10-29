@@ -3,6 +3,8 @@ import { weddingTimes, weddingJoy } from "./weddings";
 import { hasTrait } from "./traits";
 import { pathHeading } from "./motion";
 import { leaversOf } from "./wander";
+import { fires } from "./disasters";
+import { guestNow, maypoleUp, cowsOf } from "./encounters";
 import { worldHour } from "./time";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
@@ -36,7 +38,14 @@ export type Person = {
   /** A travelling visitor of the day's encounter: walks in from the edge at `at`, waits at `spot`, gone after `until`. */
   guest?: { at: number; until: number; from: Tile; spot: Tile; face: Tile; event: string };
 };
-export type Role = "head" | "spouse" | "child" | "elder" | "lodger" | "mayor";
+export type Role = "head" | "spouse" | "child" | "elder" | "lodger" | "mayor" | "guest";
+/** Who appears for each visitor encounter: [job, sex, age, dx, dy] around the well. */
+const GUESTS: Record<string, [Job, Sex, number, number, number][]> = {
+  journeyman: [["builder", "m", 22, 0, 0]], merchant: [["merchant", "m", 46, 0, 0]], healer: [["healer", "f", 52, 0, 0]],
+  minstrel: [["innkeeper", "m", 30, 0, 0]], widow: [["homemaker", "f", 34, 0, 0], ["child", "m", 9, 0.5, 0.3], ["child", "f", 7, -0.3, 0.5], ["child", "m", 5, 0.6, -0.4]],
+  monk: [["priest", "m", 58, 0, 0]], surveyor: [["mason", "m", 41, 0, 0]], pilgrims: [["retired", "m", 60, 0, 0], ["homemaker", "f", 44, 0.6, 0.2], ["worker", "m", 36, -0.4, 0.6]],
+  orphan: [["child", "m", 11, 0, 0]], tinker: [["smith", "m", 50, 0, 0]], painter: [["crafter", "m", 35, 0, 0]], nursery: [["herbalist", "m", 47, 0, 0]],
+};
 export type Wedding = { at: number; a: Person; b: Person; alliance: boolean };
 /** Families whose trades form an alliance when their children marry. */
 const CRAFT: ReadonlySet<Job> = new Set(["baker", "miller", "smith", "crafter", "sawyer", "innkeeper", "fisher", "mason", "merchant", "farmer"] as Job[]);
@@ -248,6 +257,62 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       q.fete = { at: ina.at, spot: [fr[0] + Math.cos(a) * rr, fr[1] + Math.sin(a) * rr], face: ina.tile, lag: hash(q.id, 34, 720) * 240 };
     }
   }
+  // ---- encounter scenes: what the parchment tells is also seen on the square ----
+  const decs = s.decisions ?? [];
+  const open = (x: number, y: number) => { const st = structureAt(x, y, seeds, now); return (!st || st.kind === "road" || st.kind === "path") && !isWater(terrain(x, y)); };
+  const nearFree = (c: Tile, k: number): Tile => {
+    for (let i = 0; i < 12; i++) { const a = hash(k, i, 1401) * Math.PI * 2, d = 1 + hash(k, i, 1402) * 1.6, x = Math.round(c[0] + Math.cos(a) * d), y = Math.round(c[1] + Math.sin(a) * d); if (open(x, y)) return [x, y]; }
+    return c;
+  };
+  const maypole: Tile | null = maypoleUp(decs, now) ? nearFree(meet, s.x * 7 + s.y) : null;
+  const cows: Tile[] = [];
+  for (let i = 0, n = cowsOf(decs, now); i < n && i < 3; i++) {
+    const pas = byKind.get("pasture") ?? [];
+    cows.push(pas.length ? pas[i % pas.length]! : nearFree(meet, s.x * 13 + s.y + i * 101));
+  }
+  // raising the maypole / maypole games: half the village gathers on the square for an hour
+  const mp = decs.filter((d) => d.event === "maypole" && now >= d.at && now - d.at < 2 * 3600e3).pop();
+  if (mp) {
+    const c = maypole ?? meet;
+    for (const q of people) {
+      if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 47, 720) < 0.5) continue;
+      const a = hash(q.id, 48, 720) * Math.PI * 2, rr = 1.2 + hash(q.id, 49, 720) * 1.6;
+      q.fete = { at: mp.at, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 50, 720) * 120 };
+    }
+  }
+  // fire: the fire wardens and watch run to the blaze, and neighbours join the bucket chain until it is out
+  for (const f of fires(s, now)) {
+    if (now < f.at || now >= f.end) continue;
+    let n = 0;
+    for (const q of people) {
+      if (q.proc || q.sick || q.arrive || q.age < 16 || q.age > 64) continue;
+      const crew = q.job === "firewarden" || q.job === "watchman";
+      if (!crew && (n >= 10 || hash(q.id, f.at % 9973, 1410) > 0.4 || Math.hypot(q.home[0] - f.x, q.home[1] - f.y) > 8)) continue;
+      n++;
+      let spot: Tile = [f.x + 2, f.y];
+      for (let i = 0; i < 8; i++) { const a = hash(q.id, i, 1411) * Math.PI * 2, d = 1.8 + hash(q.id, i, 1412) * 0.9, x = f.x + Math.cos(a) * d, y = f.y + Math.sin(a) * d; if (open(Math.round(x), Math.round(y))) { spot = [x, y]; break; } }
+      q.fete = { at: f.at, spot, face: [f.x, f.y], lag: crew ? 20 : 60 + hash(q.id, 1, 1413) * 240, dur: (f.end - f.at) / 1000, fire: true };
+    }
+  }
+  // the day's travelling visitor stands at the well/square while the mayor decides, and a while after a welcome
+  const gn = guestNow(s, decs, now);
+  if (gn) {
+    const cast = GUESTS[gn.event] ?? [];
+    const k0 = Math.floor(gn.at / 60000);
+    let from: Tile = [Math.round(s.x + r), s.y];
+    for (let i = 0; i < 16; i++) { const a = hash(k0, i, 1420) * Math.PI * 2, x = Math.round(s.x + Math.cos(a) * (r + 1)), y = Math.round(s.y + Math.sin(a) * (r + 1)); if (open(x, y)) { from = [x, y]; break; } }
+    const fc = well ?? meet;
+    cast.forEach(([job, sex, age, dx, dy], i) => {
+      const h = (j: number) => hash(k0, i, 1430 + j);
+      people.push({
+        id: -(5e6 + (s.x * 1024 + s.y) * 8 + i), seed: s, first: pick(sex === "f" ? F : M, h(0)), last: "", sex, age, job,
+        home: from, work: null, workIndoor: false, speed: age < 14 ? 0.3 : 0.22,
+        looks: { skin: h(1), hair: age >= 65 ? -1 : h(2), shirt: h(3), pants: h(4), hat: job !== "priest", stick: gn.event === "pilgrims" || job === "healer" },
+        haul: null, role: "guest",
+        guest: { at: gn.at + i * 4000, until: gn.until, from, spot: [fc[0] + 1.1 + dx, fc[1] + 0.4 + dy], face: fc, event: gn.event },
+      });
+    });
+  }
   // the player's own figure: the village mayor (Dorfschulze), walking between well, sites and meeting spots
   if (s.user_id) {
     const hall = (["townhall", "seat3", "seat2", "seat1"] as Kind[]).map((k) => byKind.get(k)?.[0]).find(Boolean);
@@ -264,7 +329,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     });
   }
   assignHauls(people, byKind, sites, front, well, tradePartners(s, seeds, now).flatMap((q) => q.buy));
-  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings, church };
+  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings, church, maypole, cows };
 }
 
 /**
