@@ -68,6 +68,7 @@ import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/en
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 type Mode = "look" | "seed" | "tree" | "flower" | "lantern";
 
@@ -143,6 +144,9 @@ export function Game() {
   const [authOpen, setAuthOpen] = useState(false);
   const [settings, setSettings] = useState(false);
   const [imprint, setImprint] = useState(false);
+  const [quitOpen, setQuitOpen] = useState(false);
+  const [quitName, setQuitName] = useState("");
+  const [quitting, setQuitting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [realm, setRealmState] = useState<Realm>("europe");
   const realmRef = useRef<Realm>("europe");
@@ -1125,6 +1129,7 @@ export function Game() {
                 <div className="text-[10px] text-muted-foreground">{t.lab.note}</div>
               </>)}
             </>)}
+            {userId && home && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setQuitOpen(true); setSettings(false); }}>{t.quit.button}</button>}
             {userId ? <Button size="sm" variant="secondary" className="w-full" onClick={() => { supabase.auth.signOut(); setSettings(false); }}>{t.signOut}</Button>
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
             <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 border-t border-border/60 pt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -1200,6 +1205,25 @@ export function Game() {
           </Parchment>
         );
       })()}
+      {quitOpen && home && (
+        <Parchment image={ART["surveyor"]} title={t.quit.title(home.name)} later={t.cancel} onLater={() => { setQuitOpen(false); setQuitName(""); }}>
+          <p className="mt-2 text-center text-sm leading-snug">{t.quit.warn}</p>
+          <p className="mt-3 text-center text-xs text-muted-foreground">{t.quit.type(home.name)}</p>
+          <Input className="mt-2" value={quitName} onChange={(e) => setQuitName(e.target.value)} placeholder={home.name} />
+          <div className="mt-4 flex justify-center">
+            <Button type="button" size="sm" variant="destructive" disabled={quitting || quitName.trim() !== home.name} onClick={async () => {
+              setQuitting(true);
+              const { error } = await supabase.rpc("abandon_village", { _seed: home.id });
+              setQuitting(false);
+              if (error) { toast.error(t.quit.fail); return; }
+              const id = home.id;
+              setSeeds((s) => s.filter((x) => x.id !== id));
+              setHome(null); setQuitOpen(false); setQuitName("");
+              toast.success(t.quit.done);
+            }}>{quitting ? t.plantAsk.wait : t.quit.ok}</Button>
+          </div>
+        </Parchment>
+      )}
       {encOpen && my && (() => {
         const ev = pendingEncounter(my, my.decisions ?? [], clock());
         const fxText = (e: string, c: string) => {
