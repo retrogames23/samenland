@@ -80,7 +80,7 @@ const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", cult
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
-import { TITLE_PRICE, TITLE_STEPS, TITLE_HOURS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
+import { TITLE_PRICE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
