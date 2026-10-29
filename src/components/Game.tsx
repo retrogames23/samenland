@@ -2156,6 +2156,9 @@ export function Game() {
                 );
               })()}
               <div className="text-xs text-muted-foreground">{t.livesIn(who.seed.name)} – {q.carry && q.dest ? t.carrying(q.carry, q.dest) : t.act[q.walking && q.act !== "play" ? "walking" : q.act]}</div>
+              {who.role === "mayor" && my && who.seed.id === my.id && (
+                <Button type="button" size="sm" className="mt-2 w-full gap-1.5" onClick={startWalk}><Footprints className="h-4 w-4" />{t.hud.walk}</Button>
+              )}
             </div>
           );
         })()}
