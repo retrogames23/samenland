@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Parchment, WaxSeal } from "@/components/hud/Parchment";
+import { Parchment } from "@/components/hud/Parchment";
 import { Input } from "@/components/ui/input";
 import { rollOf, matches } from "@/game/roll";
 import type { Person, Town } from "@/game/people";
@@ -44,7 +44,7 @@ export function VillageRoll({ t, town, hue, onPick, onClose }: { t: T; town: Tow
       <p className="text-center text-sm italic">{t.roll.stats(roll.total, roll.households.length, roll.kids, roll.sick)}</p>
       {roll.mayor && (
         <button type="button" onClick={() => onPick(roll.mayor!)} className="mx-auto mt-3 flex items-center gap-3 rounded px-3 py-1 hover:bg-ink/10">
-          <WaxSeal hue={hue} />
+          <span aria-hidden className="grid h-10 w-10 place-items-center rounded-full font-display text-lg text-primary-foreground shadow" style={{ background: `hsl(${hue} 55% 38%)` }}>✠</span>
           <span className="text-left"><b className="font-display text-xl text-ink">{roll.mayor.first} {roll.mayor.last}</b><span className="block text-xs">{jobName(roll.mayor)}</span></span>
         </button>
       )}

@@ -258,6 +258,7 @@ const de = {
   lab: { title: (k: number) => (k > 1 ? `Zeitraffer ${k}× · Sprung zu` : "Normale Zeit · Sprung zu"), note: "Nur für Admins. Sprung gilt ab dem Start der Testkarte." },
   perDay: (n: number) => `+${n}/Tag`,
   people: (n: number) => `${n} Bewohner`,
+  roll: { menu: "Rolle", title: "Dorf-Rolle", stats: (n: number, h: number, k: number, s: number) => `${n} Einwohner · ${h} Haushalte · ${k} Kinder · ${s} krank`, search: "Name suchen …", job: "Beruf", allJobs: "Alle Berufe", sort: "Sortierung", byHouse: "Nach Haushalt", byName: "Nach Name", byAge: "Nach Alter", none: "Niemand gefunden.", family: (n: string, c: number) => `Familie ${n} · ${c} ${c === 1 ? "Person" : "Personen"}`, age: (a: number) => `${a} Jahre`, sickTag: "krank", maiden: (n: string) => `geb. ${n}`, spouse: (sex: string, n: string) => `${sex === "f" ? "Ehefrau" : "Ehemann"}${n ? ` von ${n}` : ""}`, role: { head: ["Hausherrin", "Hausherr"], spouse: ["Ehefrau", "Ehemann"], child: ["Tochter", "Sohn"], elder: ["Altenteilerin", "Altenteiler"], lodger: ["Untermieterin", "Untermieter"], mayor: ["Dorfschulzin", "Dorfschulze"] } as Record<string, [string, string]>, home: "ist gerade daheim", inside: "ist gerade drinnen bei der Arbeit" },
   guide: {
     title: "Willkommen in Samenland", menu: "Anleitung", close: "Los geht's",
     intro: "Ein langsames Spiel: Dein Dorf wächst in Echtzeit – auch wenn du nicht hinschaust.",
@@ -530,6 +531,7 @@ const en: typeof de = {
   lab: { title: (k: number) => (k > 1 ? `Time-lapse ${k}× · jump to` : "Normal time · jump to"), note: "Admins only. Jump counts from the test map start." },
   perDay: (n: number) => `+${n}/day`,
   people: (n: number) => `${n} residents`,
+  roll: { menu: "Roll", title: "Village Roll", stats: (n: number, h: number, k: number, s: number) => `${n} residents · ${h} households · ${k} children · ${s} sick`, search: "Search name …", job: "Trade", allJobs: "All trades", sort: "Sort", byHouse: "By household", byName: "By name", byAge: "By age", none: "Nobody found.", family: (n: string, c: number) => `${n} family · ${c} ${c === 1 ? "person" : "people"}`, age: (a: number) => `${a} years`, sickTag: "sick", maiden: (n: string) => `née ${n}`, spouse: (sex: string, n: string) => `${sex === "f" ? "Wife" : "Husband"}${n ? ` of ${n}` : ""}`, role: { head: ["Head of house", "Head of house"], spouse: ["Wife", "Husband"], child: ["Daughter", "Son"], elder: ["Elder", "Elder"], lodger: ["Lodger", "Lodger"], mayor: ["Mayor", "Mayor"] } as Record<string, [string, string]>, home: "is at home right now", inside: "is working indoors right now" },
   guide: {
     title: "Welcome to Samenland", menu: "Guide", close: "Let's go",
     intro: "A slow game: your village grows in real time – even when you're not watching.",
