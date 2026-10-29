@@ -24,6 +24,7 @@ import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type C
 import { scribeGreeting } from "@/lib/chronicle.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ArrowLeft, ScrollText } from "lucide-react";
+import logoUrl from "@/assets/logo-keimling.png";
 import { QUESTS, questState, type Quest, type QuestClaim } from "@/game/quests";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { VillageRoll } from "@/components/VillageRoll";
@@ -1650,9 +1651,9 @@ export function Game() {
         <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/30 p-4" onClick={() => setAuthOpen(false)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm">
             <Panel inner="p-4">
-              <div className="flex items-start justify-between">
-                <h1 className="font-display text-4xl leading-none text-wood">Samenland</h1>
-                <button type="button" aria-label={t.hud.close} onClick={() => setAuthOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+              <div className="relative">
+                <h1 className="flex justify-center leading-none text-wood"><img src={logoUrl} alt="Samenland" width={742} height={719} className="h-28 w-auto" /></h1>
+                <button type="button" aria-label={t.hud.close} onClick={() => setAuthOpen(false)} className="absolute right-0 top-0 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{t.tagline}</p>
               <form className="mt-3 space-y-2" onSubmit={(e) => { e.preventDefault(); emailAuth(); }}>
