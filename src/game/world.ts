@@ -505,7 +505,7 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
 /** Cache key that changes whenever seed positions, ages or purchases change. */
 const skMemo = new WeakMap<Seed[], string>();
 export const seedsKey = (seeds: Seed[]) => { let k = skMemo.get(seeds); if (k === undefined) { k = seedsKeyRaw(seeds); skMemo.set(seeds, k); } return k; };
-const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}:${s.firstRoad?.target ?? ""}:${(s.works ?? []).length}`).join(";");
+const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}:${(s.roads ?? []).map((r) => r.target).join("+")}:${(s.works ?? []).length}`).join(";");
 
 /** Growth hour at which the building on this tile is finished (0 for the founding core). */
 export function bornAt(x: number, y: number, s: Seed): number {
@@ -607,7 +607,7 @@ let linkCache: Link[] = [];
 const roadIdx = new Map<number, { link: Link; i: number }>();
 
 export function links(seeds: Seed[]): Link[] {
-  const key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${s.firstRoad?.target ?? ""}:${s.firstRoad?.at ?? ""}`).join("|");
+  const key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.roads ?? []).map((r) => `${r.target}@${r.at}`).join("+")}`).join("|");
   if (key === linkKey) return linkCache;
   linkKey = key; linkCache = []; roadIdx.clear();
   for (let i = 0; i < seeds.length; i++) for (let j = i + 1; j < seeds.length; j++) {
