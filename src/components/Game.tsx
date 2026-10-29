@@ -1601,7 +1601,7 @@ export function Game() {
           </WoodButton>
           {my && (
             <WoodButton label={t.mayorFind} onClick={findMayor} className="h-11 flex-1 flex-col gap-0.5 md:hidden">
-              <Crown className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.role.mayor![1]}</span>
+              <Crown className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.role["mayor"]![1]}</span>
             </WoodButton>
           )}
           <WoodButton label={t.guide.menu} active={guideOpen} onClick={() => setGuideOpen(true)} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
