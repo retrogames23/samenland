@@ -12,3 +12,10 @@
 - [x] A: Aufgaben des Schulzen über alle Ären (19 Aufgaben)
 - [x] B: Prestigebau Stadtturm in 4 Abschnitten
 - [x] C: Zunft-Vertiefung der Charta (Gesellen-/Meisterstufe)
+
+# Roadmap: Handy-Steuerung
+- [x] 1: Bauen per Vorschau, Pfeile und Bestätigen-Knopf (Touch)
+- [x] 4a: Größere Tippfläche für Personen
+- [ ] 2: Fenster als Fach von unten
+- [ ] 3: Daumen-Leiste unten
+- [ ] 4b: Lupe beim langen Drücken, Schulze-Knopf in der Leiste
