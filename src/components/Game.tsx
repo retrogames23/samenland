@@ -337,6 +337,14 @@ export function Game() {
           if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
         }
       } catch { /* play as guest */ }
+      // invited newcomers land on their friend's map
+      const refId = localStorage.getItem("samenland-ref");
+      let refSeed: { id: string; realm: string; name: string } | null = null;
+      if (refId && !(r === "lab")) {
+        const { data } = await supabase.from("seeds").select("id, realm, name").eq("id", refId).maybeSingle();
+        if (data) { refSeed = data; if (REALMS.includes(data.realm as Realm)) r = data.realm as Realm; }
+        else localStorage.removeItem("samenland-ref");
+      }
       setRealm(r);
       realmRef.current = r;
       setRealmState(r);
@@ -355,21 +363,36 @@ export function Game() {
       supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").then(({ data }) => setGifts((data ?? []) as Gift[]));
       supabase.from("letters").select("id, from_seed, to_seed, created_at").gte("created_at", new Date(Date.now() - 60 * 864e5).toISOString()).then(({ data }) => setLetters(data ?? []));
       supabase.from("letter_bodies").select("letter_id, body").then(({ data }) => setBodies(Object.fromEntries((data ?? []).map((b) => [b.letter_id, b.body]))));
+      const ss = (a.data ?? []) as Seed[];
       Promise.all([
         supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at"),
         supabase.from("market_sales").select("id, seed_id, day, reward, created_at"),
-      ]).then(([q, m]) => setClaims([...(q.data ?? []), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim)]));
+        supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at"),
+      ]).then(([q, m, rf]) => {
+        setClaims([...(q.data ?? []), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? [])]);
+        // tell the inviter once when a friend has answered the call
+        const mine = ss.find((s) => uid && s.user_id === uid);
+        const got = (rf.data ?? []).filter((x) => mine && x.referrer_seed === mine.id);
+        const seen = Number(localStorage.getItem("samenland-ref-seen") ?? 0);
+        if (got.length > seen) {
+          const last = ss.find((s) => s.id === got[got.length - 1]!.referee_seed);
+          setMsg(tRef.current.invite.got(last?.name ?? "?"));
+          localStorage.setItem("samenland-ref-seen", String(got.length));
+        }
+      });
       setBlessings(bl.data ?? []);
       setPurchases(pu.data ?? []);
       setSigns((sg.data ?? []) as Signpost[]);
-      const ss = (a.data ?? []) as Seed[];
       setSeeds(ss);
       setPlantings((b.data ?? []) as Planting[]);
       // visitors without a village first see the oldest (most grown) town of this map
       const oldest = [...ss].sort((p, q) => Date.parse(p.created_at) - Date.parse(q.created_at))[0];
-      const my = ss.find((s) => uid && s.user_id === uid) ?? oldest;
+      const own = ss.find((s) => uid && s.user_id === uid);
+      const friend = refSeed ? ss.find((s) => s.id === refSeed!.id) : undefined;
+      const my = own ?? friend ?? oldest;
       if (my) focus(my.x, my.y);
       else focus(MAP / 2, MAP / 2);
+      if (!own && friend) setMsg(tRef.current.invite.welcome(friend.name));
     })();
     const ch = supabase
       .channel(`world-${Math.random().toString(36).slice(2)}`)
