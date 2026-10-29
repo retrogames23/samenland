@@ -1,3 +1,4 @@
+import { weddingNow } from "./weddings";
 /**
  * Daily encounters ("Schulzen-Entscheidungen"): which encounter a village meets on a UTC day is a pure
  * function of (seed id, day); only the chosen answer is stored. Effects are temporary boons derived from
@@ -33,7 +34,8 @@ export const ENCOUNTERS = {
   maypole: { pole: { cost: 20, fx: { h: 96, health: 10 } }, games: { cost: 0, fx: { h: 48, health: 5 } } },
 } as const satisfies Record<string, Record<string, Choice>>;
 export type EventKey = keyof typeof ENCOUNTERS;
-export const EVENT_KEYS = Object.keys(ENCOUNTERS) as EventKey[];
+/** Rotating visitors; "wedding" is not among them — it only appears while a real village wedding takes place. */
+export const EVENT_KEYS = (Object.keys(ENCOUNTERS) as EventKey[]).filter((k) => k !== "wedding");
 export type Decision = { event: string; choice: string; at: number; cost: number };
 
 /** Villages meet their first visitor once they are this many hours old (3 minutes). */
@@ -69,9 +71,12 @@ export const choiceOf = (e: string, c: string): Choice | undefined => (ENCOUNTER
 export function pendingEncounter(seed: { id: string; created_at: string }, decisions: Decision[], now: number): EventKey | null {
   const ageH = (now - Date.parse(seed.created_at)) / 3.6e6;
   if (ageH < ENCOUNTER_FROM) return null;
-  const last = decisions.reduce((m, d) => Math.max(m, d.at), -Infinity);
+  // a real wedding (weddings.ts calendar) is answered once, regardless of the visitor rhythm
+  const w = weddingNow(seed, now);
+  if (w != null && !decisions.some((d) => d.event === "wedding" && d.at >= w)) return "wedding";
+  const last = decisions.reduce((m, d) => d.event === "wedding" ? m : Math.max(m, d.at), -Infinity);
   if ((now - last) / 3.6e6 < encounterGap(ageH)) return null;
-  return eventOf(seed.id, decisions.length);
+  return eventOf(seed.id, decisions.filter((d) => d.event !== "wedding").length);
 }
 
 /** Sum of attribute boons active at `now`. */
