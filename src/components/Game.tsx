@@ -9,6 +9,8 @@ import { townOf, poseOf, kinOf, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { weddingJoy, DOWRY } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
+import { larderOf, storedAt, chainOf, type Ware } from "@/game/goods";
+import { WareIcon } from "@/components/hud/WareIcon";
 import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, X, LogIn } from "lucide-react";
 import { Panel, WoodButton } from "@/components/hud/Panel";
 import { Parchment, WaxSeal } from "@/components/hud/Parchment";
@@ -730,7 +732,7 @@ export function Game() {
   }
   // heavy derivations refresh every 5 s of world time, not on every pointer move
   const slow = Math.floor(now / 5000) * 5000;
-  const { cash, myStage, myTown, at, pop, residents, season, nbs } = useMemo(() => {
+  const { cash, myStage, myTown, at, pop, residents, season, nbs, larder } = useMemo(() => {
     const cash = my ? treasury(my, purchases, slow, gifts, claims) : 0;
     const myStage = my ? stageOf(effAge(my, seeds, slow)) : 0;
     const myTown = my ? townOf(my, seeds, slow) : null;
@@ -740,8 +742,11 @@ export function Game() {
     const sw = seasonAt(slow);
     const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
     const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
-    return { cash, myStage, myTown, at, pop, residents, season, nbs };
+    const larder = my ? larderOf(my, seeds, slow) : null;
+    return { cash, myStage, myTown, at, pop, residents, season, nbs, larder };
   }, [my, seeds, purchases, gifts, claims, slow]);
+  const [larderOpen, setLarderOpen] = useState(false);
+  const wareName = (w: Ware, n: number) => t.goods.ware[w]![n === 1 ? 0 : 1];
   const [questOpen, setQuestOpen] = useState(false);
   const [questFold, setQuestFold] = useState(false);
   const quest = my ? questState(claims, my.id, {
@@ -1141,9 +1146,16 @@ export function Game() {
                 <span className="hidden text-xs font-normal text-primary sm:inline">{t.perDay(pop)}</span>
               </div>
               <div className="hidden text-sm sm:block">{t.people(residents)}</div>
+              {larder && larder.flows.length > 0 && (
+                <button type="button" title={t.goods.larder} onClick={() => setLarderOpen(true)} className="pointer-events-auto hidden items-center gap-2 rounded px-1 text-xs tabular-nums hover:bg-muted md:flex">
+                  {[...larder.flows].sort((a, b) => b.stock - a.stock).slice(0, 4).map((f) => (
+                    <span key={f.ware} className="flex items-center gap-0.5"><WareIcon ware={f.ware} />{f.stock}<span className={f.trend > 0 ? "text-primary" : "text-muted-foreground"}>{f.trend > 0 ? "▲" : f.trend < 0 ? "▼" : ""}</span></span>
+                  ))}
+                </button>
+              )}
               <div className="hidden gap-3 lg:flex">
                 {(["food", "health", "wealth"] as const).map((k) => (
-                  <div key={k} className="w-20 text-xs">
+                  <div key={k} className="w-20 text-xs" title={k === "food" && larder ? t.goods.food(larder.food, larder.eaters) : undefined}>
                     <div className="flex justify-between"><span>{t.attrs[k]}</span><span>{at[k]}</span></div>
                     <div className="h-1.5 rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${at[k]}%` }} /></div>
                   </div>
@@ -1276,6 +1288,23 @@ export function Game() {
           </Parchment>
         );
       })()}
+      {larderOpen && larder && (
+        <Parchment title={t.goods.larder} later={t.close} onLater={() => setLarderOpen(false)}>
+          <p className="mb-2 text-sm">{t.goods.larderIntro}</p>
+          <table className="w-full text-sm tabular-nums">
+            <thead><tr className="text-xs text-muted-foreground"><th /><th className="text-right">{t.goods.stock}</th><th className="text-right">{t.goods.made}</th><th className="text-right">{t.goods.used}</th></tr></thead>
+            <tbody>
+              {larder.flows.map((f) => (
+                <tr key={f.ware}>
+                  <td className="flex items-center gap-1.5 py-0.5"><WareIcon ware={f.ware} size={26} />{wareName(f.ware, 2)}</td>
+                  <td className="text-right font-semibold">{f.stock}</td><td className="text-right text-primary">+{f.made}</td><td className="text-right text-muted-foreground">−{f.used}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-2 text-xs text-muted-foreground">{t.goods.food(larder.food, larder.eaters)}</p>
+        </Parchment>
+      )}
       {quitOpen && home && (
         <Parchment image={ART["surveyor"]} title={t.quit.title(home.name)} later={t.cancel} onLater={() => { setQuitOpen(false); setQuitName(""); }}>
           <p className="mt-2 text-center text-sm leading-snug">{t.quit.warn}</p>
@@ -1664,6 +1693,25 @@ export function Game() {
                   {t.purpose[ins.kind] && <div>{t.purpose[ins.kind]}</div>}
                   {ins.residents.length > 0 && <div className="text-xs"><div className="font-semibold">{t.residents}</div>{list(ins.residents)}</div>}
                   {ins.workers.length > 0 && <div className="text-xs"><div className="font-semibold">{t.workers}</div>{list(ins.workers)}</div>}
+                  {(() => {
+                    const l = larderOf(ins.seed, seeds, clock());
+                    const held = storedAt(ins.kind, [ins.x, ins.y], l);
+                    const ch = chainOf(ins.kind, [ins.x, ins.y], l, townOf(ins.seed, seeds, clock()).people);
+                    return (<>
+                      {held.length > 0 && <div className="text-xs"><div className="font-semibold">{t.goods.stored}</div>
+                        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1">{held.map((h) => <span key={h.ware} className="flex items-center gap-1"><WareIcon ware={h.ware} />{h.n} {wareName(h.ware, h.n)}</span>)}</div></div>}
+                      {ch && <div className="text-xs"><div className="font-semibold">{t.goods.chain}</div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1">{ch.map((c, i) => (
+                          <span key={i} className="flex items-center gap-1">
+                            {i > 0 && <span className="text-muted-foreground">→</span>}
+                            <button type="button" disabled={!c.tile || c.here} title={c.tile ? undefined : t.goods.missing}
+                              className={c.here ? "rounded bg-primary/15 px-1 font-semibold" : c.tile ? "rounded px-1 underline-offset-2 hover:underline" : "rounded px-1 text-muted-foreground line-through"}
+                              onClick={() => { if (c.tile) { focus(c.tile[0], c.tile[1]); setPlace({ ...ins, x: c.tile[0], y: c.tile[1], kind: c.kind }); } }}>
+                              {t.kind[c.kind] ?? c.kind}
+                            </button>
+                          </span>))}</div></div>}
+                    </>);
+                  })()}
                 </div>
               )}
             </div>
