@@ -9,7 +9,7 @@ describe("touch placement", () => {
   });
   it("first free site is a legal spot near the village", () => {
     const s = { id: "a", x: 500, y: 500, name: "A", created_at: new Date(Date.now() - 3600e3 * 200).toISOString() } as never;
-    const g = firstFreeSite("well", s, [s], Date.now());
-    if (g) expect(canPlaceSpecial("well", g[0], g[1], s, [s], Date.now())).toBeNull();
+    const g = firstFreeSite("herbs", s, [s], Date.now());
+    if (g) expect(canPlaceSpecial("herbs", g[0], g[1], s, [s], Date.now())).toBeNull();
   });
 });
