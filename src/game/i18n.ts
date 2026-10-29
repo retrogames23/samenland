@@ -320,7 +320,7 @@ const de = {
     } as Record<string, [string, string, string]>,
   },
   guide: {
-    title: "Willkommen in Samenland", menu: "Anleitung", close: "Los geht's", welcome: { pitch: "Ein Multiplayer-Dorf, das in Echtzeit über Monate wächst – auch wenn du schläfst.", plant: "Eigenes Dorf pflanzen", more: "Mehr erfahren" },
+    title: "Willkommen in Samenland", menu: "Anleitung", close: "Los geht's", welcome: { pitch: "Ein Multiplayer-Dorf, das in Echtzeit über Monate wächst – auch wenn du schläfst.", plant: "Eigenes Dorf pflanzen", more: "Mehr erfahren" }, wait: { title: "Deine Bauleute sind am Werk!", body: (h: number) => "Samenland wächst auch, während du schläfst. In etwa " + h + " Stunden steht das nächste Gebäude – schau dann wieder vorbei und sammle neue Steuern ein." },
     intro: "Ein langsames Spiel: Dein Dorf wächst in Echtzeit – auch wenn du nicht hinschaust.",
     steps: [
       ["Samen setzen", "Jeder Spieler gründet genau ein Dorf. Wasser, Wald, Acker oder Berge prägen den späteren Charakter und die Spezialisierung deiner Ortschaft."],
@@ -641,7 +641,7 @@ const en: typeof de = {
     } as Record<string, [string, string, string]>,
   },
   guide: {
-    title: "Welcome to Samenland", menu: "Guide", close: "Let's go", welcome: { pitch: "A multiplayer village that grows in real time over months – even while you sleep.", plant: "Plant your own village", more: "Learn more" },
+    title: "Welcome to Samenland", menu: "Guide", close: "Let's go", welcome: { pitch: "A multiplayer village that grows in real time over months – even while you sleep.", plant: "Plant your own village", more: "Learn more" }, wait: { title: "Your builders are at work!", body: (h: number) => "Samenland keeps growing while you sleep. The next building stands in about " + h + " hours – come back then to collect new taxes." },
     intro: "A slow game: your village grows in real time – even when you're not watching.",
     steps: [
       ["Plant a seed", "Every player founds exactly one village. Water, forest, farmland or hills shape what it will be good at."],
@@ -963,7 +963,7 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
     } as Record<string, [string, string, string]>,
   },
   guide: {
-    title: "欢迎来到Samenland", menu: "指南", close: "启程吧", welcome: { pitch: "一个多人共享的村庄，在真实时间里成长数月——即使你在睡觉。", plant: "种下你的村庄", more: "了解更多" },
+    title: "欢迎来到Samenland", menu: "指南", close: "启程吧", welcome: { pitch: "一个多人共享的村庄，在真实时间里成长数月——即使你在睡觉。", plant: "种下你的村庄", more: "了解更多" }, wait: { title: "你的工匠正在忙碌！", body: (h: number) => "即使你在睡觉，Samenland也在成长。大约" + h + "小时后下一座建筑就会落成——到时回来收取新的税金吧。" },
     intro: "一款慢悠悠的游戏：村庄随真实时光生长——即使你没有在旁守望。",
     steps: [
       ["播下种子", "每位玩家恰好建立一座村庄。水域、森林、农田与丘陵，将塑造它的所长。"],
@@ -1284,7 +1284,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
     } as Record<string, [string, string, string]>,
   },
   guide: {
-    title: "Samenlandへようこそ", menu: "手引き", close: "はじめましょう", welcome: { pitch: "みんなの村が実時間で何か月もかけて育つ——眠っている間にも。", plant: "自分の村をつくる", more: "くわしく" },
+    title: "Samenlandへようこそ", menu: "手引き", close: "はじめましょう", welcome: { pitch: "みんなの村が実時間で何か月もかけて育つ——眠っている間にも。", plant: "自分の村をつくる", more: "くわしく" }, wait: { title: "大工たちが働いています！", body: (h: number) => "眠っている間もSamenlandは育ちます。あと約" + h + "時間で次の建物が完成——そのころまた来て、税を集めましょう。" },
     intro: "ゆっくり楽しむ遊びです。村は現実の時間とともに、見ていない間も育ちます。",
     steps: [
       ["種をまく", "一人につき、築ける村はひとつだけ。水辺、森、農地、丘が、村の得意な営みを形づくります。"],
