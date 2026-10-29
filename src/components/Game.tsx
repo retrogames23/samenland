@@ -1,5 +1,6 @@
 import { tileHits } from "@/game/disasters";
 import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind } from "@/game/gifts";
+import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
 import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, type Realm } from "@/game/time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -882,7 +883,33 @@ export function Game() {
   // Live celebrations: while the player watches, newly derived milestones open an illustrated parchment.
   const [fest, setFest] = useState<ChronEvent[]>([]);
   const [seenGifts, setSeenGifts] = useState<string[]>([]);
-  useEffect(() => { try { setSeenGifts(JSON.parse(localStorage.getItem("samenland-gifts-seen") ?? "[]")); } catch { /* ignore */ } }, []);
+  const [giftReadsReady, setGiftReadsReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setGiftReadsReady(false);
+    setSeenGifts([]);
+    if (!userId) return;
+    let local: string[] = [];
+    try { local = mergeGiftReads(parseGiftReads(localStorage.getItem(giftReadKey(userId))), parseGiftReads(localStorage.getItem("samenland-gifts-seen"))); } catch { /* storage unavailable */ }
+    const sync = async () => {
+      const { data } = await supabase.from("gift_reads").select("gift_id").eq("user_id", userId);
+      if (cancelled) return;
+      const read = mergeGiftReads(local, (data ?? []).map((r) => r.gift_id));
+      setSeenGifts(read);
+      setGiftReadsReady(true);
+      try { localStorage.setItem(giftReadKey(userId), JSON.stringify(read)); } catch { /* account receipts still persist */ }
+      // Import old browser receipts only for gifts addressed to this account.
+      if (local.length) {
+        const { data: owned } = await supabase.from("seeds").select("id").eq("user_id", userId);
+        if (cancelled || !owned?.length) return;
+        const { data: received } = await supabase.from("gifts").select("id").in("to_seed", owned.map((s) => s.id)).in("id", local);
+        if (cancelled || !received?.length) return;
+        await supabase.from("gift_reads").upsert(received.map((g) => ({ user_id: userId, gift_id: g.id })), { onConflict: "user_id,gift_id", ignoreDuplicates: true });
+      }
+    };
+    void sync();
+    return () => { cancelled = true; };
+  }, [userId]);
   const liveFrom = useRef(0), lastSmall = useRef(0);
   useEffect(() => {
     if (!owner || !my || seeds.length === 0) return;
@@ -1971,13 +1998,19 @@ export function Game() {
           <BookOpen className="h-5 w-5" />
         </button>
       )}
-      {!festNow && my && !anyOpen && !decision.open && !chronOpen && (() => {
+      {giftReadsReady && !festNow && my && !anyOpen && !decision.open && !chronOpen && (() => {
         const g = thankable(my.id, gifts, now).find((x) => !seenGifts.includes(x.id));
         const tl = !g ? gifts.find((x) => x.kind === "thanks" && x.to_seed === my.id && now - Date.parse(x.created_at) < 7 * 864e5 && !seenGifts.includes(x.id)) : undefined;
         const e = g ?? tl; if (!e) return null;
         const from = seeds.find((s) => s.id === e.from_seed); if (!from) return null;
         if (giftSounded.current !== e.id) { giftSounded.current = e.id; const gk = g ? "gift" : "letter"; setTimeout(() => jingle(gk), 0); }
-        const seen = () => { const n = [...seenGifts, e.id].slice(-50); setSeenGifts(n); localStorage.setItem("samenland-gifts-seen", JSON.stringify(n)); };
+        const seen = () => {
+          const n = mergeGiftReads(seenGifts, [e.id]);
+          setSeenGifts(n);
+          if (!userId) return;
+          try { localStorage.setItem(giftReadKey(userId), JSON.stringify(n)); } catch { /* account receipt below */ }
+          void supabase.from("gift_reads").upsert({ user_id: userId, gift_id: e.id }, { onConflict: "user_id,gift_id", ignoreDuplicates: true }).then(({ error }) => { if (error) console.warn("Gift read receipt could not sync", error.code); });
+        };
         return (
           <Parchment image={ART["fair"]} title={g ? t.gifts.gotTitle : t.gifts.letterTitle} later={t.fest.close} onLater={seen}>
             {g ? (<>

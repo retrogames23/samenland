@@ -235,6 +235,32 @@ export type Database = {
           },
         ]
       }
+      gift_reads: {
+        Row: {
+          gift_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          gift_id: string
+          read_at?: string
+          user_id?: string
+        }
+        Update: {
+          gift_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_reads_gift_id_fkey"
+            columns: ["gift_id"]
+            isOneToOne: false
+            referencedRelation: "gifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gifts: {
         Row: {
           amount: number

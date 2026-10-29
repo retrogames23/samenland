@@ -37,3 +37,4 @@
 - Tavern chat (chat_messages/chat_blocks) is the only free-text player table besides signposts; length, rate limit and blocking are enforced by the chat_guard DB trigger, RLS limits letters to sender/recipient.
 - Neighbourhood: Saturday markets (stalls, traders, +growth) are derived from roads and the realm clock in wander.ts/world.ts; letters store only metadata publicly (riders/arrival derived from distance) while bodies sit in a sender/recipient-only table written via the send_letter function — every client sees the same riders, only the pair reads the text.
 - Brand art: src/assets/logo-keimling.png is the logo; public/favicon.png is a downscaled src/assets/logo-icon.png.
+- Gift dismissal receipts live in recipient-only public.gift_reads and are merged before displaying gift overlays, with an account-scoped browser fallback; this prevents read thank-you letters replaying across browsers and map reloads.
