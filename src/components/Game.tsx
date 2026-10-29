@@ -21,6 +21,7 @@ import { scribeGreeting } from "@/lib/chronicle.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ArrowLeft, ScrollText } from "lucide-react";
 import { QUESTS, questState, type Quest, type QuestClaim } from "@/game/quests";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { VillageRoll } from "@/components/VillageRoll";
 import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/game/audio";
@@ -1003,6 +1004,7 @@ export function Game() {
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
+      <LoadingScreen title="Samenland" lines={t.loading} />
       <canvas
         ref={canvasRef}
         className="absolute inset-0 h-full w-full cursor-grab touch-none"
@@ -1010,7 +1012,8 @@ export function Game() {
           touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
           (e.target as Element).setPointerCapture(e.pointerId);
           if (touches.current.size >= 2) { pinch.current = null; if (drag.current) drag.current.moved = true; return; }
-          drag.current = { x: e.clientX, y: e.clientY, moved: false };
+          fling.current = { vx: 0, vy: 0, t: performance.now() };
+          drag.current = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, t0: performance.now(), touch: e.pointerType !== "mouse" };
         }}
         onPointerMove={(e) => {
           const tp = touches.current;
