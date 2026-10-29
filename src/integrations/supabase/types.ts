@@ -262,6 +262,41 @@ export type Database = {
           },
         ]
       }
+      market_sales: {
+        Row: {
+          created_at: string
+          day: string
+          id: string
+          reward: number
+          seed_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day?: string
+          id?: string
+          reward?: number
+          seed_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          id?: string
+          reward?: number
+          seed_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_sales_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plantings: {
         Row: {
           created_at: string

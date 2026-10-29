@@ -65,6 +65,7 @@ import {
   charterFits,
   type CharterPath,
   twinLinks, pactOf, pactPending, workOf, marketDay, festivalDate, twinGateAt, PACTS, TWIN_WORKS, PACT_WAIT, type PactKind, type WorkKind,
+  timberNear,
 } from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
@@ -287,7 +288,10 @@ export function Game() {
       supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").then(({ data }) => setVotes(data ?? []));
       supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").then(({ data }) => setWorks(data ?? []));
       supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").then(({ data }) => setGifts((data ?? []) as Gift[]));
-      supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at").then(({ data }) => setClaims(data ?? []));
+      Promise.all([
+        supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at"),
+        supabase.from("market_sales").select("id, seed_id, day, reward, created_at"),
+      ]).then(([q, m]) => setClaims([...(q.data ?? []), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim)]));
       setBlessings(bl.data ?? []);
       setPurchases(pu.data ?? []);
       setSigns((sg.data ?? []) as Signpost[]);
@@ -775,6 +779,13 @@ export function Game() {
     if (error || !data) return setMsg(t.quests.fail);
     setClaims((c) => [...c, data]);
     bell(); setMsg(t.quests.got(data.reward));
+  };
+  const holdMarket = async () => {
+    if (!my || !userId) return;
+    const { data, error } = await supabase.from("market_sales").insert({ seed_id: my.id, user_id: userId }).select("id, seed_id, day, reward, created_at").single();
+    if (error || !data) return setMsg(t.goods.marketFail);
+    setClaims((c) => [...c, { id: data.id, seed_id: data.seed_id, quest: `market:${data.day}`, reward: data.reward, created_at: data.created_at } as QuestClaim]);
+    bell(); setMsg(t.goods.marketGot);
   };
   const ring = async (kind: "bell" | "well") => {
     if (!my) return;
@@ -1319,7 +1330,19 @@ export function Game() {
               {(["fed", "varied", "surplus"] as const).map((k) => (
                 <li key={k} className={boons?.[k] ? "text-primary" : "text-muted-foreground"}>{boons?.[k] ? "✓" : "○"} {t.goods.boons[k]}</li>
               ))}
+              <li className={my && timberNear(my) ? "text-primary" : "text-muted-foreground"}>{my && timberNear(my) ? "✓" : "○"} {t.goods.timber}</li>
             </ul>
+            {(() => {
+              const today = new Date(clock()).toISOString().slice(0, 10);
+              const done = !!my && claims.some((c) => c.seed_id === my.id && c.quest === `market:${today}`);
+              return (
+                <div className="mt-2">
+                  <button type="button" disabled={done || !boons?.surplus} onClick={holdMarket}
+                    className="rounded border border-border bg-primary px-3 py-1 text-sm text-primary-foreground disabled:opacity-50">{t.goods.market}</button>
+                  <p className="mt-1 text-xs text-muted-foreground">{done ? t.goods.marketDone : !boons?.surplus ? t.goods.marketNeed : ""}</p>
+                </div>
+              );
+            })()}
           </div>
         </Parchment>
       )}
