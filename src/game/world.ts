@@ -449,7 +449,17 @@ export const SPECIAL_KIND: Record<string, Kind> = { fisher: "fishery", granary: 
 /** Craft charter halves the construction time of bought buildings. */
 /** Craft charter halves, a woodcutter's camp (ready timber) shortens build time by a quarter — both pure from purchases. */
 export const WOODCAMP_BUILD = 0.75;
-export const specialBuild = (s: Seed) => (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1);
+/** Timber at hand: forest within reach of the founding tile shortens bought builds (pure from terrain). */
+export const TIMBER_BUILD = 0.85;
+const timberC = new Map<string, boolean>();
+export function timberNear(s: Seed): boolean {
+  const k = `${s.x},${s.y}`; const hit = timberC.get(k); if (hit !== undefined) return hit;
+  let ok = false;
+  for (let j = -12; j <= 12 && !ok; j++) for (let i = -12; i <= 12; i++) if (i * i + j * j <= 144 && terrain(s.x + i, s.y + j) === "forest") { ok = true; break; }
+  if (timberC.size > 500) timberC.clear();
+  timberC.set(k, ok); return ok;
+}
+export const specialBuild = (s: Seed) => (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1) * (timberNear(s) ? TIMBER_BUILD : 1);
 /** Farm charter: +5 % growth from the day it was sealed. */
 export const FARM_BONUS = 0.05;
 export const SPECIAL_BUILD = 6 * 3600000;
