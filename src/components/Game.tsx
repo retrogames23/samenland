@@ -808,12 +808,12 @@ export function Game() {
     setBodies((b) => ({ ...b, [row.id]: body }));
     setMsg(t.post.sent(Math.round(rideTime(my, to) / 6e4)));
   };
-  const holdMarket = async () => {
+  const holdMarket = async (small: boolean) => {
     if (!my || !userId) return;
-    const { data, error } = await supabase.from("market_sales").insert({ seed_id: my.id, user_id: userId }).select("id, seed_id, day, reward, created_at").single();
+    const { data, error } = await supabase.from("market_sales").insert({ seed_id: my.id, user_id: userId, small }).select("id, seed_id, day, reward, created_at").single();
     if (error || !data) return setMsg(t.goods.marketFail);
     setClaims((c) => [...c, { id: data.id, seed_id: data.seed_id, quest: `market:${data.day}`, reward: data.reward, created_at: data.created_at } as QuestClaim]);
-    bell(); setMsg(t.goods.marketGot);
+    bell(); setMsg(t.goods.marketGot(data.reward));
   };
   const ring = async (kind: "bell" | "well") => {
     if (!my) return;
@@ -1377,8 +1377,8 @@ export function Game() {
               const done = !!my && claims.some((c) => c.seed_id === my.id && c.quest === `market:${today}`);
               return (
                 <div className="mt-2">
-                  <button type="button" disabled={done || !boons?.surplus} onClick={holdMarket}
-                    className="rounded border border-border bg-primary px-3 py-1 text-sm text-primary-foreground disabled:opacity-50">{t.goods.market}</button>
+                  <button type="button" disabled={done} onClick={() => holdMarket(!boons?.surplus)}
+                    className="rounded border border-border bg-primary px-3 py-1 text-sm text-primary-foreground disabled:opacity-50">{boons?.surplus ? t.goods.market : t.goods.smallMarket}</button>
                   <p className="mt-1 text-xs text-muted-foreground">{done ? t.goods.marketDone : !boons?.surplus ? t.goods.marketNeed : ""}</p>
                 </div>
               );

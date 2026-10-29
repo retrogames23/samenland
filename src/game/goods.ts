@@ -35,6 +35,8 @@ const cache = new Map<string, Larder>();
 /** Share of today's work done at this world hour (work 7–18). */
 const workDone = (h: number) => Math.min(1, Math.max(0, (h - 7) / 11));
 
+/** Daily deadwood/field stones a village gathers before it has woodcutters or masons. */
+export const YOUNG_WOOD = 3, YOUNG_STONE = 1.5;
 export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   const t = townOf(s, seeds, now);
   const key = `${s.id}|${t.now}|${Math.floor(now / 60000)}`;
@@ -59,6 +61,9 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   const jobs = new Map<Job, number>();
   for (const p of t.people) jobs.set(p.job, (jobs.get(p.job) ?? 0) + 1);
   for (const [j, n] of jobs) { const r = RECIPE[j]; if (r && !r[0]) add(made, r[1], n * r[2] * sf(r[1]) * (r[1] === "grain" ? flood : 1)); }
+  // young villages: households gather deadwood and field stones themselves until real woodcutters/masons exist
+  if (!jobs.get("woodcutter")) add(made, "log", Math.min(YOUNG_WOOD, t.people.length * 0.5));
+  if (!jobs.get("mason")) add(made, "stone", Math.min(YOUNG_STONE, t.people.length * 0.25));
   for (const j of ["sawyer", "miller", "baker"] as Job[]) {
     const r = RECIPE[j]!, n = jobs.get(j) ?? 0;
     const out = Math.min(n * r[2], (made.get(r[0]!) ?? 0) / r[3] + 2 * n);
