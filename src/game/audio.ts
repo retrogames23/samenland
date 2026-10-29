@@ -45,8 +45,11 @@ function init() {
   ({ g: sea } = loop(ctx, nb, "lowpass", 520, 0.7));
   noise = nb;
   timer = window.setInterval(tick, 120);
+  // real sheep "Mäh!" (public-domain recording), played when a sheep is clicked
+  fetch("/sounds/sheep.mp3").then((r) => r.arrayBuffer()).then((b) => ctx!.decodeAudioData(b)).then((b) => { sheepBuf = b; }).catch(() => {});
 }
 let noise: AudioBuffer;
+let sheepBuf: AudioBuffer | null = null;
 
 /** Short shaped sound helpers */
 function out(pan: number, vol: number) {
@@ -90,11 +93,12 @@ function syllable(pan: number, vol: number) {
   o.connect(lp).connect(g); s.connect(bp).connect(gn).connect(g); g.connect(o2);
   o.start(t); o.stop(t + d + 0.05); s.start(t, Math.random() * 2, d + 0.05);
 }
+/** Real sheep "Mäh!" (recorded sample) — only on click, never ambient. */
 export function baa(pan = 0) {
-  if (!ctx || !enabled) return;
-  const o = tone(pan, 0.22, 420, 360, 0.75, "sawtooth", 950);
-  const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 11; lg.gain.value = 22;
-  lfo.connect(lg).connect(o.frequency); lfo.start(); lfo.stop(ctx.currentTime + 0.8);
+  if (!ctx || !enabled || !sheepBuf) return;
+  const s = ctx.createBufferSource(); s.buffer = sheepBuf;
+  const g = ctx.createGain(); g.gain.value = 0.9;
+  s.connect(g).connect(out(pan, 1)); s.start();
 }
 export function hm(pan = 0) {
   if (!ctx || !enabled) return;
@@ -221,7 +225,8 @@ function tick() {
       case "site": if (rnd() < 0.9 * dt) burst(src.pan, 0.1 * v, 700, 0.06, "bandpass"); break;
       case "sawmill": if (rnd() < 0.25 * dt) burst(src.pan, 0.05 * v, 1800, 0.5, "bandpass"); break;
       case "mill": if (rnd() < 0.2 * dt) tone(src.pan, 0.03 * v, 120, 95, 0.6, "sawtooth", 300); break;
-      // watermill chirp and ambient sheep bleats removed: the vibrato baa (~410 Hz saw + harmonics) was the recurring nagging sound
+      case "watermill": if (rnd() < 0.15 * dt) tone(src.pan, 0.04 * v, 500 + rnd() * 400, 1200, 0.08); break;
+      // ambient sheep bleats stay removed: the synthetic vibrato baa was the recurring nagging sound; real "Mäh!" plays on click only
       case "steamworks": if (rnd() < 0.8 * dt) burst(src.pan, 0.07 * v, 900, 0.08, "bandpass"); break; // water-driven trip hammer
     }
   }
