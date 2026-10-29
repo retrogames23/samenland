@@ -1076,7 +1076,7 @@ export function Game() {
                     <div className="font-semibold">📜 {t.office.title}</div>
                     <div className="mt-0.5 text-muted-foreground">{t.office.intro}</div>
                     <ul className="mt-1 space-y-0.5">
-                      {TITLE_STEPS.map((st, k) => <li key={st} className={k < n ? "text-primary" : "opacity-70"}>{k < n ? "✓" : "·"} <b>{titleName(k)}</b> · {fmt(TITLE_BONUS[myCharter][k] ?? {})} · {t.office.garb[k]}</li>)}
+                      {TITLE_STEPS.map((st, k) => <li key={st} className={k < n ? "text-primary" : "opacity-70"}>{k < n ? "✓" : "·"} <b>{titleName(k)}</b> · {fmt(TITLE_BONUS[myCharter as CharterPath][k] ?? {})} · {t.office.garb[k]}</li>)}
                     </ul>
                     {blk === "max" ? <div className="mt-1 font-semibold text-primary">{t.office.need.max}</div>
                       : blk ? <div className="mt-1 text-muted-foreground">{titleName(n)}: {why}</div>
