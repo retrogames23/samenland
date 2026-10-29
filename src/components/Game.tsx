@@ -1585,11 +1585,6 @@ export function Game() {
               <I className="h-5 w-5" /><span className="text-[10px] leading-none">{label}</span>
             </WoodButton>
           ))}
-          {(tab || placing) && (
-            <WoodButton label={t.hud.close} onClick={() => { setTab(null); setPlacing(null); }} className="h-11 flex-1 flex-col gap-0.5 md:h-14 md:w-14 md:flex-none">
-              <ArrowLeft className="h-5 w-5" /><span className="text-[10px] leading-none">{t.hud.close}</span>
-            </WoodButton>
-          )}
           {owner && myTown && (
             <WoodButton label={t.roll.title} active={rollOpen} onClick={() => setRollOpen(true)} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
               <ScrollText className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.menu}</span>
