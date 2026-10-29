@@ -6,13 +6,13 @@ import { leaversOf } from "./wander";
 import { worldHour } from "./time";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { hash, structureAt, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, type TradeGood, type Seed, type Kind } from "./world";
+import { hash, structureAt, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, landmarkSpots, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
   | "farmer" | "baker" | "smith" | "innkeeper" | "miller" | "crafter" | "worker"
   | "sawyer" | "builder" | "woodcutter" | "mason" | "merchant" | "priest" | "carter" | "mayor" | "fisher" | "healer" | "teacher" | "firewarden" | "watchman" | "hunter" | "herbalist" | "homemaker" | "retired" | "child";
-export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play" | "sick" | "care" | "church" | "visit" | "stroll" | "wedding";
+export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play" | "sick" | "care" | "church" | "visit" | "stroll" | "wedding" | "fete";
 type Tile = [number, number];
 export type Person = {
   id: number; seed: Seed; first: string; last: string; sex: Sex; age: number; job: Job;
@@ -31,6 +31,8 @@ export type Person = {
   sick?: boolean; carer?: number;
   /** Wedding procession: birth home → church → new home, starting at `at` (world ms); lag = seconds behind the couple. */
   proc?: { at: number; from: Tile; to: Tile; lag: number; role: "bride" | "groom" | "guest" };
+  /** Inauguration of a just-finished landmark: walk there at `at` (+lag s) and gather at `spot` facing `face`. */
+  fete?: { at: number; spot: Tile; face: Tile; lag: number };
 };
 export type Role = "head" | "spouse" | "child" | "elder" | "lodger" | "mayor";
 export type Wedding = { at: number; a: Person; b: Person; alliance: boolean };
@@ -220,6 +222,15 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const chT = byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
   const church: Tile | null = chT ? (front(chT) ?? null) : null;
   processions(weddings, people, church ?? meet, now);
+  const ina = inauguration(s, seeds, now);
+  if (ina) {
+    const fr = front(ina.tile) ?? ina.tile;
+    for (const q of people) {
+      if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 31, 720) < 0.12) continue;
+      const a = hash(q.id, 32, 720) * Math.PI * 2, rr = 0.6 + hash(q.id, 33, 720) * 1.6;
+      q.fete = { at: ina.at, spot: [fr[0] + Math.cos(a) * rr, fr[1] + Math.sin(a) * rr], face: ina.tile, lag: hash(q.id, 34, 720) * 240 };
+    }
+  }
   // the player's own figure: the village mayor (Dorfschulze), walking between well, sites and meeting spots
   if (s.user_id) {
     const hall = byKind.get("townhall")?.[0];
@@ -325,6 +336,36 @@ function processions(ws: Wedding[], people: Person[], church: Tile, now: number)
       q.proc = { at: w.at, from: q.home, to, lag: 6 + 5 * k++, role: "guest" };
     void church;
   }
+}
+
+/** Real seconds the village gathers in front of a newly finished landmark. */
+export const FETE_SECS = 3600;
+const FETE_WIN = 2.5 * 3600e3;
+/** The latest landmark finished within the last FETE_WIN ms, with the moment it was finished (pure). */
+export function inauguration(s: Seed, seeds: Seed[], now: number): { at: number; tile: Tile; kind: Kind } | null {
+  const a1 = effAge(s, seeds, now), a0 = effAge(s, seeds, now - FETE_WIN);
+  let li = -1;
+  for (let i = 0; i < LANDMARKS.length; i++) { const l = LANDMARKS[i]!; if (l.at > a0 && l.at <= a1 && (li < 0 || l.at > LANDMARKS[li]!.at)) li = i; }
+  if (li < 0) return null;
+  let tile: Tile | null = null;
+  for (const [k, list] of landmarkSpots(s)) if (list.includes(li) && !list.some((j) => j !== li && LANDMARKS[j]!.at > LANDMARKS[li]!.at && LANDMARKS[j]!.at - 96 <= a1)) { const [dx, dy] = k.split(",").map(Number); tile = [s.x + dx!, s.y + dy!]; break; }
+  if (!tile) return null;
+  let lo = now - FETE_WIN, hi = now;
+  for (let n = 0; n < 16; n++) { const m = (lo + hi) / 2; if (effAge(s, seeds, m) >= LANDMARKS[li]!.at) hi = m; else lo = m; }
+  return { at: hi, tile, kind: LANDMARKS[li]!.kind };
+}
+function fetePose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): Pose | null {
+  const f = p.fete!, secs = (now - f.at) / 1000 - f.lag;
+  if (secs < 0) return null;
+  const a = doorOf(t, p.home, seeds), b: Tile = [Math.round(f.spot[0]), Math.round(f.spot[1])];
+  const pts = [a, ...route(t, [Math.round(a[0]), Math.round(a[1])], b, seeds).slice(1, -1), f.spot];
+  const len = lenOf(pts), sp = Math.max(0.15, p.speed), tw = len / sp;
+  if (secs < tw) { const q = along(pts, secs * sp); if (q) return { ...base, ...q, visible: freeAt(t, q.x, q.y, seeds), walking: true, act: "fete", phase: (secs * sp) / STRIDE }; }
+  if (secs < tw + FETE_SECS) {
+    const dx = f.face[0] - f.spot[0], dy = f.face[1] - f.spot[1], m = Math.hypot(dx, dy) || 1;
+    return { ...base, x: f.spot[0], y: f.spot[1], visible: freeAt(t, f.spot[0], f.spot[1], seeds), walking: false, act: "fete", dir: [dx / m, dy / m] };
+  }
+  return null;
 }
 
 /** Relatives of a person within the town: spouse, parents, children, siblings (all derived). */
@@ -600,6 +641,7 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const base: Pose = { p, x: e.place[0], y: e.place[1], visible: !e.indoor, walking: false, dir: [0, 1], phase: 0, act: e.act, working: false, talk: null, talkTurn: false, carry: null, dest: null };
   const secs = (hr - e.at) * 3600;
   if (p.proc) { const pr = procPose(p, t, seeds, now, base); if (pr) return pr; }
+  if (p.fete) { const fp = fetePose(p, t, seeds, now, base); if (fp) return fp; }
   if (p.arrive && now >= p.arrive.t0) {
     const A = p.arrive.from, B = doorOf(t, p.home, seeds);
     const pts = [A, ...route(t, A, [Math.round(B[0]), Math.round(B[1])], seeds).slice(1, -1), B];
