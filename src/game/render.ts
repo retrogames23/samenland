@@ -313,19 +313,19 @@ function drawHunt(c: C, cx: number, cy: number, sd: number) {
     drawBeast(c, a.im, a.st, X, Y, a.h, flip, moving, n / 400 + drift, idle);
   });
   // --- hunter ---
-  const tgt: Pt = [herd[0].at[0] + 12 * side, herd[0].at[1] + 3];
+  const tgt: Pt = [herd[0]!.at[0] + 12 * side, herd[0]!.at[1] + 3];
   let X = home[0], Y = home[1], f = 0, flip = side < 0, walk = 0;
   if (k < 0.3) { f = 0; flip = (Math.floor(n / 9000) & 1) === 1; } // stands guard by the lodge
   else if (k < 0.55) { const r = ease((k - 0.3) / 0.25); X = lerp(home[0], tgt[0], r); Y = lerp(home[1], tgt[1], r); f = 1; flip = side > 0; walk = 1; }
   else if (k < 0.64) { X = tgt[0]; Y = tgt[1]; f = 2; flip = side > 0; }
-  else if (k < 0.72) { const r = ease((k - 0.64) / 0.08); X = lerp(tgt[0], herd[0].at[0] + 2 * side, r); Y = lerp(tgt[1], herd[0].at[1] + 1, r); f = 0; flip = side > 0; walk = 1; }
-  else if (k < 0.95) { const r = ease((k - 0.72) / 0.23); X = lerp(herd[0].at[0], home[0], r); Y = lerp(herd[0].at[1], home[1], r); f = 3; flip = side < 0; walk = 1; }
+  else if (k < 0.72) { const r = ease((k - 0.64) / 0.08); X = lerp(tgt[0], herd[0]!.at[0] + 2 * side, r); Y = lerp(tgt[1], herd[0]!.at[1] + 1, r); f = 0; flip = side > 0; walk = 1; }
+  else if (k < 0.95) { const r = ease((k - 0.72) / 0.23); X = lerp(herd[0]!.at[0], home[0], r); Y = lerp(herd[0]!.at[1], home[1], r); f = 3; flip = side < 0; walk = 1; }
   const bob = walk ? Math.abs(Math.sin(n / 260)) * 0.15 : 0;
   shadow(c, X, Y, 1.6, 0.3);
   sheetFrame(c, hu, f, X, Y - bob, f === 2 ? 4.1 : f === 1 ? 4.6 : 5.4, flip);
   // crossbow bolt in flight
   if (k >= 0.6 && k < 0.62) {
-    const r = (k - 0.6) / 0.02, sx = X - side * 1.8, sy = Y - 3, ex = herd[0].at[0], ey = herd[0].at[1] - 3.5;
+    const r = (k - 0.6) / 0.02, sx = X - side * 1.8, sy = Y - 3, ex = herd[0]!.at[0], ey = herd[0]!.at[1] - 3.5;
     const bx = lerp(sx, ex, r), by = lerp(sy, ey, r);
     c.strokeStyle = "rgba(60,40,22,0.9)"; c.lineWidth = 0.18; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx + side * 1.1, by + (sy - ey) * 0.03); c.stroke();
   }
