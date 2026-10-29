@@ -256,6 +256,18 @@ export function Game() {
     });
     return () => { live = false; };
   }, [userId, isAdmin, realm]);
+  // optional letter by email when a bought building is finished (sent by the scheduled build-mail route)
+  const [mailOn, setMailOn] = useState(false);
+  useEffect(() => {
+    if (!userId) { setMailOn(false); return; }
+    supabase.from("build_mail").select("enabled").eq("user_id", userId).maybeSingle().then(({ data }) => setMailOn(!!data?.enabled));
+  }, [userId]);
+  const toggleMail = async (on: boolean) => {
+    if (!userId) return;
+    setMailOn(on);
+    const { error } = await supabase.from("build_mail").upsert({ user_id: userId, enabled: on, lang });
+    if (error) setMailOn(!on);
+  };
   // admin rights follow the login, even when the session arrives after the first map load
   useEffect(() => {
     if (!userId) { setIsAdmin(false); return; }
@@ -1329,6 +1341,12 @@ export function Game() {
                 <div className="text-[10px] text-muted-foreground">{t.lab.note}</div>
               </>)}
             </>)}
+            {userId && home && (
+              <label className="flex cursor-pointer items-center gap-2 text-xs">
+                <input type="checkbox" checked={mailOn} onChange={(e) => toggleMail(e.target.checked)} className="accent-primary" />
+                ✉ {t.guide.notify.label}
+              </label>
+            )}
             {userId && home && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setQuitOpen(true); setSettings(false); }}>{t.quit.button}</button>}
             {userId ? <Button size="sm" variant="secondary" className="w-full" onClick={() => { supabase.auth.signOut(); setSettings(false); }}>{t.signOut}</Button>
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
@@ -1608,6 +1626,8 @@ export function Game() {
             <button type="button" aria-label={t.hud.close} onClick={() => setWaitShut(true)} className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
             <p className="px-4 font-display text-lg leading-snug text-wood">🔨 {t.guide.wait.title}</p>
             <p className="mt-1 text-sm text-muted-foreground">{t.guide.wait.body(Math.max(1, Math.ceil((waitDone - now) / 3.6e6)))}</p>
+            {mailOn ? <p className="mt-2 text-xs text-primary">{t.guide.notify.on}</p>
+              : <Button size="sm" variant="secondary" className="pointer-events-auto mt-2" onClick={() => toggleMail(true)}>✉ {t.guide.notify.label}</Button>}
           </Panel>
         </div>
       )}
