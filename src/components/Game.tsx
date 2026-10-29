@@ -23,6 +23,7 @@ import { rideTime, letterArrives } from "@/game/wander";
 type LetterRow = { id: string; from_seed: string; to_seed: string; created_at: string };
 import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
+import { deleteAccount } from "@/lib/account.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
