@@ -26,7 +26,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
 import { QUESTS, questState, type Quest, type QuestClaim } from "@/game/quests";
-import { LoadingScreen, splashDone } from "@/components/LoadingScreen";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { splashDone } from "@/game/splash";
 import { VillageRoll } from "@/components/VillageRoll";
 import { Tavern } from "@/components/Tavern";
 import { Beer } from "lucide-react";
@@ -302,7 +303,9 @@ export function Game() {
       const adm = !!data?.some((x) => x.role === "admin");
       setIsAdmin(adm);
       const o = localStorage.getItem("samenland-realm");
-      if (adm && o && o !== realmRef.current && !sessionStorage.getItem("samenland-realm-fix")) {
+      // only when the map was loaded before the login arrived, and at most once per page and session
+      if (adm && o && o !== realmRef.current && !(window as { __realmFix?: boolean }).__realmFix && !sessionStorage.getItem("samenland-realm-fix")) {
+        (window as { __realmFix?: boolean }).__realmFix = true;
         sessionStorage.setItem("samenland-realm-fix", "1");
         window.location.reload();
       }
