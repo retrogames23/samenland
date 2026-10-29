@@ -202,8 +202,11 @@ function tick() {
   lerp(water.gain, Math.min(1, s.water * 3) * 0.1 * land, 0.8);
   lerp(sea.gain, Math.min(1, s.sea * 1.5) * (0.06 + 0.1 * (0.5 + 0.5 * Math.sin(ctx.currentTime / 4.5))), 0.9);
   const rnd = Math.random, P = (pan = 0) => pan + (rnd() - 0.5) * 0.3;
-  // babbling water (bird chirps removed: too shrill at close zoom)
-  if (s.water > 0.02 && rnd() < s.water * 2 * dt * land) tone(P(), 0.02, 600 + rnd() * 700, 1500 + rnd() * 900, 0.05);
+  // birdsong: gentle two-note warble, soft and not too high (water "plinks" removed: sounded like beeping)
+  if ((s.forest > 0.05 || close > 0) && rnd() < 0.25 * dt * land) {
+    const f = 1400 + rnd() * 900;
+    for (let i = 0; i < 1 + Math.floor(rnd() * 3); i++) setTimeout(() => ctx && enabled && tone(P(), 0.014, f * (i % 2 ? 1.12 : 1), f * (i % 2 ? 1 : 1.12), 0.16, "sine"), i * 170);
+  }
   // villagers' chatter
   if (close > 0) {
     if (rnd() < s.talkers * 2.5 * dt) syllable(P(), 0.05 * close);
