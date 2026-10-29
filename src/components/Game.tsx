@@ -1994,7 +1994,7 @@ export function Game() {
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm">
             <Panel inner="p-4">
               <div className="relative">
-                <h1 className="flex justify-center leading-none text-wood"><img src={logoUrl} alt="Samenland" width={742} height={719} className="h-28 w-auto" /></h1>
+                <h1 className="flex justify-center leading-none text-wood"><img src={logoUrl} alt="Samenland" width={371} height={360} className="h-28 w-auto" /></h1>
                 <button type="button" aria-label={t.hud.close} onClick={() => setAuthOpen(false)} className="absolute right-0 top-0 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{t.tagline}</p>
