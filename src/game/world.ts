@@ -472,7 +472,7 @@ export function timberNear(s: Seed): boolean {
   if (timberC.size > 500) timberC.clear();
   timberC.set(k, ok); return ok;
 }
-export const specialBuild = (s: Seed) => (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1) * (timberNear(s) ? TIMBER_BUILD : 1);
+export const specialBuild = (s: Seed) => (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1) * (timberNear(s) ? TIMBER_BUILD : 1) * (s.charter?.path === "craft" && (s.bought ?? []).some((b) => b.item === "rank2") ? 0.8 : 1);
 /** Farm charter: +5 % growth from the day it was sealed. */
 export const FARM_BONUS = 0.05;
 export const SPECIAL_BUILD = 6 * 3600000;
