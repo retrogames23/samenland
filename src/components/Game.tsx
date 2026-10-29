@@ -382,9 +382,12 @@ export function Game() {
         if (data) { refSeed = data; if (REALMS.includes(data.realm as Realm)) r = data.realm as Realm; }
         else localStorage.removeItem("samenland-ref");
       }
+      const loadRealm = async (r: Realm) => {
+      if (!uid) uid = (await supabase.auth.getSession()).data.session?.user.id ?? null;
       setRealm(r);
       realmRef.current = r;
       setRealmState(r);
+      if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
       const [a, b, bl, sg, pu] = await Promise.all([
         supabase.from("seeds").select("*").eq("realm", r).order("created_at"),
         supabase.from("plantings").select("*"),
