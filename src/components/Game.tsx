@@ -501,7 +501,10 @@ export function Game() {
       number,
     ];
   };
-  const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const drag = useRef<{ x: number; y: number; moved: boolean; t0?: number; touch?: boolean; sx?: number; sy?: number } | null>(null);
+  // inertia: screen px/ms of the last drag; decays in the pan loop
+  const fling = useRef({ vx: 0, vy: 0, t: 0 });
+  const lastTap = useRef({ t: 0, x: 0, y: 0 });
   const touches = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ dist: number; mx: number; my: number } | null>(null);
 
