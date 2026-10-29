@@ -260,6 +260,13 @@
       "when": 1793300000020,
       "tag": "0036_hide_referral_user",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793300000021,
+      "tag": "0037_gift_read_receipts",
+      "breakpoints": true
     }
   ]
 }
