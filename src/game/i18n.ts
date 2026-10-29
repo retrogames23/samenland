@@ -200,7 +200,7 @@ const de = {
   soundOn: "Ton an",
   soundOff: "Ton aus",
   exitFullscreen: "Vollbild beenden",
-  enc: { later: "Später entscheiden", waiting: "Eine Entscheidung wartet auf dich", btn: "Besuch am Dorfplatz", title: "Eine Begegnung", decided: "Heute hast du schon entschieden – morgen wartet eine neue Begegnung.", free: "kostenlos", gain: (n: number) => `+${n} Taler`, fail: "Die Entscheidung konnte nicht getroffen werden.", poor: "Zu wenig Taler", done: "Der Schulze hat entschieden.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} Tage` : `${h} Std.`, growth: (p: number) => `+${p} % Wachstum`, food: "Nahrung", health: "Gesundheit", wealth: "Wohlstand", chronicle: "Chronik", dayN: (n: number) => `Tag ${n}`, none: "Noch keine Einträge.",
+  enc: { later: "Später entscheiden", waiting: "Eine Entscheidung wartet auf dich", btn: "Besuch am Dorfplatz", title: "Eine Begegnung", decided: "Du hast eben erst entschieden – bleib dabei, bald kommt ein neuer Besuch.", free: "kostenlos", gain: (n: number) => `+${n} Taler`, fail: "Die Entscheidung konnte nicht getroffen werden.", poor: "Zu wenig Taler", done: "Der Schulze hat entschieden.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} Tage` : `${h} Std.`, growth: (p: number) => `+${p} % Wachstum`, food: "Nahrung", health: "Gesundheit", wealth: "Wohlstand", chronicle: "Chronik", dayN: (n: number) => `Tag ${n}`, none: "Noch keine Einträge.",
     events: {
       minstrel: ["Der Spielmann", "Ein Spielmann mit Laute und Federhut bittet, am Abend auf dem Dorfplatz aufspielen zu dürfen."],
       widow: ["Die Witwe mit den Kindern", "Eine Witwe mit drei Kindern und einem Handkarren sucht eine neue Bleibe."],
@@ -548,7 +548,7 @@ const en: typeof de = {
   soundOn: "Sound on",
   soundOff: "Sound off",
   exitFullscreen: "Exit fullscreen",
-  enc: { later: "Decide later", waiting: "A decision awaits you", btn: "Visitor at the square", title: "An encounter", decided: "You've already decided today – a new encounter awaits tomorrow.", free: "free", gain: (n: number) => `+${n} thaler`, fail: "The decision could not be made.", poor: "Not enough thaler", done: "The headman has decided.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} days` : `${h} h`, growth: (p: number) => `+${p}% growth`, food: "Food", health: "Health", wealth: "Prosperity", chronicle: "Chronicle", dayN: (n: number) => `Day ${n}`, none: "No entries yet.",
+  enc: { later: "Decide later", waiting: "A decision awaits you", btn: "Visitor at the square", title: "An encounter", decided: "You've just decided – stay a while, a new visitor will come soon.", free: "free", gain: (n: number) => `+${n} thaler`, fail: "The decision could not be made.", poor: "Not enough thaler", done: "The headman has decided.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} days` : `${h} h`, growth: (p: number) => `+${p}% growth`, food: "Food", health: "Health", wealth: "Prosperity", chronicle: "Chronicle", dayN: (n: number) => `Day ${n}`, none: "No entries yet.",
     events: {
       minstrel: ["The minstrel", "A minstrel with lute and feathered hat asks to play on the village square tonight."],
       widow: ["The widow and her children", "A widow with three children and a handcart is looking for a new home."],
@@ -896,7 +896,7 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
   soundOn: "开启声音",
   soundOff: "关闭声音",
   exitFullscreen: "退出全屏",
-  enc: { later: "稍后决定", waiting: "有一件事等你定夺", btn: "广场上的访客", title: "一场相遇", decided: "今日你已作出决定——明日会有新的相遇。", free: "免费", gain: (n: number) => `+${n}塔勒`, fail: "未能作出决定。", poor: "塔勒不足", done: "村长已有定夺。", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)}天` : `${h}小时`, growth: (p: number) => `+${p}%成长`, food: "食物", health: "健康", wealth: "繁荣", chronicle: "编年史", dayN: (n: number) => `第${n}天`, none: "暂无记载。",
+  enc: { later: "稍后决定", waiting: "有一件事等你定夺", btn: "广场上的访客", title: "一场相遇", decided: "你刚作出决定——稍候片刻，很快会有新的访客。", free: "免费", gain: (n: number) => `+${n}塔勒`, fail: "未能作出决定。", poor: "塔勒不足", done: "村长已有定夺。", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)}天` : `${h}小时`, growth: (p: number) => `+${p}%成长`, food: "食物", health: "健康", wealth: "繁荣", chronicle: "编年史", dayN: (n: number) => `第${n}天`, none: "暂无记载。",
     events: {
       minstrel: ["吟游诗人", "一位抱着鲁特琴、戴着羽饰帽的吟游诗人，请求今晚在村中广场演奏。"],
       widow: ["寡妇与孩子们", "一位寡妇带着三个孩子，推着手推车，正在寻找新家。"],
@@ -1245,7 +1245,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   soundOn: "音を入れる",
   soundOff: "音を消す",
   exitFullscreen: "全画面表示を終了",
-  enc: { later: "あとで決める", waiting: "あなたの決断を待っています", btn: "広場の来訪者", title: "ある出会い", decided: "今日の決断は済みました。明日、また新たな出会いが待っています。", free: "無料", gain: (n: number) => `+${n}ターラー`, fail: "決断を反映できませんでした。", poor: "ターラーが足りません", done: "村長が決断を下しました。", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)}日` : `${h}時間`, growth: (p: number) => `成長+${p}%`, food: "食料", health: "健康", wealth: "繁栄", chronicle: "年代記", dayN: (n: number) => `${n}日目`, none: "まだ記録はありません。",
+  enc: { later: "あとで決める", waiting: "あなたの決断を待っています", btn: "広場の来訪者", title: "ある出会い", decided: "決断したばかりです。もう少し見守っていれば、また来訪者が現れます。", free: "無料", gain: (n: number) => `+${n}ターラー`, fail: "決断を反映できませんでした。", poor: "ターラーが足りません", done: "村長が決断を下しました。", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)}日` : `${h}時間`, growth: (p: number) => `成長+${p}%`, food: "食料", health: "健康", wealth: "繁栄", chronicle: "年代記", dayN: (n: number) => `${n}日目`, none: "まだ記録はありません。",
     events: {
       minstrel: ["吟遊詩人", "リュートと羽根飾りの帽子を携えた吟遊詩人が、今夜、村の広場で演奏したいと願い出ました。"],
       widow: ["未亡人と子どもたち", "三人の子どもを連れ、手押し車を引く未亡人が、新しい住まいを探しています。"],
