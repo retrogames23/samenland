@@ -279,6 +279,41 @@ export type Database = {
           },
         ]
       }
+      quest_claims: {
+        Row: {
+          created_at: string
+          id: string
+          quest: string
+          reward: number
+          seed_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          quest: string
+          reward?: number
+          seed_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          quest?: string
+          reward?: number
+          seed_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quest_claims_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seeds: {
         Row: {
           created_at: string
