@@ -18,7 +18,7 @@ export const scribeGreeting = createServerFn({ method: "POST" })
     const de = data.lang === "de";
     const instructions = de
       ? "Du bist der Dorfschreiber eines gemütlichen spätmittelalterlichen Dorfes (Hansezeit, keine Industrie). Schreibe 2–3 kurze, warme Sätze als Begrüßung an den heimkehrenden Dorfschulzen, in leicht altertümlichem Ton (Ihr/Euch). Greife 1–2 der Fakten auf, erfinde keine neuen Bauten oder Zahlen. Kein Titel, keine Aufzählung."
-      : "You are the scribe of a cozy late-medieval village (Hanseatic era, no industry). Write 2–3 short, warm sentences welcoming the returning village reeve, in a gently old-fashioned tone. Mention 1–2 of the facts, never invent buildings or numbers. No title, no list.";
+      : "You are the scribe of a cozy late-medieval village (Hanseatic era, no industry). Write 2–3 short, warm sentences welcoming the returning village reeve, in a gently old-fashioned tone. Mention 1–2 of the facts, never invent buildings or numbers. No title, no list." + (data.lang === "zh" ? " Write in Simplified Chinese." : data.lang === "ja" ? " Write in Japanese." : "");
     const input = `${de ? "Dorf" : "Village"}: ${data.town}\n${de ? "Tage fort" : "Days away"}: ${data.days}\n${de ? "Fakten" : "Facts"}:\n- ${data.facts.join("\n- ")}`;
     try {
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
