@@ -16,12 +16,8 @@
 - Trade roads, synergy and twin towns are derived from seed pairs in src/game/world.ts (links/effAge); growth uses effective age, never stored state — keeps all clients identical.
 - Villagers (src/game/people.ts) are a pure function of seed, buildings and clock time; never store them — every client sees the same people.
 - Growth stages and water-adjacent landmarks are derived in world.ts; the world stays pre-industrial (no steam, no rails) so old and young towns share one era; retain sublinear expansion and core densification rather than saving progress, so offline growth remains reproducible.
-- Calendar weights live in season.ts using UTC; season-art.ts caches alpha-preserving recolored images and nature/overview caches include the season key, so seasonal changes remain consistent without per-frame pixel processing.
 - World, trade and population caches include seed positions and creation timestamps, so replacing equal-sized seed sets cannot reuse stale geometry or progression.
 - Construction sites are derived, not stored: a building's site phase is the buildTime() window before its birth age (Structure.build); builders/woodcutters/masons are assigned in people.ts from that — keeps every client identical.
-- Goods hauling (Person.haul in people.ts) is derived from jobs and nearby buildings and animated as a pure clock cycle; never store goods or stock — all clients see the same carriers.
-- Traffic and villagers use pure motion.ts headings and N-1 road segments to prevent facing flicker and overshoot.
-- Animal routines in animals.ts use the realm clock; resting art and frozen dusk positions prevent nighttime motion.
 
 - Dorfsegen: blessings table with a 24h DB trigger cooldown; blessing timestamps are merged into Seed.blessed client-side and effAge adds the bonus purely — keeps growth deterministic across clients.
 - Signposts sit on derived road tiles (signTile in world.ts); only the message is stored.
@@ -32,7 +28,6 @@
 - Day/night, villager routines, lights and bell use one world clock (src/game/time.ts, Europe/Berlin); never read the client's local hour, so all players see the same scene.
 - Four realms (seeds.realm: us-west/us-east/europe/asia) are separate maps, each with its own shared clock in src/game/time.ts; players land by browser UTC offset, only admins (user_roles) may override — keeps day/night shared within a map.
 - Twin towns: touch time (twinSince), pacts, joint works, gate sites and festival bonuses are derived in world.ts from seeds + twin_votes/twin_works rows (DB guard charges halves); never store twin state — all clients agree.
-- Landmarks relocate from their nominal offset to the nearest dry tile via landmarkSpots(seed) in world.ts (pure, cached) — so coastal/mountain towns never lose landmarks to water.
 - Villagers, waymarks, border banners/stones and construction props are painted sprites (src/game/folk-sprites.ts); banner cloth is tinted per town hue at runtime and drawn in world space so night lighting applies — no flat vector figures next to painted art.
 - Admin test map (realm "lab") reads its clock through clock() in src/game/time.ts, where LAB_SPEED warps time — keep LAB_SPEED at 1 (real time) unless the user asks for a time-lapse, because warping re-derives every town each second and costs performance; all game code must read time through clock(), never Date.now(), so any warp applies everywhere.
 - Coastal towns grow in town-space distance (townDist/landShape in world.ts): landward tiles are compressed by a land-share stretch so harbour towns fan inland; bounding boxes must use reachOf(s, r).
@@ -42,4 +37,3 @@
 - Tavern chat (chat_messages/chat_blocks) is the only free-text player table besides signposts; length, rate limit and blocking are enforced by the chat_guard DB trigger, RLS limits letters to sender/recipient.
 - Neighbourhood: Saturday markets (stalls, traders, +growth) are derived from roads and the realm clock in wander.ts/world.ts; letters store only metadata publicly (riders/arrival derived from distance) while bodies sit in a sender/recipient-only table written via the send_letter function — every client sees the same riders, only the pair reads the text.
 - Brand art: src/assets/logo-keimling.png is the logo; public/favicon.png is a downscaled src/assets/logo-icon.png.
-- Craft scenes (fisher casting, smith at anvil, mill sacks, bread basket) derive from the world clock in src/game/crafts.ts and job work sheets (JOB_WORK in folk-sprites.ts); props draw in the worker's mirrored frame so they always line up — nothing stored.
