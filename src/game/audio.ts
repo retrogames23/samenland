@@ -114,6 +114,81 @@ export function tap(pan = 0) {
   burst(pan, 0.18, 300, 0.12, "lowpass"); tone(pan, 0.05, 880, 860, 0.5, "sine");
 }
 
+// ---------------- event jingles (short, cozy, synthesized) ----------------
+/** Plucked/woody note at absolute time offset `at` seconds. */
+function note(at: number, f: number, dur: number, vol: number, type: OscillatorType = "triangle", pan = 0) {
+  const a = ctx!, o = a.createOscillator(), g = a.createGain(), t = a.currentTime + at;
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  const lp = a.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2600;
+  o.connect(lp).connect(g).connect(out(pan, 1)); o.start(t); o.stop(t + dur + 0.05);
+}
+/** Brassy horn note (filtered saw with soft attack). */
+function horn(at: number, f: number, dur: number, vol: number) {
+  const a = ctx!, t = a.currentTime + at;
+  for (const d of [0, 3]) {
+    const o = a.createOscillator(), g = a.createGain(), lp = a.createBiquadFilter();
+    o.type = "sawtooth"; o.frequency.value = f; o.detune.value = d;
+    lp.type = "lowpass"; lp.frequency.setValueAtTime(500, t); lp.frequency.linearRampToValueAtTime(1800, t + 0.08);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.06);
+    g.gain.setValueAtTime(vol, t + dur * 0.7); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(lp).connect(g).connect(out(0, 1)); o.start(t); o.stop(t + dur + 0.05);
+  }
+}
+const N = (semi: number) => 261.63 * Math.pow(2, semi / 12); // semitones from C4
+const ok = () => !!ctx && enabled;
+
+export type Jingle = "coins" | "fanfare" | "wedding" | "stage" | "built" | "road" | "welcome" | "letter" | "woe" | "relief" | "twin" | "gift";
+/** Short themed cue for game events and rewards. */
+export function jingle(k: Jingle) {
+  if (!ok()) return;
+  switch (k) {
+    case "coins": // a handful of coins clinking into the purse
+      for (let i = 0; i < 6; i++) { const at = i * 0.07 + Math.random() * 0.03, f = 2200 + Math.random() * 1600; note(at, f, 0.25, 0.06, "sine"); note(at, f * 1.51, 0.15, 0.025, "sine"); }
+      break;
+    case "fanfare": // little herald call: G-C-E-G
+      [[0, 7, 0.16], [0.17, 12, 0.16], [0.34, 16, 0.16], [0.51, 19, 0.6]].forEach(([at, s, d]) => horn(at!, N(s! - 12), d!, 0.07));
+      break;
+    case "wedding": { // opening of Mendelssohn's wedding march: "ta-ta-ta-taaa" ×2, then rising chord
+      const seq: [number, number, number][] = [[0, 7, 0.12], [0.14, 7, 0.12], [0.28, 7, 0.12], [0.42, 7, 0.55], [1.05, 7, 0.12], [1.19, 7, 0.12], [1.33, 7, 0.12], [1.47, 7, 0.55]];
+      seq.forEach(([at, s, d]) => horn(at, N(s), d, 0.06));
+      [[2.1, 12], [2.1, 16], [2.1, 19]].forEach(([at, s]) => horn(at!, N(s!), 0.9, 0.04));
+      break;
+    }
+    case "stage": // longer fanfare plus bell
+      jingle("fanfare"); setTimeout(() => ok() && [[0, 12], [0, 16], [0, 19], [0, 24]].forEach(([, s]) => horn(0, N(s!), 1.1, 0.035)), 750); setTimeout(() => bell(0), 900);
+      break;
+    case "built": // carpenters' hammer taps + bright chord
+      for (let i = 0; i < 3; i++) setTimeout(() => ok() && burst(0, 0.2, 400, 0.08, "lowpass"), i * 160);
+      [0, 4, 7, 12].forEach((s, i) => note(0.5 + i * 0.08, N(s), 0.8, 0.07));
+      break;
+    case "road": // ox-cart bell rolling off + rising fifth
+      [0, 0.35, 0.7].forEach((at) => note(at, 1320, 0.4, 0.05, "sine"));
+      note(0.1, N(0), 0.5, 0.06); note(0.45, N(7), 0.8, 0.06);
+      break;
+    case "welcome": // warm lute arpeggio
+      [0, 4, 7, 12, 7].forEach((s, i) => note(i * 0.12, N(s), 0.7, 0.065));
+      break;
+    case "letter": // horse trot + post horn
+      for (let i = 0; i < 4; i++) setTimeout(() => ok() && burst(0, 0.12, 700, 0.05, "bandpass"), i * 120);
+      horn(0.55, N(7), 0.2, 0.06); horn(0.78, N(12), 0.45, 0.06);
+      break;
+    case "gift":
+      [12, 16, 19, 24].forEach((s, i) => note(i * 0.09, N(s), 0.5, 0.05, "sine"));
+      setTimeout(() => jingle("coins"), 380);
+      break;
+    case "twin": // two voices meeting
+      note(0, N(0), 0.9, 0.06); note(0.25, N(7), 0.9, 0.06); note(0.5, N(12), 1.2, 0.05); note(0.5, N(16), 1.2, 0.04);
+      break;
+    case "woe": // low, sorrowful minor descent
+      [[0, 3], [0.35, 2], [0.7, -2], [1.05, 0]].forEach(([at, s]) => note(at!, N(s! - 12), 0.7, 0.07, "triangle"));
+      break;
+    case "relief": // averted danger: minor resolving to major
+      note(0, N(-9), 0.5, 0.06); note(0.3, N(-5), 0.5, 0.06); note(0.6, N(0), 0.9, 0.06); note(0.6, N(4), 0.9, 0.05);
+      break;
+  }
+}
+
 let lastBell = -1;
 function tick() {
   if (!ctx || !enabled || !scene) return;
