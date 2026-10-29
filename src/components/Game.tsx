@@ -23,7 +23,7 @@ type LetterRow = { id: string; from_seed: string; to_seed: string; created_at: s
 import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen, ArrowLeft, ScrollText } from "lucide-react";
+import { BookOpen, ScrollText } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
 import { QUESTS, questState, type Quest, type QuestClaim } from "@/game/quests";
 import { LoadingScreen, splashDone } from "@/components/LoadingScreen";
