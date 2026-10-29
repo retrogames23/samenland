@@ -169,6 +169,13 @@
       "when": 1793300000007,
       "tag": "0023_market_days",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793300000008,
+      "tag": "0024_letters_saturday_market",
+      "breakpoints": true
     }
   ]
 }
