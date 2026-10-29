@@ -30,9 +30,17 @@ import scaffold from "@/assets/sprites/folk/scaffold.webp";
 import logs from "@/assets/sprites/folk/logs.webp";
 import blocks from "@/assets/sprites/folk/blocks.webp";
 import bannerPole from "@/assets/sprites/folk/banner-pole.webp";
+import fisherCast from "@/assets/sprites/folk/fisher-cast.webp";
+import fisherFCast from "@/assets/sprites/folk/fisher-f-cast.webp";
+import smithHammer from "@/assets/sprites/folk/smith-hammer.webp";
+import anvil from "@/assets/sprites/folk/anvil.webp";
+import flourSacks from "@/assets/sprites/folk/flour-sacks.webp";
+import breadBasket from "@/assets/sprites/folk/bread-basket.webp";
+import fishBasket from "@/assets/sprites/folk/fish-basket.webp";
+import sparks from "@/assets/sprites/folk/sparks.webp";
 import bannerClothUrl from "@/assets/sprites/folk/banner-cloth.webp";
 
-const URLS = { man, manWalk, legsM, woman, child, childWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl };
+const URLS = { man, manWalk, legsM, woman, child, childWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, flourSacks, breadBasket, fishBasket, sparks };
 export type FolkSprite = keyof typeof URLS;
 const cache = new Map<string, HTMLImageElement>();
 function load(u: string) {
@@ -64,3 +72,10 @@ const WALKS: Partial<Record<FolkSprite, FolkSprite>> = { child: "childWalk" }; /
 const WORKS: Partial<Record<FolkSprite, FolkSprite>> = { farmer: "farmerMow" as FolkSprite, farmerF: "farmerFMow" as FolkSprite };
 export const workSheet = (k: FolkSprite) => { const w = WORKS[k]; return w ? folkImage(w) : null; };
 export const walkSheet = (k: FolkSprite) => { const w = WALKS[k]; return w ? folkImage(w) : null; };
+
+/** Trade work cycles keyed by job (fishers and smiths wear ordinary clothes, so the sprite alone can't pick them).
+ *  scale: frame height relative to figure height (rods/raised hammers reach above the head); per: cycle ms. */
+export const JOB_WORK: Record<string, { m: FolkSprite; f: FolkSprite; scale: number; per: number }> = {
+  fisher: { m: "fisherCast", f: "fisherFCast", scale: 2.05, per: 9000 },
+  smith: { m: "smithHammer", f: "smithHammer", scale: 1.22, per: 1500 },
+};
