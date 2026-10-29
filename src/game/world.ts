@@ -269,7 +269,7 @@ const lmCache = new Map<string, Map<string, number[]>>();
  * Landmarks keep their nominal offset when the ground is dry; otherwise they move to the nearest
  * buildable tile (pure function of seed position), so coastal and mountain towns get them too.
  */
-function landmarkSpots(s: Seed): Map<string, number[]> {
+export function landmarkSpots(s: Seed): Map<string, number[]> {
   const ck = `${s.id}:${s.x}:${s.y}`; const hit = lmCache.get(ck); if (hit) return hit;
   const out = new Map<string, number[]>(), used = new Set<string>(Object.keys(CORE)); used.add("0,0");
   const ok = (dx: number, dy: number) => !used.has(`${dx},${dy}`) && buildable(terrain(s.x + dx, s.y + dy)) && Math.hypot(dx, dy) >= 1.6;
