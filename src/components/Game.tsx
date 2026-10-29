@@ -26,7 +26,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ArrowLeft, ScrollText } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
 import { QUESTS, questState, type Quest, type QuestClaim } from "@/game/quests";
-import { LoadingScreen } from "@/components/LoadingScreen";
+import { LoadingScreen, splashDone } from "@/components/LoadingScreen";
 import { VillageRoll } from "@/components/VillageRoll";
 import { Tavern } from "@/components/Tavern";
 import { Beer } from "lucide-react";
@@ -688,9 +688,14 @@ export function Game() {
   const [tavernOpen, setTavernOpen] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
   const [rollOpen, setRollOpen] = useState(false);
-  useEffect(() => {
-    if (userId && !localStorage.getItem("samenland-guide-seen")) { setGuideOpen(true); localStorage.setItem("samenland-guide-seen", "1"); }
-  }, [userId]);
+  // the tutorial parchment greets every visitor on their very first page load,
+  // signed in or not, as soon as the loading screen has stepped aside
+  const openGuide = () => {
+    if (localStorage.getItem("samenland-guide-seen")) return;
+    localStorage.setItem("samenland-guide-seen", "1");
+    setGuideOpen(true);
+  };
+  useEffect(() => { if (splashDone()) openGuide(); }, []);
   const [chronBanner, setChronBanner] = useState(false);
   const [scribe, setScribe] = useState<string | null | undefined>(undefined);
   const askScribe = useServerFn(scribeGreeting);
@@ -1069,7 +1074,7 @@ export function Game() {
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
-      <LoadingScreen title="Samenland" lines={t.loading} />
+      <LoadingScreen title="Samenland" lines={t.loading} onDone={openGuide} />
       <canvas
         ref={canvasRef}
         className="absolute inset-0 h-full w-full cursor-grab touch-none"

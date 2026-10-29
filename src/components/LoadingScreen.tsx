@@ -1,17 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { coreProgress, startCoreLoad } from "@/game/assets";
 import { ART } from "@/game/decisions";
 
 let shownOnce = false;
 
+/** true once the parchment splash has finished on this page view */
+export const splashDone = () => shownOnce;
+
 /** Parchment loading screen on the first page load until core sprites are in memory (max 8 s). */
-export function LoadingScreen({ title, lines }: { title: string; lines: string[] }) {
+export function LoadingScreen({ title, lines, onDone }: { title: string; lines: string[]; onDone?: () => void }) {
   const [p, setP] = useState(0);
   const [fade, setFade] = useState(shownOnce);
   const [gone, setGone] = useState(shownOnce);
   const [line, setLine] = useState(0);
+  const done = useRef(onDone);
+  done.current = onDone;
   useEffect(() => {
-    if (shownOnce) return;
+    if (shownOnce) { done.current?.(); return; }
     startCoreLoad();
     const t0 = performance.now();
     let raf = 0;
@@ -21,7 +26,7 @@ export function LoadingScreen({ title, lines }: { title: string; lines: string[]
       setP(f);
       if (f >= 1 || performance.now() - t0 > 8000) {
         shownOnce = true; setFade(true);
-        setTimeout(() => setGone(true), 600);
+        setTimeout(() => { setGone(true); done.current?.(); }, 600);
         return;
       }
       raf = requestAnimationFrame(tick);
