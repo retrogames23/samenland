@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { larderOf, storedAt, chainOf } from "./goods";
+import { larderOf, storedAt, chainOf, grainCap } from "./goods";
 import { townOf } from "./people";
 
 const seed = { id: "g1", name: "Testdorf", x: 500, y: 500, created_at: new Date(Date.UTC(2025, 0, 1)).toISOString(), user_id: null } as never;
@@ -13,8 +13,16 @@ describe("derived larder", () => {
     for (const f of a.flows) expect(f.stock).toBeGreaterThanOrEqual(0);
   });
   it("harvest season yields more grain than spring", () => {
-    const g = (n: number) => larderOf(seed, [seed], n).flows.find((f) => f.ware === "grain")?.stock ?? 0;
+    const g = (n: number) => larderOf(seed, [seed], n).flows.find((f) => f.ware === "grain")?.made ?? 0;
     expect(g(AUTUMN)).toBeGreaterThan(g(SPRING));
+  });
+  it("grain stock never exceeds storage room (40 + 30 per mill + 80 per granary)", () => {
+    const l = larderOf(seed, [seed], AUTUMN);
+    expect(l.flows.find((f) => f.ware === "grain")?.stock ?? 0).toBeLessThanOrEqual(grainCap(l.byKind));
+  });
+  it("storage room: base 40, each mill 30, granary 80", () => {
+    expect(grainCap(new Map())).toBe(40);
+    expect(grainCap(new Map([["mill", [[0, 0], [1, 1]]], ["granary", [[2, 2]]]] as never))).toBe(180);
   });
   it("mill shows field → mill → bakery chain and stored goods", () => {
     const l = larderOf(seed, [seed], AUTUMN);

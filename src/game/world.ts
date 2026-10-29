@@ -253,6 +253,8 @@ export const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
   { dx: 2, dy: -1, at: 30, kind: "coop" }, { dx: -2, dy: 1, at: 48, kind: "barn" },
   { dx: 2, dy: -2, at: 180, kind: "chapel" }, { dx: -3, dy: -3, at: 240, kind: "watermill" },
   { dx: 3, dy: 1, at: 280, kind: "inn" }, { dx: -2, dy: 2, at: 360, kind: "bakery" },
+  // second mill once the fields outgrow the first (grain surplus of a grown farming village)
+  { dx: -4, dy: 4, at: 420, kind: "mill" },
   { dx: 0, dy: -3, at: 2160, kind: "stall" }, { dx: 4, dy: -1, at: 2300, kind: "smithy" },
   { dx: -4, dy: 1, at: 2500, kind: "warehouse" },
   { dx: 3, dy: -4, at: 4380, kind: "townhall" }, { dx: 2, dy: -2, at: 4500, kind: "church" },

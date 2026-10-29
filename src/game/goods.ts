@@ -11,7 +11,7 @@ const FOOD: Ware[] = ["bread", "fish", "game", "cheese"];
 
 /** Recipes: job → [input, output, units per worker per day, input per output]. */
 const RECIPE: Partial<Record<Job, [Ware | null, Ware, number, number]>> = {
-  woodcutter: [null, "log", 6, 0], mason: [null, "stone", 4, 0], farmer: [null, "grain", 8, 0],
+  woodcutter: [null, "log", 6, 0], mason: [null, "stone", 4, 0], farmer: [null, "grain", 2, 0],
   fisher: [null, "fish", 5, 0], hunter: [null, "game", 2, 0], herbalist: [null, "herbs", 3, 0],
   sawyer: ["log", "planks", 5, 1], miller: ["grain", "flour", 10, 1], baker: ["flour", "bread", 12, 1],
 };
@@ -37,6 +37,12 @@ const workDone = (h: number) => Math.min(1, Math.max(0, (h - 7) / 11));
 
 /** Daily deadwood/field stones a village gathers before it has woodcutters or masons. */
 export const YOUNG_WOOD = 3, YOUNG_STONE = 1.5;
+/** Grain storage: a base heap, plus room in every mill and the granary; the rest spoils or feeds the animals. */
+export const GRAIN_BASE = 40, GRAIN_PER_MILL = 30, GRAIN_PER_GRANARY = 80;
+/** One sheaf as porridge counts as half a meal. */
+export const GRAIN_MEAL = 0.5;
+export const grainCap = (byKind: Map<Kind, unknown[]>) =>
+  GRAIN_BASE + GRAIN_PER_MILL * ((byKind.get("mill")?.length ?? 0) + (byKind.get("watermill")?.length ?? 0)) + GRAIN_PER_GRANARY * (byKind.get("granary")?.length ?? 0);
 export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   const t = townOf(s, seeds, now);
   const key = `${s.id}|${t.now}|${Math.floor(now / 60000)}`;
@@ -76,19 +82,23 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   const eaters = t.people.length;
   let need = eaters * 0.8;
   for (const w of FOOD) { const take = Math.min(need, made.get(w) ?? 0); if (take) { add(used, w, take); need -= take; } }
-  if (need > 0) add(used, "grain", Math.min(need, made.get("grain") ?? 0) * 0.5);
+  // porridge: left-over grain fills the remaining hunger (after the mills took their share)
+  if (need > 0) add(used, "grain", Math.min(need, Math.max(0, (made.get("grain") ?? 0) - (used.get("grain") ?? 0))));
   add(used, "herbs", Math.min(made.get("herbs") ?? 0, t.people.filter((p) => p.sick).length));
   const h = worldHour(now), done = workDone(h), eaten = Math.min(1, Math.max(0, (h - 6) / 15));
+  const cap = grainCap(byKind);
   const flows: Flow[] = [];
   for (const w of WARES) {
     const m = made.get(w) ?? 0, u = used.get(w) ?? 0;
     if (m <= 0 && u <= 0) continue;
     const surplus = Math.max(0, m - u);
-    const stock = Math.max(0, Math.round(surplus * 3 + m * done - u * eaten + m * 0.4));
+    let stock = Math.max(0, Math.round(surplus * 3 + m * done - u * eaten + m * 0.4));
+    if (w === "grain") stock = Math.min(stock, cap);
     const rate = m * (done > 0 && done < 1 ? 1 : 0) - u * (eaten < 1 && h > 6 ? 1 : 0);
     flows.push({ ware: w, stock, made: Math.round(m * done), used: Math.round(u * eaten), trend: rate > 0.5 ? 1 : rate < -0.5 ? -1 : 0 });
   }
-  const food = flows.filter((f) => FOOD.includes(f.ware)).reduce((a, f) => a + f.stock, 0);
+  const grainStock = flows.find((f) => f.ware === "grain")?.stock ?? 0;
+  const food = flows.filter((f) => FOOD.includes(f.ware)).reduce((a, f) => a + f.stock, 0) + Math.floor(grainStock * GRAIN_MEAL);
   const res = { flows, food, eaters, byKind };
   cache.set(key, res);
   return res;
