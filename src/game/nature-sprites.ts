@@ -38,6 +38,7 @@ const pats = new Map<string, CanvasPattern>();
 let artNow = 0;
 export const setNatureTime = (now: number) => { artNow = now; };
 const texRole = (t: Tex) => t === "water" ? "water" : t === "wheat" || t === "crops" ? "field" : t === "meadow" ? "flower" : "ground";
+const TEX_M = typeof DOMMatrix !== "undefined" ? new DOMMatrix() : (null as unknown as DOMMatrix); // reused, no per-tile allocation
 /** Texture laid on the iso ground plane (rotated 45° and squashed), anchored in world space. */
 export function texture(c: C, t: Tex, shift = 0): CanvasPattern | null {
   const key = `${t}:${seasonKey(artNow)}`;
@@ -48,8 +49,8 @@ export function texture(c: C, t: Tex, shift = 0): CanvasPattern | null {
     if (pats.size > 44) pats.clear(); pats.set(key, p);
   }
   const s = SPAN[t] / 816;
-  const m = new DOMMatrix().scale(1, 0.5).rotate(45).translate(shift, shift * 0.3).scale(s, s);
-  p.setTransform(m);
+  TEX_M.setMatrixValue("none");
+  p.setTransform(TEX_M.scaleSelf(1, 0.5).rotateSelf(45).translateSelf(shift, shift * 0.3).scaleSelf(s, s));
   return p;
 }
 

@@ -251,6 +251,13 @@ export function setSound(on: boolean) {
   if (!ctx) return;
   if (on) void ctx.resume();
   lerp(master.gain, on ? 0.9 : 0, 0.3);
+  // muted: stop the audio thread entirely after the fade, saves battery on phones
+  if (!on) setTimeout(() => { if (!enabled && ctx?.state === "running") void ctx.suspend(); }, 400);
 }
+// background tab / locked phone: suspend audio, resume when visible again
+if (typeof document !== "undefined") document.addEventListener("visibilitychange", () => {
+  if (!ctx) return;
+  if (document.hidden) void ctx.suspend(); else if (enabled) void ctx.resume();
+});
 export function unlock() { if (enabled && ctx && ctx.state !== "running") void ctx.resume(); }
 export function disposeAudio() { clearInterval(timer); }

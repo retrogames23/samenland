@@ -11,7 +11,7 @@
 
 ## Samenland game
 - Town growth is a pure deterministic function of seed position + created_at (src/game/world.ts); never store growth state — every client computes the same town from the shared seed rows, so towns grow even when nobody watches.
-- Rendering uses a full-resolution (devicePixelRatio) canvas; preload compressed building sprites with per-kind sizes and ground anchors, using the same assets at every zoom level to avoid style changes while loading.
+- Rendering uses a devicePixelRatio canvas (capped at 2 on touch devices for mobile GPU load); preload compressed building sprites with per-kind sizes and ground anchors, using the same assets at every zoom level to avoid style changes while loading.
 - Seed ownership is enforced in the database (seeds.user_id UNIQUE + RLS on auth.uid()); UI strings live in src/game/i18n.ts (de/en), game logic returns codes not text.
 - Trade roads, synergy and twin towns are derived from seed pairs in src/game/world.ts (links/effAge); growth uses effective age, never stored state — keeps all clients identical.
 - Villagers (src/game/people.ts) are a pure function of seed, buildings and clock time; never store them — every client sees the same people.

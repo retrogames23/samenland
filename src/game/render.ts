@@ -270,6 +270,7 @@ function drawRobber(c: C, X: number, Y: number, flip: boolean, t: number) {
   } else c.drawImage(im, -w / 2, -h, w, h);
   c.restore();
 }
+const DECK_M = typeof DOMMatrix !== "undefined" ? new DOMMatrix() : (null as unknown as DOMMatrix); // reused per frame, no GC churn
 export function robberAt(s: Seed, now: number): [number, number, boolean] | null {
   const r = activeRaid(s, now); if (!r) return null;
   const ph = (now - r.at) / RAID_LEN, R = Math.max(3, radiusOf(effAge(s, renderSeeds, now)) * 0.8), a = hash(s.x, s.y, Math.floor(r.at / 864e5)) * 6.28;
@@ -1194,7 +1195,7 @@ function drawBridgeSpan(c: C, A: Pt, B: Pt, sd: number, t: number) {
   const pat = planksPattern(c);
   if (pat) {
     const ang = Math.atan2(ny, nx), s = 1.1 / 64;
-    pat.setTransform(new DOMMatrix().translate(A[0], A[1]).rotate((ang * 180) / Math.PI).scale(s, s));
+    DECK_M.setMatrixValue("none"); pat.setTransform(DECK_M.translateSelf(A[0], A[1]).rotateSelf((ang * 180) / Math.PI).scaleSelf(s, s));
     c.fillStyle = pat; c.fill();
   } else { c.fillStyle = "#6e5a44"; c.fill(); }
   // light from above-left: fade the deck slightly towards the far rail

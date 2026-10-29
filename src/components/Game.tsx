@@ -482,14 +482,18 @@ export function Game() {
     const ctx = cv.getContext("2d")!;
     let raf = 0;
     const resize = () => {
-      dpr.current = window.devicePixelRatio || 1;
+      // phones: cap pixel density at 2 – DPR 3 screens otherwise push ~2.25x the pixels for no visible gain
+      const touch = window.matchMedia("(pointer: coarse)").matches;
+      dpr.current = Math.min(window.devicePixelRatio || 1, touch ? 2 : 3);
       cv.width = Math.ceil(cv.clientWidth * dpr.current);
       cv.height = Math.ceil(cv.clientHeight * dpr.current);
     };
     resize();
     window.addEventListener("resize", resize);
     let lastScene = 0;
+    let panStep = () => {};
     const loop = () => {
+      panStep(); // keyboard pan + fling share the draw frame (one rAF loop)
       const c = cam.current,
         tg = target.current;
       if (Math.abs(tg.zoom - c.zoom) > 0.0005) {
@@ -600,8 +604,8 @@ export function Game() {
     };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
     const onBlur = () => keys.clear();
-    let panRaf = 0, lastPan = performance.now();
-    const pan = () => {
+    let lastPan = performance.now();
+    panStep = () => {
       const now = performance.now(), dt = Math.min(50, now - lastPan); lastPan = now;
       if (keys.size) {
         let dx = 0, dy = 0;
@@ -616,15 +620,12 @@ export function Game() {
         f.vx *= k; f.vy *= k;
         if (Math.hypot(f.vx, f.vy) < 0.01) { f.vx = 0; f.vy = 0; }
       }
-      panRaf = requestAnimationFrame(pan);
     };
-    panRaf = requestAnimationFrame(pan);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", onBlur);
     return () => {
       cancelAnimationFrame(raf);
-      cancelAnimationFrame(panRaf);
       window.removeEventListener("resize", resize);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
@@ -1386,7 +1387,7 @@ export function Game() {
           }
           if (!drag.current?.moved) {
             const nt = tileAt(e), ph = st.current.hover;
-            if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) { st.current.hover = nt; setHover(nt); }
+            if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) { st.current.hover = nt; if (e.pointerType === "mouse" || mode === "seed" || placing) setHover(nt); }
           }
           if (mode === "seed" || placing) {
             ptrRef.current = [e.clientX, e.clientY];
@@ -1993,7 +1994,7 @@ export function Game() {
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm">
             <Panel inner="p-4">
               <div className="relative">
-                <h1 className="flex justify-center leading-none text-wood"><img src={logoUrl} alt="Samenland" width={742} height={719} className="h-28 w-auto" /></h1>
+                <h1 className="flex justify-center leading-none text-wood"><img src={logoUrl} alt="Samenland" width={371} height={360} className="h-28 w-auto" /></h1>
                 <button type="button" aria-label={t.hud.close} onClick={() => setAuthOpen(false)} className="absolute right-0 top-0 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{t.tagline}</p>
