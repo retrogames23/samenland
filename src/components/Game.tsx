@@ -307,10 +307,11 @@ export function Game() {
     try { const ref = new URLSearchParams(location.search).get("ref"); if (ref && /^[0-9a-f-]{36}$/i.test(ref)) localStorage.setItem("samenland-ref", ref); } catch { /* ignore */ }
     // local session first: a slow/offline network (iPhone waking up) must never look like a logout
     supabase.auth.getSession().then(({ data }) => { if (data.session) setUserId(data.session.user.id); });
+    // only an explicit sign-out clears the user: in the editor preview the session arrives
+    // late over the editor handshake, and an empty INITIAL_SESSION must not look like a logout
     const { data: sub } = supabase.auth.onAuthStateChange((ev, session) => {
       if (ev === "SIGNED_OUT") { setUserId(null); return; }
       if (session?.user.id) setUserId(session.user.id);
-      else if (ev === "INITIAL_SESSION") setUserId(null);
     });
     // Safari pauses timers in background tabs: refresh the token as soon as the page is visible again
     const onVis = () => {
