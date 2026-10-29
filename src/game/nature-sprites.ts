@@ -143,3 +143,11 @@ import wheatRow from "@/assets/sprites/wheat-row.webp";
 import cropRow from "@/assets/sprites/crop-row.webp";
 /** Painted standing crop rows stamped along acre furrows (wheat: horizontal row; crops: ridge running up-right). */
 export const fieldRowImage = (ripe: boolean) => img(ripe ? wheatRow : cropRow);
+
+import riderUrl from "@/assets/sprites/rider.webp";
+import riderBackUrl from "@/assets/sprites/rider-back.webp";
+import stallUrl from "@/assets/sprites/stall.webp";
+if (typeof window !== "undefined") { img(riderUrl); img(riderBackUrl); img(stallUrl); }
+/** 4-frame mounted messenger (front 3/4 facing right, rear 3/4 facing left) and a painted market stall. */
+export const riderImage = (back: boolean) => img(back ? riderBackUrl : riderUrl);
+export const stallImage = () => img(stallUrl);

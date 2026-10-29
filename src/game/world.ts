@@ -1,11 +1,11 @@
-import { cacheTick, type Realm } from "./time";
+import { cacheTick, worldHour, worldWeekday, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
 // Pure, deterministic world + town growth logic (shared by every player).
 const ROAD_YIELDS: ReadonlySet<string> = new Set(["field", "garden", "pasture", "hay", "fence"]);
 export const MAP = 1024;
 
-export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; realm?: Realm; mayor_gender?: string | null; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; firstRoad?: { target: string; at: number }; decisions?: Decision[]; votes?: { partner: string; pact: PactKind; at: number }[]; works?: { partner: string; work: WorkKind; cost: number; at: number }[]; sent?: { to: string; kind: "gift" | "aid" | "thanks"; at: number; id: string }[]; aid?: number[] };
+export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; realm?: Realm; mayor_gender?: string | null; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; firstRoad?: { target: string; at: number }; decisions?: Decision[]; votes?: { partner: string; pact: PactKind; at: number }[]; works?: { partner: string; work: WorkKind; cost: number; at: number }[]; sent?: { to: string; kind: "gift" | "aid" | "thanks"; at: number; id: string }[]; letters?: { to: string; at: number; id: string }[]; aid?: number[] };
 export type Planting = { id: string; seed_id: string; kind: "tree" | "flower" | "lantern"; x: number; y: number; created_at: string };
 
 export function hash(x: number, y: number, s = 0): number {
@@ -752,6 +752,7 @@ export function speedParts(s: Seed, seeds: Seed[], now: number) {
     if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
     const o = l.a.id === s.id ? l.b : l.a;
     trade += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * roadProgress(l, now);
+    if (roadProgress(l, now) >= 1 && marketHours(now)) trade += MARKET_BONUS;
   }
   return { bless, farm, trade };
 }
@@ -778,6 +779,8 @@ function effAgeBase(s: Seed, seeds: Seed[], now: number) {
     if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
     const o = l.a.id === s.id ? l.b : l.a;
     h += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * (now - l.since) / 3.6e6;
+    // Saturday markets: 8 of 168 hours a week at MARKET_BONUS, spread evenly so growth stays smooth
+    h += MARKET_BONUS * (8 / 168) * (now - l.since) / 3.6e6;
   }
   // neighbour bonuses speed growth, but never more than TRADE_CAP of the town's own age
   return (base + Math.min(Math.max(0, h - base), base * TRADE_CAP) + mentorHours(s, seeds, now)) * GROWTH_PACE;
@@ -906,7 +909,11 @@ export function workOf(s: Seed, o: Seed, now: number) {
   return { work, mine: !!a, theirs: !!b, start, done: start !== null ? start + WORK_BUILD : null };
 }
 /** Weekly market day at the gate and monthly twin festival (UTC days, from the pair). */
-export const marketDay = (l: Link, now: number) => (Math.floor(now / 864e5) + 3) % 7 === Math.floor(pairHash(l) * 7);
+export const marketDay = (_l: Link, now: number) => worldWeekday(now) === 6;
+/** Saturday market stalls stand 9–17 (realm clock) at every open road's midpoint. */
+export const marketHours = (now: number) => { const h = worldHour(now) % 24; return worldWeekday(now) === 6 && h >= 9 && h < 17; };
+/** Extra growth for both towns while their Saturday market is open (inside the trade cap). */
+export const MARKET_BONUS = 0.05;
 export const festivalDate = (l: Link) => 1 + Math.floor(pairHash(l) * 28);
 export const festivalDay = (l: Link, at: number) => new Date(at).getUTCDate() === festivalDate(l);
 const utcDay = (t: number) => Math.floor(t / 864e5);
@@ -946,7 +953,7 @@ export function twinSites(seeds: Seed[], now: number) {
       map.set(y * MAP + x, { kind, seed: i < m ? l.a : l.b });
     };
     put(m, "well"); put(m - 1, "square"); put(m + 1, "square");
-    if (marketDay(l, now)) { put(m - 2, "market"); put(m + 2, "market"); }
+    if (marketHours(now)) { put(m - 2, "market"); put(m + 2, "market"); }
     const w = workOf(l.a, l.b, now);
     if (w.work && w.done !== null && now >= w.done) {
       const [ax, ay] = l.tiles[m - 1]!, [bx, by] = l.tiles[m + 1]!;

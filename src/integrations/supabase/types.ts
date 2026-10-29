@@ -262,6 +262,74 @@ export type Database = {
           },
         ]
       }
+      letter_bodies: {
+        Row: {
+          body: string
+          letter_id: string
+          recipient_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          letter_id: string
+          recipient_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          letter_id?: string
+          recipient_id?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "letter_bodies_letter_id_fkey"
+            columns: ["letter_id"]
+            isOneToOne: true
+            referencedRelation: "letters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      letters: {
+        Row: {
+          created_at: string
+          from_seed: string
+          id: string
+          to_seed: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_seed: string
+          id?: string
+          to_seed: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_seed?: string
+          id?: string
+          to_seed?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "letters_from_seed_fkey"
+            columns: ["from_seed"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "letters_to_seed_fkey"
+            columns: ["to_seed"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_sales: {
         Row: {
           created_at: string
@@ -610,6 +678,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      send_letter: {
+        Args: { _body: string; _from: string; _to: string }
+        Returns: string
       }
       village_balance: { Args: { _seed: string }; Returns: number }
       village_dowry: {
