@@ -1772,7 +1772,9 @@ export function draw(
       drawWanderer(c, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" || w.kind === "letter" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? (w.sex === "m" ? "groom" : "bride") : undefined);
       lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w });
     }
+    c.globalAlpha = 1;
   }
+  c.globalAlpha = 1;
 
   // Saturday market: painted stalls on both verges of every open road's midpoint, 9–17 realm time
   if (marketOpen(now)) for (const l of links(seeds)) {
