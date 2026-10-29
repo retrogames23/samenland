@@ -86,6 +86,10 @@ export function Game() {
   const [blessings, setBlessings] = useState<{ id: string; seed_id: string; created_at: string }[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [gifts, setGifts] = useState<Gift[]>([]);
+  const [letters, setLetters] = useState<LetterRow[]>([]);
+  const [bodies, setBodies] = useState<Record<string, string>>({});
+  const [postTo, setPostTo] = useState<Seed | null>(null);
+  const [postText, setPostText] = useState("");
   const [claims, setClaims] = useState<QuestClaim[]>([]);
   const [charters, setCharters] = useState<{ id: string; seed_id: string; path: string; created_at: string }[]>([]);
   const [charterOpen, setCharterOpen] = useState(false);
@@ -128,11 +132,14 @@ export function Game() {
       if (!bl && !bo && !ch && !fr && !de) return s;
       return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { firstRoad: { target: fr.target_id, at: Date.parse(fr.created_at) } } : {}), ...(de ? { decisions: de.sort((a, b) => a.at - b.at) } : {}) };
     }).map((s) => {
+      const lt = letters.filter((g) => g.from_seed === s.id).map((g) => ({ id: g.id, to: g.to_seed, at: Date.parse(g.created_at) }));
+      return lt.length ? { ...s, letters: lt } : s;
+    }).map((s) => {
       const sent = gifts.filter((g) => g.from_seed === s.id).map((g) => ({ id: g.id, to: g.to_seed, kind: g.kind as GiftKind, at: Date.parse(g.created_at) }));
       const aid = gifts.filter((g) => g.to_seed === s.id && g.kind === "aid").map((g) => Date.parse(g.created_at));
       return sent.length || aid.length ? { ...s, ...(sent.length ? { sent } : {}), ...(aid.length ? { aid } : {}) } : s;
     });
-  }, [rawSeeds, blessings, purchases, charters, firstRoads, encounters, votes, works, gifts]);
+  }, [rawSeeds, blessings, purchases, charters, firstRoads, encounters, votes, works, gifts, letters]);
   useEffect(() => { setSignposts(signs); }, [signs]);
   const [plantings, setPlantings] = useState<Planting[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -288,6 +295,8 @@ export function Game() {
       supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").then(({ data }) => setVotes(data ?? []));
       supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").then(({ data }) => setWorks(data ?? []));
       supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").then(({ data }) => setGifts((data ?? []) as Gift[]));
+      supabase.from("letters").select("id, from_seed, to_seed, created_at").gte("created_at", new Date(Date.now() - 60 * 864e5).toISOString()).then(({ data }) => setLetters(data ?? []));
+      supabase.from("letter_bodies").select("letter_id, body").then(({ data }) => setBodies(Object.fromEntries((data ?? []).map((b) => [b.letter_id, b.body]))));
       Promise.all([
         supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at"),
         supabase.from("market_sales").select("id, seed_id, day, reward, created_at"),
@@ -317,6 +326,11 @@ export function Game() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "purchases" }, (p) => {
         const n = p.new as Purchase;
         setPurchases((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "letters" }, (p) => {
+        const n = p.new as LetterRow;
+        setLetters((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+        supabase.from("letter_bodies").select("letter_id, body").eq("letter_id", n.id).maybeSingle().then(({ data }) => { if (data) setBodies((b) => ({ ...b, [data.letter_id]: data.body })); });
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "charters" }, (p) => {
         const n = p.new as { id: string; seed_id: string; path: string; created_at: string };
@@ -675,7 +689,7 @@ export function Game() {
   const [scribe, setScribe] = useState<string | null | undefined>(undefined);
   const askScribe = useServerFn(scribeGreeting);
   const chronDone = useRef<string | null>(null);
-  const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(t.items[e.item]?.[0] ?? e.item) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : e.code === "wedding" ? t.chron.wedding(e.a, e.b) : e.code === "fire" ? (e.guarded ? t.chron.fireOut : t.chron.fire(e.dead)) : e.code === "flood" ? t.chron.flood : e.code === "raid" ? (e.caught ? t.chron.caught : t.chron.raid(e.loss)) : e.code === "journeyman" ? t.chron.journeyman(e.name, t.job[e.craft]?.[e.sex === "f" ? 0 : 1] ?? e.craft, e.other) : e.code === "journeymen" ? t.chron.journeymen(e.n) : e.code === "bride" ? t.chron.bride(e.name, e.other, e.away) : e.code === "moved" ? t.chron.moved(e.name, e.other, e.away) : t.chron.season(t.seasons[e.season]);
+  const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(t.items[e.item]?.[0] ?? e.item) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : e.code === "wedding" ? t.chron.wedding(e.a, e.b) : e.code === "fire" ? (e.guarded ? t.chron.fireOut : t.chron.fire(e.dead)) : e.code === "flood" ? t.chron.flood : e.code === "raid" ? (e.caught ? t.chron.caught : t.chron.raid(e.loss)) : e.code === "journeyman" ? t.chron.journeyman(e.name, t.job[e.craft]?.[e.sex === "f" ? 0 : 1] ?? e.craft, e.other) : e.code === "journeymen" ? t.chron.journeymen(e.n) : e.code === "bride" ? t.chron.bride(e.name, e.other, e.away) : e.code === "moved" ? t.chron.moved(e.name, e.other, e.away) : e.code === "letter" ? t.chron.letter(e.other) : t.chron.season(t.seasons[e.season]);
   useEffect(() => {
     if (!owner || !my || seeds.length === 0 || chronDone.current === my.id) return;
     chronDone.current = my.id;
@@ -728,6 +742,7 @@ export function Game() {
     if (e.code === "family") return [t.fest.newcomers[0], t.fest.newcomers[1](n)];
     if (e.code === "road") return [t.fest.road[0], t.fest.road[1](e.other)];
     if (e.code === "twin") return [t.fest.twin[0], t.fest.twin[1](e.other)];
+    if (e.code === "letter") return [t.post.arrived(e.other), bodies[e.id] ? `„${bodies[e.id]}“` : t.post.sealed];
     if (e.code === "stage") return [t.fest.stage[0], t.fest.stage[1](t.stages[e.stage] ?? "")];
     return [t.fest.built[0], t.fest.built[1](chronLine(e).replace(/ (fertiggestellt|completed)$/, ""))];
   };
@@ -779,6 +794,17 @@ export function Game() {
     if (error || !data) return setMsg(t.quests.fail);
     setClaims((c) => [...c, data]);
     bell(); setMsg(t.quests.got(data.reward));
+  };
+  const sendLetter = async () => {
+    if (!my || !postTo) return;
+    const body = postText.trim(), to = postTo;
+    const { data, error } = await supabase.rpc("send_letter", { _from: my.id, _to: to.id, _body: body });
+    setPostTo(null);
+    if (error || !data) return setMsg(t.post.fail);
+    const row = { id: data as string, from_seed: my.id, to_seed: to.id, created_at: new Date().toISOString() };
+    setLetters((s) => (s.some((x) => x.id === row.id) ? s : [...s, row]));
+    setBodies((b) => ({ ...b, [row.id]: body }));
+    setMsg(t.post.sent(Math.round(rideTime(my, to) / 6e4)));
   };
   const holdMarket = async () => {
     if (!my || !userId) return;
@@ -993,11 +1019,23 @@ export function Game() {
                     {p.farm > 0.005 && <span className="block">{t.farmBonus(Math.round(p.farm * 100))}</span>}
                   </>); })()}
                   {mentoring(s, seeds, now) && mentorOf(s, seeds, now) && <span className="block">{t.mentorBy(mentorOf(s, seeds, now)!.name)}</span>}
+                  {my && s.id !== my.id && links(seeds).some((l) => now >= l.since && ((l.a.id === my.id && l.b.id === s.id) || (l.b.id === my.id && l.a.id === s.id))) && <span className="block">{marketHours(now) ? t.market.open : t.market.next(s.name)}</span>}
                 </span>
               </button>
+              {owner && my && s.id !== my.id && <Button size="sm" variant="secondary" className="ml-2 mb-1" onClick={() => { setPostText(""); setPostTo(s); }}>{t.post.send}</Button>}
             </li>
           ))}
         </ul>
+      )}
+      {tab === "towns" && my && owner && (
+        <div className="mt-2 border-t border-border pt-2 text-xs">
+          <div className="font-display text-sm text-foreground">{t.post.book}</div>
+          {(() => { const now2 = clock(); const got = seeds.flatMap((o) => (o.letters ?? []).filter((g) => g.to === my.id && letterArrives(o, my, g.at) <= now2).map((g) => ({ ...g, o }))).sort((a, b) => b.at - a.at).slice(0, 20);
+            return got.length === 0 ? <div className="text-muted-foreground">{t.post.empty}</div> : (
+              <ul className="max-h-48 space-y-1 overflow-auto">{got.map((g) => (
+                <li key={g.id}><span className="italic text-foreground">„{bodies[g.id] ?? "…"}“</span> <span className="text-muted-foreground">{t.post.from(g.o.name)}</span></li>
+              ))}</ul>); })()}
+        </div>
       )}
     </div>
   );
@@ -1566,9 +1604,19 @@ export function Game() {
       {festNow && my && (() => { const [h, body] = festText(festNow); const go = () => { const e = festNow; if ("x" in e) focus(e.x, e.y); else focus(my.x, my.y); setFest((q) => q.slice(1)); }; return (
         <Parchment image={festArt(festNow)} title={h} later={t.fest.close} onLater={() => setFest((q) => q.slice(1))}>
           <p className="text-center font-display text-xl leading-snug text-ink">{body}</p>
-          <div className="mt-4 flex justify-center"><Button onClick={go}>{t.fest.go}</Button></div>
+          <div className="mt-4 flex justify-center gap-2">
+            {festNow.code === "letter" ? (() => { const fe = festNow; const o = seeds.find((x) => x.name === fe.other); return o && owner ? <Button onClick={() => { setFest((q) => q.slice(1)); setPostText(""); setPostTo(o); }}>{t.post.reply}</Button> : null; })() : <Button onClick={go}>{t.fest.go}</Button>}
+          </div>
         </Parchment>
       ); })()}
+      {postTo && my && (
+        <Parchment title={t.post.title(postTo.name)} later={t.fest.close} onLater={() => setPostTo(null)}>
+          <p className="text-center text-sm text-ink/70">{t.post.hint}</p>
+          <textarea className="mt-3 w-full rounded border border-border bg-background/80 p-2 text-ink" rows={3} maxLength={140} value={postText} placeholder={t.post.place} onChange={(e) => setPostText(e.target.value)} />
+          <div className="mt-1 text-right text-xs text-ink/60">{postText.length}/140</div>
+          <div className="mt-3 flex justify-center"><Button disabled={!postText.trim()} onClick={sendLetter}>{t.post.go}</Button></div>
+        </Parchment>
+      )}
       {chronOpen && chron && my && (
         <Parchment title={t.chron.title} later={t.chron.close} onLater={() => setChronOpen(false)}>
           <p className="text-center text-sm text-ink/70">{t.chron.away(Math.max(1, Math.round((chron.to - chron.from) / 864e5)))}</p>
