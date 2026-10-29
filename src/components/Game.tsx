@@ -1530,7 +1530,7 @@ export function Game() {
         </Parchment>
       )}
       {inviteOpen && home && (() => {
-        const ok = home.realm === realm ? myStage >= 1 : Date.now() - Date.parse(home.created_at) >= 24 * 3600e3;
+        const ok = Date.now() - Date.parse(home.created_at) >= 24 * 3600e3;
         const link = `https://samenland.app/?ref=${home.id}`;
         const n = claims.filter((c) => c.seed_id === home.id && c.quest.startsWith("ref:")).length;
         return (
