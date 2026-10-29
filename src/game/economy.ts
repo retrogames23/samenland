@@ -6,8 +6,10 @@ import { radiusOf, stageOf, effAge, links, waterNearby, twinLinks, pactOf, type 
 
 /** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
 export const START_TALER = 150;
-export const ITEMS = { fisher: 120, granary: 300, healer: 900, school: 3000, markethall: 450, guildhall: 450, library: 450, dairy: 450, firehouse: 600, guard: 800 } as const;
+export const ITEMS = { herbs: 90, hunter: 110, fisher: 120, woodcamp: 180, granary: 300, healer: 550, school: 3000, markethall: 450, guildhall: 450, library: 450, dairy: 450, firehouse: 600, guard: 800 } as const;
 export type Item = keyof typeof ITEMS;
+/** Bonuses of the early buildings that work without water. */
+export const HUNTER_FOOD = 15, HERBS_HEALTH = 10, WOODCAMP_WEALTH = 5;
 /** Guild buildings: only villages with the matching charter may buy them (mirrored in the database guard). */
 export const GUILD: Partial<Record<Item, CharterPath>> = { markethall: "trade", guildhall: "craft", library: "culture", dairy: "farm" };
 export const canBuy = (it: Item, path?: string) => !GUILD[it] || GUILD[it] === path;
@@ -55,10 +57,10 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   const stage = stageOf(effAge(s, seeds, now));
   const path = s.charter && s.charter.at <= now ? s.charter.path : null;
   const food = clamp(40 + (has("fisher") ? (waterNearby(s.x, s.y) ? 20 : 8) : 0) + (has("granary") ? 15 : 0) + Math.min(15, trade * (path === "trade" ? 8 : 5))
-    + (path === "farm" ? 15 : 0) + (has("dairy") ? 15 : 0));
-  const health = clamp(40 + (has("healer") ? 30 : 0) + (food - 50) * 0.3 + (path === "culture" ? 15 : 0) + (has("library") ? 10 : 0) + (near("healer") ? 15 : 0) + (shield ? 10 : 0));
+    + (path === "farm" ? 15 : 0) + (has("dairy") ? 15 : 0) + (has("hunter") ? HUNTER_FOOD : 0));
+  const health = clamp(40 + (has("healer") ? 30 : 0) + (food - 50) * 0.3 + (path === "culture" ? 15 : 0) + (has("library") ? 10 : 0) + (has("herbs") ? HERBS_HEALTH : 0) + (near("healer") ? 15 : 0) + (shield ? 10 : 0));
   const wealth = clamp(25 + Math.min(30, trade * 10) + (has("school") ? 20 : 0) + stage * 5 + (path === "craft" ? 10 : 0)
-    + (near("school") ? 10 : 0) + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 5 : 0));
+    + (near("school") ? 10 : 0) + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 5 : 0) + (has("woodcamp") ? WOODCAMP_WEALTH : 0));
   const b = activeBoons(s.decisions ?? [], now);
   b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0; b.wealth += has("guard") ? 5 : 0;
   // weddings: a day of joy (health, prosperity) and lasting craft alliances between families

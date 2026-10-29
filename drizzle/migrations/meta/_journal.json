@@ -113,6 +113,13 @@
       "when": 1793221500320,
       "tag": "0015_neighbour_gifts",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793300000000,
+      "tag": "0016_early_buildings",
+      "breakpoints": true
     }
   ]
 }
