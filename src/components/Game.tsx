@@ -246,6 +246,22 @@ export function Game() {
     });
     return () => { live = false; };
   }, [userId, isAdmin, realm]);
+  // admin rights follow the login, even when the session arrives after the first map load
+  useEffect(() => {
+    if (!userId) { setIsAdmin(false); return; }
+    let live = true;
+    supabase.from("user_roles").select("role").eq("user_id", userId).then(({ data }) => {
+      if (!live) return;
+      const adm = !!data?.some((x) => x.role === "admin");
+      setIsAdmin(adm);
+      const o = localStorage.getItem("samenland-realm");
+      if (adm && o && o !== realmRef.current && !sessionStorage.getItem("samenland-realm-fix")) {
+        sessionStorage.setItem("samenland-realm-fix", "1");
+        window.location.reload();
+      }
+    });
+    return () => { live = false; };
+  }, [userId]);
 
   useEffect(() => {
     const saved = localStorage.getItem("samenland-lang");
@@ -1064,7 +1080,7 @@ export function Game() {
     const k = decision.open;
     // let all village records arrive before asking, so nothing pops up that is already settled
     const id = setTimeout(() => {
-      if (k === "road") { setRoadPick(null); setRoadOpen(true); }
+      if (k === "road") { const cs = my ? roadCandidates(my, seeds) : []; setRoadPick(cs.length === 1 ? cs[0]!.id : null); setRoadOpen(true); }
       else if (k === "charter") { setCharterPick(null); setCharterOpen(true); }
       else if (k === "pact") { setPactPick(null); setPactOpen(true); }
       else setEncOpen(true);
@@ -1467,8 +1483,8 @@ export function Game() {
                     {roadCandidates(my, seeds).map((o) => {
                       const c = characterOf(o.x, o.y), ch = charters.find((x) => x.seed_id === o.id)?.path;
                       return (
-                        <div key={o.id} className={`flex items-center gap-2 rounded-md border-2 p-2 ${roadPick === o.id ? "border-brass bg-brass/20" : "border-border"}`}>
-                          <button type="button" aria-pressed={roadPick === o.id} onClick={() => setRoadPick(o.id)} className="flex-1 text-left">
+                        <div key={o.id} onClick={() => setRoadPick(o.id)} className={`flex cursor-pointer items-center gap-2 rounded-md border-2 p-2 ${roadPick === o.id ? "border-brass bg-brass/20" : "border-border"}`}>
+                          <button type="button" aria-pressed={roadPick === o.id} onClick={() => setRoadPick(o.id)} className="flex-1 py-1 text-left">
                             <div className="font-semibold text-wood">{o.name}</div>
                             <div className="text-xs text-muted-foreground">{t.road.dist(Math.round(Math.hypot(o.x - my.x, o.y - my.y)))} · {CHAR_ICON[c]} {t.character[c]![0]}{ch ? ` · ${PATH_ICON[ch]} ${t.charter.paths[ch]![0]}` : ""}</div>
                           </button>
