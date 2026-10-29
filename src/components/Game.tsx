@@ -899,8 +899,8 @@ export function Game() {
   // mayor visits: the first walk into a neighbour town brings a welcome gift scaled by its size
   const visitSeen = useRef(new Set<string>());
   const visitFn = useRef<(o: Seed, my: Seed) => void>(() => {});
-  const [welcome, setWelcome] = useState<string | null>(null);
-  useEffect(() => { if (!welcome) return; const h = setTimeout(() => setWelcome(null), 7000); return () => clearTimeout(h); }, [welcome]);
+  const [visitNote, setVisitNote] = useState<string | null>(null);
+  useEffect(() => { if (!visitNote) return; const h = setTimeout(() => setVisitNote(null), 7000); return () => clearTimeout(h); }, [visitNote]);
   visitFn.current = (o, my) => {
     if (!owner || my.user_id !== userId) { visitSeen.current.delete(o.id); return; }
     supabase.rpc("claim_visit", { _seed: my.id, _visited: o.id }).then(({ data, error }) => {
@@ -909,7 +909,7 @@ export function Game() {
       setClaims((c) => [...c, ...visitClaims([{ id: `local-v-${o.id}`, visitor_seed: my.id, visited_seed: o.id, reward: data, created_at: now0 }])]);
       jingle("fanfare"); setTimeout(() => jingle("coins"), 700);
       // shown as its own parchment so it stays visible during the stroll (normal HUD is hidden there)
-      setWelcome(t.visit.got(o.name, data));
+      setVisitNote(t.visit.got(o.name, data));
     });
   };
   const [seenGifts, setSeenGifts] = useState<string[]>([]);
@@ -1418,10 +1418,10 @@ export function Game() {
 
   return (
     <div className={`relative h-screen w-full overflow-hidden bg-background supports-[height:100dvh]:h-[100dvh] ${walk ? "[&>*:not(canvas):not([data-walk])]:hidden" : ""}`}>
-      {welcome && (
-        <div data-walk role="status" className="pointer-events-auto absolute inset-x-0 top-[22%] z-50 mx-auto w-fit max-w-[88vw] rounded-md border-2 border-wood bg-card px-5 py-4 text-center font-semibold text-foreground shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95" onClick={() => setWelcome(null)}>
+      {visitNote && (
+        <div data-walk role="status" className="pointer-events-auto absolute inset-x-0 top-[22%] z-50 mx-auto w-fit max-w-[88vw] rounded-md border-2 border-wood bg-card px-5 py-4 text-center font-semibold text-foreground shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95" onClick={() => setVisitNote(null)}>
           <div className="text-2xl" aria-hidden>🪙</div>
-          {welcome}
+          {visitNote}
         </div>
       )}
       {walk && (
