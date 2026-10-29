@@ -1334,8 +1334,10 @@ export function Game() {
                 const sp = sm.get((ty + dy) * MAP + tx + dx);
                 if (sp) { tap(pan); setWho(null); setPlace(null); return setMsg(`${t.signFrom(seeds.find((x) => x.id === sp.seed_id)?.name ?? "?")}: „${sp.message}“`); }
               }
+              // a click on a pasture means the flock, never a house whose roof rises over it
+              { const here = structureAt(tx, ty, seeds, clock());
+                if (here?.kind === "pasture" && here.build === undefined) { baa(pan); setWho(null); setPlace(null); return; } }
               const ins = inspectAt(tx, ty, seeds, clock());
-              if (!ins && structureAt(tx, ty, seeds, clock())?.kind === "pasture") baa(pan);
               if (ins) { if (ins.kind === "pasture") baa(pan); else tap(pan); setWho(null); return setPlace(ins); }
               setPlace(null);
             }
