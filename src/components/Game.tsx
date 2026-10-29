@@ -132,6 +132,16 @@ export function Game() {
     ro.observe(el); return () => ro.disconnect();
   }, []);
   const [encOpen, setEncOpen] = useState(false);
+  // "watching": the tab has been visible for WATCH_MS without interruption; encounters reward watching
+  const [watching, setWatching] = useState(false);
+  useEffect(() => {
+    const WATCH_MS = 3 * 60000;
+    let id: ReturnType<typeof setTimeout> | undefined;
+    const arm = () => { clearTimeout(id); setWatching(false); if (document.visibilityState === "visible") id = setTimeout(() => setWatching(true), WATCH_MS); };
+    arm();
+    document.addEventListener("visibilitychange", arm);
+    return () => { clearTimeout(id); document.removeEventListener("visibilitychange", arm); };
+  }, []);
   const [snooze, setSnooze] = useState<Partial<Record<DecisionKind, number>>>({});
   const [roadPick, setRoadPick] = useState<string | null>(null);
   const [charterPick, setCharterPick] = useState<CharterPath | null>(null);
@@ -843,7 +853,8 @@ export function Game() {
     road: owner && !myRoad && !links(seeds).some((l) => l.a.id === my!.id || l.b.id === my!.id) && roadCandidates(my!, seeds).length > 0,
     charter: owner && !myCharter && charterReady(my!.created_at, now),
     pact: owner && !!pactPartner,
-    encounter: owner && !!pendingEncounter(my!, my!.decisions ?? [], now),
+    // visitors only come while someone watches: the tab must have been open and visible for a few minutes
+    encounter: owner && watching && !!pendingEncounter(my!, my!.decisions ?? [], now),
   }, (k) => (snooze[k] ?? 0) > now);
   const anyOpen = roadOpen || charterOpen || encOpen || pactOpen;
   const sealShown = !anyOpen && !decision.open && decision.due.length > 0;

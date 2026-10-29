@@ -27,3 +27,4 @@
 - Mayor's seat: SEAT_KINDS landmarks share one reserved tile in LANDMARKS (world.ts) and swap by era (seat1 -> seat2 -> seat3 -> townhall); the mayor's home/work derive from it in people.ts — never stored.
 - Mayor titles (Amt & Würden) are purchase rows title1..3 checked by the DB purchase_guard (charter, age, guild rank, previous title); title, bonuses and avatar insignia derive via titleOf/titleBoons/titleOfSeed in economy.ts — no separate title state.
 - Stroll mode (driveMayor in people.ts): direct mayor steering is local-only like commandMayor, never stored; Game.tsx hides the HUD and the camera follows the mayor; leaving clears the steering.
+- Encounters (encounters.ts): at most one open at a time — first after 3 min, then encounterGap(age) hours since the last decision (mirrored by DB encounter_guard); Game.tsx only offers it after the tab has been visible for 3 min, so encounters reward watching and never pile up.
