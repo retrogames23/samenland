@@ -73,7 +73,7 @@ import {
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
-import { DICT, LANGS, LANG_LABEL, LOCALE, plantError, type Lang } from "@/game/i18n";
+import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { ITEMS, GUILD, canBuy, dailyTax, attributes, treasury, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
@@ -151,6 +151,10 @@ export function Game() {
   const [lang, setLang] = useState<Lang>("de");
   const t = DICT[lang];
   useEffect(() => { document.title = t.docTitle; }, [t]);
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = RTL[lang] ? "rtl" : "ltr";
+  }, [lang]);
   const mine = seeds.find((s) => userId && s.user_id === userId)?.id ?? null;
   const [auth, setAuth] = useState({ email: "", password: "", signup: false });
   const [mode, setMode] = useState<Mode>("look");
@@ -640,7 +644,6 @@ export function Game() {
   const switchLang = (l: Lang) => {
     setLang(l);
     localStorage.setItem("samenland-lang", l);
-    document.documentElement.lang = l;
   };
   const emailAuth = async () => {
     setMsg(null);
@@ -1240,11 +1243,15 @@ export function Game() {
           </div>
         </Panel>
         {settings && (
-          <Panel className="absolute right-0 top-full mt-2 w-56" inner="space-y-2 p-3 text-sm">
+          <Panel className="absolute right-0 top-full mt-2 w-64" inner="space-y-2 p-3 text-sm">
             <div className="text-xs text-muted-foreground">{t.hud.language}</div>
-            <div className="flex gap-1">
+            <div className="grid grid-cols-2 gap-1" role="radiogroup" aria-label={t.hud.language}>
               {LANGS.map((l) => (
-                <button key={l} className={`flex-1 rounded px-1 py-1 ${lang === l ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => switchLang(l)}>{LANG_LABEL[l]}</button>
+                <button key={l} type="button" role="radio" aria-checked={lang === l} lang={l} dir={RTL[l] ? "rtl" : "ltr"} onClick={() => switchLang(l)}
+                  className={`flex items-center gap-1.5 rounded-md border px-1.5 py-1 text-start ${lang === l ? "border-primary bg-accent text-foreground shadow-sm" : "border-transparent hover:bg-accent/50"}`}>
+                  <span className={`grid h-5 min-w-6 place-items-center rounded px-1 text-[10px] font-bold ${lang === l ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{LANG_LABEL[l]}</span>
+                  <span className="truncate text-xs">{LANG_NAME[l]}</span>
+                </button>
               ))}
             </div>
             {isAdmin && (<>

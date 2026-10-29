@@ -25,8 +25,8 @@
   --color-wax: var(--wax);
   --color-wax-shine: var(--wax-shine);
   --color-wax-edge: var(--wax-edge);
-  --font-display: 'Caveat', cursive;
-  --font-sans: 'Nunito', system-ui, 'PingFang SC', 'Hiragino Sans', 'Microsoft YaHei', 'Yu Gothic', 'Noto Sans CJK SC', sans-serif;
+  --font-display: 'Caveat', 'Noto Naskh Arabic', 'Noto Sans Devanagari', cursive;
+  --font-sans: 'Nunito', system-ui, 'PingFang SC', 'Hiragino Sans', 'Microsoft YaHei', 'Yu Gothic', 'Noto Sans CJK SC', 'Noto Sans Devanagari', 'Noto Naskh Arabic', 'Geeza Pro', 'Segoe UI', sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
