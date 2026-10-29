@@ -86,6 +86,7 @@ import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { firstFreeSite, placeTap } from "@/game/placement";
 
 type Mode = "look" | "seed" | "tree" | "flower" | "lantern";
 
@@ -169,6 +170,10 @@ export function Game() {
   const [mode, setMode] = useState<Mode>("look");
   const [placing, setPlacing] = useState<string | null>(null);
   const [hover, setHover] = useState<[number, number] | null>(null);
+  // touch placement: the preview sits on its own tile until the player confirms
+  const [ghost, setGhost] = useState<[number, number] | null>(null);
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => { const m = window.matchMedia("(pointer: coarse)"); const on = () => setCoarse(m.matches); on(); m.addEventListener("change", on); return () => m.removeEventListener("change", on); }, []);
   const [form, setForm] = useState({ name: "", owner: "", gender: "d" });
   // a ready-made cozy name lowers the founding hurdle (set after hydration, so SSR stays stable)
   useEffect(() => { const n = ["Lindenau","Haselbrunn","Kornwiese","Mühlbach","Eichenhain","Birkental","Wiesengrund","Hopfenau"]; setForm((f) => (f.name ? f : { ...f, name: n[Math.floor(Math.random() * n.length)] ?? "Lindenau" })); }, []);
@@ -214,10 +219,11 @@ export function Game() {
   // start over the settled heartland, never the empty ocean at tile (0,0)
   const cam = useRef<Camera>((() => { const [x, y] = iso(500, 500); return { x, y, zoom: 2.6 }; })());
   const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
-  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null });
+  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, ghost: null as [number, number] | null });
   st.current.seeds = seeds;
   st.current.hover = hover;
   st.current.placing = placing;
+  st.current.ghost = ghost;
   st.current.mode = mode;
   st.current.mine = mine;
   st.current.plantings = new Map(plantings.map((p) => [`${p.x},${p.y}`, p]));
@@ -527,10 +533,11 @@ export function Game() {
         ctx.restore();
       }
       const own = s.seeds.find((x) => x.id === s.mine);
-      if (s.placing && h && own) {
+      const gh = s.ghost ?? h;
+      if (s.placing && gh && own) {
         // SimCity-style ghost: the building floats over the tile, tinted by whether it may stand there
-        const good = canPlaceSpecial(s.placing, h[0], h[1], own, s.seeds, clock()) === null;
-        const z = c.zoom * dpr.current, [gx, gy] = iso(h[0], h[1]);
+        const good = canPlaceSpecial(s.placing, gh[0], gh[1], own, s.seeds, clock()) === null;
+        const z = c.zoom * dpr.current, [gx, gy] = iso(gh[0], gh[1]);
         ctx.save();
         ctx.setTransform(z, 0, 0, z, cv.width / 2 - c.x * z, cv.height / 2 - c.y * z);
         ctx.beginPath(); ctx.moveTo(gx, gy - 8); ctx.lineTo(gx + 16, gy); ctx.lineTo(gx, gy + 8); ctx.lineTo(gx - 16, gy); ctx.closePath();
@@ -627,7 +634,7 @@ export function Game() {
       number,
     ];
   };
-  const drag = useRef<{ x: number; y: number; moved: boolean; t0?: number; touch?: boolean; sx?: number; sy?: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; moved: boolean; t0?: number; touch?: boolean; sx?: number; sy?: number; ghost?: boolean } | null>(null);
   // inertia: screen px/ms of the last drag; decays in the pan loop
   const fling = useRef({ vx: 0, vy: 0, t: 0 });
   const lastTap = useRef({ t: 0, x: 0, y: 0 });
@@ -638,7 +645,7 @@ export function Game() {
   const personAt = (e: { clientX: number; clientY: number }): Person | null => {
     const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
     const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
-    let best: Person | null = null, bd = Math.max(3, 16 / c.zoom);
+    let best: Person | null = null, bd = Math.max(3, (coarse ? 26 : 16) / c.zoom);
     for (const f of lastPeople) { const dd = Math.hypot(f.x - wx, f.y - 2.5 - wy); if (dd < bd) { bd = dd; best = f.q.p; } }
     return best;
   };
@@ -1005,6 +1012,13 @@ export function Game() {
     tap();
     if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
   };
+  useEffect(() => {
+    if (!placing || !coarse) { setGhost(null); return; }
+    const own = seeds.find((x) => x.id === mine); if (!own) return;
+    const g = firstFreeSite(placing, own, seeds, clock()) ?? [own.x, own.y];
+    setGhost(g); focus(g[0], g[1]); target.current = { ...target.current, zoom: Math.max(target.current.zoom, 6) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placing, coarse]);
   const zoomBy = (f: number) => {
     const cv = canvasRef.current!;
     target.current = { zoom: Math.min(12, Math.max(MIN_ZOOM, target.current.zoom * f)), ax: cv.width / 2, ay: cv.height / 2 };
@@ -1315,6 +1329,7 @@ export function Game() {
           if (touches.current.size >= 2) { pinch.current = null; if (drag.current) drag.current.moved = true; return; }
           fling.current = { vx: 0, vy: 0, t: performance.now() };
           drag.current = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, t0: performance.now(), touch: e.pointerType !== "mouse" };
+          { const g = st.current.ghost; if (st.current.placing && g && e.pointerType !== "mouse") { const [tx, ty] = tileAt(e); if (Math.abs(tx - g[0]) <= 1 && Math.abs(ty - g[1]) <= 1) drag.current.ghost = true; } }
         }}
         onPointerMove={(e) => {
           const tp = touches.current;
@@ -1343,7 +1358,11 @@ export function Game() {
               dy = e.clientY - d.y;
             const lim = d.touch ? 10 : 3;
             if (!d.moved && Math.abs(e.clientX - (d.sx ?? d.x)) + Math.abs(e.clientY - (d.sy ?? d.y)) > lim) d.moved = true;
-            if (d.moved) {
+            if (d.moved && d.ghost) {
+              const nt = tileAt(e), g = st.current.ghost;
+              if (!g || g[0] !== nt[0] || g[1] !== nt[1]) { st.current.ghost = nt; setGhost(nt); }
+              d.x = e.clientX; d.y = e.clientY;
+            } else if (d.moved) {
               cam.current.x -= dx / cam.current.zoom;
               cam.current.y -= dy / cam.current.zoom;
               const nowT = performance.now(), f = fling.current, el = Math.max(1, nowT - f.t);
@@ -1381,7 +1400,9 @@ export function Game() {
           const d = drag.current;
           drag.current = null;
           const nowT = performance.now();
+          if (d?.ghost) { fling.current = { vx: 0, vy: 0, t: nowT }; if (d.moved) return; }
           if (d?.moved && nowT - fling.current.t > 80) fling.current = { vx: 0, vy: 0, t: nowT }; // held still before release: no glide
+          if (d && !d.moved && placing && placeTap(!!d.touch) === "move") { const g = tileAt(e); st.current.ghost = g; setGhost(g); return; }
           if (d && !d.moved && d.touch && d.t0 != null && nowT - d.t0 > 350) return; // long press is not a tap
           if (d && !d.moved && d.touch && !placing && mode === "look") {
             const lt = lastTap.current;
@@ -1982,14 +2003,39 @@ export function Game() {
       )}
 
       <div className="pointer-events-none absolute bottom-20 left-2 right-2 z-20 flex flex-col items-end space-y-2 text-sm md:bottom-52 md:left-auto md:right-3 md:w-80">
-        {placing && (
+        {placing && coarse && ghost && (() => {
+          const own = seeds.find((s) => s.id === mine);
+          const err = own ? canPlaceSpecial(placing, ghost[0], ghost[1], own, seeds, clock()) as keyof typeof t.place | null : "ground";
+          const nudge = (dx: number, dy: number) => { const g: [number, number] = [ghost[0] + dx, ghost[1] + dy]; setGhost(g); focus(g[0], g[1]); };
+          const price = MONUMENT_PRICE[placing] ?? ITEMS[placing as Item];
+          return (
+            <div className="pointer-events-auto w-full space-y-2 rounded-md border-2 border-wood bg-card p-2 text-foreground shadow-[var(--shadow-panel)]" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
+              <div className="flex items-center gap-2">
+                {spriteUrl(SPECIAL_KIND[placing]!) && <img src={spriteUrl(SPECIAL_KIND[placing]!)} alt="" className="h-10 w-10 shrink-0 object-contain" />}
+                <div className="min-w-0 flex-1 text-xs"><div className="truncate font-semibold">{t.items[placing]![0]}</div>
+                  <div className={err ? "text-destructive" : "text-primary"}>{err ? `✕ ${(t.place[err] as string) ?? t.place.ground}` : `✓ ${t.place.drag}`}</div></div>
+                <div className="grid shrink-0 grid-cols-3 gap-0.5">
+                  <span /><Button size="icon" variant="secondary" className="h-9 w-9" aria-label="↑" onClick={() => nudge(-1, -1)}>↑</Button><span />
+                  <Button size="icon" variant="secondary" className="h-9 w-9" aria-label="←" onClick={() => nudge(-1, 1)}>←</Button><span />
+                  <Button size="icon" variant="secondary" className="h-9 w-9" aria-label="→" onClick={() => nudge(1, -1)}>→</Button>
+                  <span /><Button size="icon" variant="secondary" className="h-9 w-9" aria-label="↓" onClick={() => nudge(1, 1)}>↓</Button><span />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="secondary" className="h-11 flex-1" onClick={() => { setPlacing(null); setMsg(null); }}>{t.cancel}</Button>
+                <Button className="h-11 flex-[2]" disabled={!!err || cash < price} onClick={() => buy(placing, ghost[0], ghost[1])}>{t.place.here} · {t.taler(price)}</Button>
+              </div>
+            </div>
+          );
+        })()}
+        {placing && !(coarse && ghost) && (
           <div className="pointer-events-auto flex w-full max-w-xs items-center gap-2 rounded-md border-2 border-wood bg-card px-3 py-2 text-foreground shadow-[var(--shadow-panel)]">
             {spriteUrl(SPECIAL_KIND[placing]!) && <img src={spriteUrl(SPECIAL_KIND[placing]!)} alt="" className="h-10 w-10 object-contain" />}
             <div className="flex-1 text-xs"><div className="font-semibold">{t.items[placing]![0]} · {t.taler(MONUMENT_PRICE[placing] ?? ITEMS[placing as Item])}</div>{t.place.hint}</div>
             <Button size="sm" variant="secondary" onClick={() => { setPlacing(null); setMsg(null); }}>{t.cancel}</Button>
           </div>
         )}
-        {placing && hover && ptr && (() => {
+        {placing && !coarse && hover && ptr && (() => {
           const own = seeds.find((s) => s.id === mine);
           if (!own) return null;
           const err = canPlaceSpecial(placing, hover[0], hover[1], own, seeds, clock()) as keyof typeof t.place | null;
