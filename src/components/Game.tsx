@@ -854,7 +854,7 @@ export function Game() {
     if (e.code === "twin") return [t.fest.twin[0], t.fest.twin[1](e.other)];
     if (e.code === "letter") return [t.post.arrived(e.other), bodies[e.id] ? `„${bodies[e.id]}“` : t.post.sealed];
     if (e.code === "stage") return [t.fest.stage[0], t.fest.stage[1](t.stages[e.stage] ?? "")];
-    const name = e.code === "built" || e.code === "house" ? (t.kind[e.kind] ?? e.kind) : e.code === "bought" ? (t.items[e.item]?.[0] ?? e.item) : chronLine(e);
+    const name = e.code === "built" ? (t.kind[e.kind] ?? e.kind) : e.code === "bought" ? (t.items[e.item]?.[0] ?? e.item) : chronLine(e);
     return [t.fest.built[0], t.fest.built[1](name)];
   };
   function openChron() {
