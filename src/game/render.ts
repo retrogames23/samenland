@@ -340,7 +340,7 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
-    if (s.kind === "lodge") drawDeer(c, cx, cy, sd);
+    if (s.kind === "lodge") drawHunt(c, cx, cy, sd);
     if (s.fire) drawFire(c, cx, cy, t, sd, L);
     if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour()) || (isHomeKind(s.kind) && sickLit(x, y)))) {
       L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip } });
@@ -585,6 +585,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   return [X, Y - hgt - bob];
 }
 function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
+  if (q.p.job === "hunter" && q.working) return; // shown by the hunt scene at the lodge
   // workers sharing one site door stand apart instead of stacking (stable per person)
   if (q.working) { const a = hash(q.p.id, 911, 3) * 6.283; X += Math.cos(a) * 3.2; Y += Math.sin(a) * 1.6; }
   // walkers keep a stable lane beside the path centre, so people on the same route walk side by side, not stacked
