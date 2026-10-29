@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
-import { townOf, poseOf, kinOf, type Person } from "@/game/people";
+import { townOf, poseOf, kinOf, commandMayor, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { weddingJoy, DOWRY } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
@@ -1397,6 +1397,10 @@ export function Game() {
               const ins = inspectAt(tx, ty, seeds, clock());
               if (ins) { if (ins.kind === "pasture") baa(pan); else tap(pan); setWho(null); return setPlace(ins); }
               setPlace(null);
+              // an empty tile in your own village: send your mayor there
+              { const my = seeds.find((x) => x.id === mine);
+                if (my && !who && !place) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor");
+                  if (me && tx >= tw.x0 && tx <= tw.x1 && ty >= tw.y0 && ty <= tw.y1 && commandMayor(me, tw, seeds, nw, [tx, ty])) { tap(pan); return; } } }
             }
             const [x, y] = tileAt(e);
             onClick(x, y);
