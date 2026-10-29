@@ -771,9 +771,11 @@ export function Game() {
       </div>
       {tab === "build" && my && at && (
         <div className="space-y-2">
-          <div className="rounded-md border border-brass/60 bg-brass/15 p-2 text-xs">
-            {myCharter ? <><b>{PATH_ICON[myCharter]} {t.charter.paths[myCharter]![0]}:</b> {t.charter.bonus[myCharter]}</> : t.charter.guildLocked}
-          </div>
+          {myCharter && (
+            <div className="rounded-md border border-brass/60 bg-brass/15 p-2 text-xs">
+              <b>{PATH_ICON[myCharter]} {t.charter.paths[myCharter]![0]}:</b> {t.charter.bonus[myCharter]}
+            </div>
+          )}
           {(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && !at.has(it) && (ITEM_STAGE[it] ?? 0) <= myStage)
             .sort((a, b) => ITEMS[a] - ITEMS[b])
             .map((it) => {
