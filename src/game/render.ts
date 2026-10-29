@@ -1783,6 +1783,17 @@ export function draw(
       for (const it of items) {
         if (it.sh) { const m = it.sh.m; drawSheep(c, it.x, it.y, m.flip, t + it.sh.k * 1700, m.walking, m.graze, m.sleeping); continue; }
         const q = it.q!, px = it.x, py = it.y;
+        // golden glow under the player's own strolling mayor so he is easy to spot anywhere
+        if (steer && q.p.role === "mayor" && q.act === "stroll" && q.p.seed.id === steer.sid) {
+          const pu = 1 + Math.sin(t / 420) * 0.1;
+          c.save();
+          const g = c.createRadialGradient(px, py, 0.5, px, py, 9 * pu);
+          g.addColorStop(0, "rgba(255,214,120,0.55)"); g.addColorStop(0.55, "rgba(243,210,122,0.28)"); g.addColorStop(1, "rgba(243,210,122,0)");
+          c.fillStyle = g; c.beginPath(); c.ellipse(px, py, 9 * pu, 4.5 * pu, 0, 0, 7); c.fill();
+          c.strokeStyle = "rgba(217,165,32,0.8)"; c.lineWidth = 0.7;
+          c.beginPath(); c.ellipse(px, py, 6.5 * pu, 3.2 * pu, 0, 0, 7); c.stroke();
+          c.restore();
+        }
         const pk = `${q.p.seed.id}:${q.p.id}`, sel = peopleFocus.sel === pk, hov = peopleFocus.hover === pk;
         if (sel || hov) {
           const pulse = 0.5 + Math.sin(t / 300) * 0.15;
