@@ -24,3 +24,4 @@
 - Guild ranks (Geselle/Meister) are purchase rows rank2/rank3 checked by the DB purchase_guard (age, guild building, belfry, finished roads); rank and bonuses are derived via rankOf/rankBoons in economy.ts — no separate rank state.
 - Prestige monuments are defined once in MONUMENT_DEFS (world.ts: kind, step count) and MONUMENTS (economy.ts: stage, prices, bonuses); steps are purchase rows `<key><n>` checked by the DB purchase_guard and progress is derived via monumentProgress — add a monument there plus guard prices, never as a growth landmark.
 - Player mayor steering (commandMayor/orderPose in people.ts) is local-only, never stored: other clients keep seeing the derived routine; the order expires ORDER_IDLE s after arrival.
+- Mayor's seat: SEAT_KINDS landmarks share one reserved tile in LANDMARKS (world.ts) and swap by era (seat1 -> seat2 -> seat3 -> townhall); the mayor's home/work derive from it in people.ts — never stored.
