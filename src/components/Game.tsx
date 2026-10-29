@@ -1890,7 +1890,7 @@ export function Game() {
       )}
 
       {owner && quest && !settings && !chronOpen && (
-        <div className={`absolute right-2 z-30 md:right-16 md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
+        <div className={`absolute right-16 z-30 max-w-[calc(100vw-5rem)] md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
           <div className="parchment px-3 py-2 text-sm text-ink shadow">
             <button type="button" onClick={() => setQuestFold((f) => !f)} className="flex w-full items-center justify-between gap-2 text-left">
               <span className="font-display text-lg leading-none">{t.quests.card}</span>
