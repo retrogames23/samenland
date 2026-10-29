@@ -179,7 +179,7 @@ export function Game() {
   const [auth, setAuth] = useState({ email: "", password: "", signup: false });
   const [mode, setMode] = useState<Mode>("look");
   const [placing, setPlacing] = useState<string | null>(null);
-  const [hover, setHover] = useState<[number, number] | null>(null);
+  // hovered tile lives only in st.current (canvas reads it); no React state, so pointer moves never re-render the HUD
   // touch placement: the preview sits on its own tile until the player confirms
   const [ghost, setGhost] = useState<[number, number] | null>(null);
   const [coarse, setCoarse] = useState(false);
@@ -229,9 +229,8 @@ export function Game() {
   // start over the settled heartland, never the empty ocean at tile (0,0)
   const cam = useRef<Camera>((() => { const [x, y] = iso(500, 500); return { x, y, zoom: 2.6 }; })());
   const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
-  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, ghost: null as [number, number] | null });
+  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover: null as [number, number] | null, mode, mine, placing: null as string | null, ghost: null as [number, number] | null });
   st.current.seeds = seeds;
-  st.current.hover = hover;
   st.current.placing = placing;
   st.current.ghost = ghost;
   st.current.mode = mode;
@@ -482,14 +481,18 @@ export function Game() {
     const ctx = cv.getContext("2d")!;
     let raf = 0;
     const resize = () => {
-      dpr.current = window.devicePixelRatio || 1;
+      // phones: cap pixel density at 2 – DPR 3 screens otherwise push ~2.25x the pixels for no visible gain
+      const touch = window.matchMedia("(pointer: coarse)").matches;
+      dpr.current = Math.min(window.devicePixelRatio || 1, touch ? 2 : 3);
       cv.width = Math.ceil(cv.clientWidth * dpr.current);
       cv.height = Math.ceil(cv.clientHeight * dpr.current);
     };
     resize();
     window.addEventListener("resize", resize);
     let lastScene = 0;
+    let panStep = () => {};
     const loop = () => {
+      panStep(); // keyboard pan + fling share the draw frame (one rAF loop)
       const c = cam.current,
         tg = target.current;
       if (Math.abs(tg.zoom - c.zoom) > 0.0005) {
@@ -600,8 +603,8 @@ export function Game() {
     };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
     const onBlur = () => keys.clear();
-    let panRaf = 0, lastPan = performance.now();
-    const pan = () => {
+    let lastPan = performance.now();
+    panStep = () => {
       const now = performance.now(), dt = Math.min(50, now - lastPan); lastPan = now;
       if (keys.size) {
         let dx = 0, dy = 0;
@@ -616,15 +619,12 @@ export function Game() {
         f.vx *= k; f.vy *= k;
         if (Math.hypot(f.vx, f.vy) < 0.01) { f.vx = 0; f.vy = 0; }
       }
-      panRaf = requestAnimationFrame(pan);
     };
-    panRaf = requestAnimationFrame(pan);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", onBlur);
     return () => {
       cancelAnimationFrame(raf);
-      cancelAnimationFrame(panRaf);
       window.removeEventListener("resize", resize);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
@@ -697,7 +697,7 @@ export function Game() {
     // whatever the outcome, the seed is no longer held in the hand
     setPlantAsk(null);
     setPtr(null);
-    setHover(null);
+    st.current.hover = null;
     setMode("look");
     if (error?.code === "23505") { setTab(null); return setMsg(t.alreadyHave); }
     if (error || !data) return setMsg(t.plantFail);
@@ -1386,7 +1386,7 @@ export function Game() {
           }
           if (!drag.current?.moved) {
             const nt = tileAt(e), ph = st.current.hover;
-            if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) { st.current.hover = nt; setHover(nt); }
+            if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) { st.current.hover = nt; }
           }
           if (mode === "seed" || placing) {
             ptrRef.current = [e.clientX, e.clientY];
@@ -1464,7 +1464,7 @@ export function Game() {
             onClick(x, y);
           }
         }}
-        onPointerLeave={() => setHover(null)}
+        onPointerLeave={() => st.current.hover = null}
       />
       {/* top bar */}
       <div ref={barRef} className="pointer-events-none absolute inset-x-2 top-2 z-30 md:inset-x-3 md:top-3">
