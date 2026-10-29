@@ -130,6 +130,7 @@ export function Game() {
   const [home, setHome] = useState<Seed | null>(null);
   const [lang, setLang] = useState<Lang>("de");
   const t = DICT[lang];
+  useEffect(() => { document.title = t.docTitle; }, [t]);
   const mine = seeds.find((s) => userId && s.user_id === userId)?.id ?? null;
   const [auth, setAuth] = useState({ email: "", password: "", signup: false });
   const [mode, setMode] = useState<Mode>("look");
