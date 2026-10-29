@@ -45,7 +45,7 @@ export const grainCap = (byKind: Map<Kind, unknown[]>) =>
   GRAIN_BASE + GRAIN_PER_MILL * ((byKind.get("mill")?.length ?? 0) + (byKind.get("watermill")?.length ?? 0)) + GRAIN_PER_GRANARY * (byKind.get("granary")?.length ?? 0);
 export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   const t = townOf(s, seeds, now);
-  const key = `${s.id}|${t.now}|${Math.floor(now / 60000)}`;
+  const key = `${s.id}|${(s.bought ?? []).length}|${t.now}|${Math.floor(now / 60000)}`;
   const hit = cache.get(key);
   if (hit) return hit;
   if (cache.size > 40) cache.clear();
@@ -86,7 +86,7 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   if (need > 0) add(used, "grain", Math.min(need, Math.max(0, (made.get("grain") ?? 0) - (used.get("grain") ?? 0))));
   add(used, "herbs", Math.min(made.get("herbs") ?? 0, t.people.filter((p) => p.sick).length));
   const h = worldHour(now), done = workDone(h), eaten = Math.min(1, Math.max(0, (h - 6) / 15));
-  const cap = grainCap(byKind);
+  const cap = grainCap(byKind) + (s.charter?.path === "farm" && (s.bought ?? []).some((b) => b.item === "rank2") ? 40 : 0);
   const flows: Flow[] = [];
   for (const w of WARES) {
     const m = made.get(w) ?? 0, u = used.get(w) ?? 0;
