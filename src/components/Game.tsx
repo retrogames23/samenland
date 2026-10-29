@@ -78,7 +78,7 @@ const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", cult
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
-import { ITEMS, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
+import { ITEMS, MONUMENT_PRICE, MONUMENT_STAGE, nextMonumentStep, type MonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -165,7 +165,7 @@ export function Game() {
   const mine = seeds.find((s) => userId && s.user_id === userId)?.id ?? null;
   const [auth, setAuth] = useState({ email: "", password: "", signup: false });
   const [mode, setMode] = useState<Mode>("look");
-  const [placing, setPlacing] = useState<Item | null>(null);
+  const [placing, setPlacing] = useState<Item | "belfry1" | null>(null);
   const [hover, setHover] = useState<[number, number] | null>(null);
   const [form, setForm] = useState({ name: "", owner: "", gender: "d" });
   // a ready-made cozy name lowers the founding hurdle (set after hydration, so SSR stays stable)
@@ -212,7 +212,7 @@ export function Game() {
   // start over the settled heartland, never the empty ocean at tile (0,0)
   const cam = useRef<Camera>((() => { const [x, y] = iso(500, 500); return { x, y, zoom: 2.6 }; })());
   const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
-  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as Item | null });
+  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as Item | "belfry1" | null });
   st.current.seeds = seeds;
   st.current.hover = hover;
   st.current.placing = placing;
@@ -985,12 +985,14 @@ export function Game() {
     setSigns((s) => [...s.filter((x) => x.id !== data.id), data as Signpost]);
     setMsg(t.signSaved);
   };
-  const buy = async (item: Item, x: number, y: number) => {
+  const buy = async (item: Item | MonumentStep, x?: number, y?: number) => {
     if (!my) return;
-    const err = canPlaceSpecial(item, x, y, my, seeds, clock());
-    if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore"]);
+    if (x != null && y != null) {
+      const err = canPlaceSpecial(item, x, y, my, seeds, clock());
+      if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore"]);
+    }
     setPlacing(null);
-    const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x, y }).select("id, seed_id, item, cost, created_at, x, y").single();
+    const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) return setMsg(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
     setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
     tap();
@@ -1060,6 +1062,36 @@ export function Game() {
               </div>
             );
           })}
+          {my && myStage >= MONUMENT_STAGE && (() => {
+            const paid = purchases.filter((p) => p.seed_id === my.id && p.item.startsWith("belfry"));
+            const next = nextMonumentStep(paid.map((p) => p.item));
+            const prog = monumentProgress(my, now), n = MONUMENT_STEPS.length, i = paid.length;
+            const last = Math.max(0, ...paid.map((p) => Date.parse(p.created_at)));
+            const ready = i === 0 || (prog >= i / n && now - last >= 3 * 3600000);
+            const waitH = Math.max(Math.ceil((last + 3 * 3600000 - now) / 3.6e6), Math.ceil(((i / n - prog) * n * specialBuild(my)) / 3.6e6));
+            return (
+              <div className="rounded-md border border-brass/60 bg-brass/10 p-2">
+                <div className="flex items-center gap-2">
+                  {spriteUrl("belfry") && <img src={spriteUrl("belfry")} alt="" loading="lazy" className="h-14 w-10 shrink-0 object-contain drop-shadow" />}
+                  <span className="flex-1 font-semibold">{t.monument.title}</span>
+                  {next && <span className="text-xs text-muted-foreground">{t.taler(MONUMENT_PRICE[next])}</span>}
+                </div>
+                <div className="text-xs text-muted-foreground">{t.items.belfry1![1]}</div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded bg-ink/15"><div className="h-full bg-brass" style={{ width: `${100 * prog}%` }} /></div>
+                <ol className="mt-1 space-y-0.5 text-xs">
+                  {t.monument.steps.map((name, k) => <li key={k} className={k < i ? "text-primary" : k === i ? "font-semibold" : "opacity-60"}>{k < i ? "✓" : `${k + 1}.`} {name}</li>)}
+                </ol>
+                <div className="mt-1.5">
+                  {!next ? <span className="text-xs font-semibold text-primary">{prog >= 1 ? t.monument.done : t.monument.building}</span>
+                    : !ready ? <span className="text-xs text-muted-foreground">{t.monument.wait(Math.max(1, waitH))}</span>
+                    : <Button size="sm" className="h-7 w-full" disabled={cash < MONUMENT_PRICE[next]} onClick={() => {
+                        if (next === "belfry1") { setPlacing("belfry1"); setTab(null); setMsg(t.place.pick(t.items.belfry1![0])); focus(my.x, my.y); }
+                        else void buy(next);
+                      }}>{t.monument.step(i + 1, n)} · {t.monument.pay}</Button>}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
       {tab === "rituals" && my && (() => {
@@ -1897,7 +1929,7 @@ export function Game() {
         {placing && (
           <div className="pointer-events-auto flex w-full max-w-xs items-center gap-2 rounded-md border-2 border-wood bg-card px-3 py-2 text-foreground shadow-[var(--shadow-panel)]">
             {spriteUrl(SPECIAL_KIND[placing]!) && <img src={spriteUrl(SPECIAL_KIND[placing]!)} alt="" className="h-10 w-10 object-contain" />}
-            <div className="flex-1 text-xs"><div className="font-semibold">{t.items[placing]![0]} · {t.taler(ITEMS[placing])}</div>{t.place.hint}</div>
+            <div className="flex-1 text-xs"><div className="font-semibold">{t.items[placing]![0]} · {t.taler(placing === "belfry1" ? MONUMENT_PRICE.belfry1 : ITEMS[placing])}</div>{t.place.hint}</div>
             <Button size="sm" variant="secondary" onClick={() => { setPlacing(null); setMsg(null); }}>{t.cancel}</Button>
           </div>
         )}
