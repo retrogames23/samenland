@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stageOf, radiusOf, birthAt, structureAt, terrain, buildable, waterNearby, links, type Seed, type Kind } from "./world";
+import { stageOf, radiusOf, birthAt, structureAt, landmarkSpots, LANDMARKS, terrain, buildable, waterNearby, links, type Seed, type Kind } from "./world";
 import { seasonAt } from "./season";
 const now = Date.UTC(2026,6,15,12);
 function seed(h: number, x=512, y=512, id="pacing"): Seed { return {id,x,y,name:"Test",owner:"Test",hue:90,created_at:new Date(now-h*3600000).toISOString()}; }
