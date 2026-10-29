@@ -68,6 +68,7 @@ import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/en
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 type Mode = "look" | "seed" | "tree" | "flower" | "lantern";
 
