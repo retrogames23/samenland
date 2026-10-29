@@ -147,7 +147,7 @@ export const fr: Dict = {
   buy: "Acheter",
   owned: "bâti",
   bought: (n) => `${n} fait désormais partie du village.`,
-  place: { pick: (n) => `Choisissez un emplacement pour : ${n}`, hint: "Vert = vous pouvez bâtir ici. Touchez pour poser la première pierre.", far: "Trop loin de votre village.", ground: "On ne saurait bâtir sur ce sol.", taken: "Quelque chose se dresse déjà ici.", shore: "La cabane de pêcheur doit border l'eau." },
+  place: { pick: (n) => `Choisissez un emplacement pour : ${n}`, hint: "Vert = vous pouvez bâtir ici. Touchez pour poser la première pierre.", far: "Trop loin de votre village.", ground: "On ne saurait bâtir sur ce sol.", taken: "Quelque chose se dresse déjà ici.", shore: "La cabane de pêcheur doit border l'eau.", here: "Bâtir ici", drag: "Touchez ou faites glisser l’aperçu, puis confirmez." },
   poor: "Point assez de deniers pour l'instant.",
   docTitle: "Samenland Village Sim – Semez une graine. Regardez-la grandir.",
   buyFail: "L'acquisition a été refusée – veuillez réessayer.",
