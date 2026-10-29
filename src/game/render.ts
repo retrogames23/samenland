@@ -7,7 +7,7 @@ import gullUrl from "@/assets/sprites/gull.webp";
 import crowUrl from "@/assets/sprites/crow.webp";
 import { worldHour, clock } from "./time";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
-import { huntScene, huntGrounds } from "./wildlife";
+import { huntScene, lodgeDens, denOk, denBeast, denFate, startle, DEN_R, type Den, type Beast } from "./wildlife";
 import { roadMotion, screenFacing } from "./motion";
 import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
 import { houseLit, candleFlicker } from "./night";
@@ -294,19 +294,6 @@ function drawBeast(c: C, walkIm: HTMLImageElement, standIm: HTMLImageElement | n
     sheetFrame(c, walkIm, f, X, Y - bob, h, flip, 0, alpha);
   } else sheetFrame(c, standIm, idle, X, Y, h, flip, 0, alpha);
 }
-/** Free wildlife: a few forest tiles hold a roe deer or wild boar that grazes, steps and roots – daytime only, no hunter needed. */
-function drawWild(c: C, x: number, y: number, cx: number, cy: number) {
-  if (terrain(x, y) !== "forest" || hash(x, y, 311) > 0.012) return;
-  const hr = localHour(); if (hr < 5.5 || hr > 20.5) return;
-  const boar = hash(x, y, 312) < 0.35, n = renderNow + hash(x, y, 313) * 9e5;
-  const walk = boar ? huntIm("bw", boarWalkUrl) : huntIm("dw", deerWalkUrl), stand = boar ? null : huntIm("dg", deerGrazeUrl);
-  if (!walk) return;
-  const g = n / 60000 / (5 + hash(x, y, 314) * 3), drift = Math.sin(g) * 4, moving = Math.abs(Math.cos(g)) > 0.75 ? 1 : 0;
-  const X = cx + drift, Y = cy + Math.sin(g * 0.6) * 1.5, flip = Math.cos(g) < 0, h = boar ? 4.4 : 6.2;
-  if (boar && !moving) { shadow(c, X, Y, h * 0.5); sheetFrame(c, walk, 3, X, Y - (Math.floor(n / 500) & 1) * 0.08, h, flip); return; }
-  const idle = Math.floor(n / 1500) % 8 < 5 ? (Math.floor(n / 650) & 1) : 2;
-  drawBeast(c, walk, stand, X, Y, h, flip, moving, n / 400 + drift, idle);
-}
 /** Hens around the coop: short trots, pecking, looking up; they roost inside at night. */
 function drawHens(c: C, cx: number, cy: number, sd: number) {
   const im = huntIm("hen", henUrl); if (!im) return;
@@ -332,18 +319,33 @@ function drawBird(c: C, cx: number, cy: number, gull: boolean, sd: number) {
 /** Free natural ground for game: open land, no building, site, road, field, pasture or water. */
 const WILD_OK = new Set(["forest", "meadow", "grass", "hill", "fertile"]);
 const freeGround = (x: number, y: number) => WILD_OK.has(terrain(x, y)) && !structureAt(x, y, renderSeeds, renderNow);
-const groundCache = new Map<number, { at: number; g: [number, number][] }>();
-/** Hunt scene of one lodge, bucketed by the tile each figure stands on so it depth-sorts with the town. */
-function huntFigures(lx: number, ly: number, out: Map<number, (() => void)[]>, c: C) {
-  const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl), bw = huntIm("bw", boarWalkUrl), hu = huntIm("hu", hunterUrl);
-  if (!dw || !dg || !bw || !hu) return;
-  const hr = localHour(); if (hr < 5.5 || hr > 20.5) return;
-  const sd = lx * 1000 + ly, key = ly * MAP + lx;
-  let gc = groundCache.get(key);
-  if (!gc || Math.abs(renderNow - gc.at) > 60000) { gc = { at: renderNow, g: huntGrounds(lx, ly, freeGround) }; groundCache.set(key, gc); }
-  const sc = huntScene(lx, ly, sd, renderNow, freeGround, gc.g);
-  const put = (x: number, y: number, f: () => void) => { const k = Math.round(y) * MAP + Math.round(x); const l = out.get(k); if (l) l.push(f); else out.set(k, [f]); };
-  for (const b of sc.beasts) put(b.x, b.y, () => {
+const isLodgeAt = (x: number, y: number) => { const s = structureAt(x, y, renderSeeds, renderNow); return s?.kind === "lodge" && s.build === undefined; };
+/** Nearest finished lodge within reach of a den (cached a minute) — the lodge that hunts it. */
+const ownerCache = new Map<number, { at: number; o: [number, number] | null }>();
+function denOwner(x: number, y: number): [number, number] | null {
+  const key = y * MAP + x, hit = ownerCache.get(key);
+  if (hit && Math.abs(renderNow - hit.at) < 60000) return hit.o;
+  let o: [number, number] | null = null, best = Infinity;
+  for (let dy = -DEN_R; dy <= DEN_R; dy++) for (let dx = -DEN_R; dx <= DEN_R; dx++) {
+    const d = Math.hypot(dx, dy); if (d > DEN_R || d >= best) continue;
+    if (isLodgeAt(x + dx, y + dy)) { best = d; o = [x + dx, y + dy]; }
+  }
+  if (ownerCache.size > 4000) ownerCache.clear();
+  ownerCache.set(key, { at: renderNow, o }); return o;
+}
+const densCache = new Map<number, { at: number; d: Den[] }>();
+function densOf(lx: number, ly: number): Den[] {
+  const key = ly * MAP + lx, hit = densCache.get(key);
+  if (hit && Math.abs(renderNow - hit.at) < 60000) return hit.d;
+  const d = lodgeDens(lx, ly, freeGround, (x, y) => { const o = denOwner(x, y); return !!o && o[0] === lx && o[1] === ly; });
+  densCache.set(key, { at: renderNow, d }); return d;
+}
+type Bucket = Map<number, (() => void)[]>;
+const putAt = (out: Bucket, x: number, y: number, f: () => void) => { const k = Math.round(y) * MAP + Math.round(x); const l = out.get(k); if (l) l.push(f); else out.set(k, [f]); };
+function putBeast(out: Bucket, c: C, b: Beast) {
+  const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl), bw = huntIm("bw", boarWalkUrl);
+  if (!dw || !dg || !bw || b.alpha <= 0) return;
+  putAt(out, b.x, b.y, () => {
     const [X, Y] = iso(b.x, b.y), h = b.boar ? 4.4 : 6.2, n = renderNow + b.x * 997;
     if (b.state === "dead") { shadow(c, X, Y, h * 0.5); sheetFrame(c, dg, 3, X, Y, h, !b.flip, b.fall * 1.45 * (b.flip ? 1 : -1)); return; }
     if (b.boar && b.state === "root") { shadow(c, X, Y, h * 0.5); sheetFrame(c, bw, 3, X, Y - (Math.floor(n / 500) & 1) * 0.08, h, b.flip, 0, b.alpha); return; }
@@ -351,6 +353,27 @@ function huntFigures(lx: number, ly: number, out: Map<number, (() => void)[]>, c
     const idle = Math.floor(n / 1500) % 8 < 5 ? (Math.floor(n / 650) & 1) : 2;
     drawBeast(c, b.boar ? bw : dw, b.boar ? null : dg, X, Y, h, b.flip, moving, b.state === "flee" ? n / 170 : b.dist + n / 2000, idle, b.alpha);
   });
+}
+/** Free game in its dens across the whole map; dens near a lodge are hunted in turn and regrow. */
+function wildFigures(x: number, y: number, out: Bucket, c: C) {
+  if (!denOk(x, y, freeGround)) return;
+  const hr = localHour(); if (hr < 5.5 || hr > 20.5) return;
+  let b: Beast = denBeast(x, y, renderNow, freeGround);
+  const o = denOwner(x, y);
+  if (o) {
+    const dens = densOf(o[0], o[1]), i = dens.findIndex((d) => d[0] === x && d[1] === y);
+    if (i >= 0) { const f = denFate(o[0], o[1], i, dens.length, renderNow); if (f.phase !== "free") return; b = { ...b, alpha: f.alpha }; }
+    b = startle(b, o[0], o[1], dens, renderNow) ?? b;
+  }
+  putBeast(out, c, b);
+}
+/** Hunt scene of one lodge, bucketed by the tile each figure stands on so it depth-sorts with the town. */
+function huntFigures(lx: number, ly: number, out: Bucket, c: C) {
+  const hu = huntIm("hu", hunterUrl); if (!hu) return;
+  const hr = localHour(); if (hr < 5.5 || hr > 20.5) return;
+  const sc = huntScene(lx, ly, renderNow, freeGround, densOf(lx, ly));
+  const put = (x: number, y: number, f: () => void) => putAt(out, x, y, f);
+  for (const b of sc.beasts) putBeast(out, c, b);
   const hp = sc.hunter;
   if (hp) put(hp.x, hp.y, () => {
     const [X, Y] = iso(hp.x, hp.y), bob = hp.walk ? Math.abs(Math.sin(renderNow / 260)) * 0.15 : 0;
@@ -1686,7 +1709,7 @@ export function draw(
 
   // ---- pass 2: standing objects in depth order ----
   const hunt = new Map<number, (() => void)[]>();
-  if (detail) for (const tl of tiles) if (tl.st?.kind === "lodge" && tl.st.build === undefined) huntFigures(tl.x, tl.y, hunt, c);
+  if (detail) for (const tl of tiles) { if (tl.st?.kind === "lodge" && tl.st.build === undefined) huntFigures(tl.x, tl.y, hunt, c); else if (!tl.st) wildFigures(tl.x, tl.y, hunt, c); }
   const birds: [number, number, number, number][] = []; // gulls over the coast, crows over fields, drawn on top
   for (const { x, y, cx, cy, st } of tiles) {
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
@@ -1696,7 +1719,6 @@ export function draw(
       continue; // forests and crags are baked into the ground chunks
     }
     if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true);
-    if (!st) drawWild(c, x, y, cx, cy);
     if (st?.kind === "coop" && st.build === undefined) drawHens(c, cx, cy, x * 31 + y);
     if (hash(x, y, 501) < 0.006) { const tr = st ? null : terrain(x, y); if (tr === "water" || (tr === "sand" && hash(x, y, 502) < 0.5)) birds.push([cx, cy, 1, x * 7 + y]); }
     if (st?.kind === "field" && hash(x, y, 503) < 0.02) birds.push([cx, cy, 0, x * 7 + y]);
