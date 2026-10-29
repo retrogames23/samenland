@@ -35,10 +35,14 @@ export type EventKey = keyof typeof ENCOUNTERS;
 export const EVENT_KEYS = Object.keys(ENCOUNTERS) as EventKey[];
 export type Decision = { event: string; choice: string; at: number; cost: number };
 
-/** Villages meet their first visitor once they are this many hours old. */
-export const ENCOUNTER_FROM = 6;
+/** Villages meet their first visitor once they are this many hours old (3 minutes). */
+export const ENCOUNTER_FROM = 0.05;
 const DAY = 86400000;
 export const dayOf = (t: number) => Math.floor(t / DAY);
+/** Hours between two encounters, by village age: brisk at first, calmer later. Mirrored by the DB encounter_guard. */
+export function encounterGap(ageH: number) {
+  return ageH < 48 ? 2.5 : ageH < 14 * 24 ? 4 : 6;
+}
 
 function strHash(s: string) {
   let h = 2166136261;
@@ -46,26 +50,27 @@ function strHash(s: string) {
   h = Math.imul(h ^ (h >>> 15), 2246822507);
   return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
 }
-/** The encounter waiting for a village on the UTC day of `now`: cycles through a per-village shuffled order, so it never repeats on consecutive days. */
-export function eventOf(seedId: string, now: number): EventKey {
-  const n = EVENT_KEYS.length, day = dayOf(now);
-  const order = (round: number) => {
-    const o = [...EVENT_KEYS].sort((p, q) => strHash(`${seedId}:${round}:${p}`) - strHash(`${seedId}:${round}:${q}`));
-    return o;
-  };
-  // every round of n days shows each encounter once, in a fresh order; never the same two days in a row
-  const round = Math.floor(day / n), i = ((day % n) + n) % n, o = order(round);
-  if (o[0] === order(round - 1)[n - 1]) [o[0], o[1]] = [o[1]!, o[0]!];
+/** The village's n-th encounter: cycles through a per-village shuffled order, never the same one twice in a row. */
+export function eventOf(seedId: string, n: number): EventKey {
+  const k = EVENT_KEYS.length;
+  const order = (round: number) => [...EVENT_KEYS].sort((p, q) => strHash(`${seedId}:${round}:${p}`) - strHash(`${seedId}:${round}:${q}`));
+  const round = Math.floor(n / k), i = ((n % k) + k) % k, o = order(round);
+  if (o[0] === order(round - 1)[k - 1]) [o[0], o[1]] = [o[1]!, o[0]!];
   return o[i]!;
 }
 export const choicesOf = (e: EventKey) => Object.keys(ENCOUNTERS[e]) as string[];
 export const choiceOf = (e: string, c: string): Choice | undefined => (ENCOUNTERS as Record<string, Record<string, Choice>>)[e]?.[c];
 
-/** Open encounter for today, or null when too young or already decided today. */
+/**
+ * Open encounter, or null when too young or the last decision is more recent than the gap.
+ * At most one is ever open — encounters never pile up while nobody watches.
+ */
 export function pendingEncounter(seed: { id: string; created_at: string }, decisions: Decision[], now: number): EventKey | null {
-  if (now - Date.parse(seed.created_at) < ENCOUNTER_FROM * 3.6e6) return null;
-  if (decisions.some((d) => dayOf(d.at) === dayOf(now))) return null;
-  return eventOf(seed.id, now);
+  const ageH = (now - Date.parse(seed.created_at)) / 3.6e6;
+  if (ageH < ENCOUNTER_FROM) return null;
+  const last = decisions.reduce((m, d) => Math.max(m, d.at), -Infinity);
+  if ((now - last) / 3.6e6 < encounterGap(ageH)) return null;
+  return eventOf(seed.id, decisions.length);
 }
 
 /** Sum of attribute boons active at `now`. */
