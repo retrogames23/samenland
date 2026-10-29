@@ -150,10 +150,10 @@ export function chainOf(kind: Kind, tile: Tile, l: Larder, people: Person[]): Li
 
 /** What full stores give back — derived purely from the larder (never stored). */
 export type Boons = { fed: boolean; varied: boolean; timber: boolean; surplus: boolean; food: number; health: number; wealth: number };
-export const FED_MEALS = 2, FED_FOOD = 10, FED_HEALTH = 5, VARIED_HEALTH = 5, SURPLUS_WEALTH = 5;
+export const FED_MEALS = 2, FED_CAP = 60, FED_FOOD = 10, FED_HEALTH = 5, VARIED_HEALTH = 5, SURPLUS_WEALTH = 5;
 const FINISHED: Ware[] = ["planks", "flour", "bread", "cheese"];
 export function boonsOf(l: Larder): Boons {
-  const fed = l.eaters > 0 && l.food >= l.eaters * FED_MEALS;
+  const fed = l.eaters > 0 && l.food >= Math.min(l.eaters * FED_MEALS, FED_CAP);
   const varied = l.flows.filter((f) => FOOD.includes(f.ware) && f.stock > 0).length >= 2;
   const timber = l.flows.some((f) => (f.ware === "planks" || f.ware === "log") && f.stock > 0);
   const surplus = l.flows.some((f) => FINISHED.includes(f.ware) && f.made > f.used && f.stock >= 10);

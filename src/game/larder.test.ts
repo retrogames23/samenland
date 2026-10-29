@@ -43,3 +43,12 @@ describe("young village gathering", () => {
     expect(l.flows.find((f) => f.ware === "log")?.stock ?? 0).toBeGreaterThan(0);
   });
 });
+
+import { boonsOf as _boons } from "./goods";
+describe("big towns can be fed", () => {
+  it("needs at most 60 meals in store", () => {
+    const l = { eaters: 500, food: 60, flows: [] } as never;
+    expect(_boons(l).fed).toBe(true);
+    expect(_boons({ eaters: 500, food: 59, flows: [] } as never).fed).toBe(false);
+  });
+});
