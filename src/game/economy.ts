@@ -37,6 +37,14 @@ export function taxEarned(s: Seed, now: number) {
 /** Today's income per day, including the trade charter bonus. */
 export const dailyTax = (s: Seed, h: number) => { const p = popAt(h); return p + (s.charter?.path === "trade" ? Math.floor(TRADE_TAX * p) : 0); };
 
+/** Friend-invite bonus (mirrors DB referrals in village_balance): both villages get the reward. */
+export const REFERRAL_TALER = 50;
+export type Referral = { id: string; referrer_seed: string; referee_seed: string; reward: number; created_at: string };
+export const referralClaims = (rows: Referral[]): QuestClaim[] => rows.flatMap((r) => [
+  { id: `${r.id}:a`, seed_id: r.referrer_seed, quest: `ref:${r.referee_seed}`, reward: r.reward, created_at: r.created_at },
+  { id: `${r.id}:b`, seed_id: r.referee_seed, quest: `ref:${r.referrer_seed}`, reward: r.reward, created_at: r.created_at },
+]);
+
 export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = []) {
   const spent = purchases.filter((p) => p.seed_id === s.id).reduce((a, p) => a + p.cost, 0);
   const ev = (s.decisions ?? []).reduce((a, d) => a + d.cost, 0);
