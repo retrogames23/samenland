@@ -1344,6 +1344,7 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
     x0 = Math.max(0, Math.floor(x0 / 16) * 16); y0 = Math.max(0, Math.floor(y0 / 16) * 16);
     x1 = Math.min(MAP - 1, Math.ceil((x1 + 1) / 16) * 16 - 1); y1 = Math.min(MAP - 1, Math.ceil((y1 + 1) / 16) * 16 - 1);
   }
+  if (x1 < x0 || y1 < y0) return []; // view lies entirely off the island: nothing to paint
   const G = groundGeom(x0, x1, y0, y1);
   // ---- pass 0: one continuous water surface under everything (no tile seams) ----
   // Two slow, counter-drifting layers that breathe back and forth: calm, never a conveyor belt.

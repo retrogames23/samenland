@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { effAge, links, mentoring, MENTOR_SPAN, type Seed } from "./world";
 
-const mk = (id: string, x: number, created: string, target: string): Seed => ({ id, name: id, owner: id, x, y: x === 306 ? 420 : 439, hue: 0, created_at: created, user_id: `u-${id}`, firstRoad: { target, at: Date.parse(created) } });
+const mk = (id: string, x: number, created: string, target: string): Seed => ({ id, name: id, owner: id, x, y: x === 306 ? 420 : 439, hue: 0, created_at: created, user_id: `u-${id}`, roads: [{ target, at: Date.parse(created) }] });
 
 describe("mentor bonus", () => {
   const old = mk("a", 306, "2026-01-01T00:00:00Z", "b");

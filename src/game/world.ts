@@ -5,7 +5,7 @@ import { tileHits, canBurn } from "./disasters";
 const ROAD_YIELDS: ReadonlySet<string> = new Set(["field", "garden", "pasture", "hay", "fence"]);
 export const MAP = 1024;
 
-export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; realm?: Realm; mayor_gender?: string | null; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; firstRoad?: { target: string; at: number }; decisions?: Decision[]; votes?: { partner: string; pact: PactKind; at: number }[]; works?: { partner: string; work: WorkKind; cost: number; at: number }[]; sent?: { to: string; kind: "gift" | "aid" | "thanks"; at: number; id: string }[]; letters?: { to: string; at: number; id: string }[]; aid?: number[] };
+export type Seed = { id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; realm?: Realm; mayor_gender?: string | null; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; roads?: { target: string; at: number }[]; decisions?: Decision[]; votes?: { partner: string; pact: PactKind; at: number }[]; works?: { partner: string; work: WorkKind; cost: number; at: number }[]; sent?: { to: string; kind: "gift" | "aid" | "thanks"; at: number; id: string }[]; letters?: { to: string; at: number; id: string }[]; aid?: number[] };
 export type Planting = { id: string; seed_id: string; kind: "tree" | "flower" | "lantern"; x: number; y: number; created_at: string };
 
 export function hash(x: number, y: number, s = 0): number {
@@ -505,7 +505,7 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
 /** Cache key that changes whenever seed positions, ages or purchases change. */
 const skMemo = new WeakMap<Seed[], string>();
 export const seedsKey = (seeds: Seed[]) => { let k = skMemo.get(seeds); if (k === undefined) { k = seedsKeyRaw(seeds); skMemo.set(seeds, k); } return k; };
-const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}:${s.firstRoad?.target ?? ""}:${(s.works ?? []).length}`).join(";");
+const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}:${(s.roads ?? []).map((r) => r.target).join("+")}:${(s.works ?? []).length}`).join(";");
 
 /** Growth hour at which the building on this tile is finished (0 for the founding core). */
 export function bornAt(x: number, y: number, s: Seed): number {
@@ -607,7 +607,7 @@ let linkCache: Link[] = [];
 const roadIdx = new Map<number, { link: Link; i: number }>();
 
 export function links(seeds: Seed[]): Link[] {
-  const key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${s.firstRoad?.target ?? ""}:${s.firstRoad?.at ?? ""}`).join("|");
+  const key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.roads ?? []).map((r) => `${r.target}@${r.at}`).join("+")}`).join("|");
   if (key === linkKey) return linkCache;
   linkKey = key; linkCache = []; roadIdx.clear();
   for (let i = 0; i < seeds.length; i++) for (let j = i + 1; j < seeds.length; j++) {
@@ -624,23 +624,26 @@ export function links(seeds: Seed[]): Link[] {
 }
 
 /**
- * Player villages choose their first road themselves; until then they stay unconnected. The chosen
- * road starts at the moment of choice, all other roads follow automatically one build period later.
- * Returns the earliest start time, or null when the road may not exist (yet).
+ * Every road touching a player village must be decided by one of the two mayors; it starts at the
+ * earliest decision. Roads between two unowned sample villages open by themselves.
+ * Returns the start time, or null when no road has been decided.
  */
 export function roadGate(a: Seed, b: Seed): number | null {
-  let t = -Infinity;
-  for (const [s, o] of [[a, b], [b, a]] as const) {
-    if (!s.user_id) continue;
-    if (!s.firstRoad) return null;
-    t = Math.max(t, s.firstRoad.target === o.id ? s.firstRoad.at : s.firstRoad.at + ROAD_BUILD * 3.6e6);
-  }
-  return t;
+  if (!a.user_id && !b.user_id) return -Infinity;
+  let t = Infinity;
+  for (const r of a.roads ?? []) if (r.target === b.id) t = Math.min(t, r.at);
+  for (const r of b.roads ?? []) if (r.target === a.id) t = Math.min(t, r.at);
+  return t === Infinity ? null : t;
 }
-/** Neighbours a player village may pick as its first road. */
+/** Neighbours a village may still decide a road to (in reach, not yet connected). */
 export const roadCandidates = (s: Seed, seeds: Seed[]) =>
-  seeds.filter((o) => o.id !== s.id && Math.hypot(o.x - s.x, o.y - s.y) <= TRADE_DIST)
+  seeds.filter((o) => o.id !== s.id && Math.hypot(o.x - s.x, o.y - s.y) <= TRADE_DIST && roadGate(s, o) === null)
     .sort((p, q) => Math.hypot(p.x - s.x, p.y - s.y) - Math.hypot(q.x - s.x, q.y - s.y));
+/** The road this village decided that is still being built (only one at a time), or null. */
+export function roadBuilding(s: Seed, now: number): { target: string; at: number; done: number } | null {
+  const r = (s.roads ?? []).filter((x) => x.at <= now && now < x.at + ROAD_BUILD * 3.6e6).sort((a, b) => b.at - a.at)[0];
+  return r ? { ...r, done: r.at + ROAD_BUILD * 3.6e6 } : null;
+}
 
 /**
  * Trade road follows the terrain (A* on a 4-connected grid): land is cheap, hills cost more and

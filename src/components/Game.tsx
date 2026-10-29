@@ -61,6 +61,7 @@ import {
   type Signpost,
   type Planting,
   roadCandidates,
+  roadBuilding,
   type Seed,
   canPlaceSpecial,
   SPECIAL_KIND,
@@ -133,9 +134,9 @@ export function Game() {
     return rawSeeds.map((s0) => {
       const v0 = vo.get(s0.id), w0 = wo.get(s0.id);
       const s: Seed = v0 || w0 ? { ...s0, ...(v0 ? { votes: v0 } : {}), ...(w0 ? { works: w0 } : {}) } : s0;
-      const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id), fr = firstRoads.find((f) => f.seed_id === s.id), de = decs.get(s.id);
+      const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id), fr0 = firstRoads.filter((f) => f.seed_id === s.id), fr = fr0.length ? fr0 : null, de = decs.get(s.id);
       if (!bl && !bo && !ch && !fr && !de) return s;
-      return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { firstRoad: { target: fr.target_id, at: Date.parse(fr.created_at) } } : {}), ...(de ? { decisions: de.sort((a, b) => a.at - b.at) } : {}) };
+      return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { roads: fr.map((f) => ({ target: f.target_id, at: Date.parse(f.created_at) })).sort((a, b) => a.at - b.at) } : {}), ...(de ? { decisions: de.sort((a, b) => a.at - b.at) } : {}) };
     }).map((s) => {
       const lt = letters.filter((g) => g.from_seed === s.id).map((g) => ({ id: g.id, to: g.to_seed, at: Date.parse(g.created_at) }));
       return lt.length ? { ...s, letters: lt } : s;
@@ -449,6 +450,8 @@ export function Game() {
         c.y += py / c.zoom - py / nz;
         c.zoom = nz;
       }
+      // keep the camera over the island, so far panning or fast wheel zoom never leaves the map
+      c.x = Math.max(-MAP * 16, Math.min(MAP * 16, c.x)); c.y = Math.max(0, Math.min(MAP * 16, c.y));
       const s = st.current;
       const h = s.hover;
       const ok = h && s.mode === "seed" ? canPlant(h[0], h[1], s.seeds) === null : null;
@@ -664,10 +667,11 @@ export function Game() {
     bell(0); setCharterOpen(false); setMsg(t.charter.sealed(t.charter.paths[charterPick]![0]));
   };
   const myRoad = my ? firstRoads.find((f) => f.seed_id === my.id) : undefined;
+  const openRoad = () => { const cs = my ? roadCandidates(my, seeds) : []; setRoadPick(cs.length === 1 ? cs[0]!.id : null); setTab(null); setRoadOpen(true); };
   const sealRoad = async () => {
     if (!my || !userId || !roadPick) return;
     const { data, error } = await supabase.from("first_roads").insert({ seed_id: my.id, user_id: userId, target_id: roadPick }).select("id, seed_id, target_id, created_at").single();
-    if (error || !data) return setMsg(t.road.fail);
+    if (error || !data) return setMsg(error?.message?.includes("under construction") ? t.road.busyFail : t.road.fail);
     setFirstRoads((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
     bell(0); setRoadOpen(false); setMsg(t.road.sealed(seeds.find((s) => s.id === roadPick)?.name ?? ""));
   };
@@ -721,7 +725,7 @@ export function Game() {
   const now = clock();
   const owner = !!my && !!userId && my.user_id === userId;
   const decision = pickDecision({
-    road: owner && !myRoad && roadCandidates(my!, seeds).length > 0,
+    road: owner && !myRoad && !links(seeds).some((l) => l.a.id === my!.id || l.b.id === my!.id) && roadCandidates(my!, seeds).length > 0,
     charter: owner && !myCharter && charterReady(my!.created_at, now),
     pact: owner && !!pactPartner,
     encounter: owner && !!pendingEncounter(my!, my!.decisions ?? [], now),
@@ -947,6 +951,21 @@ export function Game() {
       </div>
       {tab === "build" && my && at && (
         <div className="space-y-2">
+          {(() => {
+            const b = roadBuilding(my, now), cs = roadCandidates(my, seeds), to = b ? seeds.find((s) => s.id === b.target) : null;
+            return (
+              <div className="rounded-md border border-border bg-secondary/60 p-2">
+                <div className="flex items-center gap-2">
+                  {ART["road"] && <img src={ART["road"]} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded object-cover" />}
+                  <span className="flex-1 font-semibold">{t.road.menu}</span>
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">{t.road.menuHint}</div>
+                {b ? <div className="mt-2 text-xs font-semibold text-wood">{t.road.busy(to?.name ?? "", Math.max(1, Math.ceil((b.done - now) / 3.6e6)))}</div>
+                  : cs.length === 0 ? <div className="mt-2 text-xs">{t.road.none}</div>
+                  : <Button size="sm" className="mt-2 w-full" onClick={openRoad}>{t.road.btn}</Button>}
+              </div>
+            );
+          })()}
           {myCharter && (
             <div className="rounded-md border border-brass/60 bg-brass/15 p-2 text-xs">
               <b>{PATH_ICON[myCharter]} {t.charter.paths[myCharter]![0]}:</b> {t.charter.bonus[myCharter]}
@@ -1129,7 +1148,7 @@ export function Game() {
     const k = decision.open;
     // let all village records arrive before asking, so nothing pops up that is already settled
     const id = setTimeout(() => {
-      if (k === "road") { const cs = my ? roadCandidates(my, seeds) : []; setRoadPick(cs.length === 1 ? cs[0]!.id : null); setRoadOpen(true); }
+      if (k === "road") openRoad();
       else if (k === "charter") { setCharterPick(null); setCharterOpen(true); }
       else if (k === "pact") { setPactPick(null); setPactOpen(true); }
       else setEncOpen(true);
@@ -1550,7 +1569,7 @@ export function Game() {
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-3">
                     <span className="text-xs text-muted-foreground">{t.road.final}</span>
-                    <Button disabled={!roadPick} onClick={sealRoad}>{t.road.seal}</Button>
+                    <Button disabled={!roadPick || !!roadBuilding(my, now)} onClick={sealRoad}>{t.road.seal}</Button>
                   </div>
                 </>
               )}
