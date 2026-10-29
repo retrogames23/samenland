@@ -450,6 +450,8 @@ export function Game() {
         c.y += py / c.zoom - py / nz;
         c.zoom = nz;
       }
+      // keep the camera over the island, so far panning or fast wheel zoom never leaves the map
+      c.x = Math.max(-MAP * 16, Math.min(MAP * 16, c.x)); c.y = Math.max(0, Math.min(MAP * 16, c.y));
       const s = st.current;
       const h = s.hover;
       const ok = h && s.mode === "seed" ? canPlant(h[0], h[1], s.seeds) === null : null;
