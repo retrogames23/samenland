@@ -202,6 +202,8 @@ export function Game() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [realm, setRealmState] = useState<Realm>("europe");
   const realmRef = useRef<Realm>("europe");
+  // swaps the map in place (admin realm switch) — no page reload, no splash
+  const loadRealmRef = useRef<((r: Realm) => Promise<void>) | null>(null);
   const [view, setView] = useState({ x: MAP / 2, y: MAP / 2, span: 40 });
   const [who, setWho] = useState<Person | null>(null);
   const [place, setPlace] = useState<Inspect | null>(null);
