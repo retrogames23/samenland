@@ -112,3 +112,26 @@ export function saplingsOwed(decisions: { event: string; choice: string }[], pla
   }
   return out;
 }
+
+/** Visitors who stand at the village square: while their encounter waits for the mayor, and GUEST_H hours after a welcoming answer. */
+export const GUEST_EVENTS: ReadonlySet<string> = new Set(["journeyman", "merchant", "healer", "minstrel", "widow", "monk", "surveyor", "pilgrims", "orphan", "tinker", "painter", "nursery"]);
+export const GUEST_H = 4;
+/** The visitor currently in the village (pure in decisions + clock): arrival time, departure, and whether they were welcomed. */
+export function guestNow(seed: { id: string; created_at: string }, decisions: Decision[], now: number): { event: EventKey; at: number; until: number } | null {
+  const p = pendingEncounter(seed, decisions, now);
+  const vis = decisions.filter((d) => d.event !== "wedding" && d.at <= now);
+  const last = vis.reduce<Decision | null>((m, d) => (!m || d.at > m.at ? d : m), null);
+  if (p && p !== "wedding" && GUEST_EVENTS.has(p)) {
+    const c0 = Date.parse(seed.created_at);
+    const at = last ? last.at + encounterGap((last.at - c0) / 3.6e6) * 3.6e6 : c0 + ENCOUNTER_FROM * 3.6e6;
+    return { event: p, at: Math.min(at, now), until: Infinity };
+  }
+  if (last && GUEST_EVENTS.has(last.event) && last.choice !== "pass" && now - last.at < GUEST_H * 3.6e6)
+    return { event: last.event as EventKey, at: last.at - 1800e3, until: last.at + GUEST_H * 3.6e6 };
+  return null;
+}
+/** Days a raised maypole stands on the village square. */
+export const MAYPOLE_DAYS = 30;
+export const maypoleUp = (decisions: Decision[], now: number) => decisions.some((d) => d.event === "maypole" && d.choice === "pole" && d.at <= now && now - d.at < MAYPOLE_DAYS * 864e5);
+/** Cows from the cow encounter: a kept cow stays for good, a show cow for two days. */
+export const cowsOf = (decisions: Decision[], now: number) => decisions.filter((d) => d.event === "cow" && d.at <= now && (d.choice === "keep" || (d.choice === "show" && now - d.at < 48 * 3.6e6))).length;

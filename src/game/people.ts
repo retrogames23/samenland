@@ -12,7 +12,7 @@ export type Sex = "f" | "m";
 export type Job =
   | "farmer" | "baker" | "smith" | "innkeeper" | "miller" | "crafter" | "worker"
   | "sawyer" | "builder" | "woodcutter" | "mason" | "merchant" | "priest" | "carter" | "mayor" | "fisher" | "healer" | "teacher" | "firewarden" | "watchman" | "hunter" | "herbalist" | "homemaker" | "retired" | "child";
-export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play" | "sick" | "care" | "church" | "visit" | "stroll" | "wedding" | "fete";
+export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play" | "sick" | "care" | "church" | "visit" | "stroll" | "wedding" | "fete" | "fire";
 type Tile = [number, number];
 export type Person = {
   id: number; seed: Seed; first: string; last: string; sex: Sex; age: number; job: Job;
@@ -32,7 +32,9 @@ export type Person = {
   /** Wedding procession: birth home → church → new home, starting at `at` (world ms); lag = seconds behind the couple. */
   proc?: { at: number; from: Tile; to: Tile; lag: number; role: "bride" | "groom" | "guest" };
   /** Inauguration of a just-finished landmark: walk there at `at` (+lag s) and gather at `spot` facing `face`. */
-  fete?: { at: number; spot: Tile; face: Tile; lag: number };
+  fete?: { at: number; spot: Tile; face: Tile; lag: number; dur?: number; fire?: boolean };
+  /** A travelling visitor of the day's encounter: walks in from the edge at `at`, waits at `spot`, gone after `until`. */
+  guest?: { at: number; until: number; from: Tile; spot: Tile; face: Tile; event: string };
 };
 export type Role = "head" | "spouse" | "child" | "elder" | "lodger" | "mayor";
 export type Wedding = { at: number; a: Person; b: Person; alliance: boolean };
@@ -48,6 +50,8 @@ export type Pose = {
   talk: number | null; talkTurn: boolean;
   carry: Good | null; dest: Dest | null;
   festive?: "bride" | "groom" | undefined;
+  /** Fighting a fire: carries a sloshing water bucket. */
+  bucket?: boolean;
 };
 
 const F = ["Greta", "Ida", "Frieda", "Lotte", "Marie", "Anna", "Clara", "Hedwig", "Emma", "Rosa", "Lina", "Mathilda", "Elsa", "Paula", "Wilma", "Martha", "Johanna", "Thea", "Ella", "Luise"];
@@ -73,6 +77,8 @@ export type Town = {
   x0: number; y0: number; x1: number; y1: number; routes: Map<string, Tile[]>; now: number;
   freeC: Map<number, boolean>; costC: Map<number, number>; doors: Map<number, Tile>;
   weddings: Wedding[]; church: Tile | null;
+  /** Encounter props on the square: a raised maypole and the village's cows (derived from decisions). */
+  maypole: Tile | null; cows: Tile[];
 };
 
 /** Service buildings whose staff grows with the town (radius), so big towns get more bakers, innkeepers, priests. */
@@ -370,13 +376,27 @@ function fetePose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): P
   if (secs < 0) return null;
   const a = doorOf(t, p.home, seeds), b: Tile = [Math.round(f.spot[0]), Math.round(f.spot[1])];
   const pts = [a, ...route(t, [Math.round(a[0]), Math.round(a[1])], b, seeds).slice(1, -1), f.spot];
-  const len = lenOf(pts), sp = Math.max(0.15, p.speed), tw = len / sp;
-  if (secs < tw) { const q = along(pts, secs * sp); if (q) return { ...base, ...q, visible: freeAt(t, q.x, q.y, seeds), walking: true, act: "fete", phase: (secs * sp) / STRIDE }; }
-  if (secs < tw + FETE_SECS) {
+  const len = lenOf(pts), sp = Math.max(0.15, p.speed) * (f.fire ? 2.4 : 1), tw = len / sp;
+  const act: Activity = f.fire ? "fire" : "fete", bucket = f.fire || undefined;
+  if (secs < tw) { const q = along(pts, secs * sp); if (q) return { ...base, ...q, visible: freeAt(t, q.x, q.y, seeds), walking: true, act, bucket, phase: (secs * sp) / STRIDE }; }
+  if (secs < tw + (f.dur ?? FETE_SECS)) {
     const dx = f.face[0] - f.spot[0], dy = f.face[1] - f.spot[1], m = Math.hypot(dx, dy) || 1;
-    return { ...base, x: f.spot[0], y: f.spot[1], visible: freeAt(t, f.spot[0], f.spot[1], seeds), walking: false, act: "fete", dir: [dx / m, dy / m] };
+    // bucket chain: helpers swing their pails toward the flames in a steady rhythm
+    const swing = f.fire ? Math.max(0, Math.sin(now / 420 + p.id)) * 0.12 : 0;
+    return { ...base, x: f.spot[0] + (dx / m) * swing, y: f.spot[1] + (dy / m) * swing, visible: freeAt(t, f.spot[0], f.spot[1], seeds), walking: false, act, bucket, working: !!f.fire, dir: [dx / m, dy / m] };
   }
   return null;
+}
+
+function guestPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): Pose {
+  const g = p.guest!;
+  if (now < g.at || now >= g.until) return { ...base, visible: false };
+  const pts = [g.from, ...route(t, g.from, [Math.round(g.spot[0]), Math.round(g.spot[1])], seeds).slice(1, -1), g.spot];
+  const len = lenOf(pts), dd = ((now - g.at) / 1000) * p.speed;
+  if (dd < len) { const q = along(pts, dd); if (q) return { ...base, ...q, visible: true, walking: true, act: "visit", phase: dd / STRIDE }; }
+  const dx = g.face[0] - g.spot[0], dy = g.face[1] - g.spot[1], m = Math.hypot(dx, dy) || 1;
+  const look = hash(p.id, Math.floor(now / 25000), 817) < 0.3 ? -1 : 1;
+  return { ...base, x: g.spot[0], y: g.spot[1], visible: true, walking: false, act: "visit", talk: null, dir: [(dx / m) * look, (dy / m) * look] };
 }
 
 /** Relatives of a person within the town: spouse, parents, children, siblings (all derived). */
@@ -653,6 +673,7 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const secs = (hr - e.at) * 3600;
   if (p.role === "mayor") { const mp = orderPose(p, t, seeds, now, base); if (mp) return mp; }
   if (p.proc) { const pr = procPose(p, t, seeds, now, base); if (pr) return pr; }
+  if (p.guest) return guestPose(p, t, seeds, now, base);
   if (p.fete) { const fp = fetePose(p, t, seeds, now, base); if (fp) return fp; }
   if (p.arrive && now >= p.arrive.t0) {
     const A = p.arrive.from, B = doorOf(t, p.home, seeds);
