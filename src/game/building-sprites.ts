@@ -104,7 +104,7 @@ export const hasNightSprite = (kind: Kind) => Boolean(nightUrls[kind]);
 type Sprite = { url: string; crop: [number, number, number, number]; width: number; base: number; image?: HTMLImageElement };
 // Alpha bounds remove unequal transparent margins. Width is in world pixels, not screen pixels.
 const sprites: Partial<Record<Kind, Sprite>> = {
-  campfire: { url: campfire, crop: [0, 0, 480, 346], width: 12, base: 4 },
+  campfire: { url: campfire, crop: [0, 0, 480, 346], width: 7, base: 2.4 },
   hut: { url: hut, crop: [0, 0, 470, 480], width: 20, base: 4 },
   coop: { url: coop, crop: [0, 0, 480, 450], width: 22, base: 4 },
   fence: { url: fence, crop: [0, 0, 480, 256], width: 22, base: 4 },
@@ -137,7 +137,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   warehouse: { url: warehouse, crop: [0, 0, 993, 705], width: 29, base: 5 },
   factory: { url: factory, crop: [0, 0, 464, 480], width: 36, base: 4 },
   sawmill: { url: sawmill, crop: [0, 0, 1005, 747], width: 28, base: 5 },
-  well: { url: well, crop: [0, 0, 677, 946], width: 12, base: 3 },
+  well: { url: well, crop: [0, 0, 677, 946], width: 6, base: 1.5 },
   market: { url: market, crop: [0, 0, 990, 665], width: 26, base: 5 },
   hay: { url: hay, crop: [0, 0, 966, 827], width: 15, base: 3 },
   fishery: { url: fishery, crop: [0, 0, 480, 436], width: 22, base: 4 },
