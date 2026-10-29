@@ -82,7 +82,7 @@ const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", cult
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
-import { TITLE_PRICE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
+import { TITLE_PRICE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -403,8 +403,10 @@ export function Game() {
         supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at"),
         supabase.from("market_sales").select("id, seed_id, day, reward, created_at"),
         supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at"),
-      ]).then(([q, m, rf]) => {
-        setClaims([...(q.data ?? []), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? [])]);
+        supabase.from("village_visits").select("id, visitor_seed, visited_seed, reward, created_at"),
+      ]).then(([q, m, rf, vv]) => {
+        for (const v of vv.data ?? []) visitSeen.current.add(v.visited_seed);
+        setClaims([...(q.data ?? []), ...visitClaims(vv.data ?? []), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? [])]);
         // tell the inviter once when a friend has answered the call
         const mine = ss.find((s) => uid && s.user_id === uid);
         const got = (rf.data ?? []).filter((x) => mine && x.referrer_seed === mine.id);
@@ -628,6 +630,7 @@ export function Game() {
           if (me) {
             if (keys.size || walkDriven) { driveMayor(me, tw, S.seeds, nw, dx + dy, dy - dx, dt / 1000); walkDriven = true; }
             const q = poseOf(me, tw, S.seeds, nw), [ix, iy] = iso(q.x, q.y), k = 1 - Math.exp(-dt / 220);
+            for (const o of S.seeds) if (o.id !== my.id && !visitSeen.current.has(o.id) && Math.hypot(q.x - o.x, q.y - o.y) <= radiusOf((nw - Date.parse(o.created_at)) / 36e5)) { visitSeen.current.add(o.id); visitFn.current(o, my); }
             cam.current.x += (ix - cam.current.x) * k; cam.current.y += (iy - 10 - cam.current.y) * k;
           }
         }
@@ -882,6 +885,19 @@ export function Game() {
   }, [owner, my?.id, seeds.length]);
   // Live celebrations: while the player watches, newly derived milestones open an illustrated parchment.
   const [fest, setFest] = useState<ChronEvent[]>([]);
+  // mayor visits: the first walk into a neighbour town brings a welcome gift scaled by its size
+  const visitSeen = useRef(new Set<string>());
+  const visitFn = useRef<(o: Seed, my: Seed) => void>(() => {});
+  visitFn.current = (o, my) => {
+    if (!owner || my.user_id !== userId) return;
+    supabase.rpc("claim_visit", { _seed: my.id, _visited: o.id }).then(({ data, error }) => {
+      if (error || !data) return;
+      const now0 = new Date().toISOString();
+      setClaims((c) => [...c, ...visitClaims([{ id: `local-v-${o.id}`, visitor_seed: my.id, visited_seed: o.id, reward: data, created_at: now0 }])]);
+      jingle("fanfare"); setTimeout(() => jingle("coins"), 700);
+      setMsg(t.visit.got(o.name, data));
+    });
+  };
   const [seenGifts, setSeenGifts] = useState<string[]>([]);
   const [giftReadsReady, setGiftReadsReady] = useState(false);
   useEffect(() => {

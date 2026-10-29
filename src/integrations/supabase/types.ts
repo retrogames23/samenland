@@ -754,6 +754,45 @@ export type Database = {
         }
         Relationships: []
       }
+      village_visits: {
+        Row: {
+          created_at: string
+          id: string
+          reward: number
+          visited_seed: string
+          visitor_seed: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reward?: number
+          visited_seed: string
+          visitor_seed: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reward?: number
+          visited_seed?: string
+          visitor_seed?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "village_visits_visited_seed_fkey"
+            columns: ["visited_seed"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "village_visits_visitor_seed_fkey"
+            columns: ["visitor_seed"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -765,6 +804,10 @@ export type Database = {
         Returns: number
       }
       claim_referral: { Args: { _ref: string; _seed: string }; Returns: number }
+      claim_visit: {
+        Args: { _seed: string; _visited: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -787,6 +830,7 @@ export type Database = {
         Returns: number
       }
       village_tax: { Args: { _at: string; _created: string }; Returns: number }
+      visit_reward: { Args: { _age_hours: number }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "user"
