@@ -73,7 +73,7 @@ import {
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
-import { DICT, plantError, type Lang } from "@/game/i18n";
+import { DICT, LANGS, LANG_LABEL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { ITEMS, GUILD, canBuy, dailyTax, attributes, treasury, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
@@ -246,7 +246,7 @@ export function Game() {
   useEffect(() => {
     const saved = localStorage.getItem("samenland-lang");
     setLang(
-      saved === "en" || saved === "de" ? saved : navigator.language.startsWith("de") ? "de" : "en",
+      saved && (LANGS as string[]).includes(saved) ? (saved as Lang) : (LANGS.find((l) => navigator.language.toLowerCase().startsWith(l)) ?? "en"),
     );
     const vi = setInterval(() => {
       const cv = canvasRef.current, c = cam.current; if (!cv) return;
@@ -1224,8 +1224,8 @@ export function Game() {
             <Button size="sm" onClick={() => setAuthOpen(true)}><LogIn className="mr-1 h-4 w-4" />{t.signIn}</Button>
           ) : null}
           <div className="ml-auto hidden text-right text-xs text-muted-foreground md:block">
-            <div>{new Date(now).toLocaleDateString(lang === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "long" })}</div>
-            <div>{t.seasons[season]} · {new Date(now).toLocaleTimeString(lang === "de" ? "de-DE" : "en-GB", { hour: "2-digit", minute: "2-digit", timeZone: REALM_TZ[realm] })}</div>
+            <div>{new Date(now).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "long" })}</div>
+            <div>{t.seasons[season]} · {new Date(now).toLocaleTimeString(LOCALE[lang], { hour: "2-digit", minute: "2-digit", timeZone: REALM_TZ[realm] })}</div>
           </div>
           <div className="ml-auto flex items-center gap-1 md:ml-0">
             <button type="button" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} onClick={toggleSound} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent">
@@ -1243,8 +1243,8 @@ export function Game() {
           <Panel className="absolute right-0 top-full mt-2 w-56" inner="space-y-2 p-3 text-sm">
             <div className="text-xs text-muted-foreground">{t.hud.language}</div>
             <div className="flex gap-1">
-              {(["de", "en"] as Lang[]).map((l) => (
-                <button key={l} className={`flex-1 rounded px-2 py-1 uppercase ${lang === l ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => switchLang(l)}>{l}</button>
+              {LANGS.map((l) => (
+                <button key={l} className={`flex-1 rounded px-1 py-1 ${lang === l ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => switchLang(l)}>{LANG_LABEL[l]}</button>
               ))}
             </div>
             {isAdmin && (<>
@@ -1632,7 +1632,7 @@ export function Game() {
               {chron.events.slice(-14).map((e, i) => (
                 <li key={i}>
                   <button type="button" className="text-left text-sm text-ink hover:underline" onClick={() => { if (e.code === "road") focus(e.x, e.y); else focus(my.x, my.y); setChronOpen(false); }}>
-                    <span className="mr-2 text-ink/60">{new Date(e.at).toLocaleDateString(lang === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "short" })}</span>{chronLine(e)}
+                    <span className="mr-2 text-ink/60">{new Date(e.at).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "short" })}</span>{chronLine(e)}
                   </button>
                 </li>
               ))}
@@ -1728,7 +1728,7 @@ export function Game() {
               <div className="text-sm">{t.personAge(who.age)} · {t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
               {(kin.spouse || kin.parents.length || kin.children.length || kin.siblings.length || who.maiden) && (
                 <div className="mt-1 space-y-0.5 text-xs">
-                  {kin.spouse && <div>{t.fest.kinSpouse("")}{kl(kin.spouse)}{who.wedAt ? <span className="text-muted-foreground"> · {t.fest.kinWed(new Date(who.wedAt).toLocaleDateString(lang === "de" ? "de-DE" : "en-GB", { day: "numeric", month: "short" }))}</span> : null}</div>}
+                  {kin.spouse && <div>{t.fest.kinSpouse("")}{kl(kin.spouse)}{who.wedAt ? <span className="text-muted-foreground"> · {t.fest.kinWed(new Date(who.wedAt).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "short" }))}</span> : null}</div>}
                   {who.maiden && <div className="text-muted-foreground">{t.fest.kinMaiden(who.maiden)}</div>}
                   {row(t.fest.kinParents, kin.parents)}{row(t.fest.kinChildren, kin.children)}{row(t.fest.kinSiblings, kin.siblings)}
                 </div>

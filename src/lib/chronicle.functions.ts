@@ -1,13 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type In = { lang: "de" | "en"; town: string; days: number; facts: string[] };
+type In = { lang: "de" | "en" | "zh" | "ja"; town: string; days: number; facts: string[] };
 
 /** A short, warm greeting from the village scribe, written from the derived chronicle facts. */
 export const scribeGreeting = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: In) => ({
-    lang: d.lang === "en" ? "en" : "de",
+    lang: (["de", "en", "zh", "ja"] as const).includes(d.lang) ? d.lang : "de",
     town: String(d.town).slice(0, 60),
     days: Math.max(0, Math.min(400, Math.round(Number(d.days) || 0))),
     facts: (Array.isArray(d.facts) ? d.facts : []).slice(0, 20).map((f) => String(f).slice(0, 200)),

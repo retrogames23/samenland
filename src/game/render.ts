@@ -1030,7 +1030,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
     }
     c.globalCompositeOperation = "source-over";
   }
-  c.font = `700 ${Math.round(18 * dpr)}px Georgia, 'Times New Roman', serif`; c.textAlign = "center";
+  c.font = `700 ${Math.round(18 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`; c.textAlign = "center";
   const placed: [number, number][] = [];
   const order = [...seeds].sort((a, b) => effAge(b, seeds, now) - effAge(a, seeds, now));
   for (const s of order) {
@@ -1918,7 +1918,7 @@ export function draw(
     c.globalCompositeOperation = "source-over";
   }
 
-  c.font = `700 ${Math.round(22 * dpr)}px Georgia, 'Times New Roman', serif`; c.textAlign = "center";
+  c.font = `700 ${Math.round(22 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`; c.textAlign = "center";
   c.lineJoin = "round";
   for (const sd of seeds) {
     const [ix, iy] = iso(sd.x, sd.y);
@@ -1927,7 +1927,7 @@ export function draw(
     c.fillStyle = INK; c.fillText(sd.name, sx, sy);
   }
   // twin towns get a joint ribbon label between them
-  c.font = `600 ${Math.round(17 * dpr)}px Georgia, 'Times New Roman', serif`;
+  c.font = `600 ${Math.round(17 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`;
   for (const l of links(seeds)) {
     if (!isTwin(l, seeds, now)) continue;
     const [ix, iy] = iso((l.a.x + l.b.x) / 2, (l.a.y + l.b.y) / 2);
