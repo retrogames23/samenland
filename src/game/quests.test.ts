@@ -8,10 +8,10 @@ const claim = (quest: string) => ({ id: quest, seed_id: "s", quest, reward: QUES
 describe("mayor's tasks", () => {
   it("starts with the seven early tasks", () => expect(QUESTS.slice(0, 7)).toEqual(["bless", "build", "sign", "meet", "ten", "gift", "hamlet"]));
   it("early rewards 20/30/20/30/40/40/60", () => expect(QUESTS.slice(0, 7).map((q) => QUEST_REWARD[q])).toEqual([20, 30, 20, 30, 40, 40, 60]));
-  it("has 19 tasks up to the metropolis, 2830 Taler in total", () => {
+  it("has 19 tasks up to the metropolis, 2770 Taler in total", () => {
     expect(QUESTS.length).toBe(19);
     expect(QUESTS.at(-1)).toBe("metro");
-    expect(QUESTS.reduce((a, q) => a + QUEST_REWARD[q], 0)).toBe(2830);
+    expect(QUESTS.reduce((a, q) => a + QUEST_REWARD[q], 0)).toBe(2770);
   });
   it("after the hamlet the road task opens, needing one road", () => {
     const c = ["bless", "build", "sign", "meet", "ten", "gift", "hamlet"].map(claim);
