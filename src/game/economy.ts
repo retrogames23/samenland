@@ -80,6 +80,7 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   const wealth = clamp(25 + Math.min(30, trade * 10) + (has("school") ? 20 : 0) + stage * 5 + (path === "craft" ? 10 : 0)
     + (near("school") ? 10 : 0) + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 5 : 0) + (has("woodcamp") ? WOODCAMP_WEALTH : 0));
   const b = activeBoons(s.decisions ?? [], now);
+  const rb = rankBoons(s, purchases); b.food += rb.food; b.health += rb.health; b.wealth += rb.wealth;
   const belfry = has("belfry4") && monumentProgress(s, now) >= 1;
   b.wealth += belfry ? BELFRY_WEALTH : 0; b.health += belfry ? BELFRY_HEALTH : 0;
   b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0; b.wealth += has("guard") ? 5 : 0;
@@ -88,4 +89,48 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   b.health += joy ? 10 : 0; b.wealth += (joy ? 5 : 0) + Math.min(ALLIANCE_MAX, alliances * ALLIANCE_WEALTH);
   if (stores) { b.food += stores.food; b.health += stores.health; b.wealth += stores.wealth; }
   return { food: clamp(food + b.food), health: clamp(health + b.health), wealth: clamp(wealth + b.wealth), has };
+}
+
+// ---------------- guild ranks (Lehrling · Geselle · Meister) ----------------
+/** Rank steps bought as purchases; prices, ages and requirements mirror the database purchase guard. */
+export const RANK_PRICE = { rank2: 250, rank3: 800 } as const;
+export type RankStep = keyof typeof RANK_PRICE;
+/** Real age (hours) before each exam: Dorf for journeymen, Handelsstadt for masters. */
+export const RANK_HOURS = { rank2: 168, rank3: 4380 } as const;
+export const RANK_ROADS = 2;
+export const GUILD_OF: Record<CharterPath, Item> = { trade: "markethall", craft: "guildhall", culture: "library", farm: "dairy" };
+/** Current rank 0 (no charter) … 3 (master), derived from purchase rows. */
+export const rankOf = (s: Seed, purchases: { seed_id: string; item: string }[]) => {
+  if (!s.charter) return 0;
+  const own = purchases.filter((p) => p.seed_id === s.id).map((p) => p.item);
+  return own.includes("rank3") ? 3 : own.includes("rank2") ? 2 : 1;
+};
+/** Rank from Seed.bought (for pure world code). */
+export const rankOfSeed = (s: Seed) => rankOf(s, (s.bought ?? []).map((b) => ({ seed_id: s.id, item: b.item })));
+/** Why the next exam is not open yet, or null when it may be paid. */
+export function rankBlock(s: Seed, purchases: { seed_id: string; item: string }[], now: number, roads: number): null | "charter" | "age" | "guild" | "belfry" | "roads" | "max" {
+  const r = rankOf(s, purchases);
+  if (r === 0) return "charter";
+  if (r === 3) return "max";
+  const step: RankStep = r === 1 ? "rank2" : "rank3";
+  if ((now - Date.parse(s.created_at)) / 3.6e6 < RANK_HOURS[step]) return "age";
+  const own = (i: string) => purchases.some((p) => p.seed_id === s.id && p.item === i);
+  if (step === "rank2") return own(GUILD_OF[s.charter!.path]) ? null : "guild";
+  if (!own("belfry4")) return "belfry";
+  return roads >= RANK_ROADS ? null : "roads";
+}
+/** Attribute bonuses per path and rank (journeyman, master) — derived, never stored. */
+export const RANK_BONUS: Record<CharterPath, [Partial<Record<"food" | "health" | "wealth", number>>, Partial<Record<"food" | "health" | "wealth", number>>]> = {
+  trade: [{ wealth: 10 }, { wealth: 10, food: 10 }],
+  craft: [{ wealth: 5 }, { wealth: 15 }],
+  culture: [{ health: 10 }, { health: 20 }],
+  farm: [{ food: 10 }, { food: 10, wealth: 10 }],
+};
+/** Craft journeymen build 20 % faster; farm journeymen store 40 more sheaves. */
+export const CRAFT_RANK_BUILD = 0.8, FARM_RANK_GRAIN = 40;
+export function rankBoons(s: Seed, purchases: { seed_id: string; item: string }[]) {
+  const r = rankOf(s, purchases), out = { food: 0, health: 0, wealth: 0 };
+  if (!s.charter || r < 2) return out;
+  for (const b of RANK_BONUS[s.charter.path].slice(0, r - 1)) for (const k of ["food", "health", "wealth"] as const) out[k] += b[k] ?? 0;
+  return out;
 }

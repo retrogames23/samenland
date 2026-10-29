@@ -232,6 +232,13 @@
       "when": 1793300000016,
       "tag": "0032_belfry_monument_steps",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793300000017,
+      "tag": "0033_guild_ranks",
+      "breakpoints": true
     }
   ]
 }
