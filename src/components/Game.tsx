@@ -857,8 +857,10 @@ export function Game() {
   };
   const saveSign = async (to: Seed) => {
     if (!my) return;
-    const text = (signDraft[to.id] ?? "").trim().slice(0, 80);
-    if (!text) return;
+    const cur = signs.find((x) => x.seed_id === my.id && x.target_id === to.id);
+    const text = (signDraft[to.id] ?? cur?.message ?? "").trim().slice(0, 80);
+    if (!text) return setMsg(t.signPlaceholder);
+    if (cur && cur.message === text) return setMsg(t.signSaved);
     const { data, error } = await supabase.from("signposts").upsert({ seed_id: my.id, target_id: to.id, user_id: userId!, message: text }, { onConflict: "seed_id,target_id" }).select("id, seed_id, target_id, user_id, message").single();
     if (error || !data) return setMsg(t.blessFail);
     setSigns((s) => [...s.filter((x) => x.id !== data.id), data as Signpost]);
