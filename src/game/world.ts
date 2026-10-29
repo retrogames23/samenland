@@ -260,7 +260,7 @@ export const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
   { dx: 3, dy: -4, at: 4380, kind: "townhall" }, { dx: 2, dy: -2, at: 4500, kind: "church" },
   { dx: 8, dy: 6, at: 8760, kind: "manufactory" }, { dx: -7, dy: -6, at: 9200, kind: "steamworks" },
   { dx: -9, dy: 5, at: 10000, kind: "station" }, { dx: 5, dy: 2, at: 7000, kind: "factory" },
-  { dx: 12, dy: 3, at: 14500, kind: "sawmill" },
+  { dx: 12, dy: 3, at: 2400, kind: "sawmill" },
 ];
 const lmCache = new Map<string, Map<string, number[]>>();
 /**
