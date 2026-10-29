@@ -35,6 +35,8 @@ import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/
 import {
   canPlant,
   MIN_SEED_DISTANCE,
+  specialSites,
+  specialBuild,
   structureAt,
   radiusOf,
   ageHours,
