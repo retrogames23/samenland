@@ -260,7 +260,7 @@ const de = {
     title: "Willkommen in Samenland", menu: "Anleitung", close: "Los geht's",
     intro: "Ein langsames Spiel: Dein Dorf wächst in Echtzeit – auch wenn du nicht hinschaust.",
     steps: [
-      ["Samen setzen", "Jeder Spieler gründet genau ein Dorf. Wasser, Wald, Acker oder Berge prägen, was es später gut kann."],
+      ["Samen setzen", "Jeder Spieler gründet genau ein Dorf. Wasser, Wald, Acker oder Berge prägen den späteren Charakter und die Spezialisierung deiner Ortschaft."],
       ["Zuschauen", "Häuser, Felder und Bewohner wachsen über rund zwei Jahre vom Weiler zur Metropole. Die Leute arbeiten, schlafen, heiraten und feiern sonntags."],
       ["Taler & Bauen", "Jeder Bewohner zahlt täglich einen Taler. Damit kaufst du links unter „Bauen“ Gebäude, die Nahrung, Gesundheit oder Wohlstand stärken."],
       ["Zuwendung", "Einmal am Tag kannst du dein Dorf segnen – das beschleunigt das Wachstum."],
