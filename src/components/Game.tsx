@@ -822,6 +822,16 @@ export function Game() {
     return { cash, myStage, myTown, at, pop, residents, season, nbs, larder, boons };
   }, [my, seeds, purchases, gifts, claims, slow]);
   const [larderOpen, setLarderOpen] = useState(false);
+  // "come back later": purse too thin for anything new while builders still work — say so once per session
+  const [waitShut, setWaitShut] = useState(false);
+  const waitDone = (() => {
+    if (!owner || !my || !at) return null;
+    const cheapest = Math.min(...(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && !at.has(it) && (ITEM_STAGE[it] ?? 0) <= myStage).map((it) => ITEMS[it]));
+    if (cash >= cheapest) return null;
+    const dur = specialBuild(my);
+    const ends = [...specialSites(my).values()].map((s) => s.at + dur).filter((e) => e > slow);
+    return ends.length ? Math.min(...ends) : null;
+  })();
   const wareName = (w: Ware, n: number) => t.goods.ware[w]![n === 1 ? 0 : 1];
   const [questOpen, setQuestOpen] = useState(false);
   const [questFold, setQuestFold] = useState(false);
