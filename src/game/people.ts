@@ -149,6 +149,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   };
   for (const sl of slots) {
     if (sl.job === "fisher") sl.at = shore(sl.at);
+    else if ((sl.job === "hunter" || sl.job === "herbalist" || sl.job === "woodcutter") && wood && Math.hypot(wood[0] - sl.at[0], wood[1] - sl.at[1]) < 16) sl.at = wood;
     else if (sl.job === "healer" && wood && Math.hypot(wood[0] - sl.at[0], wood[1] - sl.at[1]) < 12) sl.at = wood;
   }
   const homes: Tile[] = [];

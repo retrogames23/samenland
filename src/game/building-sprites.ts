@@ -58,6 +58,12 @@ import dairyLight from "@/assets/sprites/night/dairy.webp";
 import factoryLight from "@/assets/sprites/night/factory.webp";
 import farmhouseLight from "@/assets/sprites/night/farmhouse.webp";
 import fisheryLight from "@/assets/sprites/night/fishery.webp";
+import lodge from "@/assets/sprites/lodge.webp";
+import herbhut from "@/assets/sprites/herbhut.webp";
+import woodcamp from "@/assets/sprites/woodcamp.webp";
+import lodgeLight from "@/assets/sprites/night/lodge.webp";
+import herbhutLight from "@/assets/sprites/night/herbhut.webp";
+import woodcampLight from "@/assets/sprites/night/woodcamp.webp";
 import granaryLight from "@/assets/sprites/night/granary.webp";
 import guildhallLight from "@/assets/sprites/night/guildhall.webp";
 import harborLight from "@/assets/sprites/night/harbor.webp";
@@ -90,7 +96,7 @@ import warehouseLight from "@/assets/sprites/night/warehouse.webp";
 import watermillLight from "@/assets/sprites/night/watermill.webp";
 import workshopLight from "@/assets/sprites/night/workshop.webp";
 
-const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, firehouse: firehouseLight, guardhouse: guardhouseLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
+const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, lodge: lodgeLight, herbhut: herbhutLight, woodcamp: woodcampLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, firehouse: firehouseLight, guardhouse: guardhouseLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
 export const hasNightSprite = (kind: Kind) => Boolean(nightUrls[kind]);
 
@@ -134,6 +140,9 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   market: { url: market, crop: [0, 0, 990, 665], width: 26, base: 5 },
   hay: { url: hay, crop: [0, 0, 966, 827], width: 15, base: 3 },
   fishery: { url: fishery, crop: [0, 0, 480, 436], width: 22, base: 4 },
+  lodge: { url: lodge, crop: [0, 0, 480, 407], width: 22, base: 4 },
+  herbhut: { url: herbhut, crop: [0, 0, 480, 463], width: 22, base: 4 },
+  woodcamp: { url: woodcamp, crop: [0, 0, 480, 466], width: 24, base: 4 },
   granary: { url: granary, crop: [0, 0, 480, 450], width: 25, base: 4 },
   infirmary: { url: infirmary, crop: [0, 0, 480, 477], width: 23, base: 4 },
   firehouse: { url: firehouse, crop: [0, 0, 421, 480], width: 22, base: 4 },
