@@ -1,0 +1,17 @@
+/** Visible craft scenes (fisher, smith, miller, baker): pure functions of the world clock — nothing stored. */
+
+/** Workday window for outdoor craft props (world hour). */
+export const CRAFT_OPEN = 7, CRAFT_CLOSE = 18;
+
+/** Flour sacks stacked at the mill door: 0 overnight, grows through the workday to 4, stays until dusk. */
+export function sacksAt(hour: number, sunday: boolean): number {
+  if (sunday || hour < CRAFT_OPEN || hour >= CRAFT_CLOSE + 2) return 0;
+  return Math.max(0, Math.min(4, Math.floor(((hour - CRAFT_OPEN) / (CRAFT_CLOSE - CRAFT_OPEN)) * 4) + 1));
+}
+
+/** Bread basket by the bakery door: out from morning till evening (bakers work Sundays too). */
+export const breadOut = (hour: number) => hour >= 6 && hour < CRAFT_CLOSE + 1;
+
+/** Fishers cast only by day, not on Sundays and not on deep-winter ice. */
+export const fishingNow = (hour: number, sunday: boolean, winter: number) =>
+  !sunday && winter < 0.6 && hour >= CRAFT_OPEN - 1 && hour < CRAFT_CLOSE + 1;
