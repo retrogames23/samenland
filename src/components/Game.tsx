@@ -1334,7 +1334,7 @@ export function Game() {
   }, [decision.open, anyOpen]);
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-background">
+    <div className="relative h-screen w-full overflow-hidden bg-background supports-[height:100dvh]:h-[100dvh]">
       <LoadingScreen title="Samenland" lines={t.loading} onDone={openGuide} />
       <canvas
         ref={canvasRef}
