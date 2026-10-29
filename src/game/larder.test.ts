@@ -26,3 +26,12 @@ describe("derived larder", () => {
     expect(storedAt("mill", mill!, l).length).toBeGreaterThan(0);
   });
 });
+
+describe("young village gathering", () => {
+  it("a fresh village without woodcutters still stocks some logs", () => {
+    const born = Date.UTC(2026, 9, 1, 6);
+    const fresh = { id: "g2", name: "Neudorf", x: 520, y: 480, created_at: new Date(born).toISOString(), user_id: null } as never;
+    const l = larderOf(fresh, [fresh], born + 6 * 3600e3);
+    expect(l.flows.find((f) => f.ware === "log")?.stock ?? 0).toBeGreaterThan(0);
+  });
+});
