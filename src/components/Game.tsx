@@ -683,6 +683,18 @@ export function Game() {
     setTab(null);
     focus(x, y);
     setMsg(t.planted(data.name));
+    // invited newcomer: both villages receive the friend bonus (checked by the database)
+    const ref = localStorage.getItem("samenland-ref");
+    if (ref) {
+      localStorage.removeItem("samenland-ref");
+      const { error: re } = await supabase.rpc("claim_referral", { _seed: data.id, _ref: ref });
+      if (!re) {
+        const now0 = new Date().toISOString();
+        setClaims((c) => [...c, ...referralClaims([{ id: `local-${data.id}`, referrer_seed: ref, referee_seed: data.id, reward: 50, created_at: now0 }])]);
+        const friend = seeds.find((s) => s.id === ref);
+        setMsg(t.invite.got(friend?.name ?? data.name));
+      }
+    }
   };
 
   const my = seeds.find((s) => s.id === mine);
