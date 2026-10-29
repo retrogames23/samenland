@@ -630,11 +630,8 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const skirt = q.walking && !painted && SKIRTS.has(k);
   let tilt = 0;
   // only trades with a visible tool stroke move while working; everyone else stands still
-  if (q.working && TOOL_WORK.has(k)) {
-    const per = k === "farmer" || k === "farmerF" ? 1900 : 1300, u = ((t + q.p.id * 137) % per) / per;
-    const s = u < 0.55 ? u / 0.55 : u < 0.7 ? 1 - (u - 0.55) / 0.15 : 0;
-    tilt = 0.02 - s * s * 0.1;
-  }
+  // whole-sprite rocking looked like see-sawing; only painted frame cycles animate work now
+  void TOOL_WORK; void tilt;
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
   c.save(); c.translate(X, Y - bob); if (face < 0) c.scale(-1, 1); c.rotate(tilt);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
@@ -650,8 +647,8 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     // trade props stand beside the worker in the same mirrored frame, so they always line up
     const prop = (pk: FolkSprite, dx: number, ph: number) => { const im2 = folkImage(pk); if (!im2) return; const pw = (ph * im2.naturalWidth) / im2.naturalHeight; c.drawImage(im2, dx - pw / 2, -ph + 0.2, pw, ph); };
     if (q.p.job === "fisher") prop("fishBasket", -2.2, 1.3);
+    // one frame at a time: cross-fading poses that differ a lot showed double bodies and two scythes
     c.drawImage(mow, f * fw, 0, fw, fh, -ww / 2, -hh, ww, hh);
-    c.globalAlpha = ease; c.drawImage(mow, ((f + 1) % WORK_FRAMES) * fw, 0, fw, fh, -ww / 2, -hh, ww, hh); c.globalAlpha = 1;
     if (q.p.job === "smith") {
       prop("anvil", 2.4, 2.2);
       // sparks fly on the strike frames (4–5) and fade on the rebound
