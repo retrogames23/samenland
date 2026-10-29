@@ -162,16 +162,22 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
   const p = s.build ?? 1, sd = Math.floor(s.v * 9973);
   const box = spriteBox(s.kind, s.v);
   const w = Math.min(30, (box?.w ?? 24) * 0.75), hw = w / 2, hh = w / 4;
-  // trodden, dug-up ground
+  // trodden, dug-up ground: a dark soil plot with a lighter trodden rim, visible from the first minute
   c.save();
-  c.beginPath(); c.moveTo(cx, cy - hh); c.lineTo(cx + hw, cy); c.lineTo(cx, cy + hh); c.lineTo(cx - hw, cy); c.closePath();
-  c.fillStyle = "rgba(112,86,58,0.55)"; c.fill();
-  // foundation stones
-  if (p > 0.15) {
-    const f = Math.min(1, (p - 0.15) / 0.2), k = 0.78;
-    c.beginPath(); c.moveTo(cx, cy - hh * k); c.lineTo(cx + hw * k, cy); c.lineTo(cx, cy + hh * k); c.lineTo(cx - hw * k, cy); c.closePath();
-    c.strokeStyle = `rgba(150,140,125,${f})`; c.lineWidth = 1.6; c.stroke();
-    c.strokeStyle = `rgba(60,52,44,${0.6 * f})`; c.lineWidth = 0.35; c.stroke();
+  const dia = (k: number) => { c.beginPath(); c.moveTo(cx, cy - hh * k); c.lineTo(cx + hw * k, cy); c.lineTo(cx, cy + hh * k); c.lineTo(cx - hw * k, cy); c.closePath(); };
+  dia(1.12); c.fillStyle = "rgba(150,120,82,0.45)"; c.fill();
+  dia(0.95); c.fillStyle = "rgba(92,66,40,0.8)"; c.fill();
+  for (let i = 0; i < 10; i++) { // clods of turned earth
+    const a = hash(sd, i, 11) - 0.5, b = hash(sd, i, 12) - 0.5;
+    c.fillStyle = i % 2 ? "rgba(60,42,24,0.7)" : "rgba(130,100,66,0.6)";
+    c.beginPath(); c.ellipse(cx + (a - b) * hw * 0.9, cy + (a + b) * hh * 0.9, 0.9, 0.45, 0, 0, 7); c.fill();
+  }
+  // foundation trench is cut first, stones follow
+  {
+    const f = p > 0.15 ? Math.min(1, (p - 0.15) / 0.2) : 0, k = 0.78;
+    dia(k);
+    c.strokeStyle = `rgba(52,36,22,${0.75 * (1 - f)})`; c.lineWidth = 1.1; c.stroke();
+    if (f > 0) { c.strokeStyle = `rgba(150,140,125,${f})`; c.lineWidth = 1.6; c.stroke(); c.strokeStyle = `rgba(60,52,44,${0.6 * f})`; c.lineWidth = 0.35; c.stroke(); }
   }
   // walls rise from the ground up
   if (p > 0.35 && box) {
@@ -180,6 +186,12 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
     c.globalAlpha = 1;
   }
   c.restore();
+  // material piles: full timber stack and stone blocks delivered at once, used up as the house grows
+  const left = Math.max(0, 1 - p);
+  if (left > 0) {
+    prop(c, "logs", cx + hw * 0.95, cy + hh * 0.6, 5 + 5 * left);
+    prop(c, "blocks", cx - hw * 0.95, cy + hh * 0.55, 4 + 4.5 * left);
+  }
   if (!detail) return;
   // timber scaffold around the rising house
   if (p > 0.25 && p < 0.97) {
@@ -189,16 +201,25 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
   // stakes and string while the plot is still being marked out
   if (p < 0.3) {
     for (const [px, py] of [[cx - hw, cy], [cx, cy + hh], [cx + hw, cy], [cx, cy - hh]] as Pt[]) {
-      c.strokeStyle = "#7a5a3a"; c.lineWidth = 0.55; c.beginPath(); c.moveTo(px, py); c.lineTo(px, py - 2.6); c.stroke();
+      c.strokeStyle = "#6a4a2a"; c.lineWidth = 0.75; c.beginPath(); c.moveTo(px, py); c.lineTo(px, py - 3.6); c.stroke();
     }
-    c.strokeStyle = "rgba(235,225,200,0.75)"; c.lineWidth = 0.2; c.beginPath();
-    c.moveTo(cx - hw, cy - 2.2); c.lineTo(cx, cy + hh - 2.2); c.lineTo(cx + hw, cy - 2.2); c.lineTo(cx, cy - hh - 2.2); c.closePath(); c.stroke();
+    c.strokeStyle = "rgba(240,230,205,0.9)"; c.lineWidth = 0.28; c.beginPath();
+    c.moveTo(cx - hw, cy - 3.1); c.lineTo(cx, cy + hh - 3.1); c.lineTo(cx + hw, cy - 3.1); c.lineTo(cx, cy - hh - 3.1); c.closePath(); c.stroke();
   }
-  // material piles: timber stack and stone blocks, used up as the house grows
-  const left = Math.max(0, 1 - p);
-  if (left > 0) {
-    prop(c, "logs", cx + hw * 0.95, cy + hh * 0.6, 3 + 5 * left);
-    prop(c, "blocks", cx - hw * 0.95, cy + hh * 0.55, 2.5 + 4.5 * left);
+  // the town's pennant on a pole marks the plot until the house is finished
+  if (p < 0.97) {
+    const pole = folkImage("bannerPole"), cloth = bannerCloth(s.seed.hue);
+    if (pole && cloth) {
+      const ph = 15, pw = (ph * pole.naturalWidth) / pole.naturalHeight, bx = cx + hw * 0.55, by = cy - hh * 0.55;
+      const sway = Math.sin(t / 700 + sd) * 0.05;
+      c.fillStyle = "rgba(20,15,10,0.25)"; c.beginPath(); c.ellipse(bx + 1, by, 1.8, 0.55, 0, 0, 7); c.fill();
+      c.save(); c.translate(bx, by);
+      const ox = -pw * 0.195;
+      c.drawImage(pole, ox, -ph, pw, ph);
+      c.translate(ox + pw * 0.2, -ph * 0.85); c.transform(1, sway, 0, 1 + sway * 0.5, 0, 0);
+      c.drawImage(cloth, -pw * 0.2, -ph * 0.15, pw, ph);
+      c.restore();
+    }
   }
   // fresh sawdust / dust puff from hammering
   if (p > 0.25 && p < 0.97 && Math.sin(t / 300 + sd) > 0.7) {
