@@ -3,17 +3,17 @@
  * A pure calendar from the road (seed pair) and the clock – nothing is stored, every client sees the same walkers.
  */
 import { ageHours, GROWTH_PACE, hash, links, roadProgress, stageOf, type Link, type Seed } from "./world";
-import { clock } from "./time";
+import { clock, worldHour, worldWeekday } from "./time";
 
-export type WalkerKind = "journeyman" | "messenger" | "bridal" | "family" | "gift" | "aid" | "letter";
-export type Walker = { kind: WalkerKind; from: Seed; to: Seed; t0: number; t1: number; name: string; sex: "f" | "m"; craft: string; sd: number };
+export type WalkerKind = "journeyman" | "messenger" | "bridal" | "family" | "gift" | "aid" | "letter" | "rider" | "trader";
+export type Walker = { kind: WalkerKind; from: Seed; to: Seed; t0: number; t1: number; name: string; sex: "f" | "m"; craft: string; sd: number; /** road share covered: from p0 to p1 (default 0→1) */ p0?: number; p1?: number };
 
 const F = ["Greta", "Ida", "Frieda", "Lotte", "Marie", "Anna", "Clara", "Hedwig", "Rosa", "Lina"];
 const M = ["Otto", "Karl", "Emil", "Fritz", "Hans", "Jakob", "Franz", "Ludwig", "Konrad", "Heinrich"];
 /** Crafts a journeyman can learn (job codes from people.ts). */
 export const CRAFTS = ["smith", "baker", "mason", "builder", "miller", "crafter", "sawyer"];
 /** Walking speed in road tiles per real second. */
-export const SPEED: Record<WalkerKind, number> = { journeyman: 0.12, messenger: 0.3, bridal: 0.1, family: 0.07, gift: 0.15, aid: 0.2, letter: 0.3 };
+export const SPEED: Record<WalkerKind, number> = { journeyman: 0.12, messenger: 0.3, bridal: 0.1, family: 0.07, gift: 0.15, aid: 0.2, letter: 0.3, rider: 0.6, trader: 0.1 };
 const SUR = ["Müller", "Becker", "Wagner", "Krämer", "Vogt", "Hofmann", "Brandt", "Lindner", "Kessler", "Roth"];
 /** Days a house stands empty after its family moved away, before newcomers fill it again. */
 export const VACANT_DAYS = 12;
@@ -52,6 +52,49 @@ export function walkersOn(l: Link, d: number): Walker[] {
   if (hash(sn, d, 1506) < 0.04) add("bridal", 2);
   // a household packs its cart and moves to the neighbour offering more (~every 20 days per road, only on an imbalance)
   if (hash(sn, d, 1507) < 0.05 && homeDraw(l, d * DAY) !== 0) add("family", 3);
+  out.push(...tradersOn(l, d));
+  return out;
+}
+
+/** Saturday market: hours (realm clock) the stalls stand at the road's midpoint. */
+export const MARKET_OPEN = 9, MARKET_CLOSE = 17;
+/** Realm-clock timestamp of hour h on UTC day d (realm day centred on that UTC noon). */
+export function atHour(d: number, h: number) {
+  const noon = d * DAY + 12 * 3.6e6;
+  return noon + (h - worldHour(noon)) * 3.6e6;
+}
+export const isMarketDate = (d: number) => worldWeekday(d * DAY + 12 * 3.6e6) === 6;
+/** Traders: 2–3 per town walk to the midpoint before opening and home after closing (pure from road and day). */
+export function tradersOn(l: Link, d: number): Walker[] {
+  if (!isMarketDate(d) || l.tiles.length < 7) return [];
+  const sn = roadId(l), n = l.tiles.length, out: Walker[] = [], half = (n / 2 / SPEED.trader) * 1000;
+  for (const [side, other, k0] of [[l.a, l.b, 0], [l.b, l.a, 5]] as const) {
+    const cnt = 2 + (hash(sn, d + k0, 1520) < 0.5 ? 1 : 0);
+    for (let k = 0; k < cnt; k++) {
+      const sd = sn * 37 + d * 11 + k0 + k, sex = hash(sd, 1, 1521) < 0.5 ? "f" : "m", names = sex === "f" ? F : M;
+      const name = names[Math.floor(hash(sd, 2, 1521) * names.length)]!;
+      const go = atHour(d, MARKET_OPEN) - half - hash(sd, 3, 1521) * 1.8e6, back = atHour(d, MARKET_CLOSE) + hash(sd, 4, 1521) * 1.8e6;
+      out.push({ kind: "trader", from: side, to: other, t0: go, t1: go + half, sd, sex, name, craft: "", p0: 0, p1: 0.5 });
+      out.push({ kind: "trader", from: other, to: side, t0: back, t1: back + half, sd, sex, name, craft: "", p0: 0.5, p1: 1 });
+    }
+  }
+  return out;
+}
+/** Is the Saturday market at the road's midpoint open right now? */
+export const marketOpen = (now: number) => { const h = worldHour(now) % 24; return worldWeekday(now) === 6 && h >= MARKET_OPEN && h < MARKET_CLOSE; };
+
+/** Mounted messenger: arrival time from the straight distance (10 min – 2 h), never stored. */
+export const RIDE_MIN = 6e5, RIDE_MAX = 72e5, RIDE_PER_TILE = 4000;
+export const rideTime = (a: Seed, b: Seed) => Math.max(RIDE_MIN, Math.min(RIDE_MAX, Math.hypot(a.x - b.x, a.y - b.y) * RIDE_PER_TILE));
+export const letterArrives = (from: Seed, to: Seed, at: number) => at + rideTime(from, to);
+/** Riders for stored letter rows on road l. */
+export function riderWalkers(l: Link): Walker[] {
+  const out: Walker[] = [];
+  for (const [from, to] of [[l.a, l.b], [l.b, l.a]] as const) for (const g of from.letters ?? []) {
+    if (g.to !== to.id) continue;
+    const sd = Math.floor(hash(g.at % 1e9, 9, 1530) * 1e6);
+    out.push({ kind: "rider", from, to, t0: g.at, t1: letterArrives(from, to, g.at), sd, sex: "m", name: M[sd % M.length]!, craft: "" });
+  }
   return out;
 }
 
@@ -61,11 +104,12 @@ export function walkersNow(l: Link, now = clock()): Walker[] {
   const d = Math.floor(now / DAY), out: Walker[] = [];
   for (const dd of [d - 1, d]) for (const w of walkersOn(l, dd)) if (w.t0 >= l.since && now >= w.t0 && now < w.t1) out.push(w);
   for (const w of giftWalkers(l)) if (now >= w.t0 && now < w.t1) out.push(w);
+  for (const w of riderWalkers(l)) if (now >= w.t0 && now < w.t1) out.push(w);
   return out;
 }
 
 /** Progress (0..1) of a walker along the road from its start town. */
-export const walkProgress = (w: Walker, now: number) => Math.max(0, Math.min(1, (now - w.t0) / (w.t1 - w.t0)));
+export const walkProgress = (w: Walker, now: number) => { const f = Math.max(0, Math.min(1, (now - w.t0) / (w.t1 - w.t0))); return (w.p0 ?? 0) + ((w.p1 ?? 1) - (w.p0 ?? 0)) * f; };
 
 /** Journeymen who arrived in town s between two moments (for the chronicle). */
 export function journeymenTo(s: Seed, seeds: Seed[], from: number, to: number): Walker[] {
