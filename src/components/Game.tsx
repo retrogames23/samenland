@@ -1645,8 +1645,8 @@ export function Game() {
         </Panel>
       </div>
       {tab && (
-        <div className="pointer-events-none absolute inset-x-2 bottom-20 z-30 md:inset-x-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
-          <Panel className="max-h-[min(72dvh,calc(100dvh-9rem))] overflow-y-auto overscroll-contain">{drawer}</Panel>
+        <div className="pointer-events-none absolute inset-x-2 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 md:inset-x-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
+          <Panel className="max-h-[min(72dvh,calc(100dvh-11rem))] overflow-y-auto overscroll-contain">{drawer}</Panel>
         </div>
       )}
 
@@ -2054,7 +2054,7 @@ export function Game() {
         </div>
       )}
 
-      <div className="pointer-events-none absolute bottom-20 left-2 right-2 z-20 flex flex-col items-end space-y-2 text-sm md:bottom-52 md:left-auto md:right-3 md:w-80">
+      <div className="pointer-events-none absolute bottom-[calc(5rem+env(safe-area-inset-bottom))] left-2 right-2 z-20 flex flex-col items-end space-y-2 text-sm md:bottom-52 md:left-auto md:right-3 md:w-80">
         {placing && coarse && ghost && (() => {
           const own = seeds.find((s) => s.id === mine);
           const err = own ? canPlaceSpecial(placing, ghost[0], ghost[1], own, seeds, clock()) as keyof typeof t.place | null : "ground";
