@@ -5,13 +5,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
-import { townOf, poseOf, kinOf, commandMayor, type Person } from "@/game/people";
+import { townOf, poseOf, kinOf, commandMayor, driveMayor, clearMayorOrder, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { weddingJoy, DOWRY } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
 import { larderOf, storedAt, chainOf, boonsOf, type Ware } from "@/game/goods";
 import { WareIcon } from "@/components/hud/WareIcon";
-import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, Crown, X, LogIn } from "lucide-react";
+import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, Crown, X, LogIn, Footprints } from "lucide-react";
 import { Panel, WoodButton } from "@/components/hud/Panel";
 import { Parchment, WaxSeal } from "@/components/hud/Parchment";
 import { ART, pickDecision } from "@/game/decisions";
@@ -191,6 +191,7 @@ export function Game() {
   const [msg, setMsg] = useState<string | null>(null);
   type Tab = "build" | "rituals" | "signs" | "towns" | "plant";
   const [tab, setTab] = useState<Tab | null>(null);
+  const [walk, setWalk] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [settings, setSettings] = useState(false);
   const [imprint, setImprint] = useState(false);
@@ -230,7 +231,8 @@ export function Game() {
   // start over the settled heartland, never the empty ocean at tile (0,0)
   const cam = useRef<Camera>((() => { const [x, y] = iso(500, 500); return { x, y, zoom: 2.6 }; })());
   const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
-  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, ghost: null as [number, number] | null });
+  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, ghost: null as [number, number] | null, walk: false });
+  st.current.walk = walk;
   st.current.seeds = seeds;
   st.current.hover = hover;
   st.current.placing = placing;
@@ -602,14 +604,31 @@ export function Game() {
     const typing = (e: KeyboardEvent) => { const el = e.target as HTMLElement | null; return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable); };
     const onKeyDown = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
+      if (k === "escape" && st.current.walk) { setWalk(false); return; }
       if (!KEYMAP[k] || typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
       e.preventDefault(); keys.add(k);
     };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
     const onBlur = () => keys.clear();
-    let lastPan = performance.now();
+    let lastPan = performance.now(), walkDriven = false;
     panStep = () => {
       const now = performance.now(), dt = Math.min(50, now - lastPan); lastPan = now;
+      if (st.current.walk) {
+        // stroll mode: the keys steer the own mayor and the camera follows him softly
+        const S = st.current, my = S.seeds.find((x) => x.id === S.mine);
+        if (my) {
+          let dx = 0, dy = 0;
+          for (const k of keys) { const v = KEYMAP[k]; if (v) { dx += v[0]; dy += v[1]; } }
+          const nw = clock(), tw = townOf(my, S.seeds, nw), me = tw.people.find((q) => q.role === "mayor");
+          if (me) {
+            if (keys.size || walkDriven) { driveMayor(me, tw, S.seeds, nw, dx + dy, dy - dx, dt / 1000); walkDriven = true; }
+            const q = poseOf(me, tw, S.seeds, nw), [ix, iy] = iso(q.x, q.y), k = 1 - Math.exp(-dt / 220);
+            cam.current.x += (ix - cam.current.x) * k; cam.current.y += (iy - 10 - cam.current.y) * k;
+          }
+        }
+        return;
+      }
+      walkDriven = false;
       if (keys.size) {
         let dx = 0, dy = 0;
         for (const k of keys) { const v = KEYMAP[k]; if (v) { dx += v[0]; dy += v[1]; } }
@@ -724,6 +743,9 @@ export function Game() {
   };
 
   const my = seeds.find((s) => s.id === mine);
+  const startWalk = () => { if (!my) return; setTab(null); setWho(null); setPlace(null); setPlacing(null); const cv = canvasRef.current; target.current = { zoom: Math.max(target.current.zoom, 5), ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; setWalk(true); };
+  const wasWalk = useRef(false);
+  useEffect(() => { if (wasWalk.current && !walk) clearMayorOrder(); wasWalk.current = walk; }, [walk]);
   const findMayor = () => { if (!my) return; const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (!me) return focus(my.x, my.y); const z = poseOf(me, tw, seeds, nw); focus(z.x, z.y); setPlace(null); setWho(me); };
   const myCharter = my ? charters.find((c) => c.seed_id === my.id)?.path : undefined;
   const sealCharter = async () => {
@@ -1334,7 +1356,15 @@ export function Game() {
   }, [decision.open, anyOpen]);
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-background supports-[height:100dvh]:h-[100dvh]">
+    <div className={`relative h-screen w-full overflow-hidden bg-background supports-[height:100dvh]:h-[100dvh] ${walk ? "[&>*:not(canvas):not([data-walk])]:hidden" : ""}`}>
+      {walk && (
+        <div data-walk className="pointer-events-none absolute inset-x-0 bottom-3 z-40 flex flex-col items-center gap-2 pb-[env(safe-area-inset-bottom)]">
+          <span className="rounded bg-background/70 px-2 py-0.5 text-[11px] text-foreground/80">{t.hud.walkHint}</span>
+          <WoodButton label={t.hud.walkExit} onClick={() => setWalk(false)} className="pointer-events-auto h-11 gap-1.5 px-4">
+            <X className="h-4 w-4" /><span className="text-xs">{t.hud.walkExit}</span>
+          </WoodButton>
+        </div>
+      )}
       <LoadingScreen title="Samenland" lines={t.loading} onDone={openGuide} />
       <canvas
         ref={canvasRef}
@@ -1432,6 +1462,12 @@ export function Game() {
           }
           if (d && !d.moved) {
             if (placing) { const [px, py] = tileAt(e); return buy(placing, px, py); }
+            if (walk) {
+              // stroll mode: a tap sends the mayor there, nothing else opens
+              const [tx, ty] = tileAt(e), my = seeds.find((x) => x.id === mine);
+              if (my) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (me && commandMayor(me, tw, seeds, nw, [tx, ty])) tap((e.clientX / window.innerWidth) * 2 - 1); }
+              return;
+            }
             if (mode === "look") {
               const best = personAt(e);
               const pan = (e.clientX / window.innerWidth) * 2 - 1;
@@ -1598,6 +1634,11 @@ export function Game() {
             <Beer className="h-5 w-5" /><span className="text-[10px] leading-none">{t.tavern.menu}</span>
             {chatUnread > 0 && <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-destructive" />}
           </WoodButton>
+          {my && (
+            <WoodButton label={t.hud.walk} onClick={startWalk} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
+              <Footprints className="h-5 w-5" /><span className="text-[10px] leading-none">{t.hud.walk}</span>
+            </WoodButton>
+          )}
           {my && (
             <WoodButton label={t.mayorFind} onClick={findMayor} className="h-11 flex-1 flex-col gap-0.5 md:hidden">
               <Crown className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.role["mayor"]![1]}</span>

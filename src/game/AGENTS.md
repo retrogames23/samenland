@@ -26,3 +26,4 @@
 - Player mayor steering (commandMayor/orderPose in people.ts) is local-only, never stored: other clients keep seeing the derived routine; the order expires ORDER_IDLE s after arrival.
 - Mayor's seat: SEAT_KINDS landmarks share one reserved tile in LANDMARKS (world.ts) and swap by era (seat1 -> seat2 -> seat3 -> townhall); the mayor's home/work derive from it in people.ts — never stored.
 - Mayor titles (Amt & Würden) are purchase rows title1..3 checked by the DB purchase_guard (charter, age, guild rank, previous title); title, bonuses and avatar insignia derive via titleOf/titleBoons/titleOfSeed in economy.ts — no separate title state.
+- Stroll mode (driveMayor in people.ts): direct mayor steering is local-only like commandMayor, never stored; Game.tsx hides the HUD and the camera follows the mayor; leaving clears the steering.
