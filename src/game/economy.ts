@@ -1,4 +1,5 @@
 import { giftBalance, type Gift } from "./gifts";
+import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, floodFood } from "./disasters";
 import { dowryEarned, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
@@ -36,11 +37,11 @@ export function taxEarned(s: Seed, now: number) {
 /** Today's income per day, including the trade charter bonus. */
 export const dailyTax = (s: Seed, h: number) => { const p = popAt(h); return p + (s.charter?.path === "trade" ? Math.floor(TRADE_TAX * p) : 0); };
 
-export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = []) {
+export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = []) {
   const spent = purchases.filter((p) => p.seed_id === s.id).reduce((a, p) => a + p.cost, 0);
   const ev = (s.decisions ?? []).reduce((a, d) => a + d.cost, 0);
   const tw = (s.works ?? []).reduce((a, w) => a + w.cost, 0);
-  return START_TALER + taxEarned(s, now) + dowryEarned(s, now) - spent - ev - tw + giftBalance(s.id, gifts) - raidLoss(s, now);
+  return START_TALER + taxEarned(s, now) + dowryEarned(s, now) - spent - ev - tw + giftBalance(s.id, gifts) + questEarned(claims, s.id) - raidLoss(s, now);
 }
 
 
