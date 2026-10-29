@@ -33,7 +33,7 @@ describe("encounters", () => {
 describe("encounter catalogue", () => {
   it("has 25 encounters, each shown once per round of 25", () => {
     expect(Object.keys(ENCOUNTERS).length).toBe(25);
-    const seen = new Set(Array.from({ length: 24 }, (_, n) => eventOf("s", 48 + n)));
+    const seen = new Set(Array.from({ length: 25 }, (_, n) => eventOf("s", 50 + n)));
     expect(seen.size).toBe(25);
   });
 });
