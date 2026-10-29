@@ -225,7 +225,8 @@ function tick() {
       case "site": if (rnd() < 0.9 * dt) burst(src.pan, 0.1 * v, 700, 0.06, "bandpass"); break;
       case "sawmill": if (rnd() < 0.25 * dt) burst(src.pan, 0.05 * v, 1800, 0.5, "bandpass"); break;
       case "mill": if (rnd() < 0.2 * dt) tone(src.pan, 0.03 * v, 120, 95, 0.6, "sawtooth", 300); break;
-      // watermill chirp and ambient sheep bleats removed: the vibrato baa (~410 Hz saw + harmonics) was the recurring nagging sound
+      case "watermill": if (rnd() < 0.15 * dt) tone(src.pan, 0.04 * v, 500 + rnd() * 400, 1200, 0.08); break;
+      // ambient sheep bleats stay removed: the synthetic vibrato baa was the recurring nagging sound; real "Mäh!" plays on click only
       case "steamworks": if (rnd() < 0.8 * dt) burst(src.pan, 0.07 * v, 900, 0.08, "bandpass"); break; // water-driven trip hammer
     }
   }
