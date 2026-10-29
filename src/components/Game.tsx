@@ -19,7 +19,8 @@ import { Minimap } from "@/components/hud/Minimap";
 import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen, ArrowLeft } from "lucide-react";
+import { BookOpen, ArrowLeft, ScrollText } from "lucide-react";
+import { VillageRoll } from "@/components/VillageRoll";
 import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/game/audio";
 import {
@@ -642,6 +643,7 @@ export function Game() {
   const [chron, setChron] = useState<Chronicle | null>(null);
   const [chronOpen, setChronOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [rollOpen, setRollOpen] = useState(false);
   useEffect(() => {
     if (userId && !localStorage.getItem("samenland-guide-seen")) { setGuideOpen(true); localStorage.setItem("samenland-guide-seen", "1"); }
   }, [userId]);
@@ -1167,6 +1169,11 @@ export function Game() {
               <ArrowLeft className="h-5 w-5" /><span className="text-[10px] leading-none">{t.hud.close}</span>
             </WoodButton>
           )}
+          {owner && myTown && (
+            <WoodButton label={t.roll.title} active={rollOpen} onClick={() => setRollOpen(true)} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
+              <ScrollText className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.menu}</span>
+            </WoodButton>
+          )}
           <WoodButton label={t.guide.menu} active={guideOpen} onClick={() => setGuideOpen(true)} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
             <BookOpen className="h-5 w-5" /><span className="text-[10px] leading-none">{t.guide.menu}</span>
           </WoodButton>
@@ -1349,6 +1356,17 @@ export function Game() {
         </Parchment>
       )}
 
+      {rollOpen && my && myTown && (
+        <VillageRoll t={t} town={myTown} hue={my.hue} onClose={() => setRollOpen(false)} onPick={(p) => {
+          const now = clock();
+          const z = poseOf(p, townOf(p.seed, seeds, now), seeds, now);
+          setRollOpen(false);
+          focus(z.visible ? z.x : p.home[0], z.visible ? z.y : p.home[1]);
+          cam.current.zoom = Math.max(cam.current.zoom, 2);
+          setWho(p);
+          setMsg(z.visible ? null : `${p.first} ${z.act === "sleep" || z.act === "home" || z.act === "sick" ? t.roll.home : t.roll.inside}`);
+        }} />
+      )}
       {guideOpen && (
         <Parchment wide image={ART["guide"]} title={t.guide.title} later={t.guide.close} onLater={() => setGuideOpen(false)}>
           <p className="text-center text-sm italic">{t.guide.intro}</p>
