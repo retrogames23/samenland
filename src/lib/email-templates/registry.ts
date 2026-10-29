@@ -19,8 +19,10 @@ export interface TemplateEntry {
  */
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'building-done': buildingDone,
+  'idle-warning': idleWarning,
   // Add templates here as they are created, e.g.:
   // 'welcome': welcomeTemplate,
 }
 
 import { template as buildingDone } from './building-done'
+import { template as idleWarning } from './idle-warning'

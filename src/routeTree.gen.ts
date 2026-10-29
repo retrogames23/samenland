@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ApiPublicBuildMailRouteImport } from './routes/api/public/build-mail'
+import { Route as ApiPublicIdleSweepRouteImport } from './routes/api/public/idle-sweep'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -29,6 +30,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ApiPublicBuildMailRoute = ApiPublicBuildMailRouteImport.update({
   id: '/api/public/build-mail',
   path: '/api/public/build-mail',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicIdleSweepRoute = ApiPublicIdleSweepRouteImport.update({
+  id: '/api/public/idle-sweep',
+  path: '/api/public/idle-sweep',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/public/build-mail': typeof ApiPublicBuildMailRoute
+  '/api/public/idle-sweep': typeof ApiPublicIdleSweepRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/public/build-mail': typeof ApiPublicBuildMailRoute
+  '/api/public/idle-sweep': typeof ApiPublicIdleSweepRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/public/build-mail': typeof ApiPublicBuildMailRoute
+  '/api/public/idle-sweep': typeof ApiPublicIdleSweepRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/'
     | '/sitemap.xml'
     | '/api/public/build-mail'
+    | '/api/public/idle-sweep'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/'
     | '/sitemap.xml'
     | '/api/public/build-mail'
+    | '/api/public/idle-sweep'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/sitemap.xml'
     | '/api/public/build-mail'
+    | '/api/public/idle-sweep'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
@@ -104,6 +116,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiPublicBuildMailRoute: typeof ApiPublicBuildMailRoute
+  ApiPublicIdleSweepRoute: typeof ApiPublicIdleSweepRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -130,6 +143,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/build-mail'
       fullPath: '/api/public/build-mail'
       preLoaderRoute: typeof ApiPublicBuildMailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/idle-sweep': {
+      id: '/api/public/idle-sweep'
+      path: '/api/public/idle-sweep'
+      fullPath: '/api/public/idle-sweep'
+      preLoaderRoute: typeof ApiPublicIdleSweepRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/auth/preview': {
@@ -160,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiPublicBuildMailRoute: ApiPublicBuildMailRoute,
+  ApiPublicIdleSweepRoute: ApiPublicIdleSweepRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,

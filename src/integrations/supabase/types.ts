@@ -736,6 +736,27 @@ export type Database = {
           },
         ]
       }
+      user_activity: {
+        Row: {
+          lang: string
+          last_active_at: string
+          user_id: string
+          warning_sent_at: string | null
+        }
+        Insert: {
+          lang?: string
+          last_active_at?: string
+          user_id: string
+          warning_sent_at?: string | null
+        }
+        Update: {
+          lang?: string
+          last_active_at?: string
+          user_id?: string
+          warning_sent_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -815,11 +836,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      purge_user_data: { Args: { _uid: string }; Returns: undefined }
       road_done: { Args: { _a: string; _b: string }; Returns: string }
       send_letter: {
         Args: { _body: string; _from: string; _to: string }
         Returns: string
       }
+      touch_activity: { Args: { _lang?: string }; Returns: undefined }
       village_balance: { Args: { _seed: string }; Returns: number }
       village_dowry: {
         Args: { _at: string; _created: string }
