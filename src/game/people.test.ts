@@ -8,7 +8,7 @@ function spot(): [number, number] {
 }
 const [sx, sy] = spot();
 const NOW = Date.UTC(2026, 9, 27, 2, 0, 0); // 03:00 Samenland time (CET)
-const seed: Seed = { id: "test-seed", name: "Testdorf", owner: "T", x: sx, y: sy, hue: 40, created_at: new Date(NOW - 20 * 864e5).toISOString() };
+const seed: Seed = { id: "test-seed", name: "Testdorf", owner: "T", x: sx, y: sy, hue: 40, created_at: new Date(NOW - 19 * 864e5).toISOString() };
 
 describe("villagers", () => {
   it("the same seed and time always give the same residents", () => {
