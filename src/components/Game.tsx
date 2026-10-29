@@ -80,7 +80,7 @@ const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", cult
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
-import { ITEMS, MONUMENT_PRICE, MONUMENT_STAGE, nextMonumentStep, type MonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
+import { RANK_PRICE, RANK_HOURS, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENT_STAGE, nextMonumentStep, type MonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -987,7 +987,7 @@ export function Game() {
     setSigns((s) => [...s.filter((x) => x.id !== data.id), data as Signpost]);
     setMsg(t.signSaved);
   };
-  const buy = async (item: Item | MonumentStep, x?: number, y?: number) => {
+  const buy = async (item: Item | MonumentStep | RankStep, x?: number, y?: number) => {
     if (!my) return;
     if (x != null && y != null) {
       const err = canPlaceSpecial(item, x, y, my, seeds, clock());
@@ -998,7 +998,7 @@ export function Game() {
     if (error || !data) return setMsg(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
     setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
     tap();
-    jingle("coins"); setMsg(t.bought(t.items[item]![0]));
+    if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { jingle("coins"); setMsg(t.bought(t.items[item]![0])); }
   };
   const zoomBy = (f: number) => {
     const cv = canvasRef.current!;
@@ -1042,6 +1042,27 @@ export function Game() {
           {myCharter && (
             <div className="rounded-md border border-brass/60 bg-brass/15 p-2 text-xs">
               <b>{PATH_ICON[myCharter]} {t.charter.paths[myCharter]![0]}:</b> {t.charter.bonus[myCharter]}
+              {my && (() => {
+                const r = rankOf(my, purchases), step: RankStep = r === 1 ? "rank2" : "rank3";
+                const roads = links(seeds).filter((l) => (l.a.id === my.id || l.b.id === my.id) && now >= l.since).length;
+                const blk = rankBlock(my, purchases, now, roads);
+                const why = blk === "age" ? t.rank.need.age(t.stages[step === "rank2" ? 2 : 4] ?? "") : blk === "guild" ? t.rank.need.guild : blk === "belfry" ? t.rank.need.belfry : blk === "roads" ? t.rank.need.roads(RANK_ROADS) : "";
+                void RANK_HOURS;
+                return (
+                  <div className="mt-2 border-t border-brass/40 pt-2">
+                    <div className="font-semibold">{t.rank.title}</div>
+                    <div className="mt-1 flex gap-1">
+                      {t.rank.ranks.map((n, k) => <span key={k} className={`rounded-full px-2 py-0.5 text-[10px] ${k < r ? "bg-brass/60 font-semibold text-wood" : "bg-ink/10 opacity-60"}`}>{k < r ? "✦" : "○"} {n}</span>)}
+                    </div>
+                    <ul className="mt-1 space-y-0.5">
+                      {t.rank.perks[myCharter]!.map((p, k) => <li key={k} className={k + 2 <= r ? "text-primary" : "opacity-70"}>{k + 2 <= r ? "✓" : "·"} <b>{t.rank.ranks[k + 1]}:</b> {p}</li>)}
+                    </ul>
+                    {blk === "max" ? <div className="mt-1 font-semibold text-primary">{t.rank.need.max}</div>
+                      : blk ? <div className="mt-1 text-muted-foreground">{t.rank.exam[r]}: {why}</div>
+                      : <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < RANK_PRICE[step]} onClick={() => void buy(step)}>{t.rank.exam[r]} · {t.taler(RANK_PRICE[step])}</Button>}
+                  </div>
+                );
+              })()}
             </div>
           )}
           {(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && !at.has(it) && (ITEM_STAGE[it] ?? 0) <= myStage)
