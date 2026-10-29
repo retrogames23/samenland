@@ -7,3 +7,8 @@
 - [x] Block 2c: Familienumzüge (echte Abwanderung, Haus 12 Tage leer, Karren auf der Straße)
 - [x] Block 3: Geschenke, Katastrophenhilfe, Dankesbriefe
 - [ ] Block 4: Gemeinsame Werke auf halber Strecke
+
+# Roadmap: Mittel- und Spätspiel
+- [x] A: Aufgaben des Schulzen über alle Ären (19 Aufgaben)
+- [ ] B: Mehrstufige Prestigebauten (Bauabschnitte, Teilzahlungen)
+- [ ] C: Zunft-Vertiefung der Charta (Gesellen-/Meisterstufe)
