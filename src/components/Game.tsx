@@ -179,7 +179,7 @@ export function Game() {
   const [auth, setAuth] = useState({ email: "", password: "", signup: false });
   const [mode, setMode] = useState<Mode>("look");
   const [placing, setPlacing] = useState<string | null>(null);
-  // hovered tile lives only in st.current (canvas reads it); no React state, so pointer moves never re-render the HUD
+  const [hover, setHover] = useState<[number, number] | null>(null);
   // touch placement: the preview sits on its own tile until the player confirms
   const [ghost, setGhost] = useState<[number, number] | null>(null);
   const [coarse, setCoarse] = useState(false);
@@ -229,8 +229,9 @@ export function Game() {
   // start over the settled heartland, never the empty ocean at tile (0,0)
   const cam = useRef<Camera>((() => { const [x, y] = iso(500, 500); return { x, y, zoom: 2.6 }; })());
   const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
-  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover: null as [number, number] | null, mode, mine, placing: null as string | null, ghost: null as [number, number] | null });
+  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, ghost: null as [number, number] | null });
   st.current.seeds = seeds;
+  st.current.hover = hover;
   st.current.placing = placing;
   st.current.ghost = ghost;
   st.current.mode = mode;
@@ -697,7 +698,7 @@ export function Game() {
     // whatever the outcome, the seed is no longer held in the hand
     setPlantAsk(null);
     setPtr(null);
-    st.current.hover = null;
+    setHover(null);
     setMode("look");
     if (error?.code === "23505") { setTab(null); return setMsg(t.alreadyHave); }
     if (error || !data) return setMsg(t.plantFail);
@@ -1386,7 +1387,7 @@ export function Game() {
           }
           if (!drag.current?.moved) {
             const nt = tileAt(e), ph = st.current.hover;
-            if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) { st.current.hover = nt; }
+            if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) { st.current.hover = nt; if (e.pointerType === "mouse" || mode === "seed" || placing) setHover(nt); }
           }
           if (mode === "seed" || placing) {
             ptrRef.current = [e.clientX, e.clientY];
@@ -1464,7 +1465,7 @@ export function Game() {
             onClick(x, y);
           }
         }}
-        onPointerLeave={() => st.current.hover = null}
+        onPointerLeave={() => setHover(null)}
       />
       {/* top bar */}
       <div ref={barRef} className="pointer-events-none absolute inset-x-2 top-2 z-30 md:inset-x-3 md:top-3">
