@@ -77,7 +77,7 @@ const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", cult
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
-import { ITEMS, GUILD, canBuy, dailyTax, attributes, treasury, type Item, type Purchase } from "@/game/economy";
+import { ITEMS, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -153,6 +153,9 @@ export function Game() {
   const [home, setHome] = useState<Seed | null>(null);
   const [lang, setLang] = useState<Lang>("de");
   const t = DICT[lang];
+  const tRef = useRef(t);
+  tRef.current = t;
+  const [inviteOpen, setInviteOpen] = useState(false);
   useEffect(() => { document.title = t.docTitle; }, [t]);
   useEffect(() => {
     document.documentElement.lang = lang;
