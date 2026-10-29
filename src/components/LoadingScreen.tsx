@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { coreProgress, startCoreLoad } from "@/game/assets";
 import { ART } from "@/game/decisions";
 
