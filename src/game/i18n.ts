@@ -88,7 +88,7 @@ const de = {
   shop: "Bauen & Anwerben",
   items: {
     herbs: ["Kräuterhütte", "+10 Gesundheit – Kräuter vom Wiesen- und Waldrand"],
-    hunter: ["Jägerhütte", "+15 Nahrung – Wild aus dem Wald, auch ohne Wasser"],
+    hunter: ["Jägerhütte", "+15 Nahrung – Wild aus dem Wald"],
     woodcamp: ["Holzfällerlager", "Bauholz: alle weiteren Bauten 25 % schneller, +5 Wohlstand"],
     fisher: ["Fischerhütte", "Mehr Nahrung – besonders nah am Wasser"],
     granary: ["Scheune", "Nahrung hält länger"],
@@ -342,7 +342,7 @@ const en: typeof de = {
   shop: "Build & hire",
   items: {
     herbs: ["Herb hut", "+10 health – herbs from meadow and forest edge"],
-    hunter: ["Hunter's lodge", "+15 food – game from the forest, no water needed"],
+    hunter: ["Hunter's lodge", "+15 food – game from the forest"],
     woodcamp: ["Woodcutter's camp", "Timber: all further buildings 25% faster, +5 prosperity"],
     fisher: ["Fisher's hut", "More food – especially near water"],
     granary: ["Granary", "Food keeps longer"],
