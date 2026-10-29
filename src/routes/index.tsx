@@ -7,7 +7,8 @@ export const Route = createFileRoute("/")({
     meta: [
       { title: "Samenland Dorf-Simulation – Pflanze einen Samen. Sieh ihm beim Wachsen zu." },
       { name: "description", content: "Setz einen Stadt-Samen auf der großen Karte und schau zu, wie dein Dorf in Echtzeit wächst – gemeinsam mit anderen." },
-      { property: "og:title", content: "Samenland" },
+      { property: "og:title", content: "Samenland Village Sim – Plant a Seed. Watch it Grow." },
+      { name: "twitter:title", content: "Samenland Village Sim – Plant a Seed. Watch it Grow." },
       { property: "og:description", content: "Ein gemütliches Dorf, das in Echtzeit wächst – auf einer gemeinsamen Karte." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
