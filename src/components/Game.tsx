@@ -65,6 +65,7 @@ import {
   charterFits,
   type CharterPath,
   twinLinks, pactOf, pactPending, workOf, marketDay, festivalDate, twinGateAt, PACTS, TWIN_WORKS, PACT_WAIT, type PactKind, type WorkKind,
+  timberNear,
 } from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
