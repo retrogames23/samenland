@@ -435,6 +435,10 @@ export function Game() {
       if (my) focus(my.x, my.y);
       else focus(MAP / 2, MAP / 2);
       if (!own && friend) setMsg(tRef.current.invite.welcome(friend.name));
+      refSeed = null; // the welcome is only for the first map
+      };
+      loadRealmRef.current = loadRealm;
+      await loadRealm(r);
     })();
     const ch = supabase
       .channel(`world-${Math.random().toString(36).slice(2)}`)
