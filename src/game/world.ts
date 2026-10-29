@@ -229,7 +229,8 @@ export type Kind =
   | "campfire" | "hut" | "coop" | "fence" | "chapel" | "watermill" | "harbor"
   | "stall" | "townhall" | "gatehouse" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue"
   | "patrician" | "villa" | "tenement" | "townhouse2" | "fachwerk" | "steinhaus" | "handwerker"
-  | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "belfry";
+  | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "belfry"
+  | "theater" | "opera" | "university" | "exchange" | "orangery";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). */
 export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; fire?: boolean; flood?: boolean };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
@@ -261,7 +262,7 @@ export const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
   { dx: -4, dy: 1, at: 2500, kind: "warehouse" },
   { dx: 3, dy: -4, at: 4380, kind: "townhall" }, { dx: 2, dy: -2, at: 4500, kind: "church" },
   { dx: 8, dy: 6, at: 8760, kind: "manufactory" }, { dx: -7, dy: -6, at: 9200, kind: "steamworks" },
-  { dx: -9, dy: 5, at: 10000, kind: "station" }, { dx: 5, dy: 2, at: 7000, kind: "factory" },
+  { dx: -9, dy: 5, at: 10000, kind: "station" },
   { dx: 12, dy: 3, at: 2400, kind: "sawmill" },
 ];
 const lmCache = new Map<string, Map<string, number[]>>();
@@ -449,15 +450,34 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
 }
 
 /** Player-bought buildings: the shop item → building kind, built over SPECIAL_BUILD real ms after purchase. */
-export const SPECIAL_KIND: Record<string, Kind> = { fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", guard: "guardhouse", hunter: "lodge", herbs: "herbhut", woodcamp: "woodcamp", belfry1: "belfry" };
-/** Prestige monument built in paid steps (belfry1…belfry4); only the first step places the site. */
+/**
+ * Prestige monuments, each built in paid steps (`${key}1` … `${key}${n}`); only the first step places the site.
+ * The cathedral uses the "factory" kind (its historic sprite); it is no longer an automatic landmark.
+ */
+export const MONUMENT_DEFS = {
+  belfry: { kind: "belfry", n: 4 }, theater: { kind: "theater", n: 3 }, cathedral: { kind: "factory", n: 5 },
+  university: { kind: "university", n: 4 }, exchange: { kind: "exchange", n: 4 }, orangery: { kind: "orangery", n: 3 }, opera: { kind: "opera", n: 4 },
+} as const satisfies Record<string, { kind: Kind; n: number }>;
+export type MonumentKey = keyof typeof MONUMENT_DEFS;
+export const MONUMENT_KEYS = Object.keys(MONUMENT_DEFS) as MonumentKey[];
+export const monumentSteps = (k: MonumentKey) => Array.from({ length: MONUMENT_DEFS[k].n }, (_, i) => `${k}${i + 1}`);
+/** Which monument a purchase item belongs to (e.g. "opera3" → "opera"), or null. */
+export const monumentOf = (item: string): MonumentKey | null => {
+  const m = /^([a-z]+)(\d)$/.exec(item); const k = m?.[1] as MonumentKey | undefined;
+  return k && k in MONUMENT_DEFS && +m![2]! >= 1 && +m![2]! <= MONUMENT_DEFS[k].n ? k : null;
+};
+const MONUMENT_BY_KIND = new Map<Kind, MonumentKey>(MONUMENT_KEYS.map((k) => [MONUMENT_DEFS[k].kind, k]));
+export const SPECIAL_KIND: Record<string, Kind> = { fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", guard: "guardhouse", hunter: "lodge", herbs: "herbhut", woodcamp: "woodcamp",
+  ...Object.fromEntries(MONUMENT_KEYS.map((k) => [`${k}1`, MONUMENT_DEFS[k].kind])) };
+/** Belfry steps (kept for the guild-rank requirement). */
 export const MONUMENT_STEPS = ["belfry1", "belfry2", "belfry3", "belfry4"] as const;
-/** Construction progress 0…1 of the monument: each paid step adds a quarter, built over specialBuild. */
-export function monumentProgress(s: Seed, now: number): number {
-  const steps = (s.bought ?? []).filter((b) => (MONUMENT_STEPS as readonly string[]).includes(b.item) && b.at <= now);
+/** Construction progress 0…1 of a monument: each paid step adds 1/n, built over specialBuild. */
+export function monumentProgress(s: Seed, now: number, key: MonumentKey = "belfry"): number {
+  const n = MONUMENT_DEFS[key].n;
+  const steps = (s.bought ?? []).filter((b) => monumentOf(b.item) === key && b.at <= now);
   if (!steps.length) return 0;
   const last = Math.max(...steps.map((b) => b.at));
-  return Math.min(MONUMENT_STEPS.length, steps.length - 1 + Math.min(1, (now - last) / specialBuild(s))) / MONUMENT_STEPS.length;
+  return Math.min(n, steps.length - 1 + Math.min(1, (now - last) / specialBuild(s))) / n;
 }
 /** Craft charter halves the construction time of bought buildings. */
 /** Craft charter halves, a woodcutter's camp (ready timber) shortens build time by a quarter — both pure from purchases. */
@@ -504,7 +524,7 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
       if (kind === "fishery") sc += water ? -12 - Math.min(water, 6) : 0;
       if (kind === "lodge" || kind === "woodcamp" || kind === "herbhut") sc += forest ? -6 - Math.min(forest, 6) * 0.6 : 0;
       if (kind === "infirmary") sc += forest ? -4 - Math.min(forest, 5) * 0.5 : 0;
-      if (kind === "school" || kind === "guardhouse" || kind === "belfry") sc -= d < 5 ? 2 : 0;
+      if (kind === "school" || kind === "guardhouse" || MONUMENT_BY_KIND.has(kind)) sc -= d < 5 ? 2 : 0;
       if (kind === "firehouse") sc += water ? -3 : 0;
       if (kind === "granary") sc += Math.abs(d - 6);
       if (sc < bs) { bs = sc; best = k; }
@@ -544,7 +564,8 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     if (!s.bought?.length) continue;
     const sp = specialSites(s).get(ck);
     if (!sp || now < sp.at) continue;
-    const p = sp.kind === "belfry" ? monumentProgress(s, now) : (now - sp.at) / specialBuild(s);
+    const mk = MONUMENT_BY_KIND.get(sp.kind);
+    const p = mk ? monumentProgress(s, now, mk) : (now - sp.at) / specialBuild(s);
     best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p } : {}) };
     scache.set(ck, best);
     return best;

@@ -239,6 +239,13 @@
       "when": 1793300000017,
       "tag": "0033_guild_ranks",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793300000018,
+      "tag": "0034_prestige_monuments",
+      "breakpoints": true
     }
   ]
 }
