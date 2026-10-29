@@ -329,6 +329,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     });
   }
   assignHauls(people, byKind, sites, front, well, tradePartners(s, seeds, now).flatMap((q) => q.buy));
+  for (const q of people) if (q.guest) q.haul = null;
   return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings, church, maypole, cows };
 }
 
@@ -729,6 +730,7 @@ function travelled(secs: number, len: number, v: number): number {
 const travelTime = (len: number, v: number) => { const r = Math.min(0.25, len / 2); return (len - 2 * r) / v + (4 * r) / v; };
 
 export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
+  if (p.guest) return guestPose(p, t, seeds, now, { p, x: p.guest.spot[0], y: p.guest.spot[1], visible: false, walking: false, dir: [0, 1], phase: 0, act: "visit", working: false, talk: null, talkTurn: false, carry: null, dest: null });
   const hr = hourOf(now);
   const pl = planOf(p, t);
   let i = pl.length - 1;
@@ -738,7 +740,6 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const secs = (hr - e.at) * 3600;
   if (p.role === "mayor") { const mp = orderPose(p, t, seeds, now, base); if (mp) return mp; }
   if (p.proc) { const pr = procPose(p, t, seeds, now, base); if (pr) return pr; }
-  if (p.guest) return guestPose(p, t, seeds, now, base);
   if (p.fete) { const fp = fetePose(p, t, seeds, now, base); if (fp) return fp; }
   if (p.arrive && now >= p.arrive.t0) {
     const A = p.arrive.from, B = doorOf(t, p.home, seeds);
