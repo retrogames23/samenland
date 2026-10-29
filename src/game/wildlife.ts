@@ -75,6 +75,12 @@ export function huntScene(lx: number, ly: number, sd: number, now: number, free:
       else if (k < 0.8) return;
       else { const r = (k - 0.8) / 0.06; alpha = r; }
     }
+    // strict ground check: never draw a beast on a blocked tile; hold at the last open spot instead
+    if (!free(Math.round(x), Math.round(y))) {
+      const ok = (p: [number, number]) => free(Math.round(p[0]), Math.round(p[1]));
+      const back = [b, a, home].find((p) => ok(p) && Math.hypot(p[0] - x, p[1] - y) < 3.5) ?? home;
+      x = back[0]; y = back[1]; if (state === "walk") state = "graze";
+    }
     beasts.push({ boar, x, y, state, flip, alpha, fall, dist });
   });
   // --- hunter: out of the lodge door, stalk, kneel, shoot, shoulder the deer, carry it home ---
