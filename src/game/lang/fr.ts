@@ -11,6 +11,7 @@ export const fr: Dict = {
   needNames: "Renseignez d'abord les deux noms ainsi que votre genre.",
   clickLand: "Cliquez à présent sur une terre libre.",
   plantFail: "La graine n'a point pris. Veuillez réessayer.",
+  mayorFind: "Vers votre bailli",
   alreadyHave: "Vous possédez déjà un village – chaque joueur ne reçoit qu'une seule graine.",
   planted: (n) => `${n} a été semé. Premier pas : bénissez le puits (touchez la place du village) ou décidez d'une route commerciale dans le menu de construction. Il grandit sans vous.`,
   hasTown: { at: (n: string, r: string) => `Votre village ${n} repose sur la carte « ${r} ».`, one: "Chaque joueur ne possède qu'une graine – un seul village suffit pour prendre racine.", look: "Voir votre village" },
