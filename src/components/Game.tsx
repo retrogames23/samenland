@@ -241,8 +241,16 @@ export function Game() {
     setHome(null);
     let q = supabase.from("seeds").select("*").eq("user_id", userId);
     if (isAdmin) q = q.eq("realm", realm);
-    q.limit(1).then(({ data }) => {
-      if (live && data?.[0]) setHome(data[0] as Seed);
+    q.limit(1).then(async ({ data }) => {
+      if (!live) return;
+      if (data?.[0]) { setHome(data[0] as Seed); return; }
+      // signed in without a village: guide straight into founding instead of leaving them on the map
+      setAuthOpen(false);
+      setTab("plant");
+      const { data: u } = await supabase.auth.getUser();
+      const meta = u.user?.user_metadata ?? {};
+      const full = String(meta["full_name"] ?? meta["name"] ?? "").split(" ")[0]?.slice(0, 32) ?? "";
+      if (live && full) setForm((f) => (f.owner ? f : { ...f, owner: full }));
     });
     return () => { live = false; };
   }, [userId, isAdmin, realm]);
