@@ -1,3 +1,4 @@
+import { LOCALE } from "@/game/i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Seed } from "@/game/world";
@@ -81,7 +82,7 @@ export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnr
   };
 
   if (!open) return null;
-  const time = (iso: string) => new Date(iso).toLocaleTimeString(lang === "de" ? "de-DE" : "en-GB", { hour: "2-digit", minute: "2-digit" });
+  const time = (iso: string) => new Date(iso).toLocaleTimeString((LOCALE as Record<string,string>)[lang] ?? "en-GB", { hour: "2-digit", minute: "2-digit" });
   const chanBtn = (c: Channel, name: string) => {
     const on = chanKey(c) === chanKey(chan), n = unreadOf(c);
     return (
