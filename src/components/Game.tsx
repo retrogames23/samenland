@@ -841,7 +841,7 @@ export function Game() {
     return () => window.clearInterval(id);
   }, [owner, my?.id, seeds]);
   const festNow = !anyOpen && !decision.open && !chronOpen ? fest[0] : undefined;
-  const festSounded = useRef<ChronEvent | null>(null);
+  const festSounded = useRef<ChronEvent | null>(null), giftSounded = useRef<string | null>(null);
   useEffect(() => {
     if (!festNow || festSounded.current === festNow) return;
     festSounded.current = festNow;
@@ -1800,6 +1800,7 @@ export function Game() {
         const tl = !g ? gifts.find((x) => x.kind === "thanks" && x.to_seed === my.id && now - Date.parse(x.created_at) < 7 * 864e5 && !seenGifts.includes(x.id)) : undefined;
         const e = g ?? tl; if (!e) return null;
         const from = seeds.find((s) => s.id === e.from_seed); if (!from) return null;
+        if (giftSounded.current !== e.id) { giftSounded.current = e.id; const gk = g ? "gift" : "letter"; setTimeout(() => jingle(gk), 0); }
         const seen = () => { const n = [...seenGifts, e.id].slice(-50); setSeenGifts(n); localStorage.setItem("samenland-gifts-seen", JSON.stringify(n)); };
         return (
           <Parchment image={ART["fair"]} title={g ? t.gifts.gotTitle : t.gifts.letterTitle} later={t.fest.close} onLater={seen}>
