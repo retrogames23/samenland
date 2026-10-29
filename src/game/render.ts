@@ -1720,6 +1720,19 @@ export function draw(
     const hr = worldHour(now), night = hr < 5 || hr >= 22;
     const count = night ? (mature > 0.5 ? 1 : 0) : 1 + Math.round(mature * 3 * complement(l.a, l.b));
     const sn = l.a.x * 7 + l.b.y * 13;
+    // share of open-road tiles in a 5-tile window: 1 on the open road, ramps to 0 just inside the town edge
+    const openMemo = new Map<number, boolean>();
+    const roadFade = (_l: typeof l, idx: number, twinOk: boolean) => {
+      let open = 0;
+      for (let d = -2; d <= 2; d++) {
+        const j = Math.max(0, Math.min(l.tiles.length - 1, idx + d));
+        let ok = openMemo.get(j);
+        if (ok === undefined) { const st = structureAt(l.tiles[j]![0], l.tiles[j]![1], seeds, now); ok = !!st && (st.kind === "road" || st.kind === "bridge" || (twinOk && st.kind === "street")); openMemo.set(j, ok); }
+        if (ok) open++;
+      }
+      const f = open / 5;
+      return f * f * (3 - 2 * f);
+    };
     for (let k = 0; k < count; k++) {
       const secsPerTile = hash(sn, k, 3) < 0.55 ? 1.6 + hash(sn, k, 1) * 1.2 : 3.2 + hash(sn, k, 1) * 1.2;
       if (n < 2) continue;
