@@ -691,8 +691,7 @@ export function Game() {
       if (!re) {
         const now0 = new Date().toISOString();
         setClaims((c) => [...c, ...referralClaims([{ id: `local-${data.id}`, referrer_seed: ref, referee_seed: data.id, reward: 50, created_at: now0 }])]);
-        const friend = seeds.find((s) => s.id === ref);
-        setMsg(t.invite.got(friend?.name ?? data.name));
+        setMsg(`${t.planted(data.name)} ${t.quests.got(50)}`);
       }
     }
   };
@@ -1406,6 +1405,7 @@ export function Game() {
                 ✉ {t.guide.notify.label}
               </label>
             )}
+            {userId && home && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setInviteOpen(true); setSettings(false); }}>✉ {t.invite.button}</Button>}
             {userId && home && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setQuitOpen(true); setSettings(false); }}>{t.quit.button}</button>}
             {userId ? <Button size="sm" variant="secondary" className="w-full" onClick={() => { supabase.auth.signOut(); setSettings(false); }}>{t.signOut}</Button>
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
@@ -1529,6 +1529,27 @@ export function Game() {
           </div>
         </Parchment>
       )}
+      {inviteOpen && home && (() => {
+        const ok = home.realm === realm ? myStage >= 1 : Date.now() - Date.parse(home.created_at) >= 24 * 3600e3;
+        const link = `https://samenland.app/?ref=${home.id}`;
+        const n = claims.filter((c) => c.seed_id === home.id && c.quest.startsWith("ref:")).length;
+        return (
+          <Parchment image={ART["surveyor"]} title={t.invite.title} later={t.cancel} onLater={() => setInviteOpen(false)}>
+            {ok ? (<>
+              <p className="mt-2 text-center text-sm leading-snug">{t.invite.body}</p>
+              <Input className="mt-3 text-xs" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
+              <div className="mt-3 flex justify-center">
+                <Button type="button" size="sm" onClick={async () => {
+                  const text = `${t.invite.share} ${link}`;
+                  try { if (navigator.share) await navigator.share({ text, url: link }); else await navigator.clipboard.writeText(text); setMsg(t.invite.copied); }
+                  catch { try { await navigator.clipboard.writeText(text); setMsg(t.invite.copied); } catch { /* user cancelled */ } }
+                }}>{t.invite.copy}</Button>
+              </div>
+              {n > 0 && <p className="mt-2 text-center text-xs text-muted-foreground">{t.invite.count(n)}</p>}
+            </>) : <p className="mt-2 text-center text-sm">{t.invite.locked}</p>}
+          </Parchment>
+        );
+      })()}
       {quitOpen && home && (
         <Parchment image={ART["surveyor"]} title={t.quit.title(home.name)} later={t.cancel} onLater={() => { setQuitOpen(false); setQuitName(""); }}>
           <p className="mt-2 text-center text-sm leading-snug">{t.quit.warn}</p>
