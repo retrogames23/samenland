@@ -1037,10 +1037,14 @@ export function Game() {
           if (d && e.buttons) {
             const dx = e.clientX - d.x,
               dy = e.clientY - d.y;
-            if (Math.abs(dx) + Math.abs(dy) > 3) d.moved = true;
+            const lim = d.touch ? 10 : 3;
+            if (!d.moved && Math.abs(e.clientX - (d.sx ?? d.x)) + Math.abs(e.clientY - (d.sy ?? d.y)) > lim) d.moved = true;
             if (d.moved) {
               cam.current.x -= dx / cam.current.zoom;
               cam.current.y -= dy / cam.current.zoom;
+              const nowT = performance.now(), f = fling.current, el = Math.max(1, nowT - f.t);
+              const a = Math.min(1, el / 50); // smoothed release velocity over the last ~80 ms
+              f.vx = f.vx * (1 - a) + (dx / el) * a; f.vy = f.vy * (1 - a) + (dy / el) * a; f.t = nowT;
               d.x = e.clientX;
               d.y = e.clientY;
             }
@@ -1065,12 +1069,26 @@ export function Game() {
             // one finger left after a pinch: continue as a drag from there, no click
             pinch.current = null;
             const [rest] = [...touches.current.values()];
-            drag.current = { x: rest!.x, y: rest!.y, moved: true };
+            drag.current = { x: rest!.x, y: rest!.y, moved: true, touch: true };
+            fling.current = { vx: 0, vy: 0, t: performance.now() };
             return;
           }
           pinch.current = null;
           const d = drag.current;
           drag.current = null;
+          const nowT = performance.now();
+          if (d?.moved && nowT - fling.current.t > 80) fling.current = { vx: 0, vy: 0, t: nowT }; // held still before release: no glide
+          if (d && !d.moved && d.touch && d.t0 != null && nowT - d.t0 > 350) return; // long press is not a tap
+          if (d && !d.moved && d.touch && !placing && mode === "look") {
+            const lt = lastTap.current;
+            if (nowT - lt.t < 300 && Math.hypot(e.clientX - lt.x, e.clientY - lt.y) < 30) {
+              lastTap.current = { t: 0, x: 0, y: 0 };
+              const r = canvasRef.current!.getBoundingClientRect();
+              target.current = { zoom: Math.min(12, target.current.zoom * 1.6), ax: (e.clientX - r.left) * dpr.current, ay: (e.clientY - r.top) * dpr.current };
+              return;
+            }
+            lastTap.current = { t: nowT, x: e.clientX, y: e.clientY };
+          }
           if (d && !d.moved) {
             if (placing) { const [px, py] = tileAt(e); return buy(placing, px, py); }
             if (mode === "look") {
