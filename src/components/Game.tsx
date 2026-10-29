@@ -5,13 +5,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
-import { townOf, poseOf, kinOf, type Person } from "@/game/people";
+import { townOf, poseOf, kinOf, commandMayor, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { weddingJoy, DOWRY } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
 import { larderOf, storedAt, chainOf, boonsOf, type Ware } from "@/game/goods";
 import { WareIcon } from "@/components/hud/WareIcon";
-import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, X, LogIn } from "lucide-react";
+import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, Crown, X, LogIn } from "lucide-react";
 import { Panel, WoodButton } from "@/components/hud/Panel";
 import { Parchment, WaxSeal } from "@/components/hud/Parchment";
 import { ART, pickDecision } from "@/game/decisions";
@@ -1397,6 +1397,10 @@ export function Game() {
               const ins = inspectAt(tx, ty, seeds, clock());
               if (ins) { if (ins.kind === "pasture") baa(pan); else tap(pan); setWho(null); return setPlace(ins); }
               setPlace(null);
+              // an empty tile in your own village: send your mayor there
+              { const my = seeds.find((x) => x.id === mine);
+                if (my && !who && !place) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor");
+                  if (me && tx >= tw.x0 && tx <= tw.x1 && ty >= tw.y0 && ty <= tw.y1 && commandMayor(me, tw, seeds, nw, [tx, ty])) { tap(pan); return; } } }
             }
             const [x, y] = tileAt(e);
             onClick(x, y);
@@ -1555,6 +1559,7 @@ export function Game() {
             <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.hud.zoomOut} onClick={() => zoomBy(1 / 1.6)}><Minus className="h-4 w-4" /></Button>
             <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.hud.zoomIn} onClick={() => zoomBy(1.6)}><Plus className="h-4 w-4" /></Button>
             {my && <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.toMine} title={t.toMine} onClick={() => focus(my.x, my.y)}><Home className="h-4 w-4" /></Button>}
+            {my && <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.mayorFind} title={t.mayorFind} onClick={() => { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (!me) return focus(my.x, my.y); const z = poseOf(me, tw, seeds, nw); focus(z.x, z.y); setWho(me); }}><Crown className="h-4 w-4" /></Button>}
           </div>
         </Panel>
       </div>

@@ -15,7 +15,7 @@ import { setArtTime } from "./season-art";
 import { seasonKey, seasonAt } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
-import { townPoses, sickHome, isHomeKind, type Pose } from "./people";
+import { townPoses, sickHome, isHomeKind, mayorGoal, type Pose } from "./people";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, type FolkSprite } from "./folk-sprites";
 import { sacksAt, breadOut, fishingNow } from "./crafts";
 import { isSunday } from "./time";
@@ -1687,6 +1687,7 @@ export function draw(
   const robbers = new Map<number, [number, number, boolean]>();
   if (detail) for (const sd of seeds) { const r = robberAt(sd, now); if (r) robbers.set(Math.round(r[1]) * MAP + Math.round(r[0]), r); }
   const simpleFolk = cam.zoom < 2.2;
+  const goal = mayorGoal(now), goalK = goal ? goal[1] * MAP + goal[0] : -1;
 
   // ---- bridges: one straight span per water crossing, abutment to abutment ----
   if (detail) for (const l of links(seeds)) {
@@ -1732,6 +1733,13 @@ export function draw(
     if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
     if (signMap.has(y * MAP + x)) drawSignpost(c, cx, cy, x * 13 + y);
+    if (y * MAP + x === goalK) {
+      // golden waymark where the player's mayor is heading
+      const pu = 1 + Math.sin(now / 260) * 0.08;
+      c.save(); c.globalAlpha = 0.85; c.strokeStyle = "#d9a520"; c.lineWidth = 1.6;
+      c.beginPath(); c.ellipse(cx, cy, 9 * pu, 4.5 * pu, 0, 0, Math.PI * 2); c.stroke();
+      c.globalAlpha = 0.35; c.fillStyle = "#f3d27a"; c.beginPath(); c.ellipse(cx, cy, 5, 2.5, 0, 0, Math.PI * 2); c.fill(); c.restore();
+    }
     if (fk) {
       // personal space: people step aside for each other and for sheep; standing folk yield less than walkers
       type Item = Body & { q?: Pose; sh?: (typeof flock)[number] };
