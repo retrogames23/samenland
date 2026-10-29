@@ -154,7 +154,7 @@ export function terrain(x: number, y: number): Terrain {
   tcache[k] = TLIST.indexOf(t) + 1;
   return t;
 }
-export const buildable = (t: Terrain) => t === "grass" || t === "meadow" || t === "fertile" || t === "forest" || t === "sand";
+export const buildable = (t: Terrain) => t === "grass" || t === "meadow" || t === "fertile" || t === "forest" || t === "sand" || t === "hill";
 export const isWater = (t: Terrain) => t === "water" || t === "deep";
 
 export type Resource = "ore" | "coal" | "stone";
@@ -422,6 +422,8 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
     if (stage >= 4 && d < r * 0.5) return h < 0.45 ? "garden" : null;
     const a = acreOf(x, y, s);
     if (a.corner && h > 0.6) return weighted(h, [["hay",40],["coop",30],["fence",30]]);
+    // slopes carry no ploughland: kitchen gardens and goat pastures instead of crop rows
+    if (terrain(x, y) === "hill") return weighted(a.h, [["pasture",45],["garden",35],["fence",20]]);
     return weighted(a.h, [["field",72],["pasture",22],["garden",6]]);
   }
   if (hash(x,y,2)>0.82) return h<0.5?"garden":null;
@@ -575,6 +577,7 @@ export const MIN_SEED_DISTANCE = 40;
 /** Returns an error code ("hill" | "water" | "near:<name>") or null; UI translates it. */
 export function canPlant(x: number, y: number, seeds: Seed[]): string | null {
   const tt = terrain(x, y);
+  if (isWater(tt)) return "water";
   if (tt === "mountain") return "hill";
   if (!buildable(tt)) return "water";
   for (const s of seeds) if (Math.hypot(x - s.x, y - s.y) < MIN_SEED_DISTANCE) return `near:${s.name}`;
@@ -689,7 +692,7 @@ function roadAt(x: number, y: number, seeds: Seed[], now: number) {
   if (!r || now < r.link.since) return null;
   const n = r.link.tiles.length, half = n / 2;
   if (Math.min(r.i, n - 1 - r.i) > roadProgress(r.link, now) * half) return null;
-  if (!r.link.water[r.i] && !buildable(terrain(x, y)) && terrain(x, y) !== "hill") return null;
+  if (!r.link.water[r.i] && !buildable(terrain(x, y))) return null;
   return { link: r.link, bridge: r.link.water[r.i]! };
 }
 
