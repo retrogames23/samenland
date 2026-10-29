@@ -298,7 +298,7 @@ export const es: Dict = {
     market: "Hoy se celebra mercado junto al portal.", festival: (d) => `Fiesta de las villas hermanas el día ${d} de cada mes: si ambas bendicen la jornada, la bendición vale por dos.`,
     gate: (a, b) => `Puerta comunal entre ${a} y ${b}`,
   },
-  hud: { build: "Construir", rituals: "Cuidados", signs: "Postes", towns: "Aldeas", plant: "Sembrar semilla", settings: "Ajustes", menu: "Menú", zoomIn: "Acercar", zoomOut: "Alejar", close: "Cerrar", noTown: "Siembra primero tu semilla.", login: "Inicia sesión para fundar una aldea.", language: "Idioma", realm: "Mapa (admin)" },
+  hud: { walk: "Paseo", walkExit: "Terminar paseo", walkHint: "WASD/flechas o toca el suelo · Esc para salir", build: "Construir", rituals: "Cuidados", signs: "Postes", towns: "Aldeas", plant: "Sembrar semilla", settings: "Ajustes", menu: "Menú", zoomIn: "Acercar", zoomOut: "Alejar", close: "Cerrar", noTown: "Siembra primero tu semilla.", login: "Inicia sesión para fundar una aldea.", language: "Idioma", realm: "Mapa (admin)" },
   realms: { "us-west": "América Occidental", "us-east": "América Oriental", europe: "Europa", asia: "Asia-Pacífico", lab: "Mapa de pruebas" },
   lab: { title: (k: number) => (k > 1 ? `Cámara rápida ${k}× · saltar a` : "Tiempo normal · saltar a"), note: "Solo administradores. El salto computa desde el inicio del mapa de pruebas." },
   perDay: (n: number) => `+${n}/día`,
