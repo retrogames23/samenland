@@ -222,7 +222,7 @@ export type Database = {
           {
             foreignKeyName: "first_roads_seed_id_fkey"
             columns: ["seed_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "seeds"
             referencedColumns: ["id"]
           },
