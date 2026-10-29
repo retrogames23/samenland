@@ -273,6 +273,10 @@ export function Game() {
       const [x, y] = toTile(c.x, c.y);
       setView({ x, y, span: (cv.clientWidth / c.zoom) / 32 + (cv.clientHeight / c.zoom) / 16 });
     }, 500);
+    // one canonical origin, so the stored login is always found
+    if (location.hostname === "www.samenland.app") {
+      location.replace("https://samenland.app" + location.pathname + location.search + location.hash);
+    }
     // local session first: a slow/offline network (iPhone waking up) must never look like a logout
     supabase.auth.getSession().then(({ data }) => { if (data.session) setUserId(data.session.user.id); });
     const { data: sub } = supabase.auth.onAuthStateChange((ev, session) => {
