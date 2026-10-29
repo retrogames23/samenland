@@ -1602,6 +1602,15 @@ export function Game() {
         }} />
       )}
       <Tavern t={t} open={tavernOpen} onClose={() => setTavernOpen(false)} userId={userId} my={my} seeds={seeds} realm={realm} lang={lang} onUnread={setChatUnread} />
+      {waitDone && !waitShut && !anyOpen && !decision.open && (
+        <div className="pointer-events-none absolute inset-x-2 top-20 z-20 flex justify-center md:top-24">
+          <Panel className="w-full max-w-md" inner="relative p-3 text-center">
+            <button type="button" aria-label={t.hud.close} onClick={() => setWaitShut(true)} className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            <p className="px-4 font-display text-lg leading-snug text-wood">🔨 {t.guide.wait.title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t.guide.wait.body(Math.max(1, Math.ceil((waitDone - now) / 3.6e6)))}</p>
+          </Panel>
+        </div>
+      )}
       {welcome && !my && !guideOpen && (
         <div className="pointer-events-none absolute inset-x-2 top-20 z-30 flex justify-center md:top-24">
           <Panel className="w-full max-w-md" inner="relative p-3 text-center">
