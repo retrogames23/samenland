@@ -248,7 +248,8 @@ export function Game() {
       setAuthOpen(false);
       setTab("plant");
       const { data: u } = await supabase.auth.getUser();
-      const full = String(u.user?.user_metadata?.full_name ?? u.user?.user_metadata?.name ?? "").split(" ")[0]?.slice(0, 32) ?? "";
+      const meta = u.user?.user_metadata ?? {};
+      const full = String(meta["full_name"] ?? meta["name"] ?? "").split(" ")[0]?.slice(0, 32) ?? "";
       if (live && full) setForm((f) => (f.owner ? f : { ...f, owner: full }));
     });
     return () => { live = false; };
