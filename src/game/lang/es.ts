@@ -12,7 +12,7 @@ export const es: Dict = {
   clickLand: "Ahora pulsa en una porción de tierra libre.",
   plantFail: "No se pudo sembrar. Por favor, inténtalo de nuevo.",
   alreadyHave: "Ya posees una aldea; cada jugador recibe exactamente una semilla.",
-  planted: (n) => `${n} ha sido sembrada. Vuelve mañana; crecerá aun sin ti.`,
+  planted: (n) => `${n} ha sido sembrada. Primer paso: bendice el pozo (toca la plaza del pueblo) o decide una ruta comercial en el menú de construcción. Crecerá aun sin ti.`,
   hasTown: { at: (n: string, r: string) => `Tu aldea ${n} reposa en el mapa "${r}".`, one: "Cada jugador tiene exactamente una semilla; una sola aldea basta para echar raíces.", look: "Contemplar tu aldea" },
   nearOnly: "Solo cerca de tu aldea.",
   noGrow: "Aquí no crece nada.",
