@@ -348,7 +348,9 @@ export function Game() {
       const ss = (a.data ?? []) as Seed[];
       setSeeds(ss);
       setPlantings((b.data ?? []) as Planting[]);
-      const my = ss.find((s) => uid && s.user_id === uid) ?? ss[0];
+      // visitors without a village first see the oldest (most grown) town of this map
+      const oldest = [...ss].sort((p, q) => Date.parse(p.created_at) - Date.parse(q.created_at))[0];
+      const my = ss.find((s) => uid && s.user_id === uid) ?? oldest;
       if (my) focus(my.x, my.y);
       else focus(MAP / 2, MAP / 2);
     })();
@@ -729,7 +731,7 @@ export function Game() {
   const openGuide = () => {
     if (localStorage.getItem("samenland-guide-seen")) return;
     localStorage.setItem("samenland-guide-seen", "1");
-    setGuideOpen(true);
+    setWelcome(true);
   };
   useEffect(() => { if (splashDone()) openGuide(); }, []);
   const [chronBanner, setChronBanner] = useState(false);
