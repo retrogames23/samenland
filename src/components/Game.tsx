@@ -21,6 +21,7 @@ import { scribeGreeting } from "@/lib/chronicle.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ArrowLeft, ScrollText } from "lucide-react";
 import { QUESTS, questState, type Quest, type QuestClaim } from "@/game/quests";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { VillageRoll } from "@/components/VillageRoll";
 import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/game/audio";
@@ -473,6 +474,13 @@ export function Game() {
         const sp = (0.6 * dt) / cam.current.zoom; // screen px per ms, independent of zoom
         cam.current.x += dx * sp; cam.current.y += dy * sp;
       }
+      const f = fling.current;
+      if (!drag.current && (f.vx || f.vy)) {
+        cam.current.x -= (f.vx * dt) / cam.current.zoom; cam.current.y -= (f.vy * dt) / cam.current.zoom;
+        const k = Math.exp(-dt / 130);
+        f.vx *= k; f.vy *= k;
+        if (Math.hypot(f.vx, f.vy) < 0.01) { f.vx = 0; f.vy = 0; }
+      }
       panRaf = requestAnimationFrame(pan);
     };
     panRaf = requestAnimationFrame(pan);
@@ -501,7 +509,10 @@ export function Game() {
       number,
     ];
   };
-  const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const drag = useRef<{ x: number; y: number; moved: boolean; t0?: number; touch?: boolean; sx?: number; sy?: number } | null>(null);
+  // inertia: screen px/ms of the last drag; decays in the pan loop
+  const fling = useRef({ vx: 0, vy: 0, t: 0 });
+  const lastTap = useRef({ t: 0, x: 0, y: 0 });
   const touches = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ dist: number; mx: number; my: number } | null>(null);
 
@@ -993,6 +1004,7 @@ export function Game() {
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
+      <LoadingScreen title="Samenland" lines={t.loading} />
       <canvas
         ref={canvasRef}
         className="absolute inset-0 h-full w-full cursor-grab touch-none"
@@ -1000,7 +1012,8 @@ export function Game() {
           touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
           (e.target as Element).setPointerCapture(e.pointerId);
           if (touches.current.size >= 2) { pinch.current = null; if (drag.current) drag.current.moved = true; return; }
-          drag.current = { x: e.clientX, y: e.clientY, moved: false };
+          fling.current = { vx: 0, vy: 0, t: performance.now() };
+          drag.current = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, t0: performance.now(), touch: e.pointerType !== "mouse" };
         }}
         onPointerMove={(e) => {
           const tp = touches.current;
@@ -1027,10 +1040,14 @@ export function Game() {
           if (d && e.buttons) {
             const dx = e.clientX - d.x,
               dy = e.clientY - d.y;
-            if (Math.abs(dx) + Math.abs(dy) > 3) d.moved = true;
+            const lim = d.touch ? 10 : 3;
+            if (!d.moved && Math.abs(e.clientX - (d.sx ?? d.x)) + Math.abs(e.clientY - (d.sy ?? d.y)) > lim) d.moved = true;
             if (d.moved) {
               cam.current.x -= dx / cam.current.zoom;
               cam.current.y -= dy / cam.current.zoom;
+              const nowT = performance.now(), f = fling.current, el = Math.max(1, nowT - f.t);
+              const a = Math.min(1, el / 50); // smoothed release velocity over the last ~80 ms
+              f.vx = f.vx * (1 - a) + (dx / el) * a; f.vy = f.vy * (1 - a) + (dy / el) * a; f.t = nowT;
               d.x = e.clientX;
               d.y = e.clientY;
             }
@@ -1055,12 +1072,26 @@ export function Game() {
             // one finger left after a pinch: continue as a drag from there, no click
             pinch.current = null;
             const [rest] = [...touches.current.values()];
-            drag.current = { x: rest!.x, y: rest!.y, moved: true };
+            drag.current = { x: rest!.x, y: rest!.y, moved: true, touch: true };
+            fling.current = { vx: 0, vy: 0, t: performance.now() };
             return;
           }
           pinch.current = null;
           const d = drag.current;
           drag.current = null;
+          const nowT = performance.now();
+          if (d?.moved && nowT - fling.current.t > 80) fling.current = { vx: 0, vy: 0, t: nowT }; // held still before release: no glide
+          if (d && !d.moved && d.touch && d.t0 != null && nowT - d.t0 > 350) return; // long press is not a tap
+          if (d && !d.moved && d.touch && !placing && mode === "look") {
+            const lt = lastTap.current;
+            if (nowT - lt.t < 300 && Math.hypot(e.clientX - lt.x, e.clientY - lt.y) < 30) {
+              lastTap.current = { t: 0, x: 0, y: 0 };
+              const r = canvasRef.current!.getBoundingClientRect();
+              target.current = { zoom: Math.min(12, target.current.zoom * 1.6), ax: (e.clientX - r.left) * dpr.current, ay: (e.clientY - r.top) * dpr.current };
+              return;
+            }
+            lastTap.current = { t: nowT, x: e.clientX, y: e.clientY };
+          }
           if (d && !d.moved) {
             if (placing) { const [px, py] = tileAt(e); return buy(placing, px, py); }
             if (mode === "look") {
