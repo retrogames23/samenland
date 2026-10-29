@@ -721,7 +721,15 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
 export const ORDER_SPEED = 0.55;
 /** Seconds the mayor waits at the goal before returning to the daily routine. */
 export const ORDER_IDLE = 50;
-type Order = { id: number; from: Tile; to: Tile; at: number };
+type Order = { id: number; sid: string; from: Tile; to: Tile; at: number; v: number };
+/** Stroll mode: tap orders don't expire and use the brisk stroll pace. Local-only. */
+let hold = false;
+export const setStrollHold = (on: boolean) => { hold = on; };
+/** Where the player's steered mayor is (or heads), so the renderer never culls him. */
+export function steeredMayor(): { sid: string; x: number; y: number } | null {
+  if (drive) return { sid: drive.sid, x: drive.x, y: drive.y };
+  return order ? { sid: order.sid, x: order.to[0], y: order.to[1] } : null;
+}
 let order: Order | null = null;
 /** Local-only steering of the player's own figure; never stored, other clients keep seeing the routine. */
 export function commandMayor(p: Person, t: Town, seeds: Seed[], now: number, to: Tile): boolean {
@@ -729,7 +737,7 @@ export function commandMayor(p: Person, t: Town, seeds: Seed[], now: number, to:
   if (p.role !== "mayor" || !free(t, g[0], g[1], seeds)) return false;
   const q = poseOf(p, t, seeds, now);
   const from: Tile = q.visible ? [q.x, q.y] : doorOf(t, p.home, seeds);
-  order = { id: p.id, from, to: g, at: now }; drive = null;
+  order = { id: p.id, sid: p.seed.id, from, to: g, at: now, v: hold ? DRIVE_SPEED : ORDER_SPEED }; drive = null;
   return true;
 }
 /** Current goal of the steered mayor, or null when idle (for the marker). */
@@ -740,7 +748,7 @@ export function mayorGoal(now: number): Tile | null {
 export const clearMayorOrder = () => { order = null; drive = null; };
 /** Walking pace when the player steers the mayor directly (tiles/s). */
 export const DRIVE_SPEED = 1.6;
-type Drive = { id: number; x: number; y: number; dir: [number, number]; moving: boolean; dist: number };
+type Drive = { id: number; sid: string; x: number; y: number; dir: [number, number]; moving: boolean; dist: number };
 let drive: Drive | null = null;
 /** Stroll mode: steer the own mayor directly by a tile-space direction; local-only, never stored. Walls and water block. */
 export function driveMayor(p: Person, t: Town, seeds: Seed[], now: number, dx: number, dy: number, dt: number) {
@@ -748,7 +756,7 @@ export function driveMayor(p: Person, t: Town, seeds: Seed[], now: number, dx: n
   if (!drive || drive.id !== p.id) {
     const q = poseOf(p, t, seeds, now);
     const [x, y] = q.visible ? [q.x, q.y] : doorOf(t, p.home, seeds);
-    drive = { id: p.id, x, y, dir: [1, 0.3], moving: false, dist: 0 };
+    drive = { id: p.id, sid: p.seed.id, x, y, dir: [1, 0.3], moving: false, dist: 0 };
     order = null;
   }
   const len = Math.hypot(dx, dy);
@@ -769,10 +777,10 @@ function orderPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): 
   if (!o || o.id !== p.id) return null;
   const a: Tile = [Math.round(o.from[0]), Math.round(o.from[1])];
   const pts = [o.from, ...route(t, a, o.to, seeds).slice(1, -1), o.to];
-  const secs = (now - o.at) / 1000, dd = secs * ORDER_SPEED, len = lenOf(pts);
+  const secs = (now - o.at) / 1000, dd = secs * o.v, len = lenOf(pts);
   const q = along(pts, dd);
   if (q && dd < len) return { ...base, ...q, visible: true, walking: true, act: "stroll", phase: dd / STRIDE, working: false };
-  if (secs - len / ORDER_SPEED < ORDER_IDLE) return { ...base, x: o.to[0], y: o.to[1], visible: true, walking: false, act: "stroll", dir: [1, 0.3], working: false };
+  if (hold || secs - len / o.v < ORDER_IDLE) return { ...base, x: o.to[0], y: o.to[1], visible: true, walking: false, act: "stroll", dir: [1, 0.3], working: false };
   order = null;
   return null;
 }
