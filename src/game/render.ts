@@ -15,7 +15,9 @@ import { seasonKey, seasonAt } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townPoses, sickHome, isHomeKind, type Pose } from "./people";
-import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, type FolkSprite } from "./folk-sprites";
+import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, type FolkSprite } from "./folk-sprites";
+import { sacksAt, breadOut, fishingNow } from "./crafts";
+import { isSunday } from "./time";
 import { activeRaid, RAID_LEN } from "./disasters";
 import { hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
@@ -414,6 +416,16 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
     if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour()) || (isHomeKind(s.kind) && sickLit(x, y)))) {
       L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip } });
     }
+    if (s.kind === "mill" || s.kind === "watermill") {
+      // flour sacks pile up by the door through the workday (stack sprite revealed from the bottom)
+      const n = sacksAt(localHour(), isSunday(renderNow)), im = folkImage("flourSacks");
+      if (n > 0 && im) { const hh = 4.2, ww = (hh * im.naturalWidth) / im.naturalHeight, part = n / 4, sx = cx + (flip ? -7 : 7);
+        c.drawImage(im, 0, im.naturalHeight * (1 - part), im.naturalWidth, im.naturalHeight * part, sx - ww / 2, cy + 3 - hh * part, ww, hh * part); }
+    }
+    if (s.kind === "bakery" && breadOut(localHour())) {
+      const im = folkImage("breadBasket");
+      if (im) { const hh = 2, ww = (hh * im.naturalWidth) / im.naturalHeight; c.drawImage(im, cx + (flip ? 6 : -6) - ww / 2, cy + 3.5 - hh, ww, hh); }
+    }
     if (["steamworks", "smithy", "bakery", "inn"].includes(s.kind)) {
       smoke(c, cx + 4, cy - 18, t, sd, 0.6);
     }
@@ -626,15 +638,26 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
   c.save(); c.translate(X, Y - bob); if (face < 0) c.scale(-1, 1); c.rotate(tilt);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  const mow = q.working ? workSheet(k) : null;
+  const jw = q.working && !q.carry && !kid ? JOB_WORK[q.p.job] : undefined;
+  const fishing = q.p.job !== "fisher" || fishingNow(localHour(), isSunday(renderNow), seasonAt(renderNow).winter);
+  const mow = q.working ? (workSheet(k) ?? (jw && fishing ? folkImage(q.p.sex === "f" ? jw.f : jw.m) : null)) : null;
   if (mow) {
-    // painted harvest cycle; neighbouring frames cross-fade so the swing flows instead of flipping
+    // painted work cycle; neighbouring frames cross-fade so the motion flows instead of flipping
     c.rotate(-tilt);
-    const per = 2400, u = (((t + hash(q.p.id, 31, 9) * per) % per) / per) * WORK_FRAMES, f = Math.floor(u) % WORK_FRAMES, mix = u - Math.floor(u);
-    const fw = mow.naturalWidth / WORK_FRAMES, fh = mow.naturalHeight, hh = hgt * (k === "farmer" ? 1.3 : 1.15), ww = (hh * fw) / fh;
+    const per = jw?.per ?? 2400, u = (((t + hash(q.p.id, 31, 9) * per) % per) / per) * WORK_FRAMES, f = Math.floor(u) % WORK_FRAMES, mix = u - Math.floor(u);
+    const fw = mow.naturalWidth / WORK_FRAMES, fh = mow.naturalHeight, hh = hgt * (jw?.scale ?? (k === "farmer" ? 1.3 : 1.15)), ww = (hh * fw) / fh;
     const ease = mix * mix * (3 - 2 * mix);
+    // trade props stand beside the worker in the same mirrored frame, so they always line up
+    const prop = (pk: FolkSprite, dx: number, ph: number) => { const im2 = folkImage(pk); if (!im2) return; const pw = (ph * im2.naturalWidth) / im2.naturalHeight; c.drawImage(im2, dx - pw / 2, -ph + 0.2, pw, ph); };
+    if (q.p.job === "fisher") prop("fishBasket", -2.2, 1.3);
     c.drawImage(mow, f * fw, 0, fw, fh, -ww / 2, -hh, ww, hh);
     c.globalAlpha = ease; c.drawImage(mow, ((f + 1) % WORK_FRAMES) * fw, 0, fw, fh, -ww / 2, -hh, ww, hh); c.globalAlpha = 1;
+    if (q.p.job === "smith") {
+      prop("anvil", 2.4, 2.2);
+      // sparks fly on the strike frames (4–5) and fade on the rebound
+      const sp = folkImage("sparks"), a = f === 4 ? 1 - mix * 0.4 : f === 3 ? ease : f === 5 ? 0.6 * (1 - mix) : 0;
+      if (sp && a > 0.02) { const sh = 2.4, sw = (sh * sp.naturalWidth) / sp.naturalHeight; c.globalCompositeOperation = "lighter"; c.globalAlpha = a; c.drawImage(sp, 2.6 - sw / 2, -2.4 - sh * 0.75, sw, sh); c.globalAlpha = 1; c.globalCompositeOperation = "source-over"; }
+    }
     c.restore();
     return [X, Y - hgt];
   }
