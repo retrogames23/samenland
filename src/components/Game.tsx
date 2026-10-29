@@ -300,6 +300,8 @@ export function Game() {
     if (location.hostname === "www.samenland.app") {
       location.replace("https://samenland.app" + location.pathname + location.search + location.hash);
     }
+    // friend invite: remember the inviting village until the newcomer plants
+    try { const ref = new URLSearchParams(location.search).get("ref"); if (ref && /^[0-9a-f-]{36}$/i.test(ref)) localStorage.setItem("samenland-ref", ref); } catch { /* ignore */ }
     // local session first: a slow/offline network (iPhone waking up) must never look like a logout
     supabase.auth.getSession().then(({ data }) => { if (data.session) setUserId(data.session.user.id); });
     const { data: sub } = supabase.auth.onAuthStateChange((ev, session) => {
