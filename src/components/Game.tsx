@@ -1261,7 +1261,7 @@ export function Game() {
       <div ref={barRef} className="pointer-events-none absolute inset-x-2 top-2 z-30 md:inset-x-3 md:top-3">
         <Panel inner="flex items-center gap-3 px-3 py-1.5 md:gap-5">
           <div className="min-w-0 shrink">
-            <div title={my ? t.character[characterOf(my.x, my.y)]![1] : undefined} className="truncate font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
+            <div title={my ? t.character[characterOf(my.x, my.y)]![1] : undefined} className="-my-[0.34em] truncate py-[0.34em] font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
               {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[stageOf(myStats.age)]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
@@ -1394,8 +1394,8 @@ export function Game() {
         </Panel>
       </div>
       {tab && (
-        <div className="pointer-events-none absolute inset-x-2 bottom-20 z-30 max-h-[65vh] overflow-auto md:inset-x-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
-          <Panel>{drawer}</Panel>
+        <div className="pointer-events-none absolute inset-x-2 bottom-20 z-30 md:inset-x-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
+          <Panel className="max-h-[min(72dvh,calc(100dvh-9rem))] overflow-y-auto overscroll-contain">{drawer}</Panel>
         </div>
       )}
 
