@@ -17,3 +17,4 @@
 - Landmarks relocate from their nominal offset to the nearest dry tile via landmarkSpots(seed) in world.ts (pure, cached) — so coastal/mountain towns never lose landmarks to water.
 - Craft scenes (fisher casting, smith at anvil, mill sacks, bread basket) derive from the world clock in src/game/crafts.ts and job work sheets (JOB_WORK in folk-sprites.ts); props draw in the worker's mirrored frame so they always line up — nothing stored.
 - Trade roads: every road touching a player village is a stored decision row (first_roads, DB guard: in reach, no duplicate, one under construction per village); roadGate/roadCandidates/roadBuilding in world.ts derive links from them — sample-only pairs connect by themselves.
+- Friend invites: only referral rows are stored (claim_referral DB function checks Weiler age, same map, new account, one per user); the 50-Taler bonus for both villages is derived via referralClaims in economy.ts and mirrored in village_balance.

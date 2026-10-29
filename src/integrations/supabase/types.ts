@@ -500,6 +500,48 @@ export type Database = {
           },
         ]
       }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referee_seed: string
+          referee_user: string
+          referrer_seed: string
+          reward: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referee_seed: string
+          referee_user: string
+          referrer_seed: string
+          reward?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referee_seed?: string
+          referee_user?: string
+          referrer_seed?: string
+          reward?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referee_seed_fkey"
+            columns: ["referee_seed"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_seed_fkey"
+            columns: ["referrer_seed"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seeds: {
         Row: {
           created_at: string
@@ -696,6 +738,7 @@ export type Database = {
         Args: { _at: string; _charter: string; _created: string }
         Returns: number
       }
+      claim_referral: { Args: { _ref: string; _seed: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

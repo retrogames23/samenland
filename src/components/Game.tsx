@@ -77,7 +77,7 @@ const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", cult
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
-import { ITEMS, GUILD, canBuy, dailyTax, attributes, treasury, type Item, type Purchase } from "@/game/economy";
+import { ITEMS, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -153,6 +153,9 @@ export function Game() {
   const [home, setHome] = useState<Seed | null>(null);
   const [lang, setLang] = useState<Lang>("de");
   const t = DICT[lang];
+  const tRef = useRef(t);
+  tRef.current = t;
+  const [inviteOpen, setInviteOpen] = useState(false);
   useEffect(() => { document.title = t.docTitle; }, [t]);
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -300,6 +303,8 @@ export function Game() {
     if (location.hostname === "www.samenland.app") {
       location.replace("https://samenland.app" + location.pathname + location.search + location.hash);
     }
+    // friend invite: remember the inviting village until the newcomer plants
+    try { const ref = new URLSearchParams(location.search).get("ref"); if (ref && /^[0-9a-f-]{36}$/i.test(ref)) localStorage.setItem("samenland-ref", ref); } catch { /* ignore */ }
     // local session first: a slow/offline network (iPhone waking up) must never look like a logout
     supabase.auth.getSession().then(({ data }) => { if (data.session) setUserId(data.session.user.id); });
     const { data: sub } = supabase.auth.onAuthStateChange((ev, session) => {
@@ -335,6 +340,14 @@ export function Game() {
           if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
         }
       } catch { /* play as guest */ }
+      // invited newcomers land on their friend's map
+      const refId = localStorage.getItem("samenland-ref");
+      let refSeed: { id: string; realm: string; name: string } | null = null;
+      if (refId && !(r === "lab")) {
+        const { data } = await supabase.from("seeds").select("id, realm, name").eq("id", refId).maybeSingle();
+        if (data) { refSeed = data; if (REALMS.includes(data.realm as Realm)) r = data.realm as Realm; }
+        else localStorage.removeItem("samenland-ref");
+      }
       setRealm(r);
       realmRef.current = r;
       setRealmState(r);
@@ -353,21 +366,36 @@ export function Game() {
       supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").then(({ data }) => setGifts((data ?? []) as Gift[]));
       supabase.from("letters").select("id, from_seed, to_seed, created_at").gte("created_at", new Date(Date.now() - 60 * 864e5).toISOString()).then(({ data }) => setLetters(data ?? []));
       supabase.from("letter_bodies").select("letter_id, body").then(({ data }) => setBodies(Object.fromEntries((data ?? []).map((b) => [b.letter_id, b.body]))));
+      const ss = (a.data ?? []) as Seed[];
       Promise.all([
         supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at"),
         supabase.from("market_sales").select("id, seed_id, day, reward, created_at"),
-      ]).then(([q, m]) => setClaims([...(q.data ?? []), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim)]));
+        supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at"),
+      ]).then(([q, m, rf]) => {
+        setClaims([...(q.data ?? []), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? [])]);
+        // tell the inviter once when a friend has answered the call
+        const mine = ss.find((s) => uid && s.user_id === uid);
+        const got = (rf.data ?? []).filter((x) => mine && x.referrer_seed === mine.id);
+        const seen = Number(localStorage.getItem("samenland-ref-seen") ?? 0);
+        if (got.length > seen) {
+          const last = ss.find((s) => s.id === got[got.length - 1]!.referee_seed);
+          setMsg(tRef.current.invite.got(last?.name ?? "?"));
+          localStorage.setItem("samenland-ref-seen", String(got.length));
+        }
+      });
       setBlessings(bl.data ?? []);
       setPurchases(pu.data ?? []);
       setSigns((sg.data ?? []) as Signpost[]);
-      const ss = (a.data ?? []) as Seed[];
       setSeeds(ss);
       setPlantings((b.data ?? []) as Planting[]);
       // visitors without a village first see the oldest (most grown) town of this map
       const oldest = [...ss].sort((p, q) => Date.parse(p.created_at) - Date.parse(q.created_at))[0];
-      const my = ss.find((s) => uid && s.user_id === uid) ?? oldest;
+      const own = ss.find((s) => uid && s.user_id === uid);
+      const friend = refSeed ? ss.find((s) => s.id === refSeed!.id) : undefined;
+      const my = own ?? friend ?? oldest;
       if (my) focus(my.x, my.y);
       else focus(MAP / 2, MAP / 2);
+      if (!own && friend) setMsg(tRef.current.invite.welcome(friend.name));
     })();
     const ch = supabase
       .channel(`world-${Math.random().toString(36).slice(2)}`)
@@ -655,6 +683,17 @@ export function Game() {
     setTab(null);
     focus(x, y);
     setMsg(t.planted(data.name));
+    // invited newcomer: both villages receive the friend bonus (checked by the database)
+    const ref = localStorage.getItem("samenland-ref");
+    if (ref) {
+      localStorage.removeItem("samenland-ref");
+      const { error: re } = await supabase.rpc("claim_referral", { _seed: data.id, _ref: ref });
+      if (!re) {
+        const now0 = new Date().toISOString();
+        setClaims((c) => [...c, ...referralClaims([{ id: `local-${data.id}`, referrer_seed: ref, referee_seed: data.id, reward: 50, created_at: now0 }])]);
+        setMsg(`${t.planted(data.name)} ${t.quests.got(50)}`);
+      }
+    }
   };
 
   const my = seeds.find((s) => s.id === mine);
@@ -1366,6 +1405,7 @@ export function Game() {
                 ✉ {t.guide.notify.label}
               </label>
             )}
+            {userId && home && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setInviteOpen(true); setSettings(false); }}>✉ {t.invite.button}</Button>}
             {userId && home && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setQuitOpen(true); setSettings(false); }}>{t.quit.button}</button>}
             {userId ? <Button size="sm" variant="secondary" className="w-full" onClick={() => { supabase.auth.signOut(); setSettings(false); }}>{t.signOut}</Button>
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
@@ -1489,6 +1529,27 @@ export function Game() {
           </div>
         </Parchment>
       )}
+      {inviteOpen && home && (() => {
+        const ok = Date.now() - Date.parse(home.created_at) >= 24 * 3600e3;
+        const link = `https://samenland.app/?ref=${home.id}`;
+        const n = claims.filter((c) => c.seed_id === home.id && c.quest.startsWith("ref:")).length;
+        return (
+          <Parchment image={ART["surveyor"]} title={t.invite.title} later={t.cancel} onLater={() => setInviteOpen(false)}>
+            {ok ? (<>
+              <p className="mt-2 text-center text-sm leading-snug">{t.invite.body}</p>
+              <Input className="mt-3 text-xs" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
+              <div className="mt-3 flex justify-center">
+                <Button type="button" size="sm" onClick={async () => {
+                  const text = `${t.invite.share} ${link}`;
+                  try { if (navigator.share) await navigator.share({ text, url: link }); else await navigator.clipboard.writeText(text); setMsg(t.invite.copied); }
+                  catch { try { await navigator.clipboard.writeText(text); setMsg(t.invite.copied); } catch { /* user cancelled */ } }
+                }}>{t.invite.copy}</Button>
+              </div>
+              {n > 0 && <p className="mt-2 text-center text-xs text-muted-foreground">{t.invite.count(n)}</p>}
+            </>) : <p className="mt-2 text-center text-sm">{t.invite.locked}</p>}
+          </Parchment>
+        );
+      })()}
       {quitOpen && home && (
         <Parchment image={ART["surveyor"]} title={t.quit.title(home.name)} later={t.cancel} onLater={() => { setQuitOpen(false); setQuitName(""); }}>
           <p className="mt-2 text-center text-sm leading-snug">{t.quit.warn}</p>
