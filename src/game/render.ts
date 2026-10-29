@@ -7,7 +7,7 @@ import gullUrl from "@/assets/sprites/gull.webp";
 import crowUrl from "@/assets/sprites/crow.webp";
 import { worldHour, clock } from "./time";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
-import { huntScene, huntGrounds } from "./wildlife";
+import { huntScene, lodgeDens, denOk, denBeast, denFate, startle, DEN_R, type Den, type Beast } from "./wildlife";
 import { roadMotion, screenFacing } from "./motion";
 import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
 import { houseLit, candleFlicker } from "./night";
@@ -1709,7 +1709,7 @@ export function draw(
 
   // ---- pass 2: standing objects in depth order ----
   const hunt = new Map<number, (() => void)[]>();
-  if (detail) for (const tl of tiles) if (tl.st?.kind === "lodge" && tl.st.build === undefined) huntFigures(tl.x, tl.y, hunt, c);
+  if (detail) for (const tl of tiles) { if (tl.st?.kind === "lodge" && tl.st.build === undefined) huntFigures(tl.x, tl.y, hunt, c); else if (!tl.st) wildFigures(tl.x, tl.y, hunt, c); }
   const birds: [number, number, number, number][] = []; // gulls over the coast, crows over fields, drawn on top
   for (const { x, y, cx, cy, st } of tiles) {
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
@@ -1719,7 +1719,6 @@ export function draw(
       continue; // forests and crags are baked into the ground chunks
     }
     if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true);
-    if (!st) drawWild(c, x, y, cx, cy);
     if (st?.kind === "coop" && st.build === undefined) drawHens(c, cx, cy, x * 31 + y);
     if (hash(x, y, 501) < 0.006) { const tr = st ? null : terrain(x, y); if (tr === "water" || (tr === "sand" && hash(x, y, 502) < 0.5)) birds.push([cx, cy, 1, x * 7 + y]); }
     if (st?.kind === "field" && hash(x, y, 503) < 0.02) birds.push([cx, cy, 0, x * 7 + y]);
