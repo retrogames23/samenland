@@ -1759,7 +1759,7 @@ export function draw(
     const stalls: [number, number, Seed][] = [[mid[0] + px * 1.6, mid[1] + py * 1.6, l.a], [mid[0] - px * 1.6, mid[1] - py * 1.6, l.b]];
     if (n >= 11) stalls.push([mid[0] + px * 1.6 + tx / len * 2, mid[1] + py * 1.6 + ty / len * 2, l.b], [mid[0] - px * 1.6 - tx / len * 2, mid[1] - py * 1.6 - ty / len * 2, l.a]);
     for (const [sx, sy, owner] of stalls) {
-      const [X, Y] = toScreen(sx, sy);
+      const [X, Y] = iso(sx, sy);
       if (X < cs0x - 40 || X > cs1x + 40 || Y < cs0y - 40 || Y > cs1y + 40) continue;
       drawStall(c, X, Y + TH / 2, hash(Math.round(sx), Math.round(sy), 77) < 0.5);
       const ex = tradeProfile(owner, now).exports;
