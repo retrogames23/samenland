@@ -246,6 +246,13 @@
       "when": 1793300000018,
       "tag": "0034_prestige_monuments",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793300000019,
+      "tag": "0035_mayor_titles",
+      "breakpoints": true
     }
   ]
 }
