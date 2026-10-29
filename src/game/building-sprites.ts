@@ -9,6 +9,12 @@ import watermill from "@/assets/sprites/watermill.webp";
 import harbor from "@/assets/sprites/harbor.webp";
 import stall from "@/assets/sprites/stall.webp";
 import townhall from "@/assets/sprites/townhall.webp";
+import seat1 from "@/assets/sprites/seat1.webp";
+import seat2 from "@/assets/sprites/seat2.webp";
+import seat3 from "@/assets/sprites/seat3.webp";
+import seat1Light from "@/assets/sprites/night/seat1.webp";
+import seat2Light from "@/assets/sprites/night/seat2.webp";
+import seat3Light from "@/assets/sprites/night/seat3.webp";
 import manufactory from "@/assets/sprites/manufactory.webp";
 import steamworks from "@/assets/sprites/steamworks.webp";
 import station from "@/assets/sprites/station.webp";
@@ -109,7 +115,7 @@ import warehouseLight from "@/assets/sprites/night/warehouse.webp";
 import watermillLight from "@/assets/sprites/night/watermill.webp";
 import workshopLight from "@/assets/sprites/night/workshop.webp";
 
-const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, lodge: lodgeLight, herbhut: herbhutLight, woodcamp: woodcampLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, firehouse: firehouseLight, guardhouse: guardhouseLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, belfry: belfryLight, theater: theaterLight, opera: operaLight, university: universityLight, exchange: exchangeLight, orangery: orangeryLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
+const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, lodge: lodgeLight, herbhut: herbhutLight, woodcamp: woodcampLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, firehouse: firehouseLight, guardhouse: guardhouseLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, belfry: belfryLight, theater: theaterLight, opera: operaLight, university: universityLight, exchange: exchangeLight, orangery: orangeryLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, seat1: seat1Light, seat2: seat2Light, seat3: seat3Light, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
 export const hasNightSprite = (kind: Kind) => Boolean(nightUrls[kind]);
 
@@ -125,6 +131,9 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   harbor: { url: harbor, crop: [0, 0, 480, 418], width: 26, base: 4 },
   stall: { url: stall, crop: [0, 0, 480, 395], width: 10, base: 4 },
   townhall: { url: townhall, crop: [0, 0, 391, 480], width: 30, base: 4 },
+  seat1: { url: seat1, crop: [0, 0, 498, 480], width: 21, base: 4 },
+  seat2: { url: seat2, crop: [0, 0, 482, 480], width: 25, base: 4 },
+  seat3: { url: seat3, crop: [0, 0, 436, 480], width: 27, base: 4 },
   manufactory: { url: manufactory, crop: [0, 0, 480, 451], width: 31, base: 4 },
   steamworks: { url: steamworks, crop: [0, 0, 480, 474], width: 27, base: 4 },
   station: { url: station, crop: [0, 0, 447, 480], width: 27, base: 4 },
