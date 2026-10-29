@@ -473,6 +473,13 @@ export function Game() {
         const sp = (0.6 * dt) / cam.current.zoom; // screen px per ms, independent of zoom
         cam.current.x += dx * sp; cam.current.y += dy * sp;
       }
+      const f = fling.current;
+      if (!drag.current && (f.vx || f.vy)) {
+        cam.current.x -= (f.vx * dt) / cam.current.zoom; cam.current.y -= (f.vy * dt) / cam.current.zoom;
+        const k = Math.exp(-dt / 130);
+        f.vx *= k; f.vy *= k;
+        if (Math.hypot(f.vx, f.vy) < 0.01) { f.vx = 0; f.vy = 0; }
+      }
       panRaf = requestAnimationFrame(pan);
     };
     panRaf = requestAnimationFrame(pan);
