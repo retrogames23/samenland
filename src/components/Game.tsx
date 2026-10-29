@@ -1394,13 +1394,17 @@ export function Game() {
               // a click on a pasture means the flock, never a house whose roof rises over it
               { const here = structureAt(tx, ty, seeds, clock());
                 if (here?.kind === "pasture" && here.build === undefined) { baa(pan); setWho(null); setPlace(null); return; } }
+              // send your mayor to a walkable tile of your own village; when he is selected this wins over nearby roofs
+              const sendMayor = () => { const my = seeds.find((x) => x.id === mine); if (!my) return false;
+                const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor");
+                if (!me || tx < tw.x0 || tx > tw.x1 || ty < tw.y0 || ty > tw.y1 || !commandMayor(me, tw, seeds, nw, [tx, ty])) return false;
+                tap(pan); setWho(null); setPlace(null); return true; };
+              if (who?.role === "mayor" && who.seed.id === mine && sendMayor()) return;
               const ins = inspectAt(tx, ty, seeds, clock());
               if (ins) { if (ins.kind === "pasture") baa(pan); else tap(pan); setWho(null); return setPlace(ins); }
-              setPlace(null);
-              // an empty tile in your own village: send your mayor there
-              { const my = seeds.find((x) => x.id === mine);
-                if (my && !who && !place) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor");
-                  if (me && tx >= tw.x0 && tx <= tw.x1 && ty >= tw.y0 && ty <= tw.y1 && commandMayor(me, tw, seeds, nw, [tx, ty])) { tap(pan); return; } } }
+              const hadCard = !!who || !!place;
+              setPlace(null); setWho(null);
+              if (!hadCard && sendMayor()) return;
             }
             const [x, y] = tileAt(e);
             onClick(x, y);
