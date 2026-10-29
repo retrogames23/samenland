@@ -42,3 +42,4 @@
 - Tavern chat (chat_messages/chat_blocks) is the only free-text player table besides signposts; length, rate limit and blocking are enforced by the chat_guard DB trigger, RLS limits letters to sender/recipient.
 - Neighbourhood: Saturday markets (stalls, traders, +growth) are derived from roads and the realm clock in wander.ts/world.ts; letters store only metadata publicly (riders/arrival derived from distance) while bodies sit in a sender/recipient-only table written via the send_letter function — every client sees the same riders, only the pair reads the text.
 - Brand art: src/assets/logo-keimling.png is the logo; public/favicon.png is a downscaled src/assets/logo-icon.png.
+- Craft scenes (fisher casting, smith at anvil, mill sacks, bread basket) derive from the world clock in src/game/crafts.ts and job work sheets (JOB_WORK in folk-sprites.ts); props draw in the worker's mirrored frame so they always line up — nothing stored.
