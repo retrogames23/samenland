@@ -685,7 +685,7 @@ export function Game() {
     setSeeds((s) => [...s, data as Seed]);
     setTab(null);
     focus(x, y);
-    setMsg(t.planted(data.name));
+    setMsg(t.planted(data.name)); jingle("fanfare");
     // invited newcomer: both villages receive the friend bonus (checked by the database)
     const ref = localStorage.getItem("samenland-ref");
     if (ref) {
@@ -694,7 +694,7 @@ export function Game() {
       if (!re) {
         const now0 = new Date().toISOString();
         setClaims((c) => [...c, ...referralClaims([{ id: `local-${data.id}`, referrer_seed: ref, referee_seed: data.id, reward: 50, created_at: now0 }])]);
-        setMsg(`${t.planted(data.name)} ${t.quests.got(50)}`);
+        setMsg(`${t.planted(data.name)} ${t.quests.got(50)}`); setTimeout(() => jingle("coins"), 900);
       }
     }
   };
