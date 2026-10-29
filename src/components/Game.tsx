@@ -899,14 +899,17 @@ export function Game() {
   // mayor visits: the first walk into a neighbour town brings a welcome gift scaled by its size
   const visitSeen = useRef(new Set<string>());
   const visitFn = useRef<(o: Seed, my: Seed) => void>(() => {});
+  const [visitNote, setVisitNote] = useState<string | null>(null);
+  useEffect(() => { if (!visitNote) return; const h = setTimeout(() => setVisitNote(null), 7000); return () => clearTimeout(h); }, [visitNote]);
   visitFn.current = (o, my) => {
-    if (!owner || my.user_id !== userId) return;
+    if (!owner || my.user_id !== userId) { visitSeen.current.delete(o.id); return; }
     supabase.rpc("claim_visit", { _seed: my.id, _visited: o.id }).then(({ data, error }) => {
       if (error || !data) return;
       const now0 = new Date().toISOString();
       setClaims((c) => [...c, ...visitClaims([{ id: `local-v-${o.id}`, visitor_seed: my.id, visited_seed: o.id, reward: data, created_at: now0 }])]);
       jingle("fanfare"); setTimeout(() => jingle("coins"), 700);
-      setMsg(t.visit.got(o.name, data));
+      // shown as its own parchment so it stays visible during the stroll (normal HUD is hidden there)
+      setVisitNote(t.visit.got(o.name, data));
     });
   };
   const [seenGifts, setSeenGifts] = useState<string[]>([]);
@@ -1415,6 +1418,12 @@ export function Game() {
 
   return (
     <div className={`relative h-screen w-full overflow-hidden bg-background supports-[height:100dvh]:h-[100dvh] ${walk ? "[&>*:not(canvas):not([data-walk])]:hidden" : ""}`}>
+      {visitNote && (
+        <div data-walk role="status" className="pointer-events-auto absolute inset-x-0 top-[22%] z-50 mx-auto w-fit max-w-[88vw] rounded-md border-2 border-wood bg-card px-5 py-4 text-center font-semibold text-foreground shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95" onClick={() => setVisitNote(null)}>
+          <div className="text-2xl" aria-hidden>🪙</div>
+          {visitNote}
+        </div>
+      )}
       {walk && (
         <div data-walk className="pointer-events-none absolute inset-x-0 bottom-3 z-40 flex flex-col items-center gap-2 pb-[env(safe-area-inset-bottom)]">
           <span className="rounded bg-background/70 px-2 py-0.5 text-[11px] text-foreground/80">{t.hud.walkHint}</span>
