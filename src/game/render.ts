@@ -693,7 +693,14 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       const dx = sway * w * 0.035 * ((i + 1) / N);
       c.drawImage(im, 0, sh * a, sw, sh * (b - a) + 0.5, -w / 2 + dx, -hgt + hgt * a, w, hgt * (b - a) + 0.05);
     }
-  } else c.drawImage(im, -w / 2, -hgt, w, hgt);
+  } else {
+    // standing still: slow breathing (chest rises, feet stay planted) and a rare weight shift
+    const id = q.p.id, br = Math.sin(t / (1900 + hash(id, 41, 3) * 900) + id);
+    const shift = Math.sin(t / (6500 + hash(id, 42, 3) * 3000) + id * 1.7);
+    const sy = 1 + br * 0.012, sx = 1 - br * 0.004, lean = shift > 0.85 ? (shift - 0.85) * 0.12 : shift < -0.85 ? (shift + 0.85) * 0.12 : 0;
+    c.transform(sx, 0, lean, sy, 0, 0);
+    c.drawImage(im, -w / 2, -hgt, w, hgt);
+  }
   c.restore();
   return [X, Y - hgt - bob];
 }
@@ -1099,14 +1106,21 @@ function drawRoadWorks(c: C, x: number, y: number, dx: number, dy: number, t: nu
   c.fillStyle = "rgba(92,70,48,0.85)"; c.beginPath(); c.ellipse(x + dx * 3, y + dy * 3, 4.2, 1.8, 0, 0, 7); c.fill();
   prop(c, "blocks", x - nx * 5, y - ny * 2.5, 6);
   prop(c, "logs", x + nx * 5.5, y + ny * 2.8, 7);
-  // two workers with pick and mallet
+  // two workers: painted mason and builder work cycles (one frame at a time, no rocking)
   for (let w = 0; w < 2; w++) {
     const wx = x + dx * (2 + w * 3) + nx * (w ? -1.5 : 1.5), wy = y + dy * (2 + w * 3) + ny * (w ? -0.8 : 0.8);
-    const im = folkImage(w ? "builder" : "mason"); if (!im) continue;
-    const h = 5.2, iw = (h * im.naturalWidth) / im.naturalHeight, sw = Math.sin(t / 420 + sd + w * 2.1);
-    c.fillStyle = "rgba(20,15,10,0.25)"; c.beginPath(); c.ellipse(wx + 0.5, wy, iw * 0.5, 0.55, 0, 0, 7); c.fill();
-    c.save(); c.translate(wx, wy); if ((dx >= 0 ? 1 : -1) * (w ? -1 : 1) < 0) c.scale(-1, 1); c.rotate(sw * 0.08);
-    c.drawImage(im, -iw / 2, -h, iw, h); c.restore();
+    const jw = JOB_WORK[w ? "builder" : "mason"]!, sheet = folkImage(jw.m), im = folkImage(w ? "builder" : "mason");
+    if (!sheet && !im) continue;
+    const h = 5.2;
+    c.fillStyle = "rgba(20,15,10,0.25)"; c.beginPath(); c.ellipse(wx + 0.5, wy, 1.6, 0.55, 0, 0, 7); c.fill();
+    c.save(); c.translate(wx, wy); if ((dx >= 0 ? 1 : -1) * (w ? -1 : 1) < 0) c.scale(-1, 1);
+    c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+    if (sheet) {
+      const per = jw.per, u = (((t + hash(sd, w, 17) * per) % per) / per) * WORK_FRAMES, f = Math.floor(u) % WORK_FRAMES;
+      const fw = sheet.naturalWidth / WORK_FRAMES, hh = h * jw.scale, ww = (hh * fw) / sheet.naturalHeight;
+      c.drawImage(sheet, f * fw, 0, fw, sheet.naturalHeight, -ww / 2, -hh, ww, hh);
+    } else if (im) { const iw = (h * im.naturalWidth) / im.naturalHeight; c.drawImage(im, -iw / 2, -h, iw, h); }
+    c.restore();
   }
 }
 /** Painted prop (timber stack, stone blocks) of the given width, standing on (x, y), with a soft shadow. */
