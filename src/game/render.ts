@@ -5,12 +5,12 @@ import hunterUrl from "@/assets/sprites/folk/hunter.webp";
 import { worldHour, clock } from "./time";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
 import { roadMotion, screenFacing } from "./motion";
-import { walkersNow, walkProgress, type Walker } from "./wander";
+import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
 import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
 import { seasonKey, seasonAt } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townPoses, sickHome, isHomeKind, type Pose } from "./people";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, type FolkSprite } from "./folk-sprites";
 import { activeRaid, RAID_LEN } from "./disasters";
@@ -440,6 +440,29 @@ function drawLoad(c: C, x: number, y: number, dx: number, dy: number, g: TradeGo
   c.restore();
 }
 
+/** Mounted messenger: 4-frame painted trot, front sheet faces right, rear sheet faces left; hooves on the ground line. */
+function drawRider(c: C, x: number, y: number, dx: number, dy: number, sd: number, t: number) {
+  const away = dy < -0.15 * Math.abs(dx), im = riderImage(away);
+  if (!im) return;
+  const H = 11, fw = im.naturalWidth / 4, W = (fw / im.naturalHeight) * H;
+  const g = (t / 110 + sd * 3.17) % 4, f = Math.floor(g), u = g - f, f2 = (f + 1) & 3, lift = Math.abs(Math.sin(g * Math.PI)) * 0.25;
+  c.save(); c.translate(x, y);
+  const face = screenFacing(dx, dy); if (away ? face > 0 : face < 0) c.scale(-1, 1);
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  c.fillStyle = "rgba(20,15,10,0.36)"; c.beginPath(); c.ellipse(0, -0.2, W * 0.36, 1, 0, 0, 7); c.fill();
+  c.drawImage(im, f * fw, 0, fw, im.naturalHeight, -W / 2, -H - lift, W, H);
+  if (u > 0.55) { c.globalAlpha = (u - 0.55) / 0.45; c.drawImage(im, f2 * fw, 0, fw, im.naturalHeight, -W / 2, -H - lift, W, H); c.globalAlpha = 1; }
+  c.restore();
+}
+/** Painted market stall standing on the verge (y = ground line). */
+function drawStall(c: C, x: number, y: number, flip: boolean) {
+  const im = stallImage(); if (!im) return;
+  const H = 12, W = (im.naturalWidth / im.naturalHeight) * H;
+  c.save(); c.translate(x, y); if (flip) c.scale(-1, 1);
+  c.fillStyle = "rgba(20,15,10,0.3)"; c.beginPath(); c.ellipse(0, -0.5, W * 0.45, 1.6, 0, 0, 7); c.fill();
+  c.drawImage(im, -W / 2, -H, W, H); c.restore();
+}
+
 /** Painted ox cart: ox-less wagon + separate 4-frame ox walk cycle, both standing on the ground line. */
 // layout measured in sprite pixels: wagon bottom-left origin, ox bottom-centre offset, ox scale, combo centre
 // ox y = hoof line (sprite pixels below the wheel line); feet sit at FOOT·frame height inside the sheet
@@ -488,7 +511,7 @@ const PANTS = ["#3e362f", "#4b4e55", "#5a4736", "#363d47"];
 const PERSON_SCALE = 0.55;
 /** Screen-space people currently drawn (for clicking). */
 /** Screen-space traders on trade roads (for clicking). */
-export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean; walker?: Walker }[] = [];
+export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean; walker?: Walker; stall?: boolean }[] = [];
 export const lastPeople: { x: number; y: number; q: Pose }[] = [];
 /** Sound-emitting structures drawn this frame (world-screen coords), read by the audio mixer. */
 export const lastSources: { x: number; y: number; k: string }[] = [];
@@ -1720,8 +1743,27 @@ export function draw(
       const x = m.position[0] + ox2, y = m.position[1] + oy2;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
       if (w.kind === "family" || w.kind === "gift" || w.kind === "aid") { drawCart(c, x, y, m.direction[0], m.direction[1], Math.sin(t / 220) * 0.3, w.sd, "", t * 0.8); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: true, walker: w }); continue; }
+      if (w.kind === "rider") { drawRider(c, x, y, m.direction[0], m.direction[1], w.sd, t); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w }); continue; }
+      if (w.kind === "trader") { const ex = tradeProfile(w.p0 ? w.to : w.from, now).exports, gd = ex[w.sd % Math.max(1, ex.length)] ?? null; drawWanderer(c, x, y, m.direction[0], m.direction[1], t * 0.7, w.sd, gd ? CARRY_OF[gd] : "bundle"); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: gd, cart: false, walker: w }); continue; }
       drawWanderer(c, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" || w.kind === "letter" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? (w.sex === "m" ? "groom" : "bride") : undefined);
       lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w });
+    }
+  }
+
+  // Saturday market: painted stalls on both verges of every open road's midpoint, 9–17 realm time
+  if (marketOpen(now)) for (const l of links(seeds)) {
+    const n = l.tiles.length; if (n < 7 || roadProgress(l, now) < 1) continue;
+    const m = Math.floor(n / 2), a = l.tiles[m - 1]!, b = l.tiles[m + 1]!, mid = l.tiles[m]!;
+    if (l.water[m]) continue;
+    const tx = b[0] - a[0], ty = b[1] - a[1], len = Math.hypot(tx, ty) || 1, px = -ty / len, py = tx / len;
+    const stalls: [number, number, Seed][] = [[mid[0] + px * 1.6, mid[1] + py * 1.6, l.a], [mid[0] - px * 1.6, mid[1] - py * 1.6, l.b]];
+    if (n >= 11) stalls.push([mid[0] + px * 1.6 + tx / len * 2, mid[1] + py * 1.6 + ty / len * 2, l.b], [mid[0] - px * 1.6 - tx / len * 2, mid[1] - py * 1.6 - ty / len * 2, l.a]);
+    for (const [sx, sy, owner] of stalls) {
+      const [X, Y] = toScreen(sx, sy);
+      if (X < cs0x - 40 || X > cs1x + 40 || Y < cs0y - 40 || Y > cs1y + 40) continue;
+      drawStall(c, X, Y + TH / 2, hash(Math.round(sx), Math.round(sy), 77) < 0.5);
+      const ex = tradeProfile(owner, now).exports;
+      lastTraders.push({ x: X, y: Y, from: owner.name, to: (owner === l.a ? l.b : l.a).name, good: ex[0] ?? null, cart: false, stall: true });
     }
   }
 
