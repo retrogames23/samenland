@@ -37,6 +37,8 @@ import {
   MIN_SEED_DISTANCE,
   specialSites,
   specialBuild,
+  monumentProgress,
+  MONUMENT_STEPS,
   structureAt,
   radiusOf,
   ageHours,
