@@ -1,7 +1,16 @@
-export type Lang = "de" | "en" | "zh" | "ja";
-export const LANGS: Lang[] = ["de", "en", "zh", "ja"];
-export const LANG_LABEL: Record<Lang, string> = { de: "DE", en: "EN", zh: "中文", ja: "日本語" };
-export const LOCALE: Record<Lang, string> = { de: "de-DE", en: "en-GB", zh: "zh-CN", ja: "ja-JP" };
+import { hi } from "./lang/hi";
+import { es } from "./lang/es";
+import { ar } from "./lang/ar";
+import { fr } from "./lang/fr";
+
+export type Lang = "de" | "en" | "fr" | "es" | "ar" | "hi" | "zh" | "ja";
+export const LANGS: Lang[] = ["de", "en", "fr", "es", "ar", "hi", "zh", "ja"];
+/** Short code shown on the language chip. */
+export const LANG_LABEL: Record<Lang, string> = { de: "DE", en: "EN", fr: "FR", es: "ES", ar: "AR", hi: "HI", zh: "中", ja: "日" };
+/** Native name of each language, shown beside the code. */
+export const LANG_NAME: Record<Lang, string> = { de: "Deutsch", en: "English", fr: "Français", es: "Español", ar: "العربية", hi: "हिन्दी", zh: "中文", ja: "日本語" };
+export const RTL: Partial<Record<Lang, true>> = { ar: true };
+export const LOCALE: Record<Lang, string> = { de: "de-DE", en: "en-GB", fr: "fr-FR", es: "es-ES", ar: "ar", hi: "hi-IN", zh: "zh-CN", ja: "ja-JP" };
 
 const de = {
   tagline: "Setz einen Samen. Schau zu, wie dein Dorf wächst – in Echtzeit, auch wenn du weg bist.",
@@ -1288,8 +1297,9 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   },
 };
 
-export const DICT = { de, en, zh, ja };
+export const DICT: Record<Lang, Dict> = { de, en, fr, es, ar, hi, zh, ja };
 export type Dict = typeof de;
+
 
 /** Translate a canPlant error code. */
 export function plantError(t: Dict, code: string) {
