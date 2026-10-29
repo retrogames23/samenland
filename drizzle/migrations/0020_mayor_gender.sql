@@ -1,0 +1,1 @@
+ALTER TABLE public.seeds ADD COLUMN IF NOT EXISTS mayor_gender text CHECK (mayor_gender IN ('m','w','d'));
