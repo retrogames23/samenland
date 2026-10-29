@@ -729,7 +729,7 @@ export function commandMayor(p: Person, t: Town, seeds: Seed[], now: number, to:
   if (p.role !== "mayor" || !free(t, g[0], g[1], seeds)) return false;
   const q = poseOf(p, t, seeds, now);
   const from: Tile = q.visible ? [q.x, q.y] : doorOf(t, p.home, seeds);
-  order = { id: p.id, from, to: g, at: now };
+  order = { id: p.id, from, to: g, at: now }; drive = null;
   return true;
 }
 /** Current goal of the steered mayor, or null when idle (for the marker). */
