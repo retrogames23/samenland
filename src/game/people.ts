@@ -11,7 +11,7 @@ import { hash, structureAt, effAge, radiusOf, reachOf, terrain, buildable, isWat
 export type Sex = "f" | "m";
 export type Job =
   | "farmer" | "baker" | "smith" | "innkeeper" | "miller" | "crafter" | "worker"
-  | "sawyer" | "builder" | "woodcutter" | "mason" | "merchant" | "priest" | "carter" | "mayor" | "fisher" | "healer" | "teacher" | "firewarden" | "watchman" | "homemaker" | "retired" | "child";
+  | "sawyer" | "builder" | "woodcutter" | "mason" | "merchant" | "priest" | "carter" | "mayor" | "fisher" | "healer" | "teacher" | "firewarden" | "watchman" | "hunter" | "herbalist" | "homemaker" | "retired" | "child";
 export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play" | "sick" | "care" | "church" | "visit" | "stroll" | "wedding";
 type Tile = [number, number];
 export type Person = {
@@ -60,9 +60,9 @@ const SLOTS: Partial<Record<Kind, [Job, number]>> = {
   watermill: ["miller", 2], chapel: ["priest", 1], manufactory: ["crafter", 4], steamworks: ["smith", 3], station: ["merchant", 2], stall: ["merchant", 2], harbor: ["carter", 2], townhall: ["crafter", 2],
   bakery: ["baker", 2], smithy: ["smith", 2], inn: ["innkeeper", 2], mill: ["miller", 1], workshop: ["crafter", 2],
   factory: ["priest", 2], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
-  fishery: ["fisher", 1], infirmary: ["healer", 1], school: ["teacher", 1], granary: ["carter", 1], markethall: ["merchant", 2], guildhall: ["crafter", 2], library: ["teacher", 1], dairy: ["farmer", 2], firehouse: ["firewarden", 2], guardhouse: ["watchman", 3],
+  fishery: ["fisher", 1], infirmary: ["healer", 1], school: ["teacher", 1], granary: ["carter", 1], markethall: ["merchant", 2], guildhall: ["crafter", 2], library: ["teacher", 1], dairy: ["farmer", 2], firehouse: ["firewarden", 2], guardhouse: ["watchman", 3], lodge: ["hunter", 1], herbhut: ["herbalist", 1], woodcamp: ["woodcutter", 2],
 };
-const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["mayor", "farmer", "merchant", "carter", "builder", "woodcutter", "mason", "fisher", "healer", "watchman"]);
+const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["mayor", "farmer", "merchant", "carter", "builder", "woodcutter", "mason", "fisher", "healer", "watchman", "hunter", "herbalist"]);
 const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge", "rail", "avenue"]);
 
 export type Town = {

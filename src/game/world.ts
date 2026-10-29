@@ -229,7 +229,7 @@ export type Kind =
   | "campfire" | "hut" | "coop" | "fence" | "chapel" | "watermill" | "harbor"
   | "stall" | "townhall" | "gatehouse" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue"
   | "patrician" | "villa" | "tenement" | "townhouse2" | "fachwerk" | "steinhaus" | "handwerker"
-  | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "guardhouse";
+  | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "guardhouse" | "lodge" | "herbhut" | "woodcamp";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). */
 export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; fire?: boolean; flood?: boolean };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
@@ -443,9 +443,11 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
 }
 
 /** Player-bought buildings: the shop item → building kind, built over SPECIAL_BUILD real ms after purchase. */
-export const SPECIAL_KIND: Record<string, Kind> = { fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", guard: "guardhouse" };
+export const SPECIAL_KIND: Record<string, Kind> = { fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", guard: "guardhouse", hunter: "lodge", herbs: "herbhut", woodcamp: "woodcamp" };
 /** Craft charter halves the construction time of bought buildings. */
-export const specialBuild = (s: Seed) => (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD);
+/** Craft charter halves, a woodcutter's camp (ready timber) shortens build time by a quarter — both pure from purchases. */
+export const WOODCAMP_BUILD = 0.75;
+export const specialBuild = (s: Seed) => (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1);
 /** Farm charter: +5 % growth from the day it was sealed. */
 export const FARM_BONUS = 0.05;
 export const SPECIAL_BUILD = 6 * 3600000;
@@ -475,6 +477,7 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
       for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) { const t = terrain(x + i, y + j); if (isWater(t)) water++; else if (t === "forest") forest++; }
       let sc = d + hash(x, y, 777) * 1.5;
       if (kind === "fishery") sc += water ? -12 - Math.min(water, 6) : 0;
+      if (kind === "lodge" || kind === "woodcamp" || kind === "herbhut") sc += forest ? -6 - Math.min(forest, 6) * 0.6 : 0;
       if (kind === "infirmary") sc += forest ? -4 - Math.min(forest, 5) * 0.5 : 0;
       if (kind === "school" || kind === "guardhouse") sc -= d < 5 ? 2 : 0;
       if (kind === "firehouse") sc += water ? -3 : 0;
