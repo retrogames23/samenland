@@ -16,3 +16,4 @@
 - Animal routines in animals.ts use the realm clock; resting art and frozen dusk positions prevent nighttime motion.
 - Landmarks relocate from their nominal offset to the nearest dry tile via landmarkSpots(seed) in world.ts (pure, cached) — so coastal/mountain towns never lose landmarks to water.
 - Craft scenes (fisher casting, smith at anvil, mill sacks, bread basket) derive from the world clock in src/game/crafts.ts and job work sheets (JOB_WORK in folk-sprites.ts); props draw in the worker's mirrored frame so they always line up — nothing stored.
+- Trade roads: every road touching a player village is a stored decision row (first_roads, DB guard: in reach, no duplicate, one under construction per village); roadGate/roadCandidates/roadBuilding in world.ts derive links from them — sample-only pairs connect by themselves.
