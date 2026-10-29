@@ -134,6 +134,13 @@
       "when": 1793300000002,
       "tag": "0018_abandon_village",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793300000003,
+      "tag": "0019_admin_seed_per_realm",
+      "breakpoints": true
     }
   ]
 }
