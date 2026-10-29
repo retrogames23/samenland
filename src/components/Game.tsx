@@ -592,7 +592,7 @@ export function Game() {
       const r = cv.getBoundingClientRect();
       const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
       target.current = {
-        zoom: Math.min(12, Math.max(MIN_ZOOM, target.current.zoom * Math.exp(-dy * 0.0015))),
+        zoom: Math.min(st.current.walk ? 20 : 12, Math.max(MIN_ZOOM, target.current.zoom * Math.exp(-dy * 0.0015))),
         ax: (e.clientX - r.left) * dpr.current,
         ay: (e.clientY - r.top) * dpr.current,
       };
@@ -743,7 +743,7 @@ export function Game() {
   };
 
   const my = seeds.find((s) => s.id === mine);
-  const startWalk = () => { if (!my) return; setTab(null); setWho(null); setPlace(null); setPlacing(null); const cv = canvasRef.current; target.current = { zoom: Math.max(target.current.zoom, 5), ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; setWalk(true); };
+  const startWalk = () => { if (!my) return; setTab(null); setWho(null); setPlace(null); setPlacing(null); const cv = canvasRef.current; target.current = { zoom: 16, ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; setWalk(true); };
   const wasWalk = useRef(false);
   useEffect(() => { if (wasWalk.current && !walk) clearMayorOrder(); wasWalk.current = walk; }, [walk]);
   const findMayor = () => { if (!my) return; const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (!me) return focus(my.x, my.y); const z = poseOf(me, tw, seeds, nw); focus(z.x, z.y); setPlace(null); setWho(me); };
@@ -1059,7 +1059,7 @@ export function Game() {
   }, [placing, coarse]);
   const zoomBy = (f: number) => {
     const cv = canvasRef.current!;
-    target.current = { zoom: Math.min(12, Math.max(MIN_ZOOM, target.current.zoom * f)), ax: cv.width / 2, ay: cv.height / 2 };
+    target.current = { zoom: Math.min(st.current.walk ? 20 : 12, Math.max(MIN_ZOOM, target.current.zoom * f)), ax: cv.width / 2, ay: cv.height / 2 };
   };
   const pick = (k: Tab) => setTab(tab === k ? null : k);
   const tabs: { k: Tab; icon: typeof Hammer; label: string }[] = [
@@ -1387,7 +1387,7 @@ export function Game() {
             const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
             const p = pinch.current;
             if (p && p.dist > 0) {
-              const nz = Math.min(12, Math.max(MIN_ZOOM, c.zoom * (dist / p.dist)));
+              const nz = Math.min(st.current.walk ? 20 : 12, Math.max(MIN_ZOOM, c.zoom * (dist / p.dist)));
               const ox = p.mx - r.left - r.width / 2, oy = p.my - r.top - r.height / 2;
               const wx = ox / c.zoom + c.x, wy = oy / c.zoom + c.y;
               const nx = mx - r.left - r.width / 2, ny = my - r.top - r.height / 2;
@@ -1455,7 +1455,7 @@ export function Game() {
             if (nowT - lt.t < 300 && Math.hypot(e.clientX - lt.x, e.clientY - lt.y) < 30) {
               lastTap.current = { t: 0, x: 0, y: 0 };
               const r = canvasRef.current!.getBoundingClientRect();
-              target.current = { zoom: Math.min(12, target.current.zoom * 1.6), ax: (e.clientX - r.left) * dpr.current, ay: (e.clientY - r.top) * dpr.current };
+              target.current = { zoom: Math.min(st.current.walk ? 20 : 12, target.current.zoom * 1.6), ax: (e.clientX - r.left) * dpr.current, ay: (e.clientY - r.top) * dpr.current };
               return;
             }
             lastTap.current = { t: nowT, x: e.clientX, y: e.clientY };
