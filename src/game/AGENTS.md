@@ -9,3 +9,10 @@
 - Neighbour gifts/aid/thanks: only gift rows are stored (DB gift_guard: prices, 1/day, treasury); carts (wander.giftWalkers), faster rebuild (Seed.aid → aidFactor) and balances are derived.
 - Map zoom has one render path (no detail threshold): wild nature is placed by natureAt() in render.ts, baked into ground chunks only outside possible town reach — so trees, house facing and pastures never pop while zooming.
 - Personal space (src/game/space.ts): footprints + a pure separation pass at draw time (people vs. people/sheep, keep-right on roads); collisions are derived per frame, never stored — all clients agree.
+
+- Calendar weights live in season.ts using UTC; season-art.ts caches alpha-preserving recolored images and nature/overview caches include the season key, so seasonal changes remain consistent without per-frame pixel processing.
+- Goods hauling (Person.haul in people.ts) is derived from jobs and nearby buildings and animated as a pure clock cycle; never store goods or stock — all clients see the same carriers.
+- Traffic and villagers use pure motion.ts headings and N-1 road segments to prevent facing flicker and overshoot.
+- Animal routines in animals.ts use the realm clock; resting art and frozen dusk positions prevent nighttime motion.
+- Landmarks relocate from their nominal offset to the nearest dry tile via landmarkSpots(seed) in world.ts (pure, cached) — so coastal/mountain towns never lose landmarks to water.
+- Craft scenes (fisher casting, smith at anvil, mill sacks, bread basket) derive from the world clock in src/game/crafts.ts and job work sheets (JOB_WORK in folk-sprites.ts); props draw in the worker's mirrored frame so they always line up — nothing stored.

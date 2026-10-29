@@ -62,7 +62,7 @@ const SLOTS: Partial<Record<Kind, [Job, number]>> = {
   factory: ["priest", 2], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
   fishery: ["fisher", 1], infirmary: ["healer", 1], school: ["teacher", 1], granary: ["carter", 1], markethall: ["merchant", 2], guildhall: ["crafter", 2], library: ["teacher", 1], dairy: ["farmer", 2], firehouse: ["firewarden", 2], guardhouse: ["watchman", 3], lodge: ["hunter", 1], herbhut: ["herbalist", 1], woodcamp: ["woodcutter", 2],
 };
-const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["mayor", "farmer", "merchant", "carter", "builder", "woodcutter", "mason", "fisher", "healer", "watchman", "hunter", "herbalist"]);
+const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["mayor", "farmer", "merchant", "carter", "builder", "woodcutter", "mason", "fisher", "smith", "healer", "watchman", "hunter", "herbalist"]);
 const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge", "rail", "avenue"]);
 
 export type Town = {
