@@ -259,6 +259,21 @@ const de = {
   perDay: (n: number) => `+${n}/Tag`,
   people: (n: number) => `${n} Bewohner`,
   roll: { menu: "Rolle", title: "Dorf-Rolle", stats: (n: number, h: number, k: number, s: number) => `${n} Einwohner · ${h} Haushalte · ${k} Kinder · ${s} krank`, search: "Name suchen …", job: "Beruf", allJobs: "Alle Berufe", sort: "Sortierung", byHouse: "Nach Haushalt", byName: "Nach Name", byAge: "Nach Alter", none: "Niemand gefunden.", family: (n: string, c: number) => `Familie ${n} · ${c} ${c === 1 ? "Person" : "Personen"}`, age: (a: number) => `${a} Jahre`, sickTag: "krank", maiden: (n: string) => `geb. ${n}`, spouse: (sex: string, n: string) => `${sex === "f" ? "Ehefrau" : "Ehemann"}${n ? ` von ${n}` : ""}`, role: { head: ["Hausherrin", "Hausherr"], spouse: ["Ehefrau", "Ehemann"], child: ["Tochter", "Sohn"], elder: ["Altenteilerin", "Altenteiler"], lodger: ["Untermieterin", "Untermieter"], mayor: ["Dorfschulzin", "Dorfschulze"] } as Record<string, [string, string]>, home: "ist gerade daheim", inside: "ist gerade drinnen bei der Arbeit" },
+  quests: {
+    card: "Aufgabe des Schulzen", how: "Zeig mir wie", claim: "Belohnung annehmen", later: "Später",
+    doneTitle: "Aufgabe erfüllt!", reward: (n: number) => `Belohnung: ${n} Taler`, step: (i: number, n: number) => `Aufgabe ${i} von ${n}`,
+    says: (who: string) => `${who} spricht:`, fail: "Die Belohnung konnte nicht vergeben werden.", got: (n: number) => `+${n} Taler in der Dorfkasse`,
+    end: "Die Lehrjahre des Schulzen sind vorüber.",
+    list: {
+      bless: ["Den ersten Segen sprechen", "Läute die Glocke oder segne den Brunnen unter „Bräuche“.", "Gut so! Ein gesegnetes Dorf wächst fröhlicher."],
+      build: ["Ein Werkhaus errichten", "Kaufe im Bau-Menü dein erstes Gebäude, etwa eine Kräuter- oder Jägerhütte.", "Ein erstes Werkhaus! Die Leute sind stolz."],
+      sign: ["Einen Wegweiser aufstellen", "Schreib unter „Wegweiser“ einen Gruß an ein Nachbardorf.", "Nun weiß jeder Reisende, wo es zu uns geht."],
+      meet: ["Die erste Begegnung meistern", "Beantworte eine Begegnung, sobald ein Fremder vorbeikommt.", "Klug entschieden. Man spricht im Wirtshaus davon."],
+      ten: ["Zehn Seelen", "Warte, bis zehn Menschen in deinem Dorf leben.", "Zehn Seelen! Aus dem Lager wird eine Gemeinschaft."],
+      gift: ["Ein Gruß an die Nachbarn", "Schicke unter „Dörfer“ ein Geschenk an ein anderes Dorf.", "Gute Nachbarschaft ist mehr wert als Gold."],
+      hamlet: ["Vom Dorf zum Weiler", "Lass dein Dorf zum Weiler heranwachsen.", "Ein echter Weiler! Ich habe dich nichts mehr zu lehren."],
+    } as Record<string, [string, string, string]>,
+  },
   guide: {
     title: "Willkommen in Samenland", menu: "Anleitung", close: "Los geht's",
     intro: "Ein langsames Spiel: Dein Dorf wächst in Echtzeit – auch wenn du nicht hinschaust.",
@@ -532,6 +547,21 @@ const en: typeof de = {
   perDay: (n: number) => `+${n}/day`,
   people: (n: number) => `${n} residents`,
   roll: { menu: "Roll", title: "Village Roll", stats: (n: number, h: number, k: number, s: number) => `${n} residents · ${h} households · ${k} children · ${s} sick`, search: "Search name …", job: "Trade", allJobs: "All trades", sort: "Sort", byHouse: "By household", byName: "By name", byAge: "By age", none: "Nobody found.", family: (n: string, c: number) => `${n} family · ${c} ${c === 1 ? "person" : "people"}`, age: (a: number) => `${a} years`, sickTag: "sick", maiden: (n: string) => `née ${n}`, spouse: (sex: string, n: string) => `${sex === "f" ? "Wife" : "Husband"}${n ? ` of ${n}` : ""}`, role: { head: ["Head of house", "Head of house"], spouse: ["Wife", "Husband"], child: ["Daughter", "Son"], elder: ["Elder", "Elder"], lodger: ["Lodger", "Lodger"], mayor: ["Mayor", "Mayor"] } as Record<string, [string, string]>, home: "is at home right now", inside: "is working indoors right now" },
+  quests: {
+    card: "The mayor's task", how: "Show me how", claim: "Accept reward", later: "Later",
+    doneTitle: "Task complete!", reward: (n: number) => `Reward: ${n} Taler`, step: (i: number, n: number) => `Task ${i} of ${n}`,
+    says: (who: string) => `${who} says:`, fail: "The reward could not be granted.", got: (n: number) => `+${n} Taler in the treasury`,
+    end: "The mayor's apprentice years are over.",
+    list: {
+      bless: ["Speak the first blessing", "Ring the bell or bless the well under \"Customs\".", "Well done! A blessed village grows happier."],
+      build: ["Raise a workshop", "Buy your first building in the build menu, such as a herb hut or hunter's lodge.", "A first workshop! The folk are proud."],
+      sign: ["Put up a signpost", "Write a greeting to a neighbouring village under \"Signposts\".", "Now every traveller knows the way to us."],
+      meet: ["Master the first encounter", "Answer an encounter when a stranger passes by.", "Wisely chosen. They talk about it at the inn."],
+      ten: ["Ten souls", "Wait until ten people live in your village.", "Ten souls! The camp becomes a community."],
+      gift: ["A greeting to the neighbours", "Send a gift to another village under \"Villages\".", "Good neighbours are worth more than gold."],
+      hamlet: ["Grow into a hamlet", "Let your village grow into a hamlet.", "A true hamlet! I have nothing left to teach you."],
+    } as Record<string, [string, string, string]>,
+  },
   guide: {
     title: "Welcome to Samenland", menu: "Guide", close: "Let's go",
     intro: "A slow game: your village grows in real time – even when you're not watching.",
