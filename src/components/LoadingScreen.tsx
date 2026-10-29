@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { coreProgress, startCoreLoad } from "@/game/assets";
 import { ART } from "@/game/decisions";
-
-let shownOnce = false;
-
-/** true once the parchment splash has finished on this page view */
-export const splashDone = () => shownOnce;
+import { splashDone, markSplashDone } from "@/game/splash";
 
 /** Parchment loading screen on the first page load until core sprites are in memory (max 8 s). */
 export function LoadingScreen({ title, lines, onDone }: { title: string; lines: string[]; onDone?: () => void }) {
