@@ -2061,7 +2061,7 @@ export function Game() {
           const nudge = (dx: number, dy: number) => { const g: [number, number] = [ghost[0] + dx, ghost[1] + dy]; setGhost(g); focus(g[0], g[1]); };
           const price = MONUMENT_PRICE[placing] ?? ITEMS[placing as Item];
           return (
-            <div className="pointer-events-auto w-full space-y-2 rounded-md border-2 border-wood bg-card p-2 text-foreground shadow-[var(--shadow-panel)]" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
+            <div className="pointer-events-auto w-full space-y-2 rounded-md border-2 border-wood bg-card p-2 text-foreground shadow-[var(--shadow-panel)]">
               <div className="flex items-center gap-2">
                 {spriteUrl(SPECIAL_KIND[placing]!) && <img src={spriteUrl(SPECIAL_KIND[placing]!)} alt="" className="h-10 w-10 shrink-0 object-contain" />}
                 <div className="min-w-0 flex-1 text-xs"><div className="truncate font-semibold">{t.items[placing]![0]}</div>
