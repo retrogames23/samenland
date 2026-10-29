@@ -90,6 +90,16 @@ import { firstFreeSite, placeTap } from "@/game/placement";
 
 type Mode = "look" | "seed" | "tree" | "flower" | "lantern";
 
+const SHEET = "pointer-events-auto w-full max-w-xs rounded-md border-2 border-wood bg-card px-3 py-2 text-foreground shadow-[var(--shadow-cozy)] max-md:max-h-[45dvh] max-md:max-w-none max-md:overflow-y-auto max-md:overscroll-contain max-md:rounded-t-2xl";
+/** swipe a phone sheet down to close it */
+const sheetSwipe = (close: () => void) => {
+  let y0: number | null = null;
+  return {
+    onTouchStart: (e: import("react").TouchEvent<HTMLDivElement>) => { y0 = e.currentTarget.scrollTop <= 0 ? e.touches[0]!.clientY : null; },
+    onTouchEnd: (e: import("react").TouchEvent<HTMLDivElement>) => { if (y0 != null && e.changedTouches[0]!.clientY - y0 > 60) close(); y0 = null; },
+  };
+};
+
 export function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rawSeeds, setSeeds] = useState<Seed[]>([]);
@@ -710,6 +720,7 @@ export function Game() {
   };
 
   const my = seeds.find((s) => s.id === mine);
+  const findMayor = () => { if (!my) return; const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (!me) return focus(my.x, my.y); const z = poseOf(me, tw, seeds, nw); focus(z.x, z.y); setPlace(null); setWho(me); };
   const myCharter = my ? charters.find((c) => c.seed_id === my.id)?.path : undefined;
   const sealCharter = async () => {
     if (!my || !userId || !charterPick) return;
@@ -933,6 +944,7 @@ export function Game() {
   const wareName = (w: Ware, n: number) => t.goods.ware[w]![n === 1 ? 0 : 1];
   const [questOpen, setQuestOpen] = useState(false);
   const [questFold, setQuestFold] = useState(false);
+  useEffect(() => { if (coarse && window.innerWidth < 768) setQuestFold(true); }, [coarse]); // phones: quest starts as a small badge
   const quest = my ? questState(claims, my.id, {
     blessings: blessings.filter((b) => b.seed_id === my.id).length,
     purchases: purchases.filter((p) => p.seed_id === my.id).length,
@@ -1403,7 +1415,7 @@ export function Game() {
           if (d?.ghost) { fling.current = { vx: 0, vy: 0, t: nowT }; if (d.moved) return; }
           if (d?.moved && nowT - fling.current.t > 80) fling.current = { vx: 0, vy: 0, t: nowT }; // held still before release: no glide
           if (d && !d.moved && placing && placeTap(!!d.touch) === "move") { const g = tileAt(e); st.current.ghost = g; setGhost(g); return; }
-          if (d && !d.moved && d.touch && d.t0 != null && nowT - d.t0 > 350) return; // long press is not a tap
+          if (d && !d.moved && d.touch && d.t0 != null && nowT - d.t0 > 350) { if (placing || mode !== "look") return; const p = personAt(e); if (p) { setPlace(null); return setWho(p); } const [lx, ly] = tileAt(e); const li = inspectAt(lx, ly, seeds, clock()); if (li) { setWho(null); setPlace(li); } return; } // long press opens what lies under the finger
           if (d && !d.moved && d.touch && !placing && mode === "look") {
             const lt = lastTap.current;
             if (nowT - lt.t < 300 && Math.hypot(e.clientX - lt.x, e.clientY - lt.y) < 30) {
@@ -1567,7 +1579,7 @@ export function Game() {
 
       {/* build rail: left on desktop, bottom on phones */}
       <div className="pointer-events-none absolute inset-x-2 bottom-2 z-30 md:inset-x-auto md:bottom-auto md:left-3 md:top-[var(--bar-h,6rem)]" style={{ "--bar-h": `${barH + 8}px` } as import("react").CSSProperties}>
-        <Panel inner="!bg-wood !border-0 flex gap-1 p-1 md:flex-col">
+        <Panel inner="!bg-wood !border-0 flex gap-1 p-1 md:flex-col" className="max-md:mb-[env(safe-area-inset-bottom)]">
           {tabs.map(({ k, icon: I, label }) => (
             <WoodButton key={k} label={label} active={tab === k} onClick={() => pick(k)} className="h-11 flex-1 flex-col gap-0.5 md:h-14 md:w-14 md:flex-none">
               <I className="h-5 w-5" /><span className="text-[10px] leading-none">{label}</span>
@@ -1587,6 +1599,11 @@ export function Game() {
             <Beer className="h-5 w-5" /><span className="text-[10px] leading-none">{t.tavern.menu}</span>
             {chatUnread > 0 && <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-destructive" />}
           </WoodButton>
+          {my && (
+            <WoodButton label={t.mayorFind} onClick={findMayor} className="h-11 flex-1 flex-col gap-0.5 md:hidden">
+              <Crown className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.role["mayor"]![1]}</span>
+            </WoodButton>
+          )}
           <WoodButton label={t.guide.menu} active={guideOpen} onClick={() => setGuideOpen(true)} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
             <BookOpen className="h-5 w-5" /><span className="text-[10px] leading-none">{t.guide.menu}</span>
           </WoodButton>
@@ -1606,7 +1623,7 @@ export function Game() {
             <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.hud.zoomOut} onClick={() => zoomBy(1 / 1.6)}><Minus className="h-4 w-4" /></Button>
             <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.hud.zoomIn} onClick={() => zoomBy(1.6)}><Plus className="h-4 w-4" /></Button>
             {my && <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.toMine} title={t.toMine} onClick={() => focus(my.x, my.y)}><Home className="h-4 w-4" /></Button>}
-            {my && <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.mayorFind} title={t.mayorFind} onClick={() => { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (!me) return focus(my.x, my.y); const z = poseOf(me, tw, seeds, nw); focus(z.x, z.y); setWho(me); }}><Crown className="h-4 w-4" /></Button>}
+            {my && <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.mayorFind} title={t.mayorFind} onClick={findMayor}><Crown className="h-4 w-4" /></Button>}
           </div>
         </Panel>
       </div>
@@ -1877,7 +1894,7 @@ export function Game() {
       )}
 
       {owner && quest && !settings && !chronOpen && (
-        <div className="absolute right-16 z-30 w-60 md:w-64" style={{ top: barH + 8 }}>
+        <div className={`absolute right-2 z-30 md:right-16 md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
           <div className="parchment px-3 py-2 text-sm text-ink shadow">
             <button type="button" onClick={() => setQuestFold((f) => !f)} className="flex w-full items-center justify-between gap-2 text-left">
               <span className="font-display text-lg leading-none">{t.quests.card}</span>
@@ -2074,10 +2091,11 @@ export function Game() {
           const kl = (p: Person) => <button key={p.id} type="button" className="underline-offset-2 hover:underline" onClick={() => pick(p)}>{p.first}{p.role === "child" ? ` (${p.age})` : ""}</button>;
           const row = (label: string, ps: Person[]) => ps.length ? <div><span className="text-muted-foreground">{label}: </span>{ps.map((p, i) => <span key={p.id}>{i ? ", " : ""}{kl(p)}</span>)}</div> : null;
           return (
-            <div className="pointer-events-auto w-full max-w-xs rounded-md border-2 border-border bg-card px-3 py-2 shadow-[var(--shadow-panel)] border-wood text-foreground shadow-[var(--shadow-cozy)]">
+            <div {...sheetSwipe(() => setWho(null))} className={SHEET}>
+              <div aria-hidden className="mx-auto mb-1 h-1 w-10 rounded-full bg-muted-foreground/40 md:hidden" />
               <div className="flex items-start justify-between gap-3">
                 <div className="font-['Caveat'] text-xl leading-tight">{who.first} {who.last}</div>
-                <button type="button" aria-label={t.close} className="text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
+                <button type="button" aria-label={t.close} className="-m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
               </div>
               <div className="text-sm">{t.personAge(who.age)} · {t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
               {(kin.spouse || kin.parents.length || kin.children.length || kin.siblings.length || who.maiden) && (
@@ -2121,10 +2139,11 @@ export function Game() {
             </ul>
           ) : <div className="text-muted-foreground">{t.nobody}</div>;
           return (
-            <div className="pointer-events-auto w-full max-w-xs rounded-md border-2 border-border bg-card px-3 py-2 shadow-[var(--shadow-panel)] border-wood text-foreground shadow-[var(--shadow-cozy)]">
+            <div {...sheetSwipe(() => setPlace(null))} className={SHEET}>
+              <div aria-hidden className="mx-auto mb-1 h-1 w-10 rounded-full bg-muted-foreground/40 md:hidden" />
               <div className="flex items-start justify-between gap-3">
                 <div className="font-['Caveat'] text-xl leading-tight">{ins.build !== null ? t.site(name) : name}</div>
-                <button type="button" aria-label={t.close} className="text-muted-foreground hover:text-foreground" onClick={() => setPlace(null)}>×</button>
+                <button type="button" aria-label={t.close} className="-m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setPlace(null)}>×</button>
               </div>
               <div className="text-xs text-muted-foreground">{t.inTown(name, ins.seed.name)}</div>
               {ins.build !== null ? (
