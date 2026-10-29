@@ -230,7 +230,7 @@ export type Kind =
   | "stall" | "townhall" | "gatehouse" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue"
   | "patrician" | "villa" | "tenement" | "townhouse2" | "fachwerk" | "steinhaus" | "handwerker"
   | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "belfry"
-  | "theater" | "opera" | "university" | "exchange" | "orangery";
+  | "theater" | "opera" | "university" | "exchange" | "orangery" | "seat1" | "seat2" | "seat3";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). */
 export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; fire?: boolean; flood?: boolean };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
@@ -250,6 +250,8 @@ export function faceFlip(kind: Kind, x: number, y: number, isRoad: (x: number, y
 }
 export const FLAT: ReadonlySet<Kind> = new Set(["path", "street", "square", "field", "pasture", "garden", "market", "road", "bridge", "rail", "avenue"]);
 const CORE: Record<string, Kind> = { "1,0": "hut", "0,1": "hut", "1,1": "campfire", "-1,0": "garden", "-1,1": "field", "0,-1": "garden" };
+/** Kinds of the growing mayor's seat, in era order. */
+export const SEAT_KINDS: readonly Kind[] = ["seat1", "seat2", "seat3", "townhall"];
 export const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
   { dx: 2, dy: -1, at: 30, kind: "coop" }, { dx: -2, dy: 1, at: 48, kind: "barn" },
   { dx: 2, dy: -2, at: 180, kind: "chapel" }, { dx: -3, dy: -3, at: 168, kind: "watermill" },
@@ -260,7 +262,10 @@ export const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
   { dx: -5, dy: -2, at: 4380, kind: "bakery" },
   { dx: 0, dy: -3, at: 2160, kind: "stall" }, { dx: 4, dy: -1, at: 2300, kind: "smithy" },
   { dx: -4, dy: 1, at: 2500, kind: "warehouse" },
-  { dx: 3, dy: -4, at: 4380, kind: "townhall" }, { dx: 2, dy: -2, at: 4500, kind: "church" },
+  { dx: 2, dy: -2, at: 4500, kind: "church" },
+  // the mayor's seat: reserved from the founding on, grows with every era (Kate -> Hof -> Amtshaus -> Rathaus-Palais)
+  { dx: 1, dy: -2, at: 3, kind: "seat1" }, { dx: 1, dy: -2, at: 168, kind: "seat2" },
+  { dx: 1, dy: -2, at: 2160, kind: "seat3" }, { dx: 1, dy: -2, at: 4380, kind: "townhall" },
   { dx: 8, dy: 6, at: 8760, kind: "manufactory" }, { dx: -7, dy: -6, at: 9200, kind: "steamworks" },
   { dx: -9, dy: 5, at: 10000, kind: "station" },
   { dx: 12, dy: 3, at: 2400, kind: "sawmill" },

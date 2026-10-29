@@ -60,7 +60,7 @@ const HOMES: Partial<Record<Kind, [number, number]>> = { hut: [2, 2], suburb: [2
 export const isHomeKind = (k: string) => k in HOMES && k !== "inn" && k !== "bakery";
 const SLOTS: Partial<Record<Kind, [Job, number]>> = {
   belfry: ["watchman", 1], theater: ["crafter", 2], opera: ["crafter", 2], university: ["teacher", 2], exchange: ["merchant", 3], orangery: ["herbalist", 2],
-  watermill: ["miller", 2], chapel: ["priest", 1], manufactory: ["crafter", 4], steamworks: ["smith", 3], station: ["merchant", 2], stall: ["merchant", 2], harbor: ["carter", 2], townhall: ["crafter", 2],
+  watermill: ["miller", 2], chapel: ["priest", 1], manufactory: ["crafter", 4], steamworks: ["smith", 3], station: ["merchant", 2], stall: ["merchant", 2], harbor: ["carter", 2], townhall: ["crafter", 2], seat3: ["crafter", 1],
   bakery: ["baker", 2], smithy: ["smith", 2], inn: ["innkeeper", 2], mill: ["miller", 1], workshop: ["crafter", 2],
   factory: ["priest", 2], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
   fishery: ["fisher", 1], infirmary: ["healer", 1], school: ["teacher", 1], granary: ["carter", 1], markethall: ["merchant", 2], guildhall: ["crafter", 2], library: ["teacher", 1], dairy: ["farmer", 2], firehouse: ["firewarden", 2], guardhouse: ["watchman", 3], lodge: ["hunter", 1], herbhut: ["herbalist", 1], woodcamp: ["woodcutter", 2],
@@ -118,7 +118,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const open = (x: number, y: number) => { const st = structureAt(x, y, seeds, now); return buildable(terrain(x, y)) && (!st || FLAT.has(st.kind)); };
   const front = (tl: Tile): Tile | null => { for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]] as const) if (open(tl[0] + dx, tl[1] + dy)) return [tl[0] + dx, tl[1] + dy]; return null; };
   const meets: Tile[] = [];
-  for (const k of ["inn", "church", "chapel", "townhall", "stall", "bakery"] as Kind[]) for (const tl of byKind.get(k) ?? []) { const f = front(tl); if (f) meets.push(f); }
+  for (const k of ["inn", "church", "chapel", "townhall", "seat2", "seat3", "stall", "bakery"] as Kind[]) for (const tl of byKind.get(k) ?? []) { const f = front(tl); if (f) meets.push(f); }
   meets.push(...(byKind.get("market") ?? []), ...(byKind.get("square") ?? []).slice(0, 6));
   if (!meets.length) meets.push([s.x + 1, s.y + 1]);
   const school = byKind.get("school")?.[0] ?? byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
@@ -234,7 +234,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   }
   // the player's own figure: the village mayor (Dorfschulze), walking between well, sites and meeting spots
   if (s.user_id) {
-    const hall = byKind.get("townhall")?.[0];
+    const hall = (["townhall", "seat3", "seat2", "seat1"] as Kind[]).map((k) => byKind.get(k)?.[0]).find(Boolean);
     const h = (i: number) => hash(s.x, s.y, 880 + i);
     const g = s.mayor_gender;
     const sex: Sex = g === "w" ? "f" : g === "m" ? "m" : h(0) < 0.5 ? "f" : "m";
@@ -243,7 +243,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     const last = nm.length > 1 ? nm[nm.length - 1]! : nm.length ? "" : pick(S, h(2));
     people.push({
       id: -(s.x * 1024 + s.y) - 1, seed: s, first, last, sex, age: 46 + Math.floor(h(3) * 14), job: "mayor",
-      home: homes[0] ?? [s.x + 1, s.y + 1], work: hall ? (front(hall) ?? meet) : meet, workIndoor: false, speed: 0.2,
+      home: hall ?? homes[0] ?? [s.x + 1, s.y + 1], work: hall ? (front(hall) ?? meet) : meet, workIndoor: false, speed: 0.2,
       looks: { skin: h(4), hair: h(5), shirt: 0.99, pants: h(6), hat: true, stick: false }, haul: null, role: "mayor",
     });
   }
