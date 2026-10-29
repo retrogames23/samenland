@@ -891,6 +891,16 @@ export function Game() {
     const ends = [...specialSites(my).values()].map((s) => s.at + dur).filter((e) => e > slow);
     return ends.length ? Math.min(...ends) : null;
   })();
+  // the "come back later" band stays shut for this build site: remembered per finishing building
+  useEffect(() => {
+    if (!waitDone) return;
+    try { if (localStorage.getItem("samenland-wait-shut") === String(waitDone)) setWaitShut(true); } catch { /* ignore */ }
+  }, [waitDone]);
+  const shutWait = () => {
+    setWaitShut(true);
+    try { localStorage.setItem("samenland-wait-shut", String(waitDone)); } catch { /* ignore */ }
+  };
+
   const wareName = (w: Ware, n: number) => t.goods.ware[w]![n === 1 ? 0 : 1];
   const [questOpen, setQuestOpen] = useState(false);
   const [questFold, setQuestFold] = useState(false);
@@ -1705,9 +1715,10 @@ export function Game() {
       )}
       <Tavern t={t} open={tavernOpen} onClose={() => setTavernOpen(false)} userId={userId} my={my} seeds={seeds} realm={realm} lang={lang} onUnread={setChatUnread} />
       {waitDone && !waitShut && !anyOpen && !decision.open && (
-        <div className="pointer-events-none absolute inset-x-2 top-20 z-20 flex justify-center md:top-24">
+        <div className="pointer-events-none absolute inset-x-2 z-20 flex justify-center" style={{ top: barH + 56 }}>
           <Panel className="w-full max-w-md" inner="relative p-3 text-center">
-            <button type="button" aria-label={t.hud.close} onClick={() => setWaitShut(true)} className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            <button type="button" aria-label={t.hud.close} onClick={shutWait} className="pointer-events-auto absolute right-0 top-0 p-2.5 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+
             <p className="px-4 font-display text-lg leading-snug text-wood">🔨 {t.guide.wait.title}</p>
             <p className="mt-1 text-sm text-muted-foreground">{t.guide.wait.body(Math.max(1, Math.ceil((waitDone - now) / 3.6e6)))}</p>
             {mailOn ? <p className="mt-2 text-xs text-primary">{t.guide.notify.on}</p>
@@ -1718,7 +1729,7 @@ export function Game() {
       {welcome && !my && !guideOpen && (
         <div className="pointer-events-none absolute inset-x-2 top-20 z-30 flex justify-center md:top-24">
           <Panel className="w-full max-w-md" inner="relative p-3 text-center">
-            <button type="button" aria-label={t.hud.close} onClick={() => setWelcome(false)} className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            <button type="button" aria-label={t.hud.close} onClick={() => setWelcome(false)} className="pointer-events-auto absolute right-0 top-0 p-2.5 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
             <p className="px-4 font-display text-lg leading-snug text-wood">{t.guide.welcome.pitch}</p>
             <div className="mt-2 flex justify-center gap-2">
               <Button size="sm" onClick={() => { setWelcome(false); if (userId) setTab("plant"); else setAuthOpen(true); }}><Sprout className="mr-1 h-4 w-4" />{t.guide.welcome.plant}</Button>
