@@ -78,6 +78,65 @@ export type Database = {
           },
         ]
       }
+      chat_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          realm: string
+          recipient_id: string | null
+          sender_id: string
+          sender_seed: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          realm: string
+          recipient_id?: string | null
+          sender_id: string
+          sender_seed: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          realm?: string
+          recipient_id?: string | null
+          sender_id?: string
+          sender_seed?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_sender_seed_fkey"
+            columns: ["sender_seed"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       encounters: {
         Row: {
           choice: string
