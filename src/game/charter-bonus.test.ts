@@ -26,3 +26,9 @@ describe("charter bonuses", () => {
     expect(canBuy("school", undefined)).toBe(true);
   });
 });
+
+describe("woodcutter's camp", () => {
+  it("shortens build time by a quarter", () => {
+    expect(specialBuild({ ...base, bought: [{ item: "woodcamp", at: 0 }] })).toBe(SPECIAL_BUILD * 0.75);
+  });
+});
