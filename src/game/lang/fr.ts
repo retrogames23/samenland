@@ -189,6 +189,7 @@ export const fr: Dict = {
   soundOff: "Son coupé",
   exitFullscreen: "Quitter le plein écran",
   enc: { later: "Décider plus tard", waiting: "Une décision vous attend", btn: "Visiteur sur la place", title: "Une rencontre", decided: "Vous venez de trancher – restez un peu, un nouveau visiteur viendra bientôt.", free: "gratuit", gain: (n: number) => `+${n} talers`, fail: "La décision n'a pu être prise.", poor: "Point assez de talers", done: "Le bourgmestre a tranché.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} jours` : `${h} h`, growth: (p: number) => `+${p}% de croissance`, food: "Vivres", health: "Santé", wealth: "Prospérité", chronicle: "Chronique", dayN: (n: number) => `Jour ${n}`, none: "Nulle mention pour l'heure.",
+  sapling: { btn: "Planter le plant", hint: "Touchez un pré libre du village pour planter l'arbre.", planted: "L'arbre est planté – il grandira au fil des saisons.", bad: "Aucun arbre ne peut pousser ici." },
     events: {
       minstrel: ["Le ménestrel", "Un ménestrel au chapeau empanaché, luth sous le bras, demande à jouer ce soir sur la place du village."],
       widow: ["La veuve et ses petits", "Une veuve flanquée de trois enfants et d'une charrette à bras cherche un nouveau toit."],
@@ -208,6 +209,7 @@ export const fr: Dict = {
       flood: ["Les grandes eaux", "Après des jours d'ondées, le ruisseau a débordé et noyé les prés."],
       tithe: ["L'envoyé du comte", "Un messager du comte réclame la dîme de l'année – poliment, mais d'un ton sans réplique."],
       maypole: ["Le vœu des enfants", "Les petits du village désirent un arbre de mai paré de rubans bariolés."],
+      nursery: ["Le pépiniériste ambulant", "Un jardinier, la hotte pleine de jeunes arbres, se repose près du puits. Il propose de rares plants venus de vallées lointaines."],
       journeyman: ["Le compagnon du tour", "Un compagnon charpentier en habit noir frappe à la porte de la maison commune. Il propose son aide pour quelques semaines s'il est bien logé."],
       merchant: ["Le marchand d'épices", "Un chariot chamarré s'arrête près du puits. Sel, safran et soieries sont étalés pour le négoce."],
       boundary: ["Querelle à la borne", "Deux lignées paysannes se disputent depuis des générations une bande d'herbage. On en appelle à l'arbitrage du bourgmestre."],
@@ -261,6 +263,7 @@ export const fr: Dict = {
       "tithe:plead": "Implorer un délai de grâce",
       "maypole:pole": "Dresser un bel arbre de mai",
       "maypole:games": "Déclarer une après-midi de jeux",
+      "nursery:cherry": "Planter un cerisier à fleurs", "nursery:quince": "Planter un cognassier", "nursery:pass": "Le laisser repartir",
       "journeyman:host": "Lui accorder le gîte et le couvert", "journeyman:settle": "Lui offrir le droit de cité", "journeyman:pass": "Le pourvoir de provisions de route",
       "merchant:market": "Faire de gros achats pour la place", "merchant:inn": "Acheter des épices pour la taverne", "merchant:pass": "Décliner poliment",
       "boundary:common": "En faire un bien communal", "boundary:award": "L'attribuer à l'une des familles", "boundary:tavern": "Régler cela autour d'une pinte",

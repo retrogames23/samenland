@@ -189,6 +189,7 @@ export const es: Dict = {
   soundOff: "Sonido desactivado",
   exitFullscreen: "Salir de pantalla completa",
   enc: { later: "Decidir más tarde", waiting: "Una decisión aguarda", btn: "Forastero en la plaza", title: "Un encuentro", decided: "Acabas de decidir; quédate un rato, pronto llegará un nuevo visitante.", free: "gratis", gain: (n: number) => `+${n} taler`, fail: "No se pudo tomar la decisión.", poor: "No hay suficientes taler", done: "El regidor ha tomado su decisión.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} días` : `${h} h`, growth: (p: number) => `+${p}% de crecimiento`, food: "Alimento", health: "Salud", wealth: "Prosperidad", chronicle: "Crónica", dayN: (n: number) => `Día ${n}`, none: "Aún no hay entradas.",
+  sapling: { btn: "Plantar el plantón", hint: "Toca un prado libre del pueblo para plantar el arbolito.", planted: "El plantón está plantado: crecerá con las estaciones.", bad: "Aquí no puede crecer un árbol." },
     events: {
       minstrel: ["El juglar", "Un juglar con laúd y sombrero de plumas solicita permiso para tañer esta noche en la plaza mayor."],
       widow: ["La viuda y sus hijos", "Una viuda con tres hijos y una carreta de mano busca un nuevo hogar."],
@@ -208,6 +209,7 @@ export const es: Dict = {
       flood: ["Crecida de aguas", "Tras jornadas enteras de lluvia, el arroyo se ha salido de madre anegando los prados."],
       tithe: ["El emisario del conde", "Un enviado del conde reclama el diezmo anual, con exquisita cortesía mas con firmeza."],
       maypole: ["El anhelo de los niños", "Los niños del pueblo piden erigir un árbol de mayo adornado con cintas de colores."],
+      nursery: ["El viverista ambulante", "Un jardinero con un cesto de arbolitos descansa junto al pozo. Ofrece plantones raros de valles lejanos."],
       journeyman: ["El oficial itinerante", "Un oficial carpintero de negro sayo llama a la casa consistorial. Se ofrece a ayudar unas semanas si se le brinda buen yantar y cobijo."],
       merchant: ["El mercader de especias", "Un carromato repleto de colores se detiene junto al pozo. Sal, azafrán y sedas se disponen para el regateo."],
       boundary: ["Pleito en el mojón", "Dos familias de labriegos llevan generaciones disputando por una linde de pasto. Ruegan al regidor que dicte sentencia."],
@@ -261,6 +263,7 @@ export const es: Dict = {
       "tithe:plead": "Suplicar una moratoria",
       "maypole:pole": "Alzar el árbol de mayo",
       "maypole:games": "Decretar una tarde de juegos",
+      "nursery:cherry": "Plantar un cerezo en flor", "nursery:quince": "Plantar un membrillo", "nursery:pass": "Dejarle seguir",
       "journeyman:host": "Ofrecerle yantar y aposento", "journeyman:settle": "Ofrecerle avecindarse", "journeyman:pass": "Despedirlo con provisiones",
       "merchant:market": "Comprar abundante género para el mercado", "merchant:inn": "Especias para la taberna", "merchant:pass": "Declinar cortésmente",
       "boundary:common": "Declararlo pasto comunal", "boundary:award": "Adjudicarlo a una familia", "boundary:tavern": "Zanjar la disputa ante una jarra",
