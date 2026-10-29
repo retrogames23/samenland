@@ -223,6 +223,28 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const chT = byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
   const church: Tile | null = chT ? (front(chT) ?? null) : null;
   processions(weddings, people, church ?? meet, now);
+  // the mayor's encounter "Bauernhochzeit": a visible procession (gift/feast), the feast also gathers the village at church
+  const wd = (s.decisions ?? []).filter((d) => d.event === "wedding" && d.choice !== "congrat" && now >= d.at && now - d.at < 3 * 3600e3).pop();
+  if (wd) {
+    const free = people.filter((q) => !q.proc && q.spouse == null && q.age >= 18 && q.age <= 40 && !q.sick && !q.arrive);
+    const men = free.filter((q) => q.sex === "m").sort((u, v) => hash(u.id, wd.at % 9973, 41) - hash(v.id, wd.at % 9973, 41));
+    const g = men[0], b = g && free.filter((q) => q.sex === "f" && q.hh !== g.hh).sort((u, v) => hash(u.id, wd.at % 9973, 42) - hash(v.id, wd.at % 9973, 42))[0];
+    if (g && b) {
+      g.proc = { at: wd.at, from: g.home, to: g.home, lag: 0, role: "groom" };
+      b.proc = { at: wd.at, from: b.home, to: g.home, lag: 0, role: "bride" };
+      let k = 0;
+      for (const q of people) if (!q.proc && (q.role === "head" || q.role === "spouse") && (q.hh === g.hh || q.hh === b.hh))
+        q.proc = { at: wd.at, from: q.home, to: g.home, lag: 6 + 5 * k++, role: "guest" };
+      if (wd.choice === "feast") {
+        const c = church ?? meet;
+        for (const q of people) {
+          if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 43, 720) < 0.2) continue;
+          const a = hash(q.id, 44, 720) * Math.PI * 2, rr = 1 + hash(q.id, 45, 720) * 1.8;
+          q.fete = { at: wd.at, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 46, 720) * 180 };
+        }
+      }
+    }
+  }
   const ina = inauguration(s, seeds, now);
   if (ina) {
     const fr = front(ina.tile) ?? ina.tile;
