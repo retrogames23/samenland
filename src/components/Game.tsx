@@ -1418,6 +1418,12 @@ export function Game() {
 
   return (
     <div className={`relative h-screen w-full overflow-hidden bg-background supports-[height:100dvh]:h-[100dvh] ${walk ? "[&>*:not(canvas):not([data-walk])]:hidden" : ""}`}>
+      {welcome && (
+        <div data-walk role="status" className="pointer-events-auto absolute inset-x-0 top-[22%] z-50 mx-auto w-fit max-w-[88vw] rounded-md border-2 border-wood bg-card px-5 py-4 text-center font-semibold text-foreground shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95" onClick={() => setWelcome(null)}>
+          <div className="text-2xl" aria-hidden>🪙</div>
+          {welcome}
+        </div>
+      )}
       {walk && (
         <div data-walk className="pointer-events-none absolute inset-x-0 bottom-3 z-40 flex flex-col items-center gap-2 pb-[env(safe-area-inset-bottom)]">
           <span className="rounded bg-background/70 px-2 py-0.5 text-[11px] text-foreground/80">{t.hud.walkHint}</span>
