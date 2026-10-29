@@ -730,15 +730,22 @@ export function tradeFactor(s: Seed, o: Seed, now: number) {
   return Math.min(cap, f);
 }
 
-/** Current growth speed multiplier: 1 + sum of neighbour bonuses. */
-export function speedOf(s: Seed, seeds: Seed[], now: number) {
-  let sp = 1 + (isBlessed(s, now) ? BLESS_BONUS : 0) + (s.charter?.path === "farm" && now > s.charter.at ? FARM_BONUS : 0);
+/** Growth bonuses split by source (fractions, e.g. 0.1 = +10 %). */
+export function speedParts(s: Seed, seeds: Seed[], now: number) {
+  const bless = isBlessed(s, now) ? BLESS_BONUS : 0;
+  const farm = s.charter?.path === "farm" && now > s.charter.at ? FARM_BONUS : 0;
+  let trade = 0;
   for (const l of links(seeds)) {
     if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
     const o = l.a.id === s.id ? l.b : l.a;
-    sp += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * roadProgress(l, now);
+    trade += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * roadProgress(l, now);
   }
-  return sp;
+  return { bless, farm, trade };
+}
+/** Current growth speed multiplier: 1 + sum of all bonuses. */
+export function speedOf(s: Seed, seeds: Seed[], now: number) {
+  const p = speedParts(s, seeds, now);
+  return 1 + p.bless + p.farm + p.trade;
 }
 
 /** Effective age: real age plus bonus hours accumulated since each road was founded (monotonic, deterministic). */
