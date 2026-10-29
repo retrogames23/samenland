@@ -20,6 +20,7 @@ import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type C
 import { scribeGreeting } from "@/lib/chronicle.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ArrowLeft, ScrollText } from "lucide-react";
+import { QUESTS, questState, type Quest, type QuestClaim } from "@/game/quests";
 import { VillageRoll } from "@/components/VillageRoll";
 import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/game/audio";
@@ -79,6 +80,7 @@ export function Game() {
   const [blessings, setBlessings] = useState<{ id: string; seed_id: string; created_at: string }[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [gifts, setGifts] = useState<Gift[]>([]);
+  const [claims, setClaims] = useState<QuestClaim[]>([]);
   const [charters, setCharters] = useState<{ id: string; seed_id: string; path: string; created_at: string }[]>([]);
   const [charterOpen, setCharterOpen] = useState(false);
   const [firstRoads, setFirstRoads] = useState<{ id: string; seed_id: string; target_id: string; created_at: string }[]>([]);
@@ -280,6 +282,7 @@ export function Game() {
       supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").then(({ data }) => setVotes(data ?? []));
       supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").then(({ data }) => setWorks(data ?? []));
       supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").then(({ data }) => setGifts((data ?? []) as Gift[]));
+      supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at").then(({ data }) => setClaims(data ?? []));
       setBlessings(bl.data ?? []);
       setPurchases(pu.data ?? []);
       setSigns((sg.data ?? []) as Signpost[]);
@@ -717,7 +720,7 @@ export function Game() {
   // heavy derivations refresh every 5 s of world time, not on every pointer move
   const slow = Math.floor(now / 5000) * 5000;
   const { cash, myStage, myTown, at, pop, residents, season, nbs } = useMemo(() => {
-    const cash = my ? treasury(my, purchases, slow, gifts) : 0;
+    const cash = my ? treasury(my, purchases, slow, gifts, claims) : 0;
     const myStage = my ? stageOf(effAge(my, seeds, slow)) : 0;
     const myTown = my ? townOf(my, seeds, slow) : null;
     const at = my ? attributes(my, seeds, purchases, slow, myTown!.weddings.filter((w) => w.alliance).length) : null;
@@ -727,7 +730,31 @@ export function Game() {
     const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
     const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
     return { cash, myStage, myTown, at, pop, residents, season, nbs };
-  }, [my, seeds, purchases, gifts, slow]);
+  }, [my, seeds, purchases, gifts, claims, slow]);
+  const [questOpen, setQuestOpen] = useState(false);
+  const [questFold, setQuestFold] = useState(false);
+  const quest = my ? questState(claims, my.id, {
+    blessings: blessings.filter((b) => b.seed_id === my.id).length,
+    purchases: purchases.filter((p) => p.seed_id === my.id).length,
+    signposts: signs.filter((s) => s.seed_id === my.id).length,
+    encounters: encounters.filter((e) => e.seed_id === my.id).length,
+    giftsSent: gifts.filter((g) => g.from_seed === my.id).length,
+    residents, stage: myStage,
+  }) : null;
+  const questHow = () => {
+    if (!quest || !my) return;
+    const tabs: Partial<Record<Quest, Tab>> = { bless: "rituals", build: "build", sign: "signs", gift: "towns" };
+    const tb = tabs[quest.quest];
+    if (tb) setTab(tb); else { focus(my.x, my.y); setMsg(t.quests.list[quest.quest]![1]); }
+  };
+  const claimQuest = async () => {
+    if (!my || !userId || !quest?.ready) return;
+    const { data, error } = await supabase.from("quest_claims").insert({ seed_id: my.id, user_id: userId, quest: quest.quest }).select("id, seed_id, quest, reward, created_at").single();
+    setQuestOpen(false);
+    if (error || !data) return setMsg(t.quests.fail);
+    setClaims((c) => [...c, data]);
+    bell(); setMsg(t.quests.got(data.reward));
+  };
   const ring = async (kind: "bell" | "well") => {
     if (!my) return;
     const { data, error } = await supabase.from("blessings").insert({ seed_id: my.id, user_id: userId!, kind }).select("id, seed_id, created_at").single();
@@ -1378,6 +1405,35 @@ export function Game() {
         </Parchment>
       )}
 
+      {owner && quest && (
+        <div className="absolute right-16 z-30 w-60 md:w-64" style={{ top: barH + 8 }}>
+          <div className="parchment px-3 py-2 text-sm text-ink shadow">
+            <button type="button" onClick={() => setQuestFold((f) => !f)} className="flex w-full items-center justify-between gap-2 text-left">
+              <span className="font-display text-lg leading-none">{t.quests.card}</span>
+              <span className="text-[10px] opacity-70">{t.quests.step(quest.index + 1, QUESTS.length)}</span>
+            </button>
+            {!questFold && (
+              <div className="mt-1 space-y-1">
+                <div className="font-semibold">{t.quests.list[quest.quest]![0]}</div>
+                <div className="text-xs opacity-80">{t.quests.list[quest.quest]![1]}</div>
+                <div className="h-1.5 overflow-hidden rounded bg-ink/15"><div className="h-full bg-brass" style={{ width: `${(100 * quest.have) / quest.need}%` }} /></div>
+                <div className="flex items-center justify-between text-xs"><span>{quest.have}/{quest.need}</span><span>{t.quests.reward(quest.reward)}</span></div>
+                {quest.ready
+                  ? <Button size="sm" className="h-7 w-full" onClick={() => setQuestOpen(true)}>{t.quests.claim}</Button>
+                  : <Button size="sm" variant="outline" className="h-7 w-full" onClick={questHow}>{t.quests.how}</Button>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {owner && my && quest?.ready && questOpen && (
+        <Parchment image={ART["quest"]} title={t.quests.doneTitle} later={t.quests.later} onLater={() => setQuestOpen(false)}>
+          <p className="text-center font-semibold">{t.quests.list[quest.quest]![0]}</p>
+          <p className="mt-2 text-center italic">{t.quests.says(my.owner)} „{t.quests.list[quest.quest]![2]}“</p>
+          {quest.quest === "hamlet" && <p className="mt-1 text-center text-sm">{t.quests.end}</p>}
+          <div className="mt-4 flex justify-center"><Button onClick={claimQuest}>{t.quests.claim} · {quest.reward} Taler</Button></div>
+        </Parchment>
+      )}
       {chronBanner && !chronOpen && (
         <button type="button" onClick={openChron} className="parchment absolute left-1/2 z-30 -translate-x-1/2 px-4 py-1.5 font-display text-lg text-ink shadow-lg" style={{ top: barH + 8 }}>
           {t.chron.banner(Math.max(1, Math.floor(((chron?.to ?? 0) - (chron?.from ?? 0)) / 864e5)))}
