@@ -1630,7 +1630,7 @@ export function Game() {
               <div className="text-xs text-muted-foreground">{t.hud.realm}</div>
               <div className="grid grid-cols-2 gap-1">
                 {[...REALMS, "lab" as Realm].map((r) => (
-                  <button key={r} className={`rounded px-2 py-1 text-xs ${realm === r ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => { if (r === realm) return; localStorage.setItem("samenland-realm", r); sessionStorage.removeItem("samenland-realm-fix"); window.location.reload(); }}>{t.realms[r]}</button>
+                  <button key={r} className={`rounded px-2 py-1 text-xs ${realm === r ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => { if (r === realm) return; localStorage.setItem("samenland-realm", r); loadRealmRef.current?.(r); }}>{t.realms[r]}</button>
                 ))}
               </div>
               {realm === "lab" && (<>
