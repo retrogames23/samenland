@@ -17,6 +17,16 @@ import bride from "@/assets/sprites/folk/bride.webp";
 import groom from "@/assets/sprites/folk/groom.webp";
 import porterF from "@/assets/sprites/folk/porter-f.webp";
 import farmerF from "@/assets/sprites/folk/farmer-f.webp";
+import woodcutterWork from "@/assets/sprites/folk/woodcutter-work.webp";
+import woodcutterFWork from "@/assets/sprites/folk/woodcutter-f-work.webp";
+import masonWork from "@/assets/sprites/folk/mason-work.webp";
+import masonFWork from "@/assets/sprites/folk/mason-f-work.webp";
+import builderWork from "@/assets/sprites/folk/builder-work.webp";
+import builderFWork from "@/assets/sprites/folk/builder-f-work.webp";
+import gatherWork from "@/assets/sprites/folk/gather-work.webp";
+import gatherFWork from "@/assets/sprites/folk/gather-f-work.webp";
+import talkWork from "@/assets/sprites/folk/talk-work.webp";
+import talkFWork from "@/assets/sprites/folk/talk-f-work.webp";
 import farmerMow from "@/assets/sprites/folk/farmer-mow.webp";
 import farmerFMow from "@/assets/sprites/folk/farmer-f-mow.webp";
 import elderF from "@/assets/sprites/folk/elder-f.webp";
@@ -40,7 +50,7 @@ import fishBasket from "@/assets/sprites/folk/fish-basket.webp";
 import sparks from "@/assets/sprites/folk/sparks.webp";
 import bannerClothUrl from "@/assets/sprites/folk/banner-cloth.webp";
 
-const URLS = { man, manWalk, legsM, woman, child, childWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, flourSacks, breadBasket, fishBasket, sparks };
+const URLS = { man, manWalk, legsM, woman, child, childWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, flourSacks, breadBasket, fishBasket, sparks, woodcutterWork, woodcutterFWork, masonWork, masonFWork, builderWork, builderFWork, gatherWork, gatherFWork, talkWork, talkFWork };
 export type FolkSprite = keyof typeof URLS;
 const cache = new Map<string, HTMLImageElement>();
 function load(u: string) {
@@ -78,4 +88,14 @@ export const walkSheet = (k: FolkSprite) => { const w = WALKS[k]; return w ? fol
 export const JOB_WORK: Record<string, { m: FolkSprite; f: FolkSprite; scale: number; per: number }> = {
   fisher: { m: "fisherCast", f: "fisherFCast", scale: 2.05, per: 9000 },
   smith: { m: "smithHammer", f: "smithHammer", scale: 1.22, per: 1500 },
+  woodcutter: { m: "woodcutterWork", f: "woodcutterFWork", scale: 1.32, per: 1800 },
+  mason: { m: "masonWork", f: "masonFWork", scale: 1.12, per: 1600 },
+  builder: { m: "builderWork", f: "builderFWork", scale: 1.15, per: 1400 },
+  herbalist: { m: "gatherWork", f: "gatherFWork", scale: 1.01, per: 7000 },
+  healer: { m: "gatherWork", f: "gatherFWork", scale: 1.01, per: 8000 },
+  hunter: { m: "gatherWork", f: "gatherFWork", scale: 1.01, per: 9000 },
+  merchant: { m: "talkWork", f: "talkFWork", scale: 1.01, per: 8000 },
+  carter: { m: "talkWork", f: "talkFWork", scale: 1.01, per: 9000 },
+  watchman: { m: "talkWork", f: "talkFWork", scale: 1.01, per: 10000 },
+  mayor: { m: "talkWork", f: "talkFWork", scale: 1.01, per: 9000 },
 };
