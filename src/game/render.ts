@@ -15,7 +15,7 @@ import { setArtTime } from "./season-art";
 import { seasonKey, seasonAt } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
-import { townPoses, sickHome, isHomeKind, mayorGoal, type Pose } from "./people";
+import { townPoses, sickHome, isHomeKind, mayorGoal, steeredMayor, type Pose } from "./people";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow } from "./crafts";
@@ -370,13 +370,14 @@ function wildFigures(x: number, y: number, out: Bucket, c: C) {
   putBeast(out, c, b);
 }
 /** Hunt scene of one lodge, bucketed by the tile each figure stands on so it depth-sorts with the town. */
-function huntFigures(lx: number, ly: number, out: Bucket, c: C) {
+function huntFigures(lx: number, ly: number, out: Bucket, c: C, L?: Light[]) {
   const hu = huntIm("hu", hunterUrl); if (!hu) return;
   const hr = localHour(); if (hr < 5.5 || hr > 20.5) return;
   const sc = huntScene(lx, ly, renderNow, freeGround, densOf(lx, ly));
   const put = (x: number, y: number, f: () => void) => putAt(out, x, y, f);
   for (const b of sc.beasts) putBeast(out, c, b);
   const hp = sc.hunter;
+  if (hp && L) { const [hx, hy] = iso(hp.x, hp.y); L.push({ x: hx, y: hy - 2, r: 7 }); }
   if (hp) put(hp.x, hp.y, () => {
     const [X, Y] = iso(hp.x, hp.y), bob = hp.walk ? Math.abs(Math.sin(renderNow / 260)) * 0.15 : 0;
     shadow(c, X, Y, 1.6, 0.3);
@@ -1693,17 +1694,23 @@ export function draw(
   const folk = new Map<number, Pose[]>();
   lastPeople.length = 0; lastTraders.length = 0;
   const folkOn = cam.zoom >= 0.9; // villagers are sub-pixel below this; skipping them changes nothing visible
+  const steer = steeredMayor();
   if (folkOn) for (const sd of seeds) {
-    const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 2;
-    if (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1) continue;
+    // generous margin: strollers and the steered mayor wander well beyond the built-up edge — never cull them at the border
+    const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 14;
+    const mine = steer && steer.sid === sd.id && steer.x >= x0 - 2 && steer.x <= x1 + 2 && steer.y >= y0 - 2 && steer.y <= y1 + 2;
+    if (!mine && (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1)) continue;
+    const r0 = reachOf(sd, radiusOf(effAge(sd, seeds, now)));
     for (const q of townPoses(sd, seeds, now)) {
       const k = Math.round(q.y) * MAP + Math.round(q.x);
+      // out in the open at dusk: a small lantern glow keeps the figure readable on dark fields
+      if (Math.hypot(q.x - sd.x, q.y - sd.y) > r0 * 0.8 || (steer && q.p.role === "mayor" && q.act === "stroll")) { const [lx, ly] = iso(q.x, q.y); L.push({ x: lx, y: ly - 2, r: 7 }); }
       if (!folk.has(k)) folk.set(k, []);
       folk.get(k)!.push(q);
     }
   }
   const robbers = new Map<number, [number, number, boolean]>();
-  if (detail) for (const sd of seeds) { const r = robberAt(sd, now); if (r) robbers.set(Math.round(r[1]) * MAP + Math.round(r[0]), r); }
+  if (detail) for (const sd of seeds) { const r = robberAt(sd, now); if (r) { robbers.set(Math.round(r[1]) * MAP + Math.round(r[0]), r); const [lx, ly] = iso(r[0], r[1]); L.push({ x: lx, y: ly - 2, r: 4 }); } }
   const simpleFolk = cam.zoom < 2.2;
   const goal = mayorGoal(now), goalK = goal ? goal[1] * MAP + goal[0] : -1;
 
@@ -1728,7 +1735,16 @@ export function draw(
 
   // ---- pass 2: standing objects in depth order ----
   const hunt = new Map<number, (() => void)[]>();
-  if (detail) for (const tl of tiles) { if (tl.st?.kind === "lodge" && tl.st.build === undefined) huntFigures(tl.x, tl.y, hunt, c); else if (!tl.st) wildFigures(tl.x, tl.y, hunt, c); }
+  // lodges and dens just off-screen still send hunters and game into view (no popping at the screen edge)
+  if (detail) {
+    const M = DEN_R + 2;
+    for (let y = Math.max(0, y0 - M); y <= Math.min(MAP - 1, y1 + M); y++) for (let x = Math.max(0, x0 - M); x <= Math.min(MAP - 1, x1 + M); x++) {
+      const inside = x >= x0 && x <= x1 && y >= y0 && y <= y1;
+      const st = structureAt(x, y, seeds, now);
+      if (st?.kind === "lodge" && st.build === undefined) huntFigures(x, y, hunt, c, L);
+      else if (!st && (inside || (x >= x0 - 4 && x <= x1 + 4 && y >= y0 - 4 && y <= y1 + 4))) wildFigures(x, y, hunt, c);
+    }
+  }
   const birds: [number, number, number, number][] = []; // gulls over the coast, crows over fields, drawn on top
   for (const { x, y, cx, cy, st } of tiles) {
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);

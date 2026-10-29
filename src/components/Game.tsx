@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
-import { townOf, poseOf, kinOf, commandMayor, driveMayor, clearMayorOrder, type Person } from "@/game/people";
+import { townOf, poseOf, kinOf, commandMayor, driveMayor, clearMayorOrder, setStrollHold, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { weddingJoy, DOWRY } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
@@ -764,7 +764,7 @@ export function Game() {
   const my = seeds.find((s) => s.id === mine);
   const startWalk = () => { if (!my) return; setTab(null); setWho(null); setPlace(null); setPlacing(null); const cv = canvasRef.current; target.current = { zoom: 16, ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; setWalk(true); };
   const wasWalk = useRef(false);
-  useEffect(() => { if (wasWalk.current && !walk) { clearMayorOrder(); target.current = { ...target.current, zoom: Math.min(12, target.current.zoom) }; } wasWalk.current = walk; }, [walk]);
+  useEffect(() => { setStrollHold(walk); if (wasWalk.current && !walk) { clearMayorOrder(); target.current = { ...target.current, zoom: Math.min(12, target.current.zoom) }; } wasWalk.current = walk; }, [walk]);
   const findMayor = () => { if (!my) return; const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (!me) return focus(my.x, my.y); const z = poseOf(me, tw, seeds, nw); focus(z.x, z.y); setPlace(null); setWho(me); };
   const myCharter = my ? charters.find((c) => c.seed_id === my.id)?.path : undefined;
   const sealCharter = async () => {
