@@ -1635,12 +1635,7 @@ export function Game() {
             {chatUnread > 0 && <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-destructive" />}
           </WoodButton>
           {my && (
-            <WoodButton label={t.hud.walk} onClick={startWalk} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
-              <Footprints className="h-5 w-5" /><span className="text-[10px] leading-none">{t.hud.walk}</span>
-            </WoodButton>
-          )}
-          {my && (
-            <WoodButton label={t.mayorFind} onClick={findMayor} className="h-11 flex-1 flex-col gap-0.5 md:hidden">
+            <WoodButton label={t.mayorFind} onClick={findMayor} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
               <Crown className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.role["mayor"]![1]}</span>
             </WoodButton>
           )}
