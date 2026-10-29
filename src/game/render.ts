@@ -7,6 +7,7 @@ import gullUrl from "@/assets/sprites/gull.webp";
 import crowUrl from "@/assets/sprites/crow.webp";
 import { worldHour, clock } from "./time";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
+import { huntScene, huntGrounds } from "./wildlife";
 import { roadMotion, screenFacing } from "./motion";
 import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
 import { houseLit, candleFlicker } from "./night";
@@ -328,78 +329,40 @@ function drawBird(c: C, cx: number, cy: number, gull: boolean, sd: number) {
   c.fillStyle = "rgba(25,20,10,0.12)"; c.beginPath(); c.ellipse(X, Y + 26, 1.4, 0.4, 0, 0, 7); c.fill();
   sheetFrame(c, im, f, X, Y, gull ? 3.4 : 2.8, dx < 0);
 }
-/**
- * Hunt at the hunter's lodge, a pure cycle on the shared world clock: two roe deer and a wild boar graze and
- * root at the forest edge; the hunter sneaks up, kneels, looses a crossbow bolt, the shot deer drops, the
- * others bolt into the forest, and he carries the deer home on his shoulders. Night: everything withdraws.
- */
-function drawHunt(c: C, cx: number, cy: number, sd: number) {
+/** Free natural ground for game: open land, no building, site, road, field, pasture or water. */
+const WILD_OK = new Set(["forest", "meadow", "grass", "hill", "fertile"]);
+const freeGround = (x: number, y: number) => WILD_OK.has(terrain(x, y)) && !structureAt(x, y, renderSeeds, renderNow);
+const groundCache = new Map<number, { at: number; g: [number, number][] }>();
+/** Hunt scene of one lodge, bucketed by the tile each figure stands on so it depth-sorts with the town. */
+function huntFigures(lx: number, ly: number, out: Map<number, (() => void)[]>, c: C) {
   const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl), bw = huntIm("bw", boarWalkUrl), hu = huntIm("hu", hunterUrl);
   if (!dw || !dg || !bw || !hu) return;
   const hr = localHour(); if (hr < 5.5 || hr > 20.5) return;
-  const P = 11 * 60000, n = renderNow + hash(sd, 3, 41) * P, k = (n % P) / P, cyc = Math.floor(n / P);
-  const side = hash(sd, cyc, 7) < 0.5 ? -1 : 1; // deer appear left or right of the lodge
-  const home: Pt = [cx + 6 * side, cy + 3];
-  // --- animals ---
-  const herd: { im: HTMLImageElement; st: HTMLImageElement | null; at: Pt; h: number; target: boolean }[] = [
-    { im: dw, st: dg, at: [cx - 24 * side, cy - 8], h: 6.4, target: true },
-    { im: dw, st: dg, at: [cx - 31 * side, cy - 12], h: 6, target: false },
-    { im: bw, st: null, at: [cx - 17 * side, cy - 15], h: 4.4, target: false },
-  ];
-  const dead = k > 0.64 && k < 0.72; // lying on the ground until the hunter lifts it
-  herd.forEach((a, i) => {
-    const g = n / 60000 / (5 + i * 2) + i * 2;
-    // gentle grazing drift: step a little, stop, graze; distance drives the leg cycle
-    const drift = Math.sin(g) * 3, moving = Math.abs(Math.cos(g)) > 0.75 ? 1 : 0;
-    let X = a.at[0] + drift, Y = a.at[1] + Math.sin(g * 0.6) * 1.2, flip = Math.cos(g) * side > 0 ? false : true;
-    if (side < 0) flip = !flip;
-    const idle = Math.floor(n / (a.target ? 1300 : 1700) + i) % 8 < 5 ? (Math.floor(n / 650) & 1) : (k > 0.4 && k < 0.64 ? 2 : 3);
-    if (a.target) {
-      if (k > 0.72 || k < 0.04) return; // carried off / not yet returned
-      if (k >= 0.62) { // struck: sinks onto its side
-        const fall = ease(Math.min(1, (k - 0.62) / 0.02));
-        shadow(c, X, Y, a.h * 0.5);
-        sheetFrame(c, dg, 3, X, Y, a.h, side > 0, fall * 1.45 * (side > 0 ? -1 : 1));
-        return;
-      }
-      const fade = k < 0.08 ? (k - 0.04) / 0.04 : 1;
-      drawBeast(c, a.im, a.st, X, Y, a.h, flip, moving, n / 400 + drift, idle, fade);
-      return;
-    }
-    // the others bolt into the forest after the shot and come back later
-    if (k >= 0.62 && k < 0.8) {
-      const r = ease(Math.min(1, (k - 0.62) / 0.06));
-      const fx = X - side * r * 26, fy = Y - r * 10, al = 1 - Math.max(0, (k - 0.66) / 0.04);
-      if (al <= 0) return;
-      drawBeast(c, a.im, a.st, fx, fy, a.h, side > 0, 1, n / 170, 0, Math.min(1, al)); return;
-    }
-    const back = k >= 0.8 && k < 0.86 ? (k - 0.8) / 0.06 : 1;
-    if (k >= 0.8 && k < 0.86) { X -= side * (1 - back) * 20; drawBeast(c, a.im, a.st, X, Y, a.h, side < 0, 1, n / 400, 0, back); return; }
-    if (a.im === bw) { // boar: trots a little, then roots with its snout (frame 3)
-      shadow(c, X, Y, a.h * 0.5);
-      if (moving) drawBeast(c, bw, null, X, Y, a.h, flip, 1, n / 350 + drift, 0);
-      else sheetFrame(c, bw, 3, X, Y - (Math.floor(n / 500) & 1) * 0.08, a.h, flip);
-      return;
-    }
-    drawBeast(c, a.im, a.st, X, Y, a.h, flip, moving, n / 400 + drift, idle);
+  const sd = lx * 1000 + ly, key = ly * MAP + lx;
+  let gc = groundCache.get(key);
+  if (!gc || Math.abs(renderNow - gc.at) > 60000) { gc = { at: renderNow, g: huntGrounds(lx, ly, freeGround) }; groundCache.set(key, gc); }
+  const sc = huntScene(lx, ly, sd, renderNow, freeGround, gc.g);
+  const put = (x: number, y: number, f: () => void) => { const k = Math.round(y) * MAP + Math.round(x); const l = out.get(k); if (l) l.push(f); else out.set(k, [f]); };
+  for (const b of sc.beasts) put(b.x, b.y, () => {
+    const [X, Y] = iso(b.x, b.y), h = b.boar ? 4.4 : 6.2, n = renderNow + b.x * 997;
+    if (b.state === "dead") { shadow(c, X, Y, h * 0.5); sheetFrame(c, dg, 3, X, Y, h, !b.flip, b.fall * 1.45 * (b.flip ? 1 : -1)); return; }
+    if (b.boar && b.state === "root") { shadow(c, X, Y, h * 0.5); sheetFrame(c, bw, 3, X, Y - (Math.floor(n / 500) & 1) * 0.08, h, b.flip, 0, b.alpha); return; }
+    const moving = b.state === "walk" || b.state === "flee" ? 1 : 0;
+    const idle = Math.floor(n / 1500) % 8 < 5 ? (Math.floor(n / 650) & 1) : 2;
+    drawBeast(c, b.boar ? bw : dw, b.boar ? null : dg, X, Y, h, b.flip, moving, b.state === "flee" ? n / 170 : b.dist + n / 2000, idle, b.alpha);
   });
-  // --- hunter ---
-  const tgt: Pt = [herd[0]!.at[0] + 12 * side, herd[0]!.at[1] + 3];
-  let X = home[0], Y = home[1], f = 0, flip = side < 0, walk = 0;
-  if (k < 0.3) { f = 0; flip = (Math.floor(n / 9000) & 1) === 1; } // stands guard by the lodge
-  else if (k < 0.55) { const r = ease((k - 0.3) / 0.25); X = lerp(home[0], tgt[0], r); Y = lerp(home[1], tgt[1], r); f = 1; flip = side > 0; walk = 1; }
-  else if (k < 0.64) { X = tgt[0]; Y = tgt[1]; f = 2; flip = side > 0; }
-  else if (k < 0.72) { const r = ease((k - 0.64) / 0.08); X = lerp(tgt[0], herd[0]!.at[0] + 2 * side, r); Y = lerp(tgt[1], herd[0]!.at[1] + 1, r); f = 0; flip = side > 0; walk = 1; }
-  else if (k < 0.95) { const r = ease((k - 0.72) / 0.23); X = lerp(herd[0]!.at[0], home[0], r); Y = lerp(herd[0]!.at[1], home[1], r); f = 3; flip = side < 0; walk = 1; }
-  const bob = walk ? Math.abs(Math.sin(n / 260)) * 0.15 : 0;
-  shadow(c, X, Y, 1.6, 0.3);
-  sheetFrame(c, hu, f, X, Y - bob, f === 2 ? 4.1 : f === 1 ? 4.6 : 5.4, flip);
-  // crossbow bolt in flight
-  if (k >= 0.6 && k < 0.62) {
-    const r = (k - 0.6) / 0.02, sx = X - side * 1.8, sy = Y - 3, ex = herd[0]!.at[0], ey = herd[0]!.at[1] - 3.5;
-    const bx = lerp(sx, ex, r), by = lerp(sy, ey, r);
-    c.strokeStyle = "rgba(60,40,22,0.9)"; c.lineWidth = 0.18; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx + side * 1.1, by + (sy - ey) * 0.03); c.stroke();
-  }
+  const hp = sc.hunter;
+  if (hp) put(hp.x, hp.y, () => {
+    const [X, Y] = iso(hp.x, hp.y), bob = hp.walk ? Math.abs(Math.sin(renderNow / 260)) * 0.15 : 0;
+    shadow(c, X, Y, 1.6, 0.3);
+    sheetFrame(c, hu, hp.frame, X, Y - bob, hp.frame === 2 ? 4.1 : hp.frame === 1 ? 4.6 : 5.4, hp.flip);
+  });
+  const bo = sc.bolt;
+  if (bo) put(bo.to[0], bo.to[1], () => {
+    const [sx, sy] = iso(bo.from[0], bo.from[1]), [ex, ey] = iso(bo.to[0], bo.to[1]);
+    const bx = lerp(sx, ex, bo.r), by = lerp(sy - 3, ey - 3.5, bo.r), dir = Math.sign(ex - sx) || 1;
+    c.strokeStyle = "rgba(60,40,22,0.9)"; c.lineWidth = 0.18; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx - dir * 1.1, by); c.stroke();
+  });
 }
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
@@ -411,7 +374,6 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
-    if (s.kind === "lodge") drawHunt(c, cx, cy, sd);
     if (s.fire) drawFire(c, cx, cy, t, sd, L);
     if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour()) || (isHomeKind(s.kind) && sickLit(x, y)))) {
       L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip } });
@@ -1723,6 +1685,8 @@ export function draw(
   }
 
   // ---- pass 2: standing objects in depth order ----
+  const hunt = new Map<number, (() => void)[]>();
+  if (detail) for (const tl of tiles) if (tl.st?.kind === "lodge" && tl.st.build === undefined) huntFigures(tl.x, tl.y, hunt, c);
   const birds: [number, number, number, number][] = []; // gulls over the coast, crows over fields, drawn on top
   for (const { x, y, cx, cy, st } of tiles) {
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
@@ -1741,6 +1705,7 @@ export function draw(
     const sdT = x * 1000 + y, flock = fk && st?.kind === "pasture" && st.build === undefined ? sheepSpots(sdT, st.v, now) : [];
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
     if (st) drawStructure(c, st, cx, cy, x, y, t, L);
+    for (const f of hunt.get(y * MAP + x) ?? []) f();
     const rb = robbers.get(y * MAP + x);
     if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
