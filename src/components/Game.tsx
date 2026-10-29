@@ -291,6 +291,8 @@ export function Game() {
   const [mailOn, setMailOn] = useState(false);
   useEffect(() => {
     if (!userId) { setMailOn(false); return; }
+    // every visit restarts the 3-month inactivity countdown (see api/public/idle-sweep)
+    (supabase as unknown as import("@supabase/supabase-js").SupabaseClient).rpc("touch_activity", { _lang: lang }).then(() => {});
     (supabase as unknown as import("@supabase/supabase-js").SupabaseClient).from("build_mail").select("enabled").eq("user_id", userId).maybeSingle().then(({ data }) => setMailOn(!!data?.enabled));
   }, [userId]);
   const toggleMail = async (on: boolean) => {
