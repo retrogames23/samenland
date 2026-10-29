@@ -31,7 +31,7 @@ import { VillageRoll } from "@/components/VillageRoll";
 import { Tavern } from "@/components/Tavern";
 import { Beer } from "lucide-react";
 import { seasonAt } from "@/game/season";
-import { setScene, setSound, unlock, baa, hm, tap, bell, disposeAudio } from "@/game/audio";
+import { setScene, setSound, unlock, baa, hm, tap, bell, jingle, disposeAudio } from "@/game/audio";
 import {
   canPlant,
   MIN_SEED_DISTANCE,
@@ -836,11 +836,18 @@ export function Game() {
       const small = big.filter((e) => e.code === "house" || e.code === "family");
       big = big.filter((e) => e.code !== "house" && e.code !== "family");
       if (small.length && Date.now() - lastSmall.current > FEST_GAP) { const h = small.find((e) => e.code === "house") ?? small[0]!; big.push(h, ...small.filter((e) => e.code === "family" && "x" in h && e.x === h.x && e.y === h.y)); lastSmall.current = Date.now(); }
-      if (big.length) { setFest((q) => [...q, ...big].slice(-6)); bell(); }
+      if (big.length) setFest((q) => [...q, ...big].slice(-6));
     }, 15000);
     return () => window.clearInterval(id);
   }, [owner, my?.id, seeds]);
   const festNow = !anyOpen && !decision.open && !chronOpen ? fest[0] : undefined;
+  const festSounded = useRef<ChronEvent | null>(null);
+  useEffect(() => {
+    if (!festNow || festSounded.current === festNow) return;
+    festSounded.current = festNow;
+    const e = festNow;
+    jingle(e.code === "wedding" ? "wedding" : e.code === "stage" ? "stage" : e.code === "road" ? "road" : e.code === "twin" ? "twin" : e.code === "letter" ? "letter" : e.code === "family" ? "welcome" : e.code === "house" || e.code === "built" || e.code === "bought" ? "built" : e.code === "fire" ? (e.guarded ? "relief" : "woe") : e.code === "flood" ? "woe" : e.code === "raid" ? (e.caught ? "relief" : "woe") : "fanfare");
+  }, [festNow]);
   const festArt = (e: ChronEvent) => e.code === "fire" ? ART["fire"] : e.code === "flood" ? ART["flood"] : e.code === "raid" ? ART["robber"] : e.code === "wedding" ? ART["wedding"] : e.code === "house" ? ART["topping"] : e.code === "family" ? ART["newcomers"] : e.code === "road" ? ART["roadopen"] : e.code === "twin" ? ART["charter"] : ART["fair"];
   const festText = (e: ChronEvent): [string, string] => {
     const n = my?.name ?? "";
@@ -924,7 +931,7 @@ export function Game() {
     setQuestOpen(false);
     if (error || !data) return setMsg(t.quests.fail);
     setClaims((c) => [...c, data]);
-    bell(); setMsg(t.quests.got(data.reward));
+    jingle("fanfare"); setTimeout(() => jingle("coins"), 700); setMsg(t.quests.got(data.reward));
   };
   const sendLetter = async () => {
     if (!my || !postTo) return;
@@ -942,7 +949,7 @@ export function Game() {
     const { data, error } = await supabase.from("market_sales").insert({ seed_id: my.id, user_id: userId, small }).select("id, seed_id, day, reward, created_at").single();
     if (error || !data) return setMsg(t.goods.marketFail);
     setClaims((c) => [...c, { id: data.id, seed_id: data.seed_id, quest: `market:${data.day}`, reward: data.reward, created_at: data.created_at } as QuestClaim]);
-    bell(); setMsg(t.goods.marketGot(data.reward));
+    jingle("coins"); setMsg(t.goods.marketGot(data.reward));
   };
   const ring = async (kind: "bell" | "well") => {
     if (!my) return;
@@ -979,7 +986,7 @@ export function Game() {
     if (error || !data) return setMsg(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
     setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
     tap();
-    setMsg(t.bought(t.items[item]![0]));
+    jingle("coins"); setMsg(t.bought(t.items[item]![0]));
   };
   const zoomBy = (f: number) => {
     const cv = canvasRef.current!;
