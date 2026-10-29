@@ -166,7 +166,7 @@ export function Game() {
   const [mode, setMode] = useState<Mode>("look");
   const [placing, setPlacing] = useState<Item | null>(null);
   const [hover, setHover] = useState<[number, number] | null>(null);
-  const [form, setForm] = useState({ name: "", owner: "", gender: "" });
+  const [form, setForm] = useState(() => ({ name: ["Lindenau","Haselbrunn","Kornwiese","Mühlbach","Eichenhain","Birkental","Wiesengrund","Hopfenau"][Math.floor(Math.random()*8)], owner: "", gender: "d" }));
   const [msg, setMsg] = useState<string | null>(null);
   type Tab = "build" | "rituals" | "signs" | "towns" | "plant";
   const [tab, setTab] = useState<Tab | null>(null);
