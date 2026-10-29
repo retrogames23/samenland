@@ -3,12 +3,21 @@ import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, floodFood } from "./disasters";
 import { dowryEarned, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
-import { radiusOf, stageOf, effAge, links, waterNearby, twinLinks, pactOf, type Seed, type CharterPath } from "./world";
+import { radiusOf, stageOf, effAge, links, waterNearby, twinLinks, pactOf, monumentProgress, type Seed, type CharterPath } from "./world";
 
 /** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
 export const START_TALER = 150;
 export const ITEMS = { herbs: 90, hunter: 110, fisher: 120, woodcamp: 180, granary: 300, healer: 550, school: 3000, markethall: 450, guildhall: 450, library: 450, dairy: 450, firehouse: 600, guard: 800 } as const;
 export type Item = keyof typeof ITEMS;
+/** Prestige belfry: four paid construction steps, from Kleinstadt on (mirrored by the database purchase guard). */
+export const MONUMENT_PRICE = { belfry1: 400, belfry2: 500, belfry3: 600, belfry4: 700 } as const;
+export type MonumentStep = keyof typeof MONUMENT_PRICE;
+export const MONUMENT_STAGE = 3;
+/** Finished belfry: lasting prosperity and health (bell, clock, town pride). */
+export const BELFRY_WEALTH = 15, BELFRY_HEALTH = 5;
+/** Next step to pay for, or null when all are paid. */
+export const nextMonumentStep = (paid: string[]): MonumentStep | null =>
+  (Object.keys(MONUMENT_PRICE) as MonumentStep[]).find((k) => !paid.includes(k)) ?? null;
 /** Bonuses of the early buildings that work without water. */
 export const HUNTER_FOOD = 15, HERBS_HEALTH = 10, WOODCAMP_WEALTH = 5;
 /** Guild buildings: only villages with the matching charter may buy them (mirrored in the database guard). */
@@ -57,7 +66,7 @@ const clamp = (v: number) => Math.round(Math.max(0, Math.min(100, v)));
 
 /** Village attributes 0–100, derived from age, trade, charter and purchased buildings. */
 export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: number, alliances = 0, stores?: { food: number; health: number; wealth: number }) {
-  const has = (i: Item) => purchases.some((p) => p.seed_id === s.id && p.item === i);
+  const has = (i: Item | MonumentStep) => purchases.some((p) => p.seed_id === s.id && p.item === i);
   // twins share wells, healer and school at half strength; a protective pact adds health
   const twins = twinLinks(s, seeds, now).map((l) => (l.a.id === s.id ? l.b : l.a));
   const near = (i: Item) => !has(i) && twins.some((o) => purchases.some((p) => p.seed_id === o.id && p.item === i));
@@ -71,6 +80,8 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   const wealth = clamp(25 + Math.min(30, trade * 10) + (has("school") ? 20 : 0) + stage * 5 + (path === "craft" ? 10 : 0)
     + (near("school") ? 10 : 0) + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 5 : 0) + (has("woodcamp") ? WOODCAMP_WEALTH : 0));
   const b = activeBoons(s.decisions ?? [], now);
+  const belfry = has("belfry4") && monumentProgress(s, now) >= 1;
+  b.wealth += belfry ? BELFRY_WEALTH : 0; b.health += belfry ? BELFRY_HEALTH : 0;
   b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0; b.wealth += has("guard") ? 5 : 0;
   // weddings: a day of joy (health, prosperity) and lasting craft alliances between families
   const joy = weddingJoy(s, now);
