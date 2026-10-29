@@ -193,7 +193,7 @@ export function Game() {
     cam.current.x = ix;
     cam.current.y = iy;
   };
-  /** Entering seed mode: if the view centre is unplantable (hills, water), glide to the nearest free valley. */
+  /** Entering seed mode: if the view centre is unplantable (mountain, water), glide to the nearest free valley. */
   const startSeedMode = () => {
     if (home) { setMsg(t.alreadyHave); return; }
     setPlantAsk(null);
