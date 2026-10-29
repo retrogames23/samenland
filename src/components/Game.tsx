@@ -74,7 +74,7 @@ import {
   charterFits,
   type CharterPath,
   twinLinks, pactOf, pactPending, workOf, marketDay, marketHours, festivalDate, twinGateAt, PACTS, TWIN_WORKS, PACT_WAIT, type PactKind, type WorkKind,
-  timberNear,
+  timberNear, SEAT_KINDS,
 } from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
@@ -857,7 +857,7 @@ export function Game() {
     if (!festNow || festSounded.current === festNow) return;
     festSounded.current = festNow;
     const e = festNow;
-    jingle(e.code === "wedding" ? "wedding" : e.code === "stage" ? "stage" : e.code === "road" ? "road" : e.code === "twin" ? "twin" : e.code === "letter" ? "letter" : e.code === "family" ? "welcome" : e.code === "house" || e.code === "built" || e.code === "bought" ? "built" : e.code === "fire" ? (e.guarded ? "relief" : "woe") : e.code === "flood" ? "woe" : e.code === "raid" ? (e.caught ? "relief" : "woe") : "fanfare");
+    jingle(e.code === "wedding" ? "wedding" : e.code === "stage" ? "stage" : e.code === "road" ? "road" : e.code === "twin" ? "twin" : e.code === "letter" ? "letter" : e.code === "family" ? "welcome" : e.code === "built" && SEAT_KINDS.includes(e.kind) ? (["built", "fanfare", "stage", "stage"] as const)[SEAT_KINDS.indexOf(e.kind)]! : e.code === "house" || e.code === "built" || e.code === "bought" ? "built" : e.code === "fire" ? (e.guarded ? "relief" : "woe") : e.code === "flood" ? "woe" : e.code === "raid" ? (e.caught ? "relief" : "woe") : "fanfare");
   }, [festNow]);
   const festArt = (e: ChronEvent) => e.code === "fire" ? ART["fire"] : e.code === "flood" ? ART["flood"] : e.code === "raid" ? ART["robber"] : e.code === "wedding" ? ART["wedding"] : e.code === "house" ? ART["topping"] : e.code === "family" ? ART["newcomers"] : e.code === "road" ? ART["roadopen"] : e.code === "twin" ? ART["charter"] : ART["fair"];
   const festText = (e: ChronEvent): [string, string] => {
@@ -872,6 +872,7 @@ export function Game() {
     if (e.code === "twin") return [t.fest.twin[0], t.fest.twin[1](e.other)];
     if (e.code === "letter") return [t.post.arrived(e.other), bodies[e.id] ? `„${bodies[e.id]}“` : t.post.sealed];
     if (e.code === "stage") return [t.fest.stage[0], t.fest.stage[1](t.stages[e.stage] ?? "")];
+    if (e.code === "built" && SEAT_KINDS.includes(e.kind)) { const p = t.fest.seat[SEAT_KINDS.indexOf(e.kind)]; if (p) return p; }
     const name = e.code === "built" ? (t.kind[e.kind] ?? e.kind) : e.code === "bought" ? (itemName(e.item)) : chronLine(e);
     return [t.fest.built[0], t.fest.built[1](name)];
   };
