@@ -1155,6 +1155,9 @@ export function Game() {
               <ArrowLeft className="h-5 w-5" /><span className="text-[10px] leading-none">{t.hud.close}</span>
             </WoodButton>
           )}
+          <WoodButton label={t.guide.menu} active={guideOpen} onClick={() => setGuideOpen(true)} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
+            <BookOpen className="h-5 w-5" /><span className="text-[10px] leading-none">{t.guide.menu}</span>
+          </WoodButton>
         </Panel>
       </div>
       {tab && (
