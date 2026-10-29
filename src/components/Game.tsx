@@ -748,7 +748,7 @@ export function Game() {
     if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore"]);
     setPlacing(null);
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x, y }).select("id, seed_id, item, cost, created_at, x, y").single();
-    if (error || !data) return setMsg(t.poor);
+    if (error || !data) return setMsg(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
     setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
     tap();
     setMsg(t.bought(t.items[item]![0]));
