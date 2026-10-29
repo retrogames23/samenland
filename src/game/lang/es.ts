@@ -308,7 +308,7 @@ export const es: Dict = {
     } as Record<string, [string, string, string]>,
   },
   guide: {
-    title: "Bienvenidos a Samenland", menu: "Guía", close: "¡Adelante!", welcome: { pitch: "Un pueblo multijugador que crece en tiempo real durante meses, incluso mientras duermes.", plant: "Fundar mi pueblo", more: "Saber más" },
+    title: "Bienvenidos a Samenland", menu: "Guía", close: "¡Adelante!", welcome: { pitch: "Un pueblo multijugador que crece en tiempo real durante meses, incluso mientras duermes.", plant: "Fundar mi pueblo", more: "Saber más" }, wait: { title: "¡Tus constructores están trabajando!", body: (h: number) => "Samenland sigue creciendo mientras duermes. El próximo edificio estará listo en unas " + h + " horas: vuelve entonces a recoger nuevos impuestos." },
     intro: "Un juego pausado: tu aldea crece en tiempo real, incluso cuando no estás mirando.",
     steps: [
       ["Sembrar una semilla", "Cada jugador funda exactamente una aldea. El agua, los bosques, los sembrados o las colinas determinarán sus virtudes."],
