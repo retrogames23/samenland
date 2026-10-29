@@ -31,9 +31,21 @@ describe("encounters", () => {
 });
 
 describe("encounter catalogue", () => {
-  it("has 25 encounters, each shown once per round of 25", () => {
+  it("has 24 rotating visitors plus the real wedding, each shown once per round", () => {
     expect(Object.keys(ENCOUNTERS).length).toBe(25);
-    const seen = new Set(Array.from({ length: 25 }, (_, n) => eventOf("s", 50 + n)));
-    expect(seen.size).toBe(25);
+    const seen = new Set(Array.from({ length: 24 }, (_, n) => eventOf("s", 50 + n)));
+    expect(seen.size).toBe(24); expect(seen.has("wedding")).toBe(false);
+  });
+});
+
+describe("wedding encounter follows the real wedding calendar", () => {
+  const D = 864e5;
+  it("appears on day 2 for 3 hours, once, even right after another decision", () => {
+    const d = [{ event: "merchant", choice: "pass", cost: 0, at: t0 + 2 * D - H }];
+    expect(pendingEncounter(seed, d, t0 + 2 * D + H)).toBe("wedding");
+    expect(pendingEncounter(seed, d, t0 + 2 * D + 3.1 * H)).not.toBe("wedding");
+    const done = [...d, { event: "wedding", choice: "gift", cost: 25, at: t0 + 2 * D + H }];
+    expect(pendingEncounter(seed, done, t0 + 2 * D + 2 * H)).toBeNull();
+    expect(pendingEncounter(seed, [], t0 + 11 * D + H)).toBe("wedding");
   });
 });
