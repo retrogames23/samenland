@@ -80,7 +80,7 @@ const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", cult
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
-import { RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
+import { TITLE_PRICE, TITLE_STEPS, TITLE_HOURS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -809,7 +809,9 @@ export function Game() {
   const [scribe, setScribe] = useState<string | null | undefined>(undefined);
   const askScribe = useServerFn(scribeGreeting);
   const chronDone = useRef<string | null>(null);
-  const itemName = (item: string) => { const mk = monumentOf(item); return t.items[item]?.[0] ?? (mk ? t.items[`${mk}1`]![0] : item); };
+  const myCharterPath = (s: typeof my) => s?.charter?.path;
+  const titleName = (k: number) => (myCharterPath(my) ? t.office.names[myCharterPath(my)!]?.[k] : undefined) ?? t.office.title;
+  const itemName = (item: string) => { if (/^title[1-3]$/.test(item)) return titleName(+item.slice(5) - 1); const mk = monumentOf(item); return t.items[item]?.[0] ?? (mk ? t.items[`${mk}1`]![0] : item); };
   const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(itemName(e.item)) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : e.code === "wedding" ? t.chron.wedding(e.a, e.b) : e.code === "fire" ? (e.guarded ? t.chron.fireOut : t.chron.fire(e.dead)) : e.code === "flood" ? t.chron.flood : e.code === "raid" ? (e.caught ? t.chron.caught : t.chron.raid(e.loss)) : e.code === "journeyman" ? t.chron.journeyman(e.name, t.job[e.craft]?.[e.sex === "f" ? 0 : 1] ?? e.craft, e.other) : e.code === "journeymen" ? t.chron.journeymen(e.n) : e.code === "bride" ? t.chron.bride(e.name, e.other, e.away) : e.code === "moved" ? t.chron.moved(e.name, e.other, e.away) : e.code === "letter" ? t.chron.letter(e.other) : t.chron.season(t.seasons[e.season]);
   useEffect(() => {
     if (!owner || !my || seeds.length === 0 || chronDone.current === my.id) return;
@@ -859,7 +861,7 @@ export function Game() {
     const e = festNow;
     jingle(e.code === "wedding" ? "wedding" : e.code === "stage" ? "stage" : e.code === "road" ? "road" : e.code === "twin" ? "twin" : e.code === "letter" ? "letter" : e.code === "family" ? "welcome" : e.code === "built" && SEAT_KINDS.includes(e.kind) ? (["built", "fanfare", "stage", "stage"] as const)[SEAT_KINDS.indexOf(e.kind)]! : e.code === "house" || e.code === "built" || e.code === "bought" ? "built" : e.code === "fire" ? (e.guarded ? "relief" : "woe") : e.code === "flood" ? "woe" : e.code === "raid" ? (e.caught ? "relief" : "woe") : "fanfare");
   }, [festNow]);
-  const festArt = (e: ChronEvent) => e.code === "fire" ? ART["fire"] : e.code === "flood" ? ART["flood"] : e.code === "raid" ? ART["robber"] : e.code === "wedding" ? ART["wedding"] : e.code === "house" ? ART["topping"] : e.code === "family" ? ART["newcomers"] : e.code === "road" ? ART["roadopen"] : e.code === "twin" ? ART["charter"] : ART["fair"];
+  const festArt = (e: ChronEvent) => e.code === "fire" ? ART["fire"] : e.code === "flood" ? ART["flood"] : e.code === "raid" ? ART["robber"] : e.code === "wedding" ? ART["wedding"] : e.code === "house" ? ART["topping"] : e.code === "family" ? ART["newcomers"] : e.code === "road" ? ART["roadopen"] : e.code === "twin" || (e.code === "bought" && /^title[1-3]$/.test(e.item)) ? ART["charter"] : ART["fair"];
   const festText = (e: ChronEvent): [string, string] => {
     const n = my?.name ?? "";
     if (e.code === "fire") return e.guarded ? [t.woe.fireGuarded[0], t.woe.fireGuarded[1](n)] : [t.woe.fire[0], t.woe.fire[1](n, e.water, e.dead)];
@@ -871,6 +873,7 @@ export function Game() {
     if (e.code === "road") return [t.fest.road[0], t.fest.road[1](e.other)];
     if (e.code === "twin") return [t.fest.twin[0], t.fest.twin[1](e.other)];
     if (e.code === "letter") return [t.post.arrived(e.other), bodies[e.id] ? `„${bodies[e.id]}“` : t.post.sealed];
+    if (e.code === "bought" && /^title[1-3]$/.test(e.item)) return [t.office.fest, t.office.festBody(my?.owner ?? n, itemName(e.item))];
     if (e.code === "stage") return [t.fest.stage[0], t.fest.stage[1](t.stages[e.stage] ?? "")];
     if (e.code === "built" && SEAT_KINDS.includes(e.kind)) { const p = t.fest.seat[SEAT_KINDS.indexOf(e.kind)]; if (p) return p; }
     const name = e.code === "built" ? (t.kind[e.kind] ?? e.kind) : e.code === "bought" ? (itemName(e.item)) : chronLine(e);
@@ -1000,7 +1003,7 @@ export function Game() {
     if (error || !data) return setMsg(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
     setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
     tap();
-    if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
+    if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
   };
   const zoomBy = (f: number) => {
     const cv = canvasRef.current!;
@@ -1061,6 +1064,23 @@ export function Game() {
                     {blk === "max" ? <div className="mt-1 font-semibold text-primary">{t.rank.need.max}</div>
                       : blk ? <div className="mt-1 text-muted-foreground">{t.rank.exam[r]}: {why}</div>
                       : <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < RANK_PRICE[step]} onClick={() => void buy(step)}>{t.rank.exam[r]} · {t.taler(RANK_PRICE[step])}</Button>}
+                  </div>
+                );
+              })()}
+              {my && (() => {
+                const n = titleOf(my, purchases), blk = titleBlock(my, purchases, now), step = TITLE_STEPS[Math.min(n, 2)]!;
+                const why = blk === "age" ? t.office.need.age(t.stages[[3, 4, 5][n] ?? 5] ?? "") : blk === "rank" ? t.office.need.rank(t.rank.ranks[TITLE_RANK[step] - 1] ?? "") : blk === "charter" ? t.office.need.charter : "";
+                const fmt = (b: Partial<Record<string, number>>) => Object.entries(b).map(([k, v]) => `+${v} ${t.office.stat[k] ?? k}`).join(", ");
+                return (
+                  <div className="mt-2 border-t border-brass/40 pt-2">
+                    <div className="font-semibold">📜 {t.office.title}</div>
+                    <div className="mt-0.5 text-muted-foreground">{t.office.intro}</div>
+                    <ul className="mt-1 space-y-0.5">
+                      {TITLE_STEPS.map((st, k) => <li key={st} className={k < n ? "text-primary" : "opacity-70"}>{k < n ? "✓" : "·"} <b>{titleName(k)}</b> · {fmt(TITLE_BONUS[myCharter][k] ?? {})} · {t.office.garb[k]}</li>)}
+                    </ul>
+                    {blk === "max" ? <div className="mt-1 font-semibold text-primary">{t.office.need.max}</div>
+                      : blk ? <div className="mt-1 text-muted-foreground">{titleName(n)}: {why}</div>
+                      : <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < TITLE_PRICE[step]} onClick={() => void buy(step)}>{t.office.appoint}: {titleName(n)} · {t.taler(TITLE_PRICE[step])}</Button>}
                   </div>
                 );
               })()}
