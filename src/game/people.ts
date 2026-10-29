@@ -228,7 +228,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     const sex: Sex = g === "w" ? "f" : g === "m" ? "m" : h(0) < 0.5 ? "f" : "m";
     const nm = (s.owner ?? "").trim().split(/\s+/).filter(Boolean);
     const first = nm.length > 1 ? nm.slice(0, -1).join(" ") : nm[0] ?? pick(sex === "f" ? F : M, h(1));
-    const last = nm.length > 1 ? nm[nm.length - 1] : nm.length ? "" : pick(S, h(2));
+    const last = nm.length > 1 ? nm[nm.length - 1]! : nm.length ? "" : pick(S, h(2));
     people.push({
       id: -(s.x * 1024 + s.y) - 1, seed: s, first, last, sex, age: 46 + Math.floor(h(3) * 14), job: "mayor",
       home: homes[0] ?? [s.x + 1, s.y + 1], work: hall ? (front(hall) ?? meet) : meet, workIndoor: false, speed: 0.2,
