@@ -308,7 +308,7 @@ export const fr: Dict = {
     } as Record<string, [string, string, string]>,
   },
   guide: {
-    title: "Bienvenue en Samenland", menu: "Guide", close: "C'est parti",
+    title: "Bienvenue en Samenland", menu: "Guide", close: "C'est parti", welcome: { pitch: "Un village multijoueur qui grandit en temps réel pendant des mois – même quand tu dors.", plant: "Planter mon village", more: "En savoir plus" },
     intro: "Un jeu paisible : votre village s'épanouit en temps réel – même quand vous ne le regardez point.",
     steps: [
       ["Semer une graine", "Chaque joueur fonde un seul et unique village. Eaux, forêts, guérets ou collines façonneront ses talents."],

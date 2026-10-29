@@ -348,7 +348,9 @@ export function Game() {
       const ss = (a.data ?? []) as Seed[];
       setSeeds(ss);
       setPlantings((b.data ?? []) as Planting[]);
-      const my = ss.find((s) => uid && s.user_id === uid) ?? ss[0];
+      // visitors without a village first see the oldest (most grown) town of this map
+      const oldest = [...ss].sort((p, q) => Date.parse(p.created_at) - Date.parse(q.created_at))[0];
+      const my = ss.find((s) => uid && s.user_id === uid) ?? oldest;
       if (my) focus(my.x, my.y);
       else focus(MAP / 2, MAP / 2);
     })();
@@ -721,6 +723,7 @@ export function Game() {
   const [chron, setChron] = useState<Chronicle | null>(null);
   const [chronOpen, setChronOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [welcome, setWelcome] = useState(false);
   const [tavernOpen, setTavernOpen] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
   const [rollOpen, setRollOpen] = useState(false);
@@ -729,7 +732,7 @@ export function Game() {
   const openGuide = () => {
     if (localStorage.getItem("samenland-guide-seen")) return;
     localStorage.setItem("samenland-guide-seen", "1");
-    setGuideOpen(true);
+    setWelcome(true);
   };
   useEffect(() => { if (splashDone()) openGuide(); }, []);
   const [chronBanner, setChronBanner] = useState(false);
@@ -1587,6 +1590,18 @@ export function Game() {
         }} />
       )}
       <Tavern t={t} open={tavernOpen} onClose={() => setTavernOpen(false)} userId={userId} my={my} seeds={seeds} realm={realm} lang={lang} onUnread={setChatUnread} />
+      {welcome && !my && !guideOpen && (
+        <div className="pointer-events-none absolute inset-x-2 top-20 z-30 flex justify-center md:top-24">
+          <Panel className="w-full max-w-md" inner="relative p-3 text-center">
+            <button type="button" aria-label={t.hud.close} onClick={() => setWelcome(false)} className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            <p className="px-4 font-display text-lg leading-snug text-wood">{t.guide.welcome.pitch}</p>
+            <div className="mt-2 flex justify-center gap-2">
+              <Button size="sm" onClick={() => { setWelcome(false); if (userId) setTab("plant"); else setAuthOpen(true); }}><Sprout className="mr-1 h-4 w-4" />{t.guide.welcome.plant}</Button>
+              <Button size="sm" variant="secondary" onClick={() => { setWelcome(false); setGuideOpen(true); }}>{t.guide.welcome.more}</Button>
+            </div>
+          </Panel>
+        </div>
+      )}
       {guideOpen && (
         <Parchment wide image={ART["guide"]} title={t.guide.title} later={t.guide.close} onLater={() => setGuideOpen(false)}>
           <p className="text-center text-sm italic">{t.guide.intro}</p>
