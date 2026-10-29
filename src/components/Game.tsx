@@ -137,7 +137,7 @@ export function Game() {
   const [mode, setMode] = useState<Mode>("look");
   const [placing, setPlacing] = useState<Item | null>(null);
   const [hover, setHover] = useState<[number, number] | null>(null);
-  const [form, setForm] = useState({ name: "", owner: "" });
+  const [form, setForm] = useState({ name: "", owner: "", gender: "" });
   const [msg, setMsg] = useState<string | null>(null);
   type Tab = "build" | "rituals" | "signs" | "towns" | "plant";
   const [tab, setTab] = useState<Tab | null>(null);
@@ -514,7 +514,7 @@ export function Game() {
     setMsg(null);
     if (mode === "seed") {
       if (!userId) return setMsg(t.signInToPlant);
-      if (!form.name.trim() || !form.owner.trim()) return setMsg(t.needNames);
+      if (!form.name.trim() || !form.owner.trim() || !form.gender) return setMsg(t.needNames);
       const err = canPlant(x, y, seeds);
       if (err) return setMsg(plantError(t, err));
       setPlantAsk([x, y]);
@@ -540,7 +540,7 @@ export function Game() {
     setPlanting(true);
     const { data, error } = await supabase
       .from("seeds")
-      .insert({ name: form.name.trim(), owner: form.owner.trim(), x, y, hue: Math.floor(Math.random() * 360), user_id: userId, realm })
+      .insert({ name: form.name.trim(), owner: form.owner.trim(), mayor_gender: form.gender || null, x, y, hue: Math.floor(Math.random() * 360), user_id: userId, realm })
       .select()
       .single();
     setPlanting(false);
@@ -865,9 +865,12 @@ export function Game() {
         <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); startSeedMode(); }}>
           <Input placeholder={t.townName} maxLength={32} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <Input placeholder={t.yourName} maxLength={32} value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} />
+          <div className="flex gap-1" role="radiogroup" aria-label={t.gender.label}>
+            {(["m", "w", "d"] as const).map((g) => <Button key={g} type="button" size="sm" className="flex-1" variant={form.gender === g ? "default" : "outline"} aria-pressed={form.gender === g} onClick={() => setForm({ ...form, gender: g })}>{t.gender[g]}</Button>)}
+          </div>
           <p className="text-xs text-muted-foreground">{mode === "seed" ? t.clickLand : t.needNames}</p>
           {mode === "seed" ? <Button type="button" size="sm" variant="ghost" onClick={() => { setMode("look"); setPlantAsk(null); setPtr(null); }}>{t.cancel}</Button>
-            : <Button type="submit" size="sm" className="w-full" disabled={!form.name.trim() || !form.owner.trim()}>{t.plant}</Button>}
+            : <Button type="submit" size="sm" className="w-full" disabled={!form.name.trim() || !form.owner.trim() || !form.gender}>{t.plant}</Button>}
         </form>
       ))}
       {tab === "towns" && my && (() => {
