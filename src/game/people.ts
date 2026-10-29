@@ -348,7 +348,7 @@ export function inauguration(s: Seed, seeds: Seed[], now: number): { at: number;
   for (let i = 0; i < LANDMARKS.length; i++) { const l = LANDMARKS[i]!; if (l.at > a0 && l.at <= a1 && (li < 0 || l.at > LANDMARKS[li]!.at)) li = i; }
   if (li < 0) return null;
   let tile: Tile | null = null;
-  for (const [k, list] of landmarkSpots(s)) if (list[list.length - 1] === li) { const [dx, dy] = k.split(",").map(Number); tile = [s.x + dx!, s.y + dy!]; break; }
+  for (const [k, list] of landmarkSpots(s)) if (list.includes(li) && !list.some((j) => j !== li && LANDMARKS[j]!.at > LANDMARKS[li]!.at && LANDMARKS[j]!.at - 96 <= a1)) { const [dx, dy] = k.split(",").map(Number); tile = [s.x + dx!, s.y + dy!]; break; }
   if (!tile) return null;
   let lo = now - FETE_WIN, hi = now;
   for (let n = 0; n < 16; n++) { const m = (lo + hi) / 2; if (effAge(s, seeds, m) >= LANDMARKS[li]!.at) hi = m; else lo = m; }
