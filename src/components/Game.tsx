@@ -199,6 +199,9 @@ export function Game() {
   const [quitOpen, setQuitOpen] = useState(false);
   const [quitName, setQuitName] = useState("");
   const [quitting, setQuitting] = useState(false);
+  const [delOpen, setDelOpen] = useState(false);
+  const [delWord, setDelWord] = useState("");
+  const delFn = useServerFn(deleteAccount);
   const [isAdmin, setIsAdmin] = useState(false);
   const [realm, setRealmState] = useState<Realm>("europe");
   const realmRef = useRef<Realm>("europe");
@@ -1653,6 +1656,7 @@ export function Game() {
             )}
             {userId && home && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setInviteOpen(true); setSettings(false); }}>✉ {t.invite.button}</Button>}
             {userId && home && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setQuitOpen(true); setSettings(false); }}>{t.quit.button}</button>}
+            {userId && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setDelOpen(true); setSettings(false); }}>{t.delAcc.button}</button>}
             {userId ? <Button size="sm" variant="secondary" className="w-full" onClick={() => { supabase.auth.signOut(); setSettings(false); }}>{t.signOut}</Button>
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
             <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 border-t border-border/60 pt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -1813,6 +1817,27 @@ export function Game() {
               setHome(null); setQuitOpen(false); setQuitName("");
               toast.success(t.quit.done);
             }}>{quitting ? t.plantAsk.wait : t.quit.ok}</Button>
+          </div>
+        </Parchment>
+      )}
+      {delOpen && userId && (
+        <Parchment image={ART["surveyor"]} title={t.delAcc.title} later={t.cancel} onLater={() => { setDelOpen(false); setDelWord(""); }}>
+          <p className="mt-2 text-center text-sm leading-snug">{t.delAcc.warn}</p>
+          <p className="mt-3 text-center text-xs text-muted-foreground">{t.delAcc.type}</p>
+          <Input className="mt-2" value={delWord} onChange={(e) => setDelWord(e.target.value)} placeholder={t.delAcc.word} />
+          <div className="mt-4 flex justify-center">
+            <Button type="button" size="sm" variant="destructive" disabled={quitting || delWord.trim().toUpperCase() !== t.delAcc.word.toUpperCase()} onClick={async () => {
+              setQuitting(true);
+              let ok = false;
+              try { ok = (await delFn()).ok; } catch { ok = false; }
+              setQuitting(false);
+              if (!ok) { toast.error(t.delAcc.fail); return; }
+              const uid = userId;
+              setSeeds((s) => s.filter((x) => x.user_id !== uid));
+              setHome(null); setDelOpen(false); setDelWord("");
+              await supabase.auth.signOut();
+              toast.success(t.delAcc.done);
+            }}>{quitting ? t.plantAsk.wait : t.delAcc.ok}</Button>
           </div>
         </Parchment>
       )}
