@@ -358,7 +358,7 @@ function putBeast(out: Bucket, c: C, b: Beast) {
 function wildFigures(x: number, y: number, out: Bucket, c: C) {
   if (!denOk(x, y, freeGround)) return;
   const hr = localHour(); if (hr < 5.5 || hr > 20.5) return;
-  let b: Beast | null = denBeast(x, y, renderNow, freeGround);
+  let b: Beast = denBeast(x, y, renderNow, freeGround);
   const o = denOwner(x, y);
   if (o) {
     const dens = densOf(o[0], o[1]), i = dens.findIndex((d) => d[0] === x && d[1] === y);
