@@ -1261,14 +1261,14 @@ export function Game() {
       <div ref={barRef} className="pointer-events-none absolute inset-x-2 top-2 z-30 md:inset-x-3 md:top-3">
         <Panel inner="flex items-center gap-3 px-3 py-1.5 md:gap-5">
           <div className="min-w-0 shrink">
-            <div title={my ? t.character[characterOf(my.x, my.y)]![1] : undefined} className="truncate font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
+            <div title={my ? t.character[characterOf(my.x, my.y)]![1] : undefined} className="-my-[0.34em] truncate py-[0.34em] font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
               {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[stageOf(myStats.age)]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
           </div>
           {my && at ? (
             <>
-              <div className="flex items-center gap-2 text-sm font-semibold tabular-nums">
+              <div className="flex shrink-0 items-center gap-2 text-sm font-semibold tabular-nums">
                 <span className="flex items-center gap-1.5" title={t.taler(Math.max(0, cash))}>
                   <span aria-hidden className="grid h-5 w-5 place-items-center rounded-full border border-wood bg-[radial-gradient(circle_at_35%_30%,var(--color-coin-shine),var(--color-brass)_55%,var(--color-coin-edge))] text-[10px] font-bold leading-none text-wood shadow-[inset_0_-1px_0_var(--color-coin-edge)]">T</span>
                   {t.taler(Math.max(0, cash))}
@@ -1300,7 +1300,7 @@ export function Game() {
             <div>{new Date(now).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "long" })}</div>
             <div>{t.seasons[season]} · {new Date(now).toLocaleTimeString(LOCALE[lang], { hour: "2-digit", minute: "2-digit", timeZone: REALM_TZ[realm] })}</div>
           </div>
-          <div className="ml-auto flex items-center gap-1 md:ml-0">
+          <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
             <button type="button" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} onClick={toggleSound} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent">
               {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </button>
@@ -1394,8 +1394,8 @@ export function Game() {
         </Panel>
       </div>
       {tab && (
-        <div className="pointer-events-none absolute inset-x-2 bottom-20 z-30 max-h-[65vh] overflow-auto md:inset-x-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
-          <Panel>{drawer}</Panel>
+        <div className="pointer-events-none absolute inset-x-2 bottom-20 z-30 md:inset-x-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
+          <Panel className="max-h-[min(72dvh,calc(100dvh-9rem))] overflow-y-auto overscroll-contain">{drawer}</Panel>
         </div>
       )}
 
