@@ -74,7 +74,7 @@ export function pendingEncounter(seed: { id: string; created_at: string }, decis
   // a real wedding (weddings.ts calendar) is answered once, regardless of the visitor rhythm
   const w = weddingNow(seed, now);
   if (w != null && !decisions.some((d) => d.event === "wedding" && d.at >= w)) return "wedding";
-  const last = decisions.reduce((m, d) => Math.max(m, d.at), -Infinity);
+  const last = decisions.reduce((m, d) => d.event === "wedding" ? m : Math.max(m, d.at), -Infinity);
   if ((now - last) / 3.6e6 < encounterGap(ageH)) return null;
   return eventOf(seed.id, decisions.filter((d) => d.event !== "wedding").length);
 }
