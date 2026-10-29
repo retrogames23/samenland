@@ -5,6 +5,9 @@ import hunterUrl from "@/assets/sprites/folk/hunter.webp";
 import henUrl from "@/assets/sprites/hen.webp";
 import gullUrl from "@/assets/sprites/gull.webp";
 import crowUrl from "@/assets/sprites/crow.webp";
+import { animalsSleeping } from "./animals";
+import cowUrl from "@/assets/sprites/cow.webp";
+import maypoleUrl from "@/assets/sprites/maypole.webp";
 import { worldHour, clock } from "./time";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
 import { huntScene, lodgeDens, denOk, denBeast, denFate, startle, DEN_R, type Den, type Beast } from "./wildlife";
@@ -15,7 +18,7 @@ import { setArtTime } from "./season-art";
 import { seasonKey, seasonAt } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
-import { townPoses, sickHome, isHomeKind, mayorGoal, steeredMayor, type Pose } from "./people";
+import { townOf, townPoses, sickHome, isHomeKind, mayorGoal, steeredMayor, type Pose } from "./people";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow } from "./crafts";
@@ -1526,6 +1529,47 @@ function drawSignpost(c: C, cx: number, cy: number, sd: number) {
   c.save(); c.translate(x, y); if (sd % 2) c.scale(-1, 1); c.drawImage(im, -w * 0.47, -h * 0.97, w, h); c.restore();
 }
 
+/** Wooden pail in a fire helper's hand; while standing at the blaze, water arcs toward the flames. */
+function drawBucket(c: C, x: number, y: number, q: Pose, t: number) {
+  const sx = q.dir[0] - q.dir[1], f = sx >= 0 ? 1 : -1, bx = x + f * 2.3, by = y - 2.6;
+  c.save();
+  c.fillStyle = "#7a5634"; c.beginPath(); c.moveTo(bx - 1.1, by - 1.3); c.lineTo(bx + 1.1, by - 1.3); c.lineTo(bx + 0.8, by + 0.6); c.lineTo(bx - 0.8, by + 0.6); c.closePath(); c.fill();
+  c.strokeStyle = "#3d2b1a"; c.lineWidth = 0.25; c.stroke();
+  c.fillStyle = "#9cc3d6"; c.beginPath(); c.ellipse(bx, by - 1.3, 1.05, 0.35, 0, 0, 7); c.fill();
+  if (!q.walking) {
+    const u = ((t / 840 + q.p.id * 0.37) % 1);
+    if (u < 0.35) {
+      const k = u / 0.35; c.strokeStyle = `rgba(170,210,235,${0.8 * (1 - k)})`; c.lineWidth = 0.6;
+      c.beginPath(); c.moveTo(bx + f * 0.8, by - 1.3); c.quadraticCurveTo(bx + f * (2 + k * 3), by - 4 - k, bx + f * (3 + k * 5), by - 1 + k * 2); c.stroke();
+    }
+  }
+  c.restore();
+}
+/** The maypole raised after the maypole encounter: painted sprite, ribbons fluttering a little. */
+function drawMaypole(c: C, x: number, y: number, t: number) {
+  const im = huntIm("maypole", maypoleUrl); if (!im) return;
+  const h = 40, w = (im.naturalWidth / im.naturalHeight) * h;
+  c.save();
+  c.fillStyle = "rgba(25,18,10,0.25)"; c.beginPath(); c.ellipse(x + 1, y + 0.3, 3.2, 1.1, 0, 0, 7); c.fill();
+  c.translate(x, y); c.rotate(Math.sin(t / 1800) * 0.006); c.drawImage(im, -w / 2, -h * 0.98, w, h);
+  c.restore();
+}
+/** A village cow from the cow encounter: grazes on a pasture (or the green), slowly turning, lying down at night. */
+function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number) {
+  const im = huntIm("cow", cowUrl); if (!im) return;
+  const w = 13, h = (im.naturalHeight / im.naturalWidth) * w;
+  const step = Math.floor(now / 90000 + sd);
+  const dx = (hash(sd, step, 1501) - 0.5) * 7 + i * 4 - 4, dy = (hash(sd, step, 1502) - 0.5) * 3;
+  const flip = hash(sd, Math.floor(now / 240000), 1503) < 0.5, bob = Math.sin(now / 900 + sd) * 0.25;
+  const night = animalsSleeping(now);
+  c.save();
+  c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.3, 5, 1.4, 0, 0, 7); c.fill();
+  c.translate(x + dx, y + dy); if (flip) c.scale(-1, 1);
+  if (night) c.drawImage(im, 0, im.naturalHeight * 0.45, im.naturalWidth, im.naturalHeight * 0.55, -w / 2, -h * 0.55, w, h * 0.55);
+  else { c.translate(0, bob * 0.3); c.drawImage(im, -w / 2, -h * 0.96, w, h); }
+  c.restore();
+}
+
 /** Rare orchard trees from the nurseryman: grow from staked sapling to full crown over ~3 weeks and follow the shared seasons. */
 function drawRareTree(c: C, x: number, y: number, kind: "cherry" | "quince", ageH: number, now: number, t: number, sd: number) {
   const g = Math.min(1, 0.35 + Math.max(0, ageH) / 500), w = seasonAt(now);
@@ -1760,6 +1804,17 @@ export function draw(
   if (detail) for (const sd of seeds) { const r = robberAt(sd, now); if (r) { robbers.set(Math.round(r[1]) * MAP + Math.round(r[0]), r); const [lx, ly] = iso(r[0], r[1]); L.push({ x: lx, y: ly - 2, r: 4 }); } }
   const simpleFolk = cam.zoom < 2.2;
   const goal = mayorGoal(now), goalK = goal ? goal[1] * MAP + goal[0] : -1;
+  // encounter props: the raised maypole on the square and the village's cows (derived in townOf)
+  const props = new Map<number, ((cx: number, cy: number) => void)[]>();
+  const addProp = (k: number, f: (cx: number, cy: number) => void) => (props.get(k) ?? props.set(k, []).get(k)!).push(f);
+  if (detail) for (const sd of seeds) {
+    if (!sd.decisions?.length) continue;
+    const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 2;
+    if (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1) continue;
+    const tw = townOf(sd, seeds, now);
+    if (tw.maypole) addProp(tw.maypole[1] * MAP + tw.maypole[0], (cx, cy) => drawMaypole(c, cx, cy, t));
+    tw.cows.forEach((cw, i) => addProp(cw[1] * MAP + cw[0], (cx, cy) => drawCow(c, cx, cy, now, cw[0] * 31 + cw[1] + i * 7, i)));
+  }
 
   // ---- bridges: one straight span per water crossing, abutment to abutment ----
   if (detail) for (const l of links(seeds)) {
@@ -1810,6 +1865,7 @@ export function draw(
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
     if (st) drawStructure(c, st, cx, cy, x, y, t, L);
     for (const f of hunt.get(y * MAP + x) ?? []) f();
+    for (const f of props.get(y * MAP + x) ?? []) f(cx, cy);
     const rb = robbers.get(y * MAP + x);
     if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
@@ -1849,6 +1905,7 @@ export function draw(
           c.strokeStyle = sel ? "rgba(255,226,160,0.95)" : "rgba(255,236,190,0.7)"; c.lineWidth = sel ? 0.8 : 0.6; c.stroke();
         }
         drawPerson(c, px, py, q, t, simpleFolk); lastPeople.push({ x: px, y: py, q });
+        if (q.bucket) drawBucket(c, px, py, q, t);
         if (hov && !sel) {
           c.font = "600 4px system-ui, sans-serif"; c.textAlign = "center";
           const w = c.measureText(q.p.first).width + 3;
