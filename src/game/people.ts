@@ -641,6 +641,7 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const e = pl[i]!, prev = pl[(i - 1 + pl.length) % pl.length]!;
   const base: Pose = { p, x: e.place[0], y: e.place[1], visible: !e.indoor, walking: false, dir: [0, 1], phase: 0, act: e.act, working: false, talk: null, talkTurn: false, carry: null, dest: null };
   const secs = (hr - e.at) * 3600;
+  if (p.role === "mayor") { const mp = orderPose(p, t, seeds, now, base); if (mp) return mp; }
   if (p.proc) { const pr = procPose(p, t, seeds, now, base); if (pr) return pr; }
   if (p.fete) { const fp = fetePose(p, t, seeds, now, base); if (fp) return fp; }
   if (p.arrive && now >= p.arrive.t0) {
@@ -713,6 +714,41 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const look = 20 + hash(p.id, 3, 813) * 25;
   const face = hash(p.id, Math.floor((tt + p.id * 7.3) / look), 813) < 0.5 ? 1 : -1;
   return { ...base, dir: [face, 0.3], working: e.act === "work" };
+}
+
+// ---------------- the player's own mayor ----------------
+/** Walking pace of the player's mayor when sent somewhere (tiles/s). */
+export const ORDER_SPEED = 0.55;
+/** Seconds the mayor waits at the goal before returning to the daily routine. */
+export const ORDER_IDLE = 50;
+type Order = { id: number; from: Tile; to: Tile; at: number };
+let order: Order | null = null;
+/** Local-only steering of the player's own figure; never stored, other clients keep seeing the routine. */
+export function commandMayor(p: Person, t: Town, seeds: Seed[], now: number, to: Tile): boolean {
+  const g: Tile = [Math.round(to[0]), Math.round(to[1])];
+  if (p.role !== "mayor" || !free(t, g[0], g[1], seeds)) return false;
+  const q = poseOf(p, t, seeds, now);
+  const from: Tile = q.visible ? [q.x, q.y] : doorOf(t, p.home, seeds);
+  order = { id: p.id, from, to: g, at: now };
+  return true;
+}
+/** Current goal of the steered mayor, or null when idle (for the marker). */
+export function mayorGoal(now: number): Tile | null {
+  if (!order) return null;
+  return now - order.at < 600000 ? order.to : null;
+}
+export const clearMayorOrder = () => { order = null; };
+function orderPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): Pose | null {
+  const o = order;
+  if (!o || o.id !== p.id) return null;
+  const a: Tile = [Math.round(o.from[0]), Math.round(o.from[1])];
+  const pts = [o.from, ...route(t, a, o.to, seeds).slice(1, -1), o.to];
+  const secs = (now - o.at) / 1000, dd = secs * ORDER_SPEED, len = lenOf(pts);
+  const q = along(pts, dd);
+  if (q && dd < len) return { ...base, ...q, visible: true, walking: true, act: "stroll", phase: dd / STRIDE, working: false };
+  if (secs - len / ORDER_SPEED < ORDER_IDLE) return { ...base, x: o.to[0], y: o.to[1], visible: true, walking: false, act: "stroll", dir: [1, 0.3], working: false };
+  order = null;
+  return null;
 }
 
 /** Walk along points: position at distance dd, or null when past the end. */
