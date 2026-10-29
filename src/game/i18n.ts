@@ -65,6 +65,14 @@ const de = {
   workers: "Arbeiter",
   builders: "Zimmerleute vor Ort",
   nobody: "niemand gerade",
+  tavern: {
+    menu: "Taverne", title: "Zur Taverne", room: "Taverne", letters: "Briefe", mayors: "Dorfschulzen",
+    stranger: "Fremder", alone: "noch niemand hier", signIn: "Melde dich an, um in der Taverne mitzureden.",
+    empty: "Noch ist es still in der Taverne. Sag als Erste·r etwas!", emptyLetter: "Noch kein Brief gewechselt.",
+    say: "In die Runde sprechen …", sayLetter: (n: string) => `Brief an ${n} …`, needVillage: "Gründe zuerst ein Dorf, um zu schreiben.",
+    send: "Senden", write: "Brief schreiben", block: "Blockieren", unblock: "Entblocken", blockedList: (n: number) => `Blockiert (${n})`,
+    refused: "Dieser Dorfschulze nimmt keine Briefe von dir an.", slow: "Nicht so hastig – kurz durchatmen.", fail: "Nachricht konnte nicht gesendet werden.",
+  },
   goods: {
     ware: { log: ["Stamm", "Stämme"], planks: ["Brett", "Bretter"], stone: ["Stein", "Steine"], grain: ["Garbe", "Garben"], flour: ["Sack Mehl", "Säcke Mehl"], bread: ["Brot", "Brote"], fish: ["Korb Fisch", "Körbe Fisch"], game: ["Keule Wild", "Keulen Wild"], herbs: ["Bund Kräuter", "Bund Kräuter"], cheese: ["Laib Käse", "Laibe Käse"] } as Record<string, [string, string]>,
     larder: "Vorratskammer",
@@ -366,6 +374,14 @@ const en: typeof de = {
   workers: "Workers",
   builders: "Carpenters on site",
   nobody: "nobody right now",
+  tavern: {
+    menu: "Tavern", title: "The Tavern", room: "tavern", letters: "Letters", mayors: "Mayors",
+    stranger: "Stranger", alone: "nobody here yet", signIn: "Sign in to join the tavern talk.",
+    empty: "The tavern is quiet. Be the first to speak!", emptyLetter: "No letters exchanged yet.",
+    say: "Speak to the room …", sayLetter: (n) => `Letter to ${n} …`, needVillage: "Found a village first to write.",
+    send: "Send", write: "Write a letter", block: "Block", unblock: "Unblock", blockedList: (n) => `Blocked (${n})`,
+    refused: "This mayor does not accept letters from you.", slow: "Not so hasty – take a breath.", fail: "Message could not be sent.",
+  },
   goods: {
     ware: { log: ["log", "logs"], planks: ["plank", "planks"], stone: ["stone", "stones"], grain: ["sheaf", "sheaves"], flour: ["sack of flour", "sacks of flour"], bread: ["loaf", "loaves"], fish: ["basket of fish", "baskets of fish"], game: ["haunch of game", "haunches of game"], herbs: ["bundle of herbs", "bundles of herbs"], cheese: ["wheel of cheese", "wheels of cheese"] },
     larder: "Larder",
