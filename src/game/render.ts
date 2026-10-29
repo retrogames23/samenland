@@ -693,7 +693,14 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       const dx = sway * w * 0.035 * ((i + 1) / N);
       c.drawImage(im, 0, sh * a, sw, sh * (b - a) + 0.5, -w / 2 + dx, -hgt + hgt * a, w, hgt * (b - a) + 0.05);
     }
-  } else c.drawImage(im, -w / 2, -hgt, w, hgt);
+  } else {
+    // standing still: slow breathing (chest rises, feet stay planted) and a rare weight shift
+    const id = q.p.id, br = Math.sin(t / (1900 + hash(id, 41, 3) * 900) + id);
+    const shift = Math.sin(t / (6500 + hash(id, 42, 3) * 3000) + id * 1.7);
+    const sy = 1 + br * 0.012, sx = 1 - br * 0.004, lean = shift > 0.85 ? (shift - 0.85) * 0.12 : shift < -0.85 ? (shift + 0.85) * 0.12 : 0;
+    c.transform(sx, 0, lean, sy, 0, 0);
+    c.drawImage(im, -w / 2, -hgt, w, hgt);
+  }
   c.restore();
   return [X, Y - hgt - bob];
 }
