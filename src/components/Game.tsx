@@ -854,7 +854,8 @@ export function Game() {
     if (e.code === "twin") return [t.fest.twin[0], t.fest.twin[1](e.other)];
     if (e.code === "letter") return [t.post.arrived(e.other), bodies[e.id] ? `„${bodies[e.id]}“` : t.post.sealed];
     if (e.code === "stage") return [t.fest.stage[0], t.fest.stage[1](t.stages[e.stage] ?? "")];
-    return [t.fest.built[0], t.fest.built[1](chronLine(e).replace(/ (fertiggestellt|completed)$/, ""))];
+    const name = e.code === "built" ? (t.kind[e.kind] ?? e.kind) : e.code === "bought" ? (t.items[e.item]?.[0] ?? e.item) : chronLine(e);
+    return [t.fest.built[0], t.fest.built[1](name)];
   };
   function openChron() {
     if (!my) return;
@@ -1763,7 +1764,7 @@ export function Game() {
           <p className="text-center font-semibold">{t.quests.list[quest.quest]![0]}</p>
           <p className="mt-2 text-center italic">{t.quests.says(my.owner)} „{t.quests.list[quest.quest]![2]}“</p>
           {quest.quest === "hamlet" && <p className="mt-1 text-center text-sm">{t.quests.end}</p>}
-          <div className="mt-4 flex justify-center"><Button onClick={claimQuest}>{t.quests.claim} · {quest.reward} Taler</Button></div>
+          <div className="mt-4 flex justify-center"><Button onClick={claimQuest}>{t.quests.claim} · {t.taler(quest.reward)}</Button></div>
         </Parchment>
       )}
       {chronBanner && !chronOpen && (
