@@ -44,13 +44,15 @@ import fisherCast from "@/assets/sprites/folk/fisher-cast.webp";
 import fisherFCast from "@/assets/sprites/folk/fisher-f-cast.webp";
 import smithHammer from "@/assets/sprites/folk/smith-hammer.webp";
 import anvil from "@/assets/sprites/folk/anvil.webp";
+import chain from "@/assets/sprites/folk/chain.webp";
+import beret from "@/assets/sprites/folk/beret.webp";
 import flourSacks from "@/assets/sprites/folk/flour-sacks.webp";
 import breadBasket from "@/assets/sprites/folk/bread-basket.webp";
 import fishBasket from "@/assets/sprites/folk/fish-basket.webp";
 import sparks from "@/assets/sprites/folk/sparks.webp";
 import bannerClothUrl from "@/assets/sprites/folk/banner-cloth.webp";
 
-const URLS = { man, manWalk, legsM, woman, child, childWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, flourSacks, breadBasket, fishBasket, sparks, woodcutterWork, woodcutterFWork, masonWork, masonFWork, builderWork, builderFWork, gatherWork, gatherFWork, talkWork, talkFWork };
+const URLS = { man, manWalk, legsM, woman, child, childWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, chain, beret, flourSacks, breadBasket, fishBasket, sparks, woodcutterWork, woodcutterFWork, masonWork, masonFWork, builderWork, builderFWork, gatherWork, gatherFWork, talkWork, talkFWork };
 export type FolkSprite = keyof typeof URLS;
 const cache = new Map<string, HTMLImageElement>();
 function load(u: string) {

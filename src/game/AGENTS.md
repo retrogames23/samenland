@@ -25,3 +25,4 @@
 - Prestige monuments are defined once in MONUMENT_DEFS (world.ts: kind, step count) and MONUMENTS (economy.ts: stage, prices, bonuses); steps are purchase rows `<key><n>` checked by the DB purchase_guard and progress is derived via monumentProgress — add a monument there plus guard prices, never as a growth landmark.
 - Player mayor steering (commandMayor/orderPose in people.ts) is local-only, never stored: other clients keep seeing the derived routine; the order expires ORDER_IDLE s after arrival.
 - Mayor's seat: SEAT_KINDS landmarks share one reserved tile in LANDMARKS (world.ts) and swap by era (seat1 -> seat2 -> seat3 -> townhall); the mayor's home/work derive from it in people.ts — never stored.
+- Mayor titles (Amt & Würden) are purchase rows title1..3 checked by the DB purchase_guard (charter, age, guild rank, previous title); title, bonuses and avatar insignia derive via titleOf/titleBoons/titleOfSeed in economy.ts — no separate title state.

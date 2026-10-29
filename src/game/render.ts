@@ -17,6 +17,7 @@ import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSp
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townPoses, sickHome, isHomeKind, mayorGoal, type Pose } from "./people";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, type FolkSprite } from "./folk-sprites";
+import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow } from "./crafts";
 import { isSunday } from "./time";
 import { activeRaid, RAID_LEN } from "./disasters";
@@ -604,6 +605,20 @@ const TOOL_WORK: ReadonlySet<FolkSprite> = new Set(["farmer", "farmerF", "woodcu
 const WORK_FRAMES = 6;
 const legsFor = (q: Pose) => !!HIPS[folkOf(q)];
 /** Painted villager sprite: faces the walking direction, bobs while walking, sways while working. */
+/** Mayor's insignia by honorary title (titleOfSeed): chain, plumed beret, own banner — drawn in the mirrored figure frame. */
+function insignia(c: C, q: Pose, hgt: number) {
+  if (q.p.job !== "mayor") return;
+  const n = titleOfSeed(q.p.seed); if (n < 1) return;
+  const ch = folkImage("chain");
+  if (ch) { const h = hgt * 0.24, w = (h * ch.naturalWidth) / ch.naturalHeight; c.drawImage(ch, -w / 2 + hgt * 0.02, -hgt * 0.78, w, h); }
+  const bt = n >= 2 ? folkImage("beret") : null;
+  if (bt) { const h = hgt * 0.2, w = (h * bt.naturalWidth) / bt.naturalHeight; c.drawImage(bt, -w / 2 + hgt * 0.03, -hgt * 1.06, w, h); }
+  if (n >= 3) {
+    const pole = folkImage("bannerPole"), cloth = bannerCloth(q.p.seed.hue);
+    if (pole) { const h = hgt * 1.5, w = (h * pole.naturalWidth) / pole.naturalHeight; c.drawImage(pole, hgt * 0.32 - w / 2, -h, w, h);
+      if (cloth) { const ch2 = h * 0.38, cw = (ch2 * cloth.width) / cloth.height; c.drawImage(cloth, hgt * 0.32, -h * 0.95, cw, ch2); } }
+  }
+}
 function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const k = folkOf(q), im = folkImage(k); if (!im) return null;
   const kid = k === "child", hgt = kid ? 3.2 + q.p.age * 0.08 : 5.2;
@@ -640,6 +655,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       const sp = folkImage("sparks"), a = f === 4 ? 1 - mix * 0.4 : f === 3 ? ease : f === 5 ? 0.6 * (1 - mix) : 0;
       if (sp && a > 0.02) { const sh = 2.4, sw = (sh * sp.naturalWidth) / sp.naturalHeight; c.globalCompositeOperation = "lighter"; c.globalAlpha = a; c.drawImage(sp, 2.6 - sw / 2, -2.4 - sh * 0.75, sw, sh); c.globalAlpha = 1; c.globalCompositeOperation = "source-over"; }
     }
+    insignia(c, q, hgt);
     c.restore();
     return [X, Y - hgt];
   }
@@ -686,6 +702,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     c.transform(sx, 0, lean, sy, 0, 0);
     c.drawImage(im, -w / 2, -hgt, w, hgt);
   }
+  insignia(c, q, hgt);
   c.restore();
   return [X, Y - hgt - bob];
 }

@@ -94,6 +94,7 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
     + (near("school") ? 10 : 0) + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 5 : 0) + (has("woodcamp") ? WOODCAMP_WEALTH : 0));
   const b = activeBoons(s.decisions ?? [], now);
   const rb = rankBoons(s, purchases); b.food += rb.food; b.health += rb.health; b.wealth += rb.wealth;
+  const tb = titleBoons(s, purchases); b.food += tb.food; b.health += tb.health; b.wealth += tb.wealth;
   for (const k of MONUMENT_KEYS) {
     const m = MONUMENTS[k];
     if (!has(`${k}${m.prices.length}` as Item) || monumentProgress(s, now, k) < 1) continue;
@@ -148,5 +149,43 @@ export function rankBoons(s: Seed, purchases: { seed_id: string; item: string }[
   const r = rankOf(s, purchases), out = { food: 0, health: 0, wealth: 0 };
   if (!s.charter || r < 2) return out;
   for (const b of RANK_BONUS[s.charter.path].slice(0, r - 1)) for (const k of ["food", "health", "wealth"] as const) out[k] += b[k] ?? 0;
+  return out;
+}
+
+// ---------------- mayor's titles (Amt & Würden) ----------------
+/** Honorary titles bought as purchase rows title1..3; prices, ages and requirements mirror the database purchase guard. */
+export const TITLE_PRICE = { title1: 500, title2: 1200, title3: 2500 } as const;
+export type TitleStep = keyof typeof TITLE_PRICE;
+export const TITLE_STEPS: TitleStep[] = ["title1", "title2", "title3"];
+/** Real age (hours) before each appointment: Kleinstadt, Handelsstadt, Metropole. */
+export const TITLE_HOURS = { title1: 2160, title2: 4380, title3: 8760 } as const;
+/** Guild rank required for each appointment (journeyman, master, master). */
+export const TITLE_RANK = { title1: 2, title2: 3, title3: 3 } as const;
+/** Current title 0 (none) … 3, derived from purchase rows. */
+export const titleOf = (s: Seed, purchases: { seed_id: string; item: string }[]) => {
+  const own = purchases.filter((p) => p.seed_id === s.id).map((p) => p.item);
+  return own.includes("title3") ? 3 : own.includes("title2") ? 2 : own.includes("title1") ? 1 : 0;
+};
+export const titleOfSeed = (s: Seed) => titleOf(s, (s.bought ?? []).map((b) => ({ seed_id: s.id, item: b.item })));
+/** Why the next appointment is not open yet, or null when it may be paid. */
+export function titleBlock(s: Seed, purchases: { seed_id: string; item: string }[], now: number): null | "charter" | "age" | "rank" | "max" {
+  if (!s.charter) return "charter";
+  const n = titleOf(s, purchases);
+  if (n === 3) return "max";
+  const step = TITLE_STEPS[n]!;
+  if ((now - Date.parse(s.created_at)) / 3.6e6 < TITLE_HOURS[step]) return "age";
+  return rankOf(s, purchases) >= TITLE_RANK[step] ? null : "rank";
+}
+/** Attribute bonuses per path for each title — derived, never stored. */
+export const TITLE_BONUS: Record<CharterPath, Partial<Record<"food" | "health" | "wealth", number>>[]> = {
+  trade: [{ wealth: 5 }, { wealth: 10 }, { wealth: 10, food: 5 }],
+  craft: [{ wealth: 5 }, { wealth: 5, health: 5 }, { wealth: 15 }],
+  culture: [{ health: 5 }, { health: 10 }, { health: 10, wealth: 5 }],
+  farm: [{ food: 5 }, { food: 10 }, { food: 10, health: 5 }],
+};
+export function titleBoons(s: Seed, purchases: { seed_id: string; item: string }[]) {
+  const n = titleOf(s, purchases), out = { food: 0, health: 0, wealth: 0 };
+  if (!s.charter) return out;
+  for (const b of TITLE_BONUS[s.charter.path].slice(0, n)) for (const k of ["food", "health", "wealth"] as const) out[k] += b[k] ?? 0;
   return out;
 }
