@@ -60,7 +60,7 @@ import {
   BLESS_MS,
   type Signpost,
   type Planting,
-  roadCandidates,
+  roadCandidates, roadHours,
   roadBuilding,
   roadIncoming,
   type Seed,
@@ -1651,7 +1651,7 @@ export function Game() {
                         <div key={o.id} onClick={() => setRoadPick(o.id)} className={`flex cursor-pointer items-center gap-2 rounded-md border-2 p-2 ${roadPick === o.id ? "border-brass bg-brass/20" : "border-border"}`}>
                           <button type="button" aria-pressed={roadPick === o.id} onClick={() => setRoadPick(o.id)} className="flex-1 py-1 text-left">
                             <div className="font-semibold text-wood">{o.name}</div>
-                            <div className="text-xs text-muted-foreground">{t.road.dist(Math.round(Math.hypot(o.x - my.x, o.y - my.y)))} · {CHAR_ICON[c]} {t.character[c]![0]}{ch ? ` · ${PATH_ICON[ch]} ${t.charter.paths[ch]![0]}` : ""}</div>
+                            <div className="text-xs text-muted-foreground">{t.road.dist(Math.round(Math.hypot(o.x - my.x, o.y - my.y)))} · ⏳ {roadHours(my, o)} h · {CHAR_ICON[c]} {t.character[c]![0]}{ch ? ` · ${PATH_ICON[ch]} ${t.charter.paths[ch]![0]}` : ""}</div>
                           </button>
                           <Button size="sm" variant="secondary" onClick={() => { focus(o.x, o.y); later("road"); }}>{t.road.look}</Button>
                         </div>
