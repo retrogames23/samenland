@@ -1078,7 +1078,7 @@ export function Game() {
                   <span className="flex-1 font-semibold">{t.monument.title}</span>
                   {next && <span className="text-xs text-muted-foreground">{t.taler(MONUMENT_PRICE[next])}</span>}
                 </div>
-                <div className="text-xs text-muted-foreground">{t.items.belfry1![1]}</div>
+                <div className="text-xs text-muted-foreground">{t.items["belfry1"]![1]}</div>
                 <div className="mt-1 h-1.5 overflow-hidden rounded bg-ink/15"><div className="h-full bg-brass" style={{ width: `${100 * prog}%` }} /></div>
                 <ol className="mt-1 space-y-0.5 text-xs">
                   {t.monument.steps.map((name, k) => <li key={k} className={k < i ? "text-primary" : k === i ? "font-semibold" : "opacity-60"}>{k < i ? "✓" : `${k + 1}.`} {name}</li>)}
@@ -1087,7 +1087,7 @@ export function Game() {
                   {!next ? <span className="text-xs font-semibold text-primary">{prog >= 1 ? t.monument.done : t.monument.building}</span>
                     : !ready ? <span className="text-xs text-muted-foreground">{t.monument.wait(Math.max(1, waitH))}</span>
                     : <Button size="sm" className="h-7 w-full" disabled={cash < MONUMENT_PRICE[next]} onClick={() => {
-                        if (next === "belfry1") { setPlacing("belfry1"); setTab(null); setMsg(t.place.pick(t.items.belfry1![0])); focus(my.x, my.y); }
+                        if (next === "belfry1") { setPlacing("belfry1"); setTab(null); setMsg(t.place.pick(t.items["belfry1"]![0])); focus(my.x, my.y); }
                         else void buy(next);
                       }}>{t.monument.step(i + 1, n)} · {t.monument.pay}</Button>}
                 </div>
