@@ -247,11 +247,21 @@ function drawFlood(c: C, cx: number, cy: number, t: number, sd: number) {
   c.fillStyle = "rgba(220,230,225,0.18)"; c.fillRect(cx - 4 + Math.sin(t / 900 + sd) * 2, cy - 0.5, 6, 0.5);
 }
 /** Robber: sneaks in from the forest edge, past the houses, and out again. */
-function drawRobber(c: C, X: number, Y: number, flip: boolean) {
+function drawRobber(c: C, X: number, Y: number, flip: boolean, t: number) {
   const im = folkImage("robber"); if (!im) return;
   const h = 5.2, w = (h * im.naturalWidth) / im.naturalHeight;
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
-  c.save(); c.translate(X, Y); if (flip) c.scale(-1, 1); c.drawImage(im, -w / 2, -h, w, h); c.restore();
+  // sneaking: crouched torso on the shared painted leg cycle, slow careful steps
+  const ph = t / 260, legs = folkImage("legsM"), crouch = 0.04 + Math.abs(Math.sin(ph * Math.PI)) * 0.05;
+  c.save(); c.translate(X, Y); if (flip) c.scale(-1, 1);
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  if (legs) {
+    const [hx, hem] = HIPS.robber!, fw = legs.naturalWidth / WALK_FRAMES, f = Math.floor(ph) % WALK_FRAMES;
+    const lh = h * (1 - hem + 0.1), lw = (lh * fw) / legs.naturalHeight;
+    c.drawImage(legs, f * fw, 0, fw, legs.naturalHeight, -lw * 0.5, -lh, lw, lh);
+    c.drawImage(im, 0, 0, im.naturalWidth, im.naturalHeight * hem, -w * hx, -h + crouch, w, h * hem);
+  } else c.drawImage(im, -w / 2, -h, w, h);
+  c.restore();
 }
 export function robberAt(s: Seed, now: number): [number, number, boolean] | null {
   const r = activeRaid(s, now); if (!r) return null;
@@ -1653,7 +1663,7 @@ export function draw(
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
     if (st) drawStructure(c, st, cx, cy, x, y, t, L);
     const rb = robbers.get(y * MAP + x);
-    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2]); }
+    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
     if (signMap.has(y * MAP + x)) drawSignpost(c, cx, cy, x * 13 + y);
     if (fk) {
