@@ -60,7 +60,7 @@ export type Pose = {
   carry: Good | null; dest: Dest | null;
   festive?: "bride" | "groom" | undefined;
   /** Fighting a fire: carries a sloshing water bucket. */
-  bucket?: boolean;
+  bucket?: boolean | undefined;
 };
 
 const F = ["Greta", "Ida", "Frieda", "Lotte", "Marie", "Anna", "Clara", "Hedwig", "Emma", "Rosa", "Lina", "Mathilda", "Elsa", "Paula", "Wilma", "Martha", "Johanna", "Thea", "Ella", "Luise"];
@@ -259,7 +259,6 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   }
   // ---- encounter scenes: what the parchment tells is also seen on the square ----
   const decs = s.decisions ?? [];
-  const open = (x: number, y: number) => { const st = structureAt(x, y, seeds, now); return (!st || st.kind === "road" || st.kind === "path") && !isWater(terrain(x, y)); };
   const nearFree = (c: Tile, k: number): Tile => {
     for (let i = 0; i < 12; i++) { const a = hash(k, i, 1401) * Math.PI * 2, d = 1 + hash(k, i, 1402) * 1.6, x = Math.round(c[0] + Math.cos(a) * d), y = Math.round(c[1] + Math.sin(a) * d); if (open(x, y)) return [x, y]; }
     return c;

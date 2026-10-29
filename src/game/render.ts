@@ -5,6 +5,7 @@ import hunterUrl from "@/assets/sprites/folk/hunter.webp";
 import henUrl from "@/assets/sprites/hen.webp";
 import gullUrl from "@/assets/sprites/gull.webp";
 import crowUrl from "@/assets/sprites/crow.webp";
+import { animalsSleeping } from "./animals";
 import cowUrl from "@/assets/sprites/cow.webp";
 import maypoleUrl from "@/assets/sprites/maypole.webp";
 import { worldHour, clock } from "./time";
@@ -1805,14 +1806,14 @@ export function draw(
   const goal = mayorGoal(now), goalK = goal ? goal[1] * MAP + goal[0] : -1;
   // encounter props: the raised maypole on the square and the village's cows (derived in townOf)
   const props = new Map<number, ((cx: number, cy: number) => void)[]>();
-  const prop = (k: number, f: (cx: number, cy: number) => void) => (props.get(k) ?? props.set(k, []).get(k)!).push(f);
+  const addProp = (k: number, f: (cx: number, cy: number) => void) => (props.get(k) ?? props.set(k, []).get(k)!).push(f);
   if (detail) for (const sd of seeds) {
     if (!sd.decisions?.length) continue;
     const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 2;
     if (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1) continue;
     const tw = townOf(sd, seeds, now);
-    if (tw.maypole) prop(tw.maypole[1] * MAP + tw.maypole[0], (cx, cy) => drawMaypole(c, cx, cy, t));
-    tw.cows.forEach((cw, i) => prop(cw[1] * MAP + cw[0], (cx, cy) => drawCow(c, cx, cy, now, cw[0] * 31 + cw[1] + i * 7, i)));
+    if (tw.maypole) addProp(tw.maypole[1] * MAP + tw.maypole[0], (cx, cy) => drawMaypole(c, cx, cy, t));
+    tw.cows.forEach((cw, i) => addProp(cw[1] * MAP + cw[0], (cx, cy) => drawCow(c, cx, cy, now, cw[0] * 31 + cw[1] + i * 7, i)));
   }
 
   // ---- bridges: one straight span per water crossing, abutment to abutment ----
