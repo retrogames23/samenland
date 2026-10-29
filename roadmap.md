@@ -10,5 +10,5 @@
 
 # Roadmap: Mittel- und Spätspiel
 - [x] A: Aufgaben des Schulzen über alle Ären (19 Aufgaben)
-- [ ] B: Mehrstufige Prestigebauten (Bauabschnitte, Teilzahlungen)
+- [x] B: Prestigebau Stadtturm in 4 Abschnitten
 - [ ] C: Zunft-Vertiefung der Charta (Gesellen-/Meisterstufe)
