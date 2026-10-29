@@ -124,7 +124,7 @@ export const es: Dict = {
     fisher: ["Cabaña de pescador", "Más sustento, especialmente cerca del agua"],
     granary: ["Granero", "+15 de alimento, espacio para 80 gavillas de grano más"],
     healer: ["Sanador", "Mayor salud y menos dolencias"],
-    school: ["Escuela", "Aumenta la prosperidad"],
+    school: ["Escuela", "Enseñanza para la juventud del pueblo, aumenta notablemente la prosperidad"],
     markethall: ["Lonja del mercado", "Edificio gremial de mercaderes: mayor prosperidad"],
     guildhall: ["Casa de gremios", "Edificio gremial de artesanos: mucha más prosperidad"],
     library: ["Biblioteca", "Edificio gremial de eruditos: salud y prosperidad"],
