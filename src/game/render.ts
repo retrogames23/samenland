@@ -1725,11 +1725,11 @@ export function draw(
       if (n < 2) continue;
       const motion = roadMotion(pts, t / 1000 / secsPerTile + hash(sn, k, 2) * (n - 1) * 2);
       const fwd = motion.forward, i = motion.index;
-      // travellers only show on open road – inside towns they are "between the houses"
-      const [tx, ty] = l.tiles[i]!;
-      const st = structureAt(tx, ty, seeds, now);
+      // travellers show on open road and fade in/out over the last tiles into town – no popping
       const twin = isTwin(l, seeds, now);
-      if (!st || (st.kind !== "road" && st.kind !== "bridge" && !(twin && st.kind === "street"))) continue;
+      const fade = roadFade(l, i, twin);
+      if (fade <= 0) continue;
+      c.globalAlpha = fade;
       const [x, y] = motion.position;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
       const bob = Math.sin(t / 180 + k) * 0.4;
@@ -1747,9 +1747,9 @@ export function draw(
       const end = n - 1, pr = walkProgress(w, now) * end, fwd = w.from.id === l.a.id;
       // roadMotion's second half (phase end..2·end) already runs b→a with a reversed heading
       const m = roadMotion(pts, fwd ? Math.min(pr, end - 1e-6) : end + pr);
-      const [tx, ty] = l.tiles[m.index]!;
-      const st = structureAt(tx, ty, seeds, now);
-      if (!st || (st.kind !== "road" && st.kind !== "bridge")) continue;
+      const fade = roadFade(l, m.index, false);
+      if (fade <= 0) continue;
+      c.globalAlpha = fade;
       const cartW = w.kind === "family" || w.kind === "gift" || w.kind === "aid", [ox2, oy2] = keepRight(m.direction[0], m.direction[1], cartW ? 3.2 : 4.2);
       const x = m.position[0] + ox2, y = m.position[1] + oy2;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
@@ -1764,8 +1764,11 @@ export function draw(
   // Saturday market: painted stalls on both verges of every open road's midpoint, 9–17 realm time
   if (marketOpen(now)) for (const l of links(seeds)) {
     const n = l.tiles.length; if (n < 7 || roadProgress(l, now) < 1) continue;
-    const m = Math.floor(n / 2), a = l.tiles[m - 1]!, b = l.tiles[m + 1]!, mid = l.tiles[m]!;
-    if (l.water[m]) continue;
+    // nearest dry stretch to the midpoint, so stalls never stand on a bridge or over water
+    let m = -1;
+    for (let d = 0, c0 = Math.floor(n / 2); d < n / 2 && m < 0; d++) for (const q of [c0 - d, c0 + d]) if (m < 0 && q >= 2 && q < n - 2 && !l.water[q - 2] && !l.water[q - 1] && !l.water[q] && !l.water[q + 1] && !l.water[q + 2]) m = q;
+    if (m < 0) continue;
+    const a = l.tiles[m - 1]!, b = l.tiles[m + 1]!, mid = l.tiles[m]!;
     const tx = b[0] - a[0], ty = b[1] - a[1], len = Math.hypot(tx, ty) || 1, px = -ty / len, py = tx / len;
     const stalls: [number, number, Seed][] = [[mid[0] + px * 1.6, mid[1] + py * 1.6, l.a], [mid[0] - px * 1.6, mid[1] - py * 1.6, l.b]];
     if (n >= 11) stalls.push([mid[0] + px * 1.6 + tx / len * 2, mid[1] + py * 1.6 + ty / len * 2, l.b], [mid[0] - px * 1.6 - tx / len * 2, mid[1] - py * 1.6 - ty / len * 2, l.a]);
