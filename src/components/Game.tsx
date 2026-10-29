@@ -30,6 +30,7 @@ import {
   ageHours,
   effAge,
   speedOf,
+  speedParts,
   tradeProfile,
   tradePartners,
   mentoring,
@@ -910,7 +911,11 @@ export function Game() {
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
                   {t.character[characterOf(s.x, s.y)]![0]} · {t.stages[stageOf(effAge(s, seeds, now))]} · {s.owner} · {t.age(ageHours(s, now))}
-                  {speedOf(s, seeds, now) > 1.005 && <span className="block">{t.tradeBonus(Math.round((speedOf(s, seeds, now) - 1) * 100))}</span>}
+                  {(() => { const p = speedParts(s, seeds, now); return (<>
+                    {p.bless > 0.005 && <span className="block">{t.blessBonus(Math.round(p.bless * 100))}</span>}
+                    {p.trade > 0.005 && <span className="block">{t.tradeBonus(Math.round(p.trade * 100))}</span>}
+                    {p.farm > 0.005 && <span className="block">{t.farmBonus(Math.round(p.farm * 100))}</span>}
+                  </>); })()}
                   {mentoring(s, seeds, now) && mentorOf(s, seeds, now) && <span className="block">{t.mentorBy(mentorOf(s, seeds, now)!.name)}</span>}
                 </span>
               </button>
