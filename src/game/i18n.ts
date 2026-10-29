@@ -1349,7 +1349,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
     market: "今日は門で市が開かれています。", festival: (d) => `毎月${d}日は双子町の祭りです。その日に両方の町が祝福を行うと、祝福の効果が倍になります。`,
     gate: (a, b) => `${a}と${b}を結ぶ町の門`,
   },
-  hud: { build: "建築", rituals: "世話", signs: "道しるべ", towns: "村々", plant: "種をまく", settings: "設定", menu: "メニュー", zoomIn: "拡大", zoomOut: "縮小", close: "閉じる", noTown: "まず、種をまきましょう。", login: "村を築くにはログインしてください。", language: "言語", realm: "地図（管理者）" },
+  hud: { walk: "散歩", walkExit: "散歩を終える", walkHint: "WASD・矢印キーか地面をタップ · Escで終了", build: "建築", rituals: "世話", signs: "道しるべ", towns: "村々", plant: "種をまく", settings: "設定", menu: "メニュー", zoomIn: "拡大", zoomOut: "縮小", close: "閉じる", noTown: "まず、種をまきましょう。", login: "村を築くにはログインしてください。", language: "言語", realm: "地図（管理者）" },
   realms: { "us-west": "アメリカ西部", "us-east": "アメリカ東部", europe: "ヨーロッパ", asia: "アジア太平洋", lab: "テスト用地図" },
   lab: { title: (k: number) => (k > 1 ? `早送り ${k}× · 移動先` : "通常の時間 · 移動先"), note: "管理者専用。移動先の時間は、テスト用地図の開始時点から数えます。" },
   perDay: (n: number) => `一日+${n}`,
