@@ -202,6 +202,8 @@ export function Game() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [realm, setRealmState] = useState<Realm>("europe");
   const realmRef = useRef<Realm>("europe");
+  // swaps the map in place (admin realm switch) — no page reload, no splash
+  const loadRealmRef = useRef<((r: Realm) => Promise<void>) | null>(null);
   const [view, setView] = useState({ x: MAP / 2, y: MAP / 2, span: 40 });
   const [who, setWho] = useState<Person | null>(null);
   const [place, setPlace] = useState<Inspect | null>(null);
@@ -305,13 +307,9 @@ export function Game() {
       if (!live) return;
       const adm = !!data?.some((x) => x.role === "admin");
       setIsAdmin(adm);
-      const o = localStorage.getItem("samenland-realm");
-      // only when the map was loaded before the login arrived, and at most once per page and session
-      if (adm && o && o !== realmRef.current && !(window as { __realmFix?: boolean }).__realmFix && !sessionStorage.getItem("samenland-realm-fix")) {
-        (window as { __realmFix?: boolean }).__realmFix = true;
-        sessionStorage.setItem("samenland-realm-fix", "1");
-        window.location.reload();
-      }
+      const o = localStorage.getItem("samenland-realm") as Realm | null;
+      // the map was loaded before the login arrived: swap to the admin's map in place
+      if (adm && o && (REALMS.includes(o) || o === "lab") && o !== realmRef.current) loadRealmRef.current?.(o);
     });
     return () => { live = false; };
   }, [userId]);
@@ -380,9 +378,12 @@ export function Game() {
         if (data) { refSeed = data; if (REALMS.includes(data.realm as Realm)) r = data.realm as Realm; }
         else localStorage.removeItem("samenland-ref");
       }
+      const loadRealm = async (r: Realm) => {
+      if (!uid) uid = (await supabase.auth.getSession()).data.session?.user.id ?? null;
       setRealm(r);
       realmRef.current = r;
       setRealmState(r);
+      if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
       const [a, b, bl, sg, pu] = await Promise.all([
         supabase.from("seeds").select("*").eq("realm", r).order("created_at"),
         supabase.from("plantings").select("*"),
@@ -430,6 +431,10 @@ export function Game() {
       if (my) focus(my.x, my.y);
       else focus(MAP / 2, MAP / 2);
       if (!own && friend) setMsg(tRef.current.invite.welcome(friend.name));
+      refSeed = null; // the welcome is only for the first map
+      };
+      loadRealmRef.current = loadRealm;
+      await loadRealm(r);
     })();
     const ch = supabase
       .channel(`world-${Math.random().toString(36).slice(2)}`)
@@ -1625,7 +1630,7 @@ export function Game() {
               <div className="text-xs text-muted-foreground">{t.hud.realm}</div>
               <div className="grid grid-cols-2 gap-1">
                 {[...REALMS, "lab" as Realm].map((r) => (
-                  <button key={r} className={`rounded px-2 py-1 text-xs ${realm === r ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => { if (r === realm) return; localStorage.setItem("samenland-realm", r); sessionStorage.removeItem("samenland-realm-fix"); window.location.reload(); }}>{t.realms[r]}</button>
+                  <button key={r} className={`rounded px-2 py-1 text-xs ${realm === r ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => { if (r === realm) return; localStorage.setItem("samenland-realm", r); loadRealmRef.current?.(r); }}>{t.realms[r]}</button>
                 ))}
               </div>
               {realm === "lab" && (<>

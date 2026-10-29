@@ -12,7 +12,7 @@ export function LoadingScreen({ title, lines, onDone }: { title: string; lines: 
   const done = useRef(onDone);
   done.current = onDone;
   useEffect(() => {
-    if (splashDone()) { done.current?.(); return; }
+    if (splashDone()) { setFade(true); setGone(true); startCoreLoad(); done.current?.(); return; }
     startCoreLoad();
     const t0 = performance.now();
     let raf = 0;
