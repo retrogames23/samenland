@@ -225,6 +225,13 @@
       "when": 1793300000015,
       "tag": "0031_era_quests",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793300000016,
+      "tag": "0032_belfry_monument_steps",
+      "breakpoints": true
     }
   ]
 }
