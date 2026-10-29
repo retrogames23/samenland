@@ -211,15 +211,18 @@ export function Game() {
   const ptrRef = useRef<[number, number] | null>(null), tipRef = useRef<HTMLDivElement | null>(null);
   const [plantAsk, setPlantAsk] = useState<[number, number] | null>(null);
   const [planting, setPlanting] = useState(false);
-  // one seed per account, on any map: find the player's village wherever it was planted
+  // one seed per account on any map; admins get one per map
   useEffect(() => {
     if (!userId) { setHome(null); return; }
     let live = true;
-    supabase.from("seeds").select("*").eq("user_id", userId).limit(1).then(({ data }) => {
+    setHome(null);
+    let q = supabase.from("seeds").select("*").eq("user_id", userId);
+    if (isAdmin) q = q.eq("realm", realm);
+    q.limit(1).then(({ data }) => {
       if (live && data?.[0]) setHome(data[0] as Seed);
     });
     return () => { live = false; };
-  }, [userId]);
+  }, [userId, isAdmin, realm]);
 
   useEffect(() => {
     const saved = localStorage.getItem("samenland-lang");
