@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Game } from "@/components/Game";
 
 export const Route = createFileRoute("/")({
+  staticData: { sitemap: true },
   head: () => ({
     meta: [
       { title: "Samenland Dorf-Simulation – Pflanze einen Samen. Sieh ihm beim Wachsen zu." },
