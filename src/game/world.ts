@@ -600,6 +600,9 @@ export const TRADE_DIST = 80;
 /** Road is founded once the younger town is this many hours old, then built from both ends over ROAD_BUILD hours. */
 export const ROAD_AT = 6;
 export const ROAD_BUILD = 24;
+/** Build time of a decided road in hours: half an hour per tile of distance, at least 8 h (max reach 80 tiles → 40 h). Mirrored by DB road_done. */
+export const ROAD_MIN = 8, ROAD_PER_TILE = 0.5, ROAD_MAX = Math.max(ROAD_MIN, Math.round(TRADE_DIST * ROAD_PER_TILE));
+export const roadHours = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.max(ROAD_MIN, Math.round(Math.hypot(a.x - b.x, a.y - b.y) * ROAD_PER_TILE));
 export type Link = { a: Seed; b: Seed; d: number; since: number; build?: number; tiles: [number, number][]; water: boolean[] };
 
 let linkKey = "";
@@ -644,7 +647,7 @@ export function roadDone(a: Seed, b: Seed): number | null {
   const first = (x: Seed, y: Seed) => Math.min(Infinity, ...(x.roads ?? []).filter((r) => r.target === y.id).map((r) => r.at));
   const ta = first(a, b), tb = first(b, a), t0 = Math.min(ta, tb), t1 = Math.max(ta, tb);
   if (t0 === Infinity) return null;
-  const end = t0 + ROAD_BUILD * 3.6e6;
+  const end = t0 + roadHours(a, b) * 3.6e6;
   return t1 < end ? t1 + (end - t1) / 2 : end;
 }
 /** A neighbour building a road towards s that s has not joined yet (one decision suffices; joining halves the rest). */
@@ -663,10 +666,11 @@ export const roadCandidates = (s: Seed, seeds: Seed[]) =>
     .sort((p, q) => Math.hypot(p.x - s.x, p.y - s.y) - Math.hypot(q.x - s.x, q.y - s.y));
 /** The road this village decided that is still being built (only one at a time), or null. */
 export function roadBuilding(s: Seed, now: number, seeds?: Seed[]): { target: string; at: number; done: number } | null {
-  const r = (s.roads ?? []).filter((x) => x.at <= now && now < x.at + ROAD_BUILD * 3.6e6).sort((a, b) => b.at - a.at)[0];
-  if (!r) return null;
-  const o = seeds?.find((x) => x.id === r.target), done = o ? roadDone(s, o) ?? r.at + ROAD_BUILD * 3.6e6 : r.at + ROAD_BUILD * 3.6e6;
-  return now < done ? { ...r, done } : null;
+  for (const r of (s.roads ?? []).filter((x) => x.at <= now && now < x.at + ROAD_MAX * 3.6e6).sort((a, b) => b.at - a.at)) {
+    const o = seeds?.find((x) => x.id === r.target), done = o ? roadDone(s, o) ?? r.at + roadHours(s, o) * 3.6e6 : r.at + ROAD_BUILD * 3.6e6;
+    if (now < done) return { ...r, done };
+  }
+  return null;
 }
 
 /**

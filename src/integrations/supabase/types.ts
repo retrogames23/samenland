@@ -746,6 +746,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      road_done: { Args: { _a: string; _b: string }; Returns: string }
       send_letter: {
         Args: { _body: string; _from: string; _to: string }
         Returns: string
