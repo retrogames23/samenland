@@ -3,21 +3,34 @@ import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, floodFood } from "./disasters";
 import { dowryEarned, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
-import { radiusOf, stageOf, effAge, links, waterNearby, twinLinks, pactOf, monumentProgress, type Seed, type CharterPath } from "./world";
+import { radiusOf, stageOf, effAge, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
 
 /** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
 export const START_TALER = 150;
 export const ITEMS = { herbs: 90, hunter: 110, fisher: 120, woodcamp: 180, granary: 300, healer: 550, school: 3000, markethall: 450, guildhall: 450, library: 450, dairy: 450, firehouse: 600, guard: 800 } as const;
 export type Item = keyof typeof ITEMS;
-/** Prestige belfry: four paid construction steps, from Kleinstadt on (mirrored by the database purchase guard). */
-export const MONUMENT_PRICE = { belfry1: 400, belfry2: 500, belfry3: 600, belfry4: 700 } as const;
-export type MonumentStep = keyof typeof MONUMENT_PRICE;
-export const MONUMENT_STAGE = 3;
-/** Finished belfry: lasting prosperity and health (bell, clock, town pride). */
-export const BELFRY_WEALTH = 15, BELFRY_HEALTH = 5;
-/** Next step to pay for, or null when all are paid. */
-export const nextMonumentStep = (paid: string[]): MonumentStep | null =>
-  (Object.keys(MONUMENT_PRICE) as MonumentStep[]).find((k) => !paid.includes(k)) ?? null;
+/**
+ * Prestige monuments built in paid steps (prices mirror the database purchase guard).
+ * stage = growth stage from which the build menu offers it; bonuses apply once every step is finished.
+ */
+export const MONUMENTS: Record<MonumentKey, { stage: number; prices: number[]; food?: number; health?: number; wealth?: number }> = {
+  belfry: { stage: 3, prices: [400, 500, 600, 700], wealth: 15, health: 5 },
+  theater: { stage: 3, prices: [500, 700, 900], wealth: 15, health: 5 },
+  cathedral: { stage: 4, prices: [800, 1000, 1200, 1400, 1600], wealth: 20, health: 10 },
+  university: { stage: 4, prices: [700, 900, 1100, 1300], wealth: 10, health: 15 },
+  exchange: { stage: 4, prices: [700, 900, 1100, 1300], wealth: 20, food: 5 },
+  orangery: { stage: 4, prices: [500, 700, 900], health: 15, food: 5 },
+  opera: { stage: 5, prices: [1200, 1500, 1800, 2100], wealth: 25 },
+};
+/** Flat price list per step item, e.g. { belfry1: 400, …, opera4: 2100 }. */
+export const MONUMENT_PRICE: Record<string, number> = Object.fromEntries(
+  MONUMENT_KEYS.flatMap((k) => MONUMENTS[k].prices.map((p, i) => [`${k}${i + 1}`, p] as const)));
+export type MonumentStep = string;
+export const MONUMENT_STAGE = MONUMENTS.belfry.stage;
+export const BELFRY_WEALTH = MONUMENTS.belfry.wealth!, BELFRY_HEALTH = MONUMENTS.belfry.health!;
+/** Next step of a monument to pay for, or null when all are paid. */
+export const nextMonumentStep = (paid: string[], key: MonumentKey = "belfry"): string | null =>
+  monumentSteps(key).find((k) => !paid.includes(k)) ?? null;
 /** Bonuses of the early buildings that work without water. */
 export const HUNTER_FOOD = 15, HERBS_HEALTH = 10, WOODCAMP_WEALTH = 5;
 /** Guild buildings: only villages with the matching charter may buy them (mirrored in the database guard). */
@@ -81,8 +94,11 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
     + (near("school") ? 10 : 0) + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 5 : 0) + (has("woodcamp") ? WOODCAMP_WEALTH : 0));
   const b = activeBoons(s.decisions ?? [], now);
   const rb = rankBoons(s, purchases); b.food += rb.food; b.health += rb.health; b.wealth += rb.wealth;
-  const belfry = has("belfry4") && monumentProgress(s, now) >= 1;
-  b.wealth += belfry ? BELFRY_WEALTH : 0; b.health += belfry ? BELFRY_HEALTH : 0;
+  for (const k of MONUMENT_KEYS) {
+    const m = MONUMENTS[k];
+    if (!has(`${k}${m.prices.length}` as Item) || monumentProgress(s, now, k) < 1) continue;
+    b.food += m.food ?? 0; b.health += m.health ?? 0; b.wealth += m.wealth ?? 0;
+  }
   b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0; b.wealth += has("guard") ? 5 : 0;
   // weddings: a day of joy (health, prosperity) and lasting craft alliances between families
   const joy = weddingJoy(s, now);
