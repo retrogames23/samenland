@@ -40,7 +40,7 @@ const BuildingDone = ({ lang, mayor, town, building }: Props) => {
 
 export const template = {
   component: BuildingDone,
-  subject: (d: Record<string, any>) => DICT[pick(d.lang)].guide.mail.subject(d.building || '…', d.town || 'Samenland'),
+  subject: (d: Record<string, any>) => DICT[pick(d['lang'])].guide.mail.subject(d['building'] || '…', d['town'] || 'Samenland'),
   displayName: 'Gebäude fertig',
   previewData: { lang: 'de', mayor: 'Stephan', town: 'Roggenfeld', building: 'Kräuterhütte' },
 } satisfies TemplateEntry
