@@ -273,16 +273,22 @@ export function Game() {
       const [x, y] = toTile(c.x, c.y);
       setView({ x, y, span: (cv.clientWidth / c.zoom) / 32 + (cv.clientHeight / c.zoom) / 16 });
     }, 500);
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    // local session first: a slow/offline network (iPhone waking up) must never look like a logout
+    supabase.auth.getSession().then(({ data }) => { if (data.session) setUserId(data.session.user.id); });
     const { data: sub } = supabase.auth.onAuthStateChange((ev, session) => {
-      if (
-        ev === "SIGNED_IN" ||
-        ev === "SIGNED_OUT" ||
-        ev === "USER_UPDATED" ||
-        ev === "INITIAL_SESSION"
-      )
-        setUserId(session?.user.id ?? null);
+      if (ev === "SIGNED_OUT") { setUserId(null); return; }
+      if (session?.user.id) setUserId(session.user.id);
+      else if (ev === "INITIAL_SESSION") setUserId(null);
     });
+    // Safari pauses timers in background tabs: refresh the token as soon as the page is visible again
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        supabase.auth.startAutoRefresh();
+        supabase.auth.getSession().then(({ data }) => { if (data.session) setUserId(data.session.user.id); });
+      } else supabase.auth.stopAutoRefresh();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pageshow", onVis);
     (async () => {
       let r = detectRealm();
       let uid: string | null = null;
