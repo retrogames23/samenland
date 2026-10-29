@@ -925,11 +925,11 @@ export function Game() {
     signposts: signs.filter((s) => s.seed_id === my.id).length,
     encounters: encounters.filter((e) => e.seed_id === my.id).length,
     giftsSent: gifts.filter((g) => g.from_seed === my.id).length,
-    residents, stage: myStage,
+    residents, stage: myStage, roads: firstRoads.filter((f) => f.seed_id === my.id).length,
   }) : null;
   const questHow = () => {
     if (!quest || !my) return;
-    const tabs: Partial<Record<Quest, Tab>> = { bless: "rituals", build: "build", sign: "signs", gift: "towns" };
+    const tabs: Partial<Record<Quest, Tab>> = { bless: "rituals", bless7: "rituals", build: "build", buy3: "build", buy6: "build", sign: "signs", gift: "towns", gifts5: "towns", road: "build", roads2: "build" };
     const tb = tabs[quest.quest];
     if (tb) setTab(tb); else { focus(my.x, my.y); setMsg(t.quests.list[quest.quest]![1]); }
   };
@@ -1792,7 +1792,7 @@ export function Game() {
         <Parchment image={ART["quest"]} title={t.quests.doneTitle} later={t.quests.later} onLater={() => setQuestOpen(false)}>
           <p className="text-center font-semibold">{t.quests.list[quest.quest]![0]}</p>
           <p className="mt-2 text-center italic">{t.quests.says(my.owner)} „{t.quests.list[quest.quest]![2]}“</p>
-          {quest.quest === "hamlet" && <p className="mt-1 text-center text-sm">{t.quests.end}</p>}
+          {quest.quest === "metro" && <p className="mt-1 text-center text-sm">{t.quests.end}</p>}
           <div className="mt-4 flex justify-center"><Button onClick={claimQuest}>{t.quests.claim} · {t.taler(quest.reward)}</Button></div>
         </Parchment>
       )}

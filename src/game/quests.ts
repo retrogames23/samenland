@@ -1,24 +1,54 @@
-/** Mayor's tasks: a fixed chain of early milestones. Rewards mirror the database quest guard. */
-export const QUESTS = ["bless", "build", "sign", "meet", "ten", "gift", "hamlet"] as const;
+/** Mayor's tasks: a fixed chain of milestones across all eras. Rewards mirror the database quest guard. */
+export const QUESTS = [
+  "bless", "build", "sign", "meet", "ten", "gift", "hamlet",
+  // Dorf era
+  "road", "bless7", "buy3", "village",
+  // Kleinstadt era
+  "gifts5", "fifty", "roads2", "town",
+  // Handelsstadt era
+  "buy6", "hundred", "merchant",
+  // Metropole
+  "metro",
+] as const;
 export type Quest = (typeof QUESTS)[number];
-export const QUEST_REWARD: Record<Quest, number> = { bless: 20, build: 30, sign: 20, meet: 30, ten: 40, gift: 40, hamlet: 60 };
+export const QUEST_REWARD: Record<Quest, number> = {
+  bless: 20, build: 30, sign: 20, meet: 30, ten: 40, gift: 40, hamlet: 60,
+  road: 60, bless7: 80, buy3: 100, village: 120,
+  gifts5: 120, fifty: 150, roads2: 150, town: 200,
+  buy6: 250, hundred: 300, merchant: 400,
+  metro: 600,
+};
 export type QuestClaim = { id: string; seed_id: string; quest: string; reward: number; created_at: string };
 
 export type QuestCtx = {
   blessings: number; purchases: number; signposts: number; encounters: number; giftsSent: number;
-  residents: number; stage: number;
+  residents: number; stage: number; roads?: number;
 };
+
+const need = (have: number, n: number): [number, number] => [Math.min(n, have), n];
 
 /** Progress toward a quest as [have, need]. */
 export function questProgress(q: Quest, c: QuestCtx): [number, number] {
   switch (q) {
-    case "bless": return [Math.min(1, c.blessings), 1];
-    case "build": return [Math.min(1, c.purchases), 1];
-    case "sign": return [Math.min(1, c.signposts), 1];
-    case "meet": return [Math.min(1, c.encounters), 1];
-    case "ten": return [Math.min(10, c.residents), 10];
-    case "gift": return [Math.min(1, c.giftsSent), 1];
-    case "hamlet": return [Math.min(1, c.stage), 1];
+    case "bless": return need(c.blessings, 1);
+    case "build": return need(c.purchases, 1);
+    case "sign": return need(c.signposts, 1);
+    case "meet": return need(c.encounters, 1);
+    case "ten": return need(c.residents, 10);
+    case "gift": return need(c.giftsSent, 1);
+    case "hamlet": return need(c.stage, 1);
+    case "road": return need(c.roads ?? 0, 1);
+    case "bless7": return need(c.blessings, 7);
+    case "buy3": return need(c.purchases, 3);
+    case "village": return [c.stage >= 2 ? 1 : 0, 1];
+    case "gifts5": return need(c.giftsSent, 5);
+    case "fifty": return need(c.residents, 50);
+    case "roads2": return need(c.roads ?? 0, 2);
+    case "town": return [c.stage >= 3 ? 1 : 0, 1];
+    case "buy6": return need(c.purchases, 6);
+    case "hundred": return need(c.residents, 150);
+    case "merchant": return [c.stage >= 4 ? 1 : 0, 1];
+    case "metro": return [c.stage >= 5 ? 1 : 0, 1];
   }
 }
 
