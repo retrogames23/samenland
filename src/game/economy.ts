@@ -67,6 +67,12 @@ export const referralClaims = (rows: Referral[]): QuestClaim[] => rows.flatMap((
   { id: `${r.id}:b`, seed_id: r.referee_seed, quest: `ref:${r.referrer_seed}`, reward: r.reward, created_at: r.created_at },
 ]);
 
+/** Mayor visit welcome gift by the visited town's raw age (mirrors DB visit_reward): 30 → 150 Taler. */
+export const VISIT_STEPS: [number, number][] = [[8760, 150], [4380, 100], [2160, 75], [168, 50], [24, 40], [0, 30]];
+export const visitReward = (h: number) => VISIT_STEPS.find(([a]) => h >= a)![1];
+export type Visit = { id: string; visitor_seed: string; visited_seed: string; reward: number; created_at: string };
+export const visitClaims = (rows: Visit[]): QuestClaim[] => rows.map((v) => ({ id: `${v.id}:v`, seed_id: v.visitor_seed, quest: `visit:${v.visited_seed}`, reward: v.reward, created_at: v.created_at }));
+
 export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = []) {
   const spent = purchases.filter((p) => p.seed_id === s.id).reduce((a, p) => a + p.cost, 0);
   const ev = (s.decisions ?? []).reduce((a, d) => a + d.cost, 0);

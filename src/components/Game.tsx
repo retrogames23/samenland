@@ -889,7 +889,7 @@ export function Game() {
   const visitSeen = useRef(new Set<string>());
   const visitFn = useRef<(o: Seed, my: Seed) => void>(() => {});
   visitFn.current = (o, my) => {
-    if (!owner || my.user_id !== uid) return;
+    if (!owner || my.user_id !== userId) return;
     supabase.rpc("claim_visit", { _seed: my.id, _visited: o.id }).then(({ data, error }) => {
       if (error || !data) return;
       const now0 = new Date().toISOString();
