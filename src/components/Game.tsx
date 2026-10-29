@@ -166,7 +166,9 @@ export function Game() {
   const [mode, setMode] = useState<Mode>("look");
   const [placing, setPlacing] = useState<Item | null>(null);
   const [hover, setHover] = useState<[number, number] | null>(null);
-  const [form, setForm] = useState(() => ({ name: ["Lindenau","Haselbrunn","Kornwiese","Mühlbach","Eichenhain","Birkental","Wiesengrund","Hopfenau"][Math.floor(Math.random()*8)], owner: "", gender: "d" }));
+  const [form, setForm] = useState({ name: "", owner: "", gender: "d" });
+  // a ready-made cozy name lowers the founding hurdle (set after hydration, so SSR stays stable)
+  useEffect(() => { const n = ["Lindenau","Haselbrunn","Kornwiese","Mühlbach","Eichenhain","Birkental","Wiesengrund","Hopfenau"]; setForm((f) => (f.name ? f : { ...f, name: n[Math.floor(Math.random() * n.length)] })); }, []);
   const [msg, setMsg] = useState<string | null>(null);
   type Tab = "build" | "rituals" | "signs" | "towns" | "plant";
   const [tab, setTab] = useState<Tab | null>(null);
