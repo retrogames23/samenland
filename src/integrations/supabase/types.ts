@@ -337,6 +337,7 @@ export type Database = {
           id: string
           reward: number
           seed_id: string
+          small: boolean
           user_id: string
         }
         Insert: {
@@ -345,6 +346,7 @@ export type Database = {
           id?: string
           reward?: number
           seed_id: string
+          small?: boolean
           user_id: string
         }
         Update: {
@@ -353,6 +355,7 @@ export type Database = {
           id?: string
           reward?: number
           seed_id?: string
+          small?: boolean
           user_id?: string
         }
         Relationships: [
