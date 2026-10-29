@@ -80,7 +80,7 @@ const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", cult
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
-import { RANK_PRICE, RANK_HOURS, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENT_STAGE, nextMonumentStep, type MonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
+import { RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENT_STAGE, nextMonumentStep, type MonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -1047,7 +1047,6 @@ export function Game() {
                 const roads = links(seeds).filter((l) => (l.a.id === my.id || l.b.id === my.id) && now >= l.since).length;
                 const blk = rankBlock(my, purchases, now, roads);
                 const why = blk === "age" ? t.rank.need.age(t.stages[step === "rank2" ? 2 : 4] ?? "") : blk === "guild" ? t.rank.need.guild : blk === "belfry" ? t.rank.need.belfry : blk === "roads" ? t.rank.need.roads(RANK_ROADS) : "";
-                void RANK_HOURS;
                 return (
                   <div className="mt-2 border-t border-brass/40 pt-2">
                     <div className="font-semibold">{t.rank.title}</div>
