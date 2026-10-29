@@ -351,6 +351,7 @@ export function Game() {
     (async () => {
       let r = detectRealm();
       let uid: string | null = null;
+      let adminPick = false;
       try {
         // guests must never wait on auth: local session only, with a short cap
         const sess = await Promise.race([
@@ -363,14 +364,17 @@ export function Game() {
           const adm = !!roles?.some((x) => x.role === "admin");
           setIsAdmin(adm);
           const o = localStorage.getItem("samenland-realm") as Realm | null;
-          if (adm && o && (REALMS.includes(o) || o === "lab")) r = o;
+          if (adm && o && (REALMS.includes(o) || o === "lab")) { r = o; adminPick = true; }
           if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
+          // an invite only steers newcomers: players with a village keep their own map
+          const { data: mine } = await supabase.from("seeds").select("id").eq("user_id", uid).limit(1);
+          if (mine?.length) localStorage.removeItem("samenland-ref");
         }
       } catch { /* play as guest */ }
       // invited newcomers land on their friend's map
       const refId = localStorage.getItem("samenland-ref");
       let refSeed: { id: string; realm: string; name: string } | null = null;
-      if (refId && !(r === "lab")) {
+      if (refId && !adminPick) {
         const { data } = await supabase.from("seeds").select("id, realm, name").eq("id", refId).maybeSingle();
         if (data) { refSeed = data; if (REALMS.includes(data.realm as Realm)) r = data.realm as Realm; }
         else localStorage.removeItem("samenland-ref");
@@ -1578,7 +1582,7 @@ export function Game() {
               <div className="text-xs text-muted-foreground">{t.hud.realm}</div>
               <div className="grid grid-cols-2 gap-1">
                 {[...REALMS, "lab" as Realm].map((r) => (
-                  <button key={r} className={`rounded px-2 py-1 text-xs ${realm === r ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => { if (r === realm) return; localStorage.setItem("samenland-realm", r); window.location.reload(); }}>{t.realms[r]}</button>
+                  <button key={r} className={`rounded px-2 py-1 text-xs ${realm === r ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => { if (r === realm) return; localStorage.setItem("samenland-realm", r); sessionStorage.removeItem("samenland-realm-fix"); window.location.reload(); }}>{t.realms[r]}</button>
                 ))}
               </div>
               {realm === "lab" && (<>
