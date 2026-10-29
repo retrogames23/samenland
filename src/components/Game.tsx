@@ -307,13 +307,9 @@ export function Game() {
       if (!live) return;
       const adm = !!data?.some((x) => x.role === "admin");
       setIsAdmin(adm);
-      const o = localStorage.getItem("samenland-realm");
-      // only when the map was loaded before the login arrived, and at most once per page and session
-      if (adm && o && o !== realmRef.current && !(window as { __realmFix?: boolean }).__realmFix && !sessionStorage.getItem("samenland-realm-fix")) {
-        (window as { __realmFix?: boolean }).__realmFix = true;
-        sessionStorage.setItem("samenland-realm-fix", "1");
-        window.location.reload();
-      }
+      const o = localStorage.getItem("samenland-realm") as Realm | null;
+      // the map was loaded before the login arrived: swap to the admin's map in place
+      if (adm && o && (REALMS.includes(o) || o === "lab") && o !== realmRef.current) loadRealmRef.current?.(o);
     });
     return () => { live = false; };
   }, [userId]);
