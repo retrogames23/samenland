@@ -688,9 +688,14 @@ export function Game() {
   const [tavernOpen, setTavernOpen] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
   const [rollOpen, setRollOpen] = useState(false);
-  useEffect(() => {
-    if (userId && !localStorage.getItem("samenland-guide-seen")) { setGuideOpen(true); localStorage.setItem("samenland-guide-seen", "1"); }
-  }, [userId]);
+  // the tutorial parchment greets every visitor on their very first page load,
+  // signed in or not, as soon as the loading screen has stepped aside
+  const openGuide = () => {
+    if (localStorage.getItem("samenland-guide-seen")) return;
+    localStorage.setItem("samenland-guide-seen", "1");
+    setGuideOpen(true);
+  };
+  useEffect(() => { if (splashDone()) openGuide(); }, []);
   const [chronBanner, setChronBanner] = useState(false);
   const [scribe, setScribe] = useState<string | null | undefined>(undefined);
   const askScribe = useServerFn(scribeGreeting);
