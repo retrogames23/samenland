@@ -3,7 +3,7 @@ import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, floodFood } from "./disasters";
 import { dowryEarned, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
-import { radiusOf, stageOf, effAge, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
+import { radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
 
 /** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
 export const START_TALER = 150;
@@ -82,9 +82,14 @@ export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gif
 
 
 const clamp = (v: number) => Math.round(Math.max(0, Math.min(100, v)));
+/** Base values before buildings; a full larder (supply 1) adds SUPPLY_FOOD. */
+export const FOOD_BASE = 20, HEALTH_BASE = 25, SUPPLY_FOOD = 30;
+/** Residents one hut serves fully; above that its bonus shrinks, but never below PER_HEAD_MIN. */
+export const PER_HEAD_POP = 25, PER_HEAD_MIN = 0.4;
+export const perHead = (pop: number) => Math.max(PER_HEAD_MIN, Math.min(1, PER_HEAD_POP / Math.max(1, pop)));
 
-/** Village attributes 0–100, derived from age, trade, charter and purchased buildings. */
-export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: number, alliances = 0, stores?: { food: number; health: number; wealth: number }) {
+/** Village attributes 0–100, derived from age, trade, charter, larder and purchased buildings. */
+export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: number, alliances = 0, stores?: { food: number; health: number; wealth: number; supply?: number }) {
   const has = (i: Item | MonumentStep) => purchases.some((p) => p.seed_id === s.id && p.item === i);
   // twins share wells, healer and school at half strength; a protective pact adds health
   const twins = twinLinks(s, seeds, now).map((l) => (l.a.id === s.id ? l.b : l.a));
@@ -93,9 +98,13 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   const trade = links(seeds).filter((l) => (l.a.id === s.id || l.b.id === s.id) && now >= l.since).length;
   const stage = stageOf(effAge(s, seeds, now));
   const path = s.charter && s.charter.at <= now ? s.charter.path : null;
-  const food = clamp(40 + (has("fisher") ? (waterNearby(s.x, s.y) ? 20 : 8) : 0) + (has("granary") ? 15 : 0) + Math.min(15, trade * (path === "trade" ? 8 : 5))
-    + (path === "farm" ? 15 : 0) + (has("dairy") ? 15 : 0) + (has("hunter") ? HUNTER_FOOD : 0));
-  const health = clamp(40 + (has("healer") ? 30 : 0) + (food - 50) * 0.3 + (path === "culture" ? 15 : 0) + (has("library") ? 10 : 0) + (has("herbs") ? HERBS_HEALTH : 0) + (near("healer") ? 15 : 0) + (shield ? 10 : 0));
+  // single huts feed/heal a small village fully; in bigger towns their share shrinks (per-capita need)
+  const k = perHead(popAt(ageHours(s, now)));
+  const supply = stores?.supply ?? 0;
+  const food = clamp(FOOD_BASE + SUPPLY_FOOD * supply + k * ((has("fisher") ? (waterNearby(s.x, s.y) ? 20 : 8) : 0) + (has("hunter") ? HUNTER_FOOD : 0) + (has("granary") ? 15 : 0) + (has("dairy") ? 15 : 0))
+    + Math.min(15, trade * (path === "trade" ? 8 : 5)) + (path === "farm" ? 15 : 0));
+  const health = clamp(HEALTH_BASE + (food - 50) * 0.3 + k * ((has("healer") ? 20 : 0) + (has("herbs") ? HERBS_HEALTH : 0) + (has("library") ? 10 : 0))
+    + (path === "culture" ? 15 : 0) + (near("healer") ? 15 : 0) + (shield ? 10 : 0));
   const wealth = clamp(25 + Math.min(30, trade * 10) + (has("school") ? 20 : 0) + stage * 5 + (path === "craft" ? 10 : 0)
     + (near("school") ? 10 : 0) + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 5 : 0) + (has("woodcamp") ? WOODCAMP_WEALTH : 0));
   const b = activeBoons(s.decisions ?? [], now);
