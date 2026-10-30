@@ -1115,8 +1115,10 @@ function drawRoadWorks(c: C, x: number, y: number, dx: number, dy: number, t: nu
   }
   // freshly dug earth and gravel heap
   c.fillStyle = "rgba(92,70,48,0.85)"; c.beginPath(); c.ellipse(x + dx * 3, y + dy * 3, 4.2, 1.8, 0, 0, 7); c.fill();
-  prop(c, "blocks", x - nx * 5, y - ny * 2.5, 6);
-  prop(c, "logs", x + nx * 5.5, y + ny * 2.8, 7);
+  // material piles lie on the open south verge, never in the north shadow of tall houses
+  const sv = ny >= 0 ? 1 : -1;
+  prop(c, "blocks", x + nx * 5 * sv - dx * 3, y + ny * 2.5 * sv + 1.2, 6);
+  prop(c, "logs", x + nx * 5.5 * sv + dx * 4, y + ny * 2.8 * sv + 1.4, 7);
   // two workers: painted mason and builder work cycles (one frame at a time, no rocking)
   for (let w = 0; w < 2; w++) {
     const wx = x + dx * (2 + w * 3) + nx * (w ? -1.5 : 1.5), wy = y + dy * (2 + w * 3) + ny * (w ? -0.8 : 0.8);
@@ -1852,6 +1854,99 @@ export function draw(
     }
   }
 
+  // road traffic, messengers and stalls join the tile depth order: houses in front hide them (no object above a front roof)
+  const vip: (() => void)[] = [];
+  const roadProp = (x: number, y: number, a: number, f: () => void, important = false) => {
+    const [tx, ty] = toTile(x, y);
+    addProp(ty * MAP + tx, () => { c.globalAlpha = a; f(); c.globalAlpha = 1; });
+    if (important) vip.push(f);
+  };
+  // ---- life on the trade roads ----
+  if (detail) for (const l of links(seeds)) {
+    const prog = roadProgress(l, now);
+    if (prog <= 0) continue;
+    if (prog < 1) continue; // road crews are drawn in the tile depth pass above
+    const pts = smoothRoad(l);
+    const n = pts.length;
+    const mature = Math.min(1, Math.min(ageHours(l.a, now), ageHours(l.b, now)) / 240);
+    // more traffic the better the towns complement each other; traders rest at night (shared world clock)
+    const hr = worldHour(now), night = hr < 5 || hr >= 22;
+    const count = night ? (mature > 0.5 ? 1 : 0) : 1 + Math.round(mature * 3 * complement(l.a, l.b));
+    const sn = l.a.x * 7 + l.b.y * 13;
+    // share of open-road tiles in a 5-tile window: 1 on the open road, ramps to 0 just inside the town edge
+    const openMemo = new Map<number, boolean>();
+    const roadFade = (_l: typeof l, idx: number, twinOk: boolean) => {
+      let open = 0;
+      for (let d = -2; d <= 2; d++) {
+        const j = Math.max(0, Math.min(l.tiles.length - 1, idx + d));
+        let ok = openMemo.get(j);
+        if (ok === undefined) { const st = structureAt(l.tiles[j]![0], l.tiles[j]![1], seeds, now); ok = !!st && (st.kind === "road" || st.kind === "bridge" || (twinOk && st.kind === "street")); openMemo.set(j, ok); }
+        if (ok) open++;
+      }
+      const f = open / 5;
+      return f * f * (3 - 2 * f);
+    };
+    for (let k = 0; k < count; k++) {
+      const secsPerTile = hash(sn, k, 3) < 0.55 ? 1.6 + hash(sn, k, 1) * 1.2 : 3.2 + hash(sn, k, 1) * 1.2;
+      if (n < 2) continue;
+      const motion = roadMotion(pts, t / 1000 / secsPerTile + hash(sn, k, 2) * (n - 1) * 2);
+      const fwd = motion.forward, i = motion.index;
+      // travellers show on open road and fade in/out over the last tiles into town – no popping
+      const twin = isTwin(l, seeds, now);
+      const fade = roadFade(l, i, twin);
+      if (fade <= 0) continue;
+      const [x, y] = motion.position;
+      if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
+      const bob = Math.sin(t / 180 + k) * 0.4;
+      const [dx, dy] = motion.direction;
+      const from = fwd ? l.a : l.b, to = fwd ? l.b : l.a, ex = tradeProfile(from, now).exports;
+      const good = ex[Math.floor(hash(sn, k, 5) * ex.length)] ?? null, cart = !twin && hash(sn, k, 3) < 0.55; // twins: porters walk straight from workshop to workshop
+      // oncoming traffic passes on the right: carts keep a wide lane, walkers the verge
+      const [ox, oy] = keepRight(dx, dy, cart ? 3.2 : 4.2);
+      if (cart) roadProp(x + ox, y + oy, fade, () => drawCart(c, x + ox, y + oy, dx, dy, bob, sn + k, "", t));
+      else roadProp(x + ox, y + oy, fade, () => drawWanderer(c, x + ox, y + oy, dx, dy, t, sn + k, good ? CARRY_OF[good] : null));
+      lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
+    }
+    // journeymen and messengers on their way to the neighbour
+    if (n >= 2) for (const w of walkersNow(l, now)) {
+      const end = n - 1, pr = walkProgress(w, now) * end, fwd = w.from.id === l.a.id;
+      // roadMotion's second half (phase end..2·end) already runs b→a with a reversed heading
+      const m = roadMotion(pts, fwd ? Math.min(pr, end - 1e-6) : end + pr);
+      const fade = roadFade(l, m.index, false);
+      if (fade <= 0) continue;
+      const cartW = w.kind === "family" || w.kind === "gift" || w.kind === "aid", [ox2, oy2] = keepRight(m.direction[0], m.direction[1], cartW ? 3.2 : 4.2);
+      const x = m.position[0] + ox2, y = m.position[1] + oy2;
+      if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
+      if (w.kind === "family" || w.kind === "gift" || w.kind === "aid") { roadProp(x, y, fade, () => drawCart(c, x, y, m.direction[0], m.direction[1], Math.sin(t / 220) * 0.3, w.sd, "", t * 0.8)); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: true, walker: w }); continue; }
+      if (w.kind === "rider") { roadProp(x, y, fade, () => drawRider(c, x, y, m.direction[0], m.direction[1], w.sd, t), true); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w }); continue; }
+      if (w.kind === "trader") { const ex = tradeProfile(w.p0 ? w.to : w.from, now).exports, gd = ex[w.sd % Math.max(1, ex.length)] ?? null; roadProp(x, y, fade, () => drawWanderer(c, x, y, m.direction[0], m.direction[1], t * 0.7, w.sd, gd ? CARRY_OF[gd] : "bundle")); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: gd, cart: false, walker: w }); continue; }
+      roadProp(x, y, fade, () => drawWanderer(c, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" || w.kind === "letter" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? (w.sex === "m" ? "groom" : "bride") : undefined), w.kind === "messenger" || w.kind === "letter");
+      lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w });
+    }
+    c.globalAlpha = 1;
+  }
+  c.globalAlpha = 1;
+
+  // Saturday market: painted stalls on both verges of every open road's midpoint, 9–17 realm time
+  if (marketOpen(now)) for (const l of links(seeds)) {
+    const n = l.tiles.length; if (n < 7 || roadProgress(l, now) < 1) continue;
+    // nearest dry stretch to the midpoint, so stalls never stand on a bridge or over water
+    let m = -1;
+    for (let d = 0, c0 = Math.floor(n / 2); d < n / 2 && m < 0; d++) for (const q of [c0 - d, c0 + d]) if (m < 0 && q >= 2 && q < n - 2 && !l.water[q - 2] && !l.water[q - 1] && !l.water[q] && !l.water[q + 1] && !l.water[q + 2]) m = q;
+    if (m < 0) continue;
+    const a = l.tiles[m - 1]!, b = l.tiles[m + 1]!, mid = l.tiles[m]!;
+    const tx = b[0] - a[0], ty = b[1] - a[1], len = Math.hypot(tx, ty) || 1, px = -ty / len, py = tx / len;
+    const stalls: [number, number, Seed][] = [[mid[0] + px * 1.6, mid[1] + py * 1.6, l.a], [mid[0] - px * 1.6, mid[1] - py * 1.6, l.b]];
+    if (n >= 11) stalls.push([mid[0] + px * 1.6 + tx / len * 2, mid[1] + py * 1.6 + ty / len * 2, l.b], [mid[0] - px * 1.6 - tx / len * 2, mid[1] - py * 1.6 - ty / len * 2, l.a]);
+    for (const [sx, sy, owner] of stalls) {
+      const [X, Y] = iso(sx, sy);
+      if (X < cs0x - 40 || X > cs1x + 40 || Y < cs0y - 40 || Y > cs1y + 40) continue;
+      { const fl = hash(Math.round(sx), Math.round(sy), 77) < 0.5; roadProp(X, Y + TH / 2, 1, () => drawStall(c, X, Y + TH / 2, fl)); }
+      const ex = tradeProfile(owner, now).exports;
+      lastTraders.push({ x: X, y: Y, from: owner.name, to: (owner === l.a ? l.b : l.a).name, good: ex[0] ?? null, cart: false, stall: true });
+    }
+  }
+
   // ---- pass 2: standing objects in depth order ----
   const hunt = new Map<number, (() => void)[]>();
   // lodges and dens just off-screen still send hunters and game into view (no popping at the screen edge)
@@ -1884,7 +1979,7 @@ export function draw(
     for (const f of hunt.get(y * MAP + x) ?? []) f();
     for (const f of props.get(y * MAP + x) ?? []) f(cx, cy);
     const rb = robbers.get(y * MAP + x);
-    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); }
+    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); vip.push(() => drawRobber(c, px, py, rb[2], t)); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
     if (signMap.has(y * MAP + x)) drawSignpost(c, cx, cy, x * 13 + y);
     { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
@@ -1922,6 +2017,7 @@ export function draw(
           c.strokeStyle = sel ? "rgba(255,226,160,0.95)" : "rgba(255,236,190,0.7)"; c.lineWidth = sel ? 0.8 : 0.6; c.stroke();
         }
         drawPerson(c, px, py, q, t, simpleFolk); lastPeople.push({ x: px, y: py, q });
+        if (hov || sel || (steer && q.p.role === "mayor" && q.act === "stroll" && q.p.seed.id === steer.sid)) vip.push(() => drawPerson(c, px, py, q, t, simpleFolk));
         if (q.bucket) drawBucket(c, px, py, q, t);
         if (hov && !sel) {
           c.font = "600 4px system-ui, sans-serif"; c.textAlign = "center";
@@ -1937,95 +2033,9 @@ export function draw(
     }
   }
   for (const [bx, by, gull, sd] of birds) drawBird(c, bx, by, gull === 1, sd);
+  // parchment silhouette: key figures (own strolling mayor, hovered/selected folk, robbers, messengers) shine faintly through buildings in front
+  if (vip.length) { c.save(); c.globalAlpha = 0.38; c.filter = "sepia(1) brightness(1.25)"; for (const f of vip) f(); c.restore(); }
 
-
-  // ---- life on the trade roads ----
-  if (detail) for (const l of links(seeds)) {
-    const prog = roadProgress(l, now);
-    if (prog <= 0) continue;
-    if (prog < 1) continue; // road crews are drawn in the tile depth pass above
-    const pts = smoothRoad(l);
-    const n = pts.length;
-    const mature = Math.min(1, Math.min(ageHours(l.a, now), ageHours(l.b, now)) / 240);
-    // more traffic the better the towns complement each other; traders rest at night (shared world clock)
-    const hr = worldHour(now), night = hr < 5 || hr >= 22;
-    const count = night ? (mature > 0.5 ? 1 : 0) : 1 + Math.round(mature * 3 * complement(l.a, l.b));
-    const sn = l.a.x * 7 + l.b.y * 13;
-    // share of open-road tiles in a 5-tile window: 1 on the open road, ramps to 0 just inside the town edge
-    const openMemo = new Map<number, boolean>();
-    const roadFade = (_l: typeof l, idx: number, twinOk: boolean) => {
-      let open = 0;
-      for (let d = -2; d <= 2; d++) {
-        const j = Math.max(0, Math.min(l.tiles.length - 1, idx + d));
-        let ok = openMemo.get(j);
-        if (ok === undefined) { const st = structureAt(l.tiles[j]![0], l.tiles[j]![1], seeds, now); ok = !!st && (st.kind === "road" || st.kind === "bridge" || (twinOk && st.kind === "street")); openMemo.set(j, ok); }
-        if (ok) open++;
-      }
-      const f = open / 5;
-      return f * f * (3 - 2 * f);
-    };
-    for (let k = 0; k < count; k++) {
-      const secsPerTile = hash(sn, k, 3) < 0.55 ? 1.6 + hash(sn, k, 1) * 1.2 : 3.2 + hash(sn, k, 1) * 1.2;
-      if (n < 2) continue;
-      const motion = roadMotion(pts, t / 1000 / secsPerTile + hash(sn, k, 2) * (n - 1) * 2);
-      const fwd = motion.forward, i = motion.index;
-      // travellers show on open road and fade in/out over the last tiles into town – no popping
-      const twin = isTwin(l, seeds, now);
-      const fade = roadFade(l, i, twin);
-      if (fade <= 0) continue;
-      c.globalAlpha = fade;
-      const [x, y] = motion.position;
-      if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
-      const bob = Math.sin(t / 180 + k) * 0.4;
-      const [dx, dy] = motion.direction;
-      const from = fwd ? l.a : l.b, to = fwd ? l.b : l.a, ex = tradeProfile(from, now).exports;
-      const good = ex[Math.floor(hash(sn, k, 5) * ex.length)] ?? null, cart = !twin && hash(sn, k, 3) < 0.55; // twins: porters walk straight from workshop to workshop
-      // oncoming traffic passes on the right: carts keep a wide lane, walkers the verge
-      const [ox, oy] = keepRight(dx, dy, cart ? 3.2 : 4.2);
-      if (cart) { drawCart(c, x + ox, y + oy, dx, dy, bob, sn + k, "", t); }
-      else drawWanderer(c, x + ox, y + oy, dx, dy, t, sn + k, good ? CARRY_OF[good] : null);
-      lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
-    }
-    // journeymen and messengers on their way to the neighbour
-    if (n >= 2) for (const w of walkersNow(l, now)) {
-      const end = n - 1, pr = walkProgress(w, now) * end, fwd = w.from.id === l.a.id;
-      // roadMotion's second half (phase end..2·end) already runs b→a with a reversed heading
-      const m = roadMotion(pts, fwd ? Math.min(pr, end - 1e-6) : end + pr);
-      const fade = roadFade(l, m.index, false);
-      if (fade <= 0) continue;
-      c.globalAlpha = fade;
-      const cartW = w.kind === "family" || w.kind === "gift" || w.kind === "aid", [ox2, oy2] = keepRight(m.direction[0], m.direction[1], cartW ? 3.2 : 4.2);
-      const x = m.position[0] + ox2, y = m.position[1] + oy2;
-      if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
-      if (w.kind === "family" || w.kind === "gift" || w.kind === "aid") { drawCart(c, x, y, m.direction[0], m.direction[1], Math.sin(t / 220) * 0.3, w.sd, "", t * 0.8); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: true, walker: w }); continue; }
-      if (w.kind === "rider") { drawRider(c, x, y, m.direction[0], m.direction[1], w.sd, t); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w }); continue; }
-      if (w.kind === "trader") { const ex = tradeProfile(w.p0 ? w.to : w.from, now).exports, gd = ex[w.sd % Math.max(1, ex.length)] ?? null; drawWanderer(c, x, y, m.direction[0], m.direction[1], t * 0.7, w.sd, gd ? CARRY_OF[gd] : "bundle"); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: gd, cart: false, walker: w }); continue; }
-      drawWanderer(c, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" || w.kind === "letter" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? (w.sex === "m" ? "groom" : "bride") : undefined);
-      lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w });
-    }
-    c.globalAlpha = 1;
-  }
-  c.globalAlpha = 1;
-
-  // Saturday market: painted stalls on both verges of every open road's midpoint, 9–17 realm time
-  if (marketOpen(now)) for (const l of links(seeds)) {
-    const n = l.tiles.length; if (n < 7 || roadProgress(l, now) < 1) continue;
-    // nearest dry stretch to the midpoint, so stalls never stand on a bridge or over water
-    let m = -1;
-    for (let d = 0, c0 = Math.floor(n / 2); d < n / 2 && m < 0; d++) for (const q of [c0 - d, c0 + d]) if (m < 0 && q >= 2 && q < n - 2 && !l.water[q - 2] && !l.water[q - 1] && !l.water[q] && !l.water[q + 1] && !l.water[q + 2]) m = q;
-    if (m < 0) continue;
-    const a = l.tiles[m - 1]!, b = l.tiles[m + 1]!, mid = l.tiles[m]!;
-    const tx = b[0] - a[0], ty = b[1] - a[1], len = Math.hypot(tx, ty) || 1, px = -ty / len, py = tx / len;
-    const stalls: [number, number, Seed][] = [[mid[0] + px * 1.6, mid[1] + py * 1.6, l.a], [mid[0] - px * 1.6, mid[1] - py * 1.6, l.b]];
-    if (n >= 11) stalls.push([mid[0] + px * 1.6 + tx / len * 2, mid[1] + py * 1.6 + ty / len * 2, l.b], [mid[0] - px * 1.6 - tx / len * 2, mid[1] - py * 1.6 - ty / len * 2, l.a]);
-    for (const [sx, sy, owner] of stalls) {
-      const [X, Y] = iso(sx, sy);
-      if (X < cs0x - 40 || X > cs1x + 40 || Y < cs0y - 40 || Y > cs1y + 40) continue;
-      drawStall(c, X, Y + TH / 2, hash(Math.round(sx), Math.round(sy), 77) < 0.5);
-      const ex = tradeProfile(owner, now).exports;
-      lastTraders.push({ x: X, y: Y, from: owner.name, to: (owner === l.a ? l.b : l.a).name, good: ex[0] ?? null, cart: false, stall: true });
-    }
-  }
 
   // border banners in both town colours and the carved border stone at the twin gate
   for (const l of links(seeds)) {
