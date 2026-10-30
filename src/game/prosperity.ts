@@ -1,4 +1,4 @@
-import type { Seed, CivicSeed, Kind } from "./world";
+import type { Seed, Kind } from "./world";
 
 /** Civic prosperity is deliberately independent of population, stocks and world geometry.
  * The database mirrors this ledger, so a building never earns taxes before it was paid for.
@@ -11,7 +11,7 @@ const clamp = (n: number) => Math.max(0, Math.min(100, n));
 
 /** Sustainable civic wealth: historical purchases and charter; prestige matures over six hours.
  * No dependency on world.ts at runtime: structure generation may safely call this function. */
-export function civicWealth(s: CivicSeed, now: number): number {
+export function civicWealth(s: Seed, now: number): number {
   const h = Math.max(0, (now - Date.parse(s.created_at)) / 3.6e6);
   const stage = [24, 168, 2160, 4380, 8760].filter((a) => h >= a).length;
   const path = s.charter && s.charter.at <= now ? s.charter.path : undefined;

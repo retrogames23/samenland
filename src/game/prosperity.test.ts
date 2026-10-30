@@ -10,7 +10,7 @@ describe("civic prosperity", () => {
   it("skilled workers pay 2 Taler daily", () => expect(ESTATE_TAX.skilled).toBe(2));
   it("wealthy citizens pay 3 Taler daily", () => expect(ESTATE_TAX.wealthy).toBe(3));
   it("school costs 1200 Taler", () => expect(ITEMS.school).toBe(1200));
-  it("school opens in the small-town era", () => expect(ITEM_STAGE.school).toBe(3));
+  it("school opens in the small-town era", () => expect(ITEM_STAGE["school"]).toBe(3));
   it("completed roads give 10 civic wealth, capped at 30", () => {
     expect(civicWealth({ ...seed, civicRoads: [{ at: t0 }] }, t0)).toBe(35);
     expect(civicWealth({ ...seed, civicRoads: Array.from({ length: 5 }, () => ({ at: t0 })) }, t0)).toBe(55);
