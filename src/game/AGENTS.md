@@ -1,5 +1,7 @@
 # src/game rules
 
+- Replacement building art uses alpha-cropped WebP under sprites/cohesive with a 480-pixel longest edge; registry crop dimensions match real files and night layers share the same crop, preserving scale and aligned windows.
+
 - Weddings: incremental calendar in src/game/weddings.ts (weddingDates: gap from care-capped residents, civic wealth and food crafts; dowry from wealth) mirrored exactly by DB village_weddings (used by village_balance and encounter_guard) — change both together. Couples/kin derived in people.ts marry()/kinOf, never stored. Village weddings gather everyone, give joy and call the mayor; in towns (care-capped era >= Kleinstadt) only every WED_NOTABLE-th is "grand" — the rest stay private (no banner, encounter or joy).
 - Villager life (traits.ts, Sunday via isSunday() in time.ts, sickness/carers and wedding processions in people.ts) is derived from ids, homes and the clock; never store it — all clients see the same day.
 - Disasters (src/game/disasters.ts): fires, floods and raids are a pure calendar from (seed id, time window) plus purchases; structureAt applies burning/rebuild/flood via tileHits, raid losses are mirrored by DB village_raids — never store disaster state, so all clients and the treasury agree.
