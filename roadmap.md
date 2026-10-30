@@ -1,3 +1,6 @@
+# Roadmap: Begegnungsbilder
+- [x] Alle 33 Begegnungsbilder einheitlich überarbeiten und prüfen
+
 # Roadmap: Einheitliche Gebäudegrafiken
 - [x] Kirche, Stadthaus-Varianten, Brunnen und Oper mit gemeinsamer Perspektive neu zeichnen
 - [x] Bildgrößen, Bodenanker und passende Nachtlichter integrieren
