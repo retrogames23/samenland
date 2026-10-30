@@ -337,6 +337,13 @@
       "when": 1793355520736,
       "tag": "0047_dynamic_weddings",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1793356552764,
+      "tag": "0048_sick_tax_loss",
+      "breakpoints": true
     }
   ]
 }

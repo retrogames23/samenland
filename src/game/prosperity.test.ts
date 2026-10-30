@@ -53,3 +53,16 @@ describe("civic prosperity", () => {
   });
   it("wealthy homes are painted patrician residences", () => expect(estateHouse("cottage", "wealthy")).toBe("patrician"));
 });
+import { sickTaxRate, sickLoss } from "./prosperity";
+describe("sick villagers pay no tax", () => {
+  const s = { id: "x", created_at: "2026-01-01T00:00:00Z", bought: [] } as any;
+  it("loses 6 % × 0.4 in summer and 9 % × 0.4 in winter", () => {
+    expect(sickTaxRate(s, Date.UTC(2026, 6, 1))).toBeCloseTo(0.06);
+    expect(sickTaxRate(s, Date.UTC(2026, 0, 10))).toBeCloseTo(0.09);
+    expect(sickLoss(100, 0.09)).toBe(3);
+  });
+  it("herb hut and healer cut it to the 1 % floor-ish", () => {
+    const b = { ...s, bought: [{ item: "herbs", at: 0 }, { item: "healer", at: 0 }] };
+    expect(sickTaxRate(b, Date.UTC(2026, 6, 1))).toBeCloseTo(0.01);
+  });
+});
