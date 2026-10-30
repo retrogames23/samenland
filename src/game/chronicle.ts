@@ -21,7 +21,7 @@ export type ChronEvent =
   | { at: number; code: "family"; x: number; y: number }
   | { at: number; code: "houses"; n: number }
   | { at: number; code: "families"; n: number }
-  | { at: number; code: "wedding"; a: string; b: string; alliance: boolean; x: number; y: number }
+  | { at: number; code: "wedding"; a: string; b: string; alliance: boolean; dowry: number; grand: boolean; x: number; y: number }
   | { at: number; code: "fire"; guarded: boolean; water: boolean; dead: boolean; x: number; y: number }
   | { at: number; code: "flood"; x: number; y: number }
   | { at: number; code: "raid"; loss: number; caught: boolean; x: number; y: number }
@@ -87,7 +87,7 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
     ev.push({ at: to, code: "houses", n: homes.length }, { at: to, code: "families", n: homes.length });
   } else for (const h of homes) ev.push({ at: h.at, code: "house", kind: h.kind, x: h.x, y: h.y }, { at: Math.min(to, h.at + 6e5), code: "family", x: h.x, y: h.y });
   for (const w of townOf(s, seeds, to).weddings) if (w.at > from && w.at <= to)
-    ev.push({ at: w.at, code: "wedding", a: `${w.a.first} ${w.a.last}`, b: `${w.b.first} ${w.b.maiden ?? w.b.last}`, alliance: w.alliance, x: w.a.home[0], y: w.a.home[1] });
+    ev.push({ at: w.at, code: "wedding", a: `${w.a.first} ${w.a.last}`, b: `${w.b.first} ${w.b.maiden ?? w.b.last}`, alliance: w.alliance, dowry: w.dowry, grand: w.grand, x: w.a.home[0], y: w.a.home[1] });
   for (const f of fires(s, to)) if (f.at > from) ev.push({ at: f.at, code: "fire", guarded: f.guarded, water: f.water, dead: f.dead, x: f.x, y: f.y });
   for (const f of floods(s, to)) if (f.at > from) ev.push({ at: f.at, code: "flood", x: f.x, y: f.y });
   for (const r of raids(s, to)) if (r.at > from) ev.push({ at: r.at, code: "raid", loss: r.loss, caught: r.caught, x: s.x, y: s.y });
