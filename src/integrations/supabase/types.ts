@@ -46,6 +46,39 @@ export type Database = {
           },
         ]
       }
+      bug_reports: {
+        Row: {
+          body: string
+          context: Json
+          created_at: string
+          id: string
+          kind: string
+          sent_at: string | null
+          shots: string[]
+          user_id: string
+        }
+        Insert: {
+          body: string
+          context?: Json
+          created_at?: string
+          id?: string
+          kind?: string
+          sent_at?: string | null
+          shots?: string[]
+          user_id: string
+        }
+        Update: {
+          body?: string
+          context?: Json
+          created_at?: string
+          id?: string
+          kind?: string
+          sent_at?: string | null
+          shots?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       build_mail: {
         Row: {
           created_at: string
