@@ -695,14 +695,6 @@ const en: typeof de = {
   guide: {
     title: "Welcome to Samenland", menu: "Guide", close: "Let's go", welcome: { pitch: "A multiplayer village that grows in real time over months – even while you sleep.", plant: "Plant your own village", more: "Learn more" }, wait: { title: "Your builders are at work!", body: (h: number) => "Samenland keeps growing while you sleep. The next building stands in about " + h + " hours – come back then to collect new taxes." }, mail: { subject: (b: string, t: string) => `${b} in ${t} is finished`, hello: (n: string) => `Hello ${n},`, body: (b: string, t: string) => `Your builders have laid down their tools: ${b} now stands in ${t}. The villagers are already moving in and bringing new life to the lanes.`, cta: "Visit your village", sign: "Your scribe from Samenland" }, idle: { subject: (t: string) => `Your village ${t} is about to fall into ruin`, hello: (n: string) => `Hello ${n},`, body: (t: string) => `nobody has looked after ${t} for three months. If you do not sign in within seven days, your village and your account will be permanently deleted. A single visit is enough to keep everything as it is.`, cta: "Visit your village", sign: "The Council of Elders of Samenland" }, notify: { label: "Email me when a building is finished", on: "I'll write to you once it stands ✓" },
     intro: "A slow game: your village grows in real time – even when you're not watching.",
-    steps: [
-      ["Plant a seed", "Every player founds exactly one village. Water, forest, farmland or hills shape what it will be good at."],
-      ["Watch", "Houses, fields and villagers grow over about two years from hamlet to metropolis. People work, sleep, marry and rest on Sundays."],
-      ["Taler & building", "Each resident pays one taler a day. Spend them under “Build” on the left for buildings that boost food, health or wealth."],
-      ["Care", "Once a day you can bless your village – it speeds up growth."],
-      ["Decisions", "Now and then visitors knock or a choice is due. A parchment appears – you may also decide later."],
-      ["Neighbours", "Roads to other villages bring trade, gifts and help. When two towns grow together they become twin towns."],
-    ],
   },
 };
 
@@ -1047,14 +1039,6 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
   guide: {
     title: "欢迎来到Samenland", menu: "指南", close: "启程吧", welcome: { pitch: "一个多人共享的村庄，在真实时间里成长数月——即使你在睡觉。", plant: "种下你的村庄", more: "了解更多" }, wait: { title: "你的工匠正在忙碌！", body: (h: number) => "即使你在睡觉，Samenland也在成长。大约" + h + "小时后下一座建筑就会落成——到时回来收取新的税金吧。" }, mail: { subject: (b: string, t: string) => `${t}的${b}已经完工`, hello: (n: string) => `你好，${n}：`, body: (b: string, t: string) => `工匠们放下了工具：${b}已在${t}落成。村民们已经搬了进去，为街巷带来新的生机。`, cta: "前往村庄", sign: "来自Samenland的书记员" }, idle: { subject: (t: string) => `你的村庄${t}即将荒废`, hello: (n: string) => `你好，${n}：`, body: (t: string) => `三个月来无人照看${t}。如果你在七天内不登录，你的村庄和账号将被永久删除。只需回来看一眼，一切都会保持原样。`, cta: "前往村庄", sign: "Samenland长老会" }, notify: { label: "建筑完工时发邮件通知我", on: "落成后我会写信告诉你 ✓" },
     intro: "一款慢悠悠的游戏：村庄随真实时光生长——即使你没有在旁守望。",
-    steps: [
-      ["播下种子", "每位玩家恰好建立一座村庄。水域、森林、农田与丘陵，将塑造它的所长。"],
-      ["观望", "大约两年间，房屋、田地与村民渐渐增多，小村落长成大都会。人们劳作、安睡、成婚，也在主日歇息。"],
-      ["塔勒与建造", "每位居民每日缴纳一塔勒。在左侧「建造」中用它们购置建筑，增进食物、健康或繁荣。"],
-      ["照料", "每日可为村庄祝福一次——让它成长得更快。"],
-      ["抉择", "偶尔会有访客敲门，或有事情等你定夺。届时会出现一张羊皮纸——也可以稍后再作决定。"],
-      ["邻里", "通往其他村庄的道路带来贸易、礼物与援手。两座城镇生长相连时，便成为双子镇。"],
-    ],
   },
 };
 
@@ -1398,14 +1382,6 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   guide: {
     title: "Samenlandへようこそ", menu: "手引き", close: "はじめましょう", welcome: { pitch: "みんなの村が実時間で何か月もかけて育つ——眠っている間にも。", plant: "自分の村をつくる", more: "くわしく" }, wait: { title: "大工たちが働いています！", body: (h: number) => "眠っている間もSamenlandは育ちます。あと約" + h + "時間で次の建物が完成——そのころまた来て、税を集めましょう。" }, mail: { subject: (b: string, t: string) => `${t}の${b}が完成しました`, hello: (n: string) => `${n}さん、こんにちは。`, body: (b: string, t: string) => `大工たちが道具を置きました。${b}が${t}に建ちました。村人たちがもう移り住み、路地に新しい活気をもたらしています。`, cta: "村へ行く", sign: "Samenlandの書記より" }, idle: { subject: (t: string) => `あなたの村${t}が荒れ果てようとしています`, hello: (n: string) => `${n}さん、こんにちは。`, body: (t: string) => `この三か月、${t}を訪れる人はいませんでした。七日以内にログインしないと、村とアカウントは完全に削除されます。一度訪れるだけで、すべてそのまま残ります。`, cta: "村へ行く", sign: "Samenland長老会" }, notify: { label: "建物が完成したらメールで知らせる", on: "完成したらお知らせします ✓" },
     intro: "ゆっくり楽しむ遊びです。村は現実の時間とともに、見ていない間も育ちます。",
-    steps: [
-      ["種をまく", "一人につき、築ける村はひとつだけ。水辺、森、農地、丘が、村の得意な営みを形づくります。"],
-      ["見守る", "およそ二年をかけ、家や畑、村人が増え、小さな集落から大都市へと育ちます。人々は働き、眠り、結婚し、日曜日には休みます。"],
-      ["ターラーと建築", "住民は一人につき一日一ターラーを納めます。左の「建築」で、食料や健康、繁栄を高める建物に使いましょう。"],
-      ["世話", "一日一度、村を祝福できます。村の成長が速まります。"],
-      ["決断", "ときおり来訪者が扉をたたき、選択を求められます。羊皮紙が現れますが、決めるのはあとでもかまいません。"],
-      ["隣人", "ほかの村への道は、交易や贈り物、助け合いをもたらします。二つの町が育ってつながると、双子町になります。"],
-    ],
   },
 };
 

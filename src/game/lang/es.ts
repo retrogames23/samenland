@@ -340,13 +340,5 @@ export const es: Dict = {
   guide: {
     title: "Bienvenidos a Samenland", menu: "Guía", close: "¡Adelante!", welcome: { pitch: "Un pueblo multijugador que crece en tiempo real durante meses, incluso mientras duermes.", plant: "Fundar mi pueblo", more: "Saber más" }, wait: { title: "¡Tus constructores están trabajando!", body: (h: number) => "Samenland sigue creciendo mientras duermes. El próximo edificio estará listo en unas " + h + " horas: vuelve entonces a recoger nuevos impuestos." }, mail: { subject: (b: string, t: string) => `${b} en ${t} está terminado`, hello: (n: string) => `Hola, ${n}:`, body: (b: string, t: string) => `Tus constructores han dejado las herramientas: ${b} ya se alza en ${t}. Los aldeanos se mudan y llenan las callejuelas de vida nueva.`, cta: "Ver mi pueblo", sign: "Tu escriba de Samenland" }, idle: { subject: (t: string) => `Tu pueblo ${t} está a punto de caer en ruinas`, hello: (n: string) => `Hola, ${n}:`, body: (t: string) => `nadie ha cuidado de ${t} en tres meses. Si no inicias sesión en siete días, tu pueblo y tu cuenta se borrarán para siempre. Basta una visita para que todo siga igual.`, cta: "Ver mi pueblo", sign: "El Consejo de Ancianos de Samenland" }, notify: { label: "Avísame por correo cuando un edificio esté listo", on: "Te escribiré en cuanto esté en pie ✓" },
     intro: "Un juego pausado: tu aldea crece en tiempo real, incluso cuando no estás mirando.",
-    steps: [
-      ["Sembrar una semilla", "Cada jugador funda exactamente una aldea. El agua, los bosques, los sembrados o las colinas determinarán sus virtudes."],
-      ["Observar", "Casas, labrantíos y habitantes prosperan durante unos dos años, de modesta aldea a metrópolis. Las gentes trabajan, duermen, desposan y reposan los domingos."],
-      ["Taler y construcción", "Cada vecino tributa un taler por día. Empléalos en “Construir” a la izquierda para erigir obras que aumenten sustento, salud o riqueza."],
-      ["Cuidados", "Una vez al día podéis bendecir vuestra aldea: ello acelerará su medro."],
-      ["Decisiones", "De cuando en cuando llamarán forasteros o tocará dirimir un asunto. Aparecerá un pergamino; también podréis resolverlo más tarde."],
-      ["Vecinos", "Los caminos hacia otras aldeas traen comercio, presentes y socorro. Al unirse dos villas, quedan convertidas en villas hermanas."],
-    ],
   },
 };
