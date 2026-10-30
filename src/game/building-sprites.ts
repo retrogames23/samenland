@@ -22,13 +22,13 @@ import suburb from "@/assets/sprites/suburb.webp";
 import farmhouse from "@/assets/sprites/farmhouse.webp";
 import cottage from "@/assets/sprites/cottage.webp";
 import barn from "@/assets/sprites/barn.webp";
-import church from "@/assets/sprites/church.webp";
+import church from "@/assets/sprites/cohesive/church.webp";
 import mill from "@/assets/sprites/mill-body.webp";
 import millSails from "@/assets/sprites/mill-sails.webp";
 import inn from "@/assets/sprites/inn.webp";
 import bakery from "@/assets/sprites/bakery.webp";
-import townhouse from "@/assets/sprites/townhouse.webp";
-import townhouse2 from "@/assets/sprites/townhouse2.webp";
+import townhouse from "@/assets/sprites/cohesive/townhouse.webp";
+import townhouse2 from "@/assets/sprites/cohesive/townhouse2.webp";
 import patrician from "@/assets/sprites/patrician.webp";
 import fachwerk from "@/assets/sprites/fachwerk.webp";
 import steinhaus from "@/assets/sprites/steinhaus.webp";
@@ -40,7 +40,7 @@ import smithy from "@/assets/sprites/smithy.webp";
 import warehouse from "@/assets/sprites/warehouse.webp";
 import factory from "@/assets/sprites/factory.webp";
 import sawmill from "@/assets/sprites/sawmill.webp";
-import well from "@/assets/sprites/well.webp";
+import well from "@/assets/sprites/cohesive/well.webp";
 import market from "@/assets/sprites/market.webp";
 import hay from "@/assets/sprites/hay.webp";
 import fishery from "@/assets/sprites/fishery.webp";
@@ -52,8 +52,8 @@ import school from "@/assets/sprites/school.webp";
 import belfry from "@/assets/sprites/belfry.webp";
 import theater from "@/assets/sprites/theater.webp";
 import theaterLight from "@/assets/sprites/night/theater.webp";
-import opera from "@/assets/sprites/opera.webp";
-import operaLight from "@/assets/sprites/night/opera.webp";
+import opera from "@/assets/sprites/cohesive/opera.webp";
+import operaLight from "@/assets/sprites/cohesive/night/opera.webp";
 import university from "@/assets/sprites/university.webp";
 import universityLight from "@/assets/sprites/night/university.webp";
 import exchange from "@/assets/sprites/exchange.webp";
@@ -70,7 +70,7 @@ import type { Kind } from "./world";
 import bakeryLight from "@/assets/sprites/night/bakery.webp";
 import barnLight from "@/assets/sprites/night/barn.webp";
 import chapelLight from "@/assets/sprites/night/chapel.webp";
-import churchLight from "@/assets/sprites/night/church.webp";
+import churchLight from "@/assets/sprites/cohesive/night/church.webp";
 import cottageLight from "@/assets/sprites/night/cottage.webp";
 import dairyLight from "@/assets/sprites/night/dairy.webp";
 import factoryLight from "@/assets/sprites/night/factory.webp";
@@ -105,8 +105,8 @@ import townhallLight from "@/assets/sprites/night/townhall.webp";
 import fachwerkLight from "@/assets/sprites/night/fachwerk.webp";
 import steinhausLight from "@/assets/sprites/night/steinhaus.webp";
 import handwerkerLight from "@/assets/sprites/night/handwerker.webp";
-import townhouseLight from "@/assets/sprites/night/townhouse.webp";
-import townhouse2Light from "@/assets/sprites/night/townhouse2.webp";
+import townhouseLight from "@/assets/sprites/cohesive/night/townhouse.webp";
+import townhouse2Light from "@/assets/sprites/cohesive/night/townhouse2.webp";
 import patricianLight from "@/assets/sprites/night/patrician.webp";
 import villaLight from "@/assets/sprites/night/villa.webp";
 import tenementLight from "@/assets/sprites/night/tenement.webp";
@@ -141,12 +141,12 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   farmhouse: { url: farmhouse, crop: [0, 0, 933, 799], width: 23, base: 5 },
   cottage: { url: cottage, crop: [0, 0, 996, 872], width: 20, base: 5 },
   barn: { url: barn, crop: [0, 0, 1000, 933], width: 27, base: 5 },
-  church: { url: church, crop: [0, 0, 780, 943], width: 32, base: 5 },
+  church: { url: church, crop: [0, 0, 428, 480], width: 32, base: 5 },
   mill: { url: mill, crop: [0, 0, 480, 779], width: 16, base: 4 },
   inn: { url: inn, crop: [0, 0, 982, 925], width: 26, base: 5 },
   bakery: { url: bakery, crop: [0, 0, 921, 908], width: 23, base: 5 },
-  townhouse: { url: townhouse, crop: [0, 0, 498, 1010], width: 17, base: 4 },
-  townhouse2: { url: townhouse2, crop: [0, 0, 240, 480], width: 17, base: 4 },
+  townhouse: { url: townhouse, crop: [0, 0, 251, 480], width: 17, base: 4 },
+  townhouse2: { url: townhouse2, crop: [0, 0, 291, 480], width: 17, base: 4 },
   fachwerk: { url: fachwerk, crop: [0, 0, 344, 480], width: 18, base: 4 },
   steinhaus: { url: steinhaus, crop: [0, 0, 306, 480], width: 19, base: 4 },
   handwerker: { url: handwerker, crop: [0, 0, 503, 480], width: 21, base: 4 },
@@ -158,7 +158,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   warehouse: { url: warehouse, crop: [0, 0, 993, 705], width: 29, base: 5 },
   factory: { url: factory, crop: [0, 0, 464, 480], width: 34, base: 4 },
   sawmill: { url: sawmill, crop: [0, 0, 1005, 747], width: 28, base: 5 },
-  well: { url: well, crop: [0, 0, 677, 946], width: 6, base: 1.5 },
+  well: { url: well, crop: [0, 0, 349, 480], width: 6, base: 1.5 },
   market: { url: market, crop: [0, 0, 990, 665], width: 26, base: 5 },
   hay: { url: hay, crop: [0, 0, 966, 827], width: 13, base: 3 },
   fishery: { url: fishery, crop: [0, 0, 480, 436], width: 22, base: 4 },
@@ -172,7 +172,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   school: { url: school, crop: [0, 0, 480, 478], width: 25, base: 4 },
   belfry: { url: belfry, crop: [0, 0, 157, 480], width: 13, base: 3 },
   theater: { url: theater, crop: [0, 0, 456, 480], width: 31, base: 4 },
-  opera: { url: opera, crop: [0, 0, 480, 464], width: 35, base: 4 },
+  opera: { url: opera, crop: [0, 0, 464, 480], width: 35, base: 4 },
   university: { url: university, crop: [0, 0, 480, 456], width: 35, base: 4 },
   exchange: { url: exchange, crop: [0, 0, 480, 467], width: 33, base: 4 },
   orangery: { url: orangery, crop: [0, 0, 480, 390], width: 28, base: 4 },

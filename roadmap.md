@@ -1,3 +1,8 @@
+# Roadmap: Einheitliche Gebäudegrafiken
+- [x] Kirche, Stadthaus-Varianten, Brunnen und Oper mit gemeinsamer Perspektive neu zeichnen
+- [x] Bildgrößen, Bodenanker und passende Nachtlichter integrieren
+- [x] Darstellung im Browser und vorhandene Tests prüfen
+
 # Roadmap: Lebendige Nachbarschaft
 
 # Roadmap: Wohlstand und Steuern
