@@ -30,13 +30,13 @@ export const Route = createFileRoute("/api/public/bug-digest")({
             kind: r.kind, body: r.body, shots,
             at: new Date(r.created_at).toLocaleString("de-DE", { timeZone: "Europe/Berlin" }),
             who: seed ? `${seed.owner} (${seed.name})` : r.user_id,
-            context: [c.realm, c.lang, c.screen, c.url, c.ua].filter(Boolean).join(" · "),
+            context: ["realm", "lang", "screen", "url", "ua"].map((k) => c[k]).filter(Boolean).join(" · "),
           });
         }
         const day = new Date().toISOString().slice(0, 10);
         await sendTemplateEmail("bug-digest", "stephan.doerner@posteo.de", {
           templateData: { items },
-          idempotencyKey: `bug-digest-${day}-${rows[rows.length - 1].id}`,
+          idempotencyKey: `bug-digest-${day}-${rows[rows.length - 1]!.id}`,
         });
         await db.from("bug_reports").update({ sent_at: new Date().toISOString() }).in("id", rows.map((r) => r.id));
         return Response.json({ sent: rows.length });
