@@ -129,8 +129,10 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     const st = structureAt(x, y, seeds, now);
     if (!st || st.seed.id !== s.id) continue;
     if (st.build !== undefined) { sites.push([x, y]); continue; }
-    if (!byKind.has(st.kind)) byKind.set(st.kind, []);
-    byKind.get(st.kind)!.push([x, y]);
+    const kind = st.homeKind ?? st.kind;
+    if (!byKind.has(kind)) byKind.set(kind, []);
+    const tiles = byKind.get(kind);
+    if (tiles) tiles.push([x, y]);
   }
   const near = (list: Tile[] | undefined, from: Tile, h: number): Tile | null => {
     if (!list?.length) return null;
