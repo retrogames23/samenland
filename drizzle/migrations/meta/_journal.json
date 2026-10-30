@@ -330,6 +330,13 @@
       "when": 1793354376759,
       "tag": "0046_trade_roads_civic_wealth",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1793355520736,
+      "tag": "0047_dynamic_weddings",
+      "breakpoints": true
     }
   ]
 }
