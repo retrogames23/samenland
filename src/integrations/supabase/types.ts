@@ -829,6 +829,10 @@ export type Database = {
         Args: { _seed: string; _visited: string }
         Returns: number
       }
+      estate_assessment: {
+        Args: { _pop: number; _wealth: number }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -844,8 +848,16 @@ export type Database = {
       }
       touch_activity: { Args: { _lang?: string }; Returns: undefined }
       village_balance: { Args: { _seed: string }; Returns: number }
+      village_civic_wealth: {
+        Args: { _at: string; _seed: string }
+        Returns: number
+      }
       village_dowry: {
         Args: { _at: string; _created: string }
+        Returns: number
+      }
+      village_estate_tax: {
+        Args: { _at: string; _seed: string }
         Returns: number
       }
       village_raids: {
