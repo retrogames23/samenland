@@ -71,6 +71,7 @@ import {
   roadCandidates, roadHours,
   roadBuilding,
   roadIncoming,
+  roadDone,
   type Seed,
   canPlaceSpecial,
   SPECIAL_KIND,
@@ -168,6 +169,13 @@ export function Game() {
       if (!bl && !bo && !ch && !fr && !de) return s;
       return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { roads: fr.map((f) => ({ target: f.target_id, at: Date.parse(f.created_at) })).sort((a, b) => a.at - b.at) } : {}), ...(de ? { decisions: de.sort((a, b) => a.at - b.at) } : {}) };
     }).map((s) => {
+      const civicRoads = rawSeeds.filter(o => o.id !== s.id).flatMap(o => {
+        const a = { ...s, roads: firstRoads.filter(r => r.seed_id === s.id).map(r => ({ target: r.target_id, at: Date.parse(r.created_at) })) };
+        const b = { ...o, roads: firstRoads.filter(r => r.seed_id === o.id).map(r => ({ target: r.target_id, at: Date.parse(r.created_at) })) };
+        const at = roadDone(a, b);
+        return at === null ? [] : [{ at }];
+      });
+      s = { ...s, civicRoads };
       const lt = letters.filter((g) => g.from_seed === s.id).map((g) => ({ id: g.id, to: g.to_seed, at: Date.parse(g.created_at) }));
       return lt.length ? { ...s, letters: lt } : s;
     }).map((s) => {
