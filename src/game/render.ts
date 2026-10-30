@@ -1811,6 +1811,19 @@ export function draw(
   // encounter props: the raised maypole on the square and the village's cows (derived in townOf)
   const props = new Map<number, ((cx: number, cy: number) => void)[]>();
   const addProp = (k: number, f: (cx: number, cy: number) => void) => (props.get(k) ?? props.set(k, []).get(k)!).push(f);
+  // road crews join the tile depth order, so houses in front hide them instead of the crew floating on roofs
+  if (detail) for (const l of links(seeds)) {
+    const prog = roadProgress(l, now);
+    if (prog <= 0 || prog >= 1) continue;
+    const pts = smoothRoad(l), n = pts.length, k = Math.min(n - 2, Math.floor(prog * n / 2));
+    const sn = l.a.x * 7 + l.b.y * 13;
+    for (const [i, j] of [[k, k + 1], [n - 1 - k, n - 2 - k]] as const) {
+      const [ax, ay] = pts[i]!, [bx, by] = pts[Math.max(0, Math.min(n - 1, j))]!;
+      if (ax < cs0x - 40 || ax > cs1x + 40 || ay < cs0y - 40 || ay > cs1y + 40) continue;
+      const [tx, ty] = toTile(ax, ay);
+      addProp(ty * MAP + tx, () => drawRoadWorks(c, ax, ay, bx - ax, by - ay, t, sn + i));
+    }
+  }
   if (detail) for (const sd of seeds) {
     if (!sd.decisions?.length) continue;
     const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 2;
@@ -1930,17 +1943,7 @@ export function draw(
   if (detail) for (const l of links(seeds)) {
     const prog = roadProgress(l, now);
     if (prog <= 0) continue;
-    if (prog < 1) {
-      // road under construction: a work crew at each growing end
-      const pts = smoothRoad(l), n = pts.length, k = Math.min(n - 2, Math.floor(prog * n / 2));
-      const sn = l.a.x * 7 + l.b.y * 13;
-      for (const [i, j] of [[k, k + 1], [n - 1 - k, n - 2 - k]] as const) {
-        const [ax, ay] = pts[i]!, [bx, by] = pts[Math.max(0, Math.min(n - 1, j))]!;
-        if (ax < cs0x - 40 || ax > cs1x + 40 || ay < cs0y - 40 || ay > cs1y + 40) continue;
-        drawRoadWorks(c, ax, ay, bx - ax, by - ay, t, sn + i);
-      }
-      continue;
-    }
+    if (prog < 1) continue; // road crews are drawn in the tile depth pass above
     const pts = smoothRoad(l);
     const n = pts.length;
     const mature = Math.min(1, Math.min(ageHours(l.a, now), ageHours(l.b, now)) / 240);
