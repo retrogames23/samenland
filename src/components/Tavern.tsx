@@ -8,7 +8,8 @@ import { X } from "lucide-react";
 import { toast } from "sonner";
 
 const SEEN = "samenland-chat-seen";
-const readSeen = (): Record<string, number> => { try { return JSON.parse(localStorage.getItem(SEEN) ?? "{}"); } catch { return {}; } };
+const seenKey = (uid: string | null) => `${SEEN}:${uid ?? "anon"}`;
+const readSeen = (uid: string | null): Record<string, number> => { try { return JSON.parse(localStorage.getItem(seenKey(uid)) ?? localStorage.getItem(SEEN) ?? "{}"); } catch { return {}; } };
 
 /** IRC-style tavern chat: one room per map, letters between mayors, blocking. Always mounted to count unread. */
 export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnread }: {
@@ -23,7 +24,8 @@ export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnr
   const [showBlocked, setShowBlocked] = useState(false);
   const end = useRef<HTMLDivElement>(null);
 
-  useEffect(() => setSeen(readSeen()), []);
+  const [side, setSide] = useState(false);
+  useEffect(() => setSeen(readSeen(userId)), [userId]);
   useEffect(() => {
     if (!userId) { setMsgs([]); return; }
     let live = true;
@@ -58,9 +60,18 @@ export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnr
     if (!open) return;
     const k = chanKey(chan), last = shown.length ? Date.parse(shown[shown.length - 1]!.created_at) : Date.now();
     if ((seen[k] ?? 0) >= last) return;
-    const next = { ...seen, [k]: last };
-    setSeen(next); localStorage.setItem(SEEN, JSON.stringify(next));
-  }, [open, chan, shown, seen]);
+    const next = { ...readSeen(userId), ...seen, [k]: last };
+    setSeen(next); localStorage.setItem(seenKey(userId), JSON.stringify(next));
+  }, [open, chan, shown, seen, userId]);
+  // on opening: jump to a waiting letter when the main room has nothing new
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open && !wasOpen.current && unreadOf("tavern") === 0) {
+      const p = peers.find((x) => !blocked.has(x) && unreadOf({ peer: x }) > 0);
+      if (p) setChan({ peer: p });
+    }
+    wasOpen.current = open;
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [shown.length, open, chan]);
 
   const send = async () => {
@@ -86,7 +97,7 @@ export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnr
   const chanBtn = (c: Channel, name: string) => {
     const on = chanKey(c) === chanKey(chan), n = unreadOf(c);
     return (
-      <button key={chanKey(c)} type="button" onClick={() => setChan(c)} className={`flex w-full items-center justify-between truncate rounded px-1.5 py-0.5 text-left ${on ? "bg-ink/15 font-semibold" : "hover:bg-ink/10"}`}>
+      <button key={chanKey(c)} type="button" onClick={() => { setChan(c); setSide(false); }} className={`flex w-full items-center justify-between truncate rounded px-1.5 py-0.5 text-left ${on ? "bg-ink/15 font-semibold" : "hover:bg-ink/10"}`}>
         <span className="truncate">{name}</span>{n > 0 && !on && <span className="ml-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{n}</span>}
       </button>
     );
@@ -94,14 +105,20 @@ export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnr
   const others = [...people.entries()].filter(([u, s]) => u !== userId && s.realm === realm);
 
   return (
-    <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/40 p-3" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="parchment relative flex h-[min(80vh,640px)] w-full max-w-3xl flex-col text-ink">
+    <div className="absolute inset-0 z-40 grid place-items-center overflow-hidden bg-foreground/40 p-2 sm:p-3" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="parchment relative flex h-[min(80vh,640px)] w-full max-w-[min(48rem,calc(100vw-1rem))] flex-col overflow-hidden text-ink">
         <div className="flex items-center justify-between border-b border-ink/25 px-4 py-2">
-          <h2 className="font-display text-3xl leading-none">{t.tavern.title}</h2>
+          <div className="flex min-w-0 items-center gap-2">
+            <button type="button" onClick={() => setSide((v) => !v)} className="relative shrink-0 rounded border border-ink/30 px-2 py-0.5 text-xs sm:hidden">
+              {chan === "tavern" ? `# ${t.tavern.room}` : `@ ${people.get(chan.peer)?.owner ?? t.tavern.stranger}`} ▾
+              {total - unreadOf(chan) > 0 && <span className="absolute -right-1.5 -top-1.5 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{total - unreadOf(chan)}</span>}
+            </button>
+            <h2 className="truncate font-display text-2xl leading-none sm:text-3xl">{t.tavern.title}</h2>
+          </div>
           <button type="button" aria-label={t.close} onClick={onClose} className="grid h-7 w-7 place-items-center rounded-full hover:bg-ink/10"><X className="h-4 w-4" /></button>
         </div>
-        <div className="flex min-h-0 flex-1">
-          <aside className="w-36 shrink-0 space-y-2 overflow-auto border-r border-ink/25 p-2 text-xs sm:w-44">
+        <div className="relative flex min-h-0 flex-1">
+          <aside className={`${side ? "absolute inset-0 z-10 block bg-card/95" : "hidden"} space-y-2 overflow-auto border-r border-ink/25 p-3 text-sm sm:static sm:block sm:w-44 sm:shrink-0 sm:bg-transparent sm:p-2 sm:text-xs`}>
             {chanBtn("tavern", `# ${t.tavern.room}`)}
             <div>
               <div className="px-1.5 pt-1 font-semibold uppercase tracking-wide text-ink/60">{t.tavern.letters}</div>
