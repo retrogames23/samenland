@@ -316,6 +316,13 @@
       "when": 1793354005349,
       "tag": "0044_civic_estates_and_school_price",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793354196966,
+      "tag": "0045_school_small_town_gate",
+      "breakpoints": true
     }
   ]
 }
