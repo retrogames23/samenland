@@ -1,6 +1,6 @@
 import { cacheTick, isSunday } from "./time";
 import { civicWealth, estateAt, type Estate } from "./prosperity";
-import { weddingTimes, weddingJoy } from "./weddings";
+import { weddingDates, weddingJoy } from "./weddings";
 import { hasTrait } from "./traits";
 import { pathHeading } from "./motion";
 import { leaversOf } from "./wander";
@@ -49,7 +49,7 @@ const GUESTS: Record<string, [Job, Sex, number, number, number][]> = {
   monk: [["priest", "m", 58, 0, 0]], surveyor: [["mason", "m", 41, 0, 0]], pilgrims: [["retired", "m", 60, 0, 0], ["homemaker", "f", 44, 0.6, 0.2], ["worker", "m", 36, -0.4, 0.6]],
   orphan: [["child", "m", 11, 0, 0]], tinker: [["smith", "m", 50, 0, 0]], painter: [["crafter", "m", 35, 0, 0]], nursery: [["herbalist", "m", 47, 0, 0]],
 };
-export type Wedding = { at: number; a: Person; b: Person; alliance: boolean };
+export type Wedding = { at: number; a: Person; b: Person; alliance: boolean; dowry: number; grand: boolean; town: boolean };
 /** Families whose trades form an alliance when their children marry. */
 const CRAFT: ReadonlySet<Job> = new Set(["baker", "miller", "smith", "crafter", "sawyer", "innkeeper", "fisher", "mason", "merchant", "farmer"] as Job[]);
 /** Goods carried along the supply chains (wood → sawmill → site, grain → mill → bakery → inn). */
@@ -263,13 +263,17 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const church: Tile | null = chT ? (front(chT) ?? null) : null;
   processions(weddings, people, church ?? meet, now);
   // the mayor's answer to the real wedding: the feast also gathers the village at church (the couple's procession runs anyway)
+  // in a village a wedding is a great day: everyone gathers at church after the service; in a town only the mayor's feast does that
   const wd = (s.decisions ?? []).filter((d) => d.event === "wedding" && d.choice === "feast" && now >= d.at && now - d.at < 3 * 3600e3).pop();
-  if (wd && weddings.some((w) => w.at <= wd.at && wd.at - w.at < 3 * 3600e3)) {
+  const live = weddings.filter((w) => now >= w.at && now - w.at < 3 * 3600e3).pop();
+  const gatherAt = wd && weddings.some((w) => w.at <= wd.at && wd.at - w.at < 3 * 3600e3) ? wd.at : live && !live.town ? live.at + SERVICE_SECS * 1000 : null;
+  if (gatherAt != null && now >= gatherAt) {
+    const wdAt = gatherAt;
     const c = church ?? meet;
     for (const q of people) {
       if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 43, 720) < 0.2) continue;
       const a = hash(q.id, 44, 720) * Math.PI * 2, rr = 1 + hash(q.id, 45, 720) * 1.8;
-      q.fete = { at: wd.at, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 46, 720) * 180 };
+      q.fete = { at: wdAt, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 46, 720) * 180 };
     }
   }
   const ina = inauguration(s, seeds, now);
@@ -365,7 +369,7 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
   const out: Wedding[] = [];
   const heads = new Map<number, Person>();
   for (const p of people) if (p.role === "head") heads.set(p.hh!, p);
-  weddingTimes(s, now).forEach((at, k) => {
+  weddingDates(s, now).forEach(({ at, k, dowry, grand, town }) => {
     const ageK = effAge(s, seeds, at);
     const free = people.filter((p) => (p.role === "child" || p.role === "lodger") && p.age >= 17 && p.age <= 45 && p.spouse == null && bornAt(p.home[0], p.home[1], s) <= ageK);
     const men = free.filter((p) => p.sex === "m"), women = free.filter((p) => p.sex === "f");
@@ -377,7 +381,7 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
       const alliance = !!fa && !!fb && CRAFT.has(fa.job) && CRAFT.has(fb.job);
       g.spouse = b.id; b.spouse = g.id; g.wedAt = b.wedAt = at; g.alliance = b.alliance = alliance;
       b.maiden = b.last; b.last = g.last; b.home = g.home;
-      out.push({ at, a: g, b, alliance });
+      out.push({ at, a: g, b, alliance, dowry, grand, town });
       return;
     }
     // no singles yet: the young couple of the newest home are children of two older village families
@@ -395,7 +399,7 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
       for (const q of people) if (q.hh === h.hh) q.last = pa.last;
       const alliance = CRAFT.has(pa.job) && CRAFT.has(pb.job);
       m.spouse = f.id; f.spouse = m.id; m.wedAt = f.wedAt = at; m.alliance = f.alliance = alliance;
-      out.push({ at, a: m, b: f, alliance });
+      out.push({ at, a: m, b: f, alliance, dowry, grand, town });
       return;
     }
   });

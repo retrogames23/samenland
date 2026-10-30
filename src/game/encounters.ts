@@ -1,4 +1,5 @@
-import { weddingNow } from "./weddings";
+import { weddingLive } from "./weddings";
+import type { Seed } from "./world";
 /**
  * Daily encounters ("Schulzen-Entscheidungen"): which encounter a village meets on a UTC day is a pure
  * function of (seed id, day); only the chosen answer is stored. Effects are temporary boons derived from
@@ -68,12 +69,13 @@ export const choiceOf = (e: string, c: string): Choice | undefined => (ENCOUNTER
  * Open encounter, or null when too young or the last decision is more recent than the gap.
  * At most one is ever open — encounters never pile up while nobody watches.
  */
-export function pendingEncounter(seed: { id: string; created_at: string }, decisions: Decision[], now: number): EventKey | null {
+export function pendingEncounter(seed: Pick<Seed, "id" | "created_at"> & Partial<Seed>, decisions: Decision[], now: number): EventKey | null {
   const ageH = (now - Date.parse(seed.created_at)) / 3.6e6;
   if (ageH < ENCOUNTER_FROM) return null;
   // a real wedding (weddings.ts calendar) is answered once, regardless of the visitor rhythm
-  const w = weddingNow(seed, now);
-  if (w != null && !decisions.some((d) => d.event === "wedding" && d.at >= w)) return "wedding";
+  // in a village every wedding calls the mayor; in a town only the council weddings (WedDate.grand)
+  const w = weddingLive(seed as Seed, now);
+  if (w && w.grand && !decisions.some((d) => d.event === "wedding" && d.at >= w.at)) return "wedding";
   const last = decisions.reduce((m, d) => d.event === "wedding" ? m : Math.max(m, d.at), -Infinity);
   if ((now - last) / 3.6e6 < encounterGap(ageH)) return null;
   return eventOf(seed.id, decisions.filter((d) => d.event !== "wedding").length);
@@ -117,7 +119,7 @@ export function saplingsOwed(decisions: { event: string; choice: string }[], pla
 export const GUEST_EVENTS: ReadonlySet<string> = new Set(["journeyman", "merchant", "healer", "minstrel", "widow", "monk", "surveyor", "pilgrims", "orphan", "tinker", "painter", "nursery"]);
 export const GUEST_H = 4;
 /** The visitor currently in the village (pure in decisions + clock): arrival time, departure, and whether they were welcomed. */
-export function guestNow(seed: { id: string; created_at: string }, decisions: Decision[], now: number): { event: EventKey; at: number; until: number } | null {
+export function guestNow(seed: Pick<Seed, "id" | "created_at"> & Partial<Seed>, decisions: Decision[], now: number): { event: EventKey; at: number; until: number } | null {
   const p = pendingEncounter(seed, decisions, now);
   const vis = decisions.filter((d) => d.event !== "wedding" && d.at <= now);
   const last = vis.reduce<Decision | null>((m, d) => (!m || d.at > m.at ? d : m), null);
