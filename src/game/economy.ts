@@ -1,5 +1,5 @@
 import { giftBalance, type Gift } from "./gifts";
-import { civicWealth, estateAssessment } from "./prosperity";
+import { civicWealth, estateAssessment, sickLoss, sickTaxRate } from "./prosperity";
 import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, floodFood } from "./disasters";
@@ -52,13 +52,14 @@ export function taxEarned(s: Seed, now: number) {
   let t = 0;
   for (let d = 1; d <= days; d++) {
     const p = popAt(d * 24);
-    t += estateAssessment(p, civicWealth(s, c0 + d * 86400000));
+    const a = estateAssessment(p, civicWealth(s, c0 + d * 86400000));
+    t += a - sickLoss(a, sickTaxRate(s, c0 + d * 86400000));
     if (trade != null && c0 + d * 86400000 >= trade) t += Math.floor(TRADE_TAX * p);
   }
   return t;
 }
 /** Today's income per day, including the trade charter bonus. */
-export const dailyTax = (s: Seed, h: number) => { const p = popAt(h), at = Date.parse(s.created_at) + h * 3.6e6; return estateAssessment(p, civicWealth(s, at)) + (s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(TRADE_TAX * p) : 0); };
+export const dailyTax = (s: Seed, h: number) => { const p = popAt(h), at = Date.parse(s.created_at) + h * 3.6e6; const a = estateAssessment(p, civicWealth(s, at)); return a - sickLoss(a, sickTaxRate(s, at)) + (s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(TRADE_TAX * p) : 0); };
 
 /** Friend-invite bonus (mirrors DB referrals in village_balance): both villages get the reward. */
 export const REFERRAL_TALER = 50;

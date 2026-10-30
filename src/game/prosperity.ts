@@ -55,3 +55,13 @@ export function estateHouse(kind: Kind, estate: Estate): Kind {
   if (estate === "skilled") return kind === "hut" || kind === "farmhouse" || kind === "cottage" || kind === "handwerker" ? "handwerker" : "fachwerk";
   return kind === "hut" || kind === "farmhouse" ? kind : kind === "tenement" ? "tenement" : "cottage";
 }
+/** Sick villagers pay no tax that day (their carer still does). Tax view of sickRate (people.ts):
+ * same base, herb hut and healer, but winter = Dec–Feb UTC month and no wedding-joy pause, mirrored by DB sick_tax_loss.
+ * About one in SICK_SHARE residents of an afflicted household lies ill. */
+export const SICK_SHARE = 0.4;
+export function sickTaxRate(s: Seed, at: number): number {
+  const own = (i: string) => (s.bought ?? []).some((b) => b.item === i && b.at <= at);
+  const m = new Date(at).getUTCMonth(), winter = m === 11 || m < 2 ? 1 : 0;
+  return Math.max(0.01, 0.06 + 0.03 * winter - (own("herbs") ? 0.015 : 0) - (own("healer") || own("infirmary") ? 0.035 : 0));
+}
+export const sickLoss = (assessed: number, rate: number) => Math.floor(assessed * rate * SICK_SHARE);
