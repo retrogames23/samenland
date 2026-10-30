@@ -11,7 +11,7 @@ import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peop
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townOf, poseOf, kinOf, commandMayor, driveMayor, clearMayorOrder, setStrollHold, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
-import { weddingJoy, DOWRY } from "@/game/weddings";
+import { weddingJoy } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
 import { larderOf, storedAt, chainOf, boonsOf, type Ware } from "@/game/goods";
 import { WareIcon } from "@/components/hud/WareIcon";
@@ -985,7 +985,7 @@ export function Game() {
       const now = clock(), c = chronicle(my, seeds, liveFrom.current, now);
       liveFrom.current = now;
       localStorage.setItem(`samenland-seen-${my.id}`, String(now));
-      let big = c.events.filter((e) => e.code !== "season" && e.code !== "houses" && e.code !== "families");
+      let big = c.events.filter((e) => e.code !== "season" && e.code !== "houses" && e.code !== "families" && !(e.code === "wedding" && !e.grand));
       // Small moments (one house + its family) at most every few minutes, so big towns don't flood the screen.
       const small = big.filter((e) => e.code === "house" || e.code === "family");
       big = big.filter((e) => e.code !== "house" && e.code !== "family");
@@ -1008,7 +1008,7 @@ export function Game() {
     if (e.code === "fire") return e.guarded ? [t.woe.fireGuarded[0], t.woe.fireGuarded[1](n)] : [t.woe.fire[0], t.woe.fire[1](n, e.water, e.dead)];
     if (e.code === "flood") return [t.woe.flood[0], t.woe.flood[1](n)];
     if (e.code === "raid") return e.caught ? [t.woe.caught[0], t.woe.caught[1](n)] : [t.woe.raid[0], t.woe.raid[1](n, e.loss)];
-    if (e.code === "wedding") return [t.fest.wedding, t.fest.wedBody(e.a, e.b, DOWRY) + (e.alliance ? " " + t.fest.wedAlliance : "")];
+    if (e.code === "wedding") return [t.fest.wedding, t.fest.wedBody(e.a, e.b, e.dowry) + (e.alliance ? " " + t.fest.wedAlliance : "")];
     if (e.code === "house") return [t.fest.topping[0], t.fest.topping[1](t.kind[e.kind] ?? e.kind, n)];
     if (e.code === "family") return [t.fest.newcomers[0], t.fest.newcomers[1](n)];
     if (e.code === "road") return [t.fest.road[0], t.fest.road[1](e.other)];
