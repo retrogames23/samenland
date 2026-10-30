@@ -3,7 +3,7 @@ import { links, twinSince, isTwin, pactOf, workOf, effAge, GROWTH_PACE, PACT_WAI
 import { attributes } from "./economy";
 
 const T0 = Date.parse("2026-01-01T00:00:00Z");
-const mk = (id: string, x: number, extra: Partial<Seed> = {}): Seed => ({ id, name: id, owner: id, x, y: x === 306 ? 420 : 439, hue: 0, created_at: "2026-01-01T00:00:00Z", user_id: `u-${id}`, roads: [{ target: id === "a" ? "b" : "a", at: T0 }], ...extra });
+const mk = (id: string, x: number, extra: Partial<Seed> = {}): Seed => ({ id, name: id, owner: id, x, y: x === 306 ? 420 : 439, hue: 0, created_at: "2026-01-01T00:00:00Z", user_id: `u-${id}`, bought: ["fisher","hunter","granary","herbs","healer"].map((item) => ({ item, at: 0 })), roads: [{ target: id === "a" ? "b" : "a", at: T0 }], ...extra });
 const pairOf = (a: Seed, b: Seed) => { const seeds = [a, b]; return { seeds, l: links(seeds)[0]! }; };
 
 describe("twin towns", () => {
