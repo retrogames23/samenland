@@ -1,4 +1,5 @@
 import { tileHits } from "@/game/disasters";
+import { BOOK } from "@/game/lang/book";
 import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind } from "@/game/gifts";
 import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
 import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, type Realm } from "@/game/time";
@@ -180,6 +181,7 @@ export function Game() {
   const [home, setHome] = useState<Seed | null>(null);
   const [lang, setLang] = useState<Lang>("de");
   const t = DICT[lang];
+  const book = BOOK[lang];
   const tRef = useRef(t);
   tRef.current = t;
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -768,6 +770,7 @@ export function Game() {
     setTab(null);
     focus(x, y);
     setMsg(t.planted(data.name)); jingle("fanfare");
+    if (!localStorage.getItem(`samenland-intro-seen-${data.id}`)) { localStorage.setItem(`samenland-intro-seen-${data.id}`, "1"); setIntroOpen(true); }
     // invited newcomer: both villages receive the friend bonus (checked by the database)
     const ref = localStorage.getItem("samenland-ref");
     if (ref) {
@@ -878,6 +881,7 @@ export function Game() {
   const [chron, setChron] = useState<Chronicle | null>(null);
   const [chronOpen, setChronOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [introOpen, setIntroOpen] = useState(false);
   const [welcome, setWelcome] = useState(false);
   const [tavernOpen, setTavernOpen] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
@@ -2035,14 +2039,29 @@ export function Game() {
           </Panel>
         </div>
       )}
+      {introOpen && (
+        <Parchment image={ART["guide"]} title={book.first.title} later={book.first.go} onLater={() => setIntroOpen(false)}>
+          <ol className="list-decimal space-y-2 ps-5 text-sm">
+            {book.first.rules.map(([b, r]) => <li key={b}><b className="text-ink">{b}</b> {r}</li>)}
+          </ol>
+          <div className="mt-4 flex justify-center">
+            <Button size="sm" variant="secondary" onClick={() => { setIntroOpen(false); setGuideOpen(true); }}>{book.first.more}</Button>
+          </div>
+        </Parchment>
+      )}
       {guideOpen && (
-        <Parchment wide image={ART["guide"]} title={t.guide.title} later={t.guide.close} onLater={() => setGuideOpen(false)}>
-          <p className="text-center text-sm italic">{t.guide.intro}</p>
-          <ul className="mt-3 space-y-2 text-sm">
-            {t.guide.steps.map(([h, d]) => (
-              <li key={h}><b className="font-display text-lg text-ink">{h}</b> – {d}</li>
-            ))}
-          </ul>
+        <Parchment wide image={ART["guide"]} title={book.title} later={t.guide.close} onLater={() => setGuideOpen(false)}>
+          <ol className="list-decimal space-y-1 ps-5 text-sm">
+            {book.first.rules.map(([b, r]) => <li key={b}><b className="text-ink">{b}</b> {r}</li>)}
+          </ol>
+          {book.chapters.map(([h, items]) => (
+            <section key={h} className="mt-4">
+              <h3 className="font-display text-lg text-ink">{h}</h3>
+              <ul className="mt-1 space-y-1.5 text-sm">
+                {items.map(([b, d], i) => <li key={i}>{b && <b className="text-ink">{b}: </b>}{d}</li>)}
+              </ul>
+            </section>
+          ))}
         </Parchment>
       )}
 
