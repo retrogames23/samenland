@@ -426,7 +426,7 @@ export function Game() {
       supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").then(({ data }) => setWorks(data ?? []));
       supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").then(({ data }) => setGifts((data ?? []) as Gift[]));
       supabase.from("letters").select("id, from_seed, to_seed, created_at").gte("created_at", new Date(Date.now() - 60 * 864e5).toISOString()).then(({ data }) => setLetters(data ?? []));
-      supabase.from("letter_bodies").select("letter_id, body").then(({ data }) => setBodies(Object.fromEntries((data ?? []).map((b) => [b.letter_id, b.body]))));
+      supabase.from("letter_bodies").select("letter_id, body").then(({ data }) => setBodies((old) => ({ ...old, ...Object.fromEntries((data ?? []).map((b) => [b.letter_id, b.body])) })));
       const ss = (a.data ?? []) as Seed[];
       Promise.all([
         supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at"),
@@ -1396,6 +1396,18 @@ export function Game() {
           </div>
         );
       })()}
+      {tab === "towns" && my && owner && (
+        <div className="mb-2 border-b border-border pb-2 text-xs">
+          <div className="font-display text-sm text-foreground">{t.post.book}</div>
+          {(() => { const now2 = clock(); const got = seeds.flatMap((o) => (o.letters ?? []).filter((g) => g.to === my.id && letterArrives(o, my, g.at) <= now2).map((g) => ({ ...g, o }))).sort((a, b) => b.at - a.at).slice(0, 20);
+            return got.length === 0 ? <div className="text-muted-foreground">{t.post.empty}</div> : (
+              <ul className="max-h-40 space-y-1 overflow-auto">{got.map((g) => (
+                <li key={g.id}><button type="button" className="w-full rounded px-1 py-0.5 text-left hover:bg-accent" onClick={() => { setTab(null); setFest((q) => [{ at: letterArrives(g.o, my, g.at), code: "letter", id: g.id, other: g.o.name }, ...q]); }}>
+                  <span className="italic text-foreground">„{bodies[g.id] ?? t.post.sealed}“</span> <span className="text-muted-foreground">{t.post.from(g.o.name)}</span>
+                </button></li>
+              ))}</ul>); })()}
+        </div>
+      )}
       {tab === "towns" && (
         <ul className="max-h-[50vh] space-y-1 overflow-auto">
           {seeds.map((s) => (
@@ -1417,16 +1429,6 @@ export function Game() {
             </li>
           ))}
         </ul>
-      )}
-      {tab === "towns" && my && owner && (
-        <div className="mt-2 border-t border-border pt-2 text-xs">
-          <div className="font-display text-sm text-foreground">{t.post.book}</div>
-          {(() => { const now2 = clock(); const got = seeds.flatMap((o) => (o.letters ?? []).filter((g) => g.to === my.id && letterArrives(o, my, g.at) <= now2).map((g) => ({ ...g, o }))).sort((a, b) => b.at - a.at).slice(0, 20);
-            return got.length === 0 ? <div className="text-muted-foreground">{t.post.empty}</div> : (
-              <ul className="max-h-48 space-y-1 overflow-auto">{got.map((g) => (
-                <li key={g.id}><span className="italic text-foreground">„{bodies[g.id] ?? "…"}“</span> <span className="text-muted-foreground">{t.post.from(g.o.name)}</span></li>
-              ))}</ul>); })()}
-        </div>
       )}
     </div>
   );
