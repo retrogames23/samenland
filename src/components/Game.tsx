@@ -2294,7 +2294,7 @@ export function Game() {
                 <button type="button" aria-label={t.close} className="-m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
               </div>
               <div className="text-sm">{t.personAge(who.age)} · {t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
-              {who.estate && <div className="mt-1 text-xs"><div>{PROSPERITY[lang].estates[who.estate]}</div><div className="text-muted-foreground">{PROSPERITY[lang].tax(ESTATE_TAX[who.estate])}</div></div>}
+              {who.estate && <div className="mt-1 text-xs"><div>{PROSPERITY[lang].estates[who.estate]}</div><div className="text-muted-foreground">{PROSPERITY[lang].tax(who.sick ? 0 : ESTATE_TAX[who.estate])}</div></div>}
               {(kin.spouse || kin.parents.length || kin.children.length || kin.siblings.length || who.maiden) && (
                 <div className="mt-1 space-y-0.5 text-xs">
                   {kin.spouse && <div>{t.fest.kinSpouse("")}{kl(kin.spouse)}{who.wedAt ? <span className="text-muted-foreground"> · {t.fest.kinWed(new Date(who.wedAt).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "short" }))}</span> : null}</div>}
@@ -2357,7 +2357,7 @@ export function Game() {
               ) : (
                 <div className="mt-1 space-y-1 text-sm">
                   {t.purpose[ins.kind] && <div>{t.purpose[ins.kind]}</div>}
-                  {ins.residents.some(p => p.estate) && <div className="text-xs text-muted-foreground">{PROSPERITY[lang].household(ins.residents.reduce((sum, p) => sum + (p.estate ? ESTATE_TAX[p.estate] : 0), 0))}</div>}
+                  {ins.residents.some(p => p.estate) && <div className="text-xs text-muted-foreground">{PROSPERITY[lang].household(ins.residents.reduce((sum, p) => sum + (p.estate && !p.sick ? ESTATE_TAX[p.estate] : 0), 0))}</div>}
                   {ins.residents.length > 0 && <div className="text-xs"><div className="font-semibold">{t.residents}</div>{list(ins.residents)}</div>}
                   {ins.workers.length > 0 && <div className="text-xs"><div className="font-semibold">{t.workers}</div>{list(ins.workers)}</div>}
                   {(() => {
