@@ -22,3 +22,9 @@ test("without food crafts families move away and the town settles lower", () => 
   const fed = mk(["fisher", "hunter", "granary", "dairy", "herbs", "healer"]);
   expect(townOf(fed, [fed], t).people.length).toBeGreaterThan(poor);
 });
+test("an untended player town settles as a village of at most 32 households", () => {
+  const s = mk(), t = Date.parse("2026-07-01T00:00:00Z");
+  const homes = townOf(s, [s], t).people.filter((p) => p.role === "head").length;
+  expect(homes).toBeLessThanOrEqual(32);
+  expect(homes).toBeGreaterThanOrEqual(24);
+});

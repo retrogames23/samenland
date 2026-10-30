@@ -106,15 +106,16 @@ export function townOf(s: Seed, seeds: Seed[], now: number): Town {
   return t;
 }
 
-/** Households a town can feed: a safe base, natural yield of fields/gardens (less in winter), multiplied by bought food/health crafts. */
-export const FEED_BASE = 40, FEED_FIELD = 0.25, FEED_GARDEN = 0.1, FEED_FOOD_ITEM = 0.15, FEED_HEALTH_ITEM = 0.1, FEED_WINTER = 0.25;
+/** Households a town can feed: untended land feeds at most WILD_MAX (never below FEED_BASE); each bought food/health craft opens a share of the land's full yield. */
+export const FEED_BASE = 24, WILD_MAX = 32, FEED_FIELD = 0.25, FEED_GARDEN = 0.1, FEED_FOOD_ITEM = 0.15, FEED_HEALTH_ITEM = 0.1, FEED_WINTER = 0.25;
 export function foodCapacity(s: Seed, byKind: Map<Kind, unknown[]>, now: number) {
   if (!s.user_id) return Infinity;
   const own = new Set((s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item));
   const food = ["fisher", "hunter", "granary", "dairy"].filter((i) => own.has(i)).length;
   const health = ["herbs", "healer"].filter((i) => own.has(i)).length;
-  const land = (8 + FEED_FIELD * (byKind.get("field")?.length ?? 0) + FEED_GARDEN * (byKind.get("garden")?.length ?? 0)) * (1 - FEED_WINTER * seasonAt(now).winter);
-  return Math.max(FEED_BASE, Math.floor(land * (1 + FEED_FOOD_ITEM * food + FEED_HEALTH_ITEM * health)));
+  const w = 1 - FEED_WINTER * seasonAt(now).winter;
+  const land = (8 + FEED_FIELD * (byKind.get("field")?.length ?? 0) + FEED_GARDEN * (byKind.get("garden")?.length ?? 0)) * w;
+  return Math.max(FEED_BASE, Math.floor(Math.min(WILD_MAX * w, land) + land * (FEED_FOOD_ITEM * food + FEED_HEALTH_ITEM * health)));
 }
 
 function buildTown(s: Seed, seeds: Seed[], now: number): Town {
