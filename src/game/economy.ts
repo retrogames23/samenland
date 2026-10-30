@@ -1,5 +1,5 @@
 import { giftBalance, type Gift } from "./gifts";
-import { civicWealth, estateAssessment } from "./prosperity";
+import { civicWealth, estateAssessment, sickLoss, sickTaxRate } from "./prosperity";
 import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, floodFood } from "./disasters";
