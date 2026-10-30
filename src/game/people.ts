@@ -1,4 +1,5 @@
 import { cacheTick, isSunday } from "./time";
+import { civicWealth, estateAt, type Estate } from "./prosperity";
 import { weddingTimes, weddingJoy } from "./weddings";
 import { hasTrait } from "./traits";
 import { pathHeading } from "./motion";
@@ -22,6 +23,7 @@ export type Person = {
   home: Tile; work: Tile | null; workIndoor: boolean; speed: number;
   looks: { skin: number; hair: number; shirt: number; pants: number; hat: boolean; stick: boolean };
   haul: Haul | null;
+  estate?: Estate;
   /** Newly moved-in household: walks in from the village edge with a bundle (real ms start). */
   arrive?: { from: Tile; t0: number } | null;
   /** Household role in the family home (birth household; hh = that home's tile key). */
@@ -201,7 +203,9 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   for (let i = cap; i < homes.length; i++) empty.add(homes[i]!.join(","));
   for (const home of homes) {
     if (empty.has(home.join(","))) continue;
-    const kind = structureAt(home[0], home[1], seeds, now)!.kind;
+    const homeStructure = structureAt(home[0], home[1], seeds, now);
+    if (!homeStructure) continue;
+    const kind = homeStructure.homeKind ?? homeStructure.kind;
     const [lo, hi] = HOMES[kind]!;
     const hh = (i: number) => hash(home[0], home[1], 400 + i);
     const size = lo + Math.floor(hh(0) * (hi - lo + 1));
@@ -250,6 +254,8 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     }
   }
   const weddings = marry(s, people, seeds, now);
+  const wealth = civicWealth(s, now);
+  for (const p of people) p.estate = estateAt(wealth, p.home[0], p.home[1]);
   falls(s, people, now);
   const chT = byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
   const church: Tile | null = chT ? (front(chT) ?? null) : null;

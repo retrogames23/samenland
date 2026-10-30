@@ -12,7 +12,7 @@ const clamp = (n: number) => Math.max(0, Math.min(100, n));
 /** Sustainable civic wealth: historical purchases and charter; prestige matures over six hours.
  * No dependency on world.ts at runtime: structure generation may safely call this function. */
 export function civicWealth(s: Seed, now: number): number {
-  const h = Math.max(0, (now - Date.parse(s.created_at)) / 3.6e6) * 0.35;
+  const h = Math.max(0, (now - Date.parse(s.created_at)) / 3.6e6);
   const stage = [24, 168, 2160, 4380, 8760].filter((a) => h >= a).length;
   const path = s.charter && s.charter.at <= now ? s.charter.path : undefined;
   const own = new Set((s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item));

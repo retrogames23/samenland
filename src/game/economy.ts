@@ -1,4 +1,5 @@
 import { giftBalance, type Gift } from "./gifts";
+import { civicWealth, estateAssessment } from "./prosperity";
 import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, floodFood } from "./disasters";
@@ -7,7 +8,7 @@ import { radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pac
 
 /** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
 export const START_TALER = 150;
-export const ITEMS = { herbs: 90, hunter: 110, fisher: 120, woodcamp: 180, granary: 300, healer: 550, school: 3000, markethall: 450, guildhall: 450, library: 450, dairy: 450, firehouse: 600, guard: 800 } as const;
+export const ITEMS = { herbs: 90, hunter: 110, fisher: 120, woodcamp: 180, granary: 300, healer: 550, school: 1200, markethall: 450, guildhall: 450, library: 450, dairy: 450, firehouse: 600, guard: 800 } as const;
 export type Item = keyof typeof ITEMS;
 /**
  * Prestige monuments built in paid steps (prices mirror the database purchase guard).
@@ -43,7 +44,7 @@ export type Purchase = { id: string; seed_id: string; item: string; cost: number
 /** Residents at a given real age (hours); same formula as the database tax function. */
 export const popAt = (h: number) => Math.floor(3 + 0.9 * Math.pow(radiusOf(Math.max(0, h)), 1.6));
 
-/** Taxes: 1 Taler per resident for every completed day since founding (+15 % after a trade charter). */
+/** Historical estate assessments (1/2/3 Taler), plus the existing +15% base trade-charter bonus. */
 export function taxEarned(s: Seed, now: number) {
   const c0 = Date.parse(s.created_at);
   const days = Math.floor((now - c0) / 86400000);
@@ -51,13 +52,13 @@ export function taxEarned(s: Seed, now: number) {
   let t = 0;
   for (let d = 1; d <= days; d++) {
     const p = popAt(d * 24);
-    t += p;
+    t += estateAssessment(p, civicWealth(s, c0 + d * 86400000));
     if (trade != null && c0 + d * 86400000 >= trade) t += Math.floor(TRADE_TAX * p);
   }
   return t;
 }
 /** Today's income per day, including the trade charter bonus. */
-export const dailyTax = (s: Seed, h: number) => { const p = popAt(h); return p + (s.charter?.path === "trade" ? Math.floor(TRADE_TAX * p) : 0); };
+export const dailyTax = (s: Seed, h: number) => { const p = popAt(h), at = Date.parse(s.created_at) + h * 3.6e6; return estateAssessment(p, civicWealth(s, at)) + (s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(TRADE_TAX * p) : 0); };
 
 /** Friend-invite bonus (mirrors DB referrals in village_balance): both villages get the reward. */
 export const REFERRAL_TALER = 50;

@@ -1,6 +1,7 @@
 import { cacheTick, worldHour, worldWeekday, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
+import { civicWealth, estateAt, estateHouse, RESIDENTIAL } from "./prosperity";
 // Pure, deterministic world + town growth logic (shared by every player).
 const ROAD_YIELDS: ReadonlySet<string> = new Set(["field", "garden", "pasture", "hay", "fence"]);
 export const MAP = 1024;
@@ -232,7 +233,7 @@ export type Kind =
   | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "belfry"
   | "theater" | "opera" | "university" | "exchange" | "orangery" | "seat1" | "seat2" | "seat3";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). */
-export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; fire?: boolean; flood?: boolean };
+export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; fire?: boolean; flood?: boolean; homeKind?: Kind };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
 export const buildTime = (at: number) => Math.min(96, Math.max(1.5, at * 0.06));
 let buildP = 1;
@@ -543,7 +544,7 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
 /** Cache key that changes whenever seed positions, ages or purchases change. */
 const skMemo = new WeakMap<Seed[], string>();
 export const seedsKey = (seeds: Seed[]) => { let k = skMemo.get(seeds); if (k === undefined) { k = seedsKeyRaw(seeds); skMemo.set(seeds, k); } return k; };
-const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}:${(s.roads ?? []).map((r) => r.target).join("+")}:${(s.works ?? []).length}`).join(";");
+const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.item}@${b.at}@${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}@${s.charter?.at ?? ""}:${(s.roads ?? []).map((r) => r.target).join("+")}:${(s.works ?? []).length}`).join(";");
 
 /** Growth hour at which the building on this tile is finished (0 for the founding core). */
 export function bornAt(x: number, y: number, s: Seed): number {
@@ -600,6 +601,11 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
       if (hit.fire) best = { ...best, fire: true };
       else if (hit.build !== undefined) best = { ...best, build: hit.build };
     }
+  }
+  // Paint prosperity without changing household capacity or construction history.
+  if (best && best.build === undefined && !best.fire && RESIDENTIAL.has(best.kind) && best.seed.user_id) {
+    const kind = estateHouse(best.kind, estateAt(civicWealth(best.seed, now), x, y));
+    if (kind !== best.kind) best = { ...best, homeKind: best.kind, kind };
   }
   if (!best) {
     const rd = roadAt(x, y, seeds, now);
