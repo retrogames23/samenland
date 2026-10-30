@@ -11,12 +11,12 @@ import dirt from "@/assets/terrain/dirt.jpg";
 import cobble from "@/assets/terrain/cobble.jpg";
 import wheat from "@/assets/terrain/wheat.jpg";
 import crops from "@/assets/terrain/crops.jpg";
-import oak from "@/assets/sprites/oak.webp";
-import fir from "@/assets/sprites/fir.webp";
-import birch from "@/assets/sprites/birch.webp";
+import oak from "@/assets/sprites/cohesive/oak.webp";
+import fir from "@/assets/sprites/cohesive/fir.webp";
+import birch from "@/assets/sprites/cohesive/birch.webp";
 import crag from "@/assets/sprites/crag.webp";
-import bush from "@/assets/sprites/bush.webp";
-import boulder from "@/assets/sprites/boulder.webp";
+import bush from "@/assets/sprites/cohesive/bush.webp";
+import boulder from "@/assets/sprites/cohesive/boulder.webp";
 import oreRock from "@/assets/sprites/ore-rock.webp";
 import coalRock from "@/assets/sprites/coal-rock.webp";
 
@@ -56,12 +56,12 @@ export function texture(c: C, t: Tex, shift = 0): CanvasPattern | null {
 
 type Sprite = { url: string; crop: [number, number, number, number]; width: number };
 const NATURE = {
-  oak: { url: oak, crop: [0, 0, 716, 726], width: 24 },
-  fir: { url: fir, crop: [0, 0, 358, 763], width: 13 },
-  birch: { url: birch, crop: [0, 0, 459, 744], width: 15 },
+  oak: { url: oak, crop: [0, 0, 480, 474], width: 24 },
+  fir: { url: fir, crop: [0, 0, 255, 480], width: 13 },
+  birch: { url: birch, crop: [0, 0, 318, 480], width: 15 },
   crag: { url: crag, crop: [0, 0, 791, 669], width: 40 },
-  bush: { url: bush, crop: [0, 0, 490, 454], width: 9 },
-  boulder: { url: boulder, crop: [0, 0, 360, 223], width: 12 },
+  bush: { url: bush, crop: [0, 0, 480, 384], width: 9 },
+  boulder: { url: boulder, crop: [0, 0, 480, 347], width: 12 },
   ore: { url: oreRock, crop: [0, 0, 360, 240], width: 11 },
   coal: { url: coalRock, crop: [0, 0, 360, 239], width: 11 },
 } satisfies Record<string, Sprite>;
