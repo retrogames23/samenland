@@ -731,14 +731,19 @@ function buildLink(a: Seed, b: Seed, d: number): Link | null {
   const x0 = Math.max(0, Math.min(ax, bx) - pad), y0 = Math.max(0, Math.min(ay, by) - pad);
   const x1 = Math.min(MAP - 1, Math.max(ax, bx) + pad), y1 = Math.min(MAP - 1, Math.max(ay, by) + pad);
   const W = x1 - x0 + 1, H = y1 - y0 + 1, N = W * H;
+  // Distance from the straight line a→b: on open land every staircase is equally long on a
+  // 4-connected grid, so a small pull toward the line makes roads run diagonally instead of in an L.
+  const lx = bx - ax, ly = by - ay, ll = Math.hypot(lx, ly) || 1;
+  const off = (x: number, y: number) => Math.abs((x - ax) * ly - (y - ay) * lx) / ll;
   const cost = (x: number, y: number) => {
     const t = terrain(x, y);
+    const pull = Math.min(off(x, y), 12) * 0.12;
     if (t === "deep") return 400;
-    if (isWater(t)) return 40;
-    if (t === "mountain") return 30;
-    if (t === "hill") return 2.5;
-    if (t === "forest") return 1.8;
-    return 1 + vnoise(x * 0.15, y * 0.15, sn) * 0.6; // gentle meander
+    if (isWater(t)) return 40 + pull;
+    if (t === "mountain") return 30 + pull;
+    if (t === "hill") return 2.5 + pull;
+    if (t === "forest") return 1.8 + pull;
+    return 1 + vnoise(x * 0.15, y * 0.15, sn) * 0.25 + pull; // gentle meander
   };
   const g = new Float64Array(N).fill(Infinity), from = new Int32Array(N).fill(-1), done = new Uint8Array(N);
   const heap: [number, number][] = [];
