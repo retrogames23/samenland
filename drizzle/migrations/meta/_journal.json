@@ -323,6 +323,13 @@
       "when": 1793354196966,
       "tag": "0045_school_small_town_gate",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1793354376759,
+      "tag": "0046_trade_roads_civic_wealth",
+      "breakpoints": true
     }
   ]
 }
