@@ -197,7 +197,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     empty.add(hm.join(","));
   }
   // lack of food: households beyond what the land and the food crafts can feed move away (outermost first)
-  const cap = foodCapacity(s, byKind, now); if ((globalThis as any).__dbg) console.log("cap", cap, homes.length);
+  const cap = foodCapacity(s, byKind, now);
   for (let i = cap; i < homes.length; i++) empty.add(homes[i]!.join(","));
   for (const home of homes) {
     if (empty.has(home.join(","))) continue;
