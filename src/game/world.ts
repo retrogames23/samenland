@@ -853,9 +853,30 @@ function effAgeBase(s: Seed, seeds: Seed[], now: number) {
     h += MARKET_BONUS * (8 / 168) * (now - l.since) / 3.6e6;
   }
   // neighbour bonuses speed growth, but never more than TRADE_CAP of the town's own age
-  return (base + Math.min(Math.max(0, h - base), base * TRADE_CAP) + mentorHours(s, seeds, now)) * GROWTH_PACE;
+  return careCeiling(s, now, (base + Math.min(Math.max(0, h - base), base * TRADE_CAP) + mentorHours(s, seeds, now)) * GROWTH_PACE);
 }
 export const TRADE_CAP = 0.35;
+
+/** Care gate: food/health buildings a player town needs before each later era (Kleinstadt, Handelsstadt, Metropole). */
+export const CARE_FOOD = ["fisher", "hunter", "granary", "dairy"], CARE_HEALTH = ["herbs", "healer"];
+export const CARE_NEED: [number, number][] = [[1, 0], [2, 1], [3, 2]];
+/** Highest growth stage a town may reach with the care bought by `now` (sample towns are never gated). */
+export function careStage(s: Seed, now: number) {
+  if (!s.user_id) return 5;
+  const own = new Set((s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item));
+  const f = CARE_FOOD.filter((i) => own.has(i)).length, hl = CARE_HEALTH.filter((i) => own.has(i)).length;
+  let st = 2;
+  for (const [nf, nh] of CARE_NEED) { if (f >= nf && hl >= nh) st++; else break; }
+  return st;
+}
+/** Soft ceiling: a neglected town levels off just below the next era and resumes as soon as care is bought. */
+function careCeiling(s: Seed, now: number, v: number) {
+  const st = careStage(s, now);
+  if (st >= 5) return v;
+  const ceil = STAGES[st + 1]!.from, c0 = ceil * 0.9;
+  if (v <= c0) return v;
+  return c0 + (ceil - c0 - 1) * (1 - Math.exp(-(v - c0) / (ceil * 0.3)));
+}
 /** Global pace: a town with typical neighbours reaches Metropole after ~2 real years. */
 export const GROWTH_PACE = 0.35;
 
