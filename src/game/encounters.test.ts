@@ -1,3 +1,4 @@
+import { weddingTimes } from "./weddings";
 import { describe, it, expect } from "vitest";
 import { eventOf, pendingEncounter, activeBoons, boonHours, ENCOUNTERS, encounterGap } from "./encounters";
 import { treasury, START_TALER } from "./economy";
@@ -46,6 +47,7 @@ describe("wedding encounter follows the real wedding calendar", () => {
     expect(pendingEncounter(seed, d, t0 + 2 * D + 3.1 * H)).not.toBe("wedding");
     const done = [...d, { event: "wedding", choice: "gift", cost: 25, at: t0 + 2 * D + H }];
     expect(pendingEncounter(seed, done, t0 + 2 * D + 2 * H)).toBeNull();
-    expect(pendingEncounter(seed, [], t0 + 11 * D + H)).toBe("wedding");
+    const second = weddingTimes(seed as never, t0 + 40 * D)[1]!;
+    expect(pendingEncounter(seed, [], second + H)).toBe("wedding");
   });
 });
