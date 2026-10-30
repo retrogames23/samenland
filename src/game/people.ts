@@ -380,10 +380,12 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
 
 /** Days a sickness lasts; each household rolls once per such window. */
 export const SICK_DAYS = 3;
-/** Chance a household has a sick member in a window: lower with a healer, none during wedding joy. */
+/** Chance a household has a sick member in a window: higher in winter, lower with herb hut and healer, none during wedding joy. */
 export function sickRate(s: Seed, now: number): number {
   if (weddingJoy(s, now)) return 0;
-  return s.bought?.some((b) => (b.item === "healer" || b.item === "infirmary") && b.at <= now) ? 0.02 : 0.06;
+  const own = (i: string) => s.bought?.some((b) => b.item === i && b.at <= now);
+  const healer = own("healer") || own("infirmary");
+  return Math.max(0.01, 0.06 + 0.03 * seasonAt(now).winter - (own("herbs") ? 0.015 : 0) - (healer ? 0.035 : 0));
 }
 /** Does the household at home key `hh` (x*1024+y) nurse a sick member right now? Pure in seed, home and time. */
 export const sickHome = (s: Seed, hh: number, now: number) => hash(hh, Math.floor(now / (SICK_DAYS * 864e5)), 1301) < sickRate(s, now);

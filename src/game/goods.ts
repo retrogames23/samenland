@@ -41,6 +41,8 @@ export const YOUNG_WOOD = 3, YOUNG_STONE = 1.5;
 export const GRAIN_BASE = 40, GRAIN_PER_MILL = 30, GRAIN_PER_GRANARY = 80;
 /** One sheaf as porridge counts as half a meal. */
 export const GRAIN_MEAL = 0.5;
+/** Meals a villager eats per day, extra hunger at full winter, and days of surplus kept in store. */
+export const MEAL_PER_HEAD = 1, WINTER_HUNGER = 0.3, SURPLUS_DAYS = 1.5;
 export const grainCap = (byKind: Map<Kind, unknown[]>) =>
   GRAIN_BASE + GRAIN_PER_MILL * ((byKind.get("mill")?.length ?? 0) + (byKind.get("watermill")?.length ?? 0)) + GRAIN_PER_GRANARY * (byKind.get("granary")?.length ?? 0);
 export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
@@ -80,7 +82,8 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   const builders = jobs.get("builder") ?? 0;
   add(used, "planks", builders * 2); add(used, "log", builders * 1); add(used, "stone", builders * 1.5);
   const eaters = t.people.length;
-  let need = eaters * 0.8;
+  // one meal a head, more in the cold months
+  let need = eaters * (MEAL_PER_HEAD + WINTER_HUNGER * sw.winter);
   for (const w of FOOD) { const take = Math.min(need, made.get(w) ?? 0); if (take) { add(used, w, take); need -= take; } }
   // porridge: left-over grain fills the remaining hunger (after the mills took their share)
   if (need > 0) add(used, "grain", Math.min(need, Math.max(0, (made.get("grain") ?? 0) - (used.get("grain") ?? 0))));
@@ -92,7 +95,7 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
     const m = made.get(w) ?? 0, u = used.get(w) ?? 0;
     if (m <= 0 && u <= 0) continue;
     const surplus = Math.max(0, m - u);
-    let stock = Math.max(0, Math.round(surplus * 3 + m * done - u * eaten + m * 0.4));
+    let stock = Math.max(0, Math.round(surplus * SURPLUS_DAYS + m * done - u * eaten + m * 0.4));
     if (w === "grain") stock = Math.min(stock, cap);
     const rate = m * (done > 0 && done < 1 ? 1 : 0) - u * (eaten < 1 && h > 6 ? 1 : 0);
     flows.push({ ware: w, stock, made: Math.round(m * done), used: Math.round(u * eaten), trend: rate > 0.5 ? 1 : rate < -0.5 ? -1 : 0 });
