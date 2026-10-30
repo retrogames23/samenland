@@ -47,7 +47,7 @@ const de: Book = {
       ["Handelsgüter & Wolle", "Was dein Umland im Überfluss hervorbringt, wird zum gefragten Exportgut. Dörfer in der Ebene liefern Wolle, Bergdörfer Stein und Erz, Waldorte Bauholz und Küstenorte Fisch und Salz. Treffen auf Handelsstraßen unterschiedliche Güter aufeinander, entsteht eine dauerhafte Synergie, die beiden Orten zusätzlichen Wohlstand bringt."],
     ]],
     ["Schatzkammer, Gesundheit & Katastrophen", [
-      ["Schatzkammer", "Jeder Bürger zahlt täglich einen Taler Steuern. Damit finanzierst du Handwerker, Zunfthäuser und Schutzbauten."],
+      ["Schatzkammer", "Einfache Bürger tragen täglich einen Taler zur Steuer bei, Facharbeiter zwei und wohlhabende Bürger drei. Dauerhafter Wohlstand durch Bildung, Zünfte und Prestigebauten lässt mehr Haushalte aufsteigen: Ihre Häuser werden prächtiger und deine Steuereinnahmen steigen. Kurzzeitige Vorratsboni bedeuten dagegen keinen dauerhaften sozialen Aufstieg. Damit finanzierst du neue Gebäude und Schutzbauten."],
       ["Gesundheit", "Kranke Bewohner fallen bei der Arbeit aus, und Angehörige müssen sie pflegen. Frisches Brunnenwasser, Kräuterhütten und Arzneihäuser senken Krankheitsausfälle spürbar."],
       ["Schutz vor Unheil", "Brände und Räuberbanden stellen das Dorf auf die Probe. Spritzenhäuser löschen Brände rasch, und eine Stadtgarde schlägt Plünderer in die Flucht. Hochwasser an Flüssen überschwemmt im Frühjahr und Herbst vorübergehend Uferwiesen, hinterlässt danach jedoch besonders fruchtbaren Boden."],
     ]],
@@ -94,7 +94,7 @@ const en: Book = {
       ["Trade goods & wool", "What your land yields in plenty becomes a sought-after export. Lowland villages supply wool, mountain villages stone and ore, forest villages timber and coastal villages fish and salt. Where different goods meet on trade roads, a lasting synergy brings both places extra prosperity."],
     ]],
     ["Treasury, health & disasters", [
-      ["Treasury", "Every citizen pays one taler in taxes each day. With it you fund craftsmen, guild halls and protective buildings."],
+      ["Treasury", "Ordinary citizens contribute one taler a day, skilled workers two and wealthy citizens three. Lasting prosperity from education, guilds and prestige buildings promotes more households: their homes become grander and your tax income rises. Temporary stock bonuses do not cause lasting social promotion. Taxes fund new buildings and protection."],
       ["Health", "Sick villagers miss work, and relatives must nurse them. Fresh well water, herb huts and infirmaries noticeably reduce sick days."],
       ["Protection from harm", "Fires and robber bands put the village to the test. Fire houses put out fires quickly and a town guard drives off looters. Floods on rivers briefly swamp the shore meadows in spring and autumn, but leave especially fertile soil behind."],
     ]],
@@ -141,7 +141,7 @@ const fr: Book = {
       ["Marchandises & laine", "Ce que ta contrée produit en abondance devient une exportation recherchée. Les villages de plaine fournissent la laine, ceux des montagnes la pierre et le minerai, ceux des forêts le bois et ceux des côtes le poisson et le sel. Quand des biens différents se rencontrent sur les routes, une synergie durable apporte aux deux lieux une prospérité accrue."],
     ]],
     ["Trésor, santé & catastrophes", [
-      ["Trésor", "Chaque habitant paie un taler d'impôt par jour. Tu finances ainsi artisans, maisons de guilde et bâtiments de protection."],
+      ["Trésor", "Les citoyens modestes contribuent un thaler par jour, les ouvriers qualifiés deux et les citoyens aisés trois. La prospérité durable issue de l'éducation, des guildes et des monuments fait progresser les foyers : leurs maisons deviennent plus belles et tes recettes augmentent. Les bonus temporaires de réserves ne créent pas d'ascension durable. Les impôts financent les bâtiments et la protection."],
       ["Santé", "Les malades manquent au travail et des proches doivent les soigner. L'eau fraîche du puits, les huttes d'herboriste et les infirmeries réduisent nettement les absences."],
       ["Protection contre les malheurs", "Incendies et bandes de brigands mettent le village à l'épreuve. Les maisons des pompiers éteignent vite les feux et une garde chasse les pillards. Au printemps et à l'automne, les crues inondent un temps les prés riverains, mais laissent ensuite une terre particulièrement fertile."],
     ]],
@@ -188,7 +188,7 @@ const es: Book = {
       ["Mercancías y lana", "Lo que tu comarca produce en abundancia se convierte en codiciada exportación. Las aldeas del llano dan lana, las de montaña piedra y mineral, las del bosque madera y las costeras pescado y sal. Cuando bienes distintos se encuentran en los caminos, surge una sinergia duradera que da más prosperidad a ambos lugares."],
     ]],
     ["Tesoro, salud y desastres", [
-      ["Tesoro", "Cada habitante paga un tálero de impuestos al día. Con ello financias artesanos, casas gremiales y edificios de protección."],
+      ["Tesoro", "Los ciudadanos humildes contribuyen un tálero al día, los trabajadores cualificados dos y los ciudadanos acomodados tres. La prosperidad duradera de la educación, los gremios y los monumentos permite ascender a más hogares: sus casas mejoran y tus ingresos aumentan. Las reservas temporales no crean un ascenso permanente. Los impuestos financian edificios y protección."],
       ["Salud", "Los enfermos faltan al trabajo y sus familiares deben cuidarlos. El agua fresca del pozo, las chozas de hierbas y los hospitales reducen mucho las ausencias."],
       ["Protección contra desgracias", "Incendios y bandas de ladrones ponen a prueba la aldea. Las casas de bomberos apagan pronto los fuegos y una guardia ahuyenta a los saqueadores. En primavera y otoño las crecidas inundan por un tiempo los prados ribereños, pero después dejan una tierra especialmente fértil."],
     ]],
@@ -235,7 +235,7 @@ const ar: Book = {
       ["السلع والصوف", "ما تجود به أرضك بوفرة يصبح سلعة تصدير مطلوبة. قرى السهول تقدم الصوف، وقرى الجبال الحجر والخام، وقرى الغابات الخشب، وقرى الساحل السمك والملح. وحين تلتقي سلع مختلفة على طرق التجارة ينشأ تآزر دائم يمنح البلدتين رخاءً إضافياً."],
     ]],
     ["الخزينة والصحة والكوارث", [
-      ["الخزينة", "يدفع كل ساكن تالراً واحداً ضريبةً كل يوم. بها تموّل الحرفيين ودور النقابات ومباني الحماية."],
+      ["الخزينة", "يساهم المواطن البسيط بتالر يوميًا، والعامل الماهر بتالرَين، والمواطن الميسور بثلاثة. الرخاء الدائم الناتج عن التعليم والنقابات والمباني المرموقة يرفع مكانة مزيد من الأسر، فتصبح بيوتها أجمل وتزداد إيراداتك. مكافآت المؤن المؤقتة لا تمنح ترقية اجتماعية دائمة. الضرائب تموّل المباني والحماية."],
       ["الصحة", "يتغيب المرضى عن العمل، ويضطر أقاربهم إلى رعايتهم. ماء البئر العذب وأكواخ الأعشاب ودور التطبيب تقلل الغياب بوضوح."],
       ["الحماية من المصائب", "الحرائق وعصابات اللصوص تمتحن القرية. دور الإطفاء تخمد النيران سريعاً، وحرس البلدة يطرد الناهبين. وفي الربيع والخريف تغمر فيضانات الأنهار مروج الضفاف مؤقتاً، لكنها تخلّف بعدها تربة خصبة على نحو خاص."],
     ]],
@@ -282,7 +282,7 @@ const hi: Book = {
       ["व्यापारिक माल और ऊन", "जो तुम्हारा इलाक़ा भरपूर देता है, वह माँग वाला निर्यात बनता है। मैदानी गाँव ऊन देते हैं, पहाड़ी गाँव पत्थर और कच्चा लोहा, जंगल के गाँव लकड़ी और तटीय गाँव मछली और नमक। जब व्यापार-मार्गों पर अलग-अलग माल मिलते हैं, तो एक स्थायी तालमेल दोनों जगहों को अतिरिक्त समृद्धि देता है।"],
     ]],
     ["कोष, स्वास्थ्य और आपदाएँ", [
-      ["कोष", "हर नागरिक रोज़ एक Taler कर देता है। इससे तुम कारीगरों, श्रेणी-भवनों और सुरक्षा-भवनों का ख़र्च उठाते हो।"],
+      ["कोष", "साधारण नागरिक रोज़ एक टालर, कुशल कामगार दो और समृद्ध नागरिक तीन का कर योगदान देते हैं। शिक्षा, श्रेणियों और प्रतिष्ठित इमारतों की स्थायी समृद्धि अधिक परिवारों को ऊपर उठाती है: उनके घर सुंदर होते हैं और तुम्हारी आय बढ़ती है। अस्थायी भंडार बोनस स्थायी सामाजिक उन्नति नहीं देते। कर से इमारतें और सुरक्षा मिलती हैं।"],
       ["स्वास्थ्य", "बीमार ग्रामीण काम पर नहीं जा पाते, और परिजनों को उनकी देखभाल करनी पड़ती है। कुएँ का ताज़ा पानी, जड़ी-बूटी की झोपड़ियाँ और औषधालय बीमारी की ग़ैरहाज़िरी काफ़ी घटाते हैं।"],
       ["विपदा से रक्षा", "आग और लुटेरों के गिरोह गाँव की परीक्षा लेते हैं। अग्नि-भवन आग जल्दी बुझाते हैं और नगर-रक्षक लुटेरों को भगाते हैं। वसंत और शरद में नदियों की बाढ़ कुछ समय के लिए तट के मैदान डुबोती है, पर बाद में विशेष उपजाऊ मिट्टी छोड़ जाती है।"],
     ]],
@@ -329,7 +329,7 @@ const zh: Book = {
       ["商货与羊毛", "你的乡土所盛产之物会成为抢手的出口货。平原村庄出产羊毛，山村出产石料与矿石，林村出产木材，海滨村庄出产鱼和盐。当不同货物在商路上相遇，便会形成持久的互补，为两地带来额外的繁荣。"],
     ]],
     ["金库、健康与灾害", [
-      ["金库", "每位居民每天缴纳一塔勒税金。你用它来资助工匠、行会会馆和防护建筑。"],
+      ["金库", "普通居民每天贡献一塔勒税金，熟练工匠两塔勒，富裕市民三塔勒。教育、行会和宏伟建筑带来的持久繁荣让更多家庭晋升，房屋更加华美，税收也随之增加。暂时的储备加成不会带来永久的社会晋升。税金用于建筑与防护。"],
       ["健康", "生病的村民无法劳作，家人还得照料他们。清洁的井水、草药小屋和医馆能明显减少病休。"],
       ["抵御灾祸", "火灾与盗匪会考验村庄。消防屋能迅速扑灭火灾，城镇卫队会赶走劫掠者。春秋两季，河水泛滥会暂时淹没岸边草地，但退去后会留下格外肥沃的土地。"],
     ]],
@@ -376,7 +376,7 @@ const ja: Book = {
       ["交易品と羊毛", "あなたの土地が豊かに生むものは、求められる輸出品になります。平野の村は羊毛、山の村は石と鉱石、森の村は木材、海辺の村は魚と塩を送り出します。交易路で異なる品が出会うと、長く続く相乗効果が両方の村にさらなる繁栄をもたらします。"],
     ]],
     ["金庫、健康、災い", [
-      ["金庫", "住民は一人につき毎日一ターラーの税を納めます。それで職人、ギルド会館、守りの建物をまかないます。"],
+      ["金庫", "一般市民は毎日1ターラー、熟練職人は2、裕福な市民は3の税を負担します。教育、ギルド、立派な建物による持続的な繁栄でより多くの世帯が昇格し、家が華やかになり税収も増えます。一時的な備蓄ボーナスは恒久的な昇格にはなりません。税で建物と守りをまかないます。"],
       ["健康", "病気の村人は仕事を休み、家族が看病しなければなりません。井戸のきれいな水、薬草小屋、施療院は病欠をはっきり減らします。"],
       ["災いへの備え", "火事と盗賊団が村を試します。消防小屋は火事をすばやく消し止め、町の衛兵は略奪者を追い払います。春と秋には川の洪水が岸辺の草地を一時水に沈めますが、そのあとには特に肥えた土が残ります。"],
     ]],

@@ -612,6 +612,10 @@ const legsFor = (q: Pose) => !!HIPS[folkOf(q)];
 /** Painted villager sprite: faces the walking direction, bobs while walking, sways while working. */
 /** Mayor's insignia by honorary title (titleOfSeed): chain, plumed beret, own banner — drawn in the mirrored figure frame. */
 function insignia(c: C, q: Pose, hgt: number) {
+  if (q.p.estate === "wealthy" && q.p.age >= 16 && q.p.job !== "mayor" && !q.working && !q.carry && !q.festive) {
+    const hat = folkImage("beret");
+    if (hat) { const h = hgt * 0.17, w = h * hat.naturalWidth / hat.naturalHeight; c.drawImage(hat, -w / 2, -hgt * 1.03, w, h); }
+  }
   if (q.p.job !== "mayor") return;
   const n = titleOfSeed(q.p.seed); if (n < 1) return;
   const ch = folkImage("chain");

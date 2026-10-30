@@ -10,7 +10,7 @@ describe("economy (Taler)", () => {
   it("START is 150", () => expect(START_TALER).toBe(150));
   it("pays 1 Taler per resident per day", () => expect(taxEarned(seed(), t0 + day)).toBe(popAt(24)));
   it("a fisher hut is affordable on day one", () => expect(treasury(seed(), [], t0)).toBeGreaterThanOrEqual(ITEMS.fisher));
-  it("the school is not affordable before day 40", () => expect(treasury(seed(), [], t0 + 39 * day)).toBeLessThan(ITEMS.school));
+  it("the school is not affordable in the first week", () => expect(treasury(seed(), [], t0 + 7 * day)).toBeLessThan(ITEMS.school));
   it("spending reduces the treasury", () => {
     expect(treasury(seed(), [{ id: "p", seed_id: "s", item: "fisher", cost: 120, created_at: "" }], t0)).toBe(30);
   });
