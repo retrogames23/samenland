@@ -313,6 +313,11 @@ export function Game() {
     });
     return () => { live = false; };
   }, [userId, isAdmin, realm]);
+  // letter texts are only readable once signed in: on phones the session often arrives after the map load
+  useEffect(() => {
+    if (!userId) return;
+    supabase.from("letter_bodies").select("letter_id, body").then(({ data }) => { if (data?.length) setBodies((old) => ({ ...old, ...Object.fromEntries(data.map((b) => [b.letter_id, b.body])) })); });
+  }, [userId]);
   // optional letter by email when a bought building is finished (sent by the scheduled build-mail route)
   const [mailOn, setMailOn] = useState(false);
   useEffect(() => {
@@ -2167,7 +2172,7 @@ export function Game() {
             <ul className="mt-3 space-y-1 border-l-2 border-ink/20 pl-3">
               {chron.events.slice(-14).map((e, i) => (
                 <li key={i}>
-                  <button type="button" className="text-left text-sm text-ink hover:underline" onClick={() => { if (e.code === "road") focus(e.x, e.y); else focus(my.x, my.y); setChronOpen(false); }}>
+                  <button type="button" className="text-left text-sm text-ink hover:underline" onClick={() => { if (e.code === "letter") setFest((q) => [e, ...q]); else if (e.code === "road") focus(e.x, e.y); else focus(my.x, my.y); setChronOpen(false); }}>
                     <span className="mr-2 text-ink/60">{new Date(e.at).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "short" })}</span>{chronLine(e)}
                   </button>
                 </li>
