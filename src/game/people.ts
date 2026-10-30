@@ -109,6 +109,7 @@ export function townOf(s: Seed, seeds: Seed[], now: number): Town {
 /** Households a town can feed: a safe base, natural yield of fields/gardens (less in winter), multiplied by bought food/health crafts. */
 export const FEED_BASE = 40, FEED_FIELD = 0.25, FEED_GARDEN = 0.1, FEED_FOOD_ITEM = 0.15, FEED_HEALTH_ITEM = 0.1, FEED_WINTER = 0.25;
 export function foodCapacity(s: Seed, byKind: Map<Kind, unknown[]>, now: number) {
+  if (!s.user_id) return Infinity;
   const own = new Set((s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item));
   const food = ["fisher", "hunter", "granary", "dairy"].filter((i) => own.has(i)).length;
   const health = ["herbs", "healer"].filter((i) => own.has(i)).length;
