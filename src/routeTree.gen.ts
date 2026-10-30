@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ApiPublicBugDigestRouteImport } from './routes/api/public/bug-digest'
 import { Route as ApiPublicBuildMailRouteImport } from './routes/api/public/build-mail'
 import { Route as ApiPublicIdleSweepRouteImport } from './routes/api/public/idle-sweep'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBugDigestRoute = ApiPublicBugDigestRouteImport.update({
+  id: '/api/public/bug-digest',
+  path: '/api/public/bug-digest',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicBuildMailRoute = ApiPublicBuildMailRouteImport.update({
@@ -57,6 +63,7 @@ const LovableEmailTransactionalPreviewRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/public/bug-digest': typeof ApiPublicBugDigestRoute
   '/api/public/build-mail': typeof ApiPublicBuildMailRoute
   '/api/public/idle-sweep': typeof ApiPublicIdleSweepRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/public/bug-digest': typeof ApiPublicBugDigestRoute
   '/api/public/build-mail': typeof ApiPublicBuildMailRoute
   '/api/public/idle-sweep': typeof ApiPublicIdleSweepRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/public/bug-digest': typeof ApiPublicBugDigestRoute
   '/api/public/build-mail': typeof ApiPublicBuildMailRoute
   '/api/public/idle-sweep': typeof ApiPublicIdleSweepRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/sitemap.xml'
+    | '/api/public/bug-digest'
     | '/api/public/build-mail'
     | '/api/public/idle-sweep'
     | '/lovable/email/auth/preview'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/sitemap.xml'
+    | '/api/public/bug-digest'
     | '/api/public/build-mail'
     | '/api/public/idle-sweep'
     | '/lovable/email/auth/preview'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/sitemap.xml'
+    | '/api/public/bug-digest'
     | '/api/public/build-mail'
     | '/api/public/idle-sweep'
     | '/lovable/email/auth/preview'
@@ -115,6 +127,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiPublicBugDigestRoute: typeof ApiPublicBugDigestRoute
   ApiPublicBuildMailRoute: typeof ApiPublicBuildMailRoute
   ApiPublicIdleSweepRoute: typeof ApiPublicIdleSweepRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -136,6 +149,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bug-digest': {
+      id: '/api/public/bug-digest'
+      path: '/api/public/bug-digest'
+      fullPath: '/api/public/bug-digest'
+      preLoaderRoute: typeof ApiPublicBugDigestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/build-mail': {
@@ -179,6 +199,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiPublicBugDigestRoute: ApiPublicBugDigestRoute,
   ApiPublicBuildMailRoute: ApiPublicBuildMailRoute,
   ApiPublicIdleSweepRoute: ApiPublicIdleSweepRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
