@@ -15,8 +15,6 @@
 - Rendering uses a devicePixelRatio canvas (capped at 2 on touch devices for mobile GPU load); preload compressed building sprites with per-kind sizes and ground anchors, using the same assets at every zoom level to avoid style changes while loading.
 - Seed ownership is enforced in the database (seeds.user_id UNIQUE + RLS on auth.uid()); UI strings live in src/game/i18n.ts (de/en), game logic returns codes not text.
 - Trade roads, synergy and twin towns are derived from seed pairs in src/game/world.ts (links/effAge); growth uses effective age, never stored state — keeps all clients identical.
-- Villagers (src/game/people.ts) are a pure function of seed, buildings and clock time; never store them — every client sees the same people.
-- Growth stages and water-adjacent landmarks are derived in world.ts; the world stays pre-industrial (no steam, no rails) so old and young towns share one era; retain sublinear expansion and core densification rather than saving progress, so offline growth remains reproducible.
 - World, trade and population caches include seed positions and creation timestamps, so replacing equal-sized seed sets cannot reuse stale geometry or progression.
 - Construction sites are derived, not stored: a building's site phase is the buildTime() window before its birth age (Structure.build); builders/woodcutters/masons are assigned in people.ts from that — keeps every client identical.
 
@@ -28,9 +26,7 @@
 - Encounters: the day's event is derived in src/game/encounters.ts from (seed id, UTC day); only the chosen answer is stored, with prices and one-per-day enforced by a database guard — keeps all clients identical and spending tamper-proof.
 - Day/night, villager routines, lights and bell use one world clock (src/game/time.ts, Europe/Berlin); never read the client's local hour, so all players see the same scene.
 - Four realms (seeds.realm: us-west/us-east/europe/asia) are separate maps, each with its own shared clock in src/game/time.ts; players land by browser UTC offset, only admins (user_roles) may override — keeps day/night shared within a map.
-- Twin towns: touch time (twinSince), pacts, joint works, gate sites and festival bonuses are derived in world.ts from seeds + twin_votes/twin_works rows (DB guard charges halves); never store twin state — all clients agree.
 - Villagers, waymarks, border banners/stones and construction props are painted sprites (src/game/folk-sprites.ts); banner cloth is tinted per town hue at runtime and drawn in world space so night lighting applies — no flat vector figures next to painted art.
-- Admin test map (realm "lab") reads its clock through clock() in src/game/time.ts, where LAB_SPEED warps time — keep LAB_SPEED at 1 (real time) unless the user asks for a time-lapse, because warping re-derives every town each second and costs performance; all game code must read time through clock(), never Date.now(), so any warp applies everywhere.
 - Coastal towns grow in town-space distance (townDist/landShape in world.ts): landward tiles are compressed by a land-share stretch so harbour towns fan inland; bounding boxes must use reachOf(s, r).
 - Village chronicle (src/game/chronicle.ts) is derived from seeds between last visit (localStorage) and now; while the owner watches, Game.tsx diffs it periodically for illustrated celebrations — no stored history. Only the scribe greeting uses AI (authenticated server function, fixed fallback).
 - Subdirectories have their own AGENTS.md (src/game/AGENTS.md) – read it before changing files there.
