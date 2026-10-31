@@ -2,7 +2,7 @@ import { giftBalance, type Gift } from "./gifts";
 import { civicWealth, estateAssessment, sickLoss, sickTaxRate } from "./prosperity";
 import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
-import { raidLoss, floodFood } from "./disasters";
+import { raidLoss, raids, floodFood } from "./disasters";
 import { dowryEarned, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
 import { radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
 
@@ -129,6 +129,10 @@ function ledger(s: Seed, purchases: Purchase[], gifts: Gift[], claims: QuestClai
   for (const c of claims) if (c.seed_id === s.id) out.push([Date.parse(c.created_at), c.reward]);
   return out;
 }
+/** Raids empty the chest too, so later taxes may refill it (mirrors DB village_capped_tax). */
+function raidLedger(s: Seed, now: number): [number, number][] {
+  return raids(s, now).filter((r) => r.loss > 0).map((r) => [r.at, -r.loss]);
+}
 
 /**
  * Taxes that actually reached the chest: day by day, entries booked before the settlement count, and from
@@ -138,7 +142,7 @@ export function cappedTax(s: Seed, purchases: Purchase[], now: number, gifts: Gi
   const c0 = Date.parse(s.created_at);
   const days = Math.floor((now - c0) / 86400000);
   const byDay = new Map<number, number>();
-  for (const [at, v] of ledger(s, purchases, gifts, claims)) {
+  for (const [at, v] of [...ledger(s, purchases, gifts, claims), ...raidLedger(s, now)]) {
     const k = Math.max(0, Math.floor((at - c0) / 86400000));
     byDay.set(k, (byDay.get(k) ?? 0) + v);
   }
@@ -163,7 +167,8 @@ export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gif
   const dOld = Date.parse(s.created_at) < CHEST_SINCE ? dowryEarned(s, Math.min(now, CHEST_SINCE)) : 0;
   let dNew = dowryEarned(s, now) - dOld;
   if (s.user_id) dNew = Math.min(dNew, Math.max(0, chestCap(s.id, purchases, now) - base - dOld));
-  return base + dOld + dNew - raidLoss(s, now);
+  // robbers can never push the chest below zero (mirrors DB village_balance)
+  return Math.max(0, base + dOld + dNew - raidLoss(s, now));
 }
 
 
