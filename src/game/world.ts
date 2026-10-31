@@ -423,7 +423,6 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
     return stage >= 4 && d > r * 0.55 ? "avenue" : stage >= 3 && d < r * 0.6 ? "street" : "path";
   }
   if (stage >= 2 && d < 1.6) return "square";
-  if (stage === 0) return null;
   const birth = tileBirth(d) * (0.75 + 0.5 * hash(x,y,3));
   if (age < birth - buildTime(birth)) return null;
   if (age < birth) buildP = 1 - (birth - age) / buildTime(birth);
