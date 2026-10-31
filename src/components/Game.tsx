@@ -270,7 +270,6 @@ export function Game() {
   const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, ghost: null as [number, number] | null, walk: false });
   st.current.walk = walk;
   st.current.seeds = seeds;
-  st.current.hover = hover;
   st.current.placing = placing;
   st.current.ghost = ghost;
   st.current.mode = mode;
@@ -796,7 +795,7 @@ export function Game() {
     // whatever the outcome, the seed is no longer held in the hand
     setPlantAsk(null);
     setPtr(null);
-    setHover(null);
+    setHover(null); st.current.hover = null;
     setMode("look");
     if (error?.code === "23505") { setTab(null); return setMsg(t.alreadyHave); }
     if (error || !data) return setMsg(t.plantFail);
@@ -1623,7 +1622,8 @@ export function Game() {
           }
           if (!drag.current?.moved) {
             const nt = tileAt(e), ph = st.current.hover;
-            if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) { st.current.hover = nt; if (e.pointerType === "mouse" || mode === "seed" || placing) setHover(nt); }
+            // the canvas reads the ref every frame; React state only feeds the seed/placing tooltip, so plain mouse moves never re-render the HUD
+            if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) { st.current.hover = e.pointerType === "mouse" || mode === "seed" || placing ? nt : null; if (mode === "seed" || placing) setHover(nt); }
           }
           if (mode === "seed" || placing) {
             ptrRef.current = [e.clientX, e.clientY];
@@ -1707,7 +1707,7 @@ export function Game() {
             onClick(x, y);
           }
         }}
-        onPointerLeave={() => setHover(null)}
+        onPointerLeave={() => { st.current.hover = null; setHover(null); }}
       />
       {/* top bar */}
       <div ref={barRef} className="pointer-events-none absolute inset-x-2 top-2 z-30 md:inset-x-3 md:top-3">
