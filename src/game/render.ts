@@ -527,6 +527,8 @@ export function cartShear(dx: number, dy: number, away: boolean): number {
 }
 /** Carts currently shown head-on/from behind; hysteresis keeps them from flipping views on gently curving roads. */
 const cartAxis = new Set<number>();
+/** Figures shown as parchment silhouettes last frame (occlusion hysteresis). */
+const ghostWas = new Set<number>();
 /** Head-on view enters above a dy/dx ratio of 1.05 and only leaves below 0.75. */
 export function cartAxisView(dx: number, dy: number, was: boolean): boolean {
   const r = Math.abs(dy) / Math.max(Math.abs(dx), 0.05);
