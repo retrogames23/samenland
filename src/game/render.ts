@@ -1990,12 +1990,16 @@ export function draw(
     if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); vip.push(() => drawRobber(c, px, py, rb[2], t)); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
     if (signMap.has(y * MAP + x)) {
-      if (signFocus.k === y * MAP + x && Date.now() < signFocus.until) {
-        const a = 0.45 + Math.sin(t / 220) * 0.25;
-        c.save(); c.strokeStyle = `rgba(255,205,110,${a})`; c.lineWidth = 1.2; c.beginPath(); c.ellipse(cx + 5, cy + 1, 9, 4.5, 0, 0, 7); c.stroke();
+      const focused = signFocus.k === y * MAP + x && Date.now() < signFocus.until;
+      if (focused) {
+        const a = 0.55 + Math.sin(t / 220) * 0.3;
+        c.save(); c.strokeStyle = `rgba(255,205,110,${a})`; c.lineWidth = 1.4; c.beginPath(); c.ellipse(cx + 5, cy + 1, 10, 5, 0, 0, 7); c.stroke();
         c.fillStyle = `rgba(255,214,140,${a * 0.35})`; c.fill(); c.restore();
       }
       drawSignpost(c, cx, cy, x * 13 + y);
+      // small lantern on the post, so it reads at night; brighter while the UI points at it
+      L.push({ x: cx + 5, y: cy - 6, r: focused ? 7 : 2.5 });
+      if (focused) L.push({ x: cx + 5, y: cy + 1, r: 6 });
     }
     { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
     if (y * MAP + x === goalK) {
