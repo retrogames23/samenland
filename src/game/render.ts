@@ -541,13 +541,34 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
   if (axis) cartAxis.add(sd); else cartAxis.delete(sd);
   if (cartAxis.size > 256) cartAxis.clear();
   if (axis) {
-    const im = cartAxisImage(dy < 0);
+    const back = dy < 0, im = cartAxisImage(back);
     if (im) {
-      const h = 17, w = (h * im.naturalWidth) / im.naturalHeight;
-      const g = t / 150 + sd * 7.31, sway = Math.sin(g * Math.PI / 2) * 0.25, dip = Math.abs(Math.sin(g * Math.PI)) * 0.15;
+      const iw = im.naturalWidth, ih = im.naturalHeight, h = 17, k = h / ih, w = iw * k;
+      // gait clock: 0.6 s per stride, legs alternate (left lifts while right plants)
+      const g = (t / 300 + sd * 0.731) % 1, ph = g * Math.PI * 2;
+      const liftL = Math.max(0, Math.sin(ph)) * 0.55, liftR = Math.max(0, -Math.sin(ph)) * 0.55;
+      const dip = Math.abs(Math.sin(ph)) * 0.12; // body settles a hair on each hoof contact
       c.save(); c.translate(x, y); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-      c.fillStyle = "rgba(20,15,10,0.38)"; c.beginPath(); c.ellipse(0, -0.4, w * 0.5, 1.4, 0, 0, 7); c.fill();
-      c.drawImage(im, -w / 2 + sway, -h + dip, w, h); c.restore(); return;
+      // two ground contacts: wheels (row of their rim bottoms) and hooves (front only)
+      const wheelRow = back ? 474 : 322, wy = -(ih - wheelRow) * k;
+      c.fillStyle = "rgba(20,15,10,0.36)";
+      c.beginPath(); c.ellipse(-w * 0.4, wy, w * 0.11, 0.55, 0, 0, 7); c.fill();
+      c.beginPath(); c.ellipse(w * 0.4, wy, w * 0.11, 0.55, 0, 0, 7); c.fill();
+      if (!back) { c.beginPath(); c.ellipse(0, -0.25, w * 0.2, 0.7, 0, 0, 7); c.fill(); }
+      const x0 = -w / 2, y0 = -h;
+      if (back) {
+        // ox seen from behind: its forequarters (rows 0..140) nod with the stride, wagon stays put
+        const cut = 140;
+        c.drawImage(im, 0, cut, iw, ih - cut, x0, y0 + cut * k, w, (ih - cut) * k);
+        c.drawImage(im, 0, 0, iw, cut, x0, y0 + dip * 1.5, w, cut * k);
+      } else {
+        // head-on: legs (rows below LEG) step in turn, body above dips gently
+        const LEG = 405, mid = iw / 2, lh = (ih - LEG) * k;
+        c.drawImage(im, 0, LEG, mid, ih - LEG, x0, y0 + LEG * k - liftL, mid * k, lh);
+        c.drawImage(im, mid, LEG, iw - mid, ih - LEG, x0 + mid * k, y0 + LEG * k - liftR, (iw - mid) * k, lh);
+        c.drawImage(im, 0, 0, iw, LEG + 2, x0, y0 + dip, w, (LEG + 2) * k);
+      }
+      c.restore(); return;
     }
   }
   const wag = wagonImage(away), ox = oxWalkImage(away);
