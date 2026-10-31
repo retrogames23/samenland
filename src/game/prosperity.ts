@@ -3,8 +3,8 @@ import type { Seed, Kind } from "./world";
 /** Civic prosperity is deliberately independent of population, stocks and world geometry.
  * The database mirrors this ledger, so a building never earns taxes before it was paid for.
  * Temporary food/store bonuses do not permanently promote households. */
-export const CIVIC_BONUS: Record<string, number> = { school: 20, guildhall: 15, markethall: 15, library: 5, woodcamp: 5, guard: 5 };
-export const PRESTIGE_BONUS: Record<string, number> = { belfry4: 15, theater3: 15, cathedral5: 20, university4: 10, exchange4: 20, opera4: 25 };
+export const CIVIC_BONUS: Record<string, number> = { school: 20, guildhall: 15, markethall: 15, library: 10, dairy: 5, woodcamp: 5, guard: 5 };
+export const PRESTIGE_BONUS: Record<string, number> = { belfry4: 15, theater3: 15, cathedral5: 20, university4: 15, exchange4: 20, orangery3: 10, opera4: 25 };
 export const ESTATE_TAX = { ordinary: 1, skilled: 2, wealthy: 3 } as const;
 export type Estate = keyof typeof ESTATE_TAX;
 const clamp = (n: number) => Math.max(0, Math.min(100, n));

@@ -8,7 +8,7 @@ import { radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pac
 
 /** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
 export const START_TALER = 150;
-export const ITEMS = { herbs: 90, hunter: 110, fisher: 120, woodcamp: 180, granary: 300, healer: 550, school: 1200, markethall: 450, guildhall: 450, library: 450, dairy: 450, firehouse: 600, guard: 800 } as const;
+export const ITEMS = { herbs: 90, hunter: 100, fisher: 140, woodcamp: 240, granary: 300, healer: 550, school: 1200, markethall: 450, guildhall: 450, library: 380, dairy: 350, firehouse: 600, guard: 750 } as const;
 export type Item = keyof typeof ITEMS;
 /**
  * Prestige monuments built in paid steps (prices mirror the database purchase guard).
@@ -18,9 +18,9 @@ export const MONUMENTS: Record<MonumentKey, { stage: number; prices: number[]; f
   belfry: { stage: 3, prices: [400, 500, 600, 700], wealth: 15, health: 5 },
   theater: { stage: 3, prices: [500, 700, 900], wealth: 15, health: 5 },
   cathedral: { stage: 4, prices: [800, 1000, 1200, 1400, 1600], wealth: 20, health: 10 },
-  university: { stage: 4, prices: [700, 900, 1100, 1300], wealth: 10, health: 15 },
+  university: { stage: 4, prices: [700, 900, 1100, 1300], wealth: 15, health: 15 },
   exchange: { stage: 4, prices: [700, 900, 1100, 1300], wealth: 20, food: 5 },
-  orangery: { stage: 4, prices: [500, 700, 900], health: 15, food: 5 },
+  orangery: { stage: 4, prices: [500, 700, 900], health: 15, food: 5, wealth: 10 },
   opera: { stage: 5, prices: [1200, 1500, 1800, 2100], wealth: 25 },
 };
 /** Flat price list per step item, e.g. { belfry1: 400, …, opera4: 2100 }. */
@@ -108,7 +108,7 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   const health = clamp(HEALTH_BASE + (food - 50) * 0.3 + k * ((has("healer") ? 20 : 0) + (has("herbs") ? HERBS_HEALTH : 0) + (has("library") ? 10 : 0))
     + (path === "culture" ? 15 : 0) + (near("healer") ? 15 : 0) + (shield ? 10 : 0));
   const wealth = clamp(25 + Math.min(30, trade * 10) + (has("school") ? 20 : 0) + stage * 5 + (path === "craft" ? 10 : 0)
-    + (near("school") ? 10 : 0) + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 5 : 0) + (has("woodcamp") ? WOODCAMP_WEALTH : 0));
+    + (near("school") ? 10 : 0) + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 10 : 0) + (has("dairy") ? 5 : 0) + (has("woodcamp") ? WOODCAMP_WEALTH : 0));
   const b = activeBoons(s.decisions ?? [], now);
   const rb = rankBoons(s, purchases); b.food += rb.food; b.health += rb.health; b.wealth += rb.wealth;
   const tb = titleBoons(s, purchases); b.food += tb.food; b.health += tb.health; b.wealth += tb.wealth;
