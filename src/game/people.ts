@@ -709,7 +709,9 @@ function sundayOf(p: Person, t: Town, E: (at: number, act: Activity, place: Tile
 
 export const hourOf = (now: number) => worldHour(now);
 
-const STRIDE = 0.18 / (2 * Math.PI); // 0.18 tiles per full gait cycle (two steps), phase in radians
+// 0.34 tiles per full gait cycle (two steps of ~3 px for a 5.2 px figure): ~1.3 steps/s at village pace
+// instead of the former 0.18-tile tripping; phase is distance-driven, so cadence always matches ground speed
+const STRIDE = 0.34 / (2 * Math.PI);
 /** Distance covered after `secs` on a path of `len`, easing in and out over the first/last few tenths of a tile. */
 function travelled(secs: number, len: number, v: number): number {
   const r = Math.min(0.25, len / 2), tr = (2 * r) / v; // ramp distance and time (avg half speed)
