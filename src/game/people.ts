@@ -808,7 +808,7 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
 
 // ---------------- the player's own mayor ----------------
 /** Walking pace of the player's mayor when sent somewhere (tiles/s). */
-export const ORDER_SPEED = 0.55;
+export const ORDER_SPEED = 0.34;
 /** Seconds the mayor waits at the goal before returning to the daily routine. */
 export const ORDER_IDLE = 50;
 type Order = { id: number; sid: string; from: Tile; to: Tile; at: number; v: number };
@@ -837,7 +837,7 @@ export function mayorGoal(now: number): Tile | null {
 }
 export const clearMayorOrder = () => { order = null; drive = null; };
 /** Walking pace when the player steers the mayor directly (tiles/s). */
-export const DRIVE_SPEED = 1.6;
+export const DRIVE_SPEED = 0.38;
 type Drive = { id: number; sid: string; x: number; y: number; dir: [number, number]; moving: boolean; dist: number };
 let drive: Drive | null = null;
 /** Stroll mode: steer the own mayor directly by a tile-space direction; local-only, never stored. Walls and water block. */
