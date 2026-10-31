@@ -2046,8 +2046,15 @@ export function draw(
 
   // road traffic, messengers and stalls join the tile depth order: houses in front hide them (no object above a front roof)
   const vip = framePool.vip; vip.length = 0;
-  const roadProp = (x: number, y: number, a: number, f: (context: C) => void, important = false) => {
-    const [tx, ty] = toTile(x, y);
+  const roadProp = (x: number, y: number, a: number, f: (context: C) => void, important = false, id?: string) => {
+    let [tx, ty] = toTile(x, y);
+    if (id !== undefined) { // depth-bucket hysteresis: a cart on a tile seam keeps its bucket until clearly past it, so roofs don't flicker it in and out
+      const fa = (x / (TW / 2) + y / (TH / 2)) / 2, fb = (y / (TH / 2) - x / (TW / 2)) / 2;
+      const prev = propTileMemo.get(id);
+      if (prev && (prev[0] !== tx || prev[1] !== ty) && Math.abs(fa - prev[0]) < 0.72 && Math.abs(fb - prev[1]) < 0.72) [tx, ty] = prev;
+      propTileMemo.set(id, [tx, ty]);
+      if (propTileMemo.size > 4000) propTileMemo.clear();
+    }
     addProp(ty * MAP + tx, () => { c.globalAlpha = a; f(c); c.globalAlpha = 1; });
     if (important) vip.push({ f, x, y, k: ty * MAP + tx });
   };
