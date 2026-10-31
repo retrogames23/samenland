@@ -15,3 +15,14 @@ export function nextRankNeed(i: RankInput) {
   if (!need) return null;
   return { citizens: Math.max(0, need[0] - i.citizens), homes: Math.max(0, need[1] - i.homes), roads: Math.max(0, need[2] - i.roads) };
 }
+
+import { townOf, citizensOf } from "./people";
+import { links, type Seed } from "./world";
+/** Inputs for rankOf read off the derived town: people in homes, occupied homes, finished roads. */
+export function rankInput(s: Seed, seeds: Seed[], now: number): RankInput {
+  const c = citizensOf(townOf(s, seeds, now));
+  const homes = new Set(c.map((p) => p.home.join(","))).size;
+  const roads = links(seeds).filter((l) => (l.a.id === s.id || l.b.id === s.id) && now >= l.since).length;
+  return { citizens: c.length, homes, roads };
+}
+export const townRank = (s: Seed, seeds: Seed[], now: number) => rankOf(rankInput(s, seeds, now));

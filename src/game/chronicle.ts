@@ -3,6 +3,7 @@
  * (same functions that drive growth), so it needs no stored history. Returns codes; i18n formats them.
  */
 import { effAge, stageOf, radiusOf, reachOf, LANDMARKS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
+import { townRank } from "./rank";
 import { taxEarned } from "./economy";
 import { dowryEarned } from "./weddings";
 import { fires, floods, raids, raidLoss } from "./disasters";
@@ -64,11 +65,12 @@ const dominant = (now: number) => { const w = seasonAt(now); return (Object.keys
 export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chronicle {
   from = Math.max(from, to - CHRON_MAX, Date.parse(s.created_at));
   const ev: ChronEvent[] = [];
-  let prevAge = effAge(s, seeds, from), prevSeason = dominant(from);
+  let prevAge = effAge(s, seeds, from), prevRank = townRank(s, seeds, from), prevSeason = dominant(from);
   for (let t = from + STEP; ; t += STEP) {
     const now = Math.min(t, to), age = effAge(s, seeds, now);
-    const st0 = stageOf(prevAge), st1 = stageOf(age);
-    for (let k = st0 + 1; k <= st1; k++) ev.push({ at: now, code: "stage", stage: k });
+    const rk = townRank(s, seeds, now);
+    for (let k = prevRank + 1; k <= rk; k++) ev.push({ at: now, code: "stage", stage: k });
+    prevRank = Math.max(prevRank, rk);
     for (const l of LANDMARKS) if (l.at > prevAge && l.at <= age) ev.push({ at: now, code: "built", kind: l.kind });
     const se = dominant(now); if (se !== prevSeason) ev.push({ at: now, code: "season", season: se }); prevSeason = se;
     prevAge = age;
