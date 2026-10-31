@@ -846,6 +846,8 @@ export function speedParts(s: Seed, seeds: Seed[], now: number) {
     trade += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * roadProgress(l, now);
     if (roadProgress(l, now) >= 1 && marketHours(now)) trade += MARKET_BONUS;
   }
+  for (const r of transitRoutes(s, seeds)) if (now > r.since) trade += r.bonus(now);
+  for (const r of hubRoutes(s, seeds)) if (now > r.since) trade += TRANSIT_HUB;
   return { bless, farm, trade };
 }
 /** Current growth speed multiplier: 1 + sum of all bonuses. */
