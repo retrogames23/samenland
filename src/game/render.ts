@@ -2120,7 +2120,7 @@ export function draw(
       lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
     }
     // journeymen and messengers on their way to the neighbour
-    if (n >= 2) for (const w of walkersNow(l, now)) {
+    if (n >= 2) for (const w of walkersNow(l, now, links(seeds))) {
       const end = n - 1, pr = walkProgress(w, now) * end, fwd = w.from.id === l.a.id;
       // roadMotion's second half (phase end..2·end) already runs b→a with a reversed heading
       const m = roadMotion(pts, fwd ? Math.min(pr, end - 1e-6) : end + pr);
@@ -2131,10 +2131,11 @@ export function draw(
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
       if (w.kind === "family" || w.kind === "gift" || w.kind === "aid") { roadProp(x, y, fade, () => drawCart(c, x, y, m.direction[0], m.direction[1], Math.sin(t / 220) * 0.3, w.sd, "", t * 0.8), false, `w${w.kind}:${w.sd}:${w.from.name}`); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: true, walker: w }); continue; }
       const wid = `w${w.kind}:${w.sd}:${w.from.name}`;
+      if (w.kind === "transit") { const src = w.origin ?? w.from, ex = tradeProfile(src, now).exports, gd = ex[w.sd % Math.max(1, ex.length)] ?? null; roadProp(x, y, fade, () => drawCart(c, x, y, m.direction[0], m.direction[1], Math.sin(t / 220) * 0.3, w.sd, "", t), false, wid); lastTraders.push({ x, y, from: src.name, to: (w.dest ?? w.to).name, good: gd, cart: true }); continue; }
       if (w.kind === "rider") { roadProp(x, y, fade, (context) => drawRider(context, x, y, m.direction[0], m.direction[1], w.sd, t), true, wid); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w }); continue; }
       if (w.kind === "trader") { const ex = tradeProfile(w.p0 ? w.to : w.from, now).exports, gd = ex[w.sd % Math.max(1, ex.length)] ?? null; roadProp(x, y, fade, () => drawWanderer(c, x, y, m.direction[0], m.direction[1], t * 0.7, w.sd, gd ? CARRY_OF[gd] : "bundle"), false, wid); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: gd, cart: false, walker: w }); continue; }
       roadProp(x, y, fade, (context) => drawWanderer(context, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" || w.kind === "letter" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? (w.sex === "m" ? "groom" : "bride") : undefined), w.kind === "messenger" || w.kind === "letter", wid);
-      lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w });
+      lastTraders.push({ x, y, from: (w.origin ?? w.from).name, to: (w.dest ?? w.to).name, good: null, cart: false, walker: w });
     }
     c.globalAlpha = 1;
   }
