@@ -898,6 +898,10 @@ export type Database = {
         Returns: number
       }
       village_tax: { Args: { _at: string; _created: string }; Returns: number }
+      village_tax_pop: {
+        Args: { _at: string; _h: number; _seed: string }
+        Returns: number
+      }
       village_weddings: {
         Args: { _at: string; _seed: string }
         Returns: {
