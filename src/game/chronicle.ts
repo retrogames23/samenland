@@ -75,7 +75,7 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
       if (!(l.at > prevAge && l.at <= age)) return;
       let x: number | undefined, y: number | undefined;
       for (const [k, list] of landmarkSpots(s)) if (list.includes(i)) { const [dx, dy] = k.split(",").map(Number); x = s.x + dx!; y = s.y + dy!; break; }
-      ev.push({ at: now, code: "built", kind: l.kind, ...(x != null ? { x, y } : {}) });
+      ev.push({ at: now, code: "built", kind: l.kind, ...(x != null && y != null ? { x, y } : {}) });
     });
     const se = dominant(now); if (se !== prevSeason) ev.push({ at: now, code: "season", season: se }); prevSeason = se;
     prevAge = age;
