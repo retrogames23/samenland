@@ -191,6 +191,30 @@ export type Database = {
           },
         ]
       }
+      chest_mail: {
+        Row: {
+          enabled: boolean
+          lang: string
+          last_sent_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          lang?: string
+          last_sent_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          lang?: string
+          last_sent_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       encounters: {
         Row: {
           choice: string
@@ -935,6 +959,10 @@ export type Database = {
       tax_receipt_start: { Args: never; Returns: string }
       touch_activity: { Args: { _lang?: string }; Returns: undefined }
       village_balance: { Args: { _seed: string }; Returns: number }
+      village_capped_tax: {
+        Args: { _at: string; _seed: string }
+        Returns: number
+      }
       village_civic_wealth: {
         Args: { _at: string; _seed: string }
         Returns: number
