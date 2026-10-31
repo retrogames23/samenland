@@ -17,7 +17,7 @@ import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
 import { seasonKey, seasonAt } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
-import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
+import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, type Pose } from "./people";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
@@ -527,6 +527,17 @@ export function cartShear(dx: number, dy: number, away: boolean): number {
 }
 function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: number, sd: number, _cover: string, t: number) {
   const away = dy < -0.15 * Math.abs(dx);
+  // steep stretches (steeper than the 2:1 diagonal): painted head-on / from-behind view instead of a tilted side view
+  if (Math.abs(dy) > 0.9 * Math.abs(dx)) {
+    const im = cartAxisImage(dy < 0);
+    if (im) {
+      const h = 17, w = (h * im.naturalWidth) / im.naturalHeight;
+      const g = t / 150 + sd * 7.31, sway = Math.sin(g * Math.PI / 2) * 0.25, dip = Math.abs(Math.sin(g * Math.PI)) * 0.15;
+      c.save(); c.translate(x, y); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+      c.fillStyle = "rgba(20,15,10,0.38)"; c.beginPath(); c.ellipse(0, -0.4, w * 0.5, 1.4, 0, 0, 7); c.fill();
+      c.drawImage(im, -w / 2 + sway, -h + dip, w, h); c.restore(); return;
+    }
+  }
   const wag = wagonImage(away), ox = oxWalkImage(away);
   c.save(); c.translate(x, y); if (screenFacing(dx, dy) < 0) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
