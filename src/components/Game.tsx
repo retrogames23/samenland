@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
+import { townRank } from "@/game/rank";
 import { townOf, poseOf, kinOf, commandMayor, driveMayor, clearMayorOrder, setStrollHold, citizensOf, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { weddingJoy } from "@/game/weddings";
@@ -1089,9 +1090,11 @@ export function Game() {
   }
   // heavy derivations refresh every 5 s of world time, not on every pointer move
   const slow = Math.floor(now / 5000) * 5000;
-  const { cash, myStage, myTown, at, pop, residents, season, nbs, larder, boons } = useMemo(() => {
+  const { cash, myRank, myStage, myTown, at, pop, residents, season, nbs, larder, boons } = useMemo(() => {
     const cash = my ? (accounting?.seed === my.id && accounting.active ? accounting.balance : treasury(my, purchases, slow, gifts, claims)) : 0;
-    const myStage = my ? stageOf(effAge(my, seeds, slow)) : 0;
+    const myRank = my ? townRank(my, seeds, slow) : 0;
+    // shop/monuments: the earned rank, never beyond what the server's guard allows
+    const myStage = my ? Math.min(myRank, stageOf(effAge(my, seeds, slow))) : 0;
     const myTown = my ? townOf(my, seeds, slow) : null;
     const larder = my ? larderOf(my, seeds, slow) : null;
     const boons = larder ? boonsOf(larder) : null;
@@ -1101,7 +1104,7 @@ export function Game() {
     const sw = seasonAt(slow);
     const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
     const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
-    return { cash, myStage, myTown, at, pop, residents, season, nbs, larder, boons };
+    return { cash, myRank, myStage, myTown, at, pop, residents, season, nbs, larder, boons };
   }, [my, seeds, purchases, gifts, claims, slow, accounting]);
   const [larderOpen, setLarderOpen] = useState(false);
   // "come back later": purse too thin for anything new while builders still work — say so once per session
@@ -1513,7 +1516,7 @@ export function Game() {
               <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { focus(s.x, s.y); setTab(null); }}>
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {t.character[characterOf(s.x, s.y)]![0]} · {t.stages[stageOf(effAge(s, seeds, now))]} · {s.owner} · {t.age(ageHours(s, now))}
+                  {t.character[characterOf(s.x, s.y)]![0]} · {t.stages[townRank(s, seeds, slow)]} · {s.owner} · {t.age(ageHours(s, now))}
                   {(() => { const p = speedParts(s, seeds, now); return (<>
                     {p.bless > 0.005 && <span className="block">{t.blessBonus(Math.round(p.bless * 100))}</span>}
                     {p.trade > 0.005 && <span className="block">{t.tradeBonus(Math.round(p.trade * 100))}</span>}
@@ -1720,7 +1723,7 @@ export function Game() {
           <div className="min-w-0 shrink">
             <div title={my ? t.character[characterOf(my.x, my.y)]![1] : undefined} className="-my-[0.34em] truncate py-[0.34em] pl-0.5 pr-3 font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
-              {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[stageOf(myStats.age)]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
+              {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[myRank]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
           </div>
           {my && at ? (
