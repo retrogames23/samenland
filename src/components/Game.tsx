@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
-import { townRank } from "@/game/rank";
+import { townRank, rankInput, nextRankNeed } from "@/game/rank";
 import { townOf, poseOf, kinOf, commandMayor, driveMayor, clearMayorOrder, setStrollHold, citizensOf, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { weddingJoy } from "@/game/weddings";
@@ -1090,7 +1090,7 @@ export function Game() {
   }
   // heavy derivations refresh every 5 s of world time, not on every pointer move
   const slow = Math.floor(now / 5000) * 5000;
-  const { cash, myRank, myStage, myTown, at, pop, residents, season, nbs, larder, boons } = useMemo(() => {
+  const { cash, myRank, myStage, myTown, at, pop, residents, season, nbs, larder, boons, rankHint } = useMemo(() => {
     const cash = my ? (accounting?.seed === my.id && accounting.active ? accounting.balance : treasury(my, purchases, slow, gifts, claims)) : 0;
     const myRank = my ? townRank(my, seeds, slow) : 0;
     // shop/monuments: the earned rank, never beyond what the server's guard allows
@@ -1104,8 +1104,12 @@ export function Game() {
     const sw = seasonAt(slow);
     const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
     const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
-    return { cash, myRank, myStage, myTown, at, pop, residents, season, nbs, larder, boons };
-  }, [my, seeds, purchases, gifts, claims, slow, accounting]);
+    // what is still missing for the next rank, e.g. "Bis Dorf fehlen noch: 12 Bürger, 3 Häuser"
+    const need = my ? nextRankNeed(rankInput(my, seeds, slow)) : null;
+    const parts = need ? [need.citizens > 0 ? t.needCitizens(need.citizens) : "", need.homes > 0 ? t.needHomes(need.homes) : "", need.roads > 0 ? t.needRoads(need.roads) : ""].filter(Boolean) : [];
+    const rankHint = need && parts.length ? t.nextRank(t.stages[myRank + 1] ?? "", parts) : "";
+    return { cash, myRank, myStage, myTown, at, pop, residents, season, nbs, larder, boons, rankHint };
+  }, [my, seeds, purchases, gifts, claims, slow, accounting, t]);
   const [larderOpen, setLarderOpen] = useState(false);
   // "come back later": purse too thin for anything new while builders still work — say so once per session
   const [waitShut, setWaitShut] = useState(false);
@@ -1723,7 +1727,7 @@ export function Game() {
           <div className="min-w-0 shrink">
             <div title={my ? t.character[characterOf(my.x, my.y)]![1] : undefined} className="-my-[0.34em] truncate py-[0.34em] pl-0.5 pr-3 font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
-              {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[myRank]} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
+              {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[myRank]}${rankHint ? ` · ${rankHint}` : ""} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
           </div>
           {my && at ? (
