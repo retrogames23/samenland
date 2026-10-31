@@ -3,7 +3,8 @@ import { civicWealth, estateAt, type Estate } from "./prosperity";
 import { weddingDates, weddingJoy } from "./weddings";
 import { hasTrait } from "./traits";
 import { pathHeading } from "./motion";
-import { leaversOf } from "./wander";
+import { HOME_SIZES, townTiles, occupiedHomes } from "./households";
+export { foodCapacity, FEED_BASE, WILD_MAX, FEED_FIELD, FEED_GARDEN, FEED_FOOD_ITEM, FEED_HEALTH_ITEM, FEED_WINTER } from "./households";
 import { fires } from "./disasters";
 import { guestNow, maypoleUp, cowsOf } from "./encounters";
 import { worldHour } from "./time";
@@ -71,9 +72,8 @@ const M = ["Otto", "Karl", "Emil", "Fritz", "Hans", "Paul", "Anton", "Jakob", "F
 const S = ["Hollmann", "Brandt", "Weber", "Müller", "Becker", "Lindner", "Kraus", "Vogt", "Seidel", "Hartmann", "Ebert", "Moosbauer", "Winter", "Sommer", "Fink", "Haas", "Kessler", "Roth", "Albers", "Pfeiffer", "Graf", "Kühn"];
 const pick = <T,>(a: readonly T[], h: number) => a[Math.floor(h * a.length) % a.length]!;
 
-const HOMES: Partial<Record<Kind, [number, number]>> = { hut: [2, 2], suburb: [2, 4], farmhouse: [2, 4], cottage: [2, 3], townhouse: [2, 4], townhouse2: [2, 4], fachwerk: [2, 5], steinhaus: [2, 5], handwerker: [2, 4], patrician: [2, 5], villa: [2, 4], tenement: [4, 8], inn: [2, 2], bakery: [2, 2] };
 /** Kinds people live in. */
-export const isHomeKind = (k: string) => k in HOMES && k !== "inn" && k !== "bakery";
+export const isHomeKind = (k: string) => k in HOME_SIZES && k !== "inn" && k !== "bakery";
 const SLOTS: Partial<Record<Kind, [Job, number]>> = {
   belfry: ["watchman", 1], theater: ["crafter", 2], opera: ["crafter", 2], university: ["teacher", 2], exchange: ["merchant", 3], orangery: ["herbalist", 2],
   watermill: ["miller", 2], chapel: ["priest", 1], manufactory: ["crafter", 4], steamworks: ["smith", 3], station: ["merchant", 2], stall: ["merchant", 2], harbor: ["carter", 2], townhall: ["crafter", 2], seat3: ["crafter", 1],
@@ -108,32 +108,8 @@ export function townOf(s: Seed, seeds: Seed[], now: number): Town {
   return t;
 }
 
-/** Households a town can feed: untended land feeds at most WILD_MAX (never below FEED_BASE); each bought food/health craft opens a share of the land's full yield. */
-export const FEED_BASE = 24, WILD_MAX = 32, FEED_FIELD = 0.25, FEED_GARDEN = 0.1, FEED_FOOD_ITEM = 0.15, FEED_HEALTH_ITEM = 0.1, FEED_WINTER = 0.25;
-export function foodCapacity(s: Seed, byKind: Map<Kind, unknown[]>, now: number) {
-  if (!s.user_id) return Infinity;
-  const own = new Set((s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item));
-  const food = ["fisher", "hunter", "granary", "dairy"].filter((i) => own.has(i)).length;
-  const health = ["herbs", "healer"].filter((i) => own.has(i)).length;
-  const w = 1 - FEED_WINTER * seasonAt(now).winter;
-  const land = (8 + FEED_FIELD * (byKind.get("field")?.length ?? 0) + FEED_GARDEN * (byKind.get("garden")?.length ?? 0)) * w;
-  return Math.max(FEED_BASE, Math.floor(Math.min(WILD_MAX * w, land) + land * (FEED_FOOD_ITEM * food + FEED_HEALTH_ITEM * health)));
-}
-
 function buildTown(s: Seed, seeds: Seed[], now: number): Town {
-  const r = reachOf(s, radiusOf(effAge(s, seeds, now)));
-  const x0 = Math.floor(s.x - r - 2), x1 = Math.ceil(s.x + r + 2), y0 = Math.floor(s.y - r - 2), y1 = Math.ceil(s.y + r + 2);
-  const byKind = new Map<Kind, Tile[]>();
-  const sites: Tile[] = [];
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    const st = structureAt(x, y, seeds, now);
-    if (!st || st.seed.id !== s.id) continue;
-    if (st.build !== undefined) { sites.push([x, y]); continue; }
-    const kind = st.homeKind ?? st.kind;
-    if (!byKind.has(kind)) byKind.set(kind, []);
-    const tiles = byKind.get(kind);
-    if (tiles) tiles.push([x, y]);
-  }
+  const { r, x0, x1, y0, y1, byKind, sites } = townTiles(s, seeds, now);
   const near = (list: Tile[] | undefined, from: Tile, h: number): Tile | null => {
     if (!list?.length) return null;
     // nearest of a few hashed candidates → people don't all share one spot
@@ -187,30 +163,14 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     else if ((sl.job === "hunter" || sl.job === "herbalist" || sl.job === "woodcutter") && wood && Math.hypot(wood[0] - sl.at[0], wood[1] - sl.at[1]) < 16) sl.at = wood;
     else if (sl.job === "healer" && wood && Math.hypot(wood[0] - sl.at[0], wood[1] - sl.at[1]) < 12) sl.at = wood;
   }
-  const homes: Tile[] = [];
-  for (const k of Object.keys(HOMES) as Kind[]) homes.push(...(byKind.get(k) ?? []));
-  homes.sort((a, b) => Math.hypot(a[0] - s.x, a[1] - s.y) - Math.hypot(b[0] - s.x, b[1] - s.y) || a[0] - b[0] || a[1] - b[1]);
+  const households = occupiedHomes(s, seeds, now, byKind);
+  const homes = households.map(h => h.home);
 
   const workTiles = (["workshop", "warehouse", "market", "markethall", "manufactory", "guildhall", "smithy", "sawmill"] as Kind[]).flatMap((k) => byKind.get(k) ?? []);
   const people: Person[] = [];
   const created = Date.parse(s.created_at);
-  // households that moved to a neighbour: their house stands empty until newcomers arrive (never the oldest core homes)
-  const empty = new Set<string>();
-  if (homes.length > 6) for (const w of leaversOf(s, seeds, now)) {
-    const hm = homes[3 + Math.floor(hash(w.sd, 5, 1508) * (homes.length - 3))]!;
-    empty.add(hm.join(","));
-  }
-  // lack of food: households beyond what the land and the food crafts can feed move away (outermost first)
-  const cap = foodCapacity(s, byKind, now);
-  for (let i = cap; i < homes.length; i++) empty.add(homes[i]!.join(","));
-  for (const home of homes) {
-    if (empty.has(home.join(","))) continue;
-    const homeStructure = structureAt(home[0], home[1], seeds, now);
-    if (!homeStructure) continue;
-    const kind = homeStructure.homeKind ?? homeStructure.kind;
-    const [lo, hi] = HOMES[kind]!;
+  for (const { home, size } of households) {
     const hh = (i: number) => hash(home[0], home[1], 400 + i);
-    const size = lo + Math.floor(hh(0) * (hi - lo + 1));
     const last = pick(S, hh(1));
     const pa = 24 + Math.floor(hh(2) * 30);
     const yrs = (now - created) / 3.15576e10;
