@@ -58,7 +58,7 @@ export type Chronicle = { from: number; to: number; events: ChronEvent[]; popFro
 export const CHRON_LETTER = 5 * 864e5, CHRON_BANNER = 864e5, CHRON_MAX = 120 * 864e5;
 const STEP = 6 * 3.6e6;
 /** Real residents: everyone living in a finished home (same list the map shows). */
-const pop = (s: Seed, seeds: Seed[], t: number) => townOf(s, seeds, t).people.length;
+const pop = (s: Seed, seeds: Seed[], t: number) => citizensOf(townOf(s, seeds, t)).length;
 const dominant = (now: number) => { const w = seasonAt(now); return (Object.keys(w) as Season[]).reduce((a, b) => (w[b] > w[a] ? b : a)); };
 
 export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chronicle {
