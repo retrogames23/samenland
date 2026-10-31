@@ -152,8 +152,9 @@ function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking
   const im = sheepImage(graze && !walking, sleeping); if (!im) return;
   const w = 5.2;
   // walking: real painted 4-frame leg cycle, cross-faded so steps flow; body dips on each hoof fall
-  const ph = walking ? t / 230 : 0, f0 = Math.floor(ph) & 3, mix = ph - Math.floor(ph);
-  const bob = sleeping ? 0 : walking ? Math.abs(Math.sin(ph * Math.PI)) * 0.04 : Math.sin(t / 1700) * 0.025;
+  // unhurried gait (~2.8 frames/s) matched to the slow walk, so hooves don't trip on the spot
+  const ph = walking ? t / 360 : 0, f0 = Math.floor(ph) & 3, mix = ph - Math.floor(ph);
+  const bob = sleeping ? 0 : walking ? Math.abs(Math.sin(ph * Math.PI)) * 0.18 : Math.sin(t / 2600) * 0.12;
   c.fillStyle = "rgba(30,36,22,0.32)"; c.beginPath(); c.ellipse(x, y, 2.4, 0.8, 0, 0, 7); c.fill();
   c.save(); c.translate(x, y - bob); if (flip) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
@@ -1731,15 +1732,23 @@ function drawMaypole(c: C, x: number, y: number, t: number) {
 function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number) {
   const im = huntIm("cow", cowUrl); if (!im) return;
   const w = 13, h = (im.naturalHeight / im.naturalWidth) * w;
-  const step = Math.floor(now / 90000 + sd);
-  const dx = (hash(sd, step, 1501) - 0.5) * 7 + i * 4 - 4, dy = (hash(sd, step, 1502) - 0.5) * 3;
-  const flip = hash(sd, Math.floor(now / 240000), 1503) < 0.5, bob = Math.sin(now / 900 + sd) * 0.25;
   const night = animalsSleeping(now);
+  // grazes at one spot ~40-55 s, then ambles slowly (7 s) to the next one instead of teleporting
+  const CYC = 48000, WALK = 7000, tt = now + hash(sd, i, 1500) * CYC, k = Math.floor(tt / CYC), u = tt - k * CYC;
+  const spot = (j: number): [number, number] => [(hash(sd, j, 1501) - 0.5) * 9 + i * 4 - 4, (hash(sd, j, 1502) - 0.5) * 3.5];
+  const a = spot(k), b = spot(k + 1), into = night ? -1 : u - (CYC - WALK);
+  const f = into > 0 ? into / WALK : 0, e = f * f * (3 - 2 * f), walking = into > 0;
+  const dx = a[0] + (b[0] - a[0]) * e, dy = a[1] + (b[1] - a[1]) * e;
+  const flip = walking ? b[0] < a[0] : a[0] < spot(k - 1)[0];
+  // breathing/chewing while standing, a gentle sway with each step while walking, a twitch now and then
+  const twitch = !walking && Math.sin(now / 3100 + sd) > 0.97 ? Math.sin(now / 40) * 0.25 : 0;
+  const bob = walking ? Math.abs(Math.sin(now / 420)) * 0.7 : Math.sin(now / 2500 + sd) * 0.45 + twitch;
+  const tilt = walking ? Math.sin(now / 840) * 0.03 : Math.sin(now / 1900 + sd) * 0.015;
   c.save();
   c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.3, 5, 1.4, 0, 0, 7); c.fill();
   c.translate(x + dx, y + dy); if (flip) c.scale(-1, 1);
   if (night) c.drawImage(im, 0, im.naturalHeight * 0.45, im.naturalWidth, im.naturalHeight * 0.55, -w / 2, -h * 0.55, w, h * 0.55);
-  else { c.translate(0, bob * 0.3); c.drawImage(im, -w / 2, -h * 0.96, w, h); }
+  else { c.rotate(tilt); c.translate(0, -bob); c.drawImage(im, -w / 2, -h * 0.96, w, h); }
   c.restore();
 }
 
