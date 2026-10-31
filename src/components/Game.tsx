@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
-import { townOf, poseOf, kinOf, commandMayor, driveMayor, clearMayorOrder, setStrollHold, type Person } from "@/game/people";
+import { townOf, poseOf, kinOf, commandMayor, driveMayor, clearMayorOrder, setStrollHold, citizensOf, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { weddingJoy } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
@@ -1092,7 +1092,7 @@ export function Game() {
     const boons = larder ? boonsOf(larder) : null;
     const at = my ? attributes(my, seeds, purchases, slow, myTown!.weddings.filter((w) => w.alliance).length, boons ?? undefined) : null;
     const pop = my ? (accounting?.seed === my.id && accounting.active ? accounting.daily : dailyTax(my, ageHours(my, slow))) : 0;
-    const residents = myTown ? myTown.people.length : 0;
+    const residents = myTown ? citizensOf(myTown).length : 0;
     const sw = seasonAt(slow);
     const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
     const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];

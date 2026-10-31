@@ -14,7 +14,7 @@ export function VillageRoll({ t, town, hue, onPick, onClose }: { t: T; town: Tow
   const [open, setOpen] = useState<Set<number>>(new Set());
   const roll = useMemo(() => rollOf(town.people), [town]);
   const big = roll.total > 300;
-  const jobs = useMemo(() => [...new Set(town.people.map((p) => p.job))].sort(), [town]);
+  const jobs = useMemo(() => [...new Set(roll.households.flatMap((h) => h.people.map((p) => p.job)))].sort(), [roll]);
   const by = useMemo(() => new Map(town.people.map((p) => [p.id, p])), [town]);
   const jobName = (p: Person) => t.job[p.job]?.[p.sex === "f" ? 0 : 1] ?? p.job;
   const kin = (p: Person) => {

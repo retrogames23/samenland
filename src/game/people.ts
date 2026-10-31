@@ -43,6 +43,10 @@ export type Person = {
   guest?: { at: number; until: number; from: Tile; spot: Tile; face: Tile; event: string };
 };
 export type Role = "head" | "spouse" | "child" | "elder" | "lodger" | "mayor" | "guest";
+/** Single source of truth for "who lives here": everyone born into an occupied household (occupiedHomes),
+ * never the mayor's avatar or travelling guests. HUD, roll, chronicle and larder all count this. */
+export const isCitizen = (p: Person) => p.role !== "mayor" && p.role !== "guest";
+export const citizensOf = (t: Town) => t.people.filter(isCitizen);
 /** Who appears for each visitor encounter: [job, sex, age, dx, dy] around the well. */
 const GUESTS: Record<string, [Job, Sex, number, number, number][]> = {
   journeyman: [["builder", "m", 22, 0, 0]], merchant: [["merchant", "m", 46, 0, 0]], healer: [["healer", "f", 52, 0, 0]],

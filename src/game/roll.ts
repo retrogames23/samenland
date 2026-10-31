@@ -1,6 +1,7 @@
 // Village roll ("Dorf-Rolle"): pure grouping of a town's people into households for the register.
-// Derived on demand from townOf().people — nothing stored.
-import type { Person } from "./people";
+// Derived on demand from townOf().people — nothing stored. Only citizens (residents of a home) form
+// households and count in `total`; the mayor is listed apart, travelling guests not at all.
+import { isCitizen, type Person } from "./people";
 
 export type Household = { key: number; name: string; people: Person[] };
 export type Roll = { mayor: Person | null; households: Household[]; total: number; kids: number; sick: number };
@@ -9,9 +10,9 @@ const RANK: Record<string, number> = { head: 0, spouse: 1, elder: 2, child: 3, l
 
 export function rollOf(people: readonly Person[]): Roll {
   const mayor = people.find((p) => p.role === "mayor") ?? null;
+  const citizens = people.filter(isCitizen);
   const by = new Map<number, Person[]>();
-  for (const p of people) {
-    if (p === mayor) continue;
+  for (const p of citizens) {
     const k = p.home[0] * 1024 + p.home[1];
     (by.get(k) ?? by.set(k, []).get(k)!).push(p);
   }
@@ -20,7 +21,7 @@ export function rollOf(people: readonly Person[]): Roll {
     return { key, name: (ps.find((p) => p.role === "head") ?? ps[0]!).last, people: ps };
   });
   households.sort((a, b) => a.name.localeCompare(b.name) || a.key - b.key);
-  return { mayor, households, total: people.length, kids: people.filter((p) => p.job === "child").length, sick: people.filter((p) => p.sick).length };
+  return { mayor, households, total: citizens.length, kids: citizens.filter((p) => p.job === "child").length, sick: citizens.filter((p) => p.sick).length };
 }
 
 export function matches(p: Person, q: string, job: string): boolean {
