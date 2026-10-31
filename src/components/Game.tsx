@@ -716,7 +716,7 @@ export function Game() {
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", onBlur);
     return () => {
-      cancelAnimationFrame(raf);
+      cancelAnimationFrame(raf); document.removeEventListener("visibilitychange", onHide);
       window.removeEventListener("resize", resize);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
