@@ -1121,6 +1121,7 @@ export function Game() {
 
   const wareName = (w: Ware, n: number) => t.goods.ware[w]![n === 1 ? 0 : 1];
   const [questOpen, setQuestOpen] = useState(false);
+  const [signEdit, setSignEdit] = useState<string | null>(null);
   const [questFold, setQuestFold] = useState(false);
   useEffect(() => { if (coarse && window.innerWidth < 768) setQuestFold(true); }, [coarse]); // phones: quest starts as a small badge
   const quest = my ? questState(claims, my.id, {
