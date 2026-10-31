@@ -6,8 +6,8 @@ const seed = () => ({ id: "s", name: "A", owner: "o", x: 500, y: 500, hue: 0, cr
 const day = 86400000;
 
 describe("economy (Taler)", () => {
-  it("starts with 150 Taler", () => expect(treasury(seed(), [], t0)).toBe(START_TALER));
-  it("START is 150", () => expect(START_TALER).toBe(150));
+  it("starts with 160 Taler", () => expect(treasury(seed(), [], t0)).toBe(START_TALER));
+  it("START is 160", () => expect(START_TALER).toBe(160));
   it("pays 1 Taler per resident per day", () => expect(taxEarned(seed(), t0 + day)).toBe(popAt(24)));
   it("a fisher hut is affordable on day one", () => expect(treasury(seed(), [], t0)).toBeGreaterThanOrEqual(ITEMS.fisher));
   it("the school is not affordable in the first week", () => expect(treasury(seed(), [], t0 + 7 * day)).toBeLessThan(ITEMS.school));
