@@ -2,7 +2,7 @@
  * Village chronicle: what happened between two moments, derived purely from seeds and time
  * (same functions that drive growth), so it needs no stored history. Returns codes; i18n formats them.
  */
-import { effAge, stageOf, radiusOf, reachOf, LANDMARKS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
+import { effAge, stageOf, landmarkSpots, specialDone, specialTile, SPECIAL_KIND, MONUMENT_BY_KIND, radiusOf, reachOf, LANDMARKS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
 import { townRank } from "./rank";
 import { taxEarned } from "./economy";
 import { dowryEarned } from "./weddings";
@@ -13,8 +13,8 @@ import { seasonAt, type Season } from "./season";
 
 export type ChronEvent =
   | { at: number; code: "stage"; stage: number }
-  | { at: number; code: "built"; kind: Kind }
-  | { at: number; code: "bought"; item: string }
+  | { at: number; code: "built"; kind: Kind; x?: number; y?: number }
+  | { at: number; code: "bought"; item: string; x?: number; y?: number }
   | { at: number; code: "road"; other: string; x: number; y: number }
   | { at: number; code: "twin"; other: string }
   | { at: number; code: "season"; season: Season }
@@ -71,12 +71,22 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
     const rk = townRank(s, seeds, now);
     for (let k = prevRank + 1; k <= rk; k++) ev.push({ at: now, code: "stage", stage: k });
     prevRank = Math.max(prevRank, rk);
-    for (const l of LANDMARKS) if (l.at > prevAge && l.at <= age) ev.push({ at: now, code: "built", kind: l.kind });
+    LANDMARKS.forEach((l, i) => {
+      if (!(l.at > prevAge && l.at <= age)) return;
+      let x: number | undefined, y: number | undefined;
+      for (const [k, list] of landmarkSpots(s)) if (list.includes(i)) { const [dx, dy] = k.split(",").map(Number); x = s.x + dx!; y = s.y + dy!; break; }
+      ev.push({ at: now, code: "built", kind: l.kind, ...(x != null ? { x, y } : {}) });
+    });
     const se = dominant(now); if (se !== prevSeason) ev.push({ at: now, code: "season", season: se }); prevSeason = se;
     prevAge = age;
     if (now >= to) break;
   }
-  for (const b of s.bought ?? []) if (b.at > from && b.at <= to) ev.push({ at: b.at, code: "bought", item: b.item });
+  for (const b of s.bought ?? []) {
+    // bought buildings are celebrated when the builders finish, at the tile where they stand
+    const kind = SPECIAL_KIND[b.item], site = kind && !MONUMENT_BY_KIND.has(kind) ? specialTile(s, kind) : null;
+    const at = site ? specialDone(s, seeds, b.at) : b.at;
+    if (at > from && at <= to) ev.push({ at, code: "bought", item: b.item, ...(site ? { x: site[0], y: site[1] } : {}) });
+  }
   for (const l of links(seeds)) {
     if (l.a.id !== s.id && l.b.id !== s.id) continue;
     const o = l.a.id === s.id ? l.b : l.a;
