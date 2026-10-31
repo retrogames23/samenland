@@ -106,15 +106,17 @@ export function raids(s: Seed, now: number): Raid[] {
 /** Taler stolen so far (mirrors village_raids in the database). */
 export const raidLoss = (s: Seed, now: number) => raids(s, now).reduce((a, r) => a + r.loss, 0);
 
+/** Craft charter: the guild masons rebuild after fire and flood twice as fast. */
+export const craftRepair = (s: Seed, at: number) => (s.charter?.path === "craft" && s.charter.at <= at ? 2 : 1);
 export type TileHit = { fire?: true; build?: number; flood?: true };
 const tcache = new Map<string, Map<number, TileHit>>();
 /** What disasters do to each tile right now: burning, rebuilding after fire/flood, or under water. */
 export function tileHits(s: Seed, now: number): Map<number, TileHit> {
-  const key = `${s.id}:${s.created_at}:${(s.bought ?? []).map((b) => b.item + b.at).join(",")}:${(s.aid ?? []).join(",")}:${Math.floor(now / 6e4)}`;
+  const key = `${s.id}:${s.created_at}:${(s.bought ?? []).map((b) => b.item + b.at).join(",")}:${(s.aid ?? []).join(",")}:${s.charter?.path ?? ""}${s.charter?.at ?? ""}:${Math.floor(now / 6e4)}`;
   const hit = tcache.get(key); if (hit) return hit;
   const m = new Map<number, TileHit>();
   for (const f of fires(s, now)) {
-    const k = aidFactor(s.aid, f.end);
+    const k = aidFactor(s.aid, f.end) * craftRepair(s, f.end);
     if (now >= f.end + FIRE_REBUILD / k) continue;
     for (const t of f.tiles) {
       if (now < f.end) m.set(t, { fire: true });
@@ -122,7 +124,7 @@ export function tileHits(s: Seed, now: number): Map<number, TileHit> {
     }
   }
   for (const f of floods(s, now)) {
-    const k = aidFactor(s.aid, f.end);
+    const k = aidFactor(s.aid, f.end) * craftRepair(s, f.end);
     if (now >= f.end + FLOOD_REBUILD / k) continue;
     if (now < f.end) for (const t of f.tiles) m.set(t, { ...m.get(t), flood: true });
     else for (const t of f.ruined) m.set(t, { build: ((now - f.end) * k) / FLOOD_REBUILD });

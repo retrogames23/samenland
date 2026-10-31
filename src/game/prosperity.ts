@@ -64,4 +64,6 @@ export function sickTaxRate(s: Seed, at: number): number {
   const m = new Date(at).getUTCMonth(), winter = m === 11 || m < 2 ? 1 : 0;
   return Math.max(0.01, 0.06 + 0.03 * winter - (own("herbs") ? 0.015 : 0) - (own("healer") || own("infirmary") ? 0.035 : 0));
 }
+/** Culture charter: learned healers and clean scriptoria cut the daily sickness chance (live villagers and new tax receipts only). */
+export const CULTURE_SICK = 0.02;
 export const sickLoss = (assessed: number, rate: number) => Math.floor(assessed * rate * SICK_SHARE);

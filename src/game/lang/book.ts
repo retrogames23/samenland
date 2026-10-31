@@ -59,6 +59,14 @@ const de: Book = {
       ["Gesundheit", "Kranke Bewohner bleiben im Bett, fallen bei der Arbeit aus, müssen von Angehörigen gepflegt werden und zahlen an diesem Tag keine Steuer. Im frostigen Winter liegen spürbar mehr Bürger danieder. Frisches Brunnenwasser, Kräuterhütten und Arzneihäuser senken die Ausfälle und schützen so auch die Schatzkammer."],
       ["Schutz vor Unheil", "Brände und Räuberbanden stellen das Dorf auf die Probe. Spritzenhäuser löschen Brände rasch, und eine Stadtgarde schlägt Plünderer in die Flucht. Hochwasser an Flüssen überschwemmt im Frühjahr und Herbst vorübergehend Uferwiesen, hinterlässt danach jedoch besonders fruchtbaren Boden."],
     ]],
+    ["Dorf-Charta & Zünfte", [
+      ["Die Charta", "Ab dem Weiler, also nach einem Tag, siegelt der Schulze einmalig die Charta. Die Wahl gilt für immer. Die Landschaft spricht nur eine Empfehlung aus – jeder Weg funktioniert überall."],
+      ["Handel", "Mehr Steuern Tag für Tag und ertragreichere Handelsstraßen. Lohnt sich besonders mit vielen Nachbarn."],
+      ["Handwerk", "Gekaufte Bauten stehen in halber Zeit, und nach Brand oder Flut bauen die Zunftmaurer doppelt so schnell wieder auf."],
+      ["Gelehrsamkeit", "Mehr Gesundheit, deutlich weniger Kranke und damit auch weniger Steuerausfälle."],
+      ["Bauern- & Waldmark", "Mehr Nahrung und stetig etwas schnelleres Wachstum."],
+      ["Zunftlade & Ämter", "Mit dem Zunftbau deines Weges kannst du Geselle und später Meister werden; danach verleiht die Bürgerschaft dem Schulzen Ehrenämter mit weiteren Vorteilen."],
+    ]],
   ],
 };
 
@@ -113,6 +121,14 @@ const en: Book = {
     ["Health & protection from harm", [
       ["Health", "Sick villagers stay in bed, miss work, need relatives to nurse them and pay no tax that day. In frosty winter noticeably more citizens are ill. Fresh well water, herb huts and infirmaries reduce sick days and so also protect the treasury."],
       ["Protection from harm", "Fires and robber bands put the village to the test. Fire houses put out fires quickly and a town guard drives off looters. Floods on rivers briefly swamp the shore meadows in spring and autumn, but leave especially fertile soil behind."],
+    ]],
+    ["Village charter & guilds", [
+      ["The charter", "From hamlet stage, after one day, the headman seals the charter once. The choice is permanent. The landscape only makes a suggestion – every path works anywhere."],
+      ["Trade", "More taxes every day and richer trade roads. Best with many neighbours."],
+      ["Craft", "Bought buildings finish in half the time, and after fire or flood the guild masons rebuild twice as fast."],
+      ["Learning", "More health, far fewer sick villagers and therefore smaller tax losses."],
+      ["Farm & forest", "More food and steadily slightly faster growth."],
+      ["Guild chest & offices", "With your path's guild building you can become journeyman and later master; then the townsfolk grant the headman honorary offices with further benefits."],
     ]],
   ],
 };
@@ -169,6 +185,14 @@ const fr: Book = {
       ["Santé", "Les malades restent au lit, manquent au travail, doivent être soignés par leurs proches et ne paient pas d'impôt ce jour-là. En hiver, ils sont nettement plus nombreux. Eau de puits, cabanes d'herboriste et apothicaireries réduisent les absences et protègent ainsi le trésor."],
       ["Protection contre les malheurs", "Incendies et brigands mettent le village à l'épreuve. La caserne de pompiers éteint vite les feux et la garde chasse les pillards. Les crues inondent brièvement les prés au printemps et en automne, mais laissent une terre très fertile."],
     ]],
+    ["Charte & guildes", [
+      ["La charte", "Dès le rang de hameau, après une journée, le bourgmestre scelle la charte une seule fois. Ce choix est définitif. La contrée ne fait qu'une suggestion – chaque voie fonctionne partout."],
+      ["Commerce", "Plus d'impôts chaque jour et des routes marchandes plus rentables. Idéal avec de nombreux voisins."],
+      ["Artisanat", "Les bâtiments achetés s'achèvent deux fois plus vite, et après un incendie ou une crue les maçons de la guilde reconstruisent deux fois plus vite."],
+      ["Savoir", "Plus de santé, beaucoup moins de malades et donc moins de pertes d'impôts."],
+      ["Marche paysanne", "Plus de vivres et une croissance un peu plus rapide."],
+      ["Coffre de guilde & charges", "Avec le bâtiment de guilde de ta voie, tu deviens compagnon puis maître ; ensuite les habitants confient au bourgmestre des charges honorifiques aux avantages supplémentaires."],
+    ]],
   ],
 };
 
@@ -223,6 +247,14 @@ const es: Book = {
     ["Salud y protección", [
       ["Salud", "Los enfermos guardan cama, faltan al trabajo, necesitan que sus familiares los cuiden y ese día no pagan impuestos. En el frío invierno hay muchos más. El agua del pozo, las cabañas de hierbas y las boticas reducen las bajas y protegen así el tesoro."],
       ["Protección contra desgracias", "Incendios y bandidos ponen a prueba la aldea. El cuartel de bomberos apaga pronto el fuego y la guardia ahuyenta a los saqueadores. Las crecidas inundan brevemente los prados en primavera y otoño, pero dejan tierra muy fértil."],
+    ]],
+    ["Fuero y gremios", [
+      ["El fuero", "Desde la fase de aldea, tras un día, el regidor sella el fuero una sola vez. La elección es definitiva. El paisaje solo sugiere: toda senda funciona en cualquier lugar."],
+      ["Comercio", "Más tributos cada día y rutas comerciales más provechosas. Ideal con muchos vecinos."],
+      ["Artesanía", "Los edificios comprados se terminan en la mitad de tiempo y, tras un incendio o una inundación, los canteros del gremio reconstruyen el doble de rápido."],
+      ["Saber", "Más salud, muchos menos enfermos y por tanto menos tributos perdidos."],
+      ["Marca campesina", "Más alimento y un crecimiento algo más rápido."],
+      ["Arca del gremio y cargos", "Con el edificio gremial de tu senda llegas a oficial y luego a maestro; después el pueblo concede al regidor cargos honoríficos con más ventajas."],
     ]],
   ],
 };
@@ -279,6 +311,14 @@ const ar: Book = {
       ["الصحة", "المرضى يلزمون الفراش ويغيبون عن العمل ويحتاجون رعاية ذويهم ولا يدفعون ضريبة ذلك اليوم. وفي الشتاء القارس يكثرون بوضوح. ماء البئر وأكواخ الأعشاب ودور الدواء تقلل الغياب وتحمي الخزينة."],
       ["الحماية من المصائب", "الحرائق وعصابات اللصوص تختبر القرية. دار الإطفاء تطفئ النار سريعاً والحرس يطرد الناهبين. والفيضانات تغمر المروج قليلاً في الربيع والخريف لكنها تترك تربة خصبة."],
     ]],
+    ["ميثاق القرية والنقابات", [
+      ["الميثاق", "منذ مرحلة النجع، أي بعد يوم واحد، يختم شيخ البلدة الميثاق مرة واحدة. والاختيار دائم. طبيعة الأرض تقترح فقط، وكل مسلك ينجح في أي مكان."],
+      ["التجارة", "ضرائب أكثر كل يوم وطرق تجارة أوفر ربحاً. الأنسب مع جيران كثيرين."],
+      ["الحِرَف", "تكتمل المباني المشتراة في نصف الوقت، وبعد الحريق أو الفيضان يعيد بنّاؤو النقابة البناء أسرع بمرتين."],
+      ["العلم", "صحة أكبر ومرضى أقل بكثير، وبالتالي خسائر ضريبية أقل."],
+      ["أرض الفلاحين", "طعام أكثر ونمو أسرع قليلاً على الدوام."],
+      ["صندوق النقابة والمناصب", "ببناء نقابة مسلكك تصبح صانعاً ثم معلّماً، وبعدها يمنح الأهالي شيخ البلدة مناصب شرفية بمزايا إضافية."],
+    ]],
   ],
 };
 
@@ -333,6 +373,14 @@ const hi: Book = {
     ["स्वास्थ्य और सुरक्षा", [
       ["स्वास्थ्य", "बीमार बिस्तर पर रहते हैं, काम से छूटते हैं, परिजनों को उनकी सेवा करनी पड़ती है और उस दिन वे कर नहीं देते। कड़ाके की सर्दी में बीमार काफ़ी बढ़ जाते हैं। कुएँ का पानी, जड़ी-बूटी कुटिया और औषधालय छुट्टियाँ घटाकर ख़ज़ाने को भी बचाते हैं।"],
       ["विपत्ति से सुरक्षा", "आग और डाकू गाँव की परीक्षा लेते हैं। अग्निशाला आग जल्दी बुझाती है और नगर रक्षक लुटेरों को भगाते हैं। बाढ़ वसंत और पतझड़ में कुछ समय मैदान डुबोती है, पर उपजाऊ मिट्टी छोड़ जाती है।"],
+    ]],
+    ["अधिकार-पत्र और श्रेणियाँ", [
+      ["अधिकार-पत्र", "पुरवा बनने पर, यानी एक दिन बाद, मुखिया एक बार अधिकार-पत्र पर मुहर लगाता है। यह चुनाव स्थायी है। भूदृश्य केवल सुझाव देता है – हर मार्ग हर जगह काम करता है।"],
+      ["व्यापार", "हर दिन अधिक कर और अधिक लाभदायक व्यापार मार्ग। कई पड़ोसियों के साथ सबसे अच्छा।"],
+      ["शिल्प", "खरीदे गए भवन आधे समय में बनते हैं, और आग या बाढ़ के बाद श्रेणी के राजमिस्त्री दोगुनी तेज़ी से पुनर्निर्माण करते हैं।"],
+      ["विद्या", "अधिक स्वास्थ्य, बहुत कम बीमार और इसलिए कम कर-हानि।"],
+      ["किसान और वन भूमि", "अधिक खाद्य और लगातार थोड़ा तेज़ विकास।"],
+      ["श्रेणी-पेटी और पद", "अपने मार्ग के श्रेणी भवन से आप कारीगर और फिर उस्ताद बनते हैं; उसके बाद नगरवासी मुखिया को अतिरिक्त लाभ वाले मानद पद देते हैं।"],
     ]],
   ],
 };
@@ -389,6 +437,14 @@ const zh: Book = {
       ["健康", "病人卧床、缺工，需要亲人照料，当天也不纳税。严冬时病人明显增多。干净的井水、草药屋和药房能减少缺工，也保护了公库。"],
       ["防范灾祸", "火灾和强盗考验着村庄。消防站迅速灭火，城卫驱逐劫掠者。河水在春秋两季短暂淹没河滩草地，却会留下格外肥沃的土壤。"],
     ]],
+    ["村庄宪章与行会", [
+      ["宪章", "达到小村落阶段（一天后），村长可一次性为宪章盖印，选择不可更改。地貌只作参考——每条道路在哪里都可行。"],
+      ["商贸", "每天税收更多，商路收益更高。邻居越多越划算。"],
+      ["手艺", "购买的建筑工期减半，火灾或洪水后行会工匠的重建速度快一倍。"],
+      ["学识", "健康更高，病人大幅减少，税收损失也随之减少。"],
+      ["农林", "食物更多，成长持续略快。"],
+      ["行会箱与官职", "建成本道路的行会建筑后，可成为帮工，再成为师傅；之后乡民会授予村长带来更多好处的荣誉官职。"],
+    ]],
   ],
 };
 
@@ -443,6 +499,14 @@ const ja: Book = {
     ["健康と災いへの備え", [
       ["健康", "病人は床に伏し、仕事を休み、家族の看病が必要になり、その日は税を納めません。厳しい冬には病人がはっきり増えます。井戸の水、薬草小屋、薬局が休みを減らし、金庫も守ります。"],
       ["災いへの備え", "火事と盗賊団が村を試します。消防小屋はすばやく火を消し、町の衛兵が略奪者を追い払います。川の洪水は春と秋に一時河原を水に沈めますが、とても肥えた土を残します。"],
+    ]],
+    ["村の憲章とギルド", [
+      ["憲章", "小さな集落の段階（一日後）から、村長は一度だけ憲章に封印できます。選択は変更できません。土地柄は目安にすぎず、どの道もどこでも機能します。"],
+      ["交易", "毎日の税収が増え、交易路の実入りも大きくなります。隣村が多いほど有利です。"],
+      ["手工業", "購入した建物が半分の時間で完成し、火事や洪水の後はギルドの石工が2倍の速さで再建します。"],
+      ["学問", "健康が高まり、病人が大きく減るため、税の減収も少なくなります。"],
+      ["農林", "食料が増え、成長が常に少し速くなります。"],
+      ["ギルドの箱と役職", "道に応じたギルドの建物を建てると職人、のちに親方になれます。その後、住民が村長に追加の恩恵がある名誉職を授けます。"],
     ]],
   ],
 };
