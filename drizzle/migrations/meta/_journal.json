@@ -386,6 +386,13 @@
       "when": 1793413447760,
       "tag": "0054_chest_caps_dowry",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1793414601264,
+      "tag": "0055_activate_tax_receipts",
+      "breakpoints": true
     }
   ]
 }
