@@ -14,6 +14,11 @@ export async function calculateTreasury(id: string, realm: string) {
     supabaseAdmin.from("tax_receipts").select("day, income").eq("seed_id", id).order("day"),
   ]);
   if (ss.error || cut.error || receipts.error) throw new Error("Treasury read failed");
+  if (!cut.data) {
+    const { data:balance, error } = await supabaseAdmin.rpc("village_balance", {_seed:id});
+    if (error || balance==null) throw new Error("Balance unavailable");
+    return { seed:id, balance, daily:0, population:0, earned:0, active:false, settled:true };
+  }
   const raw = (ss.data ?? []) as Seed[], target = raw.find(s => s.id === id);
   if (!target) throw new Error("Missing village");
   const ids = raw.map(s => s.id);
@@ -48,9 +53,12 @@ export async function calculateTreasury(id: string, realm: string) {
     if (error) throw new Error("Tax settlement failed");
   }
   const currentSeeds = economyWorldAt(input, now), current = currentSeeds.find(s => s.id===id);
+  setRealm(realm as Realm);
   const daily = current ? residentTax(current, currentSeeds, now) : null;
   const { data:balance, error:balanceError } = await supabaseAdmin.rpc("village_balance", {_seed:id});
   if (balanceError || balance==null) throw new Error("Balance unavailable");
-  const completed = (receipts.data ?? []).reduce((n,r)=>n+r.income,0)+rows.reduce((n,r)=>n+r.income,0);
+  const { data:confirmed, error:confirmationError } = await supabaseAdmin.from("tax_receipts").select("income").eq("seed_id",id);
+  if (confirmationError) throw new Error("Receipt verification failed");
+  const completed = (confirmed ?? []).reduce((n,r)=>n+r.income,0);
   return { seed:id, balance, daily:daily?.income ?? 0, population:daily?.population ?? 0, earned:completed, active:!!cut.data, settled:pending.length<14 || pending[pending.length-1]===days };
 }

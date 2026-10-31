@@ -830,6 +830,7 @@ export function Game() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [my, userId, purchases, gifts, claims, encounters, works]);
   const prepareSpend = async () => {
+    if (!accounting?.active) return true;
     if (await refreshTreasury()) return true;
     setMsg(t.buyFail); return false;
   };

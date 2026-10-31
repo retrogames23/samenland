@@ -29,10 +29,10 @@ describe("shared occupied households", () => {
     expect(foodCapacity(s, land, Date.parse("2026-12-15"))).toBe(24);
   });
   it("ordinary, skilled and wealthy residents are assessed at 1, 2 and 3 Taler", () => {
-    // Stable estate rolls .53 and .18 at wealth 100: skilled and wealthy respectively.
+    // Stable estate rolls .53 and .24 at wealth 100: skilled and wealthy respectively.
     expect(assessHomes([{ home: [0, 0], kind: "hut", size: 2 }], 0)).toBe(2);
     expect(assessHomes([{ home: [1, 0], kind: "hut", size: 2 }], 100)).toBe(4);
-    expect(assessHomes([{ home: [1, 3], kind: "hut", size: 2 }], 100)).toBe(6);
+    expect(assessHomes([{ home: [0, 9], kind: "hut", size: 2 }], 100)).toBe(6);
   });
   it("future purchases and future villages cannot alter a historical world", () => {
     const s = seed(), future = new Date(start + 100 * day).toISOString();
