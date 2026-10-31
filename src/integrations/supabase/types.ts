@@ -682,6 +682,59 @@ export type Database = {
           },
         ]
       }
+      tax_cutover: {
+        Row: {
+          at: string
+          singleton: boolean
+        }
+        Insert: {
+          at?: string
+          singleton?: boolean
+        }
+        Update: {
+          at?: string
+          singleton?: boolean
+        }
+        Relationships: []
+      }
+      tax_receipts: {
+        Row: {
+          assessed_at: string
+          day: number
+          households: number
+          income: number
+          population: number
+          seed_id: string
+          version: number
+        }
+        Insert: {
+          assessed_at: string
+          day: number
+          households: number
+          income: number
+          population: number
+          seed_id: string
+          version?: number
+        }
+        Update: {
+          assessed_at?: string
+          day?: number
+          households?: number
+          income?: number
+          population?: number
+          seed_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_receipts_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       twin_votes: {
         Row: {
           created_at: string
@@ -879,6 +932,7 @@ export type Database = {
         Args: { _body: string; _from: string; _to: string }
         Returns: string
       }
+      tax_receipt_start: { Args: never; Returns: string }
       touch_activity: { Args: { _lang?: string }; Returns: undefined }
       village_balance: { Args: { _seed: string }; Returns: number }
       village_civic_wealth: {
@@ -890,6 +944,10 @@ export type Database = {
         Returns: number
       }
       village_estate_tax: {
+        Args: { _at: string; _seed: string }
+        Returns: number
+      }
+      village_estate_tax_legacy: {
         Args: { _at: string; _seed: string }
         Returns: number
       }
