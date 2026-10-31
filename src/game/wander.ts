@@ -64,23 +64,23 @@ export function atHour(d: number, h: number) {
   return noon + (h - worldHour(noon)) * 3.6e6;
 }
 export const isMarketDate = (d: number) => worldWeekday(d * DAY + 12 * 3.6e6) === 6;
-/** Traders: 2–3 per town walk to the midpoint before opening and home after closing (pure from road and day). */
+/** Traders: 2–3 per town walk to the neighbour's village square before opening and home after closing (pure from road and day). */
 export function tradersOn(l: Link, d: number): Walker[] {
   if (!isMarketDate(d) || l.tiles.length < 7) return [];
-  const sn = roadId(l), n = l.tiles.length, out: Walker[] = [], half = (n / 2 / SPEED.trader) * 1000;
+  const sn = roadId(l), n = l.tiles.length, out: Walker[] = [], trip = (n / SPEED.trader) * 1000;
   for (const [side, other, k0] of [[l.a, l.b, 0], [l.b, l.a, 5]] as const) {
     const cnt = 2 + (hash(sn, d + k0, 1520) < 0.5 ? 1 : 0);
     for (let k = 0; k < cnt; k++) {
       const sd = sn * 37 + d * 11 + k0 + k, sex = hash(sd, 1, 1521) < 0.5 ? "f" : "m", names = sex === "f" ? F : M;
       const name = names[Math.floor(hash(sd, 2, 1521) * names.length)]!;
-      const go = atHour(d, MARKET_OPEN) - half - hash(sd, 3, 1521) * 1.8e6, back = atHour(d, MARKET_CLOSE) + hash(sd, 4, 1521) * 1.8e6;
-      out.push({ kind: "trader", from: side, to: other, t0: go, t1: go + half, sd, sex, name, craft: "", p0: 0, p1: 0.5 });
-      out.push({ kind: "trader", from: other, to: side, t0: back, t1: back + half, sd, sex, name, craft: "", p0: 0.5, p1: 1 });
+      const go = atHour(d, MARKET_OPEN) - trip - hash(sd, 3, 1521) * 1.8e6, back = atHour(d, MARKET_CLOSE) + hash(sd, 4, 1521) * 1.8e6;
+      out.push({ kind: "trader", from: side, to: other, t0: go, t1: go + trip, sd, sex, name, craft: "", p0: 0, p1: 1 });
+      out.push({ kind: "trader", from: other, to: side, t0: back, t1: back + trip, sd, sex, name, craft: "", p0: 0, p1: 1 });
     }
   }
   return out;
 }
-/** Is the Saturday market at the road's midpoint open right now? */
+/** Is the Saturday market on the village squares open right now? */
 export const marketOpen = (now: number) => { const h = worldHour(now) % 24; return worldWeekday(now) === 6 && h >= MARKET_OPEN && h < MARKET_CLOSE; };
 
 /** Mounted messenger: arrival time from the straight distance (10 min – 2 h), never stored. */

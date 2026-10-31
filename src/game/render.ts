@@ -2140,23 +2140,34 @@ export function draw(
   }
   c.globalAlpha = 1;
 
-  // Saturday market: painted stalls on both verges of every open road's midpoint, 9–17 realm time
-  if (marketOpen(now)) for (const l of links(seeds)) {
-    const n = l.tiles.length; if (n < 7 || roadProgress(l, now) < 1) continue;
-    // nearest dry stretch to the midpoint, so stalls never stand on a bridge or over water
-    let m = -1;
-    for (let d = 0, c0 = Math.floor(n / 2); d < n / 2 && m < 0; d++) for (const q of [c0 - d, c0 + d]) if (m < 0 && q >= 2 && q < n - 2 && !l.water[q - 2] && !l.water[q - 1] && !l.water[q] && !l.water[q + 1] && !l.water[q + 2]) m = q;
-    if (m < 0) continue;
-    const a = l.tiles[m - 1]!, b = l.tiles[m + 1]!, mid = l.tiles[m]!;
-    const tx = b[0] - a[0], ty = b[1] - a[1], len = Math.hypot(tx, ty) || 1, px = -ty / len, py = tx / len;
-    const stalls: [number, number, Seed][] = [[mid[0] + px * 1.6, mid[1] + py * 1.6, l.a], [mid[0] - px * 1.6, mid[1] - py * 1.6, l.b]];
-    if (n >= 11) stalls.push([mid[0] + px * 1.6 + tx / len * 2, mid[1] + py * 1.6 + ty / len * 2, l.b], [mid[0] - px * 1.6 - tx / len * 2, mid[1] - py * 1.6 - ty / len * 2, l.a]);
-    for (const [sx, sy, owner] of stalls) {
-      const [X, Y] = iso(sx, sy);
-      if (X < cs0x - 40 || X > cs1x + 40 || Y < cs0y - 40 || Y > cs1y + 40) continue;
-      { const fl = hash(Math.round(sx), Math.round(sy), 77) < 0.5; roadProp(X, Y + TH / 2, 1, () => drawStall(c, X, Y + TH / 2, fl)); }
-      const ex = tradeProfile(owner, now).exports;
-      lastTraders.push({ x: X, y: Y, from: owner.name, to: (owner === l.a ? l.b : l.a).name, good: ex[0] ?? null, cart: false, stall: true });
+  // Saturday market: visiting traders set up painted stalls on the host village's square around the well, 9–17 realm time
+  if (marketOpen(now)) {
+    const guests = new Map<Seed, Seed[]>();
+    for (const l of links(seeds)) {
+      if (l.tiles.length < 7 || roadProgress(l, now) < 1) continue;
+      for (const [h, g] of [[l.a, l.b], [l.b, l.a]] as const) { const arr = guests.get(h) ?? []; arr.push(g); guests.set(h, arr); }
+    }
+    const RING: [number, number][] = [[1, 1], [-1, 1], [1, -1], [-1, -1], [2, 0], [0, 2], [-2, 0], [0, -2], [2, 1], [1, 2], [-2, 1], [1, -2]];
+    for (const [host, gs] of guests) {
+      const [hx, hy] = iso(host.x, host.y);
+      if (hx < cs0x - 80 || hx > cs1x + 80 || hy < cs0y - 80 || hy > cs1y + 80) continue;
+      const want = Math.min(4, gs.length * 2);
+      let placed = 0;
+      for (const [dx, dy] of RING) {
+        if (placed >= want) break;
+        const tx = host.x + dx, ty = host.y + dy;
+        if (isWater(terrain(tx, ty))) continue;
+        const st = structureAt(tx, ty, seeds, now);
+        if (st && !FLAT.has(st.kind)) continue;
+        if (st && (st.kind === "field" || st.kind === "pasture" || st.kind === "garden")) continue;
+        const owner = gs[placed % gs.length]!;
+        const [X, Y] = iso(tx, ty);
+        const fl = hash(tx, ty, 77) < 0.5;
+        roadProp(X, Y + TH / 2, 1, () => drawStall(c, X, Y + TH / 2, fl));
+        const ex = tradeProfile(owner, now).exports;
+        lastTraders.push({ x: X, y: Y, from: owner.name, to: host.name, good: ex[0] ?? null, cart: false, stall: true });
+        placed++;
+      }
     }
   }
 
