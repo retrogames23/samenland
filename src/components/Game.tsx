@@ -1715,8 +1715,7 @@ export function Game() {
             {userId && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setDelOpen(true); setSettings(false); }}>{t.delAcc.button}</button>}
             {userId ? <Button size="sm" variant="secondary" className="w-full" onClick={() => { supabase.auth.signOut(); setSettings(false); }}>{t.signOut}</Button>
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
-            {userId && <Button size="sm" variant="secondary" className="w-full" onClick={() => setBugOpen(!bugOpen)}>📜 {BUGS[lang].button}</Button>}
-            {userId && bugOpen && <BugReport lang={lang} userId={userId} context={{ realm, lang, town: home?.name ?? null, url: typeof location !== "undefined" ? location.href : "", ua: typeof navigator !== "undefined" ? navigator.userAgent : "", screen: typeof window !== "undefined" ? `${window.innerWidth}x${window.innerHeight}@${window.devicePixelRatio}` : "" }} onClose={() => setBugOpen(false)} />}
+            {userId && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setBugOpen(true); setSettings(false); }}>📜 {BUGS[lang].button}</Button>}
             <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 border-t border-border/60 pt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
               <a href="https://buymeacoffee.com/doener" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">☕ {t.imprint.coffee}</a>
               <a href="https://lovable.dev/invite/LN0I260" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">♥ {t.imprint.built}</a>
@@ -1836,6 +1835,11 @@ export function Game() {
               );
             })()}
           </div>
+        </Parchment>
+      )}
+      {bugOpen && userId && (
+        <Parchment title={BUGS[lang].button} later={t.cancel} onLater={() => setBugOpen(false)}>
+          <BugReport lang={lang} userId={userId} context={{ realm, lang, town: home?.name ?? null, url: typeof location !== "undefined" ? location.href : "", ua: typeof navigator !== "undefined" ? navigator.userAgent : "", screen: typeof window !== "undefined" ? `${window.innerWidth}x${window.innerHeight}@${window.devicePixelRatio}` : "" }} onClose={() => setBugOpen(false)} />
         </Parchment>
       )}
       {inviteOpen && home && (() => {
