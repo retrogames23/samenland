@@ -2,7 +2,7 @@
  * Village chronicle: what happened between two moments, derived purely from seeds and time
  * (same functions that drive growth), so it needs no stored history. Returns codes; i18n formats them.
  */
-import { effAge, stageOf, landmarkSpots, specialDone, specialTile, SPECIAL_KIND, MONUMENT_BY_KIND, MONUMENT_DEFS, monumentOf, monumentDone, radiusOf, reachOf, LANDMARKS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
+import { effAge, stageOf, landmarkSpots, specialDone, specialTile, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, radiusOf, reachOf, LANDMARKS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
 import { townRank } from "./rank";
 import { taxEarned } from "./economy";
 import { dowryEarned } from "./weddings";
