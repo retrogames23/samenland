@@ -143,7 +143,12 @@ export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gif
   const spent = purchases.filter((p) => p.seed_id === s.id).reduce((a, p) => a + p.cost, 0);
   const ev = (s.decisions ?? []).reduce((a, d) => a + d.cost, 0);
   const tw = (s.works ?? []).reduce((a, w) => a + w.cost, 0);
-  return START_TALER + cappedTax(s, purchases, now, gifts, claims) + dowryEarned(s, now) - spent - ev - tw + giftBalance(s.id, gifts) + questEarned(claims, s.id) - raidLoss(s, now);
+  const base = START_TALER + cappedTax(s, purchases, now, gifts, claims) - spent - ev - tw + giftBalance(s.id, gifts) + questEarned(claims, s.id);
+  // dowries are passive too: those after CHEST_SINCE only fill the room left in the chest (mirrors DB village_balance)
+  const dOld = Date.parse(s.created_at) < CHEST_SINCE ? dowryEarned(s, Math.min(now, CHEST_SINCE)) : 0;
+  let dNew = dowryEarned(s, now) - dOld;
+  if (s.user_id) dNew = Math.min(dNew, Math.max(0, chestCap(s.id, purchases, now) - base - dOld));
+  return base + dOld + dNew - raidLoss(s, now);
 }
 
 
