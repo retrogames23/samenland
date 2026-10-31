@@ -846,6 +846,8 @@ export function speedParts(s: Seed, seeds: Seed[], now: number) {
     trade += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * roadProgress(l, now);
     if (roadProgress(l, now) >= 1 && marketHours(now)) trade += MARKET_BONUS;
   }
+  for (const r of transitRoutes(s, seeds)) if (now > r.since) trade += r.bonus(now);
+  for (const r of hubRoutes(s, seeds)) if (now > r.since) trade += TRANSIT_HUB;
   return { bless, farm, trade };
 }
 /** Current growth speed multiplier: 1 + sum of all bonuses. */
@@ -874,10 +876,47 @@ function effAgeBase(s: Seed, seeds: Seed[], now: number) {
     // Saturday markets: 8 of 168 hours a week at MARKET_BONUS, spread evenly so growth stays smooth
     h += MARKET_BONUS * (8 / 168) * (now - l.since) / 3.6e6;
   }
+  // trade passed on through a neighbour (A–B–C) and transit trade through own hub
+  for (const r of transitRoutes(s, seeds)) if (now > r.since) h += r.bonus(now) * (now - r.since) / 3.6e6;
+  for (const r of hubRoutes(s, seeds)) if (now > r.since) h += TRANSIT_HUB * (now - r.since) / 3.6e6;
   // neighbour bonuses speed growth, but never more than TRADE_CAP of the town's own age
   return careCeiling(s, now, (base + Math.min(Math.max(0, h - base), base * TRADE_CAP) + mentorHours(s, seeds, now)) * GROWTH_PACE);
 }
 export const TRADE_CAP = 0.35;
+
+/** Trade networks: finished roads pass trade on through one middle town at TRANSIT_SHARE of a direct road; the hub earns TRANSIT_HUB per routed pair. */
+export const TRANSIT_SHARE = 0.75, TRANSIT_HUB = 0.02;
+const roadDoneAt = (l: Link) => l.since + (l.build ?? ROAD_BUILD * 3.6e6);
+const other = (l: Link, id: string) => (l.a.id === id ? l.b : l.a);
+export type Transit = { to: Seed; via: Seed; since: number; d: number; bonus: (now: number) => number };
+export function transitRoutes(s: Seed, seeds: Seed[]): Transit[] {
+  const ls = links(seeds), direct = new Set(ls.filter((l) => l.a.id === s.id || l.b.id === s.id).map((l) => other(l, s.id).id));
+  const best = new Map<string, Transit>();
+  for (const l1 of ls) {
+    if (l1.a.id !== s.id && l1.b.id !== s.id) continue;
+    const via = other(l1, s.id);
+    for (const l2 of ls) {
+      if (l2 === l1 || (l2.a.id !== via.id && l2.b.id !== via.id)) continue;
+      const to = other(l2, via.id);
+      if (to.id === s.id || direct.has(to.id)) continue;
+      const since = Math.max(roadDoneAt(l1), roadDoneAt(l2)), d = l1.d + l2.d;
+      const prev = best.get(to.id);
+      if (prev && prev.since <= since) continue;
+      best.set(to.id, { to, via, since, d, bonus: (now) => bonusOf(Math.min(TRADE_DIST, d), ageHours(to, now)) * tradeFactor(s, to, now) * TRANSIT_SHARE });
+    }
+  }
+  return [...best.values()];
+}
+/** Pairs of neighbours that trade through `s` (not linked directly), with the time both roads stood. */
+export function hubRoutes(s: Seed, seeds: Seed[]): { since: number }[] {
+  const ls = links(seeds), mine = ls.filter((l) => l.a.id === s.id || l.b.id === s.id), out: { since: number }[] = [];
+  for (let i = 0; i < mine.length; i++) for (let j = i + 1; j < mine.length; j++) {
+    const a = other(mine[i]!, s.id), b = other(mine[j]!, s.id);
+    if (ls.some((l) => (l.a.id === a.id && l.b.id === b.id) || (l.a.id === b.id && l.b.id === a.id))) continue;
+    out.push({ since: Math.max(roadDoneAt(mine[i]!), roadDoneAt(mine[j]!)) });
+  }
+  return out;
+}
 
 /** Care gate: food/health buildings a player town needs before each later era (Kleinstadt, Handelsstadt, Metropole). */
 export const CARE_FOOD = ["fisher", "hunter", "granary", "dairy"], CARE_HEALTH = ["herbs", "healer", "library"];
