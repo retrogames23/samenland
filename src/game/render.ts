@@ -691,7 +691,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
         const lf = legs.naturalWidth / WALK_FRAMES, f = Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES;
         const lh = hh * (1 - hem + 0.1), lw = (lh * lf) / legs.naturalHeight;
         c.drawImage(legs, f * lf, 0, lf, legs.naturalHeight, -lw * 0.5, -lh + bob, lw, lh);
-        c.drawImage(robe, 0, 0, fw, fh * hem, -ww * 0.503, -hh + bob, ww, hh * hem);
+        c.drawImage(robe, 0, 0, fw, fh * hem, -ww * 0.503, -hh, ww, hh * hem);
       } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     insignia(c, q, hgt);
