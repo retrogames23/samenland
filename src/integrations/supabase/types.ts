@@ -191,6 +191,24 @@ export type Database = {
           },
         ]
       }
+      chat_reads: {
+        Row: {
+          channel: string
+          seen_at: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          seen_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          seen_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chest_mail: {
         Row: {
           enabled: boolean
