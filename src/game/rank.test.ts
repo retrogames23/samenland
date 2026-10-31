@@ -1,29 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { RANK_PRICE, rankOf, rankBlock, rankBoons } from "./economy";
-import type { Seed } from "./world";
+import { rankOf, nextRankNeed } from "./rank";
 
-const now = Date.parse("2027-06-01T00:00:00Z");
-const base: Seed = { id: "a", name: "A", owner: "o", x: 0, y: 0, hue: 0, created_at: new Date(now - 200 * 3.6e6).toISOString(), charter: { path: "culture", at: 0 } };
-const p = (item: string) => ({ seed_id: "a", item });
-
-describe("guild ranks", () => {
-  it("journeyman costs 250, master 800", () => { expect(RANK_PRICE).toEqual({ rank2: 250, rank3: 800 }); });
-  it("journeyman needs the own guild building", () => {
-    expect(rankBlock(base, [], now, 0)).toBe("guild");
-    expect(rankBlock(base, [p("library")], now, 0)).toBeNull();
+describe("settlement rank from real state", () => {
+  it("a founding camp with few people stays Ursprung", () => expect(rankOf({ citizens: 10, homes: 3, roads: 0 })).toBe(0));
+  it("15 citizens in 4 homes make a Weiler", () => expect(rankOf({ citizens: 15, homes: 4, roads: 0 })).toBe(1));
+  it("an unfed village of ~84 citizens in 24 homes stays a Dorf", () => expect(rankOf({ citizens: 84, homes: 24, roads: 0 })).toBe(2));
+  it("Handelsstadt needs a finished trade road", () => {
+    expect(rankOf({ citizens: 200, homes: 60, roads: 0 })).toBe(3);
+    expect(rankOf({ citizens: 200, homes: 60, roads: 1 })).toBe(4);
   });
-  it("journeyman needs village stage age (168 h)", () => {
-    const young = { ...base, created_at: new Date(now - 100 * 3.6e6).toISOString() };
-    expect(rankBlock(young, [p("library")], now, 0)).toBe("age");
-  });
-  it("master needs belfry and two roads", () => {
-    const old = { ...base, created_at: new Date(now - 4400 * 3.6e6).toISOString() };
-    expect(rankBlock(old, [p("rank2")], now, 2)).toBe("belfry");
-    expect(rankBlock(old, [p("rank2"), p("belfry4")], now, 1)).toBe("roads");
-    expect(rankBlock(old, [p("rank2"), p("belfry4")], now, 2)).toBeNull();
-  });
-  it("culture master gives +30 health in total", () => {
-    expect(rankOf(base, [p("rank2"), p("rank3")])).toBe(3);
-    expect(rankBoons(base, [p("rank2"), p("rank3")]).health).toBe(30);
-  });
+  it("reports what is missing for the next rank", () => expect(nextRankNeed({ citizens: 30, homes: 12, roads: 0 })).toEqual({ citizens: 10, homes: 0, roads: 0 }));
 });
