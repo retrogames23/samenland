@@ -258,8 +258,9 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const maypole: Tile | null = maypoleUp(decs, now) ? nearFree(meet, s.x * 7 + s.y) : null;
   const cows: Tile[] = [];
   for (let i = 0, n = cowsOf(decs, now); i < n && i < 3; i++) {
+    // pastures belong to the sheep: the cow grazes on free ground beside one, never inside the fence
     const pas = byKind.get("pasture") ?? [];
-    cows.push(pas.length ? pas[i % pas.length]! : nearFree(meet, s.x * 13 + s.y + i * 101));
+    cows.push(nearFree(pas.length ? pas[i % pas.length]! : meet, s.x * 13 + s.y + i * 101));
   }
   // raising the maypole / maypole games: half the village gathers on the square for an hour
   const mp = decs.filter((d) => d.event === "maypole" && now >= d.at && now - d.at < 2 * 3600e3).pop();
