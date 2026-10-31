@@ -28,3 +28,20 @@ describe("small milestones", () => {
     expect(c.events.filter((e) => e.code === "house").length).toBeLessThanOrEqual(CHRON_DETAIL);
   });
 });
+
+describe("completion feasts", () => {
+  const b = (item: string, d: number) => ({ item, at: t0 + d * 864e5 });
+  it("treasury and guild upgrades never appear as finished buildings", () => {
+    const v: Seed = { ...s, bought: [b("chest2", 1), b("rank2", 1)] };
+    const c = chronicle(v, [v], t0, t0 + 3 * 864e5);
+    expect(c.events.filter((e) => e.code === "bought").length).toBe(0);
+  });
+  it("a monument is celebrated once, only after its last step is built", () => {
+    const part: Seed = { ...s, bought: [b("theater1", 1), b("theater2", 1.1)] };
+    expect(chronicle(part, [part], t0, t0 + 6 * 864e5).events.filter((e) => e.code === "bought").length).toBe(0);
+    const full: Seed = { ...s, bought: [b("theater1", 1), b("theater2", 1.1), b("theater3", 1.2)] };
+    const ev = chronicle(full, [full], t0, t0 + 6 * 864e5).events.filter((e) => e.code === "bought");
+    expect(ev.length).toBe(1);
+    expect(ev[0]!.at).toBeGreaterThan(t0 + 1.2 * 864e5);
+  });
+});

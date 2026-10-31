@@ -498,6 +498,12 @@ export function specialDone(s: Seed, seeds: Seed[], at: number): number {
   const fast = at + specialBuild(s, true);
   return sawmillUp(s, seeds, fast) ? fast : at + specialBuild(s, false);
 }
+/** When a fully paid monument is finished (last step + build time, same rule as structureAt), or null while steps are missing. */
+export function monumentDone(s: Seed, seeds: Seed[], key: MonumentKey): number | null {
+  const steps = (s.bought ?? []).filter((b) => monumentOf(b.item) === key);
+  if (steps.length < MONUMENT_DEFS[key].n) return null;
+  return specialDone(s, seeds, Math.max(...steps.map((b) => b.at)));
+}
 /** The tile of each bought building kind of a seed (pure). */
 export function specialTile(s: Seed, kind: Kind): [number, number] | null {
   for (const [k, v] of specialSites(s)) if (v.kind === kind) return [k % MAP, Math.floor(k / MAP)];
