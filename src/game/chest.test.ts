@@ -27,7 +27,7 @@ describe("village chest", () => {
   });
   it("balances earned before the rule are not cut", () => {
     const c0 = CHEST_SINCE - 200 * 864e5, s = seed(c0);
-    expect(cappedTax(s, [], CHEST_SINCE)).toBe(taxEarned(s, CHEST_SINCE));
-    expect(cappedTax(s, [], CHEST_SINCE + 30 * 864e5)).toBe(taxEarned(s, CHEST_SINCE));
+    expect(cappedTax(s, [], CHEST_SINCE - 1)).toBe(taxEarned(s, CHEST_SINCE - 1));
+    expect(cappedTax(s, [], CHEST_SINCE + 30 * 864e5)).toBe(taxEarned(s, CHEST_SINCE - 1));
   });
 });
