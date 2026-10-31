@@ -11,7 +11,7 @@ import { worldHour } from "./time";
 import { seasonAt } from "./season";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { MAP, hash, structureAt, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, landmarkSpots, type TradeGood, type Seed, type Kind } from "./world";
+import { MAP, hash, structureAt, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, landmarkSpots, SPECIAL_KIND, MONUMENT_BY_KIND, specialDone, specialTile, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -422,13 +422,20 @@ export function inauguration(s: Seed, seeds: Seed[], now: number): { at: number;
   const a1 = effAge(s, seeds, now), a0 = effAge(s, seeds, now - FETE_WIN);
   let li = -1;
   for (let i = 0; i < LANDMARKS.length; i++) { const l = LANDMARKS[i]!; if (l.at > a0 && l.at <= a1 && (li < 0 || l.at > LANDMARKS[li]!.at)) li = i; }
-  if (li < 0) return null;
+  // bought buildings finished within the window are inaugurated just like landmarks
+  let bb: { at: number; tile: Tile; kind: Kind } | null = null;
+  for (const b of s.bought ?? []) {
+    const kind = SPECIAL_KIND[b.item]; if (!kind || MONUMENT_BY_KIND.has(kind)) continue;
+    const done = specialDone(s, seeds, b.at); if (done <= now - FETE_WIN || done > now || (bb && bb.at >= done)) continue;
+    const tl = specialTile(s, kind); if (tl) bb = { at: done, tile: tl, kind };
+  }
+  if (li < 0) return bb;
   let tile: Tile | null = null;
   for (const [k, list] of landmarkSpots(s)) if (list.includes(li) && !list.some((j) => j !== li && LANDMARKS[j]!.at > LANDMARKS[li]!.at && LANDMARKS[j]!.at - 96 <= a1)) { const [dx, dy] = k.split(",").map(Number); tile = [s.x + dx!, s.y + dy!]; break; }
-  if (!tile) return null;
+  if (!tile) return bb;
   let lo = now - FETE_WIN, hi = now;
   for (let n = 0; n < 16; n++) { const m = (lo + hi) / 2; if (effAge(s, seeds, m) >= LANDMARKS[li]!.at) hi = m; else lo = m; }
-  return { at: hi, tile, kind: LANDMARKS[li]!.kind };
+  return bb && bb.at > hi ? bb : { at: hi, tile, kind: LANDMARKS[li]!.kind };
 }
 function fetePose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): Pose | null {
   const f = p.fete!, secs = (now - f.at) / 1000 - f.lag;

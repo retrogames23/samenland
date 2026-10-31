@@ -472,7 +472,7 @@ export const monumentOf = (item: string): MonumentKey | null => {
   const m = /^([a-z]+)(\d)$/.exec(item); const k = m?.[1] as MonumentKey | undefined;
   return k && k in MONUMENT_DEFS && +m![2]! >= 1 && +m![2]! <= MONUMENT_DEFS[k].n ? k : null;
 };
-const MONUMENT_BY_KIND = new Map<Kind, MonumentKey>(MONUMENT_KEYS.map((k) => [MONUMENT_DEFS[k].kind, k]));
+export const MONUMENT_BY_KIND = new Map<Kind, MonumentKey>(MONUMENT_KEYS.map((k) => [MONUMENT_DEFS[k].kind, k]));
 export const SPECIAL_KIND: Record<string, Kind> = { fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", guard: "guardhouse", hunter: "lodge", herbs: "herbhut", woodcamp: "woodcamp",
   ...Object.fromEntries(MONUMENT_KEYS.map((k) => [`${k}1`, MONUMENT_DEFS[k].kind])) };
 /** Belfry steps (kept for the guild-rank requirement). */
@@ -493,6 +493,16 @@ export const TIMBER_BUILD = 0.85;
 export const SAWMILL_AGE = LANDMARKS.find((l) => l.kind === "sawmill")!.at;
 export const sawmillUp = (s: Seed, seeds: Seed[], now: number) => effAge(s, seeds, now) >= SAWMILL_AGE;
 export const specialBuild = (s: Seed, mill = false) => (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1) * (mill ? TIMBER_BUILD : 1) * (s.charter?.path === "craft" && (s.bought ?? []).some((b) => b.item === "rank2") ? 0.8 : 1);
+/** When a bought (non-monument) building started at `at` is finished – same rule as structureAt. */
+export function specialDone(s: Seed, seeds: Seed[], at: number): number {
+  const fast = at + specialBuild(s, true);
+  return sawmillUp(s, seeds, fast) ? fast : at + specialBuild(s, false);
+}
+/** The tile of each bought building kind of a seed (pure). */
+export function specialTile(s: Seed, kind: Kind): [number, number] | null {
+  for (const [k, v] of specialSites(s)) if (v.kind === kind) return [k % MAP, Math.floor(k / MAP)];
+  return null;
+}
 /** Farm charter: +5 % growth from the day it was sealed. */
 export const FARM_BONUS = 0.05;
 export const SPECIAL_BUILD = 6 * 3600000;
