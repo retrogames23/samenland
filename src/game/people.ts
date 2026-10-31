@@ -377,8 +377,10 @@ export function sickRate(s: Seed, now: number): number {
   if (weddingJoy(s, now)) return 0;
   const own = (i: string) => s.bought?.some((b) => b.item === i && b.at <= now);
   const healer = own("healer") || own("infirmary");
-  return Math.max(0.01, 0.06 + 0.03 * seasonAt(now).winter - (own("herbs") ? 0.015 : 0) - (healer ? 0.035 : 0));
+  return Math.max(0.01, 0.06 + 0.03 * seasonAt(now).winter - (own("herbs") ? 0.015 : 0) - (healer ? 0.035 : 0) - (s.charter?.path === "culture" && s.charter.at <= now ? CULTURE_SICK : 0));
 }
+/** Culture charter: learned healers and clean scriptoria cut the daily sickness chance. */
+export const CULTURE_SICK = 0.02;
 /** Does the household at home key `hh` (x*1024+y) nurse a sick member right now? Pure in seed, home and time. */
 export const sickHome = (s: Seed, hh: number, now: number) => hash(hh, Math.floor(now / (SICK_DAYS * 864e5)), 1301) < sickRate(s, now);
 const hhTile = (hh: number): Tile => [Math.floor(hh / 1024), hh % 1024];

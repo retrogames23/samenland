@@ -1,6 +1,7 @@
 import { householdsOf, type Household } from "./households";
 import { civicWealth, estateAt, ESTATE_TAX, sickLoss, sickTaxRate } from "./prosperity";
 import type { Seed } from "./world";
+import { CULTURE_SICK } from "./people";
 
 export function assessHomes(homes: Household[], wealth: number) {
   return homes.reduce((total, h) => total + h.size * ESTATE_TAX[estateAt(wealth, ...h.home)], 0);
@@ -12,5 +13,5 @@ export function residentTax(s: Seed, seeds: Seed[], at: number) {
   const population = homes.reduce((n, h) => n + h.size, 0);
   const assessed = assessHomes(homes, civicWealth(s, at));
   const trade = s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(0.15 * population) : 0;
-  return { population, households: homes.length, assessed, income: assessed - sickLoss(assessed, sickTaxRate(s, at)) + trade };
+  return { population, households: homes.length, assessed, income: assessed - sickLoss(assessed, Math.max(0.01, sickTaxRate(s, at) - (s.charter?.path === "culture" && s.charter.at <= at ? CULTURE_SICK : 0))) + trade };
 }
