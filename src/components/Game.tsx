@@ -1,3 +1,4 @@
+import { WalkStick } from "./WalkStick";
 import { tileHits } from "@/game/disasters";
 import { BOOK } from "@/game/lang/book";
 import { PROSPERITY } from "@/game/lang/prosperity";
@@ -224,6 +225,9 @@ export function Game() {
   type Tab = "build" | "rituals" | "signs" | "towns" | "plant";
   const [tab, setTab] = useState<Tab | null>(null);
   const [walk, setWalk] = useState(false);
+  const stick = useRef({ dx: 0, dy: 0 });
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => { const m = window.matchMedia("(pointer: coarse)"); setCoarse(m.matches); const f = () => setCoarse(m.matches); m.addEventListener("change", f); return () => m.removeEventListener("change", f); }, []);
   const [authOpen, setAuthOpen] = useState(false);
   const [settings, setSettings] = useState(false);
   const [imprint, setImprint] = useState(false);
@@ -689,9 +693,10 @@ export function Game() {
         if (my) {
           let dx = 0, dy = 0;
           for (const k of keys) { const v = KEYMAP[k]; if (v) { dx += v[0]; dy += v[1]; } }
+          const sk = stick.current, held = !!(sk.dx || sk.dy); dx += sk.dx; dy += sk.dy;
           const nw = clock(), tw = townOf(my, S.seeds, nw), me = tw.people.find((q) => q.role === "mayor");
           if (me) {
-            if (keys.size || walkDriven) { driveMayor(me, tw, S.seeds, nw, dx + dy, dy - dx, dt / 1000); walkDriven = true; }
+            if (keys.size || held || walkDriven) { driveMayor(me, tw, S.seeds, nw, dx + dy, dy - dx, dt / 1000); walkDriven = true; }
             const q = poseOf(me, tw, S.seeds, nw), [ix, iy] = iso(q.x, q.y), k = 1 - Math.exp(-dt / 220);
             for (const o of S.seeds) if (o.id !== my.id && !visitSeen.current.has(o.id) && Math.hypot(q.x - o.x, q.y - o.y) <= radiusOf((nw - Date.parse(o.created_at)) / 36e5)) { visitSeen.current.add(o.id); visitFn.current(o, my); }
             cam.current.x += (ix - cam.current.x) * k; cam.current.y += (iy - 10 - cam.current.y) * k;
@@ -1576,8 +1581,8 @@ export function Game() {
       )}
       {walk && (
         <div data-walk className="pointer-events-none absolute inset-x-0 bottom-3 z-40 flex flex-col items-center gap-2 pb-[env(safe-area-inset-bottom)]">
-          <span className="rounded bg-background/70 px-2 py-0.5 text-[11px] text-foreground/80">{t.hud.walkHint}</span>
-          <WoodButton label={t.hud.walkExit} onClick={() => setWalk(false)} className="pointer-events-auto h-11 gap-1.5 px-4">
+          {coarse ? <WalkStick out={stick} label={t.hud.walk} /> : <span className="rounded bg-background/70 px-2 py-0.5 text-[11px] text-foreground/80">{t.hud.walkHint}</span>}
+          <WoodButton label={t.hud.walkExit} onClick={() => { stick.current = { dx: 0, dy: 0 }; setWalk(false); }} className="pointer-events-auto h-11 gap-1.5 px-4">
             <X className="h-4 w-4" /><span className="text-xs">{t.hud.walkExit}</span>
           </WoodButton>
         </div>
