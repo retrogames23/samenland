@@ -1401,7 +1401,7 @@ export function Game() {
                     <div className="flex flex-wrap gap-1">
                       <Button size="sm" variant="ghost" onClick={() => setSignEdit(signEdit === o.id ? null : o.id)}>{signEdit === o.id ? t.signUi.cancel : t.signUi.edit}</Button>
                       <Button size="sm" variant="ghost" onClick={() => { focus(o.x, o.y); setTab(null); }}>{t.signUi.town}</Button>
-                      {tl && <Button size="sm" variant="ghost" onClick={() => { focus(tl[0], tl[1]); cam.current.zoom = Math.max(cam.current.zoom, 4); signFocus.k = tl[1] * MAP + tl[0]; signFocus.until = Date.now() + 8000; setMsg(`${t.signTo(o.name)}: „${mine(o)!.message}“`); setTab(null); }}>{t.signUi.look}</Button>}
+                      {tl && <Button size="sm" variant="ghost" onClick={() => { const cv = canvasRef.current; const [ix, iy] = iso(tl[0], tl[1]); cam.current.zoom = 6; cam.current.x = ix + 5; cam.current.y = iy + 18; target.current = { zoom: 6, ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; signFocus.k = tl[1] * MAP + tl[0]; signFocus.until = Date.now() + 10000; setMsg(`${t.signTo(o.name)}: „${mine(o)!.message}“`); setTab(null); }}>{t.signUi.look}</Button>}
                     </div>
                   </div>
                 ); })}
