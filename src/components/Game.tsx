@@ -1694,10 +1694,11 @@ export function Game() {
           {my && at ? (
             <>
               <div className="flex shrink-0 items-center gap-2 text-sm font-semibold tabular-nums">
-                <span className="flex items-center gap-1.5" title={t.taler(Math.max(0, cash))}>
+                {(() => { const cap = chestCap(my.id, purchases), full = cash >= cap; return (
+                <span className={`flex items-center gap-1.5 ${full ? "text-destructive" : ""}`} title={`${CHEST[lang].title} · ${CHEST[lang].levels[chestLevel(my.id, purchases) - 1]}: ${Math.max(0, cash)} / ${t.taler(cap)}${full ? ` – ${CHEST[lang].full}` : ""}`}>
                   <span aria-hidden className="grid h-5 w-5 place-items-center rounded-full border border-wood bg-[radial-gradient(circle_at_35%_30%,var(--color-coin-shine),var(--color-brass)_55%,var(--color-coin-edge))] text-[10px] font-bold leading-none text-wood shadow-[inset_0_-1px_0_var(--color-coin-edge)]">T</span>
-                  {t.taler(Math.max(0, cash))}
-                </span>
+                  {Math.max(0, cash).toLocaleString(LOCALE[lang])}<span className="font-normal text-muted-foreground">/ {t.taler(cap)}</span>
+                </span>); })()}
                 <span className="hidden text-xs font-normal text-primary sm:inline">{t.perDay(pop)}</span>
               </div>
               <div className="hidden text-sm sm:block">{t.people(residents)}</div>
