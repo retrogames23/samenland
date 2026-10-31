@@ -525,10 +525,22 @@ export function cartShear(dx: number, dy: number, away: boolean): number {
   const slope = Math.max(-1.6, Math.min(1.6, dy / Math.max(Math.abs(dx), 0.05)));
   return Math.max(-1.1, Math.min(1.1, slope - (away ? -0.5 : 0.5)));
 }
+/** Carts currently shown head-on/from behind; hysteresis keeps them from flipping views on gently curving roads. */
+const cartAxis = new Set<number>();
+/** Figures shown as parchment silhouettes last frame (occlusion hysteresis). */
+const ghostWas = new Set<number>();
+/** Head-on view enters above a dy/dx ratio of 1.05 and only leaves below 0.75. */
+export function cartAxisView(dx: number, dy: number, was: boolean): boolean {
+  const r = Math.abs(dy) / Math.max(Math.abs(dx), 0.05);
+  return was ? r > 0.75 : r > 1.05;
+}
 function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: number, sd: number, _cover: string, t: number) {
   const away = dy < -0.15 * Math.abs(dx);
   // steep stretches (steeper than the 2:1 diagonal): painted head-on / from-behind view instead of a tilted side view
-  if (Math.abs(dy) > 0.9 * Math.abs(dx)) {
+  const axis = cartAxisView(dx, dy, cartAxis.has(sd));
+  if (axis) cartAxis.add(sd); else cartAxis.delete(sd);
+  if (cartAxis.size > 256) cartAxis.clear();
+  if (axis) {
     const im = cartAxisImage(dy < 0);
     if (im) {
       const h = 17, w = (h * im.naturalWidth) / im.naturalHeight;
@@ -2126,19 +2138,23 @@ export function draw(
   for (const v of vip) {
     const o = ord.get(v.k) ?? -1;
     let hit = false;
+    // hysteresis: once shown as a silhouette, the figure must step 2 px clear before it switches back (no edge chatter)
+    const was = ghostWas.has(v.k), m = was ? -2 : 1;
     c.save(); c.beginPath();
     for (let i = 0; i < occ.length; i += 5) {
       if (occ[i]! <= o) continue;
       const l = occ[i + 1]!, tp = occ[i + 2]!, rr = occ[i + 3]!, bt = occ[i + 4]!;
-      if (v.x > l && v.x < rr && v.y - 6 < bt && v.y > tp) { c.rect(l, tp, rr - l, bt - tp); hit = true; }
+      if (v.x > l + m && v.x < rr - m && v.y - 6 < bt - m && v.y > tp + m) { c.rect(l, tp, rr - l, bt - tp); hit = true; }
     }
     if (hit) {
       c.clip();
       c.filter = "sepia(1) saturate(0.6) brightness(1.35) drop-shadow(0 0 0.6px rgba(45,30,18,0.7))";
       c.globalAlpha = 0.42; v.f();
-    }
+      ghostWas.add(v.k);
+    } else ghostWas.delete(v.k);
     c.restore();
   }
+  if (ghostWas.size > 64) ghostWas.clear();
 
 
   // border banners in both town colours and the carved border stone at the twin gate
