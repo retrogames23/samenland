@@ -29,6 +29,6 @@
 # Roadmap: Handy-Steuerung
 - [x] 1: Bauen per Vorschau, Pfeile und Bestätigen-Knopf (Touch)
 - [x] 4a: Größere Tippfläche für Personen
-- [ ] 2: Fenster als Fach von unten
-- [ ] 3: Daumen-Leiste unten
-- [ ] 4b: Lupe beim langen Drücken, Schulze-Knopf in der Leiste
+- [x] 2: Fenster als Fach von unten
+- [x] 3: Daumen-Leiste unten
+- [x] 4b: Größerer Fangradius + Vibration statt Lupe, Schulze-Knopf in der Leiste
