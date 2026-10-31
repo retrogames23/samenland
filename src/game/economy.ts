@@ -46,7 +46,7 @@ export const popAt = (h: number) => Math.floor(3 + 0.9 * Math.pow(radiusOf(Math.
 
 /** Taxpayers follow the people the land can really feed (mirrors DB village_tax_pop): untended land feeds TAX_POP_BASE, each food/health craft opens more. Sample towns are never capped. */
 export const TAX_POP_BASE = 85, TAX_POP_FOOD = 25, TAX_POP_HEALTH = 15;
-export const TAX_FOOD = ["fisher", "hunter", "granary", "dairy"], TAX_HEALTH = ["herbs", "healer"];
+export const TAX_FOOD = ["fisher", "hunter", "granary", "dairy"], TAX_HEALTH = ["herbs", "healer", "library"];
 export function taxPop(s: Seed, h: number, at: number) {
   const p = popAt(h);
   if (!s.user_id) return p;

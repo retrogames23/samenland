@@ -6,4 +6,5 @@ describe("taxes follow the people the land can feed", () => {
   it("untended village pays for at most 85 people", () => expect(taxPop(s(), 5000, t0 + 1)).toBe(85));
   it("each food craft adds 25, each health craft 15", () => expect(taxPop(s(["fisher", "herbs"]), 5000, t0 + 1)).toBe(125));
   it("young village pays its own headcount", () => expect(taxPop(s(), 24, t0 + 1)).toBe(popAt(24)));
+  it("the scholars' library counts as a health craft (+15)", () => expect(taxPop(s(["herbs", "library"]), 5000, t0 + 1)).toBe(115));
 });
