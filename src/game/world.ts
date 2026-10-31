@@ -865,7 +865,7 @@ function effAgeBase(s: Seed, seeds: Seed[], now: number) {
 export const TRADE_CAP = 0.35;
 
 /** Care gate: food/health buildings a player town needs before each later era (Kleinstadt, Handelsstadt, Metropole). */
-export const CARE_FOOD = ["fisher", "hunter", "granary", "dairy"], CARE_HEALTH = ["herbs", "healer"];
+export const CARE_FOOD = ["fisher", "hunter", "granary", "dairy"], CARE_HEALTH = ["herbs", "healer", "library"];
 export const CARE_NEED: [number, number][] = [[1, 0], [2, 1], [3, 2]];
 /** Highest growth stage a town may reach with the care bought by `now` (sample towns are never gated). */
 export function careStage(s: Seed, now: number) {

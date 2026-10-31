@@ -18,3 +18,12 @@ describe("charter boons", () => {
     expect(craftRepair(base, at)).toBe(1);
   });
 });
+
+import { careStage } from "./world";
+describe("culture library counts as health care", () => {
+  it("library replaces a second health building for the care gate", () => {
+    const mk = (items: string[]) => ({ ...base, user_id: "u", bought: items.map((item) => ({ item, at: 0 })) });
+    expect(careStage(mk(["fisher", "hunter", "granary", "herbs"]), at + 1)).toBe(4);
+    expect(careStage(mk(["fisher", "hunter", "granary", "herbs", "library"]), at + 1)).toBe(5);
+  });
+});
