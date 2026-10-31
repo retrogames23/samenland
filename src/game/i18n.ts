@@ -46,6 +46,10 @@ const de = {
   seasons: { winter: "Winter", spring: "Frühling", summer: "Sommer", autumn: "Herbst" },
   kinds: { seat1: "Schulzenkate", seat2: "Schulzenhof", seat3: "Amtshaus am Markt", hut: "Hütte", campfire: "Lagerfeuer", coop: "Hühnerstall", chapel: "Kapelle", watermill: "Wassermühle", harbor: "Fischerhafen", stall: "Marktbuden", townhall: "Rathaus", manufactory: "Tuchhalle", steamworks: "Hammerwerk", station: "Hansekontor", suburb: "Patrizierhaus", avenue: "Allee", fence: "Zaun" },
   stages: ["Ursprung", "Weiler", "Dorf", "Kleinstadt", "Handelsstadt", "Metropole"],
+  nextRank: (stage: string, parts: string[]) => `Bis ${stage} fehlen noch: ${parts.join(", ")}`,
+  needCitizens: (n: number) => `${n} Bürger`,
+  needHomes: (n: number) => `${n} Häuser`,
+  needRoads: (n: number) => (n === 1 ? "eine Handelsstraße" : `${n} Handelsstraßen`),
   terrain: {
     deep: "Tiefes Meer",
     water: "Wasser",
@@ -390,6 +394,10 @@ const en: typeof de = {
   seasons: { winter: "Winter", spring: "Spring", summer: "Summer", autumn: "Autumn" },
   kinds: { seat1: "Headman's cottage", seat2: "Headman's hall", seat3: "Market office", hut: "Hut", campfire: "Campfire", coop: "Chicken coop", chapel: "Chapel", watermill: "Watermill", harbor: "Fishing harbor", stall: "Market stalls", townhall: "Town hall", manufactory: "Cloth hall", steamworks: "Hammer mill", station: "Hanseatic kontor", suburb: "Patrician house", avenue: "Avenue", fence: "Fence" },
   stages: ["Origin", "Hamlet", "Village", "Small town", "Trading town", "Metropolis"],
+  nextRank: (stage: string, parts: string[]) => `Still needed for ${stage}: ${parts.join(", ")}`,
+  needCitizens: (n: number) => `${n} citizens`,
+  needHomes: (n: number) => `${n} houses`,
+  needRoads: (n: number) => (n === 1 ? "one trade road" : `${n} trade roads`),
   terrain: {
     deep: "Deep sea",
     water: "Water",
@@ -734,6 +742,10 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
   seasons: { winter: "冬季", spring: "春季", summer: "夏季", autumn: "秋季" },
   kinds: { seat1: "村长小屋", seat2: "村长庄院", seat3: "市集公署", hut: "茅棚", campfire: "篝火", coop: "鸡舍", chapel: "小礼拜堂", watermill: "水磨坊", harbor: "渔港", stall: "集市摊位", townhall: "市政厅", manufactory: "布业会馆", steamworks: "水力锻坊", station: "汉萨商馆", suburb: "望族宅邸", avenue: "林荫大道", fence: "围栏" },
   stages: ["初始聚落", "小村落", "村庄", "小镇", "商贸城镇", "大都会"],
+  nextRank: (stage: string, parts: string[]) => `距离${stage}还需要：${parts.join("、")}`,
+  needCitizens: (n: number) => `${n}位居民`,
+  needHomes: (n: number) => `${n}栋房屋`,
+  needRoads: (n: number) => `${n}条商路`,
   terrain: {
     deep: "深海",
     water: "水域",
@@ -1079,6 +1091,10 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   seasons: { winter: "冬", spring: "春", summer: "夏", autumn: "秋" },
   kinds: { seat1: "村長の小屋", seat2: "村長屋敷", seat3: "市場の役所", hut: "小屋", campfire: "焚き火", coop: "鶏小屋", chapel: "礼拝堂", watermill: "水車小屋", harbor: "漁港", stall: "露店", townhall: "町役場", manufactory: "織物会館", steamworks: "水力鍛造所", station: "ハンザ商館", suburb: "名門商家の館", avenue: "並木道", fence: "柵" },
   stages: ["はじまり", "小さな集落", "村", "小さな町", "交易の町", "大都市"],
+  nextRank: (stage: string, parts: string[]) => `${stage}まで あと：${parts.join("、")}`,
+  needCitizens: (n: number) => `住民${n}人`,
+  needHomes: (n: number) => `家${n}軒`,
+  needRoads: (n: number) => `交易路${n}本`,
   terrain: {
     deep: "深い海",
     water: "水域",
