@@ -5,15 +5,15 @@
 import { ageHours, GROWTH_PACE, hash, links, roadProgress, stageOf, type Link, type Seed } from "./world";
 import { clock, worldHour, worldWeekday } from "./time";
 
-export type WalkerKind = "journeyman" | "messenger" | "bridal" | "family" | "gift" | "aid" | "letter" | "rider" | "trader";
-export type Walker = { kind: WalkerKind; from: Seed; to: Seed; t0: number; t1: number; name: string; sex: "f" | "m"; craft: string; sd: number; /** road share covered: from p0 to p1 (default 0→1) */ p0?: number; p1?: number };
+export type WalkerKind = "journeyman" | "messenger" | "bridal" | "family" | "gift" | "aid" | "letter" | "rider" | "trader" | "transit";
+export type Walker = { kind: WalkerKind; from: Seed; to: Seed; t0: number; t1: number; name: string; sex: "f" | "m"; craft: string; sd: number; /** road share covered: from p0 to p1 (default 0→1) */ p0?: number; p1?: number; /** through-traffic: true start and final goal beyond this road */ origin?: Seed; dest?: Seed };
 
 const F = ["Greta", "Ida", "Frieda", "Lotte", "Marie", "Anna", "Clara", "Hedwig", "Rosa", "Lina"];
 const M = ["Otto", "Karl", "Emil", "Fritz", "Hans", "Jakob", "Franz", "Ludwig", "Konrad", "Heinrich"];
 /** Crafts a journeyman can learn (job codes from people.ts). */
 export const CRAFTS = ["smith", "baker", "mason", "builder", "miller", "crafter", "sawyer"];
 /** Walking speed in road tiles per real second. */
-export const SPEED: Record<WalkerKind, number> = { journeyman: 0.12, messenger: 0.3, bridal: 0.1, family: 0.07, gift: 0.15, aid: 0.2, letter: 0.3, rider: 0.6, trader: 0.1 };
+export const SPEED: Record<WalkerKind, number> = { journeyman: 0.12, messenger: 0.3, bridal: 0.1, family: 0.07, gift: 0.15, aid: 0.2, letter: 0.3, rider: 0.6, trader: 0.1, transit: 0.16 };
 const SUR = ["Müller", "Becker", "Wagner", "Krämer", "Vogt", "Hofmann", "Brandt", "Lindner", "Kessler", "Roth"];
 /** Days a house stands empty after its family moved away, before newcomers fill it again. */
 export const VACANT_DAYS = 12;
@@ -99,12 +99,48 @@ export function riderWalkers(l: Link): Walker[] {
 }
 
 /** Walkers currently on the open road l. */
-export function walkersNow(l: Link, now = clock()): Walker[] {
+export function walkersNow(l: Link, now = clock(), all?: Link[]): Walker[] {
   if (roadProgress(l, now) < 1) return [];
   const d = Math.floor(now / DAY), out: Walker[] = [];
   for (const dd of [d - 1, d]) for (const w of walkersOn(l, dd)) if (w.t0 >= l.since && now >= w.t0 && now < w.t1) out.push(w);
   for (const w of giftWalkers(l)) if (now >= w.t0 && now < w.t1) out.push(w);
   for (const w of riderWalkers(l)) if (now >= w.t0 && now < w.t1) out.push(w);
+  if (all) for (const dd of [d - 1, d]) for (const w of throughOn(l, all, dd, now)) if (now >= w.t0 && now < w.t1) out.push(w);
+  return out;
+}
+
+/** Rest at the hub town between the two legs of a through journey. */
+export const THROUGH_REST = 20 * 6e4;
+const sharedEnd = (l: Link, k: Link) => (l.a.id === k.a.id || l.a.id === k.b.id ? l.a : l.b.id === k.a.id || l.b.id === k.b.id ? l.b : null);
+const far = (l: Link, id: string) => (l.a.id === id ? l.b : l.a);
+/**
+ * Trade networks made visible: carts and journeymen travel A → hub → C over two finished roads when A and C
+ * have no direct road. Pure calendar from the road pair and the UTC day; returns the leg that runs on road l.
+ */
+export function throughOn(l: Link, all: Link[], d: number, now: number): Walker[] {
+  const out: Walker[] = [];
+  for (const k of all) {
+    if (k === l) continue;
+    const hub = sharedEnd(l, k); if (!hub) continue;
+    const x = far(l, hub.id), y = far(k, hub.id);
+    if (x.id === y.id || all.some((m) => (m.a.id === x.id && m.b.id === y.id) || (m.a.id === y.id && m.b.id === x.id))) continue;
+    if (roadProgress(l, now) < 1 || roadProgress(k, now) < 1) continue;
+    const [p, q] = x.id < y.id ? [x, y] : [y, x];
+    const pn = (hash(p.x * 31 + q.x, p.y * 17 + q.y, 1601) * 1e6) | 0;
+    const add = (kind: WalkerKind, slot: number) => {
+      const sd = pn * 7 + d * 3 + slot, fwd = hash(sd, d, 1602) < 0.5, origin = fwd ? p : q, dest = fwd ? q : p;
+      const first = origin.id === x.id ? l : k, second = first === l ? k : l;
+      const t0 = d * DAY + (6 + hash(sd, d, 1603) * 6) * 3.6e6, sp = SPEED[kind];
+      const mid = t0 + (first.tiles.length / sp) * 1000, t2 = mid + THROUGH_REST;
+      const sex = hash(sd, 1, 1604) < 0.2 ? "f" : "m", names = sex === "f" ? F : M;
+      const base = { kind, sd, sex, origin, dest, name: names[Math.floor(hash(sd, 2, 1604) * names.length)]!, craft: CRAFTS[Math.floor(hash(sd, 3, 1604) * CRAFTS.length)]! } as const;
+      if (first === l) out.push({ ...base, from: origin, to: hub, t0, t1: mid });
+      else out.push({ ...base, from: hub, to: dest, t0: t2, t1: t2 + (second.tiles.length / sp) * 1000 });
+    };
+    if (hash(pn, d, 1605) < 0.7) add("transit", 0);
+    if (hash(pn, d, 1606) < 0.5) add("transit", 1);
+    if (hash(pn, d, 1607) < 0.3) add("journeyman", 2);
+  }
   return out;
 }
 
