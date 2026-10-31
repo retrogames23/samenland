@@ -1,7 +1,8 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { economyWorldAt, type EconomyWorld } from "@/game/economy-world";
 import { residentTax } from "@/game/resident-tax";
-import type { Realm, Seed } from "@/game/world";
+import type { Seed } from "@/game/world";
+import type { Realm } from "@/game/time";
 
 const DAY = 86400000;
 /** One bounded batch per request; old earnings remain handled by the legacy database function. */
