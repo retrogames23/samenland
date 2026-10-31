@@ -379,6 +379,13 @@
       "when": 1793413238900,
       "tag": "0053_village_chest_cap",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1793413447760,
+      "tag": "0054_chest_caps_dowry",
+      "breakpoints": true
     }
   ]
 }
