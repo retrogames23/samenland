@@ -100,7 +100,7 @@ const en: Book = {
       ["", "You plan and commission buildings with taler from the treasury. You never have to stockpile raw materials – the village community gathers and processes them in daily life."],
       ["Food", "Farmers harvest sheaves, mills grind flour and the baker bakes bread; fish, venison and cheese join them. A rich table is the key to growth: only when food crafts widen the menu is there enough to eat for the step from village to town. Well-fed citizens also stay healthier."],
       ["Granary", "Grain cannot be heaped up endlessly. Mills and granaries add storage so rich autumn harvests don't spoil but carry the village through winter."],
-      ["Wood & building materials", "Woodcutters fell trunks, sawmills cut beams and masons hew blocks. With a woodcutters' camp in the village or forest nearby, builders always have timber at hand – new buildings are finished noticeably faster."],
+      ["Wood & building materials", "Woodcutters fell trunks, sawmills cut beams and masons hew blocks. With a woodcutters' camp, and later the village's own sawmill, builders always have timber at hand – new buildings are finished noticeably faster."],
       ["Healing herbs", "The herb woman gathers roots and blossoms in the undergrowth so the healer can tend sick villagers and fewer fall out of work."],
       ["Trade goods & wool", "What your land yields in plenty becomes a sought-after export. Lowland villages supply wool, mountain villages stone and ore, forest villages timber and coastal villages fish and salt. Where different goods meet on trade roads, a lasting synergy brings both places extra growth."],
     ]],
