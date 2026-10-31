@@ -2156,7 +2156,7 @@ export function draw(
       for (const [dx, dy] of RING) {
         if (placed >= want) break;
         const tx = host.x + dx, ty = host.y + dy;
-        if (isWater(tx, ty)) continue;
+        if (isWater(terrain(tx, ty))) continue;
         const st = structureAt(tx, ty, seeds, now);
         if (st && !FLAT.has(st.kind)) continue;
         if (st && (st.kind === "field" || st.kind === "pasture" || st.kind === "garden")) continue;
