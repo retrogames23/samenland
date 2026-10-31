@@ -32,7 +32,7 @@ const de: Book = {
       ["Winter", "Geschlossene Schneedecke, gefrorene Böden, kürzere Arbeitszeiten, mehr Hunger und mehr Kranke."],
     ]],
     ["Dorfentwicklung, Zuzug & Hochzeiten", [
-      ["Vom Weiler zur Metropole", "Dein Ort wächst über Monate und Jahre durch sechs Epochen – von der ersten Rodung über Weiler und Kleinstadt bis zur weithin bekannten Handelsmetropole. Jede Schwelle über das Dorf hinaus will aber durch gute Versorgung verdient sein."],
+      ["Vom Weiler zur Metropole", "Die Stufe deines Ortes richtet sich allein danach, was wirklich in ihm steht und wer dort wohnt – nicht nach der Uhr. Zum Weiler wird er mit 15 Bürgern in vier Häusern, zum Dorf mit 40 Bürgern in zehn Häusern, zur Kleinstadt mit 80 Bürgern in 25 Häusern. Die Handelsstadt verlangt 150 Bürger, 45 Häuser und eine fertige Handelsstraße, die Metropole 300 Bürger, 90 Häuser und zwei Handelsstraßen. In der Titelzeile oben siehst du stets, was zum nächsten Schritt noch fehlt."],
       ["Wohnraum, Zuzug & Wegzug", "Mit dem Wachstum zimmern die Bauleute neue Häuser. Sobald ein Dach gerichtet ist, ziehen neue Familien ein, bringen frische Arbeitskräfte ins Dorf und zahlen täglich Steuern. Doch die Natur allein ernährt nur eine begrenzte Zahl von Familien: Fehlt es an Nahrung und Gewerbe, wandern Familien ab und Häuser am Ortsrand stehen leer, bis neue Versorgungsbauten sie wieder füllen."],
       ["Hochzeiten", "Wenn junge Leute einen Hausstand gründen, läuten die Hochzeitsglocken. Je größer, satter und wohlhabender dein Ort ist, desto öfter wird geheiratet. Im kleinen Dorf ist jede Hochzeit ein Großereignis: Alle versammeln sich und der Schulze wird um seinen Segen gebeten. In der Stadt feiert man meist im Kreis der Familie – nur seltene Prunkhochzeiten rufen noch den ganzen Ort zusammen. Jede Hochzeit stiftet eine Mitgift in die Gemeindekasse, die mit dem Wohlstand wächst."],
     ]],
@@ -60,7 +60,7 @@ const de: Book = {
       ["Schutz vor Unheil", "Brände und Räuberbanden stellen das Dorf auf die Probe. Spritzenhäuser löschen Brände rasch, und eine Stadtgarde schlägt Plünderer in die Flucht. Hochwasser an Flüssen überschwemmt im Frühjahr und Herbst vorübergehend Uferwiesen, hinterlässt danach jedoch besonders fruchtbaren Boden."],
     ]],
     ["Dorf-Charta & Zünfte", [
-      ["Die Charta", "Ab dem Weiler, also nach einem Tag, siegelt der Schulze einmalig die Charta. Die Wahl gilt für immer. Die Landschaft spricht nur eine Empfehlung aus – jeder Weg funktioniert überall."],
+      ["Die Charta", "Sobald dein Ort zum Weiler herangewachsen ist, siegelt der Schulze einmalig die Charta. Die Wahl gilt für immer. Die Landschaft spricht nur eine Empfehlung aus – jeder Weg funktioniert überall."],
       ["Handel", "Mehr Steuern Tag für Tag und ertragreichere Handelsstraßen. Lohnt sich besonders mit vielen Nachbarn."],
       ["Handwerk", "Gekaufte Bauten stehen in halber Zeit, und nach Brand oder Flut bauen die Zunftmaurer doppelt so schnell wieder auf."],
       ["Gelehrsamkeit", "Mehr Gesundheit, deutlich weniger Kranke und damit auch weniger Steuerausfälle."],
@@ -95,7 +95,7 @@ const en: Book = {
       ["Winter", "Closed snow cover, frozen ground, shorter working hours, more hunger and more sickness."],
     ]],
     ["Growth, newcomers & weddings", [
-      ["From hamlet to metropolis", "Your settlement grows over months and years through six eras – from the first clearing via hamlet and small town to a far-famed trading metropolis. Every step beyond the village must be earned with good supply."],
+      ["From hamlet to metropolis", "The rank of your settlement depends solely on what truly stands there and who lives there – never on the clock. It becomes a hamlet with 15 citizens in four houses, a village with 40 citizens in ten houses, a small town with 80 citizens in 25 houses. A trading town takes 150 citizens, 45 houses and one finished trade road; a metropolis 300 citizens, 90 houses and two trade roads. The title bar above always shows what is still missing for the next step."],
       ["Homes, newcomers & leaving", "As it grows, the builders raise new houses. As soon as a roof is up, new families move in, bring fresh hands and pay taxes every day. But nature alone feeds only so many families: without food and crafts, families move away and houses on the edge stand empty until new supply buildings fill them again."],
       ["Weddings", "When young people start a household, the wedding bells ring. The larger, better fed and wealthier your settlement, the more often people marry. In a small village every wedding is a great event: everyone gathers and the headman is asked for his blessing. In a town most weddings are family affairs – only rare grand weddings still bring the whole place together. Every wedding gives a dowry to the village chest that grows with prosperity."],
     ]],
@@ -123,7 +123,7 @@ const en: Book = {
       ["Protection from harm", "Fires and robber bands put the village to the test. Fire houses put out fires quickly and a town guard drives off looters. Floods on rivers briefly swamp the shore meadows in spring and autumn, but leave especially fertile soil behind."],
     ]],
     ["Village charter & guilds", [
-      ["The charter", "From hamlet stage, after one day, the headman seals the charter once. The choice is permanent. The landscape only makes a suggestion – every path works anywhere."],
+      ["The charter", "Once your settlement has grown into a hamlet, the headman seals the charter once. The choice is permanent. The landscape only makes a suggestion – every path works anywhere."],
       ["Trade", "More taxes every day and richer trade roads. Best with many neighbours."],
       ["Craft", "Bought buildings finish in half the time, and after fire or flood the guild masons rebuild twice as fast."],
       ["Learning", "More health, far fewer sick villagers and therefore smaller tax losses."],
@@ -158,7 +158,7 @@ const fr: Book = {
       ["Hiver", "Neige, sol gelé, journées de travail plus courtes, plus de faim et plus de malades."],
     ]],
     ["Croissance, nouveaux venus & mariages", [
-      ["Du hameau à la métropole", "Ton bourg grandit pendant des mois et des années à travers six époques – du premier défrichage à la métropole marchande. Chaque étape au-delà du village se mérite par un bon approvisionnement."],
+      ["Du hameau à la métropole", "Le rang de ton bourg dépend uniquement de ce qui s'y trouve vraiment et de qui y vit – jamais de l'horloge. Il devient hameau avec 15 habitants dans quatre maisons, village avec 40 habitants dans dix maisons, bourg avec 80 habitants dans 25 maisons. La cité marchande demande 150 habitants, 45 maisons et une route commerciale achevée ; la métropole 300 habitants, 90 maisons et deux routes. La barre de titre indique toujours ce qui manque pour l'étape suivante."],
       ["Logis, arrivées & départs", "Les bâtisseurs élèvent de nouvelles maisons. Dès qu'un toit est posé, des familles emménagent, apportent des bras et paient l'impôt chaque jour. Mais la nature seule ne nourrit qu'un nombre limité de familles : sans nourriture ni métiers, des familles partent et les maisons en bordure restent vides jusqu'à ce que de nouveaux bâtiments les remplissent."],
       ["Mariages", "Quand des jeunes fondent un foyer, les cloches sonnent. Plus ton bourg est grand, bien nourri et prospère, plus on s'y marie. Au village, chaque mariage est un grand événement : tous se rassemblent et l'on demande la bénédiction du bourgmestre. En ville, on fête surtout en famille – seules de rares noces fastueuses réunissent encore toute la cité. Chaque mariage verse une dot au trésor, qui augmente avec la prospérité."],
     ]],
@@ -186,7 +186,7 @@ const fr: Book = {
       ["Protection contre les malheurs", "Incendies et brigands mettent le village à l'épreuve. La caserne de pompiers éteint vite les feux et la garde chasse les pillards. Les crues inondent brièvement les prés au printemps et en automne, mais laissent une terre très fertile."],
     ]],
     ["Charte & guildes", [
-      ["La charte", "Dès le rang de hameau, après une journée, le bourgmestre scelle la charte une seule fois. Ce choix est définitif. La contrée ne fait qu'une suggestion – chaque voie fonctionne partout."],
+      ["La charte", "Dès que ton bourg est devenu un hameau, le bourgmestre scelle la charte une seule fois. Ce choix est définitif. La contrée ne fait qu'une suggestion – chaque voie fonctionne partout."],
       ["Commerce", "Plus d'impôts chaque jour et des routes marchandes plus rentables. Idéal avec de nombreux voisins."],
       ["Artisanat", "Les bâtiments achetés s'achèvent deux fois plus vite, et après un incendie ou une crue les maçons de la guilde reconstruisent deux fois plus vite."],
       ["Savoir", "Plus de santé, beaucoup moins de malades et donc moins de pertes d'impôts."],
@@ -221,7 +221,7 @@ const es: Book = {
       ["Invierno", "Nieve, suelo helado, jornadas más cortas, más hambre y más enfermos."],
     ]],
     ["Crecimiento, recién llegados y bodas", [
-      ["De caserío a metrópoli", "Tu pueblo crece durante meses y años a través de seis épocas, del primer claro a la metrópoli comercial. Cada paso más allá de la aldea hay que ganarlo con buen abastecimiento."],
+      ["De caserío a metrópoli", "El rango de tu pueblo depende solo de lo que realmente hay en él y de quién vive allí, nunca del reloj. Se convierte en aldea con 15 vecinos en cuatro casas, en pueblo con 40 vecinos en diez casas y en villa con 80 vecinos en 25 casas. La ciudad mercantil pide 150 vecinos, 45 casas y un camino comercial terminado; la metrópoli, 300 vecinos, 90 casas y dos caminos. La barra de título siempre muestra lo que falta para el siguiente paso."],
       ["Viviendas, llegadas y partidas", "Los constructores levantan casas nuevas. En cuanto hay tejado, llegan familias, aportan manos y pagan impuestos cada día. Pero la naturaleza sola alimenta a pocas familias: sin comida ni oficios, algunas se marchan y las casas de las afueras quedan vacías hasta que nuevos edificios de abastecimiento las llenan."],
       ["Bodas", "Cuando los jóvenes forman un hogar, suenan las campanas. Cuanto más grande, mejor alimentado y próspero es tu pueblo, más bodas hay. En la aldea cada boda es un gran acontecimiento: todos se reúnen y se pide la bendición del alcalde. En la ciudad se celebra sobre todo en familia; solo raras bodas fastuosas reúnen aún a todo el lugar. Cada boda aporta una dote al tesoro que crece con la prosperidad."],
     ]],
@@ -249,7 +249,7 @@ const es: Book = {
       ["Protección contra desgracias", "Incendios y bandidos ponen a prueba la aldea. El cuartel de bomberos apaga pronto el fuego y la guardia ahuyenta a los saqueadores. Las crecidas inundan brevemente los prados en primavera y otoño, pero dejan tierra muy fértil."],
     ]],
     ["Fuero y gremios", [
-      ["El fuero", "Desde la fase de aldea, tras un día, el regidor sella el fuero una sola vez. La elección es definitiva. El paisaje solo sugiere: toda senda funciona en cualquier lugar."],
+      ["El fuero", "En cuanto tu pueblo se convierte en aldea, el regidor sella el fuero una sola vez. La elección es definitiva. El paisaje solo sugiere: toda senda funciona en cualquier lugar."],
       ["Comercio", "Más tributos cada día y rutas comerciales más provechosas. Ideal con muchos vecinos."],
       ["Artesanía", "Los edificios comprados se terminan en la mitad de tiempo y, tras un incendio o una inundación, los canteros del gremio reconstruyen el doble de rápido."],
       ["Saber", "Más salud, muchos menos enfermos y por tanto menos tributos perdidos."],
@@ -284,7 +284,7 @@ const ar: Book = {
       ["الشتاء", "ثلج وأرض متجمدة وساعات عمل أقصر وجوع ومرض أكثر."],
     ]],
     ["النمو والوافدون والأعراس", [
-      ["من نجع إلى حاضرة", "تنمو بلدتك عبر شهور وسنين خلال ست حقب، من أول أرض مُستصلحة حتى حاضرة تجارية. وكل خطوة بعد القرية تُكتسب بحسن التموين."],
+      ["من نجع إلى حاضرة", "مرتبة بلدتك تقوم فقط على ما يقوم فيها فعلاً ومن يسكنها، لا على الساعة. تصير نجعاً بخمسة عشر مواطناً في أربعة بيوت، وقرية بأربعين مواطناً في عشرة بيوت، وبلدة صغيرة بثمانين مواطناً في خمسة وعشرين بيتاً. وتتطلب البلدة التجارية 150 مواطناً و45 بيتاً وطريق تجارة مكتملاً، والحاضرة 300 مواطن و90 بيتاً وطريقين. وشريط العنوان في الأعلى يبيّن دائماً ما ينقص للخطوة التالية."],
       ["المساكن والوافدون والراحلون", "يبني البنّاؤون بيوتاً جديدة، وحين يكتمل سقف تنتقل إليها عائلات تجلب أيدي عاملة وتدفع الضرائب يومياً. لكن الطبيعة وحدها لا تطعم إلا عدداً محدوداً: بلا طعام وحِرف ترحل عائلات وتبقى بيوت الأطراف خالية حتى تملأها مبانٍ تموينية جديدة."],
       ["الأعراس", "حين يؤسس الشباب بيتاً تُقرع أجراس العرس. كلما كبرت بلدتك وشبع أهلها وازدادوا رخاءً كثرت الأعراس. في القرية الصغيرة كل عرس حدث كبير يجتمع فيه الجميع ويُطلب فيه دعاء الشيخ، أما في المدينة فيُحتفل غالباً بين الأهل، ولا تجمع البلدة كلها إلا أعراس فاخرة نادرة. وكل عرس يهب مهراً للخزينة يزداد مع الرخاء."],
     ]],
@@ -312,7 +312,7 @@ const ar: Book = {
       ["الحماية من المصائب", "الحرائق وعصابات اللصوص تختبر القرية. دار الإطفاء تطفئ النار سريعاً والحرس يطرد الناهبين. والفيضانات تغمر المروج قليلاً في الربيع والخريف لكنها تترك تربة خصبة."],
     ]],
     ["ميثاق القرية والنقابات", [
-      ["الميثاق", "منذ مرحلة النجع، أي بعد يوم واحد، يختم شيخ البلدة الميثاق مرة واحدة. والاختيار دائم. طبيعة الأرض تقترح فقط، وكل مسلك ينجح في أي مكان."],
+      ["الميثاق", "حين تصير بلدتك نجعاً، يختم شيخ البلدة الميثاق مرة واحدة. والاختيار دائم. طبيعة الأرض تقترح فقط، وكل مسلك ينجح في أي مكان."],
       ["التجارة", "ضرائب أكثر كل يوم وطرق تجارة أوفر ربحاً. الأنسب مع جيران كثيرين."],
       ["الحِرَف", "تكتمل المباني المشتراة في نصف الوقت، وبعد الحريق أو الفيضان يعيد بنّاؤو النقابة البناء أسرع بمرتين."],
       ["العلم", "صحة أكبر ومرضى أقل بكثير، وبالتالي خسائر ضريبية أقل."],
@@ -347,7 +347,7 @@ const hi: Book = {
       ["सर्दी", "बर्फ़, जमी ज़मीन, छोटे काम के घंटे, ज़्यादा भूख और ज़्यादा बीमार।"],
     ]],
     ["विकास, नए लोग और विवाह", [
-      ["पुरवे से महानगर तक", "तुम्हारी बस्ती महीनों और सालों में छह युगों से गुज़रती है – पहली सफ़ाई से व्यापारिक महानगर तक। गाँव से आगे हर कदम अच्छी आपूर्ति से कमाना पड़ता है।"],
+      ["पुरवे से महानगर तक", "तुम्हारी बस्ती का दर्जा सिर्फ़ इस पर टिका है कि वहाँ सचमुच क्या खड़ा है और कौन रहता है – घड़ी पर नहीं। 15 नागरिक चार घरों में हों तो बस्ती, 40 नागरिक दस घरों में हों तो गाँव, 80 नागरिक 25 घरों में हों तो कस्बा बनता है। व्यापारिक नगर के लिए 150 नागरिक, 45 घर और एक तैयार व्यापार मार्ग चाहिए; महानगर के लिए 300 नागरिक, 90 घर और दो मार्ग। ऊपर की शीर्षक-पट्टी हमेशा बताती है कि अगले कदम के लिए क्या बाक़ी है।"],
       ["घर, आगमन और पलायन", "कारीगर नए घर बनाते हैं; छत पड़ते ही परिवार आते हैं, काम करते हैं और रोज़ कर देते हैं। पर अकेली प्रकृति सीमित परिवारों को ही खिलाती है: भोजन और धंधों के बिना परिवार चले जाते हैं और किनारे के घर ख़ाली रहते हैं, जब तक नई आपूर्ति इमारतें उन्हें फिर न भर दें।"],
       ["विवाह", "जब युवा घर बसाते हैं, तो शादी की घंटियाँ बजती हैं। बस्ती जितनी बड़ी, भरपेट और समृद्ध, उतनी ज़्यादा शादियाँ। छोटे गाँव में हर शादी बड़ा उत्सव है: सब इकट्ठा होते हैं और प्रधान का आशीर्वाद माँगा जाता है। शहर में ज़्यादातर शादियाँ परिवार तक सीमित रहती हैं – केवल दुर्लभ भव्य शादियाँ पूरे नगर को जुटाती हैं। हर शादी ख़ज़ाने में दहेज देती है, जो समृद्धि के साथ बढ़ता है।"],
     ]],
@@ -375,7 +375,7 @@ const hi: Book = {
       ["विपत्ति से सुरक्षा", "आग और डाकू गाँव की परीक्षा लेते हैं। अग्निशाला आग जल्दी बुझाती है और नगर रक्षक लुटेरों को भगाते हैं। बाढ़ वसंत और पतझड़ में कुछ समय मैदान डुबोती है, पर उपजाऊ मिट्टी छोड़ जाती है।"],
     ]],
     ["अधिकार-पत्र और श्रेणियाँ", [
-      ["अधिकार-पत्र", "पुरवा बनने पर, यानी एक दिन बाद, मुखिया एक बार अधिकार-पत्र पर मुहर लगाता है। यह चुनाव स्थायी है। भूदृश्य केवल सुझाव देता है – हर मार्ग हर जगह काम करता है।"],
+      ["अधिकार-पत्र", "बस्ती बनते ही मुखिया एक बार अधिकार-पत्र पर मुहर लगाता है। यह चुनाव स्थायी है। भूदृश्य केवल सुझाव देता है – हर मार्ग हर जगह काम करता है।"],
       ["व्यापार", "हर दिन अधिक कर और अधिक लाभदायक व्यापार मार्ग। कई पड़ोसियों के साथ सबसे अच्छा।"],
       ["शिल्प", "खरीदे गए भवन आधे समय में बनते हैं, और आग या बाढ़ के बाद श्रेणी के राजमिस्त्री दोगुनी तेज़ी से पुनर्निर्माण करते हैं।"],
       ["विद्या", "अधिक स्वास्थ्य, बहुत कम बीमार और इसलिए कम कर-हानि।"],
@@ -410,7 +410,7 @@ const zh: Book = {
       ["冬", "积雪覆盖，土地冰封，劳作时间缩短，饥饿与病人增多。"],
     ]],
     ["发展、新居民与婚礼", [
-      ["从小村到大都会", "你的聚落在数月数年间经历六个时代——从第一片开垦地到远近闻名的商业大都会。村庄之后的每一步，都要靠良好的供给来赢得。"],
+      ["从小村到大都会", "聚落的等级只取决于那里真实矗立着什么、住着谁，与时间无关。15位居民、四栋房屋即成为小村落，40位居民、十栋房屋成为村庄，80位居民、25栋房屋成为小镇。商贸城镇需要150位居民、45栋房屋和一条建成的商路；大都会需要300位居民、90栋房屋和两条商路。上方标题栏会始终显示迈向下一步还缺什么。"],
       ["住房、迁入与迁出", "工匠们建起新房，屋顶一盖好，新家庭便搬进来，带来人手并每天纳税。但单靠大自然只能养活有限的家庭：缺少食物和行业时，人家会迁走，边缘的房屋空着，直到新的供给建筑把它们重新填满。"],
       ["婚礼", "年轻人成家时，婚礼钟声响起。聚落越大、越富足、越繁荣，婚礼就越频繁。在小村庄里，每场婚礼都是盛事：人人聚集，并请村长祝福。在城镇里，婚礼多在家人间举行——只有罕见的盛大婚礼才会召集全城。每场婚礼都会向公库献上嫁妆，数额随繁荣增长。"],
     ]],
@@ -438,7 +438,7 @@ const zh: Book = {
       ["防范灾祸", "火灾和强盗考验着村庄。消防站迅速灭火，城卫驱逐劫掠者。河水在春秋两季短暂淹没河滩草地，却会留下格外肥沃的土壤。"],
     ]],
     ["村庄宪章与行会", [
-      ["宪章", "达到小村落阶段（一天后），村长可一次性为宪章盖印，选择不可更改。地貌只作参考——每条道路在哪里都可行。"],
+      ["宪章", "聚落成长为小村落后，村长可一次性为宪章盖印，选择不可更改。地貌只作参考——每条道路在哪里都可行。"],
       ["商贸", "每天税收更多，商路收益更高。邻居越多越划算。"],
       ["手艺", "购买的建筑工期减半，火灾或洪水后行会工匠的重建速度快一倍。"],
       ["学识", "健康更高，病人大幅减少，税收损失也随之减少。"],
@@ -473,7 +473,7 @@ const ja: Book = {
       ["冬", "雪に覆われ、地面は凍り、働く時間は短くなり、飢えと病人が増えます。"],
     ]],
     ["発展、移住者、婚礼", [
-      ["小村から大都市へ", "集落は数か月、数年をかけて六つの時代を進みます——最初の開墾地から名高い交易都市まで。村から先の一歩一歩は、よい供給で勝ち取る必要があります。"],
+      ["小村から大都市へ", "集落の格付けは、そこに実際に何が建ち、誰が住んでいるかだけで決まります——時計は関係ありません。15人の住民と4軒の家で小さな集落、40人と10軒で村、80人と25軒で小さな町になります。交易の町には150人・45軒・完成した交易路1本、大都市には300人・90軒・交易路2本が必要です。上のタイトルバーには、次の段階に足りないものがいつも表示されます。"],
       ["住まい、移住と転出", "大工が新しい家を建て、屋根がかかると新しい家族が移り住み、働き手となって毎日税を納めます。けれど自然だけでは養える家族に限りがあります。食べ物や生業が足りないと家族は去り、外れの家は新しい供給の建物が埋めるまで空き家になります。"],
       ["婚礼", "若者が所帯を持つと婚礼の鐘が鳴ります。集落が大きく、満ち足り、豊かなほど婚礼は増えます。小さな村ではどの婚礼も一大行事で、皆が集まり村長に祝福を願います。町では多くが家族内の祝いになり、まれな盛大な婚礼だけが町じゅうを集めます。婚礼ごとに持参金が金庫に納められ、その額は豊かさとともに増えます。"],
     ]],
@@ -501,7 +501,7 @@ const ja: Book = {
       ["災いへの備え", "火事と盗賊団が村を試します。消防小屋はすばやく火を消し、町の衛兵が略奪者を追い払います。川の洪水は春と秋に一時河原を水に沈めますが、とても肥えた土を残します。"],
     ]],
     ["村の憲章とギルド", [
-      ["憲章", "小さな集落の段階（一日後）から、村長は一度だけ憲章に封印できます。選択は変更できません。土地柄は目安にすぎず、どの道もどこでも機能します。"],
+      ["憲章", "集落が小さな集落に育ったら、村長は一度だけ憲章に封印できます。選択は変更できません。土地柄は目安にすぎず、どの道もどこでも機能します。"],
       ["交易", "毎日の税収が増え、交易路の実入りも大きくなります。隣村が多いほど有利です。"],
       ["手工業", "購入した建物が半分の時間で完成し、火事や洪水の後はギルドの石工が2倍の速さで再建します。"],
       ["学問", "健康が高まり、病人が大きく減るため、税の減収も少なくなります。"],
