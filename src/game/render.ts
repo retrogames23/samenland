@@ -472,6 +472,14 @@ function smoothRoad(l: { tiles: [number, number][] }): Pt[] {
   });
   smoothCache.set(l, out); return out;
 }
+const boxCache = new WeakMap<object, [number, number, number, number]>();
+/** Screen-space bounds of a smoothed road (cached per link object). */
+function roadBox(l: { tiles: [number, number][] }): [number, number, number, number] {
+  const hit = boxCache.get(l); if (hit) return hit;
+  let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
+  for (const [x, y] of smoothRoad(l)) { if (x < a) a = x; if (y < b) b = y; if (x > c) c = x; if (y > d) d = y; }
+  const box: [number, number, number, number] = [a, b, c, d]; boxCache.set(l, box); return box;
+}
 
 /** Visible load on the cart bed, coloured by trade good. */
 const LOAD: Record<TradeGood, [string, "sack" | "log" | "barrel" | "block"]> = {
@@ -1783,6 +1791,8 @@ export function draw(
     for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
       const y = s - x;
       const [cx, cy] = iso(x, y);
+      // diamond culling: the tile rectangle's corners lie off-canvas; tall sprites rise from below, so keep a deep bottom margin
+      if (cx < cs0x - 60 || cx > cs1x + 60 || cy < cs0y - 30 || cy > cs1y + 160) continue;
       const st = structureAt(x, y, seeds, now);
       { const slot = tiles[nTiles] ?? (tiles[nTiles] = { x: 0, y: 0, cx: 0, cy: 0, st: null }); slot.x = x; slot.y = y; slot.cx = cx; slot.cy = cy; slot.st = st; nTiles++; }
       if (!detail) {
@@ -1967,6 +1977,7 @@ export function draw(
   };
   // ---- life on the trade roads ----
   if (detail) for (const l of links(seeds)) {
+    { const bx = roadBox(l); if (bx[2] < cs0x - 60 || bx[0] > cs1x + 60 || bx[3] < cs0y - 60 || bx[1] > cs1y + 60) continue; } // off-screen road: skip its traffic
     const prog = roadProgress(l, now);
     if (prog <= 0) continue;
     if (prog < 1) continue; // road crews are drawn in the tile depth pass above
