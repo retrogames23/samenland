@@ -685,19 +685,14 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   if (robe) {
     const fw = robe.naturalWidth / WORK_FRAMES, fh = robe.naturalHeight, hh = hgt * 1.01, ww = (hh * fw) / fh;
     if (q.walking) {
-      // painted leg cycle steps under the robe; the hem sways in strips with the stride
-      const legs = folkImage("legsM"), sway = Math.sin(ph);
+      // vest + breeches, not a robe: cut the torso at the belt and step full-length painted legs from the hip
+      const legs = folkImage("legsM"), hem = 0.58;
       if (legs) {
         const lf = legs.naturalWidth / WALK_FRAMES, f = Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES;
-        const lh = hgt * 0.3, lw = (lh * lf) / legs.naturalHeight;
+        const lh = hh * (1 - hem + 0.1), lw = (lh * lf) / legs.naturalHeight;
         c.drawImage(legs, f * lf, 0, lf, legs.naturalHeight, -lw * 0.5, -lh + bob, lw, lh);
-      }
-      const top = 0.74, end = 0.86, N = 4;
-      c.drawImage(robe, 0, 0, fw, fh * top, -ww / 2, -hh, ww, hh * top);
-      for (let i = 0; i < N; i++) {
-        const a = top + ((end - top) * i) / N, b = top + ((end - top) * (i + 1)) / N, dx = sway * ww * 0.02 * ((i + 1) / N);
-        c.drawImage(robe, 0, fh * a, fw, fh * (b - a) + 0.5, -ww / 2 + dx, -hh + hh * a, ww, hh * (b - a) + 0.05);
-      }
+        c.drawImage(robe, 0, 0, fw, fh * hem, -ww * 0.503, -hh + bob, ww, hh * hem);
+      } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     insignia(c, q, hgt);
     c.restore();
