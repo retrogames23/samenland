@@ -1811,7 +1811,9 @@ export function draw(
       const pp = P(cx, cy);
       if (st.kind === "bridge") {
         /* drawn as one continuous span per crossing (see drawBridgeSpan) */
-      } else if (st.kind === "path" || st.kind === "street" || st.kind === "road" || st.kind === "avenue" || st.kind === "rail") {
+      } else if (st.kind === "road") {
+        /* drawn as one continuous ribbon per trade road (see drawRoadRibbon) */
+      } else if (st.kind === "path" || st.kind === "street" || st.kind === "avenue" || st.kind === "rail") {
         const street = st.kind === "street" || st.kind === "avenue";
         const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
         const wBase = street ? 7 : 4.6;
@@ -1900,6 +1902,12 @@ export function draw(
         c.fillStyle = texture(c, "meadow") ?? hsl(84, 34, 70, 0.6); c.fill();
       }
     }
+  }
+  // ---- trade roads as one continuous ribbon each (the tile steps stay logic only) ----
+  for (const l of links(seeds)) {
+    const bx = roadBox(l); if (bx[2] < cs0x - 60 || bx[0] > cs1x + 60 || bx[3] < cs0y - 60 || bx[1] > cs1y + 60) continue;
+    if (roadProgress(l, now) <= 0) continue;
+    drawRoadRibbon(c, l, seeds, now);
   }
 
   // ---- villagers, bucketed by tile for depth sorting ----
