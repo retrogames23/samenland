@@ -245,6 +245,7 @@ export function Game() {
   const dpr = useRef(1);
   const [fs, setFs] = useState(false);
   const [sound, setSoundOn] = useState(false);
+  const soundRef = useRef(false); soundRef.current = sound;
   useEffect(() => {
     const on = localStorage.getItem("samenland.sound") !== "off";
     setSoundOn(on);
@@ -547,7 +548,8 @@ export function Game() {
   // render loop + input
   useEffect(() => {
     const cv = canvasRef.current!;
-    const ctx = cv.getContext("2d")!;
+    // opaque canvas: the map always paints sky/sea edge to edge, so the compositor can skip alpha blending
+    const ctx = cv.getContext("2d", { alpha: false })!;
     let raf = 0;
     const resize = () => {
       // phones: cap pixel density at 2 – DPR 3 screens otherwise push ~2.25x the pixels for no visible gain
@@ -630,7 +632,7 @@ export function Game() {
         ctx.restore();
       }
       const nowMs = performance.now();
-      if (nowMs - lastScene > 250) {
+      if (soundRef.current && nowMs - lastScene > 250) {
         lastScene = nowMs;
         const hw = cv.clientWidth / 2 / c.zoom, hh = cv.clientHeight / 2 / c.zoom;
         const [tx, ty] = toTile(c.x, c.y), span = Math.min(200, Math.max(4, (hw / 16 + hh / 8) / 2));
@@ -647,9 +649,12 @@ export function Game() {
         }).filter((q) => q.near > 0);
         setScene({ zoom: zn, forest: forest / n, water: water / n, sea: sea / n, people: lastPeople.length, talkers, sources });
       }
-      raf = requestAnimationFrame(loop);
+      raf = document.hidden ? 0 : requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
+    // background tab: stop drawing entirely; resume with a fresh frame on return
+    const onHide = () => { if (!document.hidden && !raf) raf = requestAnimationFrame(loop); };
+    document.addEventListener("visibilitychange", onHide);
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const r = cv.getBoundingClientRect();
