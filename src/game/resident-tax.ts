@@ -1,7 +1,6 @@
 import { householdsOf, type Household } from "./households";
-import { civicWealth, estateAt, ESTATE_TAX, sickLoss, sickTaxRate } from "./prosperity";
+import { civicWealth, estateAt, ESTATE_TAX, sickLoss, sickTaxRate, CULTURE_SICK } from "./prosperity";
 import type { Seed } from "./world";
-import { CULTURE_SICK } from "./people";
 
 export function assessHomes(homes: Household[], wealth: number) {
   return homes.reduce((total, h) => total + h.size * ESTATE_TAX[estateAt(wealth, ...h.home)], 0);
