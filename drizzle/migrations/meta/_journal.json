@@ -407,6 +407,13 @@
       "when": 1793416239621,
       "tag": "0057_library_tax_pop",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1793417127389,
+      "tag": "0058_tighten_public_reads",
+      "breakpoints": true
     }
   ]
 }
