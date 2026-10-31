@@ -529,7 +529,6 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
   const away = dy < -0.15 * Math.abs(dx);
   const wag = wagonImage(away), ox = oxWalkImage(away);
   c.save(); c.translate(x, y); if (screenFacing(dx, dy) < 0) c.scale(-1, 1);
-  c.transform(1, cartShear(dx, dy, away), 0, 1, 0, 0);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   if (!wag || !ox) {
     const im = away ? cartBackImage() ?? cartImage() : cartImage();
