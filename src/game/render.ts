@@ -1641,7 +1641,9 @@ const framePool = {
   props: new Map<number, ((cx: number, cy: number) => void)[]>(),
   hunt: new Map<number, (() => void)[]>(),
   lights: [] as Light[],
-  vip: [] as (() => void)[],
+  vip: [] as { f: () => void; x: number; y: number; k: number }[],
+  occ: [] as number[], // flat [ti, left, top, right, bottom] of standing buildings
+  ord: new Map<number, number>(),
   birds: [] as [number, number, number, number][],
 };
 
@@ -1882,7 +1884,7 @@ export function draw(
   const roadProp = (x: number, y: number, a: number, f: () => void, important = false) => {
     const [tx, ty] = toTile(x, y);
     addProp(ty * MAP + tx, () => { c.globalAlpha = a; f(); c.globalAlpha = 1; });
-    if (important) vip.push(f);
+    if (important) vip.push({ f, x, y, k: ty * MAP + tx });
   };
   // ---- life on the trade roads ----
   if (detail) for (const l of links(seeds)) {
@@ -1983,8 +1985,10 @@ export function draw(
     }
   }
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
+  const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
   for (let ti = 0; ti < nTiles; ti++) {
     const { x, y, cx, cy, st } = tiles[ti]!;
+    ord.set(y * MAP + x, ti);
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
     if (!detail) {
       if (st?.build !== undefined) drawSite(c, st, cx, cy, t, false);
@@ -1999,11 +2003,14 @@ export function draw(
     const fk = folk.get(y * MAP + x);
     const sdT = x * 1000 + y, flock = fk && st?.kind === "pasture" && st.build === undefined ? sheepSpots(sdT, st.v, now) : [];
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
-    if (st) drawStructure(c, st, cx, cy, x, y, t, L);
+    if (st) {
+      drawStructure(c, st, cx, cy, x, y, t, L);
+      if (st.build === undefined && !FLAT.has(st.kind)) { const b = spriteBox(st.kind, st.v); if (b && b.h > 8) occ.push(ti, cx - b.w / 2, cy + b.base - b.h, cx + b.w / 2, cy + b.base - 2); }
+    }
     for (const f of hunt.get(y * MAP + x) ?? []) f();
     for (const f of props.get(y * MAP + x) ?? []) f(cx, cy);
     const rb = robbers.get(y * MAP + x);
-    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); vip.push(() => drawRobber(c, px, py, rb[2], t)); }
+    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); vip.push({ f: () => drawRobber(c, px, py, rb[2], t), x: px, y: py, k: y * MAP + x }); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
     if (signMap.has(y * MAP + x)) {
       const focused = signFocus.k === y * MAP + x && Date.now() < signFocus.until;
@@ -2052,7 +2059,7 @@ export function draw(
           c.strokeStyle = sel ? "rgba(255,226,160,0.95)" : "rgba(255,236,190,0.7)"; c.lineWidth = sel ? 0.8 : 0.6; c.stroke();
         }
         drawPerson(c, px, py, q, t, simpleFolk); pushPerson(px, py, q);
-        if (hov || sel || (steer && q.p.role === "mayor" && q.act === "stroll" && q.p.seed.id === steer.sid)) vip.push(() => drawPerson(c, px, py, q, t, simpleFolk));
+        if (hov || sel || (steer && q.p.role === "mayor" && q.act === "stroll" && q.p.seed.id === steer.sid)) vip.push({ f: () => drawPerson(c, px, py, q, t, simpleFolk), x: px, y: py, k: y * MAP + x });
         if (q.bucket) drawBucket(c, px, py, q, t);
         if (hov && !sel) {
           c.font = "600 4px system-ui, sans-serif"; c.textAlign = "center";
@@ -2069,7 +2076,23 @@ export function draw(
   }
   for (const [bx, by, gull, sd] of birds) drawBird(c, bx, by, gull === 1, sd);
   // parchment silhouette: key figures (own strolling mayor, hovered/selected folk, robbers, messengers) shine faintly through buildings in front
-  if (vip.length) { c.save(); c.globalAlpha = 0.38; c.filter = "sepia(1) brightness(1.25)"; for (const f of vip) f(); c.restore(); }
+  // only where a building drawn later actually covers the figure, clipped to that roof: in the open the figure stays crisp
+  for (const v of vip) {
+    const o = ord.get(v.k) ?? -1;
+    let hit = false;
+    c.save(); c.beginPath();
+    for (let i = 0; i < occ.length; i += 5) {
+      if (occ[i]! <= o) continue;
+      const l = occ[i + 1]!, tp = occ[i + 2]!, rr = occ[i + 3]!, bt = occ[i + 4]!;
+      if (v.x > l && v.x < rr && v.y - 6 < bt && v.y > tp) { c.rect(l, tp, rr - l, bt - tp); hit = true; }
+    }
+    if (hit) {
+      c.clip();
+      c.filter = "sepia(1) saturate(0.6) brightness(1.35) drop-shadow(0 0 0.6px rgba(45,30,18,0.7))";
+      c.globalAlpha = 0.42; v.f();
+    }
+    c.restore();
+  }
 
 
   // border banners in both town colours and the carved border stone at the twin gate
