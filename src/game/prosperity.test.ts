@@ -70,9 +70,9 @@ describe("sick villagers pay no tax", () => {
 import { CIVIC_BONUS, PRESTIGE_BONUS } from "./prosperity";
 import { ITEMS as PRICES } from "./economy";
 describe("rebalanced guild and prestige buildings", () => {
-  it("library gives +10 civic wealth", () => expect(CIVIC_BONUS.library).toBe(10));
-  it("dairy gives +5 civic wealth", () => expect(CIVIC_BONUS.dairy).toBe(5));
-  it("finished orangery gives +10 civic wealth", () => expect(PRESTIGE_BONUS.orangery3).toBe(10));
-  it("finished university gives +15 civic wealth", () => expect(PRESTIGE_BONUS.university4).toBe(15));
+  it("library gives +10 civic wealth", () => expect(CIVIC_BONUS["library"]).toBe(10));
+  it("dairy gives +5 civic wealth", () => expect(CIVIC_BONUS["dairy"]).toBe(5));
+  it("finished orangery gives +10 civic wealth", () => expect(PRESTIGE_BONUS["orangery3"]).toBe(10));
+  it("finished university gives +15 civic wealth", () => expect(PRESTIGE_BONUS["university4"]).toBe(15));
   it("new prices", () => { expect(PRICES.fisher).toBe(140); expect(PRICES.library).toBe(380); expect(PRICES.dairy).toBe(350); expect(PRICES.guard).toBe(750); });
 });
