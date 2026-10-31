@@ -16,9 +16,9 @@ describe("Saturday market", () => {
       expect(tradersOn(l, d).length > 0).toBe(wd === 6 && l.tiles.length >= 7);
     }
   });
-  it("traders reach only the midpoint and walk back home", () => {
+  it("traders walk all the way to the neighbour and back home", () => {
     const d = Array.from({ length: 7 }, (_, i) => 20500 + i).find(isMarketDate)!;
-    for (const w of tradersOn(l, d)) expect([0.5, 1]).toContain(walkProgress(w, w.t1));
+    for (const w of tradersOn(l, d)) expect(walkProgress(w, w.t1)).toBe(1);
   });
 });
 
