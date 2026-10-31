@@ -12,6 +12,9 @@
 - [x] Deterministische Bürgerstände, Häuser und Steuerdetails
 - [x] Steuerberechnung im Spiel und in der Datenbank synchronisieren
 - [x] Schule auf 1200 Taler abstimmen und Regeln testen
+- [ ] Gemeinsame bewohnte Haushaltsgrundlage für sichtbare Einwohner und Steuerbasis; bisherige 85/25/15-Näherung ersetzen
+- [ ] Langfristige Einnahmen ungepflegter Dörfer kalibrieren, ohne die Steuersätze der Bürgerstände stillschweigend zu ändern
+- [ ] Historische Kassenänderungen vor Anwendung für bestehende Dörfer prüfen und angemeldeten Kaufablauf testen
 
 - [x] Block 1a: Mentorbonus (junges Dorf neben älterem wächst im ersten Jahr +50 %)
 - [x] Block 1b: Mentor-Hinweis (Reifephase entfällt: Wachstum ist bereits sublinear) in Chronik/Inspektor
