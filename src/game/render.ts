@@ -1739,16 +1739,20 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
   const a = spot(k), b = spot(k + 1), into = night ? -1 : u - (CYC - WALK);
   const f = into > 0 ? into / WALK : 0, e = f * f * (3 - 2 * f), walking = into > 0;
   const dx = a[0] + (b[0] - a[0]) * e, dy = a[1] + (b[1] - a[1]) * e;
-  const flip = walking ? b[0] < a[0] : a[0] < spot(k - 1)[0];
-  // breathing/chewing while standing, a gentle sway with each step while walking, a twitch now and then
-  const twitch = !walking && Math.sin(now / 3100 + sd) > 0.97 ? Math.sin(now / 40) * 0.25 : 0;
-  const bob = walking ? Math.abs(Math.sin(now / 420)) * 0.7 : Math.sin(now / 2500 + sd) * 0.45 + twitch;
-  const tilt = walking ? Math.sin(now / 840) * 0.03 : Math.sin(now / 1900 + sd) * 0.015;
+  // facing: the heading of the last walk is held while grazing; a new heading turns in over 400 ms
+  // at the start of the walk (horizontal scale passes through a narrow side-on pose) — never a 1-frame flip
+  const prevDir = a[0] < spot(k - 1)[0] ? -1 : 1, nextDir = b[0] < a[0] ? -1 : 1;
+  const TURN = 400, tf = walking ? Math.min(1, into / TURN) : 0;
+  const sx = prevDir === nextDir || !walking ? (walking ? nextDir : prevDir) : prevDir + (nextDir - prevDir) * (tf * tf * (3 - 2 * tf));
+  const scaleX = Math.sign(sx || nextDir) * Math.max(0.25, Math.abs(sx));
+  // hooves stay on the ground: only a slow breath (body stretches a hair upward) and a gentle sway while walking
+  const breath = 1 + Math.sin(now / 2600 + sd) * 0.012;
+  const tilt = walking ? Math.sin(now / 1100 + sd) * 0.02 : Math.sin(now / 5200 + sd) * 0.006;
   c.save();
   c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.3, 5, 1.4, 0, 0, 7); c.fill();
-  c.translate(x + dx, y + dy); if (flip) c.scale(-1, 1);
+  c.translate(x + dx, y + dy); c.scale(night ? prevDir : scaleX, 1);
   if (night) c.drawImage(im, 0, im.naturalHeight * 0.45, im.naturalWidth, im.naturalHeight * 0.55, -w / 2, -h * 0.55, w, h * 0.55);
-  else { c.rotate(tilt); c.translate(0, -bob); c.drawImage(im, -w / 2, -h * 0.96, w, h); }
+  else { c.rotate(tilt); c.scale(1, breath); c.drawImage(im, -w / 2, -h * 0.96, w, h); }
   c.restore();
 }
 
