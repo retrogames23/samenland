@@ -88,7 +88,7 @@ export const fr: Dict = {
     young: "Votre village est encore jeune. Quand les premiers bûcherons, pêcheurs et paysans seront à l'œuvre, les réserves s'empliront.",
     boonsTitle: "Les bienfaits de réserves pleines",
     boons: { fed: "Bien nourri : 2 repas par villageois → +10 nourriture, +5 santé", varied: "Variété : deux sortes de vivres → +5 santé", surplus: "Surplus de planches, farine, pain ou fromage (10+) → +5 prospérité" },
-    timber: "Forêt à proximité : les bâtiments achetés s'élèvent 15% plus vite",
+    timber: "Scierie au village : les bâtiments achetés s'élèvent 15% plus vite",
     market: "Tenir le jour de marché (+15 Taler)",
     marketDone: "Le jour de marché s'est tenu aujourd'hui – à demain pour le prochain.",
     smallMarket: "Tenir la foire aux colporteurs (+6 Taler)",
