@@ -226,8 +226,6 @@ export function Game() {
   const [tab, setTab] = useState<Tab | null>(null);
   const [walk, setWalk] = useState(false);
   const stick = useRef({ dx: 0, dy: 0 });
-  const [coarse, setCoarse] = useState(false);
-  useEffect(() => { const m = window.matchMedia("(pointer: coarse)"); setCoarse(m.matches); const f = () => setCoarse(m.matches); m.addEventListener("change", f); return () => m.removeEventListener("change", f); }, []);
   const [authOpen, setAuthOpen] = useState(false);
   const [settings, setSettings] = useState(false);
   const [imprint, setImprint] = useState(false);
