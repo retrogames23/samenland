@@ -34,6 +34,10 @@ export const ar: Dict = {
   seasons: { winter: "الشتاء", spring: "الربيع", summer: "الصيف", autumn: "الخريف" },
   kinds: { seat1: "كوخ شيخ القرية", seat2: "دار الشيخ", seat3: "دار الحكم في السوق", hut: "كوخ", campfire: "نار المخيم", coop: "قن دجاج", chapel: "مُصلّى", watermill: "طاحونة مائية", harbor: "مرفأ صيد", stall: "أكشاك السوق", townhall: "دار البلدة", manufactory: "دار النسيج", steamworks: "مطرقة مائية", station: "وكالة هانزية", suburb: "بيت الأعيان", avenue: "شارع عريض", fence: "سياج" },
   stages: ["المبتدأ", "نجع", "قرية", "بلدة صغيرة", "بلدة تجارية", "حاضرة"],
+  nextRank: (stage: string, parts: string[]) => `ما ينقص للوصول إلى ${stage}: ${parts.join("، ")}`,
+  needCitizens: (n: number) => `${n} مواطناً`,
+  needHomes: (n: number) => `${n} بيوت`,
+  needRoads: (n: number) => (n === 1 ? "طريق تجارة واحداً" : `${n} طرق تجارة`),
   terrain: {
     deep: "بحر عميق",
     water: "ماء",

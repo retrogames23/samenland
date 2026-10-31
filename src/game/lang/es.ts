@@ -34,6 +34,10 @@ export const es: Dict = {
   seasons: { winter: "Invierno", spring: "Primavera", summer: "Verano", autumn: "Otoño" },
   kinds: { seat1: "Casita del alcalde", seat2: "Casa del concejo", seat3: "Casa consistorial", hut: "Choza", campfire: "Fogata", coop: "Gallinero", chapel: "Capilla", watermill: "Molino de agua", harbor: "Puerto pesquero", stall: "Puestos de mercado", townhall: "Casa consistorial", manufactory: "Lonja de paños", steamworks: "Herrería de martillo", station: "Kontor hanseático", suburb: "Casa patricia", avenue: "Avenida", fence: "Cerca" },
   stages: ["Origen", "Aldea", "Pueblo", "Villa", "Ciudad mercantil", "Metrópolis"],
+  nextRank: (stage: string, parts: string[]) => `Aún falta para ${stage}: ${parts.join(", ")}`,
+  needCitizens: (n: number) => `${n} vecinos`,
+  needHomes: (n: number) => `${n} casas`,
+  needRoads: (n: number) => (n === 1 ? "un camino comercial" : `${n} caminos comerciales`),
   terrain: {
     deep: "Mar profundo",
     water: "Agua",
