@@ -33,6 +33,7 @@ export const toTile = (ix: number, iy: number) => {
   const a = ix / (TW / 2), b = iy / (TH / 2);
   return [Math.round((a + b) / 2), Math.round((b - a) / 2)] as const;
 };
+const propTileMemo = new Map<string, readonly [number, number]>();
 export type Camera = { x: number; y: number; zoom: number };
 type C = CanvasRenderingContext2D;
 type Pt = [number, number];
