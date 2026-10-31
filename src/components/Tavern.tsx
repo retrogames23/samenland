@@ -25,7 +25,23 @@ export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnr
   const end = useRef<HTMLDivElement>(null);
 
   const [side, setSide] = useState(false);
-  useEffect(() => setSeen(readSeen(userId)), [userId]);
+  // read marks live on the account (chat_reads), merged with this browser's copy — survives preview frames and other devices
+  useEffect(() => {
+    const local = readSeen(userId);
+    setSeen(local);
+    if (!userId) return;
+    let live = true;
+    supabase.from("chat_reads").select("channel, seen_at").then(({ data }) => {
+      if (!live || !data) return;
+      setSeen((cur) => {
+        const m = { ...cur };
+        for (const r of data) m[r.channel] = Math.max(m[r.channel] ?? 0, Date.parse(r.seen_at));
+        try { localStorage.setItem(seenKey(userId), JSON.stringify(m)); } catch { /* account copy suffices */ }
+        return m;
+      });
+    });
+    return () => { live = false; };
+  }, [userId]);
   useEffect(() => {
     if (!userId) { setMsgs([]); return; }
     let live = true;
@@ -61,7 +77,9 @@ export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnr
     const k = chanKey(chan), last = shown.length ? Date.parse(shown[shown.length - 1]!.created_at) : Date.now();
     if ((seen[k] ?? 0) >= last) return;
     const next = { ...readSeen(userId), ...seen, [k]: last };
-    setSeen(next); localStorage.setItem(seenKey(userId), JSON.stringify(next));
+    setSeen(next);
+    try { localStorage.setItem(seenKey(userId), JSON.stringify(next)); } catch { /* account copy below */ }
+    if (userId) void supabase.from("chat_reads").upsert({ user_id: userId, channel: k, seen_at: new Date(last).toISOString() }, { onConflict: "user_id,channel" });
   }, [open, chan, shown, seen, userId]);
   // on opening: jump to a waiting letter when the main room has nothing new
   const wasOpen = useRef(false);
