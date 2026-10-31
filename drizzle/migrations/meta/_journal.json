@@ -414,6 +414,13 @@
       "when": 1793417127389,
       "tag": "0058_tighten_public_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1793483422146,
+      "tag": "0059_chat_reads",
+      "breakpoints": true
     }
   ]
 }
