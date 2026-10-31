@@ -55,42 +55,95 @@ export function taxPop(s: Seed, h: number, at: number) {
   return Math.min(p, cap);
 }
 
-/** Historical estate assessments (1/2/3 Taler), plus the existing +15% base trade-charter bonus. */
-export function taxEarned(s: Seed, now: number) {
-  const c0 = Date.parse(s.created_at);
-  const days = Math.floor((now - c0) / 86400000);
+/** One settlement day's tax (day d after founding): estate assessment minus sick loss plus trade bonus. Mirrors DB village_estate_tax. */
+export function taxOnDay(s: Seed, d: number) {
+  const c0 = Date.parse(s.created_at), at = c0 + d * 86400000;
   const trade = s.charter?.path === "trade" ? s.charter.at : null;
+  const p = taxPop(s, d * 24, at);
+  const a = estateAssessment(p, civicWealth(s, at));
+  return a - sickLoss(a, sickTaxRate(s, at)) + (trade != null && at >= trade ? Math.floor(TRADE_TAX * p) : 0);
+}
+/** Historical estate assessments (1/2/3 Taler), plus the existing +15% base trade-charter bonus — uncapped. */
+export function taxEarned(s: Seed, now: number) {
+  const days = Math.floor((now - Date.parse(s.created_at)) / 86400000);
   let t = 0;
-  for (let d = 1; d <= days; d++) {
-    const p = taxPop(s, d * 24, c0 + d * 86400000);
-    const a = estateAssessment(p, civicWealth(s, c0 + d * 86400000));
-    t += a - sickLoss(a, sickTaxRate(s, c0 + d * 86400000));
-    if (trade != null && c0 + d * 86400000 >= trade) t += Math.floor(TRADE_TAX * p);
-  }
+  for (let d = 1; d <= days; d++) t += taxOnDay(s, d);
   return t;
 }
 /** Today's income per day, including the trade charter bonus. */
 export const dailyTax = (s: Seed, h: number) => { const at = Date.parse(s.created_at) + h * 3.6e6, p = taxPop(s, h, at); const a = estateAssessment(p, civicWealth(s, at)); return a - sickLoss(a, sickTaxRate(s, at)) + (s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(TRADE_TAX * p) : 0); };
 
-/** Friend-invite bonus (mirrors DB referrals in village_balance): both villages get the reward. */
-export const REFERRAL_TALER = 50;
-export type Referral = { id: string; referrer_seed: string; referee_seed: string; reward: number; created_at: string };
-export const referralClaims = (rows: Referral[]): QuestClaim[] => rows.flatMap((r) => [
-  { id: `${r.id}:a`, seed_id: r.referrer_seed, quest: `ref:${r.referee_seed}`, reward: r.reward, created_at: r.created_at },
-  { id: `${r.id}:b`, seed_id: r.referee_seed, quest: `ref:${r.referrer_seed}`, reward: r.reward, created_at: r.created_at },
-]);
+// ---------------- treasure chest (Gemeindetruhe) ----------------
+/**
+ * The village chest holds only so many Taler: once full, the day's taxes find no room and stay with the burghers.
+ * Expansions are purchase rows chest2..4 (prices/ages mirror the DB purchase_guard); the cap applies to settlement
+ * days from CHEST_SINCE on, so balances earned before the rule are never cut (mirrors DB village_capped_tax).
+ */
+export const CHEST_SINCE = Date.parse("2026-10-31T00:00:00Z");
+export const CHEST_BASE = 800;
+export const CHEST_STEPS = ["chest2", "chest3", "chest4"] as const;
+export type ChestStep = (typeof CHEST_STEPS)[number];
+export const CHEST_CAP = { chest2: 2500, chest3: 6000, chest4: 15000 } as const;
+export const CHEST_PRICE = { chest2: 250, chest3: 800, chest4: 2000 } as const;
+/** Real age (hours): Dorf, Handelsstadt, Großstadt. */
+export const CHEST_HOURS = { chest2: 168, chest3: 2160, chest4: 4380 } as const;
+/** Warning threshold for the optional overflow letter. */
+export const CHEST_WARN = 0.9;
+type Owned = { seed_id: string; item: string; created_at: string };
+/** Chest level 1..4 owned at time `at`. */
+export const chestLevel = (seedId: string, purchases: Owned[], at = Infinity) =>
+  1 + CHEST_STEPS.filter((k) => purchases.some((p) => p.seed_id === seedId && p.item === k && Date.parse(p.created_at) <= at)).length;
+export const chestCap = (seedId: string, purchases: Owned[], at = Infinity) => {
+  const l = chestLevel(seedId, purchases, at);
+  return l === 1 ? CHEST_BASE : CHEST_CAP[CHEST_STEPS[l - 2]!];
+};
+/** Why the next expansion cannot be bought yet, or null. */
+export function chestBlock(s: Seed, purchases: Owned[], now: number): null | "age" | "max" {
+  const l = chestLevel(s.id, purchases);
+  if (l === 4) return "max";
+  return (now - Date.parse(s.created_at)) / 3.6e6 < CHEST_HOURS[CHEST_STEPS[l - 1]!] ? "age" : null;
+}
 
-/** Mayor visit welcome gift by the visited town's raw age (mirrors DB visit_reward): 30 → 150 Taler. */
-export const VISIT_STEPS: [number, number][] = [[8760, 150], [4380, 100], [2160, 75], [168, 50], [24, 40], [0, 30]];
-export const visitReward = (h: number) => VISIT_STEPS.find(([a]) => h >= a)![1];
-export type Visit = { id: string; visitor_seed: string; visited_seed: string; reward: number; created_at: string };
-export const visitClaims = (rows: Visit[]): QuestClaim[] => rows.map((v) => ({ id: `${v.id}:v`, seed_id: v.visitor_seed, quest: `visit:${v.visited_seed}`, reward: v.reward, created_at: v.created_at }));
+/** Ledger entries besides tax/dowry/raids with their time — the same rows DB village_balance sums. */
+function ledger(s: Seed, purchases: Purchase[], gifts: Gift[], claims: QuestClaim[]) {
+  const out: [number, number][] = [];
+  for (const p of purchases) if (p.seed_id === s.id) out.push([Date.parse(p.created_at), -p.cost]);
+  for (const d of s.decisions ?? []) out.push([d.at, -d.cost]);
+  for (const w of s.works ?? []) out.push([w.at, -w.cost]);
+  for (const g of gifts) if (g.to_seed === s.id || g.from_seed === s.id) out.push([Date.parse(g.created_at), g.to_seed === s.id ? g.amount : -g.amount]);
+  for (const c of claims) if (c.seed_id === s.id) out.push([Date.parse(c.created_at), c.reward]);
+  return out;
+}
+
+/**
+ * Taxes that actually reached the chest: day by day, entries booked before the settlement count, and from
+ * CHEST_SINCE on the day's tax only fills the room left below the chest cap. Mirrors DB village_capped_tax.
+ */
+export function cappedTax(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = []) {
+  const c0 = Date.parse(s.created_at);
+  const days = Math.floor((now - c0) / 86400000);
+  const byDay = new Map<number, number>();
+  for (const [at, v] of ledger(s, purchases, gifts, claims)) {
+    const k = Math.max(0, Math.floor((at - c0) / 86400000));
+    byDay.set(k, (byDay.get(k) ?? 0) + v);
+  }
+  const mine = purchases.filter((p) => p.seed_id === s.id);
+  let run = START_TALER, tax = 0;
+  for (let d = 1; d <= days; d++) {
+    run += byDay.get(d - 1) ?? 0;
+    const at = c0 + d * 86400000;
+    let a = taxOnDay(s, d);
+    if (at >= CHEST_SINCE && s.user_id) a = Math.min(a, Math.max(0, chestCap(s.id, mine, at) - run));
+    run += a; tax += a;
+  }
+  return tax;
+}
 
 export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = []) {
   const spent = purchases.filter((p) => p.seed_id === s.id).reduce((a, p) => a + p.cost, 0);
   const ev = (s.decisions ?? []).reduce((a, d) => a + d.cost, 0);
   const tw = (s.works ?? []).reduce((a, w) => a + w.cost, 0);
-  return START_TALER + taxEarned(s, now) + dowryEarned(s, now) - spent - ev - tw + giftBalance(s.id, gifts) + questEarned(claims, s.id) - raidLoss(s, now);
+  return START_TALER + cappedTax(s, purchases, now, gifts, claims) + dowryEarned(s, now) - spent - ev - tw + giftBalance(s.id, gifts) + questEarned(claims, s.id) - raidLoss(s, now);
 }
 
 
