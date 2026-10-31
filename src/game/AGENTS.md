@@ -1,5 +1,7 @@
 # src/game rules
 
+- Parchment silhouettes use the reusable figure-sized surface in parchment.ts and source-in tinting, never per-frame CSS filters on the world canvas; retain the existing VIP whitelist, depth clips and occlusion hysteresis to bound rendering cost without revealing ordinary residents.
+
 - Replacement building art uses alpha-cropped WebP under sprites/cohesive with a 480-pixel longest edge; registry crop dimensions match real files and night layers share the same crop, preserving scale and aligned windows.
 
 - Weddings: incremental calendar in src/game/weddings.ts (weddingDates: gap from care-capped residents, civic wealth and food crafts; dowry from wealth) mirrored exactly by DB village_weddings (used by village_balance and encounter_guard) — change both together. Couples/kin derived in people.ts marry()/kinOf, never stored. Village weddings gather everyone, give joy and call the mayor; in towns (care-capped era >= Kleinstadt) only every WED_NOTABLE-th is "grand" — the rest stay private (no banner, encounter or joy).

@@ -6,6 +6,7 @@ import henUrl from "@/assets/sprites/hen.webp";
 import gullUrl from "@/assets/sprites/gull.webp";
 import crowUrl from "@/assets/sprites/crow.webp";
 import { animalsSleeping } from "./animals";
+import { drawParchment } from "./parchment";
 import cowUrl from "@/assets/sprites/cow.webp";
 import maypoleUrl from "@/assets/sprites/maypole.webp";
 import { worldHour, clock } from "./time";
@@ -1728,7 +1729,7 @@ const framePool = {
   props: new Map<number, ((cx: number, cy: number) => void)[]>(),
   hunt: new Map<number, (() => void)[]>(),
   lights: [] as Light[],
-  vip: [] as { f: () => void; x: number; y: number; k: number }[],
+  vip: [] as { f: (context: C) => void; x: number; y: number; k: number }[],
   occ: [] as number[], // flat [ti, left, top, right, bottom] of standing buildings
   ord: new Map<number, number>(),
   birds: [] as [number, number, number, number][],
@@ -1970,9 +1971,9 @@ export function draw(
 
   // road traffic, messengers and stalls join the tile depth order: houses in front hide them (no object above a front roof)
   const vip = framePool.vip; vip.length = 0;
-  const roadProp = (x: number, y: number, a: number, f: () => void, important = false) => {
+  const roadProp = (x: number, y: number, a: number, f: (context: C) => void, important = false) => {
     const [tx, ty] = toTile(x, y);
-    addProp(ty * MAP + tx, () => { c.globalAlpha = a; f(); c.globalAlpha = 1; });
+    addProp(ty * MAP + tx, () => { c.globalAlpha = a; f(c); c.globalAlpha = 1; });
     if (important) vip.push({ f, x, y, k: ty * MAP + tx });
   };
   // ---- life on the trade roads ----
@@ -2033,9 +2034,9 @@ export function draw(
       const x = m.position[0] + ox2, y = m.position[1] + oy2;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
       if (w.kind === "family" || w.kind === "gift" || w.kind === "aid") { roadProp(x, y, fade, () => drawCart(c, x, y, m.direction[0], m.direction[1], Math.sin(t / 220) * 0.3, w.sd, "", t * 0.8)); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: true, walker: w }); continue; }
-      if (w.kind === "rider") { roadProp(x, y, fade, () => drawRider(c, x, y, m.direction[0], m.direction[1], w.sd, t), true); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w }); continue; }
+      if (w.kind === "rider") { roadProp(x, y, fade, (context) => drawRider(context, x, y, m.direction[0], m.direction[1], w.sd, t), true); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w }); continue; }
       if (w.kind === "trader") { const ex = tradeProfile(w.p0 ? w.to : w.from, now).exports, gd = ex[w.sd % Math.max(1, ex.length)] ?? null; roadProp(x, y, fade, () => drawWanderer(c, x, y, m.direction[0], m.direction[1], t * 0.7, w.sd, gd ? CARRY_OF[gd] : "bundle")); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: gd, cart: false, walker: w }); continue; }
-      roadProp(x, y, fade, () => drawWanderer(c, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" || w.kind === "letter" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? (w.sex === "m" ? "groom" : "bride") : undefined), w.kind === "messenger" || w.kind === "letter");
+      roadProp(x, y, fade, (context) => drawWanderer(context, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" || w.kind === "letter" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? (w.sex === "m" ? "groom" : "bride") : undefined), w.kind === "messenger" || w.kind === "letter");
       lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w });
     }
     c.globalAlpha = 1;
@@ -2100,7 +2101,7 @@ export function draw(
     for (const f of hunt.get(y * MAP + x) ?? []) f();
     for (const f of props.get(y * MAP + x) ?? []) f(cx, cy);
     const rb = robbers.get(y * MAP + x);
-    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); vip.push({ f: () => drawRobber(c, px, py, rb[2], t), x: px, y: py, k: y * MAP + x }); }
+    if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); vip.push({ f: (context) => drawRobber(context, px, py, rb[2], t), x: px, y: py, k: y * MAP + x }); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
     if (signMap.has(y * MAP + x)) {
       const focused = signFocus.k === y * MAP + x && Date.now() < signFocus.until;
@@ -2149,7 +2150,7 @@ export function draw(
           c.strokeStyle = sel ? "rgba(255,226,160,0.95)" : "rgba(255,236,190,0.7)"; c.lineWidth = sel ? 0.8 : 0.6; c.stroke();
         }
         drawPerson(c, px, py, q, t, simpleFolk); pushPerson(px, py, q);
-        if (hov || sel || (steer && q.p.role === "mayor" && q.act === "stroll" && q.p.seed.id === steer.sid)) vip.push({ f: () => drawPerson(c, px, py, q, t, simpleFolk), x: px, y: py, k: y * MAP + x });
+        if (hov || sel || (steer && q.p.role === "mayor" && q.act === "stroll" && q.p.seed.id === steer.sid)) vip.push({ f: (context) => drawPerson(context, px, py, q, t, simpleFolk), x: px, y: py, k: y * MAP + x });
         if (q.bucket) drawBucket(c, px, py, q, t);
         if (hov && !sel) {
           c.font = "600 4px system-ui, sans-serif"; c.textAlign = "center";
@@ -2180,8 +2181,7 @@ export function draw(
     }
     if (hit) {
       c.clip();
-      c.filter = "sepia(1) saturate(0.6) brightness(1.35) drop-shadow(0 0 0.6px rgba(45,30,18,0.7))";
-      c.globalAlpha = 0.42; v.f();
+      drawParchment(c, v.x, v.y, z, v.f);
       ghostWas.add(v.k);
     } else ghostWas.delete(v.k);
     c.restore();

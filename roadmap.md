@@ -1,4 +1,5 @@
 # Roadmap: Begegnungsbilder
+- [ ] Performance Punkt 3: Pergament-Silhouetten ohne Welt-Canvas-Filter zeichnen und prüfen
 - [x] Alle 33 Begegnungsbilder einheitlich überarbeiten und prüfen
 
 # Roadmap: Einheitliche Gebäudegrafiken
