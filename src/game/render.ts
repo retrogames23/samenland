@@ -2134,6 +2134,9 @@ export function draw(
     const a = 0.6 + Math.sin(t / 220) * 0.3, pu = 1 + Math.sin(t / 300) * 0.1;
     c.save(); c.strokeStyle = `rgba(255,210,120,${a})`; c.lineWidth = 2.5 * dpr;
     c.beginPath(); c.ellipse(sx, sy, 13 * z * pu, 6.5 * z * pu, 0, 0, 7); c.stroke(); c.restore();
+    // the post itself stays readable above roofs in front and the night mask while pointed at
+    c.save(); c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z); c.globalAlpha = 0.92;
+    drawSignpost(c, ix, iy, fx * 13 + fy); c.restore();
   }
 
   c.font = `700 ${Math.round(22 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`; c.textAlign = "center";
