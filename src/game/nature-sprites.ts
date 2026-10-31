@@ -127,10 +127,14 @@ import wagonUrl from "@/assets/sprites/wagon.webp";
 import wagonBackUrl from "@/assets/sprites/wagon-back.webp";
 import oxWalkUrl from "@/assets/sprites/ox-walk.webp";
 import oxWalkBackUrl from "@/assets/sprites/ox-walk-back.webp";
+import cartFrontUrl from "@/assets/sprites/cart-front.webp";
+import cartAwayUrl from "@/assets/sprites/cart-away.webp";
 import wandererUrl from "@/assets/sprites/wanderer.webp";
-if (typeof window !== "undefined") { img(cartUrl); img(cartBackUrl); img(wagonUrl); img(wagonBackUrl); img(oxWalkUrl); img(oxWalkBackUrl); img(wandererUrl); }
+if (typeof window !== "undefined") { img(cartUrl); img(cartBackUrl); img(wagonUrl); img(wagonBackUrl); img(oxWalkUrl); img(oxWalkBackUrl); img(cartFrontUrl); img(cartAwayUrl); img(wandererUrl); }
 /** Ox cart (ox facing right) and walking traveller (facing right), null while loading. */
 export const cartImage = () => img(cartUrl);
+/** Head-on / from-behind team for steep (north-south) road stretches. */
+export const cartAxisImage = (away: boolean) => img(away ? cartAwayUrl : cartFrontUrl);
 export const cartBackImage = () => img(cartBackUrl);
 /** Ox-less wagons + 4-frame painted ox walk cycles (front 3/4 and rear 3/4). */
 export const wagonImage = (back: boolean) => img(back ? wagonBackUrl : wagonUrl);
