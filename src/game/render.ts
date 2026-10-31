@@ -18,7 +18,7 @@ import { setArtTime } from "./season-art";
 import { seasonKey, seasonAt } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
-import { townOf, townPoses, sickHome, isHomeKind, mayorGoal, steeredMayor, type Pose } from "./people";
+import { townOf, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, type Pose } from "./people";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow } from "./crafts";
@@ -1821,7 +1821,7 @@ export function draw(
     const mine = steer && steer.sid === sd.id && steer.x >= x0 - 2 && steer.x <= x1 + 2 && steer.y >= y0 - 2 && steer.y <= y1 + 2;
     if (!mine && (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1)) continue;
     const r0 = reachOf(sd, radiusOf(effAge(sd, seeds, now)));
-    for (const q of townPoses(sd, seeds, now)) {
+    for (const q of townPosesSmooth(sd, seeds, now)) {
       const k = Math.round(q.y) * MAP + Math.round(q.x);
       // out in the open at dusk: a small lantern glow keeps the figure readable on dark fields
       if (Math.hypot(q.x - sd.x, q.y - sd.y) > r0 * 0.8 || (steer && q.p.role === "mayor" && q.act === "stroll")) { const [lx, ly] = iso(q.x, q.y); L.push({ x: lx, y: ly - 2, r: 7 }); }
