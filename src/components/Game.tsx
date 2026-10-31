@@ -83,7 +83,7 @@ import {
   charterFits,
   type CharterPath,
   twinLinks, pactOf, pactPending, workOf, marketDay, marketHours, festivalDate, twinGateAt, PACTS, TWIN_WORKS, PACT_WAIT, type PactKind, type WorkKind,
-  timberNear, SEAT_KINDS,
+  sawmillUp, SEAT_KINDS,
 } from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
@@ -1059,7 +1059,7 @@ export function Game() {
     if (!owner || !my || !at) return null;
     const cheapest = Math.min(...(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && !at.has(it) && (ITEM_STAGE[it] ?? 0) <= myStage).map((it) => ITEMS[it]));
     if (cash >= cheapest) return null;
-    const dur = specialBuild(my);
+    const dur = specialBuild(my, sawmillUp(my, seeds, slow));
     const ends = [...specialSites(my).values()].map((s) => s.at + dur).filter((e) => e > slow);
     return ends.length ? Math.min(...ends) : null;
   })();
@@ -1268,10 +1268,10 @@ export function Game() {
             const steps = monumentSteps(key), mt = t.monuments[key]!;
             const paid = purchases.filter((p) => p.seed_id === my.id && steps.includes(p.item));
             const next = nextMonumentStep(paid.map((p) => p.item), key);
-            const prog = monumentProgress(my, now, key), n = steps.length, i = paid.length;
+            const mill = sawmillUp(my, seeds, now), prog = monumentProgress(my, now, key, mill), n = steps.length, i = paid.length;
             const last = Math.max(0, ...paid.map((p) => Date.parse(p.created_at)));
             const ready = i === 0 || (prog >= i / n && now - last >= 3 * 3600000);
-            const waitH = Math.max(Math.ceil((last + 3 * 3600000 - now) / 3.6e6), Math.ceil(((i / n - prog) * n * specialBuild(my)) / 3.6e6));
+            const waitH = Math.max(Math.ceil((last + 3 * 3600000 - now) / 3.6e6), Math.ceil(((i / n - prog) * n * specialBuild(my, mill)) / 3.6e6));
             const kind = MONUMENT_DEFS[key].kind, first = `${key}1`;
             return (
               <div key={key} className="rounded-md border border-brass/60 bg-brass/10 p-2">
@@ -1822,7 +1822,7 @@ export function Game() {
               {(["fed", "varied", "surplus"] as const).map((k) => (
                 <li key={k} className={boons?.[k] ? "text-primary" : "text-muted-foreground"}>{boons?.[k] ? "✓" : "○"} {t.goods.boons[k]}</li>
               ))}
-              <li className={my && timberNear(my) ? "text-primary" : "text-muted-foreground"}>{my && timberNear(my) ? "✓" : "○"} {t.goods.timber}</li>
+              <li className={my && sawmillUp(my, seeds, slow) ? "text-primary" : "text-muted-foreground"}>{my && sawmillUp(my, seeds, slow) ? "✓" : "○"} {t.goods.timber}</li>
             </ul>
             {(() => {
               const today = new Date(clock()).toISOString().slice(0, 10);

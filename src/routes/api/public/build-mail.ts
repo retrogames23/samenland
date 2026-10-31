@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/public/build-mail")({
         const denied = await authenticateCronRequest(request);
         if (denied) return denied;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { specialBuild, specialSites } = await import("@/game/world");
+        const { specialBuild, specialSites, sawmillUp } = await import("@/game/world");
         const { DICT } = await import("@/game/i18n");
         const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
         const now = Date.now();
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/api/public/build-mail")({
             bought: mine.map((b) => ({ item: b.item, at: Date.parse(b.created_at), x: b.x, y: b.y })).sort((a, b) => a.at - b.at),
             ...(ch ? { charter: { path: ch.path, at: Date.parse(ch.created_at) } } : {}),
           } as unknown as import("@/game/world").Seed;
-          const dur = specialBuild(s);
+          const dur = specialBuild(s, sawmillUp(s, [s], now));
           const placed = new Set([...specialSites(s).values()].map((v) => v.at));
           const lang = (opts.find((o) => o.user_id === s0.user_id)?.lang ?? "de") as keyof typeof DICT;
           for (const b of mine) {

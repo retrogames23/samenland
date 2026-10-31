@@ -479,27 +479,21 @@ export const SPECIAL_KIND: Record<string, Kind> = { fisher: "fishery", granary: 
 /** Belfry steps (kept for the guild-rank requirement). */
 export const MONUMENT_STEPS = ["belfry1", "belfry2", "belfry3", "belfry4"] as const;
 /** Construction progress 0…1 of a monument: each paid step adds 1/n, built over specialBuild. */
-export function monumentProgress(s: Seed, now: number, key: MonumentKey = "belfry"): number {
+export function monumentProgress(s: Seed, now: number, key: MonumentKey = "belfry", mill = false): number {
   const n = MONUMENT_DEFS[key].n;
   const steps = (s.bought ?? []).filter((b) => monumentOf(b.item) === key && b.at <= now);
   if (!steps.length) return 0;
   const last = Math.max(...steps.map((b) => b.at));
-  return Math.min(n, steps.length - 1 + Math.min(1, (now - last) / specialBuild(s))) / n;
+  return Math.min(n, steps.length - 1 + Math.min(1, (now - last) / specialBuild(s, mill))) / n;
 }
 /** Craft charter halves the construction time of bought buildings. */
 /** Craft charter halves, a woodcutter's camp (ready timber) shortens build time by a quarter — both pure from purchases. */
 export const WOODCAMP_BUILD = 0.75;
-/** Timber at hand: forest within reach of the founding tile shortens bought builds (pure from terrain). */
+/** Timber at hand: once the town's own sawmill stands (effAge past its landmark age), bought builds go up faster — pure from seeds + clock. */
 export const TIMBER_BUILD = 0.85;
-const timberC = new Map<string, boolean>();
-export function timberNear(s: Seed): boolean {
-  const k = `${s.x},${s.y}`; const hit = timberC.get(k); if (hit !== undefined) return hit;
-  let ok = false;
-  for (let j = -12; j <= 12 && !ok; j++) for (let i = -12; i <= 12; i++) if (i * i + j * j <= 144 && terrain(s.x + i, s.y + j) === "forest") { ok = true; break; }
-  if (timberC.size > 500) timberC.clear();
-  timberC.set(k, ok); return ok;
-}
-export const specialBuild = (s: Seed) => (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1) * (timberNear(s) ? TIMBER_BUILD : 1) * (s.charter?.path === "craft" && (s.bought ?? []).some((b) => b.item === "rank2") ? 0.8 : 1);
+export const SAWMILL_AGE = LANDMARKS.find((l) => l.kind === "sawmill")!.at;
+export const sawmillUp = (s: Seed, seeds: Seed[], now: number) => effAge(s, seeds, now) >= SAWMILL_AGE;
+export const specialBuild = (s: Seed, mill = false) => (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1) * (mill ? TIMBER_BUILD : 1) * (s.charter?.path === "craft" && (s.bought ?? []).some((b) => b.item === "rank2") ? 0.8 : 1);
 /** Farm charter: +5 % growth from the day it was sealed. */
 export const FARM_BONUS = 0.05;
 export const SPECIAL_BUILD = 6 * 3600000;
@@ -572,7 +566,8 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     const sp = specialSites(s).get(ck);
     if (!sp || now < sp.at) continue;
     const mk = MONUMENT_BY_KIND.get(sp.kind);
-    const p = mk ? monumentProgress(s, now, mk) : (now - sp.at) / specialBuild(s);
+    const mill = sawmillUp(s, seeds, now);
+    const p = mk ? monumentProgress(s, now, mk, mill) : (now - sp.at) / specialBuild(s, mill);
     best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p } : {}) };
     scache.set(ck, best);
     return best;
