@@ -393,6 +393,13 @@
       "when": 1793414601264,
       "tag": "0055_activate_tax_receipts",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1793415601773,
+      "tag": "0056_raids_refill_chest",
+      "breakpoints": true
     }
   ]
 }
