@@ -21,6 +21,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'building-done': buildingDone,
   'idle-warning': idleWarning,
   'bug-digest': bugDigest,
+  'chest-full': chestFull,
   // Add templates here as they are created, e.g.:
   // 'welcome': welcomeTemplate,
 }
@@ -28,3 +29,4 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
 import { template as buildingDone } from './building-done'
 import { template as idleWarning } from './idle-warning'
 import { template as bugDigest } from './bug-digest'
+import { template as chestFull } from './chest-full'
