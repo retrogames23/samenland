@@ -679,6 +679,28 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     c.restore();
     return [X, Y - hgt];
   }
+  // the mayor keeps his robe of office (first frame of his talk cycle) when standing and walking,
+  // so the figure never swaps to a plain villager on the first step; walking steps shoes under the hem
+  const robe = q.p.job === "mayor" && !q.festive && !q.carry ? folkImage(q.p.sex === "f" ? "talkFWork" : "talkWork") : null;
+  if (robe) {
+    const fw = robe.naturalWidth / WORK_FRAMES, fh = robe.naturalHeight, hh = hgt * 1.01, ww = (hh * fw) / fh;
+    if (q.walking) {
+      const foot = folkImage("footF"), sway = Math.sin(ph), fs = hgt * 0.11, fw2 = foot ? (fs * foot.naturalWidth) / foot.naturalHeight : 0;
+      if (foot) for (const s of [-1, 1]) {
+        const fx = s * sway * ww * 0.07, lift = Math.max(0, Math.cos(ph) * s) * hgt * 0.025;
+        c.drawImage(foot, fx - fw2 * 0.45, bob - fs - lift + hgt * 0.02, fw2, fs);
+      }
+      const top = 0.8, end = 0.93, N = 4;
+      c.drawImage(robe, 0, 0, fw, fh * top, -ww / 2, -hh, ww, hh * top);
+      for (let i = 0; i < N; i++) {
+        const a = top + ((end - top) * i) / N, b = top + ((end - top) * (i + 1)) / N, dx = sway * ww * 0.015 * ((i + 1) / N);
+        c.drawImage(robe, 0, fh * a, fw, fh * (b - a) + 0.5, -ww / 2 + dx, -hh + hh * a, ww, hh * (b - a) + 0.05);
+      }
+    } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
+    insignia(c, q, hgt);
+    c.restore();
+    return [X, Y - hgt - bob];
+  }
   const sheet = q.walking ? walkSheet(k) : null;
   const legs = q.walking && !sheet && legsFor(q) ? folkImage("legsM") : null;
   const frameOf = (fw: number) => { void fw; return Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES; };
