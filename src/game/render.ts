@@ -141,6 +141,8 @@ function sickLit(x: number, y: number): boolean {
 const localHour = () => { const n = clock(); if (n - hrCache.at > 1000) { const d = new Date(n); hrCache = { at: n, hr: worldHour(n) }; void d; } return hrCache.hr; };
 /** Hovered / selected villager ids, set by the UI so the canvas can highlight them. */
 export const peopleFocus: { hover: string | null; sel: string | null } = { hover: null, sel: null };
+/** Signpost tile the UI just jumped to; a golden ring pulses there until `until`. */
+export const signFocus: { k: number; until: number } = { k: -1, until: 0 };
 
 /** Small shaded sheep (~hip height of a villager). Walking adds a trotting bob and nod; standing grazes. */
 function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking: boolean, graze: boolean, sleeping: boolean) {
@@ -1536,8 +1538,8 @@ function drawFestive(c: C, cx: number, cy: number, t: number, sd: number, L: Lig
 /** Carved wooden waymark standing beside the road at the village edge. */
 function drawSignpost(c: C, cx: number, cy: number, sd: number) {
   const im = folkImage("signpost"); if (!im) return;
-  const x = cx + 5, y = cy + 1, h = 7, w = (h * im.naturalWidth) / im.naturalHeight;
-  c.fillStyle = "rgba(25,18,10,0.25)"; c.beginPath(); c.ellipse(x + 1, y + 0.3, 2.2, 0.7, 0, 0, 7); c.fill();
+  const x = cx + 5, y = cy + 1, h = 13, w = (h * im.naturalWidth) / im.naturalHeight;
+  c.fillStyle = "rgba(25,18,10,0.25)"; c.beginPath(); c.ellipse(x + 1, y + 0.3, 3.4, 1.1, 0, 0, 7); c.fill();
   c.save(); c.translate(x, y); if (sd % 2) c.scale(-1, 1); c.drawImage(im, -w * 0.47, -h * 0.97, w, h); c.restore();
 }
 
@@ -1987,7 +1989,14 @@ export function draw(
     const rb = robbers.get(y * MAP + x);
     if (rb) { const [px, py] = iso(rb[0], rb[1]); drawRobber(c, px, py, rb[2], t); vip.push(() => drawRobber(c, px, py, rb[2], t)); }
     if (st && (x === st.seed.x && y === st.seed.y) && isBlessed(st.seed, now)) drawFestive(c, cx, cy, t, x * 7 + y, L);
-    if (signMap.has(y * MAP + x)) drawSignpost(c, cx, cy, x * 13 + y);
+    if (signMap.has(y * MAP + x)) {
+      if (signFocus.k === y * MAP + x && Date.now() < signFocus.until) {
+        const a = 0.45 + Math.sin(t / 220) * 0.25;
+        c.save(); c.strokeStyle = `rgba(255,205,110,${a})`; c.lineWidth = 1.2; c.beginPath(); c.ellipse(cx + 5, cy + 1, 9, 4.5, 0, 0, 7); c.stroke();
+        c.fillStyle = `rgba(255,214,140,${a * 0.35})`; c.fill(); c.restore();
+      }
+      drawSignpost(c, cx, cy, x * 13 + y);
+    }
     { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
     if (y * MAP + x === goalK) {
       // golden waymark where the player's mayor is heading
