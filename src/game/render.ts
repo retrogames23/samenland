@@ -1499,14 +1499,14 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
 }
 
 // ---------------- player rituals: festive garlands and signposts ----------------
-let signSrc: Signpost[] = [], signKey = "";
+let signSrc: Signpost[] = [], signKey = "", signSeeds: Seed[] | null = null;
 const signMap = new Map<number, Signpost>();
 export function setSignposts(list: Signpost[]) { signSrc = list; }
-/** Tile key → signpost, rebuilt only when the posts or the seed set change. */
+/** Tile key → signpost, rebuilt when the posts or the seed set (incl. their roads) change. */
 export function signpostMap(seeds: Seed[]) {
-  const k = signSrc.map((p) => p.id + p.message).join("|") + "#" + seeds.length;
-  if (k !== signKey) {
-    signKey = k; signMap.clear();
+  const k = signSrc.map((p) => p.id + p.message).join("|");
+  if (k !== signKey || seeds !== signSeeds) {
+    signKey = k; signSeeds = seeds; signMap.clear();
     for (const p of signSrc) { const tl = signTile(seeds, p.seed_id, p.target_id); if (tl) signMap.set(tl[1] * MAP + tl[0], p); }
   }
   return signMap;
@@ -2109,6 +2109,15 @@ export function draw(
       c.fillStyle = g; c.fillRect(sx - r, sy - r, r * 2, r * 2);
     }
     c.globalCompositeOperation = "source-over";
+  }
+  // focused signpost: bright ring above the night mask so it is never swallowed by darkness
+  if (Date.now() < signFocus.until && signMap.has(signFocus.k)) {
+    const fx = signFocus.k % MAP, fy = Math.floor(signFocus.k / MAP);
+    const [ix, iy] = iso(fx, fy);
+    const sx = (ix + 5 - cam.x) * z + w / 2, sy = (iy + 1 - cam.y) * z + h / 2;
+    const a = 0.6 + Math.sin(t / 220) * 0.3, pu = 1 + Math.sin(t / 300) * 0.1;
+    c.save(); c.strokeStyle = `rgba(255,210,120,${a})`; c.lineWidth = 2.5 * dpr;
+    c.beginPath(); c.ellipse(sx, sy, 13 * z * pu, 6.5 * z * pu, 0, 0, 7); c.stroke(); c.restore();
   }
 
   c.font = `700 ${Math.round(22 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`; c.textAlign = "center";
