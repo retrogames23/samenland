@@ -111,6 +111,7 @@ export const ar: Dict = {
   signSave: "نصب الشاخصة",
   signSaved: "نُصبت الشاخصة في موضعها.",
   signFrom: (n) => `شاخصة قادمة من ${n}`,
+  signUi: { placed: "الشاخصات المنصوبة", open: "بلا شاخصة بعد", stands: "منصوبة عند طرف القرية", edit: "تغيير النص", look: "انظر", theirs: (n) => `تحية ${n} لنا`, cancel: "إلغاء" },
   signTitle: "شاخصة الطريق",
   noNeighbours: "ما من مسالك تجارية موصولة بقرى الجوار بعد.",
   treasury: "خزينة القرية",
