@@ -7,7 +7,7 @@ import { dowryEarned, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddin
 import { radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
 
 /** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
-export const START_TALER = 150;
+export const START_TALER = 160;
 export const ITEMS = { herbs: 90, hunter: 100, fisher: 140, woodcamp: 240, granary: 300, healer: 550, school: 1200, markethall: 450, guildhall: 450, library: 380, dairy: 350, firehouse: 600, guard: 750 } as const;
 export type Item = keyof typeof ITEMS;
 /**
@@ -44,6 +44,17 @@ export type Purchase = { id: string; seed_id: string; item: string; cost: number
 /** Residents at a given real age (hours); same formula as the database tax function. */
 export const popAt = (h: number) => Math.floor(3 + 0.9 * Math.pow(radiusOf(Math.max(0, h)), 1.6));
 
+/** Taxpayers follow the people the land can really feed (mirrors DB village_tax_pop): untended land feeds TAX_POP_BASE, each food/health craft opens more. Sample towns are never capped. */
+export const TAX_POP_BASE = 85, TAX_POP_FOOD = 25, TAX_POP_HEALTH = 15;
+export const TAX_FOOD = ["fisher", "hunter", "granary", "dairy"], TAX_HEALTH = ["herbs", "healer"];
+export function taxPop(s: Seed, h: number, at: number) {
+  const p = popAt(h);
+  if (!s.user_id) return p;
+  const own = new Set((s.bought ?? []).filter((b) => b.at <= at).map((b) => b.item));
+  const cap = TAX_POP_BASE + TAX_POP_FOOD * TAX_FOOD.filter((i) => own.has(i)).length + TAX_POP_HEALTH * TAX_HEALTH.filter((i) => own.has(i)).length;
+  return Math.min(p, cap);
+}
+
 /** Historical estate assessments (1/2/3 Taler), plus the existing +15% base trade-charter bonus. */
 export function taxEarned(s: Seed, now: number) {
   const c0 = Date.parse(s.created_at);
@@ -51,7 +62,7 @@ export function taxEarned(s: Seed, now: number) {
   const trade = s.charter?.path === "trade" ? s.charter.at : null;
   let t = 0;
   for (let d = 1; d <= days; d++) {
-    const p = popAt(d * 24);
+    const p = taxPop(s, d * 24, c0 + d * 86400000);
     const a = estateAssessment(p, civicWealth(s, c0 + d * 86400000));
     t += a - sickLoss(a, sickTaxRate(s, c0 + d * 86400000));
     if (trade != null && c0 + d * 86400000 >= trade) t += Math.floor(TRADE_TAX * p);
@@ -59,7 +70,7 @@ export function taxEarned(s: Seed, now: number) {
   return t;
 }
 /** Today's income per day, including the trade charter bonus. */
-export const dailyTax = (s: Seed, h: number) => { const p = popAt(h), at = Date.parse(s.created_at) + h * 3.6e6; const a = estateAssessment(p, civicWealth(s, at)); return a - sickLoss(a, sickTaxRate(s, at)) + (s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(TRADE_TAX * p) : 0); };
+export const dailyTax = (s: Seed, h: number) => { const at = Date.parse(s.created_at) + h * 3.6e6, p = taxPop(s, h, at); const a = estateAssessment(p, civicWealth(s, at)); return a - sickLoss(a, sickTaxRate(s, at)) + (s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(TRADE_TAX * p) : 0); };
 
 /** Friend-invite bonus (mirrors DB referrals in village_balance): both villages get the reward. */
 export const REFERRAL_TALER = 50;
