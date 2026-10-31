@@ -518,10 +518,16 @@ function drawStall(c: C, x: number, y: number, flip: boolean) {
 // layout measured in sprite pixels: wagon bottom-left origin, ox bottom-centre offset, ox scale, combo centre
 // ox y = hoof line (sprite pixels below the wheel line); feet sit at FOOT·frame height inside the sheet
 const CART_LAYOUT = { front: { k: 0.04, cx: 200, ox: [315, 18], os: 1.35, foot: 139 / 140 }, back: { k: 0.042, cx: 150, ox: [235, -34], os: 1.45, foot: 156 / 160 } } as const;
+/** Vertical shear that tilts the painted team (drawn for the 2:1 diagonal) onto the real road slope, so ox and wagon follow steep roads. */
+export function cartShear(dx: number, dy: number, away: boolean): number {
+  const slope = Math.max(-1.6, Math.min(1.6, dy / Math.max(Math.abs(dx), 0.05)));
+  return Math.max(-1.1, Math.min(1.1, slope - (away ? -0.5 : 0.5)));
+}
 function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: number, sd: number, _cover: string, t: number) {
   const away = dy < -0.15 * Math.abs(dx);
   const wag = wagonImage(away), ox = oxWalkImage(away);
   c.save(); c.translate(x, y); if (screenFacing(dx, dy) < 0) c.scale(-1, 1);
+  c.transform(1, cartShear(dx, dy, away), 0, 1, 0, 0);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   if (!wag || !ox) {
     const im = away ? cartBackImage() ?? cartImage() : cartImage();
