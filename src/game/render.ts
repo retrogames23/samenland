@@ -684,7 +684,24 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const robe = q.p.job === "mayor" && !q.festive && !q.carry ? folkImage(q.p.sex === "f" ? "talkFWork" : "talkWork") : null;
   if (robe) {
     const fw = robe.naturalWidth / WORK_FRAMES, fh = robe.naturalHeight, hh = hgt * 1.01, ww = (hh * fw) / fh;
-    if (q.walking) {
+    if (q.walking && q.p.sex === "f") {
+      // long gown: same treatment as other skirted villagers — shoes step out, hem sways in strips, torso bobs
+      const foot = folkImage("footF"), top = 0.8, end = 0.93, sway = Math.sin(ph), fs = hh * 0.11;
+      const fw2 = foot ? (fs * foot.naturalWidth) / foot.naturalHeight : 0;
+      const drawFoot = (s: number) => {
+        if (!foot) return;
+        const fx = s * sway * ww * 0.16, lift = Math.max(0, Math.cos(ph) * s) * hh * 0.025;
+        c.drawImage(foot, fx - fw2 * 0.45, bob - fs - lift + hh * 0.02, fw2, fs);
+      };
+      drawFoot(-1); drawFoot(1);
+      c.drawImage(robe, 0, 0, fw, fh * top, -ww / 2, -hh, ww, hh * top);
+      const N = 4;
+      for (let i = 0; i < N; i++) {
+        const a = top + ((end - top) * i) / N, b = top + ((end - top) * (i + 1)) / N;
+        const dx = sway * ww * 0.035 * ((i + 1) / N);
+        c.drawImage(robe, 0, fh * a, fw, fh * (b - a) + 0.5, -ww / 2 + dx, -hh + hh * a, ww, hh * (b - a) + 0.05);
+      }
+    } else if (q.walking) {
       // vest + breeches, not a robe: cut the torso at the belt and step full-length painted legs from the hip
       const legs = folkImage("legsM"), hem = 0.58;
       if (legs) {
