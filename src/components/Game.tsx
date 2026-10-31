@@ -90,6 +90,8 @@ const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", cult
 const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
+import { CHEST } from "@/game/lang/chest";
+import { CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
 import { TITLE_PRICE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, saplingsOwed, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
@@ -1188,7 +1190,7 @@ export function Game() {
     if (error || !data) return setMsg(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
     setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
     tap();
-    if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
+    if (/^chest[2-4]$/.test(item)) { jingle("coins"); setMsg(`${CHEST[lang].title}: ${CHEST[lang].levels[+item.slice(5) - 1]}`); } else if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
   };
   useEffect(() => {
     if (!placing || !coarse) { setGhost(null); return; }
@@ -1220,6 +1222,20 @@ export function Game() {
       </div>
       {tab === "build" && my && at && (
         <div className="space-y-2">
+          {my.user_id && (() => {
+            const ct = CHEST[lang], lvl = chestLevel(my.id, purchases), cap = chestCap(my.id, purchases), blk = chestBlock(my, purchases, now);
+            const step = CHEST_STEPS[Math.min(lvl - 1, 2)]!, fill = Math.min(1, Math.max(0, cash) / cap);
+            return (
+              <div className="rounded-md border border-brass/60 bg-brass/10 p-2 text-xs">
+                <div className="flex items-center justify-between font-semibold"><span>🧰 {ct.title} · {ct.levels[lvl - 1]}</span><span>{Math.max(0, cash)} / {cap}</span></div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-ink/10"><div className={`h-full ${fill >= 1 ? "bg-destructive" : "bg-brass"}`} style={{ width: `${fill * 100}%` }} /></div>
+                <div className="mt-1 text-muted-foreground">{fill >= 1 ? ct.full : ct.intro}</div>
+                {blk === "max" ? <div className="mt-1 font-semibold text-primary">{ct.max}</div>
+                  : blk ? <div className="mt-1 text-muted-foreground">{ct.levels[lvl]}: {ct.need(t.stages[[2, 3, 4][lvl - 1] ?? 4] ?? "")}</div>
+                  : <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < CHEST_PRICE[step]} onClick={() => void buy(step)}>{ct.expand}: {ct.levels[lvl]} ({CHEST_CAP[step]}) · {t.taler(CHEST_PRICE[step])}</Button>}
+              </div>
+            );
+          })()}
           {(() => {
             const b = roadBuilding(my, now, seeds), inc = b ? null : roadIncoming(my, seeds, now), cs = roadCandidates(my, seeds), to = b ? seeds.find((s) => s.id === b.target) : null;
             return (
