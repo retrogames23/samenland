@@ -2143,11 +2143,11 @@ export function Game() {
           <ol className="list-decimal space-y-1 ps-5 text-sm">
             {book.first.rules.map(([b, r]) => <li key={b}><b className="text-ink">{b}</b> {r}</li>)}
           </ol>
-          {book.chapters.map(([h, items]) => (
+          {book.chapters.map(([h, items], ci) => (
             <section key={h} className="mt-4">
               <h3 className="font-display text-lg text-ink">{h}</h3>
               <ul className="mt-1 space-y-1.5 text-sm">
-                {items.map(([b, d], i) => <li key={i}>{b && <b className="text-ink">{b}: </b>}{d}</li>)}
+                {(ci === 5 ? [...items, [CHEST[lang].title, `${CHEST[lang].intro} ${CHEST[lang].levels.map((l, i) => `${l}: ${t.taler([800, CHEST_CAP.chest2, CHEST_CAP.chest3, CHEST_CAP.chest4][i]!)}`).join(" · ")}. ${CHEST[lang].notify}.`] as [string, string]] : items).map(([b, d], i) => <li key={i}>{b && <b className="text-ink">{b}: </b>}{d}</li>)}
               </ul>
             </section>
           ))}
