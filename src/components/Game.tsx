@@ -1375,30 +1375,50 @@ export function Game() {
           </div>
         );
       })()}
-      {tab === "signs" && my && (
-        <div className="space-y-2">
-          {nbs.length === 0 ? <div className="text-xs text-muted-foreground">{t.noNeighbours}</div> : nbs.map((o) => {
-            const cur = signs.find((x) => x.seed_id === my.id && x.target_id === o.id);
-            const hurt = tileHits(o, now).size > 0, used = sentToday(my.id, gifts, now);
-            return (
-              <div key={o.id} className="space-y-1">
-              <div className="flex flex-wrap gap-1">
-                <Button size="sm" variant="secondary" disabled={used || cash < GIFT_TALER} onClick={() => sendGift(o, "gift")}>{t.gifts.give(GIFT_TALER)}</Button>
-                {hurt && <Button size="sm" disabled={used || cash < AID_TALER} onClick={() => sendGift(o, "aid")}>{t.gifts.aid(AID_TALER)}</Button>}
+      {tab === "signs" && my && (() => {
+        const mine = (o: Seed) => signs.find((x) => x.seed_id === my.id && x.target_id === o.id);
+        const placed = nbs.filter((o) => mine(o)), open = nbs.filter((o) => !mine(o));
+        const form = (o: Seed) => (
+          <form className="flex gap-1" onSubmit={(e) => { e.preventDefault(); saveSign(o); setSignEdit(null); }}>
+            <Input className="h-8 text-xs" maxLength={80} placeholder={t.signPlaceholder} value={signDraft[o.id] ?? mine(o)?.message ?? ""} onChange={(e) => setSignDraft({ ...signDraft, [o.id]: e.target.value })} />
+            <Button type="submit" size="sm" variant="secondary">{t.signSave}</Button>
+          </form>
+        );
+        const theirs = (o: Seed) => signs.find((x) => x.seed_id === o.id && x.target_id === my.id);
+        return (
+          <div className="space-y-3">
+            {nbs.length === 0 && <div className="text-xs text-muted-foreground">{t.noNeighbours}</div>}
+            {placed.length > 0 && (
+              <div className="space-y-2">
+                <div className="font-display text-sm">{t.signUi.placed}</div>
+                {placed.map((o) => { const th = theirs(o), tl = signTile(seeds, my.id, o.id); return (
+                  <div key={o.id} className="space-y-1 rounded border border-border p-2 text-xs">
+                    <div><span className="font-medium text-foreground">✓ {t.signTo(o.name)}</span> <span className="text-muted-foreground">· {t.signUi.stands}</span></div>
+                    {signEdit === o.id ? form(o) : <div className="italic text-foreground">„{mine(o)!.message}“</div>}
+                    {th && <div className="text-muted-foreground">{t.signUi.theirs(o.name)}: <span className="italic">„{th.message}“</span></div>}
+                    <div className="flex flex-wrap gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => setSignEdit(signEdit === o.id ? null : o.id)}>{signEdit === o.id ? t.signUi.cancel : t.signUi.edit}</Button>
+                      {tl && <Button size="sm" variant="ghost" onClick={() => { focus(tl[0], tl[1]); setTab(null); }}>{t.signUi.look}</Button>}
+                    </div>
+                  </div>
+                ); })}
               </div>
-              {used && <div className="text-xs text-muted-foreground">{t.gifts.once}</div>}
-              <form className="space-y-1" onSubmit={(e) => { e.preventDefault(); saveSign(o); }}>
-                <div className="text-xs">{t.signTo(o.name)}</div>
-                <div className="flex gap-1">
-                  <Input className="h-8 text-xs" maxLength={80} placeholder={t.signPlaceholder} value={signDraft[o.id] ?? cur?.message ?? ""} onChange={(e) => setSignDraft({ ...signDraft, [o.id]: e.target.value })} />
-                  <Button type="submit" size="sm" variant="secondary">{t.signSave}</Button>
-                </div>
-              </form>
+            )}
+            {open.length > 0 && (
+              <div className="space-y-2">
+                <div className="font-display text-sm">{t.signUi.open}</div>
+                {open.map((o) => { const th = theirs(o); return (
+                  <div key={o.id} className="space-y-1 text-xs">
+                    <div className="text-foreground">{t.signTo(o.name)}</div>
+                    {th && <div className="text-muted-foreground">{t.signUi.theirs(o.name)}: <span className="italic">„{th.message}“</span></div>}
+                    {form(o)}
+                  </div>
+                ); })}
               </div>
-            );
-          })}
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })()}
       {tab === "plant" && (!userId ? (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">{t.hud.login}</p>
@@ -1497,6 +1517,10 @@ export function Game() {
                 </span>
               </button>
               {owner && my && s.id !== my.id && <Button size="sm" variant="secondary" className="ml-2 mb-1" onClick={() => { setPostText(""); setPostTo(s); }}>{t.post.send}</Button>}
+              {owner && my && nbs.some((o) => o.id === s.id) && (() => { const used = sentToday(my.id, gifts, now), hurt = tileHits(s, now).size > 0; return (<>
+                <Button size="sm" variant="secondary" className="ml-2 mb-1" disabled={used || cash < GIFT_TALER} onClick={() => sendGift(s, "gift")}>{t.gifts.give(GIFT_TALER)}</Button>
+                {hurt && <Button size="sm" className="ml-2 mb-1" disabled={used || cash < AID_TALER} onClick={() => sendGift(s, "aid")}>{t.gifts.aid(AID_TALER)}</Button>}
+              </>); })()}
             </li>
           ))}
         </ul>
