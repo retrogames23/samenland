@@ -795,7 +795,7 @@ export function Game() {
     // whatever the outcome, the seed is no longer held in the hand
     setPlantAsk(null);
     setPtr(null);
-    setHover(null);
+    setHover(null); st.current.hover = null;
     setMode("look");
     if (error?.code === "23505") { setTab(null); return setMsg(t.alreadyHave); }
     if (error || !data) return setMsg(t.plantFail);
