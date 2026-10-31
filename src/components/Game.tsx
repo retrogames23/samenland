@@ -17,7 +17,7 @@ import { larderOf, storedAt, chainOf, boonsOf, type Ware } from "@/game/goods";
 import { WareIcon } from "@/components/hud/WareIcon";
 import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, Crown, X, LogIn, Footprints } from "lucide-react";
 import { Panel, WoodButton } from "@/components/hud/Panel";
-import { Parchment, WaxSeal } from "@/components/hud/Parchment";
+import { Parchment, WaxSeal, buzz } from "@/components/hud/Parchment";
 import { ART, pickDecision } from "@/game/decisions";
 import { ITEM_STAGE } from "@/game/disasters";
 import type { DecisionKind } from "@/game/decision-order";
@@ -727,11 +727,12 @@ export function Game() {
   const personAt = (e: { clientX: number; clientY: number }): Person | null => {
     const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
     const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
-    let best: Person | null = null, bd = Math.max(3, (coarse ? 26 : 16) / c.zoom);
+    let best: Person | null = null, bd = Math.max(3, (coarse ? 34 : 16) / c.zoom);
     for (const f of lastPeople) { const dd = Math.hypot(f.x - wx, f.y - 2.5 - wy); if (dd < bd) { bd = dd; best = f.q.p; } }
     return best;
   };
   useEffect(() => { peopleFocus.sel = who ? pkey(who) : null; }, [who]);
+  useEffect(() => { if (who || place) buzz(); }, [who, place]); // haptic tick when a sheet opens
   const onClick = async (x: number, y: number) => {
     setMsg(null);
     if (mode === "seed") {
@@ -1761,7 +1762,7 @@ export function Game() {
       </div>
       {tab && (
         <div className="pointer-events-none absolute inset-x-2 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 md:inset-x-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
-          <Panel className="max-h-[min(72dvh,calc(100dvh-11rem))] overflow-y-auto overscroll-contain">{drawer}</Panel>
+          <div {...sheetSwipe(() => pick(tab))}><Panel className="max-h-[min(72dvh,calc(100dvh-11rem))] overflow-y-auto overscroll-contain max-md:rounded-t-2xl">{drawer}</Panel></div>
         </div>
       )}
 
