@@ -111,7 +111,7 @@ export const fr: Dict = {
   signSave: "Planter la pancarte",
   signSaved: "La pancarte est dressée.",
   signFrom: (n) => `Pancarte venue de ${n}`,
-  signUi: { placed: "Pancartes plantées", open: "Pas encore de pancarte", stands: "se dresse à l'orée du village", edit: "Modifier le texte", look: "Regarder", theirs: (n) => `Le salut de ${n} pour nous`, cancel: "Annuler" },
+  signUi: { placed: "Pancartes plantées", open: "Pas encore de pancarte", stands: "se dresse à l'orée du village", edit: "Modifier le texte", town: "Aller au village", look: "Voir la pancarte", theirs: (n) => `Le salut de ${n} pour nous`, cancel: "Annuler" },
   signTitle: "Pancarte",
   noNeighbours: "Nulle route marchande vers d'autres villages pour l'heure.",
   treasury: "Trésor du village",

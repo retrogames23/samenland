@@ -111,7 +111,7 @@ export const es: Dict = {
   signSave: "Clavar poste",
   signSaved: "El poste ha quedado erigido.",
   signFrom: (n) => `Poste indicador desde ${n}`,
-  signUi: { placed: "Postes colocados", open: "Aún sin poste", stands: "está a la entrada del pueblo", edit: "Cambiar texto", look: "Mirar", theirs: (n) => `Saludo de ${n} para nosotros`, cancel: "Cancelar" },
+  signUi: { placed: "Postes colocados", open: "Aún sin poste", stands: "está a la entrada del pueblo", edit: "Cambiar texto", town: "Ir al pueblo", look: "Ir al poste", theirs: (n) => `Saludo de ${n} para nosotros`, cancel: "Cancelar" },
   signTitle: "Poste indicador",
   noNeighbours: "Aún no hay caminos comerciales hacia aldeas vecinas.",
   treasury: "Arcas de la aldea",
