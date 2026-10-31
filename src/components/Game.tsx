@@ -27,6 +27,7 @@ type LetterRow = { id: string; from_seed: string; to_seed: string; created_at: s
 import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
 import { deleteAccount } from "@/lib/account.functions";
+import { settleTreasury } from "@/lib/treasury.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
@@ -804,6 +805,35 @@ export function Game() {
   };
 
   const my = seeds.find((s) => s.id === mine);
+  const treasuryFn = useServerFn(settleTreasury);
+  const [accounting, setAccounting] = useState<Awaited<ReturnType<typeof settleTreasury>> | null>(null);
+  const accountingSeed = useRef<string | null>(null);
+  accountingSeed.current = my?.id ?? null;
+  const refreshTreasury = async () => {
+    if (!my || !userId || my.user_id !== userId) return false;
+    const id = my.id;
+    try {
+      let result = await treasuryFn({ data: { seed: id } });
+      for (let batch = 0; !result.settled && batch < 7; batch++) result = await treasuryFn({ data: { seed: id } });
+      if (accountingSeed.current === id) setAccounting(result);
+      return result.settled;
+    } catch {
+      return false;
+    }
+  };
+  useEffect(() => {
+    if (!my || !userId || my.user_id !== userId) { setAccounting(null); return; }
+    void refreshTreasury();
+    const timer = setInterval(() => { void refreshTreasury(); }, 60000);
+    return () => clearInterval(timer);
+    // Refresh from authoritative rows, never from pointer/camera changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [my, userId, purchases, gifts, claims, encounters, works]);
+  const prepareSpend = async () => {
+    if (!accounting?.active) return true;
+    if (await refreshTreasury()) return true;
+    setMsg(t.buyFail); return false;
+  };
   const startWalk = () => { if (!my) return; setTab(null); setWho(null); setPlace(null); setPlacing(null); const cv = canvasRef.current; target.current = { zoom: 16, ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; setWalk(true); };
   const wasWalk = useRef(false);
   useEffect(() => { setStrollHold(walk); if (wasWalk.current && !walk) { clearMayorOrder(); target.current = { ...target.current, zoom: Math.min(12, target.current.zoom) }; } wasWalk.current = walk; }, [walk]);
@@ -834,6 +864,7 @@ export function Game() {
   };
   const decide = async (event: string, choice: string) => {
     if (!my || !userId) return;
+    if (!await prepareSpend()) return;
     const { data, error } = await supabase.from("encounters").insert({ seed_id: my.id, user_id: userId, event, choice }).select("id, seed_id, event, choice, cost, created_at").single();
     if (error || !data) return setMsg(t.enc.fail);
     setEncounters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
@@ -850,6 +881,7 @@ export function Game() {
   };
   const payWork = async (o: Seed, work: WorkKind) => {
     if (!my || !userId) return;
+    if (!await prepareSpend()) return;
     const { data, error } = await supabase.from("twin_works").insert({ seed_id: my.id, partner_id: o.id, user_id: userId, work }).select("id, seed_id, partner_id, work, cost, created_at").single();
     if (error || !data) return setMsg(t.twin.poor);
     setWorks((w) => [...w, data]); tap();
@@ -1039,19 +1071,19 @@ export function Game() {
   // heavy derivations refresh every 5 s of world time, not on every pointer move
   const slow = Math.floor(now / 5000) * 5000;
   const { cash, myStage, myTown, at, pop, residents, season, nbs, larder, boons } = useMemo(() => {
-    const cash = my ? treasury(my, purchases, slow, gifts, claims) : 0;
+    const cash = my ? (accounting?.seed === my.id && accounting.active ? accounting.balance : treasury(my, purchases, slow, gifts, claims)) : 0;
     const myStage = my ? stageOf(effAge(my, seeds, slow)) : 0;
     const myTown = my ? townOf(my, seeds, slow) : null;
     const larder = my ? larderOf(my, seeds, slow) : null;
     const boons = larder ? boonsOf(larder) : null;
     const at = my ? attributes(my, seeds, purchases, slow, myTown!.weddings.filter((w) => w.alliance).length, boons ?? undefined) : null;
-    const pop = my ? dailyTax(my, ageHours(my, slow)) : 0;
+    const pop = my ? (accounting?.seed === my.id && accounting.active ? accounting.daily : dailyTax(my, ageHours(my, slow))) : 0;
     const residents = myTown ? myTown.people.length : 0;
     const sw = seasonAt(slow);
     const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
     const nbs = my ? links(seeds).filter((l) => l.a.id === my.id || l.b.id === my.id).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
     return { cash, myStage, myTown, at, pop, residents, season, nbs, larder, boons };
-  }, [my, seeds, purchases, gifts, claims, slow]);
+  }, [my, seeds, purchases, gifts, claims, slow, accounting]);
   const [larderOpen, setLarderOpen] = useState(false);
   // "come back later": purse too thin for anything new while builders still work — say so once per session
   const [waitShut, setWaitShut] = useState(false);
@@ -1127,6 +1159,7 @@ export function Game() {
   };
   const sendGift = async (to: Seed, kind: GiftKind, note = 0) => {
     if (!my || !userId) return;
+    if (!await prepareSpend()) return;
     const { data, error } = await supabase.from("gifts").insert({ from_seed: my.id, to_seed: to.id, user_id: userId, kind, note }).select("id, from_seed, to_seed, kind, amount, note, created_at").single();
     if (error || !data) return setMsg(t.gifts.fail);
     setGifts((q) => (q.some((x) => x.id === data.id) ? q : [...q, data as Gift]));
@@ -1149,6 +1182,7 @@ export function Game() {
       const err = canPlaceSpecial(item, x, y, my, seeds, clock());
       if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore"]);
     }
+    if (!await prepareSpend()) return;
     setPlacing(null);
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) return setMsg(error?.message?.includes("not enough money") ? t.poor : t.buyFail);

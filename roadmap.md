@@ -12,9 +12,10 @@
 - [x] Deterministische Bürgerstände, Häuser und Steuerdetails
 - [x] Steuerberechnung im Spiel und in der Datenbank synchronisieren
 - [x] Schule auf 1200 Taler abstimmen und Regeln testen
-- [ ] Gemeinsame bewohnte Haushaltsgrundlage für sichtbare Einwohner und Steuerbasis; bisherige 85/25/15-Näherung ersetzen
-- [ ] Langfristige Einnahmen ungepflegter Dörfer kalibrieren, ohne die Steuersätze der Bürgerstände stillschweigend zu ändern
-- [ ] Historische Kassenänderungen vor Anwendung für bestehende Dörfer prüfen und angemeldeten Kaufablauf testen
+- [x] Gemeinsame bewohnte Haushaltsgrundlage extrahieren und gegen sichtbare Bewohner testen; neue Steuerbewertung vorbereiten
+- [x] Einnahmen nach 30/90/180/365/730 Tagen einschließlich Mitgift und Verlusten vergleichen; Befund in balance-audit.md
+- [ ] Neue Steuerabrechnung aktivieren: blockiert durch vollständige Eingabe-Paginierung, Laufzeitbudget und fehlenden angemeldeten Kaufcheck; bisherige Kassen bleiben unverändert
+- [ ] Geldschwemme kalibrieren: benötigt ausdrückliche Entscheidung zu Abrechnungsintervall/Steuerregel statt stiller Senkung der zugesagten Tagessätze
 
 - [x] Block 1a: Mentorbonus (junges Dorf neben älterem wächst im ersten Jahr +50 %)
 - [x] Block 1b: Mentor-Hinweis (Reifephase entfällt: Wachstum ist bereits sublinear) in Chronik/Inspektor
