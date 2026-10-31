@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { treasury, taxEarned, cappedTax, chestCap, chestBlock, CHEST_SINCE, type Purchase } from "./economy";
+import { raidLoss } from "./disasters";
 
 const seed = (created: number) => ({ id: "c", name: "T", owner: "o", hue: 0, x: 306, y: 420, created_at: new Date(created).toISOString(), user_id: "u", bought: [] }) as never;
 const buy = (item: string, at: number, cost: number): Purchase => ({ id: item, seed_id: "c", item, cost, created_at: new Date(at).toISOString() });
@@ -19,7 +20,19 @@ describe("village chest", () => {
   it("an untended village founded after the rule never holds more than 800 from taxes", () => {
     const s = seed(CHEST_SINCE), now = CHEST_SINCE + 365 * 864e5;
     expect(treasury(s, [], now)).toBeLessThanOrEqual(800 + 400);
-    expect(cappedTax(s, [], now)).toBe(800 - 160);
+    expect(cappedTax(s, [], now)).toBe(800 - 160 + raidLoss(s, now));
+  });
+  it("robbers never push an untended chest below zero, and taxes refill it", () => {
+    const s = seed(CHEST_SINCE);
+    for (const days of [100, 365, 730, 1500]) {
+      const now = CHEST_SINCE + days * 864e5;
+      expect(raidLoss(s, now)).toBeGreaterThan(0);
+      expect(treasury(s, [], now)).toBeGreaterThanOrEqual(0);
+    }
+    // two years of robbers steal far more than 800, yet the chest is near full again
+    const now = CHEST_SINCE + 730 * 864e5;
+    expect(raidLoss(s, now)).toBeGreaterThan(800);
+    expect(treasury(s, [], now)).toBeGreaterThan(700);
   });
   it("spending makes room again", () => {
     const s = seed(CHEST_SINCE), now = CHEST_SINCE + 60 * 864e5;
