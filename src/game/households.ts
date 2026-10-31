@@ -10,7 +10,7 @@ export function foodCapacity(s: Seed, byKind: Map<Kind, unknown[]>, now: number)
   if (!s.user_id) return Infinity;
   const own = new Set((s.bought ?? []).filter(b => b.at <= now).map(b => b.item));
   const food = ["fisher", "hunter", "granary", "dairy"].filter(i => own.has(i)).length;
-  const health = ["herbs", "healer"].filter(i => own.has(i)).length;
+  const health = ["herbs", "healer", "library"].filter(i => own.has(i)).length;
   const w = 1 - FEED_WINTER * seasonAt(now).winter;
   const land = (8 + FEED_FIELD * (byKind.get("field")?.length ?? 0) + FEED_GARDEN * (byKind.get("garden")?.length ?? 0)) * w;
   return Math.max(FEED_BASE, Math.floor(Math.min(WILD_MAX * w, land) + land * (FEED_FOOD_ITEM * food + FEED_HEALTH_ITEM * health)));
