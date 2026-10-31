@@ -36,7 +36,7 @@ describe("village chest", () => {
   });
   it("spending makes room again", () => {
     const s = seed(CHEST_SINCE), now = CHEST_SINCE + 60 * 864e5;
-    expect(cappedTax(s, [buy("hunter", CHEST_SINCE + 30 * 864e5, 100)], now)).toBe(800 - 160 + 100);
+    expect(cappedTax(s, [buy("hunter", CHEST_SINCE + 30 * 864e5, 100)], now)).toBe(800 - 160 + 100 + raidLoss(s, now));
   });
   it("balances earned before the rule are not cut", () => {
     const c0 = CHEST_SINCE - 200 * 864e5, s = seed(c0);
