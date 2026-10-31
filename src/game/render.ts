@@ -572,6 +572,9 @@ const PERSON_SCALE = 0.55;
 /** Screen-space traders on trade roads (for clicking). */
 export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean; walker?: Walker; stall?: boolean }[] = [];
 export const lastPeople: { x: number; y: number; q: Pose }[] = [];
+// slot pool behind lastPeople: entries are reused across frames instead of allocating one per villager per frame
+const peopleSlots: { x: number; y: number; q: Pose }[] = [];
+const pushPerson = (x: number, y: number, q: Pose) => { const i = lastPeople.length; const o = peopleSlots[i] ?? (peopleSlots[i] = { x, y, q }); o.x = x; o.y = y; o.q = q; lastPeople.push(o); };
 /** Sound-emitting structures drawn this frame (world-screen coords), read by the audio mixer. */
 export const lastSources: { x: number; y: number; k: string }[] = [];
 const SOUND_KINDS = new Set(["campfire", "mill", "watermill", "smithy", "pasture", "church", "sawmill", "steamworks"]);
@@ -1637,6 +1640,9 @@ const framePool = {
   robbers: new Map<number, [number, number, boolean]>(),
   props: new Map<number, ((cx: number, cy: number) => void)[]>(),
   hunt: new Map<number, (() => void)[]>(),
+  lights: [] as Light[],
+  vip: [] as (() => void)[],
+  birds: [] as [number, number, number, number][],
 };
 
 export function draw(
@@ -1660,7 +1666,7 @@ export function draw(
   // One rendering path at every map zoom: no threshold where trees, house facing or pastures switch.
   const detail = true, sharp = cam.zoom >= 1.3; // sharp: ground painted per tile (crisper texture only)
   const cs0x = cam.x - w / 2 / z, cs1x = cam.x + w / 2 / z, cs0y = cam.y - h / 2 / z, cs1y = cam.y + h / 2 / z;
-  const L: Light[] = [];
+  const L = framePool.lights; L.length = 0;
   // pooled per-frame buffers: slots and maps are reused across frames to keep GC pauses out of the loop
   const tiles = framePool.tiles; let nTiles = 0;
 
@@ -1872,7 +1878,7 @@ export function draw(
   }
 
   // road traffic, messengers and stalls join the tile depth order: houses in front hide them (no object above a front roof)
-  const vip: (() => void)[] = [];
+  const vip = framePool.vip; vip.length = 0;
   const roadProp = (x: number, y: number, a: number, f: () => void, important = false) => {
     const [tx, ty] = toTile(x, y);
     addProp(ty * MAP + tx, () => { c.globalAlpha = a; f(); c.globalAlpha = 1; });
@@ -1976,7 +1982,7 @@ export function draw(
       else if (!st && (inside || (x >= x0 - 4 && x <= x1 + 4 && y >= y0 - 4 && y <= y1 + 4))) wildFigures(x, y, hunt, c);
     }
   }
-  const birds: [number, number, number, number][] = []; // gulls over the coast, crows over fields, drawn on top
+  const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
   for (let ti = 0; ti < nTiles; ti++) {
     const { x, y, cx, cy, st } = tiles[ti]!;
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
@@ -2045,7 +2051,7 @@ export function draw(
           c.fillStyle = `rgba(255,214,140,${sel ? 0.35 : pulse * 0.4})`; c.beginPath(); c.ellipse(px, py, 4, 2, 0, 0, 7); c.fill();
           c.strokeStyle = sel ? "rgba(255,226,160,0.95)" : "rgba(255,236,190,0.7)"; c.lineWidth = sel ? 0.8 : 0.6; c.stroke();
         }
-        drawPerson(c, px, py, q, t, simpleFolk); lastPeople.push({ x: px, y: py, q });
+        drawPerson(c, px, py, q, t, simpleFolk); pushPerson(px, py, q);
         if (hov || sel || (steer && q.p.role === "mayor" && q.act === "stroll" && q.p.seed.id === steer.sid)) vip.push(() => drawPerson(c, px, py, q, t, simpleFolk));
         if (q.bucket) drawBucket(c, px, py, q, t);
         if (hov && !sel) {
