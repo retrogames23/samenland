@@ -1631,6 +1631,14 @@ function drawRareTree(c: C, x: number, y: number, kind: "cherry" | "quince", age
   c.restore();
 }
 
+const framePool = {
+  tiles: [] as { x: number; y: number; cx: number; cy: number; st: Structure | null }[],
+  folk: new Map<number, Pose[]>(),
+  robbers: new Map<number, [number, number, boolean]>(),
+  props: new Map<number, ((cx: number, cy: number) => void)[]>(),
+  hunt: new Map<number, (() => void)[]>(),
+};
+
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
@@ -1653,7 +1661,8 @@ export function draw(
   const detail = true, sharp = cam.zoom >= 1.3; // sharp: ground painted per tile (crisper texture only)
   const cs0x = cam.x - w / 2 / z, cs1x = cam.x + w / 2 / z, cs0y = cam.y - h / 2 / z, cs1y = cam.y + h / 2 / z;
   const L: Light[] = [];
-  const tiles: { x: number; y: number; cx: number; cy: number; st: Structure | null }[] = [];
+  // pooled per-frame buffers: slots and maps are reused across frames to keep GC pauses out of the loop
+  const tiles = framePool.tiles; let nTiles = 0;
 
   let edges: GroundEdge[] = [];
   if (sharp) edges = drawGround(c, x0, x1, y0, y1, t, true);
@@ -1688,7 +1697,7 @@ export function draw(
       const y = s - x;
       const [cx, cy] = iso(x, y);
       const st = structureAt(x, y, seeds, now);
-      tiles.push({ x, y, cx, cy, st });
+      { const slot = tiles[nTiles] ?? (tiles[nTiles] = { x: 0, y: 0, cx: 0, cy: 0, st: null }); slot.x = x; slot.y = y; slot.cx = cx; slot.cy = cy; slot.st = st; nTiles++; }
       if (!detail) {
         c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
         if (st && !FLAT.has(st.kind)) { /* drawn in pass 2 */ }
@@ -1796,7 +1805,7 @@ export function draw(
   }
 
   // ---- villagers, bucketed by tile for depth sorting ----
-  const folk = new Map<number, Pose[]>();
+  const folk = framePool.folk; folk.clear();
   lastPeople.length = 0; lastTraders.length = 0;
   const folkOn = cam.zoom >= 0.9; // villagers are sub-pixel below this; skipping them changes nothing visible
   const steer = steeredMayor();
@@ -1814,12 +1823,12 @@ export function draw(
       folk.get(k)!.push(q);
     }
   }
-  const robbers = new Map<number, [number, number, boolean]>();
+  const robbers = framePool.robbers; robbers.clear();
   if (detail) for (const sd of seeds) { const r = robberAt(sd, now); if (r) { robbers.set(Math.round(r[1]) * MAP + Math.round(r[0]), r); const [lx, ly] = iso(r[0], r[1]); L.push({ x: lx, y: ly - 2, r: 4 }); } }
   const simpleFolk = cam.zoom < 2.2;
   const goal = mayorGoal(now), goalK = goal ? goal[1] * MAP + goal[0] : -1;
   // encounter props: the raised maypole on the square and the village's cows (derived in townOf)
-  const props = new Map<number, ((cx: number, cy: number) => void)[]>();
+  const props = framePool.props; props.clear();
   const addProp = (k: number, f: (cx: number, cy: number) => void) => (props.get(k) ?? props.set(k, []).get(k)!).push(f);
   // road crews join the tile depth order, so houses in front hide them instead of the crew floating on roofs
   if (detail) for (const l of links(seeds)) {
@@ -1956,7 +1965,7 @@ export function draw(
   }
 
   // ---- pass 2: standing objects in depth order ----
-  const hunt = new Map<number, (() => void)[]>();
+  const hunt = framePool.hunt; hunt.clear();
   // lodges and dens just off-screen still send hunters and game into view (no popping at the screen edge)
   if (detail) {
     const M = DEN_R + 2;
@@ -1968,7 +1977,8 @@ export function draw(
     }
   }
   const birds: [number, number, number, number][] = []; // gulls over the coast, crows over fields, drawn on top
-  for (const { x, y, cx, cy, st } of tiles) {
+  for (let ti = 0; ti < nTiles; ti++) {
+    const { x, y, cx, cy, st } = tiles[ti]!;
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
     if (!detail) {
       if (st?.build !== undefined) drawSite(c, st, cx, cy, t, false);
