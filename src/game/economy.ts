@@ -74,6 +74,20 @@ export function taxEarned(s: Seed, now: number) {
 export const dailyTax = (s: Seed, h: number) => { const at = Date.parse(s.created_at) + h * 3.6e6, p = taxPop(s, h, at); const a = estateAssessment(p, civicWealth(s, at)); return a - sickLoss(a, sickTaxRate(s, at)) + (s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(TRADE_TAX * p) : 0); };
 
 
+/** Friend-invite bonus (mirrors DB referrals in village_balance): both villages get the reward. */
+export const REFERRAL_TALER = 50;
+export type Referral = { id: string; referrer_seed: string; referee_seed: string; reward: number; created_at: string };
+export const referralClaims = (rows: Referral[]): QuestClaim[] => rows.flatMap((r) => [
+  { id: `${r.id}:a`, seed_id: r.referrer_seed, quest: `ref:${r.referee_seed}`, reward: r.reward, created_at: r.created_at },
+  { id: `${r.id}:b`, seed_id: r.referee_seed, quest: `ref:${r.referrer_seed}`, reward: r.reward, created_at: r.created_at },
+]);
+
+/** Mayor visit welcome gift by the visited town's raw age (mirrors DB visit_reward): 30 → 150 Taler. */
+export const VISIT_STEPS: [number, number][] = [[8760, 150], [4380, 100], [2160, 75], [168, 50], [24, 40], [0, 30]];
+export const visitReward = (h: number) => VISIT_STEPS.find(([a]) => h >= a)![1];
+export type Visit = { id: string; visitor_seed: string; visited_seed: string; reward: number; created_at: string };
+export const visitClaims = (rows: Visit[]): QuestClaim[] => rows.map((v) => ({ id: `${v.id}:v`, seed_id: v.visitor_seed, quest: `visit:${v.visited_seed}`, reward: v.reward, created_at: v.created_at }));
+
 // ---------------- treasure chest (Gemeindetruhe) ----------------
 /**
  * The village chest holds only so many Taler: once full, the day's taxes find no room and stay with the burghers.
