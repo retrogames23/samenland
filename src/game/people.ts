@@ -315,7 +315,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     const last = nm.length > 1 ? nm[nm.length - 1]! : nm.length ? "" : pick(S, h(2));
     people.push({
       id: -(s.x * 1024 + s.y) - 1, seed: s, first, last, sex, age: 46 + Math.floor(h(3) * 14), job: "mayor",
-      home: hall ?? homes[0] ?? [s.x + 1, s.y + 1], work: hall ? (front(hall) ?? meet) : meet, workIndoor: false, speed: 0.2,
+      home: hall ?? well, work: hall ? (front(hall) ?? meet) : meet, workIndoor: false, speed: 0.2,
       looks: { skin: h(4), hair: h(5), shirt: 0.99, pants: h(6), hat: true, stick: false }, haul: null, role: "mayor",
     });
   }

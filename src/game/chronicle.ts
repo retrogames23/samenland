@@ -6,7 +6,7 @@ import { effAge, stageOf, radiusOf, reachOf, LANDMARKS, links, twinSince, bornAt
 import { taxEarned } from "./economy";
 import { dowryEarned } from "./weddings";
 import { fires, floods, raids, raidLoss } from "./disasters";
-import { townOf } from "./people";
+import { townOf, citizensOf } from "./people";
 import { journeymenTo, bridesOf, movesOf, letterArrives } from "./wander";
 import { seasonAt, type Season } from "./season";
 
