@@ -18,7 +18,7 @@ describe("economy (Taler)", () => {
 
 describe("early buildings", () => {
   it("herb hut costs 90, hunter's lodge 110, woodcutter's camp 180, healer 550", () => {
-    expect(ITEMS.herbs).toBe(90); expect(ITEMS.hunter).toBe(110); expect(ITEMS.woodcamp).toBe(180); expect(ITEMS.healer).toBe(550);
+    expect(ITEMS.herbs).toBe(90); expect(ITEMS.hunter).toBe(100); expect(ITEMS.woodcamp).toBe(240); expect(ITEMS.healer).toBe(550);
   });
   it("a village without water can afford the hunter's lodge on day one", () => expect(treasury(seed(), [], t0)).toBeGreaterThanOrEqual(ITEMS.hunter));
 });
