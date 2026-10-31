@@ -1079,7 +1079,9 @@ export function Game() {
     if (e.code === "stage") return [t.fest.stage[0], t.fest.stage[1](t.stages[e.stage] ?? "")];
     if (e.code === "built" && SEAT_KINDS.includes(e.kind)) { const p = t.fest.seat[SEAT_KINDS.indexOf(e.kind)]; if (p) return p; }
     const name = e.code === "built" ? (t.kind[e.kind] ?? e.kind) : e.code === "bought" ? (itemName(e.item)) : chronLine(e);
-    return [t.fest.built[0], t.fest.built[1](name)];
+    // only promise a gathering while the inauguration is actually running
+    const live = (e.code === "built" || e.code === "bought") && clock() - e.at < FETE_SECS * 1000;
+    return [t.fest.built[0], (e.code === "built" || e.code === "bought") && !live ? t.fest.builtPast(name) : t.fest.built[1](name)];
   };
   function openChron() {
     if (!my) return;
@@ -2284,7 +2286,7 @@ export function Game() {
             <ul className="mt-3 space-y-1 border-l-2 border-ink/20 pl-3">
               {chron.events.slice(-14).map((e, i) => (
                 <li key={i}>
-                  <button type="button" className="text-left text-sm text-ink hover:underline" onClick={() => { if (e.code === "letter") setFest((q) => [e, ...q]); else if (e.code === "road") focus(e.x, e.y); else focus(my.x, my.y); setChronOpen(false); }}>
+                  <button type="button" className="text-left text-sm text-ink hover:underline" onClick={() => { if (e.code === "letter") setFest((q) => [e, ...q]); else { const p = e as { x?: number; y?: number }; if (p.x != null && p.y != null) focus(p.x, p.y); else focus(my.x, my.y); } setChronOpen(false); }}>
                     <span className="mr-2 text-ink/60">{new Date(e.at).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "short" })}</span>{chronLine(e)}
                   </button>
                 </li>

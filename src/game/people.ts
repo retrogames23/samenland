@@ -11,7 +11,7 @@ import { worldHour } from "./time";
 import { seasonAt } from "./season";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { MAP, hash, structureAt, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, landmarkSpots, SPECIAL_KIND, MONUMENT_BY_KIND, specialDone, specialTile, type TradeGood, type Seed, type Kind } from "./world";
+import { MAP, hash, structureAt, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, landmarkSpots, SPECIAL_KIND, MONUMENT_BY_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -425,8 +425,10 @@ export function inauguration(s: Seed, seeds: Seed[], now: number): { at: number;
   // bought buildings finished within the window are inaugurated just like landmarks
   let bb: { at: number; tile: Tile; kind: Kind } | null = null;
   for (const b of s.bought ?? []) {
-    const kind = SPECIAL_KIND[b.item]; if (!kind || MONUMENT_BY_KIND.has(kind)) continue;
-    const done = specialDone(s, seeds, b.at); if (done <= now - FETE_WIN || done > now || (bb && bb.at >= done)) continue;
+    const mk = monumentOf(b.item);
+    if (mk && b.item !== `${mk}${MONUMENT_DEFS[mk].n}`) continue;
+    const kind = mk ? MONUMENT_DEFS[mk].kind : SPECIAL_KIND[b.item]; if (!kind) continue;
+    const done = mk ? monumentDone(s, seeds, mk) : specialDone(s, seeds, b.at); if (done == null || done <= now - FETE_WIN || done > now || (bb && bb.at >= done)) continue;
     const tl = specialTile(s, kind); if (tl) bb = { at: done, tile: tl, kind };
   }
   if (li < 0) return bb;

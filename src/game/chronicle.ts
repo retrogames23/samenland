@@ -2,7 +2,7 @@
  * Village chronicle: what happened between two moments, derived purely from seeds and time
  * (same functions that drive growth), so it needs no stored history. Returns codes; i18n formats them.
  */
-import { effAge, stageOf, landmarkSpots, specialDone, specialTile, SPECIAL_KIND, MONUMENT_BY_KIND, radiusOf, reachOf, LANDMARKS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
+import { effAge, stageOf, landmarkSpots, specialDone, specialTile, SPECIAL_KIND, MONUMENT_BY_KIND, MONUMENT_DEFS, monumentOf, monumentDone, radiusOf, reachOf, LANDMARKS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
 import { townRank } from "./rank";
 import { taxEarned } from "./economy";
 import { dowryEarned } from "./weddings";
@@ -75,17 +75,23 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
       if (!(l.at > prevAge && l.at <= age)) return;
       let x: number | undefined, y: number | undefined;
       for (const [k, list] of landmarkSpots(s)) if (list.includes(i)) { const [dx, dy] = k.split(",").map(Number); x = s.x + dx!; y = s.y + dy!; break; }
-      ev.push({ at: now, code: "built", kind: l.kind, ...(x != null && y != null ? { x, y } : {}) });
+      const st = x != null && y != null ? structureAt(x, y, seeds, now) : null;
+      ev.push({ at: now, code: "built", kind: st && l.kind === "watermill" && st.kind === "mill" ? "mill" : l.kind, ...(x != null && y != null ? { x, y } : {}) });
     });
     const se = dominant(now); if (se !== prevSeason) ev.push({ at: now, code: "season", season: se }); prevSeason = se;
     prevAge = age;
     if (now >= to) break;
   }
   for (const b of s.bought ?? []) {
+    // treasury and guild upgrades are no buildings – no completion feast
+    if (/^(chest|rank)\d$/.test(b.item)) continue;
+    // monuments are celebrated once, when the last paid step is finished
+    const mk = monumentOf(b.item);
+    if (mk && b.item !== `${mk}${MONUMENT_DEFS[mk].n}`) continue;
     // bought buildings are celebrated when the builders finish, at the tile where they stand
-    const kind = SPECIAL_KIND[b.item], site = kind && !MONUMENT_BY_KIND.has(kind) ? specialTile(s, kind) : null;
-    const at = site ? specialDone(s, seeds, b.at) : b.at;
-    if (at > from && at <= to) ev.push({ at, code: "bought", item: b.item, ...(site ? { x: site[0], y: site[1] } : {}) });
+    const kind = mk ? MONUMENT_DEFS[mk].kind : SPECIAL_KIND[b.item], site = kind ? specialTile(s, kind) : null;
+    const at = mk ? monumentDone(s, seeds, mk) : site ? specialDone(s, seeds, b.at) : b.at;
+    if (at != null && at > from && at <= to) ev.push({ at, code: "bought", item: mk ? `${mk}1` : b.item, ...(site ? { x: site[0], y: site[1] } : {}) });
   }
   for (const l of links(seeds)) {
     if (l.a.id !== s.id && l.b.id !== s.id) continue;
