@@ -326,6 +326,18 @@ export function Game() {
   }, [userId]);
   // optional letter by email when a bought building is finished (sent by the scheduled build-mail route)
   const [mailOn, setMailOn] = useState(false);
+  // optional letter when the village chest is nearly full (sent by the scheduled chest-mail route)
+  const [chestMail, setChestMail] = useState(false);
+  useEffect(() => {
+    if (!userId) { setChestMail(false); return; }
+    (supabase as unknown as import("@supabase/supabase-js").SupabaseClient).from("chest_mail").select("enabled").eq("user_id", userId).maybeSingle().then(({ data }) => setChestMail(!!data?.enabled));
+  }, [userId]);
+  const toggleChestMail = async (on: boolean) => {
+    if (!userId) return;
+    setChestMail(on);
+    const { error } = await (supabase as unknown as import("@supabase/supabase-js").SupabaseClient).from("chest_mail").upsert({ user_id: userId, enabled: on, lang });
+    if (error) setChestMail(!on);
+  };
   useEffect(() => {
     if (!userId) { setMailOn(false); return; }
     // every visit restarts the 3-month inactivity countdown (see api/public/idle-sweep)
