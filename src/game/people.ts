@@ -962,6 +962,30 @@ export function townPoses(s: Seed, seeds: Seed[], now: number): Pose[] {
   return out;
 }
 
+/** Poses are recomputed every POSE_STEP ms and blended in between, so big towns don't rerun every schedule each frame. */
+export const POSE_STEP = 100;
+const poseMemo = new Map<string, { seeds: Seed[]; b: number; a: Pose[]; n: Pose[]; byId: Map<number, Pose> }>();
+/** townPoses at render rate: exact poses at POSE_STEP marks (pure from the clock), linear blend between them. */
+export function townPosesSmooth(s: Seed, seeds: Seed[], now: number): Pose[] {
+  const b = Math.floor(now / POSE_STEP);
+  let m = poseMemo.get(s.id);
+  if (!m || m.seeds !== seeds || b < m.b || b > m.b + 1) {
+    const a = townPoses(s, seeds, b * POSE_STEP), n = townPoses(s, seeds, (b + 1) * POSE_STEP);
+    m = { seeds, b, a, n, byId: new Map(n.map((q) => [q.p.id, q])) }; poseMemo.set(s.id, m);
+  } else if (b === m.b + 1) {
+    const n = townPoses(s, seeds, (b + 1) * POSE_STEP);
+    m.a = m.n; m.n = n; m.b = b; m.byId = new Map(n.map((q) => [q.p.id, q]));
+  }
+  const u = (now - m.b * POSE_STEP) / POSE_STEP, out: Pose[] = [];
+  for (const q of m.a) {
+    const r = m.byId.get(q.p.id);
+    // vanished (went indoors) or jumped (door, teleport): keep the exact earlier pose instead of sliding
+    if (!r || Math.abs(r.x - q.x) + Math.abs(r.y - q.y) > 1) { out.push(q); continue; }
+    out.push({ ...q, x: q.x + (r.x - q.x) * u, y: q.y + (r.y - q.y) * u, phase: q.phase + (r.phase - q.phase) * u });
+  }
+  return out;
+}
+
 /** Who is speaking in a pair right now: each pair has its own clock, irregular 3–9 s turns and silent pauses. */
 export function talkState(ia: number, ib: number, now: number): { a: boolean; icon: number } | null {
   const k = ia * 31 + ib, sec = now / 1000 + hash(k, 1, 904) * 997;
