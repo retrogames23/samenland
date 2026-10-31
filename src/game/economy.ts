@@ -73,6 +73,7 @@ export function taxEarned(s: Seed, now: number) {
 /** Today's income per day, including the trade charter bonus. */
 export const dailyTax = (s: Seed, h: number) => { const at = Date.parse(s.created_at) + h * 3.6e6, p = taxPop(s, h, at); const a = estateAssessment(p, civicWealth(s, at)); return a - sickLoss(a, sickTaxRate(s, at)) + (s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(TRADE_TAX * p) : 0); };
 
+
 // ---------------- treasure chest (Gemeindetruhe) ----------------
 /**
  * The village chest holds only so many Taler: once full, the day's taxes find no room and stay with the burghers.
