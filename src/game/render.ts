@@ -474,6 +474,73 @@ function smoothRoad(l: { tiles: [number, number][] }): Pt[] {
   smoothCache.set(l, out); return out;
 }
 const boxCache = new WeakMap<object, [number, number, number, number]>();
+/** Chaikin corner cutting (endpoints kept): turns the averaged road polyline into a soft curve. */
+export function chaikin(p: Pt[], rounds = 2): Pt[] {
+  let a = p;
+  for (let r = 0; r < rounds && a.length > 2; r++) {
+    const o: Pt[] = [a[0]!];
+    for (let i = 0; i + 1 < a.length; i++) {
+      const [x0, y0] = a[i]!, [x1, y1] = a[i + 1]!;
+      o.push([x0 * 0.75 + x1 * 0.25, y0 * 0.75 + y1 * 0.25], [x0 * 0.25 + x1 * 0.75, y0 * 0.25 + y1 * 0.75]);
+    }
+    o.push(a[a.length - 1]!); a = o;
+  }
+  return a;
+}
+type Ribbon = { path: Path2D; tufts: [number, number, number][] };
+const ribbonCache = new WeakMap<object, Map<string, Ribbon>>();
+/** Built, dry stretches of a trade road drawn as one smooth band with frayed verges, instead of per-tile strokes. */
+function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], now: number) {
+  const pts = smoothRoad(l), n = l.tiles.length;
+  const on = (i: number) => { const st = structureAt(l.tiles[i]![0], l.tiles[i]![1], seeds, now); return st?.kind === "road"; };
+  const joins = (i: number) => { if (i < 0 || i >= n) return false; const st = structureAt(l.tiles[i]![0], l.tiles[i]![1], seeds, now); return !!st && PATHLIKE.has(st.kind); };
+  const runs: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    if (!on(i)) continue;
+    let j = i; while (j + 1 < n && on(j + 1)) j++;
+    // reach half into the joining street / bridge so the band meets it without a gap
+    runs.push([joins(i - 1) ? i - 1 : i, joins(j + 1) ? j + 1 : j]); i = j;
+  }
+  if (!runs.length) return;
+  const key = runs.map((r) => r.join("-")).join(",");
+  let byKey = ribbonCache.get(l); if (!byKey) ribbonCache.set(l, (byKey = new Map()));
+  let rb = byKey.get(key);
+  if (!rb) {
+    const path = new Path2D(), tufts: [number, number, number][] = [];
+    for (const [a, b] of runs) {
+      let seg = pts.slice(a, b + 1);
+      if (seg.length === 1) { const [x, y] = seg[0]!; path.moveTo(x + 0.01, y); path.lineTo(x, y); continue; }
+      // run ends that join a street/bridge stop halfway, at the shared tile edge
+      if (a < b && joins(a) && !on(a)) seg[0] = [(seg[0]![0] + seg[1]![0]) / 2, (seg[0]![1] + seg[1]![1]) / 2];
+      const m = seg.length - 1;
+      if (a < b && joins(b) && !on(b)) seg[m] = [(seg[m]![0] + seg[m - 1]![0]) / 2, (seg[m]![1] + seg[m - 1]![1]) / 2];
+      seg = chaikin(seg);
+      path.moveTo(seg[0]![0], seg[0]![1]);
+      for (let k = 1; k < seg.length; k++) path.lineTo(seg[k]![0], seg[k]![1]);
+      // grass tufts and pebbles scattered along both verges (pure hash, same on every client)
+      for (let k = 1; k < seg.length; k += 3) {
+        const [x0, y0] = seg[k - 1]!, [x1, y1] = seg[k]!, d = Math.hypot(x1 - x0, y1 - y0) || 1;
+        const nx = -(y1 - y0) / d, ny = (x1 - x0) / d, hx = Math.round(x1 * 3), hy = Math.round(y1 * 3);
+        const side = hash(hx, hy, 611) < 0.5 ? -1 : 1, off = 2.5 + hash(hx, hy, 612) * 0.9;
+        tufts.push([x1 + nx * off * side, y1 + ny * off * side * 0.6, hash(hx, hy, 613)]);
+      }
+    }
+    rb = { path, tufts }; byKey.set(key, rb);
+    if (byKey.size > 8) byKey.delete(byKey.keys().next().value!);
+  }
+  c.save(); c.lineCap = "round"; c.lineJoin = "round";
+  c.strokeStyle = "rgba(70,52,30,0.16)"; c.lineWidth = 6.6; c.stroke(rb.path); // trodden, soft verge
+  c.strokeStyle = texture(c, "dirt") ?? "#c49e6c"; c.lineWidth = 4.6; c.stroke(rb.path);
+  c.strokeStyle = "rgba(60,45,28,0.10)"; c.lineWidth = 1.4; c.stroke(rb.path); // worn centre line
+  c.restore();
+  for (const [x, y, h] of rb.tufts) {
+    if (h < 0.55) {
+      c.strokeStyle = "rgba(78,96,46,0.5)"; c.lineWidth = 0.35; c.beginPath();
+      for (let b = -1; b <= 1; b++) { c.moveTo(x + b * 0.4, y); c.lineTo(x + b * 0.8, y - 1.1 - h * 0.8); }
+      c.stroke();
+    } else { c.fillStyle = "hsla(32,14%,46%,0.5)"; c.beginPath(); c.ellipse(x, y, 0.45, 0.25, 0, 0, 7); c.fill(); }
+  }
+}
 /** Screen-space bounds of a smoothed road (cached per link object). */
 function roadBox(l: { tiles: [number, number][] }): [number, number, number, number] {
   const hit = boxCache.get(l); if (hit) return hit;
@@ -1811,7 +1878,9 @@ export function draw(
       const pp = P(cx, cy);
       if (st.kind === "bridge") {
         /* drawn as one continuous span per crossing (see drawBridgeSpan) */
-      } else if (st.kind === "path" || st.kind === "street" || st.kind === "road" || st.kind === "avenue" || st.kind === "rail") {
+      } else if (st.kind === "road") {
+        /* drawn as one continuous ribbon per trade road (see drawRoadRibbon) */
+      } else if (st.kind === "path" || st.kind === "street" || st.kind === "avenue" || st.kind === "rail") {
         const street = st.kind === "street" || st.kind === "avenue";
         const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
         const wBase = street ? 7 : 4.6;
@@ -1900,6 +1969,12 @@ export function draw(
         c.fillStyle = texture(c, "meadow") ?? hsl(84, 34, 70, 0.6); c.fill();
       }
     }
+  }
+  // ---- trade roads as one continuous ribbon each (the tile steps stay logic only) ----
+  for (const l of links(seeds)) {
+    const bx = roadBox(l); if (bx[2] < cs0x - 60 || bx[0] > cs1x + 60 || bx[3] < cs0y - 60 || bx[1] > cs1y + 60) continue;
+    if (roadProgress(l, now) <= 0) continue;
+    drawRoadRibbon(c, l, seeds, now);
   }
 
   // ---- villagers, bucketed by tile for depth sorting ----
