@@ -1730,8 +1730,8 @@ export function Game() {
     tavernOpen || rollOpen || larderOpen || questOpen ||
     !!plantAsk || !!postTo || anyOpen || chronOpen;
 
-
   return (
+
 
     <div className={`relative h-[100dvh] w-full overflow-hidden bg-background ${walk ? "[&>*:not(canvas):not([data-walk])]:hidden" : ""}`}>
       {visitNote && (
