@@ -63,7 +63,7 @@ const de: Book = {
       ["Schutz vor Unheil", "Brände und Räuberbanden stellen das Dorf auf die Probe. Spritzenhäuser löschen Brände rasch, und eine Stadtgarde schlägt Plünderer in die Flucht. Hochwasser an Flüssen überschwemmt im Frühjahr und Herbst vorübergehend Uferwiesen, hinterlässt danach jedoch besonders fruchtbaren Boden."],
     ]],
     ["Dorf-Charta & Zünfte", [
-      ["Die Charta", "Sobald dein Ort zum Weiler herangewachsen ist, siegelt der Schulze einmalig die Charta. Die Wahl gilt für immer. Die Landschaft spricht nur eine Empfehlung aus – jeder Weg funktioniert überall."],
+      ["Die Charta", "Sobald dein Ort zum Weiler herangewachsen ist, siegelt der Schulze einmalig die Charta. Die Wahl gilt für immer. Die Landschaft bestimmt, was eure Natur hergibt; die Charta bestimmt, welche Ordnung ihr euch gebt. Ihr könnt Stärken zuspitzen – etwa eine Hafenstadt mit Marktrecht – oder Schwächen ausgleichen: eine Bauhütte an der flutgefährdeten Küste, eine Hohe Schule gegen eingeschleppte Seuchen, Handel mit Erz und Stein aus den Hügeln. Jeder Weg passt zu jedem Ort."],
       ["Handel", "Mehr Steuern Tag für Tag und ertragreichere Handelsstraßen. Lohnt sich besonders mit vielen Nachbarn."],
       ["Handwerk", "Gekaufte Bauten stehen in halber Zeit, und nach Brand oder Flut bauen die Zunftmaurer doppelt so schnell wieder auf."],
       ["Gelehrsamkeit", "Mehr Gesundheit, deutlich weniger Kranke und damit auch weniger Steuerausfälle."],
@@ -127,7 +127,7 @@ const en: Book = {
       ["Protection from harm", "Fires and robber bands put the village to the test. Fire houses put out fires quickly and a town guard drives off looters. Floods on rivers briefly swamp the shore meadows in spring and autumn, but leave especially fertile soil behind."],
     ]],
     ["Village charter & guilds", [
-      ["The charter", "Once your settlement has grown into a hamlet, the headman seals the charter once. The choice is permanent. The landscape only makes a suggestion – every path works anywhere."],
+      ["The charter", "Once your settlement has grown into a hamlet, the headman seals the charter once. The choice is permanent. The landscape decides what nature gives you; the charter decides which order you give yourselves. Sharpen strengths – a harbour with market rights – or balance weaknesses: a masons' lodge on a flood-prone coast, a high school against imported plagues, ore and stone traded from the hills. Every path suits every place."],
       ["Trade", "More taxes every day and richer trade roads. Best with many neighbours."],
       ["Craft", "Bought buildings finish in half the time, and after fire or flood the guild masons rebuild twice as fast."],
       ["Learning", "More health, far fewer sick villagers and therefore smaller tax losses."],
