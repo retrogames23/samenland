@@ -233,7 +233,7 @@ export type Kind =
   | "stall" | "townhall" | "gatehouse" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue"
   | "patrician" | "villa" | "tenement" | "townhouse2" | "fachwerk" | "steinhaus" | "handwerker"
   | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "belfry"
-  | "theater" | "opera" | "university" | "exchange" | "orangery" | "seat1" | "seat2" | "seat3";
+  | "theater" | "opera" | "university" | "exchange" | "orangery" | "harvesthall" | "guildtower" | "lighthouse" | "seat1" | "seat2" | "seat3";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). */
 export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; fire?: boolean; flood?: boolean; homeKind?: Kind };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
@@ -471,6 +471,7 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
 export const MONUMENT_DEFS = {
   belfry: { kind: "belfry", n: 4 }, theater: { kind: "theater", n: 3 }, cathedral: { kind: "factory", n: 5 },
   university: { kind: "university", n: 4 }, exchange: { kind: "exchange", n: 4 }, orangery: { kind: "orangery", n: 3 }, opera: { kind: "opera", n: 4 },
+  harvest: { kind: "harvesthall", n: 3 }, guildtower: { kind: "guildtower", n: 3 }, lighthouse: { kind: "lighthouse", n: 3 },
 } as const satisfies Record<string, { kind: Kind; n: number }>;
 export type MonumentKey = keyof typeof MONUMENT_DEFS;
 export const MONUMENT_KEYS = Object.keys(MONUMENT_DEFS) as MonumentKey[];

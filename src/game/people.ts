@@ -80,7 +80,7 @@ const pick = <T,>(a: readonly T[], h: number) => a[Math.floor(h * a.length) % a.
 /** Kinds people live in. */
 export const isHomeKind = (k: string) => k in HOME_SIZES && k !== "inn" && k !== "bakery";
 const SLOTS: Partial<Record<Kind, [Job, number]>> = {
-  belfry: ["watchman", 1], theater: ["crafter", 2], opera: ["crafter", 2], university: ["teacher", 2], exchange: ["merchant", 3], orangery: ["herbalist", 2],
+  belfry: ["watchman", 1], theater: ["crafter", 2], opera: ["crafter", 2], university: ["teacher", 2], exchange: ["merchant", 3], orangery: ["herbalist", 2], harvesthall: ["farmer", 2], guildtower: ["mason", 2], lighthouse: ["watchman", 1],
   watermill: ["miller", 2], chapel: ["priest", 1], manufactory: ["crafter", 4], steamworks: ["smith", 3], station: ["merchant", 2], stall: ["merchant", 2], harbor: ["carter", 2], townhall: ["crafter", 2], seat3: ["crafter", 1],
   bakery: ["baker", 2], smithy: ["smith", 2], inn: ["innkeeper", 2], mill: ["miller", 1], workshop: ["crafter", 2],
   factory: ["priest", 2], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
