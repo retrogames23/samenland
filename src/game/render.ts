@@ -1590,7 +1590,24 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
       band(9, 0.22, "sand"); band(5, 0.3, "sand");
       c.restore();
     }
-    c.fillStyle = texture(c, TEX_OF[LAYER_T[L]!]!) ?? "#7a8a50"; c.fill(path);
+    const tx = TEX_OF[LAYER_T[L]!]!;
+    c.fillStyle = texture(c, tx) ?? "#7a8a50"; c.fill(path);
+    if (L >= 3 && L <= 5) { // grassland: break the tiling with a rotated second layer + soft macro light patches
+      c.save(); c.clip(path);
+      const alt = textureAlt(c, tx);
+      if (alt) { c.globalAlpha = 0.42; c.fillStyle = alt; c.fill(path); }
+      const M = 7;
+      for (let gy = Math.floor(y0 / M); gy <= Math.ceil(y1 / M); gy++) for (let gx = Math.floor(x0 / M); gx <= Math.ceil(x1 / M); gx++) {
+        const h = hash(gx, gy, 311), mx = (gx + hash(gx, gy, 312)) * M, my = (gy + hash(gx, gy, 313)) * M;
+        const [px, py] = iso(mx, my), rad = TW * (2.5 + hash(gx, gy, 314) * 3);
+        const dark = h < 0.5, a = 0.05 + Math.abs(h - 0.5) * 0.14;
+        const gr = c.createRadialGradient(px, py, 0, px, py, rad);
+        gr.addColorStop(0, dark ? `rgba(40,58,20,${a})` : `rgba(236,222,150,${a})`); gr.addColorStop(1, "rgba(0,0,0,0)");
+        c.globalAlpha = 1; c.fillStyle = gr;
+        c.setTransform(c.getTransform().scale(1, 1)); c.beginPath(); c.ellipse(px, py, rad, rad * 0.5, 0, 0, Math.PI * 2); c.fill();
+      }
+      c.restore();
+    }
   }
   if (G.shore.length) drawSurf(c, G.shore, t, detail);
   return G.edges;

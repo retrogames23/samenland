@@ -54,6 +54,14 @@ export function texture(c: C, t: Tex, shift = 0): CanvasPattern | null {
   p.setTransform(TEX_M.scaleSelf(1, 0.5).rotateSelf(45).translateSelf(shift, shift * 0.3).scaleSelf(s, s));
   return p;
 }
+/** Same texture at another scale and angle: laid over the base at low alpha it breaks the visible repeat grid. */
+export function textureAlt(c: C, t: Tex): CanvasPattern | null {
+  const p = texture(c, t); if (!p) return null;
+  const s = SPAN[t] * 1.73 / 816;
+  TEX_M.setMatrixValue("none");
+  p.setTransform(TEX_M.scaleSelf(1, 0.5).rotateSelf(45 + 27).translateSelf(37, 113).scaleSelf(s, s));
+  return p;
+}
 
 type Sprite = { url: string; crop: [number, number, number, number]; width: number };
 const NATURE = {
