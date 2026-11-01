@@ -9,7 +9,8 @@ import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
 import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, type Realm } from "@/game/time";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, signpostMap, type Camera } from "@/game/render";
+import { wonders, wonderClaims, firstFinder, WONDER_REACH, type WonderFind } from "@/game/wonders";
+import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townRank, rankInput, nextRankNeed } from "@/game/rank";
 import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, setStrollHold, citizensOf, type Person } from "@/game/people";
@@ -463,9 +464,12 @@ export function Game() {
         supabase.from("market_sales").select("id, seed_id, day, reward, created_at"),
         supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at"),
         supabase.from("village_visits").select("id, visitor_seed, visited_seed, reward, created_at"),
-      ]).then(([q, m, rf, vv]) => {
+        (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("wonder_finds").select("id, seed_id, site, realm, first, reward, created_at"),
+      ]).then(([q, m, rf, vv, wf]) => {
         for (const v of vv.data ?? []) visitSeen.current.add(v.visited_seed);
-        setClaims([...(q.data ?? []), ...visitClaims(vv.data ?? []), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? [])]);
+        wonderRows.current = (wf.data ?? []) as unknown as WonderFind[];
+        syncWonders();
+        setClaims([...(q.data ?? []), ...visitClaims(vv.data ?? []), ...wonderClaims(wonderRows.current), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? [])]);
         // tell the inviter once when a friend has answered the call
         const mine = ss.find((s) => uid && s.user_id === uid);
         const got = (rf.data ?? []).filter((x) => mine && x.referrer_seed === mine.id);
@@ -699,6 +703,7 @@ export function Game() {
             if (keys.size || held || walkDriven) { driveMayor(me, tw, S.seeds, nw, dx + dy, dy - dx, dt / 1000); walkDriven = true; }
             const q = poseOf(me, tw, S.seeds, nw), [ix, iy] = iso(q.x, q.y), k = 1 - Math.exp(-dt / 220);
             for (const o of S.seeds) if (o.id !== my.id && !visitSeen.current.has(o.id) && Math.hypot(q.x - o.x, q.y - o.y) <= radiusOf((nw - Date.parse(o.created_at)) / 36e5)) { visitSeen.current.add(o.id); visitFn.current(o, my); }
+            for (const w of wonders()) if (!wonderSeen.current.has(w.key) && Math.hypot(q.x - w.x, q.y - w.y) <= WONDER_REACH) { wonderSeen.current.add(w.key); wonderFn.current(w.key, w.kind, my); }
             cam.current.x += (ix - cam.current.x) * k; cam.current.y += (iy - 10 - cam.current.y) * k;
           }
         }
@@ -1013,6 +1018,30 @@ export function Game() {
       jingle("fanfare"); setTimeout(() => jingle("coins"), 700);
       // shown as its own parchment so it stays visible during the stroll (normal HUD is hidden there)
       setVisitNote(t.visit.got(o.name, data));
+    });
+  };
+  // wonders in the wild: the first village on a map is named in the summit book, every later one still gets its own find
+  const wonderRows = useRef<WonderFind[]>([]);
+  const wonderSeen = useRef(new Set<string>());
+  const wonderFn = useRef<(key: string, kind: string, my: Seed) => void>(() => {});
+  const syncWonders = () => {
+    const mine = st.current.seeds.find((s) => userId && s.user_id === userId);
+    const own = new Set(wonderRows.current.filter((r) => mine && r.seed_id === mine.id).map((r) => r.site));
+    wonderSeen.current = new Set(own); setWonderFound(own);
+  };
+  useEffect(() => { syncWonders(); }, [my?.id, userId]);
+  wonderFn.current = (key, kind, my) => {
+    if (!owner || my.user_id !== userId) { wonderSeen.current.delete(key); return; }
+    (supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: number | null; error: unknown }>)("claim_wonder", { _seed: my.id, _site: key }).then(({ data, error }) => {
+      if (error || !data) { if (error) wonderSeen.current.delete(key); return; }
+      const realm = my.realm ?? "europe", before = firstFinder(wonderRows.current, key, realm);
+      const row: WonderFind = { id: `local-w-${key}`, seed_id: my.id, site: key, realm, first: !before, reward: data, created_at: new Date().toISOString() };
+      wonderRows.current = [...wonderRows.current, row]; syncWonders();
+      setClaims((c) => [...c, ...wonderClaims([row])]);
+      jingle("fanfare"); setTimeout(() => jingle("coins"), 700);
+      const name = t.wonder.names[kind] ?? kind;
+      const by = before ? st.current.seeds.find((s) => s.id === before.seed_id)?.name ?? "?" : "";
+      setVisitNote(before ? t.wonder.later(name, data, by) : t.wonder.first(name, data));
     });
   };
   const [seenGifts, setSeenGifts] = useState<string[]>([]);

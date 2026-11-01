@@ -26,6 +26,13 @@ import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow } from "./crafts";
 import { isSunday } from "./time";
 import { activeRaid, RAID_LEN } from "./disasters";
+import { wonders, type WonderKind } from "./wonders";
+import wreckU from "@/assets/sprites/wonders/wreck.webp";
+import caveU from "@/assets/sprites/wonders/cave.webp";
+import oakU from "@/assets/sprites/wonders/oak.webp";
+import ruinU from "@/assets/sprites/wonders/ruin.webp";
+import caravanU from "@/assets/sprites/wonders/caravan.webp";
+import springU from "@/assets/sprites/wonders/spring.webp";
 import { hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
@@ -1662,6 +1669,25 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
   }
 }
 
+// ---------------- wonders in the wild (src/game/wonders.ts) ----------------
+const WONDER_ART: Record<WonderKind, [string, number]> = { wreck: [wreckU, 62], cave: [caveU, 54], oak: [oakU, 74], ruin: [ruinU, 70], caravan: [caravanU, 52], spring: [springU, 46] };
+let wonderM: Map<number, WonderKind> | null = null;
+const wonderMap = () => wonderM ??= new Map(wonders().map((w) => [w.y * MAP + w.x, w.kind]));
+let wonderFound = new Set<string>();
+/** Sites the own village already explored (no more sparkle). */
+export function setWonderFound(keys: Set<string>) { wonderFound = keys; }
+function drawWonder(c: C, k: WonderKind, cx: number, cy: number, t: number, fresh: boolean, L: Light[]) {
+  const [u, w] = WONDER_ART[k], im = huntIm(`wonder-${k}`, u);
+  if (im) { const h = (w * im.naturalHeight) / im.naturalWidth; c.drawImage(im, cx - w / 2, cy + 6 - h, w, h); }
+  if (k === "cave" || k === "wreck") L.push({ x: cx - 6, y: cy - 8, r: 3 });
+  if (fresh) {
+    // a soft golden glimmer marks a place this village has not explored yet
+    const a = 0.35 + Math.sin(t / 380 + cx) * 0.25;
+    c.save(); c.fillStyle = `rgba(255,214,120,${a})`;
+    for (let i = 0; i < 3; i++) { const ph = t / 900 + i * 2.1, px = cx + Math.cos(ph) * 14, py = cy - 18 + Math.sin(ph * 1.3) * 8; c.beginPath(); c.arc(px, py, 1.3, 0, 7); c.fill(); }
+    c.restore();
+  }
+}
 // ---------------- player rituals: festive garlands and signposts ----------------
 let signSrc: Signpost[] = [], signKey = "", signSeeds: Seed[] | null = null;
 const signMap = new Map<number, Signpost>();
@@ -2228,6 +2254,7 @@ export function draw(
       L.push({ x: cx + 5, y: cy - 6, r: focused ? 7 : 2.5 });
       if (focused) L.push({ x: cx + 5, y: cy + 1, r: 6 });
     }
+    if (!st) { const wk = wonderMap().get(y * MAP + x); if (wk) drawWonder(c, wk, cx, cy, t, !wonderFound.has(`${wk}:${x}:${y}`), L); }
     { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
     if (y * MAP + x === goalK) {
       // golden waymark where the player's mayor is heading
