@@ -7,7 +7,7 @@ export function dwellingSlots(way: TownWay, kind: Kind, radius: number) {
   if (!MULTI_HOME.has(kind)) return 1;
   // Staggered so no character pulls far ahead mid-game: hills densify first and highest,
   // coasts and plains follow with a second floor once they are small towns.
-  if (way === "workshop") return radius >= 32 ? 3 : radius >= 14 ? 2 : 1;
+  if (way === "workshop") return radius >= 24 ? 3 : radius >= 14 ? 2 : 1;
   if (way === "gateway") return radius >= 26 ? 3 : radius >= 16 ? 2 : 1;
   return radius >= 16 ? 2 : 1;
 }

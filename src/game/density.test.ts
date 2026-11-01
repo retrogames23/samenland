@@ -11,10 +11,10 @@ describe("character dwellings", () => {
   it("hills support two and then three families in suitable houses", () => {
     expect(dwellingSlots("workshop", "steinhaus", 13)).toBe(1);
     expect(dwellingSlots("workshop", "steinhaus", 14)).toBe(2);
-    expect(dwellingSlots("workshop", "steinhaus", 32)).toBe(3);
+    expect(dwellingSlots("workshop", "steinhaus", 24)).toBe(3);
     expect(dwellingSlots("workshop", "hut", 40)).toBe(1);
   });
-  it("coasts reach three floors earlier than hills, plains stop at two", () => {
+  it("coasts and hills stack three floors, plains stop at two", () => {
     expect(dwellingSlots("gateway", "townhouse", 16)).toBe(2);
     expect(dwellingSlots("gateway", "townhouse", 26)).toBe(3);
     expect(dwellingSlots("grain", "townhouse", 15)).toBe(1);
