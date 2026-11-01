@@ -19,7 +19,7 @@ import { setArtTime } from "./season-art";
 import { seasonKey, seasonAt } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
 import { townCharacter } from "./character";
-import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
+import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, type Pose } from "./people";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
@@ -1601,10 +1601,10 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
         const h = hash(gx, gy, 311), mx = (gx + hash(gx, gy, 312)) * M, my = (gy + hash(gx, gy, 313)) * M;
         const [px, py] = iso(mx, my), rad = TW * (2.5 + hash(gx, gy, 314) * 3);
         const dark = h < 0.5, a = 0.05 + Math.abs(h - 0.5) * 0.14;
-        const gr = c.createRadialGradient(px, py, 0, px, py, rad);
+        const gr = c.createRadialGradient(0, 0, 0, 0, 0, rad);
         gr.addColorStop(0, dark ? `rgba(40,58,20,${a})` : `rgba(236,222,150,${a})`); gr.addColorStop(1, "rgba(0,0,0,0)");
-        c.globalAlpha = 1; c.fillStyle = gr;
-        c.setTransform(c.getTransform().scale(1, 1)); c.beginPath(); c.ellipse(px, py, rad, rad * 0.5, 0, 0, Math.PI * 2); c.fill();
+        c.save(); c.translate(px, py); c.scale(1, 0.5); c.globalAlpha = 1; c.fillStyle = gr;
+        c.beginPath(); c.arc(0, 0, rad, 0, Math.PI * 2); c.fill(); c.restore();
       }
       c.restore();
     }
