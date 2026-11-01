@@ -59,4 +59,4 @@
 - [x] 3: Daumen-Leiste unten
 - [x] 4b: Größerer Fangradius + Vibration statt Lupe, Schulze-Knopf in der Leiste
 
-- [ ] Samenland unterstützen: Pergament-Overlay, Bezahlung (3/5/10 €), je Beitrag eine optische Dorfverzierung
+- [x] Samenland unterstützen: Pergament-Overlay, Bezahlung (3/5/10 €), je Beitrag eine optische Dorfverzierung
