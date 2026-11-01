@@ -881,6 +881,8 @@ export const clearMayorOrder = () => { order = null; drive = null; };
 export const DRIVE_SPEED = 0.38;
 /** Knights ride: speed factor of the riding horse in stroll mode (local-only, from the knighthood row). */
 export const KNIGHT_SPEED = 2.2;
+/** Extra factor for a mounted knight on road/street tiles. */
+export const KNIGHT_ROAD = 1.3;
 let mounted = false;
 export const setMounted = (v: boolean) => { mounted = v; };
 type Drive = { id: number; sid: string; x: number; y: number; dir: [number, number]; moving: boolean; dist: number };
@@ -896,7 +898,9 @@ export function driveMayor(p: Person, t: Town, seeds: Seed[], now: number, dx: n
   }
   const len = Math.hypot(dx, dy);
   if (!len) { drive.moving = false; return; }
-  const v = DRIVE_SPEED * (mounted ? KNIGHT_SPEED : 1);
+  // knights gallop faster still on roads and streets
+  const onRoad = mounted && (() => { const k = structureAt(Math.round(drive.x), Math.round(drive.y), seeds, now)?.kind; return k === "street" || k === "road" || k === "path" || k === "square" || k === "bridge"; })();
+  const v = DRIVE_SPEED * (mounted ? KNIGHT_SPEED * (onRoad ? KNIGHT_ROAD : 1) : 1);
   const s = (v * Math.min(dt, 0.1)) / len, nx = drive.x + dx * s, ny = drive.y + dy * s;
   const ok = (x: number, y: number) => x >= 1 && y >= 1 && x < MAP - 1 && y < MAP - 1 && freeAt(t, x, y, seeds);
   if (ok(nx, ny)) { drive.x = nx; drive.y = ny; }

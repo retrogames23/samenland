@@ -26,13 +26,17 @@ export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnr
 
   const [side, setSide] = useState(false);
   // read marks live on the account (chat_reads), merged with this browser's copy — survives preview frames and other devices
+  const [readsReady, setReadsReady] = useState(false);
   useEffect(() => {
     const local = readSeen(userId);
     setSeen(local);
+    setReadsReady(false);
     if (!userId) return;
     let live = true;
     supabase.from("chat_reads").select("channel, seen_at").then(({ data }) => {
-      if (!live || !data) return;
+      if (!live) return;
+      setReadsReady(true);
+      if (!data) return;
       setSeen((cur) => {
         const m = { ...cur };
         for (const r of data) m[r.channel] = Math.max(m[r.channel] ?? 0, Date.parse(r.seen_at));
@@ -69,7 +73,8 @@ export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnr
   const shown = useMemo(() => inChannel(msgs, chan, userId, realm, blocked), [msgs, chan, userId, realm, blocked]);
   const unreadOf = (c: Channel) => unread(msgs, c, userId, realm, blocked, seen[chanKey(c)] ?? 0);
   const total = unreadOf("tavern") + peers.reduce((a, p) => a + unreadOf({ peer: p }), 0);
-  useEffect(() => onUnread(open ? 0 : total), [total, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  // no dot until the account's read marks have arrived — otherwise old messages flash as "new" in fresh browsers
+  useEffect(() => onUnread(open || !readsReady ? 0 : total), [total, open, readsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // mark current channel seen while open
   useEffect(() => {
