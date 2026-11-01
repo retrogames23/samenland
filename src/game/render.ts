@@ -27,6 +27,9 @@ import { sacksAt, breadOut, fishingNow } from "./crafts";
 import { isSunday } from "./time";
 import { activeRaid, RAID_LEN } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
+import { decorMap, type RewardKey } from "./supporter";
+import { SUPPORT_ART, SUPPORT_W } from "./support-art";
+import { SEAT_KINDS } from "./world";
 import wreckU from "@/assets/sprites/wonders/wreck.webp";
 import caveU from "@/assets/sprites/wonders/cave.webp";
 import oakU from "@/assets/sprites/wonders/oak.webp";
@@ -1732,6 +1735,26 @@ const WONDER_ART: Record<WonderKind, [string, number]> = { wreck: [wreckU, 62], 
 let wonderM: Map<number, WonderKind> | null = null;
 const wonderMap = () => wonderM ??= new Map(wonders().map((w) => [w.y * MAP + w.x, w.kind]));
 let wonderFound = new Set<string>();
+// ---------------- supporter decorations (src/game/supporter.ts): purely cosmetic ----------------
+let supportOwned = new Map<string, Set<string>>();
+/** Granted supporter rewards per village id (set by the UI). */
+export function setSupportOwned(m: Map<string, Set<string>>) { supportOwned = m; }
+function drawSupport(c: C, k: RewardKey, cx: number, cy: number, L: Light[], night: boolean) {
+  const u = SUPPORT_ART[k], w = SUPPORT_W[k]; if (!u || !w) return;
+  const im = huntIm(`support-${k}`, u); if (!im) return;
+  const h = (w * im.naturalHeight) / im.naturalWidth;
+  if (k === "lanterns") {
+    for (const ox of [-9, 9]) { c.drawImage(im, cx + ox - w / 2, cy + 3 - h, w, h); if (night) L.push({ x: cx + ox - 2, y: cy + 3 - h * 0.78, r: 6 }); }
+    return;
+  }
+  c.drawImage(im, cx - w / 2, cy + 6 - h, w, h);
+  if (k === "statue") L.push({ x: cx, y: cy - h * 0.6, r: 2.5 });
+}
+function drawVane(c: C, cx: number, top: number) {
+  const u = SUPPORT_ART.vane, w = SUPPORT_W.vane!; if (!u) return;
+  const im = huntIm("support-vane", u); if (!im) return;
+  const h = (w * im.naturalHeight) / im.naturalWidth; c.drawImage(im, cx - w / 2, top + 4 - h, w, h);
+}
 /** Sites the own village already explored (no more sparkle). */
 export function setWonderFound(keys: Set<string>) { wonderFound = keys; }
 function drawWonder(c: C, k: WonderKind, cx: number, cy: number, t: number, fresh: boolean, L: Light[]) {
@@ -2393,6 +2416,7 @@ export function draw(
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
     if (st) {
       drawStructure(c, st, cx, cy, x, y, t, L);
+      if (st.build === undefined && SEAT_KINDS.includes(st.kind) && supportOwned.get(st.seed.id)?.has("vane")) { const b = spriteBox(st.kind, st.v, houseStyle(st)); if (b) drawVane(c, cx, cy + b.base - b.h); }
       if (st.build === undefined && !FLAT.has(st.kind)) { const b = spriteBox(st.kind, st.v, houseStyle(st)); if (b && b.h > 8) occ.push(ti, cx - b.w / 2, cy + b.base - b.h, cx + b.w / 2, cy + b.base - 2); }
     }
     for (const f of hunt.get(y * MAP + x) ?? []) f();
@@ -2414,6 +2438,7 @@ export function draw(
     }
     if (!st) { const cp = courtPieces().get(y * MAP + x); if (cp) drawCourtPiece(c, cp, cx, cy, L); for (const q of courtFigures(t).get(y * MAP + x) ?? []) drawCourtFigure(c, q, t); }
     if (!st) { const wk = wonderMap().get(y * MAP + x); if (wk) drawWonder(c, wk, cx, cy, t, !wonderFound.has(`${wk}:${x}:${y}`), L); }
+    if (!st && supportOwned.size) { const dk = decorMap(seeds, supportOwned, now, MAP).get(y * MAP + x); if (dk) drawSupport(c, dk, cx, cy, L, worldHour(now) >= 19 || worldHour(now) < 7); }
     { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
     if (y * MAP + x === goalK) {
       // golden waymark where the player's mayor is heading
