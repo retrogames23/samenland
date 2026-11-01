@@ -349,6 +349,12 @@ export const fr: Dict = {
       hundred: ["150 bourgeois", "Attendez que 150 personnes vivent dans votre ville.", "La cloche du marché appelle 150 bourgeois."],
       merchant: ["Privilège de marché", "Laissez votre petite ville devenir une cité marchande.", "Le privilège de marché est à nous !"],
       metro: ["Couronne du pays", "Laissez votre cité marchande devenir une métropole.", "Une métropole ! D'une graine est né un monde."],
+      "buy6:grain": ["Réserves d'hiver", "Construisez six bâtiments au total, dont le grand grenier.", "Les réserves sont pleines – aucun hiver ne nous effraie."],
+      "buy6:workshop": ["La première pierre", "Construisez six bâtiments au total, dont la loge des tailleurs de pierre.", "Nos tailleurs de pierre bâtissent pour des générations."],
+      "buy6:gateway": ["Pêche et fumée", "Construisez six bâtiments au total, dont la halle aux poissons et fumoir.", "L'odeur du fumoir descend jusqu'au port."],
+      "metro:grain": ["Couronne de blé", "Faites de votre ville une métropole et bâtissez la rangée de moulins.", "Nos moulins nourrissent tout le pays !"],
+      "metro:workshop": ["Marteau des collines", "Faites de votre ville une métropole et bâtissez la forge à marteaux.", "Les marteaux tonnent – l'atelier des collines est une métropole !"],
+      "metro:gateway": ["Porte du monde", "Faites de votre ville une métropole et bâtissez le comptoir du sel et la grue du quai.", "Des navires du monde entier accostent à notre quai !"],
     } as Record<string, [string, string, string]>,
   },
   guide: {
