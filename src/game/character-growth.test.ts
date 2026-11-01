@@ -23,6 +23,11 @@ describe("730-day character foundation", () => {
       expect(Math.max(...metric) / Math.min(...metric)).toBeLessThanOrEqual(1.1);
     }
   }, 20000);
+  it("no character pulls more than fifteen percent ahead at day 180", () => {
+    const mid = start + 180 * 864e5;
+    const pops = towns.map(s => residentTax(s, [s], mid).population);
+    expect(Math.max(...pops) / Math.min(...pops)).toBeLessThanOrEqual(1.15);
+  }, 20000);
   it("hills and coasts house their families on fewer occupied building tiles", () => {
     const counts = towns.map(s => new Set(householdsOf(s, [s], at).map(h => h.home.join(","))).size);
     expect(counts[1]).toBeLessThan(counts[0] ?? 0);
