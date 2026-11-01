@@ -33,7 +33,7 @@ import { scribeGreeting } from "@/lib/chronicle.functions";
 import { deleteAccount } from "@/lib/account.functions";
 import { settleTreasury } from "@/lib/treasury.functions";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen, ScrollText } from "lucide-react";
+import { BookOpen, ScrollText, MoreHorizontal } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
 import { QUESTS, questState, questKey, WAY_SMALL, WAY_BIG, type Quest, type QuestClaim } from "@/game/quests";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -1372,6 +1372,7 @@ export function Game() {
     const cv = canvasRef.current!;
     target.current = { zoom: Math.min(st.current.walk ? 20 : 12, Math.max(MIN_ZOOM, target.current.zoom * f)), ax: cv.width / 2, ay: cv.height / 2 };
   };
+  const [moreOpen, setMoreOpen] = useState(false);
   const pick = (k: Tab) => setTab(tab === k ? null : k);
   const tabs: { k: Tab; icon: typeof Hammer; label: string }[] = [
     ...(my ? [
@@ -1958,6 +1959,9 @@ export function Game() {
             <button type="button" aria-label={fs ? t.exitFullscreen : t.fullscreen} title={fs ? t.exitFullscreen : t.fullscreen} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())} className="hidden h-8 w-8 place-items-center rounded-md hover:bg-accent md:grid">
               {fs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
+            <button type="button" aria-label={t.guide.menu} title={t.guide.menu} onClick={() => setGuideOpen(true)} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent md:hidden">
+              <BookOpen className="h-4 w-4" />
+            </button>
             <button type="button" aria-label={t.hud.settings} title={t.hud.settings} aria-expanded={settings} onClick={() => { if (!settings) { setWho(null); setPlace(null); } setSettings(!settings); }} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent">
               <Settings className="h-4 w-4" />
             </button>
@@ -2022,7 +2026,7 @@ export function Game() {
       <div className="pointer-events-none absolute inset-x-2 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-30 md:inset-x-auto md:bottom-auto md:left-3 md:top-[var(--bar-h,6rem)]" style={{ "--bar-h": `${barH + 8}px` } as import("react").CSSProperties}>
         <Panel inner="!bg-wood !border-0 flex gap-1 p-1 md:flex-col">
           {tabs.map(({ k, icon: I, label }) => (
-            <WoodButton key={k} label={label} active={tab === k} onClick={() => pick(k)} className="h-11 flex-1 flex-col gap-0.5 md:h-14 md:w-14 md:flex-none">
+            <WoodButton key={k} label={label} active={tab === k} onClick={() => { setMoreOpen(false); pick(k); }} className={`h-11 flex-1 flex-col gap-0.5 md:flex md:h-14 md:w-14 md:flex-none ${k === "rituals" || k === "signs" ? "max-md:hidden" : ""}`}>
               <I className="h-5 w-5" /><span className="text-[10px] leading-none">{label}</span>
             </WoodButton>
           ))}
@@ -2036,14 +2040,29 @@ export function Game() {
             {chatUnread > 0 && <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-destructive" />}
           </WoodButton>
           {my && (
-            <WoodButton label={t.mayorFind} onClick={findMayor} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
+            <WoodButton label={t.mayorFind} onClick={findMayor} className="max-md:hidden h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
               <Crown className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.role["mayor"]![1]}</span>
             </WoodButton>
           )}
-          <WoodButton label={t.guide.menu} active={guideOpen} onClick={() => setGuideOpen(true)} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
+          <WoodButton label={t.guide.menu} active={guideOpen} onClick={() => setGuideOpen(true)} className="max-md:hidden h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
             <BookOpen className="h-5 w-5" /><span className="text-[10px] leading-none">{t.guide.menu}</span>
           </WoodButton>
+          {my && (
+            <WoodButton label={t.hud.menu} active={moreOpen || tab === "rituals" || tab === "signs"} onClick={() => setMoreOpen(!moreOpen)} className="h-11 flex-1 flex-col gap-0.5 md:hidden">
+              <MoreHorizontal className="h-5 w-5" /><span className="text-[10px] leading-none">{t.hud.menu}</span>
+            </WoodButton>
+          )}
         </Panel>
+        {moreOpen && my && (
+          <>
+            <div className="pointer-events-auto fixed inset-0 -z-10 md:hidden" aria-hidden onClick={() => setMoreOpen(false)} />
+            <Panel className="absolute bottom-full right-0 mb-2 w-56 md:hidden" inner="!bg-wood !border-0 grid grid-cols-3 gap-1 p-1">
+              <WoodButton label={t.hud.rituals} active={tab === "rituals"} onClick={() => { setMoreOpen(false); pick("rituals"); }} className="h-14 flex-col gap-0.5"><Bell className="h-5 w-5" /><span className="text-[10px] leading-none">{t.hud.rituals}</span></WoodButton>
+              <WoodButton label={t.hud.signs} active={tab === "signs"} onClick={() => { setMoreOpen(false); pick("signs"); }} className="h-14 flex-col gap-0.5"><SignIcon className="h-5 w-5" /><span className="text-[10px] leading-none">{t.hud.signs}</span></WoodButton>
+              <WoodButton label={t.mayorFind} onClick={() => { setMoreOpen(false); findMayor(); }} className="h-14 flex-col gap-0.5"><Crown className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.role["mayor"]![1]}</span></WoodButton>
+            </Panel>
+          </>
+        )}
       </div>
       {tab && (
         <div className="pointer-events-none absolute inset-x-2 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 md:inset-x-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
