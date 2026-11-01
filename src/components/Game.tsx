@@ -2621,8 +2621,9 @@ export function Game() {
           );
         })()}
         {msg && (
-          <div className="rounded-md border-2 border-border bg-card px-3 py-2 shadow-[var(--shadow-panel)] border-wood text-foreground">
-            {msg}
+          <div role="status" className={`pointer-events-auto flex w-full items-start gap-2 rounded-md border-2 border-wood bg-card py-2 pl-3 pr-1.5 text-foreground shadow-[var(--shadow-panel)] md:w-auto ${tab ? "max-md:fixed max-md:inset-x-2 max-md:z-40 max-md:w-auto" : ""}`} style={tab ? { top: barH + 16 } : undefined}>
+            <span className="min-w-0 flex-1">{msg}</span>
+            <button type="button" aria-label={t.hud.close} onClick={() => setMsg(null)} className="grid h-6 w-6 shrink-0 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"><X className="h-4 w-4" /></button>
           </div>
         )}
         {who && (() => {
