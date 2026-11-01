@@ -24,6 +24,6 @@ describe("way complement", () => {
     const a = pts[0]!, other = pts.find((p) => townCharacter(p).main !== townCharacter(a).main);
     if (!other) return;
     const now = Date.parse("2026-01-02T00:00:00Z");
-    expect(tf2(a, other, now)).toBeGreaterThan(0);
+    expect(tf2(a, other, now)).toBeCloseTo(Math.min(COMPLEMENT_MAX, complement(a, other) + 0.1));
   });
 });
