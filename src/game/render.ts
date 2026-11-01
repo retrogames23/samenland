@@ -33,6 +33,18 @@ import oakU from "@/assets/sprites/wonders/oak.webp";
 import ruinU from "@/assets/sprites/wonders/ruin.webp";
 import caravanU from "@/assets/sprites/wonders/caravan.webp";
 import springU from "@/assets/sprites/wonders/spring.webp";
+import { courtPieces, courtPoses, inCourt, COURT_LAYOUT, type CourtPiece, type CourtPose, type CourtRole } from "./court";
+import castleU from "@/assets/sprites/court/castle.webp";
+import stableU from "@/assets/sprites/court/stable.webp";
+import parterreU from "@/assets/sprites/court/parterre.webp";
+import fountainU from "@/assets/sprites/court/fountain.webp";
+import pavilionU from "@/assets/sprites/court/pavilion.webp";
+import princeU from "@/assets/sprites/court/prince.webp";
+import princessU from "@/assets/sprites/court/princess.webp";
+import heraldU from "@/assets/sprites/court/herald.webp";
+import guardU from "@/assets/sprites/court/guard.webp";
+import gardenerU from "@/assets/sprites/court/gardener.webp";
+import courtGroomU from "@/assets/sprites/court/groom.webp";
 import { hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
@@ -1597,6 +1609,7 @@ function nearTown(x: number, y: number) {
 }
 /** Wild trees, bushes, crags and ore rocks of one tile — the single source for every zoom level. */
 function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean) {
+  if (inCourt(x, y)) return; // the estate keeps open lawns
   const tr = terrain(x, y);
   if (tr === "hill" || tr === "mountain") {
     const rs = resourceAt(x, y);
@@ -1687,6 +1700,31 @@ function drawWonder(c: C, k: WonderKind, cx: number, cy: number, t: number, fres
     for (let i = 0; i < 3; i++) { const ph = t / 900 + i * 2.1, px = cx + Math.cos(ph) * 14, py = cy - 18 + Math.sin(ph * 1.3) * 8; c.beginPath(); c.arc(px, py, 1.3, 0, 7); c.fill(); }
     c.restore();
   }
+}
+// ---------------- the prince's seat (src/game/court.ts) ----------------
+const COURT_ART: Record<CourtPiece, string> = { castle: castleU, stable: stableU, parterre: parterreU, fountain: fountainU, pavilion: pavilionU };
+const COURT_FIG: Record<CourtRole, string> = { prince: princeU, princess: princessU, herald: heraldU, guard: guardU, gardener: gardenerU, groom: courtGroomU };
+function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[]) {
+  const n = COURT_LAYOUT[k][2], im = huntIm(`court-${k}`, COURT_ART[k]);
+  // centre of the footprint, the front tile sits n-1 tiles toward the viewer
+  const mx = cx, my = cy - ((n - 1) * TH) / 2, w = n * TW * (k === "fountain" || k === "pavilion" ? 0.9 : 1.02);
+  if (im) { const h = (w * im.naturalHeight) / im.naturalWidth; const flat = k === "parterre"; c.drawImage(im, mx - w / 2, flat ? my - h / 2 : my + (n * TH) / 2 + 2 - h, w, h); }
+  if (k === "castle") { L.push({ x: mx - 20, y: my - 30, r: 5 }); L.push({ x: mx + 18, y: my - 26, r: 5 }); L.push({ x: mx, y: my + 20, r: 4 }); }
+  if (k === "stable") L.push({ x: mx - 22, y: my - 6, r: 3 });
+}
+let courtFrame = -1; const courtFig = new Map<number, CourtPose[]>();
+function courtFigures(t: number) {
+  if (courtFrame === t) return courtFig;
+  courtFrame = t; courtFig.clear();
+  for (const q of courtPoses(localHour(), clock())) { const k = Math.round(q.y) * MAP + Math.round(q.x); (courtFig.get(k) ?? courtFig.set(k, []).get(k)!).push(q); }
+  return courtFig;
+}
+function drawCourtFigure(c: C, q: CourtPose, t: number) {
+  const im = huntIm(`courtfig-${q.role}`, COURT_FIG[q.role]); if (!im) return;
+  const [px, py] = iso(q.x, q.y), h = q.role === "prince" ? 23 : 21, w = (h * im.naturalWidth) / im.naturalHeight;
+  const bob = q.walking ? Math.abs(Math.sin(t / 140 + q.x)) * 1.2 : 0;
+  c.save(); c.fillStyle = "rgba(40,30,15,0.25)"; c.beginPath(); c.ellipse(px, py, w * 0.45, 2, 0, 0, 7); c.fill();
+  c.translate(px, py - bob); if (q.dx < 0) c.scale(-1, 1); c.drawImage(im, -w / 2, -h, w, h); c.restore();
 }
 // ---------------- player rituals: festive garlands and signposts ----------------
 let signSrc: Signpost[] = [], signKey = "", signSeeds: Seed[] | null = null;
@@ -2254,6 +2292,7 @@ export function draw(
       L.push({ x: cx + 5, y: cy - 6, r: focused ? 7 : 2.5 });
       if (focused) L.push({ x: cx + 5, y: cy + 1, r: 6 });
     }
+    if (!st) { const cp = courtPieces().get(y * MAP + x); if (cp) drawCourtPiece(c, cp, cx, cy, L); for (const q of courtFigures(t).get(y * MAP + x) ?? []) drawCourtFigure(c, q, t); }
     if (!st) { const wk = wonderMap().get(y * MAP + x); if (wk) drawWonder(c, wk, cx, cy, t, !wonderFound.has(`${wk}:${x}:${y}`), L); }
     { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
     if (y * MAP + x === goalK) {

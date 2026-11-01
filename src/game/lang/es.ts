@@ -20,6 +20,7 @@ export const es: Dict = {
   nearOnly: "Solo cerca de tu aldea.",
   noGrow: "Aquí no crece nada.",
   hill: "No se construye en las montañas.",
+  court: "Demasiado cerca de la residencia del príncipe: busca tierras más lejos.",
   water: "Esto no es tierra firme.",
   near: (n) => `Demasiado cerca de ${n}.`,
   seedHint: { ok: (n: string) => `Tierra libre: pulsa para fundar ${n || "tu aldea"}`, hill: "Montañas: busca un valle", water: "Agua: busca tierra firme", near: (n: string, d: number) => `Demasiado cerca de ${n} (${d} casillas más)` },

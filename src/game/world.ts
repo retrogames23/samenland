@@ -1,3 +1,4 @@
+import { nearCourt } from "./court";
 import { townCharacter, type TownWay } from "./character";
 import { cacheTick, worldHour, worldWeekday, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
@@ -665,6 +666,7 @@ export function canPlant(x: number, y: number, seeds: Seed[]): string | null {
   if (isWater(tt)) return "water";
   if (tt === "mountain") return "hill";
   if (!buildable(tt)) return "water";
+  if (nearCourt(x, y)) return "court";
   for (const s of seeds) if (Math.hypot(x - s.x, y - s.y) < MIN_SEED_DISTANCE) return `near:${s.name}`;
   return null;
 }

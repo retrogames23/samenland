@@ -34,6 +34,7 @@ const de = {
   nearOnly: "Nur in der Nähe deines Dorfes.",
   noGrow: "Hier wächst nichts.",
   hill: "Im Gebirge wird nicht gebaut.",
+  court: "Zu nah am Sitz des Landesfürsten – such dir Land weiter draußen.",
   water: "Hier ist kein festes Land.",
   near: (n: string) => `Zu nah an ${n}.`,
   seedHint: { ok: (n: string) => `Freies Land – klicken, um ${n || "dein Dorf"} zu gründen`, hill: "Gebirge – such dir ein Tal", water: "Wasser – such festes Land", near: (n: string, d: number) => `Zu nah an ${n} (noch ${d} Felder)` },
@@ -404,6 +405,7 @@ const en: typeof de = {
   nearOnly: "Only near your village.",
   noGrow: "Nothing grows here.",
   hill: "Nothing is built in the mountains.",
+  court: "Too close to the prince's seat – look for land further out.",
   water: "This isn't solid ground.",
   near: (n) => `Too close to ${n}.`,
   seedHint: { ok: (n: string) => `Free land – click to found ${n || "your village"}`, hill: "Mountains – look for a valley", water: "Water – look for solid ground", near: (n: string, d: number) => `Too close to ${n} (${d} more tiles)` },
@@ -774,6 +776,7 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
   nearOnly: "只能在你的村庄附近。",
   noGrow: "这里无法生长。",
   hill: "山中无法建造。",
+  court: "离亲王府邸太近——请到更远处寻找土地。",
   water: "这里不是陆地。",
   near: (n) => `离${n}太近了。`,
   seedHint: { ok: (n: string) => `空地——点击建立${n || "你的村庄"}`, hill: "群山——请寻找一处山谷", water: "水域——请寻找陆地", near: (n: string, d: number) => `离${n}太近了（还需远离${d}格）` },
@@ -1145,6 +1148,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   nearOnly: "自分の村の近くでのみ行えます。",
   noGrow: "ここでは何も育ちません。",
   hill: "山には建物を建てられません。",
+  court: "領主の居城に近すぎます — もっと離れた土地を探しましょう。",
   water: "ここは陸地ではありません。",
   near: (n) => `${n}に近すぎます。`,
   seedHint: { ok: (n: string) => `空き地 — クリックして${n || "あなたの村"}を築きましょう`, hill: "山地 — 谷を探しましょう", water: "水辺 — 陸地を探しましょう", near: (n: string, d: number) => `${n}に近すぎます（あと${d}マス離してください）` },
@@ -1502,5 +1506,5 @@ export type Dict = typeof de;
 /** Translate a canPlant error code. */
 export function plantError(t: Dict, code: string) {
   if (code.startsWith("near:")) return t.near(code.slice(5));
-  return code === "hill" ? t.hill : t.water;
+  return code === "court" ? t.court : code === "hill" ? t.hill : t.water;
 }
