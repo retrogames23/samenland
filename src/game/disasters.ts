@@ -1,4 +1,7 @@
 import { aidFactor } from "./gifts";
+import { townCharacter } from "./character";
+/** Stone-built hill towns: fires start less often and spread to fewer roofs. */
+export const STONE_FIRE = 0.6;
 /**
  * Disasters: fires, floods and raids are a pure calendar per village, derived from (seed id, time window)
  * and purchases (fire house, town guard). Nothing is stored: every client sees the same fire at the same moment.
@@ -33,18 +36,18 @@ export type Flood = { at: number; end: number; tiles: number[]; ruined: number[]
 export type Raid = { at: number; end: number; loss: number; caught: boolean };
 
 export function fires(s: Seed, now: number): Fire[] {
-  const c0 = Date.parse(s.created_at), out: Fire[] = [], water = hasWater(s);
+  const c0 = Date.parse(s.created_at), out: Fire[] = [], water = hasWater(s), stone = !!s.user_id && townCharacter(s).main === "workshop";
   for (let w = 1; c0 + w * WEEK <= now; w++) {
     const at = c0 + w * WEEK + rnd(s.id, w, 11) * WEEK;
     if (at > now) break;
     const guarded = owns(s, "firehouse", at);
     const mo = new Date(at).getUTCMonth(), dry = mo >= 5 && mo <= 7 ? 1.6 : mo === 11 || mo <= 1 ? 1.1 : 0.75;
-    if (rnd(s.id, w, 12) > (guarded ? FIRE_CHANCE_GUARDED : FIRE_CHANCE) * dry) continue;
+    if (rnd(s.id, w, 12) > (guarded ? FIRE_CHANCE_GUARDED : FIRE_CHANCE) * dry * (stone ? STONE_FIRE : 1)) continue;
     const r = radiusOf(ageHours(s, at)) * 0.75;
     if (r < 2) continue;
     const a = rnd(s.id, w, 13) * Math.PI * 2, d = 1.5 + rnd(s.id, w, 14) * (r - 1.5);
     const x = Math.round(s.x + Math.cos(a) * d), y = Math.round(s.y + Math.sin(a) * d);
-    const n = guarded ? 1 : water ? 2 : 3 + Math.floor(rnd(s.id, w, 15) * 2);
+    const n = Math.max(1, (guarded ? 1 : water ? 2 : 3 + Math.floor(rnd(s.id, w, 15) * 2)) - (stone ? 1 : 0));
     const nb = [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
     const tiles = nb.slice(0, n + 2).map(([i, j]) => (y + j!) * MAP + x + i!);
     const burn = guarded ? 0.5 * H : water ? 1.5 * H : 4 * H;
