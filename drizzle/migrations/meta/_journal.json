@@ -428,6 +428,13 @@
       "when": 1793520000000,
       "tag": "0060_way_buildings",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1793528231627,
+      "tag": "0061_way_quests",
+      "breakpoints": true
     }
   ]
 }

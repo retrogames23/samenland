@@ -349,6 +349,12 @@ export const es: Dict = {
       hundred: ["150 vecinos", "Espera a que vivan 150 personas en tu villa.", "La campana del mercado llama a 150 vecinos."],
       merchant: ["Privilegio de mercado", "Deja que tu villa crezca hasta ser ciudad comercial.", "¡El privilegio de mercado es nuestro!"],
       metro: ["Corona del reino", "Deja que tu ciudad crezca hasta ser una metrópoli.", "¡Una metrópoli! De una semilla nació un mundo."],
+      "buy6:grain": ["Reservas para el invierno", "Construye seis edificios en total, entre ellos el gran almacén.", "Los graneros están llenos: ningún invierno nos asusta."],
+      "buy6:workshop": ["La primera piedra", "Construye seis edificios en total, entre ellos el taller de canteros.", "Nuestros canteros construyen para generaciones."],
+      "buy6:gateway": ["Pesca y humo", "Construye seis edificios en total, entre ellos la lonja y ahumadero.", "El olor del ahumadero llega hasta el puerto."],
+      "metro:grain": ["Corona de trigo", "Haz crecer tu ciudad hasta metrópoli y levanta la hilera de molinos.", "¡Nuestros molinos alimentan a todo el reino!"],
+      "metro:workshop": ["Martillo de las colinas", "Haz crecer tu ciudad hasta metrópoli y levanta la herrería de martinetes.", "¡Retumban los martinetes: el taller de las colinas es metrópoli!"],
+      "metro:gateway": ["Puerta al mundo", "Haz crecer tu ciudad hasta metrópoli y levanta la casa de la sal y la grúa del muelle.", "¡Barcos de todo el mundo atracan en nuestro muelle!"],
     } as Record<string, [string, string, string]>,
   },
   guide: {
