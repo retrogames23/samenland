@@ -2209,7 +2209,7 @@ export function draw(
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
     if (st) {
       drawStructure(c, st, cx, cy, x, y, t, L);
-      if (st.build === undefined && !FLAT.has(st.kind)) { const b = spriteBox(st.kind, st.v); if (b && b.h > 8) occ.push(ti, cx - b.w / 2, cy + b.base - b.h, cx + b.w / 2, cy + b.base - 2); }
+      if (st.build === undefined && !FLAT.has(st.kind)) { const b = spriteBox(st.kind, st.v, houseStyle(st)); if (b && b.h > 8) occ.push(ti, cx - b.w / 2, cy + b.base - b.h, cx + b.w / 2, cy + b.base - 2); }
     }
     for (const f of hunt.get(y * MAP + x) ?? []) f();
     for (const f of props.get(y * MAP + x) ?? []) f(cx, cy);
