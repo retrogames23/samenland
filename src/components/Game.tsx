@@ -81,7 +81,6 @@ import {
   type Seed,
   canPlaceSpecial,
   SPECIAL_KIND,
-  characterOf,
   CHARTER_PATHS,
   charterReady,
   type CharterPath,
@@ -91,8 +90,11 @@ import {
   hash,
 } from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
-const CHAR_ICON: Record<string, string> = { plains: "🌾", mountain: "⚒", coast: "⚓", forest: "🌲" };
+const CHAR_ICON: Record<TownWay, string> = { grain: "🌾", workshop: "⚒", gateway: "⚓" };
+const wayOf = (p: { x: number; y: number }) => townCharacter(p).main;
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
+import { TOWN_CHARACTER } from "@/game/i18n";
+import { townCharacter, type TownWay } from "@/game/character";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { CHEST } from "@/game/lang/chest";
 import { CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
@@ -1526,7 +1528,7 @@ export function Game() {
               <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { focus(s.x, s.y); setTab(null); }}>
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {t.character[characterOf(s.x, s.y)]![0]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{t.roll.role["mayor"]![f ? 0 : 1]}: {s.owner}</>; })()} · {t.age(ageHours(s, now))}
+                  {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{t.roll.role["mayor"]![f ? 0 : 1]}: {s.owner}</>; })()} · {t.age(ageHours(s, now))}
                   {(() => { const p = speedParts(s, seeds, now); return (<>
                     {p.bless > 0.005 && <span className="block">{t.blessBonus(Math.round(p.bless * 100))}</span>}
                     {p.trade > 0.005 && <span className="block">{t.tradeBonus(Math.round(p.trade * 100))}</span>}
@@ -1732,9 +1734,9 @@ export function Game() {
         <Panel inner="flex items-center gap-3 px-3 py-1.5 md:gap-5">
           {my && <CharacterBadge seed={my} lang={lang} />}
           <div className="min-w-0 shrink">
-            <div title={my ? t.character[characterOf(my.x, my.y)]![1] : undefined} className="-my-[0.34em] truncate py-[0.34em] pl-0.5 pr-3 font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
+            <div title={my ? TOWN_CHARACTER[lang].land[wayOf(my)] : undefined} className="-my-[0.34em] truncate py-[0.34em] pl-0.5 pr-3 font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
-              {my && myStats ? `${CHAR_ICON[characterOf(my.x, my.y)]} ${t.character[characterOf(my.x, my.y)]![0]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[myRank]}${rankHint ? ` · ${rankHint}` : ""} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
+              {my && myStats ? `${CHAR_ICON[wayOf(my)]} ${TOWN_CHARACTER[lang].names[wayOf(my)]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[myRank]}${rankHint ? ` · ${rankHint}` : ""} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
           </div>
           {my && at ? (
@@ -1890,19 +1892,19 @@ export function Game() {
 
       {plantAsk && (() => {
         const [px, py] = plantAsk;
-        const c = characterOf(px, py);
+        const c = wayOf({ x: px, y: py });
         let near: Seed | null = null, nd = Infinity;
         for (const s of seeds) { const d = Math.hypot(px - s.x, py - s.y); if (d < nd) { nd = d; near = s; } }
         return (
           <Parchment image={ART["surveyor"]} title={t.plantAsk.title} later={t.cancel} onLater={() => setPlantAsk(null)}>
             <p className="mt-2 text-center font-display text-xl leading-snug">{t.plantAsk.intro(form.name.trim())}</p>
             <div className="mt-4 space-y-1 text-sm">
-              <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.land}</span><span className="text-right font-semibold">{CHAR_ICON[c]} {t.character[c]![0]}</span></div>
+              <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.land}</span><span className="text-right font-semibold">{CHAR_ICON[c]} {TOWN_CHARACTER[lang].names[c]}</span></div>
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.owner}</span><span className="text-right font-semibold">{form.owner.trim()}</span></div>
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.spread}</span><span className="text-right">{t.plantAsk.first(Math.round(radiusOf(8760)))}</span></div>
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.nearest}</span><span className="text-right">{near ? t.plantAsk.near(near.name, Math.round(nd)) : t.plantAsk.none}</span></div>
             </div>
-            <p className="mt-3 text-center text-xs text-muted-foreground">{t.character[c]![1]}</p>
+            <p className="mt-3 text-center text-xs text-muted-foreground">{TOWN_CHARACTER[lang].land[c]}</p>
             <div className="mt-3 border-t border-border pt-3"><CharacterDetails seed={{ x: px, y: py }} lang={lang} /></div>
             <div className="mt-4 flex justify-center">
               <Button type="button" size="sm" disabled={planting} onClick={plantNow}>{planting ? t.plantAsk.wait : t.plantAsk.ok}</Button>
@@ -2068,12 +2070,12 @@ export function Game() {
                 <>
                   <div className="mt-4 grid gap-2">
                     {roadCandidates(my, seeds).map((o) => {
-                      const c = characterOf(o.x, o.y), ch = charters.find((x) => x.seed_id === o.id)?.path;
+                      const c = wayOf(o), ch = charters.find((x) => x.seed_id === o.id)?.path;
                       return (
                         <div key={o.id} onClick={() => setRoadPick(o.id)} className={`flex cursor-pointer items-center gap-2 rounded-md border-2 p-2 ${roadPick === o.id ? "border-brass bg-brass/20" : "border-border"}`}>
                           <button type="button" aria-pressed={roadPick === o.id} onClick={() => setRoadPick(o.id)} className="flex-1 py-1 text-left">
                             <div className="font-semibold text-wood">{o.name}</div>
-                            <div className="text-xs text-muted-foreground">{t.road.dist(Math.round(Math.hypot(o.x - my.x, o.y - my.y)))} · ⏳ {roadHours(my, o)} h · {CHAR_ICON[c]} {t.character[c]![0]}{ch ? ` · ${PATH_ICON[ch]} ${t.charter.paths[ch]![0]}` : ""}</div>
+                            <div className="text-xs text-muted-foreground">{t.road.dist(Math.round(Math.hypot(o.x - my.x, o.y - my.y)))} · ⏳ {roadHours(my, o)} h · {CHAR_ICON[c]} {TOWN_CHARACTER[lang].names[c]}{ch ? ` · ${PATH_ICON[ch]} ${t.charter.paths[ch]![0]}` : ""}</div>
                           </button>
                           <Button size="sm" variant="secondary" onClick={() => { focus(o.x, o.y); later("road"); }}>{t.road.look}</Button>
                         </div>
