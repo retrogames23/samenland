@@ -1725,10 +1725,11 @@ export function Game() {
   // card and the wax seal must step aside while any of them is open
   const panelOpen =
     settings || !!tab || authOpen ||
-    guideOpen || introOpen || welcome ||
+    guideOpen || introOpen ||
     supportOpen || bugOpen || inviteOpen || quitOpen || delOpen ||
     tavernOpen || rollOpen || larderOpen || questOpen ||
-    !!plantAsk || !!postTo || anyOpen || decision.open || chronOpen;
+    !!plantAsk || !!postTo || anyOpen || chronOpen;
+
 
   return (
 
