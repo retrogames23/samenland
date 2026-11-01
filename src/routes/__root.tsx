@@ -41,7 +41,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
   useEffect(() => {
     // stale code chunk after an update: reload once instead of showing a blank page
-    if (/Importing a module script failed|Failed to fetch dynamically imported module/i.test(String(error?.message))) {
+    if (/Importing a module script failed|Failed to fetch dynamically imported module/i.test(String((error as Error | undefined)?.message))) {
       const k = "chunk-reload";
       if (Date.now() - Number(sessionStorage.getItem(k) ?? 0) > 30000) { sessionStorage.setItem(k, String(Date.now())); location.reload(); return; }
     }
