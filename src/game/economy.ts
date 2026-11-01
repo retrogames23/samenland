@@ -5,7 +5,7 @@ import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, raids, floodFood } from "./disasters";
 import { dowryEarned, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
-import { radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
+import { speedParts, radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
 
 /** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
 export const START_TALER = 160;
@@ -219,6 +219,8 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
     b.food += m.food ?? 0; b.health += m.health ?? 0; b.wealth += m.wealth ?? 0;
   }
   for (const [it, wb] of Object.entries(WAY_BONUS)) if (has(it as Item)) { b.food += wb.food ?? 0; b.health += wb.health ?? 0; b.wealth += wb.wealth ?? 0; }
+  // Wegezoll: trade beyond what growth can absorb turns into prosperity
+  b.wealth += speedParts(s, seeds, now).toll;
   b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0; b.wealth += has("guard") ? 5 : 0;
   // weddings: a day of joy (health, prosperity) and lasting craft alliances between families
   const joy = weddingJoy(s, now);
