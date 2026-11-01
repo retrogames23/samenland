@@ -9,8 +9,16 @@ export type Trait = (typeof TRAITS)[number];
 /** Pairs that cannot share one person. */
 const CLASH: [Trait, Trait][] = [["early", "owl"], ["sociable", "homebody"], ["cheerful", "worrier"]];
 
+/** Traits chosen by a player for their own mayor (from the seed row), keyed by person id. */
+const chosen = new Map<number, Trait[]>();
+export function setChosenTraits(id: number, t: string[] | null | undefined) {
+  const v = (t ?? []).filter((x): x is Trait => (TRAITS as readonly string[]).includes(x)).slice(0, 2);
+  if (v.length) chosen.set(id, v); else chosen.delete(id);
+}
+export const traitClash = (a: Trait, b: Trait) => a === b || CLASH.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 /** One or two fixed traits per person. */
 export function traitsOf(id: number): Trait[] {
+  const c = chosen.get(id); if (c) return c;
   const a = TRAITS[Math.floor(hash(id, 41, 1201) * TRAITS.length)]!;
   if (hash(id, 42, 1201) < 0.4) return [a];
   const b = TRAITS[Math.floor(hash(id, 43, 1201) * TRAITS.length)]!;
