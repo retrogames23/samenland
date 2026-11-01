@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { structureAt, buildTime, GROWTH_PACE, type Seed } from "./world";
+import { structureAt, buildTime, GROWTH_PACE, specialTile, SPECIAL_BUILD, type Seed } from "./world";
 import { townOf } from "./people";
 
 const seed: Seed = { id: "build-test", x: 512, y: 512, name: "T", hue: 30, created_at: new Date(0).toISOString() } as Seed;
