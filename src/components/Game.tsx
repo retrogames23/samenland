@@ -574,7 +574,7 @@ export function Game() {
     let panStep = () => {};
     const loop = () => {
       panStep(); // keyboard pan + fling share the draw frame (one rAF loop)
-      const c = cam.current,
+      const c = cam.current; (window as unknown as { __cam?: unknown }).__cam = c; const _u = 0,
         tg = target.current;
       if (Math.abs(tg.zoom - c.zoom) > 0.0005) {
         const nz = c.zoom + (tg.zoom - c.zoom) * 0.16;
