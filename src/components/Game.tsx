@@ -1457,10 +1457,22 @@ export function Game() {
         </div>
       ) : (
         <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); startSeedMode(); }}>
-          <Input placeholder={t.townName} maxLength={32} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <Input placeholder={t.yourName} maxLength={32} value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} />
-          <div className="flex gap-1" role="radiogroup" aria-label={t.gender.label}>
-            {(["m", "w", "d"] as const).map((g) => <Button key={g} type="button" size="sm" className="flex-1" variant={form.gender === g ? "default" : "outline"} aria-pressed={form.gender === g} onClick={() => setForm({ ...form, gender: g })}>{t.gender[g]}</Button>)}
+          <label className="block space-y-1">
+            <span className="block text-xs font-semibold text-foreground">{t.townName}</span>
+            <Input placeholder={t.townName} maxLength={32} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <span className="block text-[11px] leading-snug text-muted-foreground">{t.townHint}</span>
+          </label>
+          <label className="block space-y-1">
+            <span className="block text-xs font-semibold text-foreground">{t.yourName}</span>
+            <Input placeholder={t.yourName} maxLength={32} value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} />
+            <span className="block text-[11px] leading-snug text-muted-foreground">{t.ownerHint}</span>
+          </label>
+          <div className="space-y-1">
+            <span className="block text-xs font-semibold text-foreground">{t.gender.label}</span>
+            <div className="flex gap-1" role="radiogroup" aria-label={t.gender.label}>
+              {(["m", "w", "d"] as const).map((g) => <Button key={g} type="button" size="sm" className="flex-1 px-1" variant={form.gender === g ? "default" : "outline"} aria-pressed={form.gender === g} onClick={() => setForm({ ...form, gender: g })}>{t.gender[g]}</Button>)}
+            </div>
+            <span className="block text-[11px] leading-snug text-muted-foreground">{t.gender.hint}</span>
           </div>
           <p className="text-xs text-muted-foreground">{mode === "seed" ? t.clickLand : t.needNames}</p>
           {mode === "seed" ? <Button type="button" size="sm" variant="ghost" onClick={() => { setMode("look"); setPlantAsk(null); setPtr(null); }}>{t.cancel}</Button>
