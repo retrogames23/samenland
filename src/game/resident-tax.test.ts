@@ -71,7 +71,7 @@ describe("no founding-site penalty", () => {
     expect(foodCapacity(s, hill, at, 23.4)).toBe(foodCapacity(s, flat, at, 23.4));
   });
   it("rich farmland above the floor still counts in full", () => {
-    const s = seed(), at = Date.parse("2026-07-01T00:00:00Z");
+    const s = seed(["fisher", "hunter", "granary", "dairy", "herbs", "healer"]), at = Date.parse("2026-07-01T00:00:00Z");
     const rich = new Map<Kind, unknown[]>([["field", Array(farmFloor(10) + 80).fill(null)]]);
     expect(foodCapacity(s, rich, at, 10)).toBeGreaterThan(foodCapacity(s, new Map(), at, 10));
   });
