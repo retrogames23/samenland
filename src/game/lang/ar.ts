@@ -36,7 +36,7 @@ export const ar: Dict = {
   stages: ["المبتدأ", "نجع", "قرية", "بلدة صغيرة", "بلدة تجارية", "حاضرة"],
   nextRank: (stage: string, parts: string[]) => `ما ينقص للوصول إلى ${stage}: ${parts.join("، ")}`,
   needCitizens: (n: number) => `${n} مواطناً`,
-  needHomes: (n: number) => `${n} بيوت`,
+  needHomes: (n: number) => `${n} مساكن مأهولة`,
   needRoads: (n: number) => (n === 1 ? "طريق تجارة واحداً" : `${n} طرق تجارة`),
   terrain: {
     deep: "بحر عميق",

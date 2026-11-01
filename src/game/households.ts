@@ -11,6 +11,9 @@ export const FEED_BASE = 24, WILD_MAX = 32, FEED_FIELD = 0.25, FEED_GARDEN = FEE
 /** Farmland a median flat town of the same growth radius would hold; terrain never yields less than this. */
 export const FARM_FLOOR_SHARE = 0.56;
 export const farmFloor = (r: number) => Math.floor(FARM_FLOOR_SHARE * Math.PI * r * r);
+/** The same virtual food catchment for every character; slopes feed it with gardens/dairy,
+ * shores with fishing, plains with grain. Existing exceptionally rich farms keep their yield. */
+export const foodCatchment = (r: number) => Math.ceil(Math.PI * r * r);
 export function foodCapacity(s: Seed, byKind: Map<Kind, unknown[]>, now: number, r = 0) {
   if (!s.user_id) return Infinity;
   const own = new Set((s.bought ?? []).filter(b => b.at <= now).map(b => b.item));
@@ -20,7 +23,7 @@ export function foodCapacity(s: Seed, byKind: Map<Kind, unknown[]>, now: number,
   // Different farming art must not silently reduce a town's household supply.
   const farm = FEED_FIELD * (byKind.get("field")?.length ?? 0) + FEED_GARDEN * (byKind.get("garden")?.length ?? 0) + FEED_PASTURE * (byKind.get("pasture")?.length ?? 0);
   // Founding terrain is never a penalty: hills, coasts and forests feed as many households as flat land of the same size.
-  const land = (8 + Math.max(farm, FEED_FIELD * farmFloor(r))) * w;
+  const land = (8 + Math.max(farm, FEED_FIELD * foodCatchment(r))) * w;
   return Math.max(FEED_BASE, Math.floor(Math.min(WILD_MAX * w, land) + land * (FEED_FOOD_ITEM * food + FEED_HEALTH_ITEM * health)));
 }
 

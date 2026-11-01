@@ -36,7 +36,7 @@ export const hi: Dict = {
   stages: ["आरंभ", "बस्ती", "गाँव", "कस्बा", "व्यापारिक नगर", "महानगर"],
   nextRank: (stage: string, parts: string[]) => `${stage} के लिए अभी चाहिए: ${parts.join(", ")}`,
   needCitizens: (n: number) => `${n} नागरिक`,
-  needHomes: (n: number) => `${n} घर`,
+  needHomes: (n: number) => `${n} आबाद आवास`,
   needRoads: (n: number) => (n === 1 ? "एक व्यापार मार्ग" : `${n} व्यापार मार्ग`),
   terrain: {
     deep: "गहरा सागर",

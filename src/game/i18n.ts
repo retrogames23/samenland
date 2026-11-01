@@ -49,7 +49,7 @@ const de = {
   stages: ["Ursprung", "Weiler", "Dorf", "Kleinstadt", "Handelsstadt", "Metropole"],
   nextRank: (stage: string, parts: string[]) => `Bis ${stage} fehlen noch: ${parts.join(", ")}`,
   needCitizens: (n: number) => `${n} Bürger`,
-  needHomes: (n: number) => `${n} Häuser`,
+  needHomes: (n: number) => `${n} bewohnte Wohnungen`,
   needRoads: (n: number) => (n === 1 ? "eine Handelsstraße" : `${n} Handelsstraßen`),
   terrain: {
     deep: "Tiefes Meer",
@@ -397,7 +397,7 @@ const en: typeof de = {
   stages: ["Origin", "Hamlet", "Village", "Small town", "Trading town", "Metropolis"],
   nextRank: (stage: string, parts: string[]) => `Still needed for ${stage}: ${parts.join(", ")}`,
   needCitizens: (n: number) => `${n} citizens`,
-  needHomes: (n: number) => `${n} houses`,
+  needHomes: (n: number) => `${n} occupied dwellings`,
   needRoads: (n: number) => (n === 1 ? "one trade road" : `${n} trade roads`),
   terrain: {
     deep: "Deep sea",
@@ -745,7 +745,7 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
   stages: ["初始聚落", "小村落", "村庄", "小镇", "商贸城镇", "大都会"],
   nextRank: (stage: string, parts: string[]) => `距离${stage}还需要：${parts.join("、")}`,
   needCitizens: (n: number) => `${n}位居民`,
-  needHomes: (n: number) => `${n}栋房屋`,
+  needHomes: (n: number) => `${n}户已入住住宅`,
   needRoads: (n: number) => `${n}条商路`,
   terrain: {
     deep: "深海",
@@ -1094,7 +1094,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   stages: ["はじまり", "小さな集落", "村", "小さな町", "交易の町", "大都市"],
   nextRank: (stage: string, parts: string[]) => `${stage}まで あと：${parts.join("、")}`,
   needCitizens: (n: number) => `住民${n}人`,
-  needHomes: (n: number) => `家${n}軒`,
+  needHomes: (n: number) => `入居済み住戸${n}戸`,
   needRoads: (n: number) => `交易路${n}本`,
   terrain: {
     deep: "深い海",
