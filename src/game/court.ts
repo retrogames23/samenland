@@ -65,7 +65,7 @@ const YARD: P[] = [[5.4, 10.4], [5.8, 12.4], [3.2, 12.6], [5.4, 10.4]];
 /** Where the court is at `hour` (realm time); `t` is ms for walking phases. */
 export function courtPoses(hour: number, t: number): CourtPose[] {
   const s = courtSite(), out: CourtPose[] = [];
-  const put = (role: CourtRole, r: { p: P; dx: number; walking: boolean; dist?: number }) => out.push({ role, x: s.x + r.p[0], y: s.y + r.p[1], walking: r.walking, dx: r.dx, dist: r.dist });
+  const put = (role: CourtRole, r: { p: P; dx: number; walking: boolean; dist?: number }) => out.push({ role, x: s.x + r.p[0], y: s.y + r.p[1], walking: r.walking, dx: r.dx, dist: r.dist ?? 0 });
   const stay = (p: P, dx = 1) => ({ p, dx, walking: false });
   const day = hour >= 6 && hour < 21;
   if (hour >= 9 && hour < 13) put("prince", stay([7.4, 6.9]));
