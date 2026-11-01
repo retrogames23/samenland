@@ -17,7 +17,8 @@ import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
 import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
 import { seasonKey, seasonAt } from "./season";
-import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime } from "./building-sprites";
+import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
+import { townCharacter } from "./character";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, type Pose } from "./people";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, type FolkSprite } from "./folk-sprites";
@@ -130,7 +131,7 @@ function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
 }
 
 /** win: a small window pane (rendered as a warm rectangle), otherwise an open flame/forge. */
-export type Light = { x: number; y: number; r: number; building?: { kind: Kind; variant: number; seed: number; flip?: boolean } };
+export type Light = { x: number; y: number; r: number; building?: { kind: Kind; variant: number; seed: number; flip?: boolean; style?: HouseStyle | undefined } };
 
 /** Local clock hour, cached per second (house lights depend on it). */
 let hrCache = { at: 0, hr: 12 };
@@ -398,19 +399,22 @@ function huntFigures(lx: number, ly: number, out: Bucket, c: C, L?: Light[]) {
     c.strokeStyle = "rgba(60,40,22,0.9)"; c.lineWidth = 0.18; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx - dir * 1.1, by); c.stroke();
   });
 }
+/** Visual house style from the town terrain character; plains keep the classic art. */
+const houseStyle = (s: Structure): HouseStyle | undefined => { const m = townCharacter(s.seed).main; return m === "grain" ? undefined : m; };
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
   if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
   else if (s.build !== undefined && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: "site" });
   if (s.build !== undefined) { drawSite(c, s, cx, cy, t, true); return; }
   const flip = faceFlip(s.kind, x, y, (i, j) => { const k = structureAt(i, j, renderSeeds, renderNow)?.kind; return !!k && PATHLIKE.has(k); });
-  if (drawBuildingSprite(c, s.kind, cx, cy, s.v, 1, flip)) {
+  const style = houseStyle(s);
+  if (drawBuildingSprite(c, s.kind, cx, cy, s.v, 1, flip, style)) {
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
     if (s.fire) drawFire(c, cx, cy, t, sd, L);
     if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour()) || (isHomeKind(s.kind) && sickLit(x, y)))) {
-      L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip } });
+      L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip, style } });
     }
     if (s.kind === "mill" || s.kind === "watermill") {
       // flour sacks pile up by the door through the workday (stack sprite revealed from the bottom)
@@ -2205,7 +2209,7 @@ export function draw(
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
     if (st) {
       drawStructure(c, st, cx, cy, x, y, t, L);
-      if (st.build === undefined && !FLAT.has(st.kind)) { const b = spriteBox(st.kind, st.v); if (b && b.h > 8) occ.push(ti, cx - b.w / 2, cy + b.base - b.h, cx + b.w / 2, cy + b.base - 2); }
+      if (st.build === undefined && !FLAT.has(st.kind)) { const b = spriteBox(st.kind, st.v, houseStyle(st)); if (b && b.h > 8) occ.push(ti, cx - b.w / 2, cy + b.base - b.h, cx + b.w / 2, cy + b.base - 2); }
     }
     for (const f of hunt.get(y * MAP + x) ?? []) f();
     for (const f of props.get(y * MAP + x) ?? []) f(cx, cy);
@@ -2340,7 +2344,7 @@ export function draw(
       if (l.building) {
         c.save();
         c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
-        drawBuildingNight(c, l.building.kind, l.x, l.y, l.building.variant, night * fl, l.building.flip);
+        drawBuildingNight(c, l.building.kind, l.x, l.y, l.building.variant, night * fl, l.building.flip, l.building.style);
         c.restore();
         continue;
       }
