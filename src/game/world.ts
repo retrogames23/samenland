@@ -1,3 +1,4 @@
+import { townCharacter } from "./character";
 import { cacheTick, worldHour, worldWeekday, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
@@ -847,7 +848,7 @@ export function speedParts(s: Seed, seeds: Seed[], now: number) {
     if (roadProgress(l, now) >= 1 && marketHours(now)) trade += MARKET_BONUS;
   }
   for (const r of transitRoutes(s, seeds)) if (now > r.since) trade += r.bonus(now);
-  for (const r of hubRoutes(s, seeds)) if (now > r.since) trade += TRANSIT_HUB;
+  for (const r of hubRoutes(s, seeds)) if (now > r.since) trade += hubBonus(s);
   return { bless, farm, trade };
 }
 /** Current growth speed multiplier: 1 + sum of all bonuses. */
@@ -878,7 +879,7 @@ function effAgeBase(s: Seed, seeds: Seed[], now: number) {
   }
   // trade passed on through a neighbour (A–B–C) and transit trade through own hub
   for (const r of transitRoutes(s, seeds)) if (now > r.since) h += r.bonus(now) * (now - r.since) / 3.6e6;
-  for (const r of hubRoutes(s, seeds)) if (now > r.since) h += TRANSIT_HUB * (now - r.since) / 3.6e6;
+  for (const r of hubRoutes(s, seeds)) if (now > r.since) h += hubBonus(s) * (now - r.since) / 3.6e6;
   // neighbour bonuses speed growth, but never more than TRADE_CAP of the town's own age
   return careCeiling(s, now, (base + Math.min(Math.max(0, h - base), base * TRADE_CAP) + mentorHours(s, seeds, now)) * GROWTH_PACE);
 }
@@ -886,6 +887,9 @@ export const TRADE_CAP = 0.35;
 
 /** Trade networks: finished roads pass trade on through one middle town at TRANSIT_SHARE of a direct road; the hub earns TRANSIT_HUB per routed pair. */
 export const TRANSIT_SHARE = 0.75, TRANSIT_HUB = 0.02;
+/** Gateway towns are natural hubs: their transit trade counts GATEWAY_HUB times (character strength). */
+export const GATEWAY_HUB = 1.5;
+export const hubBonus = (s: Seed) => TRANSIT_HUB * (s.user_id && townCharacter(s).main === "gateway" ? GATEWAY_HUB : 1);
 const roadDoneAt = (l: Link) => l.since + (l.build ?? ROAD_BUILD * 3.6e6);
 const other = (l: Link, id: string) => (l.a.id === id ? l.b : l.a);
 export type Transit = { to: Seed; via: Seed; since: number; d: number; bonus: (now: number) => number };
