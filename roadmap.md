@@ -3,8 +3,10 @@
 - [x] Schritt 2a: Nahrung nie unter Flachland-Niveau gleicher Größe (Mindest-Ackerfläche)
 - [x] Schritt 1b: Charakter-Wappen in Statuszeile, Rolle und Pflanz-Vorschau integrieren; Wappenübersicht auf großer/kleiner Anzeige geprüft
 - [ ] Paket 1: Angemeldeten Gesamtfluss prüfen — benötigt Anmeldung in der Vorschau, automatische Anmeldung nicht verfügbar
-- [ ] Schritt 2b: Käserei/Terrassengärten, Fischmarkt als charaktereigene Nahrung
-- [ ] Schritt 3: Dichte statt Fläche (Wohnungen zählen für den Rang)
+- [ ] Paket 2: Größengebundene Versorgung und charakterabhängige Wohnungsdichte ohne Verlust bestehender Bewohner
+- [ ] Paket 2: Wohnungen in Bewohnern, Rang und vertrauenswürdiger Steuerbewertung gemeinsam berücksichtigen und testen
+- [ ] Schritt 2b: Zusätzliche Kaufgebäude für Nahrung — zusammen mit Gebäude-Grafiken in Schritt 5/6
+- [ ] Schritt 3: Kompaktere Flächenausbreitung und steinerne Hausvarianten ohne Rückbau bestehender Orte
 - [ ] Schritt 4: Charakter-Boni und Handelsbonus für ungleiche Partner
 - [ ] Schritt 5/6: eigene Gebäude und Hausvarianten (neue Grafik)
 - [ ] Schritt 7: Kapitel „Drei Wege zur Metropole“ im Buch der Stadt
