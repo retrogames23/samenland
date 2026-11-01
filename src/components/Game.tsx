@@ -84,7 +84,6 @@ import {
   characterOf,
   CHARTER_PATHS,
   charterReady,
-  charterFits,
   type CharterPath,
   twinLinks, pactOf, pactPending, workOf, marketDay, marketHours, festivalDate, twinGateAt, PACTS, TWIN_WORKS, PACT_WAIT, type PactKind, type WorkKind,
   sawmillUp, SEAT_KINDS,
@@ -2119,7 +2118,6 @@ export function Game() {
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     {CHARTER_PATHS.map((p) => {
                       const [name, style, bonus, builds] = t.charter.paths[p]!;
-                      const fit = charterFits(characterOf(my.x, my.y), p);
                       return (
                         <button key={p} type="button" onClick={() => setCharterPick(p)} aria-pressed={charterPick === p}
                           className={`rounded-md border-2 p-3 text-left transition ${charterPick === p ? "border-brass bg-brass/20" : "border-border hover:border-brass/60"}`}>
@@ -2127,7 +2125,6 @@ export function Game() {
                           <div className="mt-1 text-xs text-muted-foreground">{style}</div>
                           <div className="mt-2 text-xs"><b>+</b> {bonus}</div>
                           <div className="mt-1 text-xs"><b>{t.charter.buildings}:</b> {builds}</div>
-                          {fit && <div className="mt-2 inline-block rounded-full bg-brass/30 px-2 py-0.5 text-[11px] font-semibold text-wood">✦ {t.charter.fits}</div>}
                         </button>
                       );
                     })}
