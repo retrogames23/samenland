@@ -1,4 +1,6 @@
 import type { Lang } from "../i18n";
+import { TOWN_CHARACTER } from "./character";
+import { TOWN_DEVELOPMENT } from "./development";
 
 /** Two-part guide: the one-time founding letter and the detailed "Book of the town". */
 export type Book = {
@@ -520,3 +522,10 @@ const ja: Book = {
 };
 
 export const BOOK: Record<Lang, Book> = { de, en, fr, es, ar, hi, zh, ja };
+for (const lang of Object.keys(BOOK) as Lang[]) {
+  const character = TOWN_CHARACTER[lang], development = TOWN_DEVELOPMENT[lang];
+  BOOK[lang].chapters.push([character.title, [
+    ["", development.care],
+    ...(["grain", "workshop", "gateway"] as const).map((way): [string, string] => [character.names[way], `${development.food[way]} ${development.homes[way]}`]),
+  ]]);
+}

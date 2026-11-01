@@ -3,13 +3,16 @@
 - [x] Schritt 2a: Nahrung nie unter Flachland-Niveau gleicher Größe (Mindest-Ackerfläche)
 - [x] Schritt 1b: Charakter-Wappen in Statuszeile, Rolle und Pflanz-Vorschau integrieren; Wappenübersicht auf großer/kleiner Anzeige geprüft
 - [ ] Paket 1: Angemeldeten Gesamtfluss prüfen — benötigt Anmeldung in der Vorschau, automatische Anmeldung nicht verfügbar
-- [ ] Paket 2: Größengebundene Versorgung und charakterabhängige Wohnungsdichte ohne Verlust bestehender Bewohner
-- [ ] Paket 2: Wohnungen in Bewohnern, Rang und vertrauenswürdiger Steuerbewertung gemeinsam berücksichtigen und testen
+- [x] Paket 2: Größengebundene Versorgung und charakterabhängige Wohnungsdichte ohne Verlust bestehender Bewohner
+- [x] Paket 2: Wohnungen in Bewohnern, Rang und vertrauenswürdiger Steuerbewertung gemeinsam berücksichtigen und testen
+- [x] Paket 2: Zweijahresvergleich für drei feste Geländeorte — Einwohner und aktuelle Steuerbewertung innerhalb ±10 %, keine Aussage über historische Gesamt-Taler
+- [ ] Paket 2: Angemeldeten Gesamtfluss prüfen — wie Paket 1 durch nicht verfügbare Kontoanmeldung blockiert
 - [ ] Schritt 2b: Zusätzliche Kaufgebäude für Nahrung — zusammen mit Gebäude-Grafiken in Schritt 5/6
 - [ ] Schritt 3: Kompaktere Flächenausbreitung und steinerne Hausvarianten ohne Rückbau bestehender Orte
 - [ ] Schritt 4: Charakter-Boni und Handelsbonus für ungleiche Partner
 - [ ] Schritt 5/6: eigene Gebäude und Hausvarianten (neue Grafik)
-- [ ] Schritt 7: Kapitel „Drei Wege zur Metropole“ im Buch der Stadt
+- [x] Schritt 7a: Aktuelle Versorgungs- und Wohnungswege im Stadtbuch und Charakter-Wappen in acht Sprachen erklären
+- [ ] Schritt 7b: Spätere Charakter-Boni und Spezialgebäude im Stadtbuch ergänzen
 - [ ] Schritt 8: 730-Tage-Simulation aller Charaktere (±10 %)
 
 # Roadmap: Terrain-Sofortkorrektur
