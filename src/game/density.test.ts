@@ -9,13 +9,16 @@ import type { Person } from "./people";
 
 describe("character dwellings", () => {
   it("hills support two and then three families in suitable houses", () => {
-    expect(dwellingSlots("workshop", "steinhaus", 12)).toBe(2);
-    expect(dwellingSlots("workshop", "steinhaus", 24)).toBe(3);
+    expect(dwellingSlots("workshop", "steinhaus", 13)).toBe(1);
+    expect(dwellingSlots("workshop", "steinhaus", 14)).toBe(2);
+    expect(dwellingSlots("workshop", "steinhaus", 32)).toBe(3);
     expect(dwellingSlots("workshop", "hut", 40)).toBe(1);
   });
-  it("coasts take the middle route while plains keep one family per house", () => {
-    expect(dwellingSlots("gateway", "townhouse", 18)).toBe(2);
-    expect(dwellingSlots("grain", "townhouse", 40)).toBe(1);
+  it("coasts reach three floors earlier than hills, plains stop at two", () => {
+    expect(dwellingSlots("gateway", "townhouse", 16)).toBe(2);
+    expect(dwellingSlots("gateway", "townhouse", 26)).toBe(3);
+    expect(dwellingSlots("grain", "townhouse", 15)).toBe(1);
+    expect(dwellingSlots("grain", "townhouse", 40)).toBe(2);
   });
   it("keeps old IDs and decodes every floor to the real ground tile", () => {
     expect(dwellingKey(306, 420)).toBe(313764);
