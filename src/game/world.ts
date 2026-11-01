@@ -416,7 +416,8 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
     const l = LANDMARKS[here[n]!]; if (!l) continue;
     if (age < l.at - buildTime(l.at)) continue;
     if (age < l.at) buildP = 1 - (l.at - age) / buildTime(l.at);
-    return l.kind === "watermill" && !waterNearby(x,y) ? "mill" : l.kind;
+    if (l.kind === "watermill" && !waterNearby(x,y)) return "mill";
+    return wayLandmark(l.kind, townCharacter(s).main, waterNearby(x, y));
   }
   if (stage >= 3 && d > 3 && d < r * 0.8 && waterNearby(x,y) && hash(x,y,89) > 0.985) return "harbor";
   if (pathAt(x,y,s,age,r)) {
