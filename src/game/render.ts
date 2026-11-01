@@ -1725,8 +1725,14 @@ const COURT_FIG: Record<CourtRole, string> = { prince: princeU, princess: prince
 function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[]) {
   const n = COURT_LAYOUT[k][2], im = huntIm(`court-${k}`, COURT_ART[k]);
   // centre of the footprint, the front tile sits n-1 tiles toward the viewer
-  const mx = cx, my = cy - ((n - 1) * TH) / 2, w = n * TW * (k === "fountain" || k === "pavilion" ? 0.9 : 1.02);
-  if (im) { const h = (w * im.naturalHeight) / im.naturalWidth; const flat = k === "parterre"; c.drawImage(im, mx - w / 2, flat ? my - h / 2 : my + (n * TH) / 2 + 2 - h, w, h); }
+  // scale vs. a 21px figure: pavilion ≈3×, fountain basin ≈2.5 people wide
+  const mx = cx, my = cy - ((n - 1) * TH) / 2, w = n * TW * (k === "pavilion" ? 0.68 : k === "fountain" ? 0.78 : 1.02);
+  if (im) {
+    const flat = k === "parterre";
+    // the parterre art is painted from a steeper angle: squash it onto the 2:1 diamond (+ a little hedge height)
+    const h = flat ? w * 0.5 + 6 : (w * im.naturalHeight) / im.naturalWidth;
+    c.drawImage(im, mx - w / 2, flat ? my - h / 2 - 3 : my + (n * TH) / 2 + 2 - h, w, h);
+  }
   if (k === "castle") { L.push({ x: mx - 20, y: my - 30, r: 5 }); L.push({ x: mx + 18, y: my - 26, r: 5 }); L.push({ x: mx, y: my + 20, r: 4 }); }
   if (k === "stable") L.push({ x: mx - 22, y: my - 6, r: 3 });
 }
