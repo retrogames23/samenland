@@ -1025,10 +1025,11 @@ export function Game() {
   const wonderSeen = useRef(new Set<string>());
   const wonderFn = useRef<(key: string, kind: string, my: Seed) => void>(() => {});
   const syncWonders = () => {
-    const mine = seedsRef.current.find((s) => userId && s.user_id === userId);
+    const mine = st.current.seeds.find((s) => userId && s.user_id === userId);
     const own = new Set(wonderRows.current.filter((r) => mine && r.seed_id === mine.id).map((r) => r.site));
     wonderSeen.current = new Set(own); setWonderFound(own);
   };
+  useEffect(() => { syncWonders(); }, [my?.id, userId]);
   wonderFn.current = (key, kind, my) => {
     if (!owner || my.user_id !== userId) { wonderSeen.current.delete(key); return; }
     supabase.rpc("claim_wonder", { _seed: my.id, _site: key }).then(({ data, error }) => {
@@ -1039,7 +1040,7 @@ export function Game() {
       setClaims((c) => [...c, ...wonderClaims([row])]);
       jingle("fanfare"); setTimeout(() => jingle("coins"), 700);
       const name = t.wonder.names[kind] ?? kind;
-      const by = before ? seedsRef.current.find((s) => s.id === before.seed_id)?.name ?? "?" : "";
+      const by = before ? st.current.seeds.find((s) => s.id === before.seed_id)?.name ?? "?" : "";
       setVisitNote(before ? t.wonder.later(name, data, by) : t.wonder.first(name, data));
     });
   };
