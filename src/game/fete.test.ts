@@ -16,7 +16,8 @@ describe("inauguration", () => {
     expect(Math.abs(ina!.at - hi)).toBeLessThan(5 * 60e3);
     const t = townOf(s, seeds, now);
     const guests = t.people.filter((p) => p.fete);
-    expect(guests.length).toBeGreaterThan(t.people.length / 2);
+    expect(guests.length).toBeGreaterThan(Math.min(t.people.length / 2, 20));
+    expect(guests.length).toBeLessThanOrEqual(30);
     const gathering = guests.filter((p) => poseOf(p, t, seeds, now).act === "fete");
     expect(gathering.length).toBeGreaterThan(0);
     expect(inauguration(s, seeds, hi + (FETE_SECS + 3 * 3600) * 1000)?.kind === "chapel").toBe(false);

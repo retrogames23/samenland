@@ -100,7 +100,7 @@ export type Town = {
 };
 
 /** Service buildings whose staff grows with the town (radius), so big towns get more bakers, innkeepers, priests. */
-const SERVICE: ReadonlySet<Kind> = new Set(["bakery", "inn", "mill", "watermill", "church", "chapel", "market", "smithy", "infirmary", "school"] as Kind[]);
+const SERVICE: ReadonlySet<Kind> = new Set(["bakery", "inn", "mill", "watermill", "church", "chapel", "market", "infirmary", "school"] as Kind[]);
 /** Share of unemployed adults who farm: high in villages, low in cities. */
 export const farmShare = (r: number) => (r < 15 ? 0.8 : r < 30 ? 0.45 : 0.25);
 const towns = new Map<string, Town>();
@@ -174,6 +174,8 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
 
   const workTiles = (["workshop", "warehouse", "market", "markethall", "manufactory", "guildhall", "smithy", "sawmill"] as Kind[]).flatMap((k) => byKind.get(k) ?? []);
   const people: Person[] = [];
+  const anvils = new Set<string>();
+  const anvilOut = (w: Tile) => { const k = `${w[0]},${w[1]}`; if (anvils.has(k)) return false; anvils.add(k); return true; };
   const created = Date.parse(s.created_at);
   for (const { home, size, unit = 0 } of households) {
     const key = dwellingKey(home[0], home[1], unit);
@@ -217,7 +219,8 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       const kid = age < 14, old = age >= 65;
       people.push({
         id, seed: s, first: pick(sex === "f" ? F : M, h(10)), last, sex, age, job, home, work,
-        workIndoor: !OUTDOOR_WORK.has(job) && job !== "homemaker",
+        // only one smith per forge hammers outside at the anvil; the journeymen work at the indoor hearth
+        workIndoor: job === "smith" && work ? !anvilOut(work) : !OUTDOOR_WORK.has(job) && job !== "homemaker",
         speed: (kid ? 0.3 : old ? 0.15 : 0.22) * (0.85 + h(11) * 0.3),
         looks: { skin: h(12), hair: old ? -1 : h(13), shirt: h(14), pants: h(15), hat: h(16) < (job === "farmer" ? 0.7 : 0.25), stick: old && h(17) < 0.6 },
         haul: null,
