@@ -1,5 +1,4 @@
 import { townCharacter } from "./character";
-import { cacheTick, worldHour, worldWeekday, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
 import { civicWealth, estateAt, estateHouse, RESIDENTIAL } from "./prosperity";
