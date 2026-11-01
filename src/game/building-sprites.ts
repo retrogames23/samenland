@@ -133,6 +133,18 @@ import patricianHillLight from "@/assets/sprites/cohesive/night/workshop-patrici
 import cottageCoastLight from "@/assets/sprites/cohesive/night/gateway-cottage.webp";
 import fachwerkCoastLight from "@/assets/sprites/cohesive/night/gateway-fachwerk.webp";
 import patricianCoastLight from "@/assets/sprites/cohesive/night/gateway-patrician.webp";
+import hutHill from "@/assets/sprites/cohesive/workshop-hut.webp";
+import hutCoast from "@/assets/sprites/cohesive/gateway-hut.webp";
+import craftHill from "@/assets/sprites/cohesive/workshop-handwerker.webp";
+import craftCoast from "@/assets/sprites/cohesive/gateway-handwerker.webp";
+import farmHill from "@/assets/sprites/cohesive/workshop-farmhouse.webp";
+import farmCoast from "@/assets/sprites/cohesive/gateway-farmhouse.webp";
+import hutHillLight from "@/assets/sprites/cohesive/night/workshop-hut.webp";
+import hutCoastLight from "@/assets/sprites/cohesive/night/gateway-hut.webp";
+import craftHillLight from "@/assets/sprites/cohesive/night/workshop-handwerker.webp";
+import craftCoastLight from "@/assets/sprites/cohesive/night/gateway-handwerker.webp";
+import farmHillLight from "@/assets/sprites/cohesive/night/workshop-farmhouse.webp";
+import farmCoastLight from "@/assets/sprites/cohesive/night/gateway-farmhouse.webp";
 
 const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, lodge: lodgeLight, herbhut: herbhutLight, woodcamp: woodcampLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, firehouse: firehouseLight, guardhouse: guardhouseLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, belfry: belfryLight, theater: theaterLight, opera: operaLight, university: universityLight, exchange: exchangeLight, orangery: orangeryLight, harvesthall: harvesthallLight, guildtower: guildtowerLight, lighthouse: lighthouseLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, seat1: seat1Light, seat2: seat2Light, seat3: seat3Light, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
@@ -208,12 +220,14 @@ const sprites: Partial<Record<Kind, Sprite>> = {
 /** Town-character house styles (stone hill towns, brick harbour towns); same width, base and night framing as the base kind,
  * purely visual: households, taxes and rank use the base kind. Plains (grain) keep the classic art. */
 export type HouseStyle = "workshop" | "gateway";
-type StyleSlot = "cottage" | "fachwerk" | "patrician";
-const STYLE_OF: Partial<Record<Kind, StyleSlot>> = { cottage: "cottage", fachwerk: "fachwerk", steinhaus: "fachwerk", patrician: "patrician" };
+type StyleSlot = "cottage" | "fachwerk" | "patrician" | "hut" | "handwerker" | "farmhouse";
+const STYLE_OF: Partial<Record<Kind, StyleSlot>> = { cottage: "cottage", fachwerk: "fachwerk", steinhaus: "fachwerk", patrician: "patrician", hut: "hut", handwerker: "handwerker", farmhouse: "farmhouse" };
 type Styled = { day: string; night: string; crop: [number, number, number, number]; image?: HTMLImageElement; light?: HTMLImageElement };
 const styled: Record<HouseStyle, Record<StyleSlot, Styled>> = {
-  workshop: { cottage: { day: cottageHill, night: cottageHillLight, crop: [0, 0, 480, 419] }, fachwerk: { day: fachwerkHill, night: fachwerkHillLight, crop: [0, 0, 344, 480] }, patrician: { day: patricianHill, night: patricianHillLight, crop: [0, 0, 272, 480] } },
-  gateway: { cottage: { day: cottageCoast, night: cottageCoastLight, crop: [0, 0, 480, 419] }, fachwerk: { day: fachwerkCoast, night: fachwerkCoastLight, crop: [0, 0, 339, 480] }, patrician: { day: patricianCoast, night: patricianCoastLight, crop: [0, 0, 271, 480] } },
+  workshop: { cottage: { day: cottageHill, night: cottageHillLight, crop: [0, 0, 480, 419] }, fachwerk: { day: fachwerkHill, night: fachwerkHillLight, crop: [0, 0, 344, 480] }, patrician: { day: patricianHill, night: patricianHillLight, crop: [0, 0, 272, 480] },
+    hut: { day: hutHill, night: hutHillLight, crop: [0, 0, 453, 480] }, handwerker: { day: craftHill, night: craftHillLight, crop: [0, 0, 445, 480] }, farmhouse: { day: farmHill, night: farmHillLight, crop: [0, 0, 480, 369] } },
+  gateway: { cottage: { day: cottageCoast, night: cottageCoastLight, crop: [0, 0, 480, 419] }, fachwerk: { day: fachwerkCoast, night: fachwerkCoastLight, crop: [0, 0, 339, 480] }, patrician: { day: patricianCoast, night: patricianCoastLight, crop: [0, 0, 271, 480] },
+    hut: { day: hutCoast, night: hutCoastLight, crop: [0, 0, 448, 480] }, handwerker: { day: craftCoast, night: craftCoastLight, crop: [0, 0, 280, 480] }, farmhouse: { day: farmCoast, night: farmCoastLight, crop: [0, 0, 480, 331] } },
 };
 const styledOf = (kind: Kind, style?: HouseStyle) => { const k = style ? STYLE_OF[kind] : undefined; return k && style ? styled[style][k] : undefined; };
 const load = (url: string) => { const im = new Image(); im.decoding = "async"; im.src = url; return im; };
