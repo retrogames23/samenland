@@ -36,7 +36,7 @@ export const fr: Dict = {
   stages: ["Origine", "Hameau", "Village", "Bourg", "Cité marchande", "Métropole"],
   nextRank: (stage: string, parts: string[]) => `Encore pour ${stage} : ${parts.join(", ")}`,
   needCitizens: (n: number) => `${n} habitants`,
-  needHomes: (n: number) => `${n} maisons`,
+  needHomes: (n: number) => `${n} logements occupés`,
   needRoads: (n: number) => (n === 1 ? "une route commerciale" : `${n} routes commerciales`),
   terrain: {
     deep: "Mer profonde",

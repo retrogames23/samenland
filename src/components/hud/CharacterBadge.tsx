@@ -2,7 +2,7 @@ import { WareIcon } from "./WareIcon";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { townCharacter, type TownWay } from "@/game/character";
-import { TOWN_CHARACTER, type Lang } from "@/game/i18n";
+import { TOWN_CHARACTER, TOWN_DEVELOPMENT, type Lang } from "@/game/i18n";
 import type { Ware } from "@/game/goods";
 
 const WARE: Record<TownWay, Ware> = { grain: "grain", workshop: "stone", gateway: "fish" };
@@ -19,11 +19,13 @@ function Shield({ way }: { way: TownWay }) {
 
 export function CharacterDetails({ seed, lang }: { seed: { x: number; y: number }; lang: Lang }) {
   const c = townCharacter(seed), t = TOWN_CHARACTER[lang];
+  const development = TOWN_DEVELOPMENT[lang];
   return <div className="text-sm">
     <div className="flex items-center gap-2"><Shield way={c.main} /><b className="min-w-0 break-words">{t.names[c.main]}</b></div>
     {c.side && <p className="mt-1 text-xs text-muted-foreground">{t.side}: {t.names[c.side]}</p>}
     <p className="mt-3 text-xs text-muted-foreground">{t.landscape}</p>
     <dl className="mt-1 space-y-1">{(["grain", "workshop", "gateway"] as const).map(way => <div key={way} className="flex justify-between gap-3"><dt>{t.land[way]}</dt><dd className="shrink-0 tabular-nums">{Math.round(c.mix[way] * 100)} %</dd></div>)}</dl>
+    <div className="mt-3 space-y-2 border-t border-border pt-3 text-xs text-muted-foreground"><p>{development.food[c.main]}</p><p>{development.homes[c.main]}</p><p>{development.care}</p></div>
   </div>;
 }
 
