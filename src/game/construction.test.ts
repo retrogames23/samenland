@@ -29,7 +29,7 @@ describe("construction sites", () => {
   });
   it("bought sites report their exact finish time", () => {
     const at = 1_000_000;
-    const bought: Seed = { ...seed, id: "bought-test", bought: [{ item: "granary", at, cost: 300 }] } as Seed;
+    const bought: Seed = { ...seed, id: "bought-test", bought: [{ item: "granary", at }] } as Seed;
     const tile = specialTile(bought, "granary");
     expect(tile).not.toBeNull();
     const st = structureAt(tile![0], tile![1], [bought], at + 1000);
