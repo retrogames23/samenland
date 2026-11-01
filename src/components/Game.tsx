@@ -1669,7 +1669,7 @@ export function Game() {
               <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { focus(s.x, s.y); setTab(null); }}>
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{t.roll.role["mayor"]![f ? 0 : 1]}: {s.owner}{support.get(s.id)?.has("seal") && <span title={SUPPORT[lang].seal} className="ms-1 text-[hsl(var(--primary))]">⚜️</span>}</>; })()} · {t.age(ageHours(s, now))}
+                  {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{t.roll.role["mayor"]![f ? 0 : 1]}: {s.owner}{support.get(s.id)?.has("seal") && <span title={SUPPORT[lang].seal} className="ms-1 text-primary">⚜️</span>}</>; })()} · {t.age(ageHours(s, now))}
                   {(() => { const p = speedParts(s, seeds, now); return (<>
                     {p.bless > 0.005 && <span className="block">{t.blessBonus(Math.round(p.bless * 100))}</span>}
                     {p.trade > 0.005 && <span className="block">{t.tradeBonus(Math.round(p.trade * 100))}{p.raw - p.trade > 0.005 && <> ({t.tradeCap(Math.round(p.raw * 100), Math.round(p.cap * 100))})</>}</span>}
