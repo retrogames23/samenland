@@ -2154,6 +2154,24 @@ export function Game() {
                   catch { try { await navigator.clipboard.writeText(text); setMsg(t.invite.copied); } catch { /* user cancelled */ } }
                 }}>{t.invite.copy}</Button>
               </div>
+              {(() => {
+                const post = encodeURIComponent(`${t.invite.post} ${link}`);
+                const items: [string, string][] = [
+                  [`✉ ${t.invite.mail}`, `mailto:?subject=${encodeURIComponent(t.invite.mailSubject)}&body=${encodeURIComponent(t.invite.mailBody(link))}`],
+                  ["Mastodon", `https://toot.kytta.dev/?text=${post}`],
+                  ["Bluesky", `https://bsky.app/intent/compose?text=${post}`],
+                  ["X", `https://x.com/intent/tweet?text=${post}`],
+                ];
+                return (
+                  <div className="mt-3 flex flex-wrap justify-center gap-2" aria-label={t.invite.shareOn}>
+                    {items.map(([label, href]) => (
+                      <Button key={label} asChild size="sm" variant="secondary">
+                        <a href={href} target={href.startsWith("mailto:") ? undefined : "_blank"} rel="noopener noreferrer">{label}</a>
+                      </Button>
+                    ))}
+                  </div>
+                );
+              })()}
               {n > 0 && <p className="mt-2 text-center text-xs text-muted-foreground">{t.invite.count(n)}</p>}
             </>) : <p className="mt-2 text-center text-sm">{t.invite.locked}</p>}
           </Parchment>
