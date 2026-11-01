@@ -273,6 +273,12 @@ export const LANDMARKS: { dx: number; dy: number; at: number; kind: Kind }[] = [
   { dx: -9, dy: 5, at: 10000, kind: "station" },
   { dx: 12, dy: 3, at: 2400, kind: "sawmill" },
 ];
+/** Character landmarks: the barn and warehouse sites show the town's way (pure, visual only — no tax or roster effect). */
+export function wayLandmark(kind: Kind, way: TownWay, wet: boolean): Kind {
+  if (kind === "barn") return way === "workshop" ? "dairy" : way === "gateway" && wet ? "fishery" : "barn";
+  if (kind === "warehouse") return way === "grain" ? "granary" : way === "gateway" && wet ? "harbor" : "warehouse";
+  return kind;
+}
 const lmCache = new Map<string, Map<string, number[]>>();
 /**
  * Landmarks keep their nominal offset when the ground is dry; otherwise they move to the nearest
