@@ -464,10 +464,10 @@ export function Game() {
         supabase.from("market_sales").select("id, seed_id, day, reward, created_at"),
         supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at"),
         supabase.from("village_visits").select("id, visitor_seed, visited_seed, reward, created_at"),
-        supabase.from("wonder_finds").select("id, seed_id, site, realm, first, reward, created_at"),
+        (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("wonder_finds").select("id, seed_id, site, realm, first, reward, created_at"),
       ]).then(([q, m, rf, vv, wf]) => {
         for (const v of vv.data ?? []) visitSeen.current.add(v.visited_seed);
-        wonderRows.current = (wf.data ?? []) as WonderFind[];
+        wonderRows.current = (wf.data ?? []) as unknown as WonderFind[];
         syncWonders();
         setClaims([...(q.data ?? []), ...visitClaims(vv.data ?? []), ...wonderClaims(wonderRows.current), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? [])]);
         // tell the inviter once when a friend has answered the call
@@ -1032,7 +1032,7 @@ export function Game() {
   useEffect(() => { syncWonders(); }, [my?.id, userId]);
   wonderFn.current = (key, kind, my) => {
     if (!owner || my.user_id !== userId) { wonderSeen.current.delete(key); return; }
-    supabase.rpc("claim_wonder", { _seed: my.id, _site: key }).then(({ data, error }) => {
+    (supabase.rpc as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: number | null; error: unknown }>)("claim_wonder", { _seed: my.id, _site: key }).then(({ data, error }) => {
       if (error || !data) { if (error) wonderSeen.current.delete(key); return; }
       const realm = my.realm ?? "europe", before = firstFinder(wonderRows.current, key, realm);
       const row: WonderFind = { id: `local-w-${key}`, seed_id: my.id, site: key, realm, first: !before, reward: data, created_at: new Date().toISOString() };
