@@ -1970,7 +1970,7 @@ export function Game() {
             <button type="button" aria-label={fs ? t.exitFullscreen : t.fullscreen} title={fs ? t.exitFullscreen : t.fullscreen} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())} className="hidden h-8 w-8 place-items-center rounded-md hover:bg-accent md:grid">
               {fs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
-            <button type="button" aria-label={t.guide.menu} title={t.guide.menu} onClick={() => setGuideOpen(true)} className="grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:hidden md:md:h-8 md:md:w-8">
+            <button type="button" aria-label={t.guide.menu} title={t.guide.menu} onClick={() => setGuideOpen(true)} className="grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:hidden">
               <BookOpen className="h-4 w-4" />
             </button>
             <button type="button" aria-label={t.hud.settings} title={t.hud.settings} aria-expanded={settings} onClick={() => { if (!settings) { setWho(null); setPlace(null); } setSettings(!settings); }} className="grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:h-8 md:w-8">
