@@ -714,12 +714,23 @@ export function Game() {
           const nw = clock(), tw = townOf(my, S.seeds, nw), me = tw.people.find((q) => q.role === "mayor");
           if (me) {
             setMounted(knights.current.has(my.id));
+            if (keys.size || held) camFree.current = false;
             if (keys.size || held || walkDriven) { driveMayor(me, tw, S.seeds, nw, dx + dy, dy - dx, dt / 1000); walkDriven = true; }
             const q = poseOf(me, tw, S.seeds, nw), [ix, iy] = iso(q.x, q.y), k = 1 - Math.exp(-dt / 220);
             for (const o of S.seeds) if (o.id !== my.id && !visitSeen.current.has(o.id) && Math.hypot(q.x - o.x, q.y - o.y) <= radiusOf((nw - Date.parse(o.created_at)) / 36e5)) { visitSeen.current.add(o.id); visitFn.current(o, my); }
             for (const w of wonders()) if (!wonderSeen.current.has(w.key) && Math.hypot(q.x - w.x, q.y - w.y) <= WONDER_REACH) { wonderSeen.current.add(w.key); wonderFn.current(w.key, w.kind, my); }
             { const near = atCourt(q.x, q.y); if (near !== courtNear.current) { courtNear.current = near; setNearCourt(near); } }
-            cam.current.x += (ix - cam.current.x) * k; cam.current.y += (iy - 10 - cam.current.y) * k;
+            if (drag.current?.moved) camFree.current = true;
+            if (!camFree.current) { cam.current.x += (ix - cam.current.x) * k; cam.current.y += (iy - 10 - cam.current.y) * k; }
+            else {
+              // map scrolled freely during the stroll: keep the glide, don't snap back to the mayor
+              const f = fling.current;
+              if (!drag.current && (f.vx || f.vy)) {
+                cam.current.x -= (f.vx * dt) / cam.current.zoom; cam.current.y -= (f.vy * dt) / cam.current.zoom;
+                const kk = Math.exp(-dt / 130); f.vx *= kk; f.vy *= kk;
+                if (Math.hypot(f.vx, f.vy) < 0.01) { f.vx = 0; f.vy = 0; }
+              }
+            }
           }
         }
         return;
@@ -1025,6 +1036,8 @@ export function Game() {
   const [visitNote, setVisitNote] = useState<string | null>(null);
   // audience at the prince's seat: offered while the strolling mayor stands on the estate
   const courtNear = useRef(false);
+  /** Stroll mode: the player scrolled the map away; the camera stops following until the mayor is sent off again. */
+  const camFree = useRef(false);
   const [nearCourt, setNearCourt] = useState(false);
   const [audience, setAudience] = useState<AudienceHost | null>(null);
   const princelyRows = useRef<PrincelyRow[]>([]);
