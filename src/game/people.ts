@@ -69,6 +69,8 @@ export type Pose = {
   talk: number | null; talkTurn: boolean;
   carry: Good | null; dest: Dest | null;
   festive?: "bride" | "groom" | undefined;
+  /** Knight on his riding horse (own strolling mayor only, local). */
+  mounted?: boolean;
   /** Fighting a fire: carries a sloshing water bucket. */
   bucket?: boolean | undefined;
 };
@@ -877,6 +879,10 @@ export function mayorGoal(now: number): Tile | null {
 export const clearMayorOrder = () => { order = null; drive = null; };
 /** Walking pace when the player steers the mayor directly (tiles/s). */
 export const DRIVE_SPEED = 0.38;
+/** Knights ride: speed factor of the riding horse in stroll mode (local-only, from the knighthood row). */
+export const KNIGHT_SPEED = 2.2;
+let mounted = false;
+export const setMounted = (v: boolean) => { mounted = v; };
 type Drive = { id: number; sid: string; x: number; y: number; dir: [number, number]; moving: boolean; dist: number };
 let drive: Drive | null = null;
 /** Stroll mode: steer the own mayor directly by a tile-space direction; local-only, never stored. Walls and water block. */
@@ -890,18 +896,19 @@ export function driveMayor(p: Person, t: Town, seeds: Seed[], now: number, dx: n
   }
   const len = Math.hypot(dx, dy);
   if (!len) { drive.moving = false; return; }
-  const s = (DRIVE_SPEED * Math.min(dt, 0.1)) / len, nx = drive.x + dx * s, ny = drive.y + dy * s;
+  const v = DRIVE_SPEED * (mounted ? KNIGHT_SPEED : 1);
+  const s = (v * Math.min(dt, 0.1)) / len, nx = drive.x + dx * s, ny = drive.y + dy * s;
   const ok = (x: number, y: number) => x >= 1 && y >= 1 && x < MAP - 1 && y < MAP - 1 && freeAt(t, x, y, seeds);
   if (ok(nx, ny)) { drive.x = nx; drive.y = ny; }
   else if (ok(nx, drive.y)) drive.x = nx;
   else if (ok(drive.x, ny)) drive.y = ny;
-  drive.moving = true; drive.dist += DRIVE_SPEED * Math.min(dt, 0.1);
+  drive.moving = true; drive.dist += v * Math.min(dt, 0.1);
   drive.dir = [dx / len, dy / len];
 }
 export const stopDrive = () => { drive = null; };
 function orderPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): Pose | null {
   const dv = drive;
-  if (dv && dv.id === p.id) return { ...base, x: dv.x, y: dv.y, dir: dv.dir, visible: true, walking: dv.moving, act: "stroll", phase: dv.dist / STRIDE, working: false };
+  if (dv && dv.id === p.id) return { ...base, x: dv.x, y: dv.y, dir: dv.dir, visible: true, walking: dv.moving, act: "stroll", phase: dv.dist / STRIDE, working: false, mounted };
   const o = order;
   if (!o || o.id !== p.id) return null;
   const a: Tile = [Math.round(o.from[0]), Math.round(o.from[1])];

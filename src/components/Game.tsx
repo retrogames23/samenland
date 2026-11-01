@@ -13,7 +13,7 @@ import { wonders, wonderClaims, firstFinder, WONDER_REACH, type WonderFind } fro
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townRank, rankInput, nextRankNeed } from "@/game/rank";
-import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, setStrollHold, citizensOf, type Person } from "@/game/people";
+import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, setMounted, setStrollHold, citizensOf, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { weddingJoy } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
@@ -478,6 +478,7 @@ export function Game() {
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("princely_tasks").select("id, seed_id, step, task, reward, accepted_at, done_at"),
       ]).then(([q, m, rf, vv, wf, pt]) => {
         princelyRows.current = (pt.data ?? []) as PrincelyRow[];
+        (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: { seed_id: string }[] | null }> } }).from("knighthoods").select("seed_id").then(({ data }) => { knights.current = new Set((data ?? []).map((k) => k.seed_id)); });
         for (const v of vv.data ?? []) visitSeen.current.add(v.visited_seed);
         wonderRows.current = (wf.data ?? []) as unknown as WonderFind[];
         syncWonders();
@@ -712,6 +713,7 @@ export function Game() {
           const sk = stick.current, held = !!(sk.dx || sk.dy); dx += sk.dx; dy += sk.dy;
           const nw = clock(), tw = townOf(my, S.seeds, nw), me = tw.people.find((q) => q.role === "mayor");
           if (me) {
+            setMounted(knights.current.has(my.id));
             if (keys.size || held || walkDriven) { driveMayor(me, tw, S.seeds, nw, dx + dy, dy - dx, dt / 1000); walkDriven = true; }
             const q = poseOf(me, tw, S.seeds, nw), [ix, iy] = iso(q.x, q.y), k = 1 - Math.exp(-dt / 220);
             for (const o of S.seeds) if (o.id !== my.id && !visitSeen.current.has(o.id) && Math.hypot(q.x - o.x, q.y - o.y) <= radiusOf((nw - Date.parse(o.created_at)) / 36e5)) { visitSeen.current.add(o.id); visitFn.current(o, my); }
@@ -1026,6 +1028,17 @@ export function Game() {
   const [nearCourt, setNearCourt] = useState(false);
   const [audience, setAudience] = useState<AudienceHost | null>(null);
   const princelyRows = useRef<PrincelyRow[]>([]);
+  const knights = useRef<Set<string>>(new Set());
+  const [, bumpKnight] = useState(0);
+  const kneel = async (seedId: string, female: boolean) => {
+    const P = PRINCELY[lang];
+    const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: string | null; error: unknown }>;
+    const { data, error } = await rpc("princely_knight", { _seed: seedId });
+    if (error || !data) { setDecree(P.fail); return; }
+    if (data === "not_yet") { setDecree(P.notYet); return; }
+    knights.current = new Set([...knights.current, seedId]); bumpKnight((n) => n + 1);
+    setDecree(P.dubbed(P.sir(female))); jingle("fanfare");
+  };
   const [decree, setDecree] = useState<string | null>(null);
   const askDecree = async (seedId: string) => {
     const P = PRINCELY[lang];
@@ -1681,6 +1694,8 @@ export function Game() {
             {decree && <p className="mt-3 text-sm italic leading-relaxed">{decree}</p>}
             {!decree && <Button type="button" size="sm" className="mt-3 w-full" onClick={() => askDecree(my.id)}>📜 {PRINCELY[lang].ask}</Button>}
             {(() => { const o = openTaskOf(princelyRows.current, my.id); return o && o.task !== "court" && decree && decree !== PRINCELY[lang].swapped && decree !== PRINCELY[lang].wait ? <Button type="button" size="sm" variant="outline" className="mt-2 w-full" onClick={() => swapDecree(my.id)}>🔄 {PRINCELY[lang].swap}</Button> : null; })()}
+            {audience === "prince" && !knights.current.has(my.id) && favourOf(princelyRows.current, my.id) >= PRINCELY_COUNT && <Button type="button" size="sm" className="mt-2 w-full" onClick={() => kneel(my.id, (my as { mayor_gender?: string | null }).mayor_gender === "w")}>⚔️ {PRINCELY[lang].kneel}</Button>}
+            {knights.current.has(my.id) && <p className="mt-2 text-center text-xs font-semibold">🐎 {PRINCELY[lang].sir((my as { mayor_gender?: string | null }).mayor_gender === "w")}</p>}
             <p className="mt-2 text-xs text-muted-foreground">{PRINCELY[lang].favour(favourOf(princelyRows.current, my.id), PRINCELY_COUNT)}</p>
           </>)}
           <Button type="button" size="sm" variant="outline" className="mt-3 w-full" onClick={() => setAudience(null)}>{COURT[lang].bow}</Button>

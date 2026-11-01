@@ -384,6 +384,29 @@ export type Database = {
           },
         ]
       }
+      knighthoods: {
+        Row: {
+          created_at: string
+          seed_id: string
+        }
+        Insert: {
+          created_at?: string
+          seed_id: string
+        }
+        Update: {
+          created_at?: string
+          seed_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knighthoods_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: true
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       letter_bodies: {
         Row: {
           body: string
@@ -1083,6 +1106,7 @@ export type Database = {
         Returns: boolean
       }
       princely_audience: { Args: { _seed: string }; Returns: string }
+      princely_knight: { Args: { _seed: string }; Returns: string }
       princely_swap: { Args: { _seed: string }; Returns: string }
       princely_task_def: {
         Args: { _step: number }
