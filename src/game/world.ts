@@ -608,7 +608,15 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
       buildP = 1;
       const k = forSeed(x, y, s, age, r, d);
       if (k && buildP < 1 && (FLAT.has(k) || k === "hay" || k === "fence")) continue;
-      if (k) { best = { kind: k, seed: s, v: hash(x, y, 5), ...(buildP < 1 ? { build: Math.max(0, buildP) } : {}) }; bestD = d; }
+      if (k) {
+        let doneAt: number | undefined;
+        if (buildP < 1) {
+          // estimate: remaining growth hours ÷ current growth rate (growth hours per real hour)
+          const rate = Math.max(0.05, effAge(s, seeds, now + 3.6e6) - age);
+          doneAt = now + ((bornAt(x, y, s) - age) / rate) * 3.6e6;
+        }
+        best = { kind: k, seed: s, v: hash(x, y, 5), ...(buildP < 1 ? { build: Math.max(0, buildP), doneAt } : {}) }; bestD = d;
+      }
     }
   }
   // trade roads keep their corridor: fields, gardens and pastures grow around them, never over them
