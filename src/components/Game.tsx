@@ -1638,7 +1638,7 @@ export function Game() {
       )}
       {walk && nearCourt && !audience && (
         <div data-walk className="absolute inset-x-0 top-[14%] z-40 flex justify-center">
-          <WoodButton label={COURT[lang].ask} onClick={() => { setAudience(audienceHost(worldHour())); jingle("fanfare"); }} className="h-11 px-4"><span className="text-sm font-semibold">👑 {COURT[lang].ask}</span></WoodButton>
+          <WoodButton label={COURT[lang].ask} onClick={() => { setAudience(audienceHost(worldHour(clock()))); jingle("fanfare"); }} className="h-11 px-4"><span className="text-sm font-semibold">👑 {COURT[lang].ask}</span></WoodButton>
         </div>
       )}
       {walk && audience && (
