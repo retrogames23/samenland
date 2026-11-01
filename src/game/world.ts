@@ -593,7 +593,8 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     const mk = MONUMENT_BY_KIND.get(sp.kind);
     const mill = sawmillUp(s, seeds, now);
     const p = mk ? monumentProgress(s, now, mk, mill) : (now - sp.at) / specialBuild(s, mill);
-    best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p } : {}) };
+    const doneAt = p < 1 ? (mk ? monumentDone(s, seeds, mk) ?? undefined : specialDone(s, seeds, sp.at)) : undefined;
+    best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p, doneAt } : {}) };
     scache.set(ck, best);
     return best;
   }
