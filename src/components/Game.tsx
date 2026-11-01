@@ -2447,7 +2447,7 @@ export function Game() {
             const o = seeds.find((s) => s.name === err.slice(5));
             const d = o ? Math.max(1, Math.ceil(MIN_SEED_DISTANCE - Math.hypot(hover[0] - o.x, hover[1] - o.y))) : 1;
             txt = t.seedHint.near(err.slice(5), d);
-          } else if (err) txt = err === "hill" ? t.seedHint.hill : t.seedHint.water;
+          } else if (err) txt = err === "court" ? t.court : err === "hill" ? t.seedHint.hill : t.seedHint.water;
           return (
             <div className="pointer-events-none fixed z-50 rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" ref={tipRef} style={{ left: (ptrRef.current ?? ptr)[0] + 18, top: (ptrRef.current ?? ptr)[1] + 18 }}>
               <span className={err ? "text-destructive" : "text-primary"}>{err ? "✕ " : "✓ "}</span>{txt}
