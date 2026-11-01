@@ -364,6 +364,11 @@ export function Game() {
   // letter texts are only readable once signed in: on phones the session often arrives after the map load
   useEffect(() => {
     if (!userId) return;
+    // the account's last explicit language choice wins over browser detection
+    supabase.auth.getUser().then(({ data }) => {
+      const l = data.user?.user_metadata?.["lang"];
+      if (typeof l === "string" && (LANGS as string[]).includes(l)) { setLang(l as Lang); localStorage.setItem("samenland-lang", l); }
+    });
     supabase.from("letter_bodies").select("letter_id, body").then(({ data }) => { if (data?.length) setBodies((old) => ({ ...old, ...Object.fromEntries(data.map((b) => [b.letter_id, b.body])) })); });
   }, [userId]);
   // optional letter by email when a bought building is finished (sent by the scheduled build-mail route)
@@ -974,6 +979,8 @@ export function Game() {
   const switchLang = (l: Lang) => {
     setLang(l);
     localStorage.setItem("samenland-lang", l);
+    // signed-in players keep their choice on every device
+    if (userId) void supabase.auth.updateUser({ data: { lang: l } });
   };
   const emailAuth = async () => {
     setMsg(null);
