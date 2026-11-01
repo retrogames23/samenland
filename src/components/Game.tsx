@@ -1,4 +1,5 @@
 import { WalkStick } from "./WalkStick";
+import { CharacterBadge, CharacterDetails } from "./hud/CharacterBadge";
 import { tileHits } from "@/game/disasters";
 import { BOOK } from "@/game/lang/book";
 import { PROSPERITY } from "@/game/lang/prosperity";
@@ -1730,6 +1731,7 @@ export function Game() {
       {/* top bar */}
       <div ref={barRef} className="pointer-events-none absolute inset-x-2 top-2 z-30 md:inset-x-3 md:top-3">
         <Panel inner="flex items-center gap-3 px-3 py-1.5 md:gap-5">
+          {my && <CharacterBadge seed={my} lang={lang} />}
           <div className="min-w-0 shrink">
             <div title={my ? t.character[characterOf(my.x, my.y)]![1] : undefined} className="-my-[0.34em] truncate py-[0.34em] pl-0.5 pr-3 font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
@@ -1902,6 +1904,7 @@ export function Game() {
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.nearest}</span><span className="text-right">{near ? t.plantAsk.near(near.name, Math.round(nd)) : t.plantAsk.none}</span></div>
             </div>
             <p className="mt-3 text-center text-xs text-muted-foreground">{t.character[c]![1]}</p>
+            <div className="mt-3 border-t border-border pt-3"><CharacterDetails seed={{ x: px, y: py }} lang={lang} /></div>
             <div className="mt-4 flex justify-center">
               <Button type="button" size="sm" disabled={planting} onClick={plantNow}>{planting ? t.plantAsk.wait : t.plantAsk.ok}</Button>
             </div>
@@ -2139,7 +2142,7 @@ export function Game() {
       )}
 
       {rollOpen && my && myTown && (
-        <VillageRoll t={t} town={myTown} hue={my.hue} onClose={() => setRollOpen(false)} onPick={(p) => {
+        <VillageRoll t={t} town={myTown} hue={my.hue} character={<CharacterDetails seed={my} lang={lang} />} onClose={() => setRollOpen(false)} onPick={(p) => {
           const now = clock();
           const z = poseOf(p, townOf(p.seed, seeds, now), seeds, now);
           setRollOpen(false);

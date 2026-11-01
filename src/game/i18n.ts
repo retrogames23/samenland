@@ -2,6 +2,7 @@ import { hi } from "./lang/hi";
 import { es } from "./lang/es";
 import { ar } from "./lang/ar";
 import { fr } from "./lang/fr";
+export { TOWN_CHARACTER } from "./lang/character";
 
 export type Lang = "de" | "en" | "fr" | "es" | "ar" | "hi" | "zh" | "ja";
 export const LANGS: Lang[] = ["de", "en", "fr", "es", "ar", "hi", "zh", "ja"];
