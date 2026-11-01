@@ -33,7 +33,7 @@ import oakU from "@/assets/sprites/wonders/oak.webp";
 import ruinU from "@/assets/sprites/wonders/ruin.webp";
 import caravanU from "@/assets/sprites/wonders/caravan.webp";
 import springU from "@/assets/sprites/wonders/spring.webp";
-import { courtPieces, courtPoses, inCourt, COURT_LAYOUT, type CourtPiece, type CourtPose, type CourtRole } from "./court";
+import { courtPieces, courtPoses, inCourt, courtSite, courtCenter, COURT_LAYOUT, type CourtPiece, type CourtPose, type CourtRole } from "./court";
 import castleU from "@/assets/sprites/court/castle.webp";
 import stableU from "@/assets/sprites/court/stable.webp";
 import parterreU from "@/assets/sprites/court/parterre.webp";
@@ -1220,6 +1220,10 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
       else if (!FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
     }
   }
+  { // the prince's seat, at true scale like the towns
+    const cs0 = courtSite();
+    for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) { const cp = courtPieces().get((cs0.y + j) * MAP + cs0.x + i); if (cp) { const [cx, cy] = iso(cs0.x + i, cs0.y + j); drawCourtPiece(c, cp, cx, cy, []); } }
+  }
   c.setTransform(1, 0, 0, 1, 0, 0);
   // same dusk/night grade as the close view, so zooming out never jumps to daylight
   const night = skyTint(c, w, h);
@@ -1238,6 +1242,8 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
   }
   c.font = `700 ${Math.round(18 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`; c.textAlign = "center";
   const placed: [number, number][] = [];
+  const cl = drawCourtLabel(c, cam, w, h, z, dpr, 7 * TH * z + 12 * dpr, 18); if (cl) placed.push(cl);
+  c.font = `700 ${Math.round(18 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`;
   const order = [...seeds].sort((a, b) => effAge(b, seeds, now) - effAge(a, seeds, now));
   for (const s of order) {
     const [ix, iy] = iso(s.x, s.y);
@@ -1702,6 +1708,18 @@ function drawWonder(c: C, k: WonderKind, cx: number, cy: number, t: number, fres
   }
 }
 // ---------------- the prince's seat (src/game/court.ts) ----------------
+let courtName = "Fürstenhof";
+/** Map label of the prince's seat in the player's language (set by the UI). */
+export function setCourtLabel(n: string) { courtName = n; }
+function drawCourtLabel(c: C, cam: Camera, w: number, h: number, z: number, dpr: number, lift: number, size: number) {
+  const cc = courtCenter(); const [ix, iy] = iso(cc.x, cc.y);
+  const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2 - lift;
+  if (sx < -200 || sx > w + 200 || sy < -50 || sy > h + 50) return null;
+  c.font = `italic 700 ${Math.round(size * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`; c.textAlign = "center"; c.lineJoin = "round";
+  c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(courtName, sx, sy);
+  c.fillStyle = hsl(345, 45, 30); c.fillText(courtName, sx, sy);
+  return [sx, sy] as [number, number];
+}
 const COURT_ART: Record<CourtPiece, string> = { castle: castleU, stable: stableU, parterre: parterreU, fountain: fountainU, pavilion: pavilionU };
 const COURT_FIG: Record<CourtRole, string> = { prince: princeU, princess: princessU, herald: heraldU, guard: guardU, gardener: gardenerU, groom: courtGroomU };
 function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[]) {
@@ -2443,6 +2461,7 @@ export function draw(
     c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(sd.name, sx, sy);
     c.fillStyle = INK; c.fillText(sd.name, sx, sy);
   }
+  drawCourtLabel(c, cam, w, h, z, dpr, 110 * z + 8 * dpr, 22);
   // twin towns get a joint ribbon label between them
   c.font = `600 ${Math.round(17 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`;
   for (const l of links(seeds)) {
