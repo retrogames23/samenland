@@ -24,7 +24,8 @@ type C = CanvasRenderingContext2D;
 export type Tex = "grass" | "meadow" | "forest" | "sand" | "water" | "fertile" | "rock" | "dirt" | "cobble" | "wheat" | "crops";
 const TEX: Record<Tex, string> = { grass, meadow, forest, sand, water, fertile, rock, dirt, cobble, wheat, crops };
 /** World pixels covered by one texture repeat (before iso projection). */
-const SPAN: Record<Tex, number> = { grass: 150, meadow: 150, forest: 150, sand: 130, water: 170, fertile: 150, rock: 150, dirt: 70, cobble: 46, wheat: 60, crops: 60 };
+// scaled to the 5-px villager: clover, flowers and cobbles stay smaller than a window or a sheep
+const SPAN: Record<Tex, number> = { grass: 96, meadow: 90, forest: 120, sand: 110, water: 170, fertile: 70, rock: 130, dirt: 56, cobble: 26, wheat: 38, crops: 38 };
 
 const imgs = new Map<string, HTMLImageElement>();
 function img(url: string) {
