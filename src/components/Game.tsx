@@ -1713,9 +1713,12 @@ export function Game() {
       <canvas
         ref={canvasRef}
         className="absolute inset-0 h-full w-full cursor-grab touch-none"
+        onLostPointerCapture={(e) => { touches.current.delete(e.pointerId); if (touches.current.size < 2) pinch.current = null; }}
         onPointerDown={(e) => {
+          // a mouse is always a single pointer; drop any finger left over from a missed release
+          if (e.pointerType === "mouse" || e.isPrimary) touches.current.clear();
           touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-          (e.target as Element).setPointerCapture(e.pointerId);
+          try { (e.target as Element).setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
           if (touches.current.size >= 2) { pinch.current = null; if (drag.current) drag.current.moved = true; return; }
           fling.current = { vx: 0, vy: 0, t: performance.now() };
           drag.current = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, t0: performance.now(), touch: e.pointerType !== "mouse" };
