@@ -1534,7 +1534,8 @@ export function Game() {
                   {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{t.roll.role["mayor"]![f ? 0 : 1]}: {s.owner}</>; })()} · {t.age(ageHours(s, now))}
                   {(() => { const p = speedParts(s, seeds, now); return (<>
                     {p.bless > 0.005 && <span className="block">{t.blessBonus(Math.round(p.bless * 100))}</span>}
-                    {p.trade > 0.005 && <span className="block">{t.tradeBonus(Math.round(p.trade * 100))}</span>}
+                    {p.trade > 0.005 && <span className="block">{t.tradeBonus(Math.round(p.trade * 100))}{p.raw - p.trade > 0.005 && <> ({t.tradeCap(Math.round(p.raw * 100), Math.round(p.cap * 100))})</>}</span>}
+                    {p.toll > 0 && <span className="block">{t.tollBonus(p.toll)}</span>}
                     {p.farm > 0.005 && <span className="block">{t.farmBonus(Math.round(p.farm * 100))}</span>}
                   </>); })()}
                   {mentoring(s, seeds, now) && mentorOf(s, seeds, now) && <span className="block">{t.mentorBy(mentorOf(s, seeds, now)!.name)}</span>}

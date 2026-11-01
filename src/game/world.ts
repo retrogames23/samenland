@@ -848,10 +848,8 @@ export function tradeFactor(s: Seed, o: Seed, now: number) {
   return Math.min(cap, f);
 }
 
-/** Growth bonuses split by source (fractions, e.g. 0.1 = +10 %). */
-export function speedParts(s: Seed, seeds: Seed[], now: number) {
-  const bless = isBlessed(s, now) ? BLESS_BONUS : 0;
-  const farm = s.charter?.path === "farm" && now > s.charter.at ? FARM_BONUS : 0;
+/** Raw trade rate (sum of all roads, markets, transit and hub routes) before the soft cap. */
+function rawTrade(s: Seed, seeds: Seed[], now: number) {
   let trade = 0;
   for (const l of links(seeds)) {
     if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
@@ -861,7 +859,15 @@ export function speedParts(s: Seed, seeds: Seed[], now: number) {
   }
   for (const r of transitRoutes(s, seeds)) if (now > r.since) trade += r.bonus(now);
   for (const r of hubRoutes(s, seeds)) if (now > r.since) trade += hubBonus(s);
-  return { bless, farm, trade };
+  return trade;
+}
+/** Growth bonuses split by source (fractions, e.g. 0.1 = +10 %). `trade` is what really counts after the soft cap;
+ * `raw` is the full road value, `cap` the town's ceiling and `toll` the wealth the surplus earns. */
+export function speedParts(s: Seed, seeds: Seed[], now: number) {
+  const bless = isBlessed(s, now) ? BLESS_BONUS : 0;
+  const farm = s.charter?.path === "farm" && now > s.charter.at ? FARM_BONUS : 0;
+  const raw = rawTrade(s, seeds, now), cap = tradeCapOf(s, now), trade = softTrade(raw, cap);
+  return { bless, farm, trade, raw, cap, toll: tollWealth(raw, trade) };
 }
 /** Current growth speed multiplier: 1 + sum of all bonuses. */
 export function speedOf(s: Seed, seeds: Seed[], now: number) {
@@ -892,10 +898,30 @@ function effAgeBase(s: Seed, seeds: Seed[], now: number) {
   // trade passed on through a neighbour (A–B–C) and transit trade through own hub
   for (const r of transitRoutes(s, seeds)) if (now > r.since) h += r.bonus(now) * (now - r.since) / 3.6e6;
   for (const r of hubRoutes(s, seeds)) if (now > r.since) h += hubBonus(s) * (now - r.since) / 3.6e6;
-  // neighbour bonuses speed growth, but never more than TRADE_CAP of the town's own age
-  return careCeiling(s, now, (base + Math.min(Math.max(0, h - base), base * TRADE_CAP) + mentorHours(s, seeds, now)) * GROWTH_PACE);
+  // neighbour bonuses: full value up to TRADE_CAP of the town's own age, then a soft curve up to the town's ceiling
+  const extra = base > 0 ? base * softTrade(Math.max(0, h - base) / base, tradeCapOf(s, now)) : 0;
+  return careCeiling(s, now, (base + extra + mentorHours(s, seeds, now)) * GROWTH_PACE);
 }
+/** Trade counts in full up to TRADE_CAP; above it, extra trade only approaches the town's ceiling (soft curve, never a wall). */
 export const TRADE_CAP = 0.35;
+/** Ceiling for every town; trade towns raise it (Tor zur Welt, trade charter, Markthalle) up to TRADE_CEIL_MAX. */
+export const TRADE_CEIL = 0.4, CEIL_GATEWAY = 0.05, CEIL_CHARTER = 0.1, CEIL_MARKET = 0.05, TRADE_CEIL_MAX = 0.6;
+/** Wegezoll: every 10 points of trade beyond what growth can absorb give TOLL_PER wealth, at most TOLL_MAX. */
+export const TOLL_PER = 5, TOLL_MAX = 20;
+export function tradeCapOf(s: Seed, now: number) {
+  let c = TRADE_CEIL;
+  if (s.user_id && townCharacter(s).main === "gateway") c += CEIL_GATEWAY;
+  if (s.charter?.path === "trade" && now > s.charter.at) c += CEIL_CHARTER;
+  if ((s.bought ?? []).some((b) => b.item === "markethall" && b.at <= now)) c += CEIL_MARKET;
+  return Math.min(TRADE_CEIL_MAX, c);
+}
+/** Effective trade for a raw trade value: unchanged up to TRADE_CAP, then rising ever more slowly towards `cap`. */
+export function softTrade(raw: number, cap: number) {
+  if (raw <= TRADE_CAP) return raw;
+  const room = Math.max(0, cap - TRADE_CAP);
+  return room === 0 ? TRADE_CAP : TRADE_CAP + room * (1 - Math.exp(-(raw - TRADE_CAP) / room));
+}
+export const tollWealth = (raw: number, eff: number) => Math.min(TOLL_MAX, Math.floor(Math.max(0, raw - eff) * 10 + 1e-9) * TOLL_PER);
 
 /** Trade networks: finished roads pass trade on through one middle town at TRANSIT_SHARE of a direct road; the hub earns TRANSIT_HUB per routed pair. */
 export const TRANSIT_SHARE = 0.75, TRANSIT_HUB = 0.02;
