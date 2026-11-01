@@ -16,7 +16,7 @@ export const FLOOD_LEN = 48 * H, FLOOD_REBUILD = 48 * H, FLOOD_RICH = 14 * DAY;
 export const FLOOD_FOOD_LOSS = 20, FLOOD_FOOD_GAIN = 20;
 export const RAID_FIRST = 10 * DAY, RAID_EVERY = 17 * DAY, RAID_LOSS = 25, RAID_LEN = 45 * 6e4;
 /** Stage (0–5) from which the fire house and the town guard can be bought. */
-export const ITEM_STAGE: Record<string, number> = { woodcamp: 1, granary: 1, healer: 2, school: 3, firehouse: 3, guard: 4 };
+export const ITEM_STAGE: Record<string, number> = { woodcamp: 1, granary: 1, healer: 2, school: 3, firehouse: 3, guard: 4, bigstore: 2, stonemason: 2, smokehouse: 2, millrow: 4, hammerworks: 4, saltquay: 4 };
 
 const AFFECTED = new Set(["hut", "suburb", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "barn", "workshop", "stall", "coop", "inn", "bakery"]);
 export const canBurn = (k: string) => AFFECTED.has(k);
