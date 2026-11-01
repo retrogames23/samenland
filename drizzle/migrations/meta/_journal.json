@@ -442,6 +442,13 @@
       "when": 1793540000000,
       "tag": "0062_wonders",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1793541539583,
+      "tag": "0063_wonders_comment",
+      "breakpoints": true
     }
   ]
 }

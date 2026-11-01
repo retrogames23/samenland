@@ -1,0 +1,1 @@
+COMMENT ON TABLE public.wonder_finds IS 'Discoveries of wonder sites; first finder per realm marked first.';
