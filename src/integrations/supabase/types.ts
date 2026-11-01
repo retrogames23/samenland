@@ -533,6 +533,7 @@ export type Database = {
           reward: number
           seed_id: string
           step: number
+          swapped_at: string | null
           task: string
         }
         Insert: {
@@ -542,6 +543,7 @@ export type Database = {
           reward?: number
           seed_id: string
           step: number
+          swapped_at?: string | null
           task: string
         }
         Update: {
@@ -551,6 +553,7 @@ export type Database = {
           reward?: number
           seed_id?: string
           step?: number
+          swapped_at?: string | null
           task?: string
         }
         Relationships: [
@@ -1080,6 +1083,7 @@ export type Database = {
         Returns: boolean
       }
       princely_audience: { Args: { _seed: string }; Returns: string }
+      princely_swap: { Args: { _seed: string }; Returns: string }
       princely_task_def: {
         Args: { _step: number }
         Returns: Record<string, unknown>
