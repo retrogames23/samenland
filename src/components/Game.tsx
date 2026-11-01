@@ -1721,7 +1721,17 @@ export function Game() {
     return () => clearTimeout(id);
   }, [decision.open, anyOpen]);
 
+  // panels that sit over the map's top-right corner: the chronicle button, the quest
+  // card and the wax seal must step aside while any of them is open
+  const panelOpen =
+    settings || !!tab || authOpen ||
+    guideOpen || introOpen || welcome ||
+    supportOpen || bugOpen || inviteOpen || quitOpen || delOpen ||
+    tavernOpen || rollOpen || larderOpen || questOpen ||
+    !!plantAsk || !!postTo || anyOpen || decision.open || chronOpen;
+
   return (
+
     <div className={`relative h-[100dvh] w-full overflow-hidden bg-background ${walk ? "[&>*:not(canvas):not([data-walk])]:hidden" : ""}`}>
       {visitNote && (
         <div data-walk role="status" className="pointer-events-auto absolute inset-x-0 top-[22%] z-50 mx-auto w-fit max-w-[88vw] rounded-md border-2 border-wood bg-card px-5 py-4 text-center font-semibold text-foreground shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95" onClick={() => setVisitNote(null)}>
@@ -2422,7 +2432,7 @@ export function Game() {
         </Parchment>
       )}
 
-      {owner && quest && !settings && !chronOpen && (
+      {owner && quest && !panelOpen && (
         <div className={`absolute right-16 z-30 max-w-[calc(100vw-5rem)] md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
           <div className="parchment px-3 py-2 text-sm text-ink shadow">
             <button type="button" onClick={() => setQuestFold((f) => !f)} className="flex w-full items-center justify-between gap-2 text-left">
@@ -2451,16 +2461,17 @@ export function Game() {
           <div className="mt-4 flex justify-center"><Button onClick={claimQuest}>{t.quests.claim} · {t.taler(quest.reward)}</Button></div>
         </Parchment>
       )}
-      {chronBanner && !chronOpen && (
+      {chronBanner && !panelOpen && (
         <button type="button" onClick={openChron} className="parchment absolute left-1/2 z-30 -translate-x-1/2 px-4 py-1.5 font-display text-lg text-ink shadow-lg" style={{ top: barH + 8 }}>
           {t.chron.banner(Math.max(1, Math.floor(((chron?.to ?? 0) - (chron?.from ?? 0)) / 864e5)))}
         </button>
       )}
-      {owner && !chronOpen && !chronBanner && (
+      {owner && !panelOpen && !chronBanner && (
         <button type="button" onClick={openChron} title={t.chron.open} aria-label={t.chron.open} className="absolute right-3 z-30 grid h-10 w-10 place-items-center rounded-full border-2 border-border bg-card/90 text-foreground shadow" style={{ top: barH + 8 }}>
           <BookOpen className="h-5 w-5" />
         </button>
       )}
+
       {giftReadsReady && !festNow && my && !anyOpen && !decision.open && !chronOpen && (() => {
         const g = thankable(my.id, gifts, now).find((x) => !seenGifts.includes(x.id));
         const tl = !g ? gifts.find((x) => x.kind === "thanks" && x.to_seed === my.id && now - Date.parse(x.created_at) < 7 * 864e5 && !seenGifts.includes(x.id)) : undefined;
@@ -2530,7 +2541,7 @@ export function Game() {
         </div>
       )}
 
-      {sealShown && (
+      {sealShown && !panelOpen && (
         <div className="absolute right-3 z-30" style={{ top: barH + 8 }}>
           <WaxSeal label={t.enc.waiting} onClick={reopen} />
         </div>
