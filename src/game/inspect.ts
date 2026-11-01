@@ -1,7 +1,7 @@
 import { structureAt, FLAT, type Kind, type Seed } from "./world";
 import { townOf, type Person } from "./people";
 
-export type Inspect = { x: number; y: number; kind: Kind; seed: Seed; build: number | null; residents: Person[]; workers: Person[] };
+export type Inspect = { x: number; y: number; kind: Kind; seed: Seed; build: number | null; doneAt: number | null; residents: Person[]; workers: Person[] };
 
 /** Building or site under a click. Sprites rise above their tile, so tiles in front (+x/+y) are tried too. */
 export function inspectAt(x: number, y: number, seeds: Seed[], now: number): Inspect | null {

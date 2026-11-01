@@ -235,8 +235,8 @@ export type Kind =
   | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "belfry"
   | "bigstore" | "millrow" | "stonemason" | "hammerworks" | "smokehouse" | "saltquay"
   | "theater" | "opera" | "university" | "exchange" | "orangery" | "harvesthall" | "guildtower" | "lighthouse" | "seat1" | "seat2" | "seat3";
-/** build < 1: still a construction site (0 = staked out, 1 = finished). */
-export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; fire?: boolean; flood?: boolean; homeKind?: Kind };
+/** build < 1: still a construction site (0 = staked out, 1 = finished). doneAt: real ms when it stands (estimate for organic growth). */
+export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; doneAt?: number; fire?: boolean; flood?: boolean; homeKind?: Kind };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
 export const buildTime = (at: number) => Math.min(96, Math.max(1.5, at * 0.06));
 let buildP = 1;
