@@ -238,12 +238,15 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const wd = (s.decisions ?? []).filter((d) => d.event === "wedding" && d.choice === "feast" && now >= d.at && now - d.at < 3 * 3600e3).pop();
   const live = weddings.filter((w) => now >= w.at && now - w.at < 3 * 3600e3).pop();
   const gatherAt = wd && weddings.some((w) => w.at <= wd.at && wd.at - w.at < 3 * 3600e3) ? wd.at : live && !live.town ? live.at + SERVICE_SECS * 1000 : null;
+  // crowds stay a readable size: in big towns only a share comes, and the ring widens with the number gathered
+  const CROWD = 24, share = (base: number) => Math.min(base, CROWD / Math.max(1, people.length));
+  const widen = (base: number) => Math.max(1, Math.sqrt(Math.min(CROWD, people.length * base) / 12));
   if (gatherAt != null && now >= gatherAt) {
     const wdAt = gatherAt;
     const c = church ?? meet;
     for (const q of people) {
-      if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 43, 720) < 0.2) continue;
-      const a = hash(q.id, 44, 720) * Math.PI * 2, rr = 1 + hash(q.id, 45, 720) * 1.8;
+      if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 43, 720) >= share(0.8)) continue;
+      const a = hash(q.id, 44, 720) * Math.PI * 2, rr = (1 + hash(q.id, 45, 720) * 1.8) * widen(0.8);
       q.fete = { at: wdAt, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 46, 720) * 180 };
     }
   }
@@ -251,8 +254,8 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   if (ina) {
     const fr = front(ina.tile) ?? ina.tile;
     for (const q of people) {
-      if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 31, 720) < 0.12) continue;
-      const a = hash(q.id, 32, 720) * Math.PI * 2, rr = 0.6 + hash(q.id, 33, 720) * 1.6;
+      if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 31, 720) >= share(0.88)) continue;
+      const a = hash(q.id, 32, 720) * Math.PI * 2, rr = (0.6 + hash(q.id, 33, 720) * 1.6) * widen(0.88);
       q.fete = { at: ina.at, spot: [fr[0] + Math.cos(a) * rr, fr[1] + Math.sin(a) * rr], face: ina.tile, lag: hash(q.id, 34, 720) * 240 };
     }
   }
@@ -274,8 +277,8 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   if (mp) {
     const c = maypole ?? meet;
     for (const q of people) {
-      if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 47, 720) < 0.5) continue;
-      const a = hash(q.id, 48, 720) * Math.PI * 2, rr = 1.2 + hash(q.id, 49, 720) * 1.6;
+      if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 47, 720) >= share(0.5)) continue;
+      const a = hash(q.id, 48, 720) * Math.PI * 2, rr = (1.2 + hash(q.id, 49, 720) * 1.6) * widen(0.5);
       q.fete = { at: mp.at, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 50, 720) * 120 };
     }
   }
@@ -670,7 +673,7 @@ const kidSpot = (p: Person, t: Town, i: number): Tile => {
   const out = hash(p.home[0], p.home[1], 606 + i) < 0.12 + (p.age >= 8 ? 0.08 : 0);
   return out ? add(t.plays[Math.floor(hash(p.home[0], p.home[1], 608 + i) * t.plays.length)]!, off(p, i, 0.9)) : p.home; // resolves to the free tile in front of the door
 };
-const spot = (p: Person, t: Town, i: number): Tile => add(t.meets[Math.floor(hash(p.id, i, 605) * t.meets.length)]!, off(p, i, 0.42));
+const spot = (p: Person, t: Town, i: number): Tile => add(t.meets[Math.floor(hash(p.id, i, 605) * t.meets.length)]!, off(p, i, t.meets.length < 3 ? 0.42 : 0.7));
 
 /** Jobs that carry on on Sundays (bread, inn, herds, the sick, the service itself). */
 const SUNDAY_WORK: ReadonlySet<Job> = new Set(["baker", "innkeeper", "priest", "healer", "mayor"] as Job[]);
