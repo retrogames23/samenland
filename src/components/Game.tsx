@@ -81,7 +81,6 @@ import {
   type Seed,
   canPlaceSpecial,
   SPECIAL_KIND,
-  characterOf,
   CHARTER_PATHS,
   charterReady,
   type CharterPath,
