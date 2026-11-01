@@ -14,6 +14,10 @@ type Text = {
   swap: string;
   swapped: string;
   wait: string;
+  kneel: string;
+  dubbed: (title: string) => string;
+  sir: (f: boolean) => string;
+  notYet: string;
 };
 
 export const PRINCELY: Record<Lang, Text> = {
@@ -27,6 +31,7 @@ export const PRINCELY: Record<Lang, Text> = {
     favour: (n, of) => `Fürstliche Gunst: ${n} von ${of} Erlassen erfüllt`,
     ask: "Nach Erlassen fragen", fail: "Der Hof konnte Euch gerade nicht anhören.",
     swap: 'Um einen anderen Erlass bitten', swapped: '„Nun gut, dient Uns stattdessen bei Hofe: Kehrt in 8 Stunden zurück.“', wait: '„Ihr habt heute schon um einen anderen Auftrag gebeten.“',
+    kneel: 'Niederknien zum Ritterschlag', dubbed: (t) => 'Der Fürst berührt mit dem Schwert Eure Schultern: „Erhebt Euch, ${t}! Nehmt dieses Reitpferd aus Unserem Marstall – fortan reist Ihr doppelt so schnell durchs Land.“'.replace('${t}', t), sir: (f) => (f ? 'Dame' : 'Ritter'), notYet: '„Noch habt Ihr nicht genug Erlasse erfüllt.“',
   },
   en: {
     task: { wonder: "Seek out a natural wonder or landmark in the wild.", letter: "Send a letter to another village.", visit: "Visit another mayor in person.", build: "Have a building raised in your village.", gift: "Send a neighbour a gift.", road: "Decide on a new trade road.", court: 'Serve at court: return to the castle in 8 hours at the earliest.' },
@@ -38,6 +43,7 @@ export const PRINCELY: Record<Lang, Text> = {
     favour: (n, of) => `Princely favour: ${n} of ${of} decrees fulfilled`,
     ask: "Ask for decrees", fail: "The court could not hear you just now.",
     swap: 'Ask for another decree', swapped: '"Very well, serve Us at court instead: return in 8 hours."', wait: '"You already asked for another task today."',
+    kneel: 'Kneel to be knighted', dubbed: (t) => 'The Prince touches your shoulders with his sword: "Rise, ${t}! Take this horse from Our stables – from now on you travel the land twice as fast."'.replace('${t}', t), sir: (f) => (f ? 'Dame' : 'Sir Knight'), notYet: '"You have not yet fulfilled enough decrees."',
   },
   fr: {
     task: { wonder: "Trouvez une merveille naturelle ou un site dans la nature.", letter: "Envoyez une lettre à un autre village.", visit: "Rendez visite en personne à un autre maire.", build: "Faites construire un bâtiment dans votre village.", gift: "Envoyez un cadeau à un voisin.", road: "Décidez une nouvelle route commerciale.", court: 'Servez à la cour : revenez au château dans 8 heures au plus tôt.' },
@@ -49,6 +55,7 @@ export const PRINCELY: Record<Lang, Text> = {
     favour: (n, of) => `Faveur princière : ${n} décrets sur ${of} accomplis`,
     ask: "Demander des décrets", fail: "La cour n'a pu vous entendre pour l'instant.",
     swap: 'Demander un autre décret', swapped: '« Soit, servez-Nous plutôt à la cour : revenez dans 8 heures. »', wait: "« Vous avez déjà demandé une autre mission aujourd'hui. »",
+    kneel: "S'agenouiller pour l'adoubement", dubbed: (t) => "Le prince pose l'épée sur vos épaules : « Relevez-vous, ${t} ! Prenez ce cheval de Nos écuries – désormais vous voyagerez deux fois plus vite. »".replace('${t}', t), sir: (f) => (f ? 'Dame' : 'Chevalier'), notYet: "« Vous n'avez pas encore accompli assez de décrets. »",
   },
   es: {
     task: { wonder: "Buscad una maravilla natural o un hito en la naturaleza.", letter: "Enviad una carta a otra aldea.", visit: "Visitad en persona a otro alcalde.", build: "Haced levantar un edificio en vuestra aldea.", gift: "Enviad un regalo a un vecino.", road: "Decidid un nuevo camino comercial.", court: 'Servid en la corte: volved al castillo dentro de 8 horas como pronto.' },
@@ -60,6 +67,7 @@ export const PRINCELY: Record<Lang, Text> = {
     favour: (n, of) => `Favor del príncipe: ${n} de ${of} decretos cumplidos`,
     ask: "Pedir decretos", fail: "La corte no pudo oíros ahora.",
     swap: 'Pedir otro decreto', swapped: '«Sea, servidnos en la corte: volved dentro de 8 horas.»', wait: '«Ya pedisteis otra tarea hoy.»',
+    kneel: 'Arrodillarse para ser armado caballero', dubbed: (t) => 'El príncipe toca vuestros hombros con la espada: «¡Alzaos, ${t}! Tomad este caballo de Nuestras cuadras; desde hoy viajaréis el doble de rápido.»'.replace('${t}', t), sir: (f) => (f ? 'Dama' : 'Caballero'), notYet: '«Aún no habéis cumplido suficientes decretos.»',
   },
   ar: {
     task: { wonder: "ابحث عن أعجوبة طبيعية أو معلم في البرية.", letter: "أرسل رسالة إلى قرية أخرى.", visit: "زُر عمدة آخر بنفسك.", build: "شيّد مبنى في قريتك.", gift: "أرسل هدية إلى جار.", road: "قرّر طريقًا تجاريًا جديدًا.", court: 'اخدم في البلاط: عُد إلى القصر بعد 8 ساعات على الأقل.' },
@@ -71,6 +79,7 @@ export const PRINCELY: Record<Lang, Text> = {
     favour: (n, of) => `رضا الأمير: ${n} من ${of} مراسيم منجزة`,
     ask: "اسأل عن المراسيم", fail: "تعذّر على البلاط سماعك الآن.",
     swap: 'اطلب مرسومًا آخر', swapped: '«حسنًا، اخدمنا في البلاط بدلًا من ذلك: عُد بعد 8 ساعات.»', wait: '«لقد طلبت مهمة أخرى اليوم بالفعل.»',
+    kneel: 'اركع لتنال لقب الفارس', dubbed: (t) => 'يلمس الأمير كتفيك بسيفه: «انهض يا ${t}! خذ هذا الحصان من إسطبلاتنا – من الآن تسافر في البلاد بضعف السرعة.»'.replace('${t}', t), sir: (f) => (f ? 'السيدة الفارسة' : 'الفارس'), notYet: '«لم تُنجز بعد ما يكفي من المراسيم.»',
   },
   hi: {
     task: { wonder: "जंगल में कोई प्राकृतिक अजूबा या स्थल खोजें।", letter: "किसी दूसरे गाँव को पत्र भेजें।", visit: "किसी दूसरे मुखिया से स्वयं मिलें।", build: "अपने गाँव में कोई इमारत बनवाएँ।", gift: "किसी पड़ोसी को उपहार भेजें।", road: "एक नई व्यापार सड़क तय करें।", court: 'दरबार में सेवा करें: कम से कम 8 घंटे बाद महल लौटें।' },
@@ -82,6 +91,7 @@ export const PRINCELY: Record<Lang, Text> = {
     favour: (n, of) => `राजकृपा: ${of} में से ${n} फ़रमान पूरे`,
     ask: "फ़रमान पूछें", fail: "दरबार अभी आपकी बात नहीं सुन सका।",
     swap: 'दूसरा फ़रमान माँगें', swapped: '"ठीक है, इसके बजाय दरबार में सेवा करें: 8 घंटे बाद लौटें।"', wait: '"आप आज पहले ही दूसरा काम माँग चुके हैं।"',
+    kneel: 'सामंत उपाधि के लिए घुटने टेकें', dubbed: (t) => 'राजकुमार तलवार से आपके कंधे छूते हैं: «उठिए, ${t}! हमारे अस्तबल का यह घोड़ा लीजिए – अब आप दोगुनी तेज़ी से यात्रा करेंगे।»'.replace('${t}', t), sir: (f) => (f ? 'दाम' : 'सर नाइट'), notYet: '«आपने अभी पर्याप्त आदेश पूरे नहीं किए हैं।»',
   },
   zh: {
     task: { wonder: "前往野外寻找一处自然奇观或地标。", letter: "给另一个村庄寄一封信。", visit: "亲自拜访另一位村长。", build: "在你的村庄建造一座建筑。", gift: "给邻居送一份礼物。", road: "决定修建一条新的商路。", court: '在宫廷效力：至少8小时后返回城堡。' },
@@ -93,6 +103,7 @@ export const PRINCELY: Record<Lang, Text> = {
     favour: (n, of) => `亲王恩宠：已完成 ${n}/${of} 道谕令`,
     ask: "询问谕令", fail: "宫廷此刻无法接见你。",
     swap: '请求另一道诏令', swapped: '"好吧，那就在宫廷为朕效力：8小时后再来。"', wait: '"你今天已经请求过换一项任务了。"',
+    kneel: '跪下受封骑士', dubbed: (t) => '亲王以剑轻触你的双肩：「起身吧，${t}！收下我们马厩中的这匹马——从此你在大地上行进快一倍。」'.replace('${t}', t), sir: (f) => (f ? '女骑士' : '骑士'), notYet: '「你完成的诏令还不够。」',
   },
   ja: {
     task: { wonder: "荒野の自然の驚異か名所を訪ねよ。", letter: "別の村へ手紙を送れ。", visit: "別の村長を自ら訪ねよ。", build: "村に建物を建てさせよ。", gift: "隣人に贈り物を送れ。", road: "新しい交易路を決めよ。", court: '宮廷に仕えよ：早くとも8時間後に城へ戻ること。' },
@@ -104,5 +115,6 @@ export const PRINCELY: Record<Lang, Text> = {
     favour: (n, of) => `領主の寵愛：勅令 ${n}/${of} 達成`,
     ask: "勅令を尋ねる", fail: "宮廷は今そなたの話を聞けぬ。",
     swap: '別の勅令を願う', swapped: '「よかろう、代わりに宮廷に仕えよ。8時間後に戻るがよい。」', wait: '「今日はすでに別の任務を願い出ている。」',
+    kneel: 'ひざまずいて騎士に叙される', dubbed: (t) => '大公が剣であなたの肩に触れる：「立ちなさい、${t}！我らの厩舎の馬を授けよう――これより汝は二倍の速さで旅をする。」'.replace('${t}', t), sir: (f) => (f ? '女騎士' : '騎士'), notYet: '「まだ十分な勅令を果たしていない。」',
   },
 };
