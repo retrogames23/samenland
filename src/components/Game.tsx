@@ -44,6 +44,7 @@ import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
 import { MAYOR } from "@/game/lang/mayor";
 import { COURT } from "@/game/lang/court";
+import { setCourtLabel } from "@/game/render";
 import { PRINCELY } from "@/game/lang/princely";
 import { princelyClaims, favourOf, openTaskOf, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { atCourt, audienceHost, type AudienceHost } from "@/game/court";
@@ -216,6 +217,7 @@ export function Game() {
   useEffect(() => { document.title = t.docTitle; }, [t]);
   useEffect(() => {
     document.documentElement.lang = lang;
+    setCourtLabel(COURT[lang].name);
     document.documentElement.dir = RTL[lang] ? "rtl" : "ltr";
   }, [lang]);
   const mine = seeds.find((s) => userId && s.user_id === userId)?.id ?? null;
