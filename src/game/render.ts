@@ -1738,15 +1738,16 @@ function courtFigures(t: number) {
   return courtFig;
 }
 /** Court walking styles: hem = where the painted legs start (fraction of height); robe = long garment (stepping shoes + swaying hem). */
-const COURT_GAIT: Record<CourtRole, { hem: number; robe: boolean }> = {
-  prince: { hem: 0.84, robe: true }, princess: { hem: 0.82, robe: true },
-  herald: { hem: 0.68, robe: false }, guard: { hem: 0.72, robe: false }, gardener: { hem: 0.7, robe: false }, groom: { hem: 0.63, robe: false },
+const COURT_GAIT: Record<CourtRole, { hem: number; robe: boolean; hip: number }> = {
+  prince: { hem: 0.84, robe: true, hip: 0.5 }, princess: { hem: 0.82, robe: true, hip: 0.5 },
+  herald: { hem: 0.66, robe: false, hip: 0.465 }, guard: { hem: 0.66, robe: false, hip: 0.48 }, gardener: { hem: 0.66, robe: false, hip: 0.47 }, groom: { hem: 0.63, robe: false, hip: 0.48 },
 };
 function drawCourtFigure(c: C, q: CourtPose, t: number) {
   const im = huntIm(`courtfig-${q.role}`, COURT_FIG[q.role]); if (!im) return;
   const [px, py] = iso(q.x, q.y), h = q.role === "prince" ? 23 : 21, w = (h * im.naturalWidth) / im.naturalHeight;
   const sw = im.naturalWidth, sh = im.naturalHeight, g = COURT_GAIT[q.role];
-  const ph = t / 170 + q.x * 3.1; // stride phase: one 2π = two steps
+  // stride follows distance walked (≈0.55 tiles per two steps), like villagers — no foot sliding
+  const ph = ((q.dist ?? 0) / 0.55) * 6.2832, bob = q.walking ? Math.abs(Math.sin(ph)) * h * 0.015 : 0;
   c.save(); c.fillStyle = "rgba(40,30,15,0.25)"; c.beginPath(); c.ellipse(px, py, w * 0.45, 2, 0, 0, 7); c.fill();
   c.translate(px, py); if (q.dx < 0) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
@@ -1756,7 +1757,8 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
     const fw = legs.naturalWidth / WALK_FRAMES, f = Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES;
     const lh = h * (1 - g.hem + 0.1), lw = (lh * fw) / legs.naturalHeight;
     c.drawImage(legs, f * fw, 0, fw, legs.naturalHeight, -lw * 0.5, -lh, lw, lh);
-    c.drawImage(im, 0, 0, sw, sh * g.hem, -w / 2, -h, w, h * g.hem);
+    // torso registered on its measured hip (not the sprite centre) and bobbing with the stride
+    c.drawImage(im, 0, 0, sw, sh * g.hem, -w * g.hip, -h - bob, w, h * g.hem);
   } else if (foot) {
     // long robe: shoes step out under the hem, hem sways in strips with the stride
     const sway = Math.sin(ph), fs = h * 0.07, fw2 = (fs * foot.naturalWidth) / foot.naturalHeight, top = g.hem - 0.12, end = 0.95;
