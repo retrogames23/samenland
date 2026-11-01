@@ -44,14 +44,18 @@ export function courtPieces(): Map<number, CourtPiece> {
 
 // ---------------- the court household: a pure daily routine on the realm clock ----------------
 export type CourtRole = "prince" | "princess" | "herald" | "guard" | "gardener" | "groom";
-export type CourtPose = { role: CourtRole; x: number; y: number; walking: boolean; dx: number };
+export type CourtPose = { role: CourtRole; x: number; y: number; walking: boolean; dx: number; dist?: number };
 type P = [number, number];
-const loop = (pts: P[], period: number, t: number, phase = 0): { p: P; dx: number; walking: boolean } => {
+const loop = (pts: P[], period: number, t: number, phase = 0): { p: P; dx: number; walking: boolean; dist: number } => {
   const segs = pts.length, f = (((t / period + phase) % 1) + 1) % 1 * segs, k = Math.floor(f), u = f - k;
   const a = pts[k]!, b = pts[(k + 1) % segs]!;
   // linger a little at each waypoint so walks read calmly
   const w = Math.min(1, Math.max(0, (u - 0.25) / 0.75));
-  return { p: [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w], dx: (b[0] - a[0]) - (b[1] - a[1]), walking: u > 0.25 };
+  // distance walked along the loop (tiles) drives the stride, so feet never slide
+  let dist = Math.floor(t / period + phase) * 1000;
+  for (let i = 0; i < k; i++) { const p0 = pts[i]!, p1 = pts[(i + 1) % segs]!; dist += Math.hypot(p1[0] - p0[0], p1[1] - p0[1]); }
+  dist += Math.hypot(b[0] - a[0], b[1] - a[1]) * w;
+  return { p: [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w], dx: (b[0] - a[0]) - (b[1] - a[1]), walking: u > 0.25, dist };
 };
 const GARDEN: P[] = [[8.2, 5.4], [11.6, 5.2], [12.4, 8.4], [10.6, 8.9], [7.6, 7.4]];
 const PATROL: P[] = [[11.5, 12.6], [10.2, 10.4], [7.6, 7.6], [10.2, 10.4]];
@@ -61,7 +65,7 @@ const YARD: P[] = [[5.4, 10.4], [5.8, 12.4], [3.2, 12.6], [5.4, 10.4]];
 /** Where the court is at `hour` (realm time); `t` is ms for walking phases. */
 export function courtPoses(hour: number, t: number): CourtPose[] {
   const s = courtSite(), out: CourtPose[] = [];
-  const put = (role: CourtRole, r: { p: P; dx: number; walking: boolean }) => out.push({ role, x: s.x + r.p[0], y: s.y + r.p[1], walking: r.walking, dx: r.dx });
+  const put = (role: CourtRole, r: { p: P; dx: number; walking: boolean; dist?: number }) => out.push({ role, x: s.x + r.p[0], y: s.y + r.p[1], walking: r.walking, dx: r.dx, dist: r.dist });
   const stay = (p: P, dx = 1) => ({ p, dx, walking: false });
   const day = hour >= 6 && hour < 21;
   if (hour >= 9 && hour < 13) put("prince", stay([7.4, 6.9]));
