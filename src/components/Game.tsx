@@ -41,6 +41,8 @@ import { splashDone } from "@/game/splash";
 import { VillageRoll } from "@/components/VillageRoll";
 import { Tavern } from "@/components/Tavern";
 import { BugReport } from "@/components/BugReport";
+import { MayorEditor } from "@/components/MayorEditor";
+import { MAYOR } from "@/game/lang/mayor";
 import { BUGS } from "@/game/lang/bugs";
 import { Beer } from "lucide-react";
 import { seasonAt } from "@/game/season";
@@ -246,6 +248,8 @@ export function Game() {
   const loadRealmRef = useRef<((r: Realm) => Promise<void>) | null>(null);
   const [view, setView] = useState({ x: MAP / 2, y: MAP / 2, span: 40 });
   const [who, setWho] = useState<Person | null>(null);
+  const [editMayor, setEditMayor] = useState(false);
+  useEffect(() => setEditMayor(false), [who?.id]);
   const [place, setPlace] = useState<Inspect | null>(null);
   const [, tick] = useState(0);
 
@@ -2502,6 +2506,9 @@ export function Game() {
               {who.role === "mayor" && my && who.seed.id === my.id && (
                 <Button type="button" size="sm" className="mt-2 w-full gap-1.5" onClick={startWalk}><Footprints className="h-4 w-4" />{t.hud.walk}</Button>
               )}
+              {who.role === "mayor" && my && who.seed.id === my.id && (editMayor
+                ? <MayorEditor seed={my} lang={lang} age={who.age} traits={traitsOf(who.id)} onClose={() => setEditMayor(false)} onSaved={(patch) => { setSeeds((ss) => ss.map((x) => x.id === my.id ? { ...x, ...patch } : x)); setWho(null); }} />
+                : <Button type="button" size="sm" variant="outline" className="mt-2 w-full" onClick={() => setEditMayor(true)}>{MAYOR[lang].edit}</Button>)}
             </div>
           );
         })()}
