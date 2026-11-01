@@ -1,3 +1,14 @@
+# Roadmap: Drei Wege zur Metropole
+- [x] Schritt 1: Ortscharakter aus Gelände (bestand bereits, wird in Dorfliste angezeigt)
+- [x] Schritt 2a: Nahrung nie unter Flachland-Niveau gleicher Größe (Mindest-Ackerfläche)
+- [ ] Schritt 1b: Charakter-Wappen in Statuszeile und Pflanz-Vorschau
+- [ ] Schritt 2b: Käserei/Terrassengärten, Fischmarkt als charaktereigene Nahrung
+- [ ] Schritt 3: Dichte statt Fläche (Wohnungen zählen für den Rang)
+- [ ] Schritt 4: Charakter-Boni und Handelsbonus für ungleiche Partner
+- [ ] Schritt 5/6: eigene Gebäude und Hausvarianten (neue Grafik)
+- [ ] Schritt 7: Kapitel „Drei Wege zur Metropole“ im Buch der Stadt
+- [ ] Schritt 8: 730-Tage-Simulation aller Charaktere (±10 %)
+
 # Roadmap: Terrain-Sofortkorrektur
 - [x] Weiden und Gärten vollwertig in die gemeinsame Nahrungskapazität aufnehmen
 - [x] Versorgung, Wintergrenzen und Übereinstimmung von Bewohnern und Steuerbewertung prüfen
