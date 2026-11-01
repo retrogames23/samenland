@@ -36,7 +36,6 @@ import springU from "@/assets/sprites/wonders/spring.webp";
 import { courtPieces, courtPoses, inCourt, courtSite, courtCenter, COURT_LAYOUT, type CourtPiece, type CourtPose, type CourtRole } from "./court";
 import castleU from "@/assets/sprites/court/castle.webp";
 import stableU from "@/assets/sprites/court/stable.webp";
-import parterreU from "@/assets/sprites/court/parterre.webp";
 import fountainU from "@/assets/sprites/court/fountain.webp";
 import pavilionU from "@/assets/sprites/court/pavilion.webp";
 import princeU from "@/assets/sprites/court/prince.webp";
@@ -1720,7 +1719,7 @@ function drawCourtLabel(c: C, cam: Camera, w: number, h: number, z: number, dpr:
   c.fillStyle = hsl(345, 45, 30); c.fillText(courtName, sx, sy);
   return [sx, sy] as [number, number];
 }
-const COURT_ART: Record<CourtPiece, string> = { castle: castleU, stable: stableU, parterre: parterreU, fountain: fountainU, pavilion: pavilionU };
+const COURT_ART: Record<CourtPiece, string> = { castle: castleU, stable: stableU, fountain: fountainU, pavilion: pavilionU };
 const COURT_FIG: Record<CourtRole, string> = { prince: princeU, princess: princessU, herald: heraldU, guard: guardU, gardener: gardenerU, groom: courtGroomU };
 function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[]) {
   const n = COURT_LAYOUT[k][2], im = huntIm(`court-${k}`, COURT_ART[k]);
@@ -1728,9 +1727,8 @@ function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[])
   // scale vs. a 21px figure: pavilion ≈2.2× a person tall, fountain basin ≈2.5 people wide
   const mx = cx, my = cy - ((n - 1) * TH) / 2, w = n * TW * (k === "pavilion" ? 0.46 : k === "fountain" ? 0.78 : 1.02);
   if (im) {
-    // the parterre art is a true 2:1 diamond: fit it exactly onto the footprint
-    const flat = k === "parterre", h = (w * im.naturalHeight) / im.naturalWidth;
-    c.drawImage(im, mx - w / 2, flat ? my - h / 2 : my + (n * TH) / 2 + 2 - h, w, h);
+    const h = (w * im.naturalHeight) / im.naturalWidth;
+    c.drawImage(im, mx - w / 2, my + (n * TH) / 2 + 2 - h, w, h);
   }
   if (k === "castle") { L.push({ x: mx - 20, y: my - 30, r: 5 }); L.push({ x: mx + 18, y: my - 26, r: 5 }); L.push({ x: mx, y: my + 20, r: 4 }); }
   if (k === "stable") L.push({ x: mx - 22, y: my - 6, r: 3 });

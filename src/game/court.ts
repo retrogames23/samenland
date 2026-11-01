@@ -3,10 +3,10 @@ import { wonders } from "./wonders";
 
 /** The prince's seat: one fixed estate near the map centre, pure from the shared terrain (same on every client). */
 export const COURT_N = 14;
-export type CourtPiece = "castle" | "stable" | "parterre" | "fountain" | "pavilion";
+export type CourtPiece = "castle" | "stable" | "fountain" | "pavilion";
 /** Footprints in local tiles: [i0, j0, size]; drawn on the front tile (i0+size-1, j0+size-1). */
 export const COURT_LAYOUT: Record<CourtPiece, [number, number, number]> = {
-  castle: [1, 1, 6], parterre: [8, 1, 4], pavilion: [11, 6, 2], stable: [1, 8, 4], fountain: [8, 8, 2],
+  castle: [1, 1, 6], pavilion: [11, 6, 2], stable: [1, 8, 4], fountain: [8, 8, 2],
 };
 /** Settlers keep this distance (tiles) from the estate centre. */
 export const COURT_GUARD = 30;
