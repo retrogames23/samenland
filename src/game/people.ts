@@ -204,7 +204,11 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       else if (age >= 16) {
         const slot = h(5) < 0.82 ? slots.shift() : undefined;
         if (slot) { job = slot.job; work = slot.at; }
-        else if (byKind.get("field")?.length && h(6) < farmShare(r)) { job = "farmer"; work = near(byKind.get("field"), home, h(7)); }
+        else if ((byKind.get("field")?.length || byKind.get("garden")?.length || byKind.get("pasture")?.length) && h(6) < farmShare(r)) {
+          job = "farmer";
+          const farms = [...(byKind.get("field") ?? []), ...(byKind.get("garden") ?? []), ...(byKind.get("pasture") ?? [])];
+          work = near(farms, home, h(7));
+        }
         else if (r >= 18 && h(8) < 0.6) { job = "worker"; work = near(workTiles, home, h(7)) ?? home; }
         else { job = "homemaker"; work = near(byKind.get("garden"), home, h(7)) ?? home; }
         if (job === "merchant" || job === "carter") work = [work![0], work![1]];
@@ -388,7 +392,11 @@ const hhTile = dwellingTile;
 /** Mark the sick villager of each affected home and the housemate who stays in to care for them. */
 function falls(s: Seed, people: Person[], now: number) {
   const homes = new Map<number, Person[]>();
-  for (const p of people) { if (p.role === "mayor") continue; const k = p.home[0] * 1024 + p.home[1]; (homes.get(k) ?? homes.set(k, []).get(k)!).push(p); }
+  for (const p of people) {
+    if (p.role === "mayor") continue;
+    const k = p.hh ?? p.home[0] * 1024 + p.home[1], group = homes.get(k) ?? [];
+    group.push(p); homes.set(k, group);
+  }
   for (const [k, ms] of homes) {
     if (ms.length < 2 || !sickHome(s, k, now)) continue;
     const w = Math.floor(now / (SICK_DAYS * 864e5));

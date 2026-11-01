@@ -3,6 +3,7 @@ import { townOf, type Job, type Person } from "./people";
 import { seasonAt } from "./season";
 import { worldHour } from "./time";
 import { floodFood } from "./disasters";
+import { farmRecipe } from "./food-route";
 
 /** Stored goods — derived purely from town, clock and season, never saved. */
 export type Ware = "log" | "planks" | "stone" | "grain" | "flour" | "bread" | "fish" | "game" | "herbs" | "cheese";
@@ -68,7 +69,16 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   // raw goods first, then processing limited by available input
   const jobs = new Map<Job, number>();
   for (const p of t.people) jobs.set(p.job, (jobs.get(p.job) ?? 0) + 1);
-  for (const [j, n] of jobs) { const r = RECIPE[j]; if (r && !r[0]) add(made, r[1], n * r[2] * sf(r[1]) * (r[1] === "grain" ? flood : 1)); }
+  for (const [j, n] of jobs) { const r = RECIPE[j]; if (j !== "farmer" && r && !r[0]) add(made, r[1], n * r[2] * sf(r[1]) * (r[1] === "grain" ? flood : 1)); }
+  const dairy = (s.bought ?? []).some(b => b.item === "dairy" && b.at <= now);
+  for (const p of t.people) {
+    if (p.job !== "farmer") continue;
+    const st = p.work ? structureAt(p.work[0], p.work[1], seeds, now) : null;
+    const recipe = farmRecipe(st?.kind ?? null, dairy);
+    // Keep the old two-sheaf yield on ordinary fields; slopes use their alternative route.
+    const units = st?.kind === "field" || !st ? 2 : recipe.units;
+    add(made, recipe.ware, units * sf("grain") * flood);
+  }
   // young villages: households gather deadwood and field stones themselves until real woodcutters/masons exist
   if (!jobs.get("woodcutter")) add(made, "log", Math.min(YOUNG_WOOD, t.people.length * 0.5));
   if (!jobs.get("mason")) add(made, "stone", Math.min(YOUNG_STONE, t.people.length * 0.25));
