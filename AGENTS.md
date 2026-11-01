@@ -12,6 +12,7 @@
 ## Samenland game
 - Civic estates and tax assessments are derived in prosperity.ts from historical purchases and charter, mirrored by database village_civic_wealth/village_estate_tax; temporary stock bonuses do not permanently promote residents, and homeKind preserves population when sprites upgrade.
 - Occupied households are shared through game/households.ts; resident-tax.ts assesses those households on the trusted server, and immutable daily tax receipts are economic records, never stored growth. Keep legacy earnings before the cutover unchanged to protect already-spent balances.
+- Agricultural household capacity treats fields, gardens and pastures equally in households.ts, shared by rendering and trusted resident taxation; keep seasonal penalties and care limits independent of farming art so slopes do not silently lose food capacity.
 - Town growth is a pure deterministic function of seed position + created_at (src/game/world.ts); never store growth state — every client computes the same town from the shared seed rows, so towns grow even when nobody watches.
 - Rendering uses a devicePixelRatio canvas (capped at 2 on touch devices for mobile GPU load); preload compressed building sprites with per-kind sizes and ground anchors, using the same assets at every zoom level to avoid style changes while loading.
 - Seed ownership is enforced in the database (seeds.user_id UNIQUE + RLS on auth.uid()); UI strings live in src/game/i18n.ts (de/en), game logic returns codes not text.

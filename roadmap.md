@@ -1,3 +1,7 @@
+# Roadmap: Terrain-Sofortkorrektur
+- [x] Weiden und Gärten vollwertig in die gemeinsame Nahrungskapazität aufnehmen
+- [x] Versorgung, Wintergrenzen und Übereinstimmung von Bewohnern und Steuerbewertung prüfen
+
 # Roadmap: Begegnungsbilder
 - [x] Performance Punkt 3: Pergament-Silhouetten ohne Welt-Canvas-Filter zeichnen und prüfen
 - [x] Alle 33 Begegnungsbilder einheitlich überarbeiten und prüfen

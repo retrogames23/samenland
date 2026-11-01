@@ -34,6 +34,26 @@ describe("shared occupied households", () => {
     expect(assessHomes([{ home: [1, 0], kind: "hut", size: 2 }], 100)).toBe(4);
     expect(assessHomes([{ home: [0, 9], kind: "hut", size: 2 }], 100)).toBe(6);
   });
+  it("pastures feed households as fully as fields", () => {
+    const s = seed(["fisher"]), at = Date.parse("2026-07-01T00:00:00Z");
+    const pasture = new Map<Kind, unknown[]>([["pasture", Array(100).fill(null)]]);
+    const field = new Map<Kind, unknown[]>([["field", Array(100).fill(null)]]);
+    expect(foodCapacity(s, pasture, at)).toBe(36);
+    expect(foodCapacity(s, pasture, at)).toBe(foodCapacity(s, field, at));
+  });
+  it("gardens feed households as fully as fields", () => {
+    const s = seed(["fisher"]), at = Date.parse("2026-07-01T00:00:00Z");
+    const garden = new Map<Kind, unknown[]>([["garden", Array(100).fill(null)]]);
+    const field = new Map<Kind, unknown[]>([["field", Array(100).fill(null)]]);
+    expect(foodCapacity(s, garden, at)).toBe(36);
+    expect(foodCapacity(s, garden, at)).toBe(foodCapacity(s, field, at));
+  });
+  it("mixed slope farming keeps the existing winter penalty and untended cap", () => {
+    const land = new Map<Kind, unknown[]>([["field", Array(40).fill(null)], ["garden", Array(30).fill(null)], ["pasture", Array(30).fill(null)]]);
+    expect(foodCapacity(seed(["fisher"]), land, Date.parse("2026-12-15T00:00:00Z"))).toBe(27);
+    expect(foodCapacity(seed(), land, Date.parse("2026-07-01T00:00:00Z"))).toBe(32);
+    expect(foodCapacity(seed(), new Map(), Date.parse("2026-12-15T00:00:00Z"))).toBe(24);
+  });
   it("future purchases and future villages cannot alter a historical world", () => {
     const s = seed(), future = new Date(start + 100 * day).toISOString();
     const input: EconomyWorld = { seeds: [s, { ...s, id: "future", x: 330, created_at: future }], purchases: [{ seed_id: s.id, item: "fisher", created_at: future }], blessings: [], charters: [], encounters: [], roads: [], votes: [], works: [], gifts: [] };
