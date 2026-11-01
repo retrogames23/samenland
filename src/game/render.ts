@@ -1764,14 +1764,17 @@ const COURT_FIG: Record<CourtRole, string> = { prince: princeU, princess: prince
 function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[]) {
   const n = COURT_LAYOUT[k][2], im = huntIm(`court-${k}`, COURT_ART[k]);
   // centre of the footprint, the front tile sits n-1 tiles toward the viewer
-  // scale vs. a 21px figure: pavilion ≈2.2× a person tall, fountain basin ≈2.5 people wide
-  const mx = cx, my = cy - ((n - 1) * TH) / 2, w = n * TW * (k === "pavilion" ? 0.46 : k === "fountain" ? 0.78 : 1.02);
+  // world-pixel widths matched to 5.4px figures (church 32, farmhouse 23): castle ≈3× a church,
+  // stable ≈ a big barn, fountain ≈3 people wide, pavilion ≈2.5 people tall
+  const W: Record<CourtPiece, number> = { castle: 100, stable: 40, fountain: 15, pavilion: 11 };
+  const mx = cx, my = cy - ((n - 1) * TH) / 2, w = W[k];
+  const by = k === "castle" || k === "stable" ? my + (n * TH) / 2 + 2 : cy + TH / 2;
   if (im) {
     const h = (w * im.naturalHeight) / im.naturalWidth;
-    c.drawImage(im, mx - w / 2, my + (n * TH) / 2 + 2 - h, w, h);
+    c.drawImage(im, mx - w / 2, by - h, w, h);
   }
-  if (k === "castle") { L.push({ x: mx - 20, y: my - 30, r: 5 }); L.push({ x: mx + 18, y: my - 26, r: 5 }); L.push({ x: mx, y: my + 20, r: 4 }); }
-  if (k === "stable") L.push({ x: mx - 22, y: my - 6, r: 3 });
+  if (k === "castle") { L.push({ x: mx - 10, y: by - 50, r: 4 }); L.push({ x: mx + 9, y: by - 48, r: 4 }); L.push({ x: mx, y: by - 10, r: 3 }); }
+  if (k === "stable") L.push({ x: mx - 8, y: by - 14, r: 2.5 });
 }
 let courtFrame = -1; const courtFig = new Map<number, CourtPose[]>();
 function courtFigures(t: number) {
