@@ -30,11 +30,11 @@ describe("construction sites", () => {
   it("bought sites report their exact finish time", () => {
     const at = 1_000_000;
     const bought: Seed = { ...seed, id: "bought-test", bought: [{ item: "granary", at, cost: 300 }] } as Seed;
-    const st = structureAt(0, 0, [bought], at + 1000);
-    const site = structureAt(0, 0, [bought], at + 1000);
-    void st; void site;
-    // find the granary's tile via specialSites and check its doneAt
-    const tile = [...(bought.bought ?? [])].length ? true : false;
-    expect(tile).toBe(true);
+    const tile = specialTile(bought, "granary");
+    expect(tile).not.toBeNull();
+    const st = structureAt(tile![0], tile![1], [bought], at + 1000);
+    expect(st?.build).toBeLessThan(1);
+    expect(st?.doneAt).toBe(at + SPECIAL_BUILD);
+    expect(structureAt(tile![0], tile![1], [bought], at + SPECIAL_BUILD + 1)?.doneAt).toBeUndefined();
   });
 });
