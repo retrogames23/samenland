@@ -452,10 +452,33 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
   const v = s.v;
   if (s.kind === "pasture") {
       const p = P(cx, cy);
-      c.globalAlpha = 0.85;
-      line(c, p(-0.48, 0.48, 1.5), p(0.48, 0.48, 1.5), sd, 0.5, "#6b4a32");
-      line(c, p(0.48, -0.48, 1.5), p(0.48, 0.48, 1.5), sd + 1, 0.5, "#6b4a32");
-      c.globalAlpha = 1;
+      const lp = (a: Pt, b: Pt, k: number): Pt => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+      // wattle fence only along the outer edge of the paddock: posts with sagging rails, never a tile grid
+      const isPas = (i: number, j: number) => structureAt(x + i, y + j, renderSeeds, renderNow)?.kind === "pasture";
+      const edges: [number, number, Pt, Pt, Pt, Pt][] = [
+        [0, 1, p(-0.5, 0.5), p(0.5, 0.5), p(-0.5, 0.5, 1.6), p(0.5, 0.5, 1.6)],
+        [1, 0, p(0.5, -0.5), p(0.5, 0.5), p(0.5, -0.5, 1.6), p(0.5, 0.5, 1.6)],
+      ];
+      for (const [i, j, a, b] of edges) {
+        if (isPas(i, j)) continue;
+        const posts = 3;
+        c.lineCap = "round";
+        for (const hgt of [0.8, 1.5]) {
+          c.strokeStyle = "rgba(92,64,38,0.9)"; c.lineWidth = 0.32; c.beginPath();
+          for (let n = 0; n < posts; n++) {
+            const f0 = n / posts, f1 = (n + 1) / posts, sag = 0.12 + hash(sd, n, 77) * 0.12;
+            const A = lp(a, b, f0), B = lp(a, b, f1), M = lp(a, b, (f0 + f1) / 2);
+            c.moveTo(A[0], A[1] - hgt); c.quadraticCurveTo(M[0], M[1] - hgt + sag, B[0], B[1] - hgt);
+          }
+          c.stroke();
+        }
+        for (let n = 0; n <= posts; n++) {
+          const A = lp(a, b, n / posts), lean = (hash(sd, n, 78) - 0.5) * 0.3;
+          c.strokeStyle = "rgba(40,28,16,0.25)"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(A[0] + 0.6, A[1] + 0.2); c.stroke();
+          c.strokeStyle = "rgba(78,54,32,1)"; c.lineWidth = 0.42; c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(A[0] + lean, A[1] - 1.9); c.stroke();
+          c.strokeStyle = "rgba(170,130,90,0.6)"; c.lineWidth = 0.15; c.beginPath(); c.moveTo(A[0] - 0.12, A[1] - 0.2); c.lineTo(A[0] - 0.12 + lean, A[1] - 1.8); c.stroke();
+        }
+      }
       // with villagers on the tile, sheep and people are resolved and depth-sorted together in pass 2
       if (v > 0.35 && !sharedPasture.has(sd)) {
         const flock = sheepSpots(sd, v, renderNow).sort((a, b) => a.m.dy - b.m.dy);
@@ -2097,17 +2120,25 @@ export function draw(
           // dug bed: dark soil with raised rows of small plants instead of a flat vegetable photo
           c.fillStyle = texture(c, "fertile") ?? hsl(25, 35, 30); c.fill();
           c.save(); c.clip(); c.lineCap = "round";
+          // raised ridges: shaded trough + sunlit crest, so the bed reads as dug earth with depth
           for (let k = -3; k <= 3; k++) {
             const f = k / 6, [a0, a1] = ac.along ? [pp(-0.6, f), pp(0.6, f)] : [pp(f, -0.6), pp(f, 0.6)];
-            c.strokeStyle = "rgba(25,16,8,0.35)"; c.lineWidth = 1; c.beginPath(); c.moveTo(a0[0], a0[1] + 0.6); c.lineTo(a1[0], a1[1] + 0.6); c.stroke();
-            for (let m = -4; m <= 4; m++) {
-              const g = m * 0.12, [px, py] = ac.along ? pp(g, f) : pp(f, g), h = hash(x * 7 + k, y * 5 + m, 660);
-              c.fillStyle = h > 0.5 ? "rgba(92,128,52,0.95)" : "rgba(118,150,64,0.95)";
-              c.beginPath(); c.ellipse(px, py - 0.5, 0.8 + h * 0.4, 0.55, 0, 0, 7); c.fill();
-              c.fillStyle = "rgba(170,200,110,0.6)"; c.beginPath(); c.ellipse(px - 0.25, py - 0.8, 0.35, 0.22, 0, 0, 7); c.fill();
-            }
+            c.strokeStyle = "rgba(20,12,6,0.4)"; c.lineWidth = 1.1; c.beginPath(); c.moveTo(a0[0], a0[1] + 0.7); c.lineTo(a1[0], a1[1] + 0.7); c.stroke();
+            c.strokeStyle = "rgba(160,120,80,0.28)"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(a0[0], a0[1] - 0.3); c.lineTo(a1[0], a1[1] - 0.3); c.stroke();
           }
           c.restore();
+          // painted plants standing on the ridges (same art as fields), back to front, irregular
+          const crow = fieldRowImage(false);
+          if (crow && seasonAt(now).winter < 0.6) {
+            const w = 2.6, hgt = (w * crow.height) / crow.width;
+            for (let k = -3; k <= 3; k++) for (let m = -2; m <= 2; m++) {
+              const h = hash(x * 7 + k, y * 5 + m, 660); if (h < 0.15) continue;
+              const f = k / 6, g = m * 0.2 + (h - 0.5) * 0.08, [px, py] = ac.along ? pp(g, f) : pp(f, g);
+              c.fillStyle = "rgba(20,14,6,0.25)"; c.beginPath(); c.ellipse(px + 0.4, py + 0.2, w * 0.4, 0.7, 0, 0, 7); c.fill();
+              c.save(); c.translate(px, py); if (h > 0.6) c.scale(-1, 1);
+              const s2 = 0.8 + h * 0.35; c.drawImage(crow, -w * s2 / 2, -hgt * s2 * 0.92, w * s2, hgt * s2); c.restore();
+            }
+          }
         } else { c.fillStyle = texture(c, ripe ? "wheat" : "crops") ?? hsl(ripe ? 44 : 80, 50, 60); c.fill(); }
         const same = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && o.kind === st.kind && acreOf(x + i, y + j, o.seed).id === ac.id; };
         if (st.kind === "field") {
