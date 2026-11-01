@@ -126,6 +126,8 @@ export const es: Dict = {
   treasury: "Arcas de la aldea",
   taxInfo: (n) => `${n} ciudadanos pagan impuestos a diario según su estamento`,
   taler: (n) => `${n.toLocaleString("es-ES")} taler`,
+  talerShort: "T",
+
   attrs: { food: "Alimento", health: "Salud", wealth: "Prosperidad" },
   shop: "Construir y contratar",
   monument: { title: "Obra de prestigio: campanario", steps: ["Poner los cimientos", "Levantar la mampostería", "Armar la sala de campanas", "Bendecir la campana"], step: (i: number, n: number) => `Fase ${i} de ${n}`, pay: "Pagar fase", building: "Los constructores trabajan en esta fase …", done: "El campanario domina la villa.", wait: (h: number) => `Siguiente fase en unas ${h} h` },

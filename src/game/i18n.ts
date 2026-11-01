@@ -140,6 +140,8 @@ const de = {
   treasury: "Dorfkasse",
   taxInfo: (n: number) => `${n} Bürger zahlen täglich Steuern nach ihrem Stand`,
   taler: (n: number) => `${n.toLocaleString("de-DE")} Taler`,
+  talerShort: "T",
+
   attrs: { food: "Nahrung", health: "Gesundheit", wealth: "Wohlstand" },
   shop: "Bauen & Anwerben",
   monument: { title: "Prestigebau: Stadtturm", steps: ["Fundament legen", "Mauerwerk hochziehen", "Glockenstube zimmern", "Glocke weihen"], step: (i: number, n: number) => `Abschnitt ${i} von ${n}`, pay: "Abschnitt bezahlen", building: "Die Bauleute arbeiten am aktuellen Abschnitt …", done: "Der Stadtturm überragt die Stadt.", wait: (h: number) => `Nächster Abschnitt in etwa ${h} Std.` },
@@ -511,6 +513,8 @@ const en: typeof de = {
   treasury: "Village treasury",
   taxInfo: (n) => `${n} citizens pay daily taxes according to their estate`,
   taler: (n) => `${n.toLocaleString("en-US")} thaler`,
+  talerShort: "T",
+
   attrs: { food: "Food", health: "Health", wealth: "Prosperity" },
   shop: "Build & hire",
   monument: { title: "Prestige build: Belfry", steps: ["Lay the foundation", "Raise the stonework", "Frame the bell chamber", "Consecrate the bell"], step: (i: number, n: number) => `Stage ${i} of ${n}`, pay: "Pay for stage", building: "The builders are at work on this stage …", done: "The belfry towers over the town.", wait: (h: number) => `Next stage in about ${h} h` },
@@ -882,6 +886,8 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
   treasury: "村庄金库",
   taxInfo: (n) => `${n}位市民每日按其阶层纳税`,
   taler: (n) => `${n.toLocaleString("zh-CN")}塔勒`,
+  talerShort: "塔",
+
   attrs: { food: "食物", health: "健康", wealth: "繁荣" },
   shop: "建造与雇佣",
   monument: { title: "荣耀建筑：钟楼", steps: ["打地基", "砌石墙", "搭钟室", "为大钟祝圣"], step: (i: number, n: number) => `第${i}/${n}期`, pay: "支付本期", building: "工匠正在建造本期工程……", done: "钟楼高耸于城镇之上。", wait: (h: number) => `约${h}小时后可建下一期` },
@@ -1254,6 +1260,8 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   treasury: "村の金庫",
   taxInfo: (n) => `${n}人の住民が、身分に応じて毎日税を納めます`,
   taler: (n) => `${n.toLocaleString("ja-JP")}ターラー`,
+  talerShort: "T",
+
   attrs: { food: "食料", health: "健康", wealth: "繁栄" },
   shop: "建築と雇用",
   monument: { title: "誉れの建物：鐘楼", steps: ["基礎を据える", "石壁を積む", "鐘室を組む", "鐘を祝別する"], step: (i: number, n: number) => `第${i}段階 / ${n}`, pay: "この段階を支払う", building: "職人たちがこの段階を建設中…", done: "鐘楼が町を見下ろしています。", wait: (h: number) => `次の段階まで約${h}時間` },

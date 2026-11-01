@@ -126,6 +126,8 @@ export const hi: Dict = {
   treasury: "गाँव का राजकोष",
   taxInfo: (n) => `${n} नागरिक अपने वर्ग के अनुसार प्रतिदिन कर देते हैं`,
   taler: (n) => `${n.toLocaleString("hi-IN")} Taler`,
+  talerShort: "T",
+
   attrs: { food: "खाद्य", health: "स्वास्थ्य", wealth: "समृद्धि" },
   shop: "निर्माण व सेवाएँ",
   monument: { title: "प्रतिष्ठा भवन: घंटाघर", steps: ["नींव रखें", "पत्थर की दीवारें उठाएँ", "घंटा कक्ष बनाएँ", "घंटे का अभिषेक करें"], step: (i: number, n: number) => `चरण ${i} / ${n}`, pay: "चरण का भुगतान करें", building: "कारीगर इस चरण पर काम कर रहे हैं …", done: "घंटाघर नगर पर छाया है।", wait: (h: number) => `अगला चरण लगभग ${h} घंटे में` },
