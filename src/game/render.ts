@@ -21,7 +21,7 @@ import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSp
 import { townCharacter } from "./character";
 import { texture, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, type Pose } from "./people";
-import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, type FolkSprite } from "./folk-sprites";
+import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow } from "./crafts";
 import { isSunday } from "./time";
