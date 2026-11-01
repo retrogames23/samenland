@@ -10,7 +10,7 @@
 - [ ] Schritt 2b: Zusätzliche Kaufgebäude für Nahrung — zusammen mit Gebäude-Grafiken in Schritt 5/6
 - [ ] Schritt 3: Kompaktere Flächenausbreitung und steinerne Hausvarianten ohne Rückbau bestehender Orte
 - [ ] Schritt 4: Charakter-Boni und Handelsbonus für ungleiche Partner
-- [ ] Schritt 5/6: eigene Gebäude und Hausvarianten (neue Grafik)
+- [x] Schritt 5/6: Wegbauten (Erntedankhalle, Zunftturm, Leuchtturm) und Hausvarianten für Hügel und Küste
 - [x] Schritt 7a: Aktuelle Versorgungs- und Wohnungswege im Stadtbuch und Charakter-Wappen in acht Sprachen erklären
 - [ ] Schritt 7b: Spätere Charakter-Boni und Spezialgebäude im Stadtbuch ergänzen
 - [ ] Schritt 8: 730-Tage-Simulation aller Charaktere (±10 %)

@@ -1347,7 +1347,7 @@ export function Game() {
               </div>
             );
           })}
-          {my && MONUMENT_KEYS.filter((k) => myStage >= MONUMENTS[k].stage).map((key) => {
+          {my && MONUMENT_KEYS.filter((k) => myStage >= MONUMENTS[k].stage && (!MONUMENTS[k].way || MONUMENTS[k].way === wayOf(my))).map((key) => {
             const steps = monumentSteps(key), mt = t.monuments[key]!;
             const paid = purchases.filter((p) => p.seed_id === my.id && steps.includes(p.item));
             const next = nextMonumentStep(paid.map((p) => p.item), key);

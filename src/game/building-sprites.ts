@@ -58,6 +58,12 @@ import university from "@/assets/sprites/cohesive/university.webp";
 import universityLight from "@/assets/sprites/cohesive/night/university.webp";
 import exchange from "@/assets/sprites/cohesive/exchange.webp";
 import exchangeLight from "@/assets/sprites/cohesive/night/exchange.webp";
+import harvesthall from "@/assets/sprites/cohesive/harvesthall.webp";
+import guildtower from "@/assets/sprites/cohesive/guildtower.webp";
+import lighthouse from "@/assets/sprites/cohesive/lighthouse.webp";
+import harvesthallLight from "@/assets/sprites/cohesive/night/harvesthall.webp";
+import guildtowerLight from "@/assets/sprites/cohesive/night/guildtower.webp";
+import lighthouseLight from "@/assets/sprites/cohesive/night/lighthouse.webp";
 import orangery from "@/assets/sprites/orangery.webp";
 import orangeryLight from "@/assets/sprites/night/orangery.webp";
 import markethall from "@/assets/sprites/markethall.webp";
@@ -128,7 +134,7 @@ import cottageCoastLight from "@/assets/sprites/cohesive/night/gateway-cottage.w
 import fachwerkCoastLight from "@/assets/sprites/cohesive/night/gateway-fachwerk.webp";
 import patricianCoastLight from "@/assets/sprites/cohesive/night/gateway-patrician.webp";
 
-const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, lodge: lodgeLight, herbhut: herbhutLight, woodcamp: woodcampLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, firehouse: firehouseLight, guardhouse: guardhouseLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, belfry: belfryLight, theater: theaterLight, opera: operaLight, university: universityLight, exchange: exchangeLight, orangery: orangeryLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, seat1: seat1Light, seat2: seat2Light, seat3: seat3Light, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
+const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, lodge: lodgeLight, herbhut: herbhutLight, woodcamp: woodcampLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, firehouse: firehouseLight, guardhouse: guardhouseLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, belfry: belfryLight, theater: theaterLight, opera: operaLight, university: universityLight, exchange: exchangeLight, orangery: orangeryLight, harvesthall: harvesthallLight, guildtower: guildtowerLight, lighthouse: lighthouseLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, seat1: seat1Light, seat2: seat2Light, seat3: seat3Light, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
 export const hasNightSprite = (kind: Kind) => Boolean(nightUrls[kind]);
 
@@ -189,6 +195,9 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   university: { url: university, crop: [0, 0, 480, 454], width: 35, base: 4 },
   exchange: { url: exchange, crop: [0, 0, 472, 480], width: 33, base: 4 },
   orangery: { url: orangery, crop: [0, 0, 480, 390], width: 28, base: 4 },
+  harvesthall: { url: harvesthall, crop: [0, 0, 480, 419], width: 28, base: 4 },
+  guildtower: { url: guildtower, crop: [0, 0, 293, 480], width: 17, base: 3 },
+  lighthouse: { url: lighthouse, crop: [0, 0, 348, 480], width: 20, base: 4 },
   gatehouse: { url: gatehouse, crop: [0, 0, 323, 480], width: 26, base: 4 },
   markethall: { url: markethall, crop: [0, 0, 480, 437], width: 30, base: 4 },
   guildhall: { url: guildhall, crop: [0, 0, 450, 480], width: 27, base: 4 },

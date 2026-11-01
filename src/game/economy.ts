@@ -1,3 +1,4 @@
+import type { TownWay } from "./character";
 import { giftBalance, type Gift } from "./gifts";
 import { civicWealth, estateAssessment, sickLoss, sickTaxRate } from "./prosperity";
 import { questEarned, type QuestClaim } from "./quests";
@@ -14,7 +15,7 @@ export type Item = keyof typeof ITEMS;
  * Prestige monuments built in paid steps (prices mirror the database purchase guard).
  * stage = growth stage from which the build menu offers it; bonuses apply once every step is finished.
  */
-export const MONUMENTS: Record<MonumentKey, { stage: number; prices: number[]; food?: number; health?: number; wealth?: number }> = {
+export const MONUMENTS: Record<MonumentKey, { stage: number; prices: number[]; food?: number; health?: number; wealth?: number; way?: TownWay }> = {
   belfry: { stage: 3, prices: [400, 500, 600, 700], wealth: 15, health: 5 },
   theater: { stage: 3, prices: [500, 700, 900], wealth: 15, health: 5 },
   cathedral: { stage: 4, prices: [800, 1000, 1200, 1400, 1600], wealth: 20, health: 10 },
@@ -22,6 +23,10 @@ export const MONUMENTS: Record<MonumentKey, { stage: number; prices: number[]; f
   exchange: { stage: 4, prices: [700, 900, 1100, 1300], wealth: 20, food: 5 },
   orangery: { stage: 4, prices: [500, 700, 900], health: 15, food: 5, wealth: 10 },
   opera: { stage: 5, prices: [1200, 1500, 1800, 2100], wealth: 25 },
+  // Way monuments: one per town character, same price and same bonus total (25), so no founding site is favoured.
+  harvest: { stage: 3, prices: [450, 600, 750], food: 15, health: 5, wealth: 5, way: "grain" },
+  guildtower: { stage: 3, prices: [450, 600, 750], wealth: 15, health: 10, way: "workshop" },
+  lighthouse: { stage: 3, prices: [450, 600, 750], wealth: 10, food: 10, health: 5, way: "gateway" },
 };
 /** Flat price list per step item, e.g. { belfry1: 400, …, opera4: 2100 }. */
 export const MONUMENT_PRICE: Record<string, number> = Object.fromEntries(
