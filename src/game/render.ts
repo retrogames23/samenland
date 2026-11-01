@@ -29,7 +29,6 @@ import { activeRaid, RAID_LEN } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
 import { decorMap, type RewardKey } from "./supporter";
 import { SUPPORT_ART, SUPPORT_W } from "./support-art";
-import { SEAT_KINDS } from "./world";
 import wreckU from "@/assets/sprites/wonders/wreck.webp";
 import caveU from "@/assets/sprites/wonders/cave.webp";
 import oakU from "@/assets/sprites/wonders/oak.webp";
@@ -47,7 +46,7 @@ import heraldU from "@/assets/sprites/court/herald.webp";
 import guardU from "@/assets/sprites/court/guard.webp";
 import gardenerU from "@/assets/sprites/court/gardener.webp";
 import courtGroomU from "@/assets/sprites/court/groom.webp";
-import { hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { SEAT_KINDS, hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
