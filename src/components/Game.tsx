@@ -1727,7 +1727,7 @@ export function Game() {
         onPointerMove={(e) => {
           const tp = touches.current;
           if (tp.has(e.pointerId)) tp.set(e.pointerId, { x: e.clientX, y: e.clientY });
-          if (tp.size >= 2) {
+          if (tp.size >= 2 && tp.has(e.pointerId)) {
             // two-finger pinch: zoom around the midpoint and pan with it
             const [a, b] = [...tp.values()];
             const dist = Math.hypot(a!.x - b!.x, a!.y - b!.y), mx = (a!.x + b!.x) / 2, my = (a!.y + b!.y) / 2;
@@ -1739,14 +1739,14 @@ export function Game() {
               const wx = ox / c.zoom + c.x, wy = oy / c.zoom + c.y;
               const nx = mx - r.left - r.width / 2, ny = my - r.top - r.height / 2;
               c.zoom = nz; c.x = wx - nx / nz; c.y = wy - ny / nz;
-              target.current = { zoom: nz, ax: 0, ay: 0 };
+              target.current = { zoom: nz, ax: (mx - r.left) * dpr.current, ay: (my - r.top) * dpr.current };
             }
             pinch.current = { dist, mx, my };
             if (drag.current) drag.current.moved = true;
             return;
           }
           const d = drag.current;
-          if (d && e.buttons) {
+          if (d && (e.buttons || e.pointerType !== "mouse") && tp.size < 2) {
             const dx = e.clientX - d.x,
               dy = e.clientY - d.y;
             const lim = d.touch ? 10 : 3;
