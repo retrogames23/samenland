@@ -1996,6 +1996,7 @@ export function Game() {
                 ✉ {t.guide.notify.label}
               </label>
             )}
+            <Button size="sm" variant="secondary" className="w-full" onClick={() => { setSettings(false); if (userId) setSupportOpen(true); else setAuthOpen(true); }}>🌱 {SUPPORT[lang].button}</Button>
             {userId && home && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setInviteOpen(true); setSettings(false); }}>✉ {t.invite.button}</Button>}
             {userId && home && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setQuitOpen(true); setSettings(false); }}>{t.quit.button}</button>}
             {userId && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setDelOpen(true); setSettings(false); }}>{t.delAcc.button}</button>}
@@ -2003,7 +2004,6 @@ export function Game() {
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
             {userId && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setBugOpen(true); setSettings(false); }}>📜 {BUGS[lang].button}</Button>}
             <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 border-t border-border/60 pt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-              <button type="button" onClick={() => { setSupportOpen(true); setSettings(false); }} className="uppercase hover:text-foreground">🌱 {SUPPORT[lang].button}</button>
               <a href="https://lovable.dev/invite/LN0I260" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">♥ {t.imprint.built}</a>
               <button type="button" onClick={() => setImprint(!imprint)} className="uppercase hover:text-foreground">{t.imprint.title}</button>
             </div>
