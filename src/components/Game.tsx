@@ -7,7 +7,7 @@ import { ESTATE_TAX } from "@/game/prosperity";
 import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind } from "@/game/gifts";
 import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
 import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, type Realm } from "@/game/time";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { wonders, wonderClaims, firstFinder, WONDER_REACH, type WonderFind } from "@/game/wonders";
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, signpostMap, type Camera } from "@/game/render";
@@ -44,7 +44,10 @@ import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
 import { MAYOR } from "@/game/lang/mayor";
 import { COURT } from "@/game/lang/court";
-import { setCourtLabel } from "@/game/render";
+import { setCourtLabel, setSupportOwned } from "@/game/render";
+import { SupportBox } from "@/components/SupportBox";
+import { SUPPORT } from "@/game/lang/support";
+import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
 import { princelyClaims, favourOf, openTaskOf, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { atCourt, audienceHost, type AudienceHost } from "@/game/court";
@@ -241,6 +244,27 @@ export function Game() {
   const [settings, setSettings] = useState(false);
   const [imprint, setImprint] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
+  // supporter decorations: only granted rows are stored, placement is derived (src/game/supporter.ts)
+  const [support, setSupport] = useState<Map<string, Set<string>>>(new Map());
+  const loadSupport = useCallback(async () => {
+    const env = paymentsEnvOrNull(); if (!env) return;
+    const { data } = await supabase.from("supporter_rewards").select("seed_id, reward").eq("environment", env);
+    const m = new Map<string, Set<string>>();
+    for (const r of data ?? []) { const v = m.get(r.seed_id) ?? new Set<string>(); v.add(r.reward); m.set(r.seed_id, v); }
+    setSupport(m); setSupportOwned(m); return m;
+  }, []);
+  useEffect(() => {
+    void loadSupport();
+    const back = typeof location !== "undefined" && new URLSearchParams(location.search).get("support") === "thanks";
+    if (!back) return;
+    history.replaceState(null, "", location.pathname);
+    toast.success(SUPPORT[lang].thanks);
+    // the payment confirmation arrives a few seconds later; refresh until it shows
+    let n = 0; const id = setInterval(() => { if (++n > 12) clearInterval(id); void loadSupport(); }, 4000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadSupport]);
   const [quitOpen, setQuitOpen] = useState(false);
   const [quitName, setQuitName] = useState("");
   const [quitting, setQuitting] = useState(false);
@@ -1645,7 +1669,7 @@ export function Game() {
               <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { focus(s.x, s.y); setTab(null); }}>
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{t.roll.role["mayor"]![f ? 0 : 1]}: {s.owner}</>; })()} · {t.age(ageHours(s, now))}
+                  {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{t.roll.role["mayor"]![f ? 0 : 1]}: {s.owner}{support.get(s.id)?.has("seal") && <span title={SUPPORT[lang].seal} className="ms-1 text-primary">⚜️</span>}</>; })()} · {t.age(ageHours(s, now))}
                   {(() => { const p = speedParts(s, seeds, now); return (<>
                     {p.bless > 0.005 && <span className="block">{t.blessBonus(Math.round(p.bless * 100))}</span>}
                     {p.trade > 0.005 && <span className="block">{t.tradeBonus(Math.round(p.trade * 100))}{p.raw - p.trade > 0.005 && <> ({t.tradeCap(Math.round(p.raw * 100), Math.round(p.cap * 100))})</>}</span>}
@@ -1975,7 +1999,7 @@ export function Game() {
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
             {userId && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setBugOpen(true); setSettings(false); }}>📜 {BUGS[lang].button}</Button>}
             <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 border-t border-border/60 pt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-              <a href="https://buymeacoffee.com/doener" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">☕ {t.imprint.coffee}</a>
+              <button type="button" onClick={() => { setSupportOpen(true); setSettings(false); }} className="uppercase hover:text-foreground">🌱 {SUPPORT[lang].button}</button>
               <a href="https://lovable.dev/invite/LN0I260" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">♥ {t.imprint.built}</a>
               <button type="button" onClick={() => setImprint(!imprint)} className="uppercase hover:text-foreground">{t.imprint.title}</button>
             </div>
@@ -2098,6 +2122,11 @@ export function Game() {
               );
             })()}
           </div>
+        </Parchment>
+      )}
+      {supportOpen && (
+        <Parchment title={SUPPORT[lang].title} later={t.cancel} onLater={() => { setSupportOpen(false); void loadSupport(); }}>
+          <SupportBox lang={lang} seedId={home?.id ?? null} owned={home ? support.get(home.id) ?? new Set() : new Set()} signedIn={!!userId} />
         </Parchment>
       )}
       {bugOpen && userId && (
