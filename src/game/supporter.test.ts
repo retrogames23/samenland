@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allowed, openRewards, tierOf } from "./supporter";
+import { allowed, allowedSet, openRewards, tierOf } from "./supporter";
 
 describe("supporter rewards", () => {
   it("3 € unlocks only 3-euro rewards", () => {
@@ -16,4 +16,13 @@ describe("supporter rewards", () => {
     expect(openRewards(["statue", "seal"])).toHaveLength(6);
   });
   it("tiers are 3 and 5 euro", () => { expect(tierOf("linden")).toBe(5); expect(tierOf("lanterns")).toBe(3); });
+  it("10 € unlocks up to two 5-euro rewards", () => {
+    expect(allowedSet("support_10", ["statue", "linden"])).toBe(true);
+    expect(allowedSet("support_10", ["statue", "linden", "fountain"])).toBe(false);
+    expect(allowedSet("support_10", ["statue", "statue"])).toBe(false);
+  });
+  it("5 € and 3 € unlock only one reward", () => {
+    expect(allowedSet("support_5", ["statue", "seal"])).toBe(false);
+    expect(allowedSet("support_3", ["seal"])).toBe(true);
+  });
 });

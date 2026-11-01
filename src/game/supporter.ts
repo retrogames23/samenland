@@ -22,6 +22,12 @@ export function tierOf(key: string): Tier | null { return REWARDS.find((r) => r.
 export function allowed(price: SupportPrice, key: string): boolean {
   const t = tierOf(key); return t !== null && SUPPORT_PRICES[price] >= t;
 }
+/** How many rewards a contribution unlocks: 10 € gives two, smaller amounts one. */
+export function rewardSlots(price: SupportPrice): number { return SUPPORT_PRICES[price] >= 10 ? 2 : 1; }
+/** A contribution may carry 1..rewardSlots distinct rewards, each within its tier. */
+export function allowedSet(price: SupportPrice, keys: string[]): boolean {
+  return keys.length >= 1 && keys.length <= rewardSlots(price) && new Set(keys).size === keys.length && keys.every((k) => allowed(price, k));
+}
 /** Rewards still selectable for a village (each one only once). */
 export function openRewards(owned: Iterable<string>): RewardKey[] {
   const o = new Set(owned); return REWARD_KEYS.filter((k) => !o.has(k));
