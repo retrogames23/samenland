@@ -1915,21 +1915,21 @@ export function Game() {
       />
       {/* top bar */}
       <div ref={barRef} className="pointer-events-none absolute inset-x-2 top-[max(0.5rem,env(safe-area-inset-top))] z-30 md:inset-x-3 md:top-3">
-        <Panel inner="flex items-center gap-3 px-3 py-1.5 md:gap-5">
+        <Panel inner="flex items-center gap-2 px-2 py-1 md:gap-5 md:px-3 md:py-1.5">
           {my && <CharacterBadge seed={my} lang={lang} />}
           <div className="min-w-0 shrink">
-            <div title={my ? TOWN_CHARACTER[lang].land[wayOf(my)] : undefined} className="-my-[0.34em] truncate py-[0.34em] pl-0.5 pr-3 font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
+            <div title={my ? TOWN_CHARACTER[lang].land[wayOf(my)] : undefined} className="-my-[0.34em] truncate py-[0.34em] pl-0.5 pr-1 font-display text-lg leading-none text-wood md:pr-3 md:text-2xl">{my ? my.name : "Samenland"}</div>
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
               {my && myStats ? `${CHAR_ICON[wayOf(my)]} ${TOWN_CHARACTER[lang].names[wayOf(my)]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[myRank]}${rankHint ? ` · ${rankHint}` : ""} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
           </div>
           {my && at ? (
             <>
-              <div className="flex shrink-0 items-center gap-2 text-sm font-semibold tabular-nums">
+              <div className="flex shrink-0 items-center gap-1.5 text-xs font-semibold tabular-nums md:gap-2 md:text-sm">
                 {(() => { const cap = chestCap(my.id, purchases), full = cash >= cap; return (
-                <span className={`flex items-center gap-1.5 ${full ? "text-destructive" : ""}`} title={`${CHEST[lang].title} · ${CHEST[lang].levels[chestLevel(my.id, purchases) - 1]}: ${Math.max(0, cash)} / ${t.taler(cap)}${full ? ` – ${CHEST[lang].full}` : ""}`}>
-                  <span aria-hidden className="grid h-5 w-5 place-items-center rounded-full border border-wood bg-[radial-gradient(circle_at_35%_30%,var(--color-coin-shine),var(--color-brass)_55%,var(--color-coin-edge))] text-[10px] font-bold leading-none text-wood shadow-[inset_0_-1px_0_var(--color-coin-edge)]">T</span>
-                  {Math.max(0, cash).toLocaleString(LOCALE[lang])}<span className="font-normal text-muted-foreground">/ {t.taler(cap)}</span>
+                <span className={`flex items-center gap-1 md:gap-1.5 ${full ? "text-destructive" : ""}`} title={`${CHEST[lang].title} · ${CHEST[lang].levels[chestLevel(my.id, purchases) - 1]}: ${Math.max(0, cash)} / ${t.taler(cap)}${full ? ` – ${CHEST[lang].full}` : ""}`}>
+                  <span aria-hidden className="grid h-4 w-4 place-items-center rounded-full border border-wood bg-[radial-gradient(circle_at_35%_30%,var(--color-coin-shine),var(--color-brass)_55%,var(--color-coin-edge))] text-[9px] font-bold leading-none text-wood shadow-[inset_0_-1px_0_var(--color-coin-edge)] md:h-5 md:w-5 md:text-[10px]">T</span>
+                  {Math.max(0, cash).toLocaleString(LOCALE[lang])}<span className="font-normal text-muted-foreground">/<span className="md:hidden"> {cap.toLocaleString(LOCALE[lang])} {t.talerShort}</span><span className="hidden md:inline"> {t.taler(cap)}</span></span>
                 </span>); })()}
                 <span className="hidden text-xs font-normal text-primary sm:inline">{t.perDay(pop)}</span>
               </div>
