@@ -1,6 +1,6 @@
 /** Settlement rank judged from what actually stands and lives in a town — never from the clock. */
 export type RankInput = { citizens: number; homes: number; roads: number };
-/** [citizens, occupied homes, finished trade roads] needed for Weiler … Metropole. */
+/** [citizens, occupied dwellings, finished trade roads] needed for Weiler … Metropole. */
 export const RANK_NEED: readonly [number, number, number][] = [
   [15, 4, 0], [40, 10, 0], [80, 25, 0], [150, 45, 1], [300, 90, 2],
 ];
@@ -18,10 +18,10 @@ export function nextRankNeed(i: RankInput) {
 
 import { townOf, citizensOf } from "./people";
 import { links, type Seed } from "./world";
-/** Inputs for rankOf read off the derived town: people in homes, occupied homes, finished roads. */
+/** Each resident family occupies one dwelling, including separate floors of the same house. */
 export function rankInput(s: Seed, seeds: Seed[], now: number): RankInput {
   const c = citizensOf(townOf(s, seeds, now));
-  const homes = new Set(c.map((p) => p.home.join(","))).size;
+  const homes = new Set(c.map((p) => p.hh ?? p.home[0] * 1024 + p.home[1])).size;
   const roads = links(seeds).filter((l) => (l.a.id === s.id || l.b.id === s.id) && now >= l.since).length;
   return { citizens: c.length, homes, roads };
 }

@@ -13,8 +13,9 @@ export function rollOf(people: readonly Person[]): Roll {
   const citizens = people.filter(isCitizen);
   const by = new Map<number, Person[]>();
   for (const p of citizens) {
-    const k = p.home[0] * 1024 + p.home[1];
-    (by.get(k) ?? by.set(k, []).get(k)!).push(p);
+    const k = p.hh ?? p.home[0] * 1024 + p.home[1];
+    const group = by.get(k) ?? [];
+    group.push(p); by.set(k, group);
   }
   const households: Household[] = [...by.entries()].map(([key, ps]) => {
     ps.sort((a, b) => (RANK[a.role ?? "lodger"] ?? 5) - (RANK[b.role ?? "lodger"] ?? 5) || b.age - a.age);

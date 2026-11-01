@@ -4,6 +4,7 @@ import { weddingDates, weddingJoy } from "./weddings";
 import { hasTrait } from "./traits";
 import { pathHeading } from "./motion";
 import { HOME_SIZES, townTiles, occupiedHomes } from "./households";
+import { dwellingKey, dwellingTile } from "./density";
 export { foodCapacity, FEED_BASE, WILD_MAX, FEED_FIELD, FEED_GARDEN, FEED_PASTURE, FEED_FOOD_ITEM, FEED_HEALTH_ITEM, FEED_WINTER } from "./households";
 import { fires } from "./disasters";
 import { guestNow, maypoleUp, cowsOf } from "./encounters";
@@ -173,8 +174,9 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const workTiles = (["workshop", "warehouse", "market", "markethall", "manufactory", "guildhall", "smithy", "sawmill"] as Kind[]).flatMap((k) => byKind.get(k) ?? []);
   const people: Person[] = [];
   const created = Date.parse(s.created_at);
-  for (const { home, size } of households) {
-    const hh = (i: number) => hash(home[0], home[1], 400 + i);
+  for (const { home, size, unit = 0 } of households) {
+    const key = dwellingKey(home[0], home[1], unit);
+    const hh = (i: number) => hash(home[0], home[1], 400 + i + unit * 40);
     const last = pick(S, hh(1));
     const pa = 24 + Math.floor(hh(2) * 30);
     const yrs = (now - created) / 3.15576e10;
@@ -188,7 +190,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       arrive = { from, t0: now - (since / Math.max(0.1, speedOf(s, seeds, now))) * 3600000 };
     }
     for (let m = 0; m < size; m++) {
-      const id = (home[0] * 1024 + home[1]) * 8 + m;
+      const id = key * 8 + m;
       const h = (i: number) => hash(id, 77, i);
       let age: number, sex: Sex, role: Role;
       if (m === 0) { age = pa; sex = h(1) < 0.5 ? "f" : "m"; role = "head"; }
@@ -215,7 +217,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
         looks: { skin: h(12), hair: old ? -1 : h(13), shirt: h(14), pants: h(15), hat: h(16) < (job === "farmer" ? 0.7 : 0.25), stick: old && h(17) < 0.6 },
         haul: null,
         arrive: arrive ? { from: arrive.from, t0: arrive.t0 + m * 2500 } : null,
-        role, hh: home[0] * 1024 + home[1],
+        role, hh: key,
       });
     }
   }
@@ -382,7 +384,7 @@ export function sickRate(s: Seed, now: number): number {
 }
 /** Does the household at home key `hh` (x*1024+y) nurse a sick member right now? Pure in seed, home and time. */
 export const sickHome = (s: Seed, hh: number, now: number) => hash(hh, Math.floor(now / (SICK_DAYS * 864e5)), 1301) < sickRate(s, now);
-const hhTile = (hh: number): Tile => [Math.floor(hh / 1024), hh % 1024];
+const hhTile = dwellingTile;
 /** Mark the sick villager of each affected home and the housemate who stays in to care for them. */
 function falls(s: Seed, people: Person[], now: number) {
   const homes = new Map<number, Person[]>();

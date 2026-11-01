@@ -1,4 +1,6 @@
 import { seasonAt } from "./season";
+import { townCharacter } from "./character";
+import { dwellingSlots } from "./density";
 import { leaversOf } from "./wander";
 import { hash, structureAt, reachOf, radiusOf, effAge, type Seed, type Kind } from "./world";
 
@@ -37,7 +39,7 @@ export function townTiles(s: Seed, seeds: Seed[], now: number) {
   return { r, x0, x1, y0, y1, byKind, sites };
 }
 
-export type Household = { home: HomeTile; kind: Kind; size: number };
+export type Household = { home: HomeTile; kind: Kind; size: number; unit?: number };
 export function occupiedHomes(s: Seed, seeds: Seed[], now: number, byKind: Map<Kind, HomeTile[]>): Household[] {
   const r = radiusOf(effAge(s, seeds, now));
   const homes = Object.keys(HOME_SIZES).flatMap(k => (byKind.get(k as Kind) ?? []).map(home => ({ home, kind: k as Kind })));
@@ -48,11 +50,25 @@ export function occupiedHomes(s: Seed, seeds: Seed[], now: number, byKind: Map<K
     if (h) vacant.add(h.home.join(","));
   }
   const cap = foodCapacity(s, byKind, now, r);
-  return homes.slice(0, cap).filter(h => !vacant.has(h.home.join(","))).map(({ home, kind }) => {
+  const occupied = homes.slice(0, cap).filter(h => !vacant.has(h.home.join(","))).map(({ home, kind }) => {
     const range = HOME_SIZES[kind];
     const size = range ? range[0] + Math.floor(hash(home[0], home[1], 400) * (range[1] - range[0] + 1)) : 0;
     return { home, kind, size };
   });
+  // Retain every established ground-floor family before filling new apartments.
+  // Food is a shared household budget: additional floors never create free meals.
+  if (!s.user_id) return occupied;
+  const way = townCharacter(s).main;
+  const extra: Household[] = [];
+  for (let unit = 1; unit < 3; unit++) for (const h of occupied) {
+    if (occupied.length + extra.length >= cap) break;
+    if (dwellingSlots(way, h.kind, r) <= unit) continue;
+    const range = HOME_SIZES[h.kind];
+    if (!range) continue;
+    const size = range[0] + Math.floor(hash(h.home[0], h.home[1], 400 + unit * 40) * (range[1] - range[0] + 1));
+    extra.push({ ...h, size, unit });
+  }
+  return [...occupied, ...extra];
 }
 
 export const householdsOf = (s: Seed, seeds: Seed[], now: number) => occupiedHomes(s, seeds, now, townTiles(s, seeds, now).byKind);
