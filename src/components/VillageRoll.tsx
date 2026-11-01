@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Parchment } from "@/components/hud/Parchment";
 import { Input } from "@/components/ui/input";
 import { rollOf, matches } from "@/game/roll";
@@ -7,7 +7,7 @@ import type { DICT } from "@/game/i18n";
 
 type T = (typeof DICT)["de"];
 
-export function VillageRoll({ t, town, hue, onPick, onClose }: { t: T; town: Town; hue: number; onPick: (p: Person) => void; onClose: () => void }) {
+export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T; town: Town; hue: number; character?: ReactNode; onPick: (p: Person) => void; onClose: () => void }) {
   const [q, setQ] = useState("");
   const [job, setJob] = useState("");
   const [sort, setSort] = useState<"house" | "name" | "age">("house");
@@ -48,6 +48,7 @@ export function VillageRoll({ t, town, hue, onPick, onClose }: { t: T; town: Tow
           <span className="text-left"><b className="font-display text-xl text-ink">{roll.mayor.first} {roll.mayor.last}</b><span className="block text-xs">{jobName(roll.mayor)}</span></span>
         </button>
       )}
+      {character && <div className="mt-3 border-y border-border py-3">{character}</div>}
       <div className="mt-3 flex flex-wrap gap-2">
         <Input className="h-8 min-w-0 flex-1" placeholder={t.roll.search} value={q} onChange={(e) => setQ(e.target.value)} />
         <select aria-label={t.roll.job} className="h-8 rounded-md border border-border bg-card px-2 text-sm" value={job} onChange={(e) => setJob(e.target.value)}>

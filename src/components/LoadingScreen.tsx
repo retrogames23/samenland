@@ -6,8 +6,10 @@ import { splashDone, markSplashDone } from "@/game/splash";
 /** Parchment loading screen on the first page load until core sprites are in memory (max 8 s). */
 export function LoadingScreen({ title, lines, onDone }: { title: string; lines: string[]; onDone?: () => void }) {
   const [p, setP] = useState(0);
-  const [fade, setFade] = useState(splashDone());
-  const [gone, setGone] = useState(splashDone());
+  // SSR and first client render must agree, including returning tab sessions.
+  // Read the remembered splash state only in the effect after hydration.
+  const [fade, setFade] = useState(false);
+  const [gone, setGone] = useState(false);
   const [line, setLine] = useState(0);
   const done = useRef(onDone);
   done.current = onDone;

@@ -1,7 +1,8 @@
 # Roadmap: Drei Wege zur Metropole
-- [x] Schritt 1: Ortscharakter aus Gelände (bestand bereits, wird in Dorfliste angezeigt)
+- [x] Schritt 1a: Drei Ortscharaktere mit Geländeanteilen und Nebencharakter deterministisch ableiten
 - [x] Schritt 2a: Nahrung nie unter Flachland-Niveau gleicher Größe (Mindest-Ackerfläche)
-- [ ] Schritt 1b: Charakter-Wappen in Statuszeile und Pflanz-Vorschau
+- [x] Schritt 1b: Charakter-Wappen in Statuszeile, Rolle und Pflanz-Vorschau integrieren; Wappenübersicht auf großer/kleiner Anzeige geprüft
+- [ ] Paket 1: Angemeldeten Gesamtfluss prüfen — benötigt Anmeldung in der Vorschau, automatische Anmeldung nicht verfügbar
 - [ ] Schritt 2b: Käserei/Terrassengärten, Fischmarkt als charaktereigene Nahrung
 - [ ] Schritt 3: Dichte statt Fläche (Wohnungen zählen für den Rang)
 - [ ] Schritt 4: Charakter-Boni und Handelsbonus für ungleiche Partner

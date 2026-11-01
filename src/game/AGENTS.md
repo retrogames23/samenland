@@ -1,4 +1,5 @@
 # src/game rules
+- Founding identity is derived in character.ts from equal-area terrain shares in a fixed radius-14 circle, excluding map edges; main and substantial secondary routes are labels only. Keep characterOf trade and charter behavior unchanged until explicit balancing, so identity display never alters population or earned money.
 
 - Parchment silhouettes use the reusable figure-sized surface in parchment.ts and source-in tinting, never per-frame CSS filters on the world canvas; retain the existing VIP whitelist, depth clips and occlusion hysteresis to bound rendering cost without revealing ordinary residents.
 
