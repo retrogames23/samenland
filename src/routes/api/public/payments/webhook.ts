@@ -6,14 +6,18 @@ import { REWARD_KEYS } from "@/game/supporter";
 // Security: every request must carry a valid Stripe signature.
 async function grant(session: any, env: StripeEnv) {
   const m = session.metadata ?? {};
-  if (!m.seedId || !REWARD_KEYS.includes(m.reward)) { console.error("support webhook: missing metadata", session.id); return; }
+  const keys = String(m.reward ?? "").split(",").filter((k: string) => REWARD_KEYS.includes(k as never)).slice(0, 2);
+  if (!m.seedId || !keys.length) { console.error("support webhook: missing metadata", session.id); return; }
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { error } = await supabaseAdmin.from("supporter_rewards").upsert(
-    { seed_id: m.seedId, reward: m.reward, amount_cents: session.amount_total ?? 0, stripe_session_id: session.id, environment: env },
-    { onConflict: "stripe_session_id", ignoreDuplicates: true },
-  );
-  // a duplicate (same village + reward) is a no-op: the village already shows it
-  if (error && error.code !== "23505") throw error;
+  const per = Math.round((session.amount_total ?? 0) / keys.length);
+  for (const [i, reward] of keys.entries()) {
+    // first reward keeps the plain session id; a second one gets a suffix (session id is unique)
+    const { error } = await supabaseAdmin.from("supporter_rewards").upsert(
+      { seed_id: m.seedId, reward, amount_cents: per, stripe_session_id: i ? `${session.id}:${reward}` : session.id, environment: env },
+      { onConflict: "stripe_session_id", ignoreDuplicates: true },
+    );
+    if (error && error.code !== "23505") throw error;
+  }
 }
 
 export const Route = createFileRoute("/api/public/payments/webhook")({
