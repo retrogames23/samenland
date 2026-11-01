@@ -43,6 +43,7 @@ const de: Book = {
       ["Pfade im Dorf", "Wege innerhalb des Ortes entstehen ganz von selbst. Wo Bewohner täglich zwischen Haustür, Brunnen, Acker und Werkstatt laufen, treten sie mit der Zeit sichtbare Trampelpfade und Gassen in den Boden."],
       ["Handelsstraßen nach außen", "Straßen zu Nachbardörfern entstehen dagegen nicht von allein. Du musst sie im Bau-Menü als Schulze förmlich beschließen. Der Bau dauert je nach Entfernung einige Stunden oder Tage. Baut das Nachbardorf von seiner Seite aus mit, halbiert sich die verbleibende Bauzeit. Jede fertige Straße hebt außerdem den Wohlstand deines Ortes."],
       ["Handelsnetze & Umschlagplätze", "Du musst nicht zu jedem Nachbarn eine eigene Schneise durch den Wald schlagen. Fertige Straßen leiten den Handel weiter: Ist dein Dorf mit einem Nachbarn verbunden und dieser wiederum mit einem dritten Ort, handelst du über ihn auch mit diesem – mit drei Vierteln des Ertrags einer direkten Straße. Der Ort in der Mitte wird zum Umschlagplatz und wächst durch den Durchgangshandel ein wenig schneller. Eine eigene Direktstraße bringt den vollen Ertrag, lohnt sich aber meist nur, wenn der Umweg groß ist."],
+      ["Grenzen des Handels & Wegezoll", "Handel beschleunigt das Wachstum, aber kein Ort wächst schneller, als er Häuser und Brot schaffen kann. Bis +35 % zählt jeder Handelsweg voll. Darüber wirkt zusätzlicher Handel immer schwächer und nähert sich nur noch der Obergrenze des Ortes: +40 % für jedes Dorf, +5 % mehr für das Tor zur Welt, +10 % mit der Handels-Charta und +5 % mit der Markthalle (höchstens +60 %). Was das Wachstum nicht mehr aufnehmen kann, verfällt nicht: Als Wegezoll bringt jede 10 % Überschuss +5 Wohlstand, bis zu +20. In der Dorfliste siehst du beides – den Straßenwert und was davon wirklich wirkt."],
       ["Markttage & Fuhrwerke", "Steht die Straße, rollen Fuhrwerke, Wandergesellen kehren ein und samstags findet der gemeinsame Wochenmarkt statt."],
     ]],
     ["Ressourcen, Handwerk & wofür alles dient", [
@@ -107,6 +108,7 @@ const en: Book = {
       ["Paths in the village", "Paths inside the settlement appear by themselves. Where villagers walk daily between door, well, field and workshop, they tread visible trails and lanes into the ground over time."],
       ["Trade roads to the outside", "Roads to neighbouring villages don't appear by themselves. As headman you must formally decide on them in the build menu. Building takes a few hours or days depending on distance. If the neighbour builds from their side too, the remaining time is halved. Every finished road also raises your settlement's prosperity."],
       ["Trade networks & hubs", "You don't have to cut your own road through the forest to every neighbour. Finished roads pass trade on: if your village is linked to a neighbour and that neighbour to a third place, you also trade with it through them – at three quarters of what a direct road yields. The place in the middle becomes a trading hub and grows a little faster from the passing trade. A direct road of your own brings the full yield, but is usually only worth it when the detour is long."],
+      ["Limits of trade & road tolls", "Trade speeds up growth, but no town grows faster than it can raise houses and bread. Up to +35 % every trade road counts in full. Beyond that, extra trade works ever more weakly and only approaches the town's ceiling: +40 % for every village, +5 % more for a Gateway to the World, +10 % with the trade charter and +5 % with the market hall (at most +60 %). What growth cannot absorb is not lost: as road toll, every 10 % of surplus brings +5 prosperity, up to +20. The village list shows both – the road value and what really takes effect."],
       ["Market days & carts", "Once the road stands, carts roll, journeymen stop by and on Saturdays the shared weekly market takes place."],
     ]],
     ["Resources, crafts & what they're for", [
@@ -171,6 +173,7 @@ const fr: Book = {
       ["Sentiers du village", "Les chemins dans le bourg naissent d'eux-mêmes, là où les habitants marchent chaque jour entre porte, puits, champ et atelier."],
       ["Routes commerciales", "Les routes vers les voisins ne naissent pas seules : tu dois les décider dans le menu de construction. Les travaux durent quelques heures ou jours selon la distance ; si le voisin construit aussi de son côté, le temps restant est divisé par deux. Chaque route achevée accroît aussi la prospérité de ton bourg."],
       ["Réseaux commerciaux & relais", "Inutile de tailler ta propre route à travers la forêt vers chaque voisin. Les routes achevées relaient le commerce : si ton village est relié à un voisin, lui-même relié à un troisième bourg, tu commerces aussi avec ce dernier à travers lui – aux trois quarts du gain d'une route directe. Le bourg du milieu devient un relais marchand et grandit un peu plus vite grâce au commerce de passage. Une route directe rapporte le gain entier, mais ne vaut d'ordinaire la peine que si le détour est long."],
+      ["Limites du négoce & péage", "Le négoce accélère la croissance, mais aucun lieu ne grandit plus vite qu'il ne peut bâtir maisons et pain. Jusqu'à +35 %, chaque route compte pleinement. Au-delà, le surplus agit de plus en plus faiblement et ne fait qu'approcher le plafond du lieu : +40 % pour chaque village, +5 % de plus pour la Porte du monde, +10 % avec la charte marchande et +5 % avec la halle (au plus +60 %). Ce que la croissance ne peut absorber n'est pas perdu : en péage, chaque tranche de 10 % de surplus donne +5 prospérité, jusqu'à +20. La liste des villages montre les deux valeurs."],
       ["Jours de marché & charrettes", "Une fois la route prête, les charrettes roulent, les compagnons font halte et le samedi se tient le marché commun."],
     ]],
     ["Ressources, métiers & leur utilité", [
@@ -235,6 +238,7 @@ const es: Book = {
       ["Senderos en la aldea", "Los caminos dentro del pueblo surgen solos, donde los vecinos andan cada día entre puerta, pozo, campo y taller."],
       ["Caminos comerciales", "Los caminos a los vecinos no surgen solos: debes decidirlos en el menú de construcción. Tardan horas o días según la distancia; si el vecino construye desde su lado, el tiempo restante se reduce a la mitad. Cada camino terminado también aumenta la prosperidad de tu pueblo."],
       ["Redes comerciales y plazas de paso", "No hace falta abrir tu propio camino por el bosque hacia cada vecino. Los caminos terminados transmiten el comercio: si tu aldea está unida a un vecino y este a un tercer lugar, comercias también con él a través del vecino, con tres cuartas partes del rendimiento de un camino directo. El lugar del medio se convierte en plaza de paso y crece algo más rápido gracias al comercio de tránsito. Un camino directo propio da el rendimiento completo, pero solo suele merecer la pena si el rodeo es largo."],
+      ["Límites del comercio y peaje", "El comercio acelera el crecimiento, pero ningún lugar crece más rápido de lo que puede levantar casas y pan. Hasta +35 % cada camino cuenta por completo. Por encima, el comercio extra actúa cada vez más débil y solo se acerca al techo del lugar: +40 % para cada aldea, +5 % más para la Puerta al mundo, +10 % con la carta comercial y +5 % con la lonja (como máximo +60 %). Lo que el crecimiento no absorbe no se pierde: como peaje, cada 10 % de excedente da +5 de prosperidad, hasta +20. La lista de aldeas muestra ambos valores."],
       ["Días de mercado y carros", "Con el camino listo, ruedan carros, llegan oficiales errantes y los sábados se celebra el mercado común."],
     ]],
     ["Recursos, oficios y su utilidad", [
@@ -299,6 +303,7 @@ const ar: Book = {
       ["دروب القرية", "تنشأ الدروب داخل البلدة وحدها حيث يمشي الأهالي يومياً بين الباب والبئر والحقل والورشة."],
       ["طرق التجارة", "أما الطرق إلى الجيران فلا تنشأ وحدها، بل تقررها في قائمة البناء. يستغرق بناؤها ساعات أو أياماً حسب المسافة، وإن بنى الجار من جهته انتصف الوقت المتبقي. وكل طريق مكتمل يرفع رخاء بلدتك أيضاً."],
       ["شبكات التجارة ومحطات العبور", "لا حاجة إلى شق طريق خاص عبر الغابة إلى كل جار. الطرق المكتملة تنقل التجارة: إذا اتصلت قريتك بجار، واتصل هو بمكان ثالث، فإنك تتاجر مع ذلك المكان عبره أيضا، بثلاثة أرباع عائد الطريق المباشر. ويصبح المكان الأوسط محطة عبور تنمو أسرع قليلا بفضل تجارة المرور. الطريق المباشر يمنح العائد كاملا، لكنه لا يستحق العناء عادة إلا إذا كان الالتفاف طويلا."],
+      ["حدود التجارة ورسوم الطريق", "التجارة تسرّع النمو، لكن لا يكبر مكان أسرع مما يستطيع أن يبني من بيوت وخبز. حتى +35 % يُحتسب كل طريق تجاري كاملاً. وما زاد على ذلك يضعف أثره تدريجياً ولا يقترب إلا من سقف المكان: +40 % لكل قرية، و+5 % إضافية لبوابة العالم، و+10 % مع ميثاق التجارة، و+5 % مع قاعة السوق (بحد أقصى +60 %). وما لا يستوعبه النمو لا يضيع: كرسوم طريق يجلب كل 10 % من الفائض +5 رخاء، حتى +20. تُظهر قائمة القرى القيمتين."],
       ["أيام السوق والعربات", "حين يكتمل الطريق تسير العربات ويحل الصنّاع الجوّالون، ويقام السوق المشترك كل سبت."],
     ]],
     ["الموارد والحِرف وفائدتها", [
@@ -363,6 +368,7 @@ const hi: Book = {
       ["गाँव की पगडंडियाँ", "बस्ती के भीतर रास्ते अपने आप बनते हैं, जहाँ लोग रोज़ दरवाज़े, कुएँ, खेत और कार्यशाला के बीच चलते हैं।"],
       ["व्यापार मार्ग", "पड़ोसियों तक सड़कें अपने आप नहीं बनतीं: तुम्हें निर्माण मेनू में इन्हें तय करना होता है। दूरी के अनुसार घंटे या दिन लगते हैं; पड़ोसी भी बनाए तो बचा समय आधा हो जाता है। हर पूरी सड़क तुम्हारी बस्ती की समृद्धि भी बढ़ाती है।"],
       ["व्यापार जाल और पड़ाव", "हर पड़ोसी तक जंगल से अपनी अलग सड़क काटने की ज़रूरत नहीं। पूरी बनी सड़कें व्यापार आगे बढ़ाती हैं: यदि तुम्हारा गाँव किसी पड़ोसी से जुड़ा है और वह किसी तीसरे स्थान से, तो उसके रास्ते तुम उस स्थान से भी व्यापार करते हो – सीधी सड़क की तीन-चौथाई आय के साथ। बीच वाला स्थान व्यापारिक पड़ाव बनता है और गुज़रते व्यापार से थोड़ा तेज़ बढ़ता है। अपनी सीधी सड़क पूरी आय देती है, पर आमतौर पर तभी लाभदायक है जब घुमावदार रास्ता लंबा हो।"],
+      ["व्यापार की सीमा और मार्ग-कर", "व्यापार विकास को तेज़ करता है, पर कोई जगह उतनी ही तेज़ी से बढ़ती है जितने घर और रोटी वह जुटा सके। +35 % तक हर व्यापार मार्ग पूरा गिना जाता है। उससे ऊपर अतिरिक्त व्यापार धीरे-धीरे कमज़ोर होता है और केवल जगह की सीमा तक पहुँचता है: हर गाँव के लिए +40 %, विश्व-द्वार के लिए +5 % और, व्यापार चार्टर के साथ +10 % और बाज़ार भवन के साथ +5 % (अधिकतम +60 %)। जो विकास नहीं सोख पाता वह खोता नहीं: मार्ग-कर के रूप में हर 10 % अधिशेष +5 समृद्धि देता है, अधिकतम +20। गाँवों की सूची दोनों मान दिखाती है।"],
       ["बाज़ार के दिन और गाड़ियाँ", "सड़क तैयार होते ही गाड़ियाँ चलती हैं, घुमंतू कारीगर आते हैं और शनिवार को साझा हाट लगता है।"],
     ]],
     ["संसाधन, धंधे और उनका उपयोग", [
@@ -427,6 +433,7 @@ const zh: Book = {
       ["村中小径", "聚落内的道路会自行形成，村民每天在门口、水井、田地和作坊之间往来，踏出小径。"],
       ["对外商路", "通往邻村的道路不会自行出现：你必须在建造菜单中正式决定。按距离需要数小时或数天；若邻村也从另一端修建，剩余时间减半。每条建成的道路还会提升你聚落的繁荣。"],
       ["商路网络与中转集镇", "不必向每个邻居都单独穿林开路。建成的道路会转运贸易：若你的村庄与一位邻居相连，而他又与第三个地方相连，你便能经由他与那里通商，收益为直达道路的四分之三。居中的地方成为中转集镇，因过往贸易而成长得稍快。自建直达道路可得全部收益，但通常只有绕路很远时才值得。"],
+      ["商贸上限与路税", "商贸能加快成长，但没有哪个地方能比它建造房屋、供应面包的速度长得更快。+35% 以内，每条商路都全额计算。超过之后，额外的商贸效果越来越弱，只会逐渐接近该地的上限：每个村庄 +40%，通商门户再 +5%，商贸宪章 +10%，市集大厅 +5%（最高 +60%）。成长吸收不了的部分不会浪费：作为路税，每 10% 的盈余带来 +5 繁荣，最多 +20。村庄列表会同时显示两个数值。"],
       ["集市日与马车", "道路建成后，马车往来，游方工匠到访，每逢星期六举行共同的集市。"],
     ]],
     ["资源、手艺及其用途", [
@@ -491,6 +498,7 @@ const ja: Book = {
       ["村の小道", "集落の中の道は、村人が毎日戸口、井戸、畑、作業場を行き来するうちに自然とできます。"],
       ["外への交易路", "隣村への道は自然にはできません。村長として建設メニューで正式に決めます。距離に応じて数時間から数日かかり、隣村も向こうから建てれば残り時間は半分になります。完成した道はそれぞれ集落の豊かさも高めます。"],
       ["交易網と中継地", "隣村ごとに森を切り開いて専用の道を造る必要はありません。完成した道は交易を中継します。あなたの村が隣村とつながり、その隣村がさらに別の地とつながっていれば、隣村を経てその地とも交易でき、直通路の四分の三の実りが得られます。中間の地は中継地となり、通過する交易で少し早く育ちます。直通路は実りをすべてもたらしますが、遠回りが長いときだけ価値があることが多いです。"],
+      ["交易の上限と通行税", "交易は成長を速めますが、家とパンを用意できる以上の速さで育つ町はありません。+35 %までは、どの交易路も満額で数えられます。それを超える交易は次第に弱まり、町の上限に近づくだけです：どの村も+40 %、世界への門はさらに+5 %、交易憲章で+10 %、市場ホールで+5 %（最大+60 %）。成長が吸収しきれない分は失われません：通行税として、余剰10 %ごとに繁栄+5、最大+20。村の一覧で両方の値を確認できます。"],
       ["市の日と荷車", "道ができれば荷車が行き交い、遍歴職人が立ち寄り、土曜には共同の市が開かれます。"],
     ]],
     ["資源、手仕事とその役割", [

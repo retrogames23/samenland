@@ -304,6 +304,8 @@ const de = {
   charter: { title: "Dorf-Charta", seal: "Charta erlassen", sealBtn: "Urkunde siegeln", intro: "Als Schulze gibst du deinem Dorf einmalig seine Verfassung. Die Landschaft ist euer Schicksal, die Charta eure Entscheidung: Stärken zuspitzen oder Schwächen ausgleichen – jeder Pfad passt zu jedem Ort.", locked: "Ab dem Weiler (nach einem Tag) kannst du die Charta erlassen.", fits: "Im Einklang mit der Landschaft", final: "Die Wahl gilt für immer.", sealed: (n: string) => `Charta gesiegelt: ${n}`, fail: "Die Charta konnte nicht gesiegelt werden.", buildings: "Zunftbauten", guild: "Zunft", bonus: { trade: "+15 % Steuern, Handelswege bringen mehr Nahrung", craft: "Gekaufte Gebäude in halber Zeit fertig, Wiederaufbau nach Brand und Flut doppelt so schnell, +10 Wohlstand", culture: "+15 Gesundheit, deutlich weniger Kranke und Steuerausfälle", farm: "+15 Nahrung, 5 % schnelleres Wachstum" } as Record<string, string>, paths: { trade: ["Handels- & Marktflecken", "Rastort und Umschlagplatz für Waren", "Mehr Taler aus Handelswegen, häufigere Karren", "Zunftbau: Markthalle"], craft: ["Handwerks- & Zunftstadt", "Veredelung von Rohstoffen in Werkstätten", "Schnellere Werkstätten, mehr Wohlstand", "Zunftbau: Zunfthaus"], culture: ["Gelehrten- & Kulturstadt", "Bildung, Gesundheit und Feste", "Mehr Vitalität, gebildete Neubürger", "Zunftbau: Bibliothek"], farm: ["Freie Bauern- & Waldmark", "Vorratskammer der Region", "Volle Nahrung, schnellerer Zuzug", "Zunftbau: Käserei"] } as Record<string, [string, string, string, string]> },
   character: { plains: ["Ackerdorf", "Fruchtbares Land für Korn, Mehl und Brot"], mountain: ["Bergdorf", "Fels und Erz für Stein, Eisen und Werkzeug"], coast: ["Fischerdorf", "Wasser für Fisch, Salz und Boote"], forest: ["Walddorf", "Wald für Bauholz, Holzkohle und Kräuter"] } as Record<string, [string, string]>,
   tradeBonus: (p: number) => `+${p}% Wachstum durch Handel`,
+  tradeCap: (raw: number, cap: number) => `Straßenwert +${raw} % · Obergrenze +${cap} %`,
+  tollBonus: (n: number) => `Wegezoll: +${n} Wohlstand`,
   blessBonus: (p: number) => `+${p}% Wachstum durch Dorfsegen`,
   farmBonus: (p: number) => `+${p}% Wachstum durch Bauern-Charta`,
   trade: {
@@ -667,6 +669,8 @@ const en: typeof de = {
   charter: { title: "Village charter", seal: "Issue charter", sealBtn: "Seal the charter", intro: "As headman you give your village its constitution, once. The landscape is your fate, the charter your choice: sharpen your strengths or balance your weaknesses – every path suits every place.", locked: "From hamlet stage (after one day) you can issue the charter.", fits: "In harmony with the landscape", final: "This choice is permanent.", sealed: (n: string) => `Charter sealed: ${n}`, fail: "The charter could not be sealed.", buildings: "Guild buildings", guild: "Guild", bonus: { trade: "+15% taxes, trade roads bring more food", craft: "Bought buildings finish in half the time, rebuilding after fire and flood twice as fast, +10 prosperity", culture: "+15 health, noticeably fewer sick villagers and tax losses", farm: "+15 food, 5% faster growth" }, paths: { trade: ["Market town", "Rest stop and trading hub", "More taler from trade roads, more carts", "Guild building: market hall"], craft: ["Guild town", "Refining raw goods in workshops", "Faster workshops, more prosperity", "Guild building: guild hall"], culture: ["Town of learning", "Education, health and festivals", "More vitality, educated newcomers", "Guild building: library"], farm: ["Free farmland", "The region's larder", "Full food, faster settling", "Guild building: dairy"] } },
   character: { plains: ["Farming village", "Fertile land for grain, flour and bread"], mountain: ["Mountain village", "Rock and ore for stone, iron and tools"], coast: ["Fishing village", "Water for fish, salt and boats"], forest: ["Forest village", "Woods for timber, charcoal and herbs"] },
   tradeBonus: (p) => `+${p}% growth from trade`,
+  tradeCap: (raw, cap) => `road value +${raw}% · ceiling +${cap}%`,
+  tollBonus: (n) => `Road toll: +${n} prosperity`,
   blessBonus: (p) => `+${p}% growth from blessing`,
   farmBonus: (p) => `+${p}% growth from farmers' charter`,
   trade: {
@@ -1030,6 +1034,8 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
   charter: { title: "村庄宪章", seal: "颁布宪章", sealBtn: "为宪章盖印", intro: "身为村长，你只有一次机会为村庄订立宪章。地貌是命运，宪章是抉择：强化长处，或弥补短板——每条道路都适合任何地方。", locked: "达到小村落阶段（一天后），便可颁布宪章。", fits: "与当地地貌相宜", final: "此选择不可更改。", sealed: (n: string) => `宪章已盖印：${n}`, fail: "未能为宪章盖印。", buildings: "行会建筑", guild: "行会", bonus: { trade: "+15%税收，商路带来更多食物", craft: "购买的建筑工期减半，火灾和洪水后重建快一倍，+10繁荣", culture: "+15健康，病人与税收损失明显减少", farm: "+15食物，成长加快5%" }, paths: { trade: ["商贸集镇", "歇脚之所与贸易枢纽", "商路带来更多塔勒，货车往来更频繁", "行会建筑：集市大厅"], craft: ["工匠之镇", "在作坊中精制原料", "作坊效率更高，繁荣更盛", "行会建筑：行会大厅"], culture: ["学识之镇", "教育、健康与庆典", "更有活力，吸引有学识的新居民", "行会建筑：藏书馆"], farm: ["自由农庄", "一方粮仓", "食物充足，定居更快", "行会建筑：乳品坊"] } },
   character: { plains: ["农耕村庄", "沃土孕育谷物、面粉与面包"], mountain: ["山中村庄", "山石矿藏带来石料、铁与工具"], coast: ["渔村", "水域带来鱼、盐与舟船"], forest: ["林间村庄", "林木提供木材、木炭与草药"] },
   tradeBonus: (p) => `贸易带来+${p}%成长`,
+  tradeCap: (raw, cap) => `商路价值 +${raw}% · 上限 +${cap}%`,
+  tollBonus: (n) => `路税：繁荣 +${n}`,
   blessBonus: (p) => `祝福带来+${p}%成长`,
   farmBonus: (p) => `农人宪章带来+${p}%成长`,
   trade: {
@@ -1394,6 +1400,8 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   charter: { title: "村の憲章", seal: "憲章を発布する", sealBtn: "憲章に封印する", intro: "村長として、村の憲章を一度だけ定めます。土地は運命、憲章は選択です。長所を伸ばすか、短所を補うか――どの道もどの土地にも合います。", locked: "小さな集落の段階（一日後）から、憲章を発布できます。", fits: "土地柄に調和", final: "この選択は変更できません。", sealed: (n: string) => `憲章に封印しました：${n}`, fail: "憲章に封印できませんでした。", buildings: "ギルドの建物", guild: "ギルド", bonus: { trade: "税収+15%、交易路からの食料が増加", craft: "購入した建物が半分の時間で完成、火事や洪水の後の再建が2倍速、繁栄+10", culture: "健康+15、病人と税の減収が大きく減ります", farm: "食料+15、成長が5%速くなります" }, paths: { trade: ["市の町", "旅人の休息地、交易の拠点", "交易路のターラーと荷車が増加", "ギルドの建物：市場会館"], craft: ["職人の町", "工房で素材を品物に", "工房の働きが速まり、繁栄が増加", "ギルドの建物：ギルド会館"], culture: ["学びの町", "教育と健康、祭り", "活力が増し、学ある移住者が来訪", "ギルドの建物：図書館"], farm: ["自由な農村", "地域の食料庫", "食料が満ち、定住が早まります", "ギルドの建物：酪農所"] } },
   character: { plains: ["農村", "肥沃な土地から穀物、小麦粉、パンを"], mountain: ["山の村", "岩と鉱石から石材、鉄、道具を"], coast: ["漁村", "水辺から魚、塩、船を"], forest: ["森の村", "森から木材、木炭、薬草を"] },
   tradeBonus: (p) => `交易による成長+${p}%`,
+  tradeCap: (raw, cap) => `交易路の価値 +${raw}% · 上限 +${cap}%`,
+  tollBonus: (n) => `通行税：繁栄 +${n}`,
   blessBonus: (p) => `祝福による成長+${p}%`,
   farmBonus: (p) => `農民の憲章による成長+${p}%`,
   trade: {
