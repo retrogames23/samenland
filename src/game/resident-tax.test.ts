@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { householdsOf, foodCapacity, farmFloor } from "./households";
+import { householdsOf, foodCapacity, foodCatchment } from "./households";
 import { townOf } from "./people";
 import { residentTax, assessHomes } from "./resident-tax";
 import { economyWorldAt, type EconomyWorld } from "./economy-world";
@@ -66,13 +66,13 @@ describe("shared occupied households", () => {
 describe("no founding-site penalty", () => {
   it("a hill town with sparse farmland feeds as many households as flat land of the same radius", () => {
     const s = seed(["fisher", "hunter", "granary", "dairy", "herbs", "healer"]), at = Date.parse("2026-07-01T00:00:00Z");
-    const flat = new Map<Kind, unknown[]>([["field", Array(farmFloor(23.4)).fill(null)]]);
+    const flat = new Map<Kind, unknown[]>([["field", Array(foodCatchment(23.4)).fill(null)]]);
     const hill = new Map<Kind, unknown[]>([["pasture", Array(700).fill(null)]]);
     expect(foodCapacity(s, hill, at, 23.4)).toBe(foodCapacity(s, flat, at, 23.4));
   });
   it("rich farmland above the floor still counts in full", () => {
     const s = seed(["fisher", "hunter", "granary", "dairy", "herbs", "healer"]), at = Date.parse("2026-07-01T00:00:00Z");
-    const rich = new Map<Kind, unknown[]>([["field", Array(farmFloor(10) + 80).fill(null)]]);
+    const rich = new Map<Kind, unknown[]>([["field", Array(foodCatchment(10) + 80).fill(null)]]);
     expect(foodCapacity(s, rich, at, 10)).toBeGreaterThan(foodCapacity(s, new Map(), at, 10));
   });
 });
