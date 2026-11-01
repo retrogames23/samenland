@@ -1502,5 +1502,5 @@ export type Dict = typeof de;
 /** Translate a canPlant error code. */
 export function plantError(t: Dict, code: string) {
   if (code.startsWith("near:")) return t.near(code.slice(5));
-  return code === "hill" ? t.hill : t.water;
+  return code === "court" ? t.court : code === "hill" ? t.hill : t.water;
 }
