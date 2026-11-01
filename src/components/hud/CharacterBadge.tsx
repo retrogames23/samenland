@@ -25,7 +25,7 @@ export function CharacterDetails({ seed, lang }: { seed: { x: number; y: number 
     {c.side && <p className="mt-1 text-xs text-muted-foreground">{t.side}: {t.names[c.side]}</p>}
     <p className="mt-3 text-xs text-muted-foreground">{t.landscape}</p>
     <dl className="mt-1 space-y-1">{(["grain", "workshop", "gateway"] as const).map(way => <div key={way} className="flex justify-between gap-3"><dt>{t.land[way]}</dt><dd className="shrink-0 tabular-nums">{Math.round(c.mix[way] * 100)} %</dd></div>)}</dl>
-    <div className="mt-3 space-y-2 border-t border-border pt-3 text-xs text-muted-foreground"><p>{development.food[c.main]}</p><p>{development.homes[c.main]}</p><p>{development.care}</p></div>
+    <div className="mt-3 space-y-2 border-t border-border pt-3 text-xs text-muted-foreground"><p>{development.food[c.main]}</p><p>{development.homes[c.main]}</p><p>{development.boon[c.main]}</p><p>{development.care}</p></div>
   </div>;
 }
 

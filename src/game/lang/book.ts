@@ -526,6 +526,6 @@ for (const lang of Object.keys(BOOK) as Lang[]) {
   const character = TOWN_CHARACTER[lang], development = TOWN_DEVELOPMENT[lang];
   BOOK[lang].chapters.push([character.title, [
     ["", development.care],
-    ...(["grain", "workshop", "gateway"] as const).map((way): [string, string] => [character.names[way], `${development.food[way]} ${development.homes[way]}`]),
+    ...(["grain", "workshop", "gateway"] as const).map((way): [string, string] => [character.names[way], `${development.food[way]} ${development.homes[way]} ${development.boon[way]}`]),
   ]]);
 }
