@@ -1694,8 +1694,8 @@ export function Game() {
             {decree && <p className="mt-3 text-sm italic leading-relaxed">{decree}</p>}
             {!decree && <Button type="button" size="sm" className="mt-3 w-full" onClick={() => askDecree(my.id)}>📜 {PRINCELY[lang].ask}</Button>}
             {(() => { const o = openTaskOf(princelyRows.current, my.id); return o && o.task !== "court" && decree && decree !== PRINCELY[lang].swapped && decree !== PRINCELY[lang].wait ? <Button type="button" size="sm" variant="outline" className="mt-2 w-full" onClick={() => swapDecree(my.id)}>🔄 {PRINCELY[lang].swap}</Button> : null; })()}
-            {audience === "prince" && !knights.current.has(my.id) && favourOf(princelyRows.current, my.id) >= PRINCELY_COUNT && <Button type="button" size="sm" className="mt-2 w-full" onClick={() => kneel(my.id, (my as { mayor_gender?: string | null }).mayor_gender === "f")}>⚔️ {PRINCELY[lang].kneel}</Button>}
-            {knights.current.has(my.id) && <p className="mt-2 text-center text-xs font-semibold">🐎 {PRINCELY[lang].sir((my as { mayor_gender?: string | null }).mayor_gender === "f")}</p>}
+            {audience === "prince" && !knights.current.has(my.id) && favourOf(princelyRows.current, my.id) >= PRINCELY_COUNT && <Button type="button" size="sm" className="mt-2 w-full" onClick={() => kneel(my.id, (my as { mayor_gender?: string | null }).mayor_gender === "w")}>⚔️ {PRINCELY[lang].kneel}</Button>}
+            {knights.current.has(my.id) && <p className="mt-2 text-center text-xs font-semibold">🐎 {PRINCELY[lang].sir((my as { mayor_gender?: string | null }).mayor_gender === "w")}</p>}
             <p className="mt-2 text-xs text-muted-foreground">{PRINCELY[lang].favour(favourOf(princelyRows.current, my.id), PRINCELY_COUNT)}</p>
           </>)}
           <Button type="button" size="sm" variant="outline" className="mt-3 w-full" onClick={() => setAudience(null)}>{COURT[lang].bow}</Button>
