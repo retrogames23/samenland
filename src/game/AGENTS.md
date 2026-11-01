@@ -61,3 +61,4 @@
 - Wonders (src/game/wonders.ts): sites are a pure grid placement from terrain, mirrored 1:1 by DB wonder_sites (regenerate the INSERT if placement changes); only wonder_finds rows are stored via claim_wonder (first per realm 100, later 40, 6/day) and counted in village_balance/village_capped_tax.
 - Prince's seat (src/game/court.ts): one estate site, layout and court routine derived purely from terrain + realm clock; canPlant blocks founding within COURT_GUARD — nothing stored, every client sees the same court.
 - Mayor profile: seeds.mayor_age/mayor_traits are written only via the owner-checked update_mayor RPC; people.ts reads them (fallback: hashed age) and setChosenTraits overrides traitsOf, so all clients see the same mayor and sprite cohort.
+- Audience (court.ts audienceHost/atCourt): host derived from realm hour, offered only to a strolling mayor on the estate; nothing stored until tasks exist.
