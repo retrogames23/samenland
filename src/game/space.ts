@@ -10,8 +10,12 @@ export type Body = { x: number; y: number; r: number; /** how easily it gets pus
 /** Ground distance in iso screen space: vertical counts double, so footprints are flat ellipses. */
 const gap = (a: Body, b: Body) => { const dx = b.x - a.x, dy = (b.y - a.y) * 2; return [dx, dy, Math.hypot(dx, dy)] as const; };
 
-/** Pushes overlapping bodies apart along their connecting line (a few passes). Mutates and returns bodies. */
-export function separate<T extends Body>(bodies: T[], passes = 3): T[] {
+/** Most a body may be displaced from its true spot (screen units): crowds overlap a little instead of
+ * flinging figures around, so tile hand-overs and dense gatherings never make anyone slide quickly. */
+export const MAX_SHIFT = 6;
+/** Pushes overlapping bodies apart along their connecting line (a few passes, softened). Mutates and returns bodies. */
+export function separate<T extends Body>(bodies: T[], passes = 3, maxShift = MAX_SHIFT): T[] {
+  const ox = bodies.map((b) => b.x), oy = bodies.map((b) => b.y);
   for (let p = 0; p < passes; p++) {
     for (let i = 0; i < bodies.length; i++) for (let j = i + 1; j < bodies.length; j++) {
       const a = bodies[i]!, b = bodies[j]!, tot = a.give + b.give; if (tot <= 0) continue;
@@ -19,10 +23,15 @@ export function separate<T extends Body>(bodies: T[], passes = 3): T[] {
       if (d >= need) continue;
       // exact overlap: split along a stable diagonal (by index) instead of a random direction
       if (d < 1e-6) { dx = ((i + j) & 1) ? 1 : -1; dy = 0.5; d = Math.hypot(dx, dy); }
+      // soft push , bounded overall by MAX_SHIFT
       const push = need - d, ux = dx / d, uy = dy / d / 2;
       a.x -= ux * push * (a.give / tot); a.y -= uy * push * (a.give / tot);
       b.x += ux * push * (b.give / tot); b.y += uy * push * (b.give / tot);
     }
+  }
+  for (let i = 0; i < bodies.length; i++) {
+    const b = bodies[i]!, dx = b.x - ox[i]!, dy = (b.y - oy[i]!) * 2, m = Math.hypot(dx, dy);
+    if (m > maxShift) { const k = maxShift / m; b.x = ox[i]! + dx * k; b.y = oy[i]! + (dy / 2) * k; }
   }
   return bodies;
 }
