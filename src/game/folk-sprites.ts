@@ -67,6 +67,7 @@ const MAYOR_SHEETS: Record<"m" | "f", Record<Cohort, FolkSprite>> = {
   m: { young: "talkWorkYoung", mid: "talkWorkMid", mature: "talkWork", old: "talkWorkOld" },
   f: { young: "talkFWork", mid: "talkFWorkMid", mature: "talkFWorkMature", old: "talkFWorkOld" },
 };
+export const mayorSheetUrl = (sex: string, age: number) => URLS[mayorSheet(sex, age)];
 export const mayorSheet = (sex: string, age: number): FolkSprite => MAYOR_SHEETS[sex === "f" ? "f" : "m"][cohortOf(age)];
 const cache = new Map<string, HTMLImageElement>();
 function load(u: string) {

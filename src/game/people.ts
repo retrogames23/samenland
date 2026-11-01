@@ -1,3 +1,4 @@
+import { setChosenTraits } from "./traits";
 import { cacheTick, isSunday } from "./time";
 import { civicWealth, estateAt, CULTURE_SICK, type Estate } from "./prosperity";
 import { weddingDates, weddingJoy } from "./weddings";
@@ -328,8 +329,10 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     const nm = (s.owner ?? "").trim().split(/\s+/).filter(Boolean);
     const first = nm.length > 1 ? nm.slice(0, -1).join(" ") : nm[0] ?? pick(sex === "f" ? F : M, h(1));
     const last = nm.length > 1 ? nm[nm.length - 1]! : nm.length ? "" : pick(S, h(2));
+    const mid = -(s.x * 1024 + s.y) - 1;
+    setChosenTraits(mid, s.mayor_traits);
     people.push({
-      id: -(s.x * 1024 + s.y) - 1, seed: s, first, last, sex, age: 46 + Math.floor(h(3) * 14), job: "mayor",
+      id: mid, seed: s, first, last, sex, age: s.mayor_age && s.mayor_age >= 20 && s.mayor_age <= 70 ? s.mayor_age : 46 + Math.floor(h(3) * 14), job: "mayor",
       home: hall ?? homes[0] ?? [s.x + 1, s.y + 1], work: hall ? (front(hall) ?? meet) : meet, workIndoor: false, speed: 0.2,
       looks: { skin: h(4), hair: h(5), shirt: 0.99, pants: h(6), hat: true, stick: false }, haul: null, role: "mayor",
     });

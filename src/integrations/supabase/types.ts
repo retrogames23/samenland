@@ -648,7 +648,9 @@ export type Database = {
           created_at: string
           hue: number
           id: string
+          mayor_age: number | null
           mayor_gender: string | null
+          mayor_traits: string[] | null
           name: string
           owner: string
           realm: string
@@ -660,7 +662,9 @@ export type Database = {
           created_at?: string
           hue?: number
           id?: string
+          mayor_age?: number | null
           mayor_gender?: string | null
+          mayor_traits?: string[] | null
           name: string
           owner: string
           realm?: string
@@ -672,7 +676,9 @@ export type Database = {
           created_at?: string
           hue?: number
           id?: string
+          mayor_age?: number | null
           mayor_gender?: string | null
+          mayor_traits?: string[] | null
           name?: string
           owner?: string
           realm?: string
@@ -1043,6 +1049,16 @@ export type Database = {
       }
       tax_receipt_start: { Args: never; Returns: string }
       touch_activity: { Args: { _lang?: string }; Returns: undefined }
+      update_mayor: {
+        Args: {
+          _age: number
+          _gender: string
+          _owner: string
+          _seed: string
+          _traits: string[]
+        }
+        Returns: undefined
+      }
       village_balance: { Args: { _seed: string }; Returns: number }
       village_capped_tax: {
         Args: { _at: string; _seed: string }
