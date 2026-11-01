@@ -801,7 +801,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   const jw = q.working && !q.carry && !kid ? JOB_WORK[q.p.job] : undefined;
   const fishing = q.p.job !== "fisher" || fishingNow(localHour(), isSunday(renderNow), seasonAt(renderNow).winter);
-  const mow = q.working ? (workSheet(k) ?? (jw && fishing ? folkImage(q.p.sex === "f" ? jw.f : jw.m) : null)) : null;
+  const mow = q.working ? (workSheet(k) ?? (jw && fishing ? folkImage(q.p.job === "mayor" ? mayorSheet(q.p.sex, q.p.age) : q.p.sex === "f" ? jw.f : jw.m) : null)) : null;
   if (mow) {
     // painted work cycle; neighbouring frames cross-fade so the motion flows instead of flipping
     c.rotate(-tilt);
@@ -825,7 +825,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   }
   // the mayor keeps his robe of office (first frame of his talk cycle) when standing and walking,
   // so the figure never swaps to a plain villager on the first step; walking steps shoes under the hem
-  const robe = q.p.job === "mayor" && !q.festive && !q.carry ? folkImage(q.p.sex === "f" ? "talkFWork" : "talkWork") : null;
+  const robe = q.p.job === "mayor" && !q.festive && !q.carry ? folkImage(mayorSheet(q.p.sex, q.p.age)) : null;
   if (robe) {
     const fw = robe.naturalWidth / WORK_FRAMES, fh = robe.naturalHeight, hh = hgt * 1.01, ww = (hh * fw) / fh;
     if (q.walking && q.p.sex === "f") {
