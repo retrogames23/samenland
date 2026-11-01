@@ -115,6 +115,19 @@ import warehouseLight from "@/assets/sprites/night/warehouse.webp";
 import watermillLight from "@/assets/sprites/cohesive/night/watermill.webp";
 import workshopLight from "@/assets/sprites/night/workshop.webp";
 
+import cottageHill from "@/assets/sprites/cohesive/workshop-cottage.webp";
+import fachwerkHill from "@/assets/sprites/cohesive/workshop-fachwerk.webp";
+import patricianHill from "@/assets/sprites/cohesive/workshop-patrician.webp";
+import cottageCoast from "@/assets/sprites/cohesive/gateway-cottage.webp";
+import fachwerkCoast from "@/assets/sprites/cohesive/gateway-fachwerk.webp";
+import patricianCoast from "@/assets/sprites/cohesive/gateway-patrician.webp";
+import cottageHillLight from "@/assets/sprites/cohesive/night/workshop-cottage.webp";
+import fachwerkHillLight from "@/assets/sprites/cohesive/night/workshop-fachwerk.webp";
+import patricianHillLight from "@/assets/sprites/cohesive/night/workshop-patrician.webp";
+import cottageCoastLight from "@/assets/sprites/cohesive/night/gateway-cottage.webp";
+import fachwerkCoastLight from "@/assets/sprites/cohesive/night/gateway-fachwerk.webp";
+import patricianCoastLight from "@/assets/sprites/cohesive/night/gateway-patrician.webp";
+
 const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, lodge: lodgeLight, herbhut: herbhutLight, woodcamp: woodcampLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, firehouse: firehouseLight, guardhouse: guardhouseLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, belfry: belfryLight, theater: theaterLight, opera: operaLight, university: universityLight, exchange: exchangeLight, orangery: orangeryLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: suburbLight, townhall: townhallLight, seat1: seat1Light, seat2: seat2Light, seat3: seat3Light, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight };
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
 export const hasNightSprite = (kind: Kind) => Boolean(nightUrls[kind]);
@@ -183,6 +196,20 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   dairy: { url: dairy, crop: [0, 0, 480, 424], width: 24, base: 4 },
 };
 
+/** Town-character house styles (stone hill towns, brick harbour towns); same width, base and night framing as the base kind,
+ * purely visual: households, taxes and rank use the base kind. Plains (grain) keep the classic art. */
+export type HouseStyle = "workshop" | "gateway";
+type StyleSlot = "cottage" | "fachwerk" | "patrician";
+const STYLE_OF: Partial<Record<Kind, StyleSlot>> = { cottage: "cottage", fachwerk: "fachwerk", steinhaus: "fachwerk", patrician: "patrician" };
+type Styled = { day: string; night: string; crop: [number, number, number, number]; image?: HTMLImageElement; light?: HTMLImageElement };
+const styled: Record<HouseStyle, Record<StyleSlot, Styled>> = {
+  workshop: { cottage: { day: cottageHill, night: cottageHillLight, crop: [0, 0, 480, 419] }, fachwerk: { day: fachwerkHill, night: fachwerkHillLight, crop: [0, 0, 344, 480] }, patrician: { day: patricianHill, night: patricianHillLight, crop: [0, 0, 272, 480] } },
+  gateway: { cottage: { day: cottageCoast, night: cottageCoastLight, crop: [0, 0, 480, 419] }, fachwerk: { day: fachwerkCoast, night: fachwerkCoastLight, crop: [0, 0, 339, 480] }, patrician: { day: patricianCoast, night: patricianCoastLight, crop: [0, 0, 271, 480] } },
+};
+const styledOf = (kind: Kind, style?: HouseStyle) => { const k = style ? STYLE_OF[kind] : undefined; return k && style ? styled[style][k] : undefined; };
+const load = (url: string) => { const im = new Image(); im.decoding = "async"; im.src = url; return im; };
+const ready = (im?: HTMLImageElement) => !!(im?.complete && im.naturalWidth);
+
 /** Image URL of a building, for previews in menus. */
 export const spriteUrl = (kind: Kind) => sprites[kind]?.url;
 /** Browser images are created only when the canvas draws, never during SSR. */
@@ -190,13 +217,13 @@ export const spriteUrl = (kind: Kind) => sprites[kind]?.url;
 const HOME_SIZE: ReadonlySet<string> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "suburb"]);
 /** Homes vary ±9 % in size, other buildings ±3 %. */
 const scaleOf = (kind: Kind, variant: number) => HOME_SIZE.has(kind) ? 0.91 + variant * 0.18 : 0.97 + variant * 0.06;
-export function spriteBox(kind: Kind, variant: number): { w: number; h: number; base: number } | null {
+export function spriteBox(kind: Kind, variant: number, style?: HouseStyle): { w: number; h: number; base: number } | null {
   const sprite = sprites[kind]; if (!sprite) return null;
-  const [, , sw, sh] = sprite.crop, w = sprite.width * scaleOf(kind, variant);
+  const [, , sw, sh] = styledOf(kind, style)?.crop ?? sprite.crop, w = sprite.width * scaleOf(kind, variant);
   return { w, h: w * sh / sw, base: sprite.base };
 }
 /** `reveal` < 1 draws only the lower part of the building (walls rising on a construction site). */
-export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, reveal = 1, flip = false): boolean {
+export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, reveal = 1, flip = false, style?: HouseStyle): boolean {
   const sprite = sprites[kind];
   if (!sprite || typeof Image === "undefined") return false;
   if (!sprite.image) {
@@ -204,9 +231,11 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
     sprite.image.decoding = "async";
     sprite.image.src = sprite.url;
   }
-  const image = sprite.image;
+  const st = styledOf(kind, style);
+  if (st && !st.image) st.image = load(st.day);
+  const image = st && ready(st.image) ? st.image! : sprite.image;
   if (!image.complete || !image.naturalWidth) return true; // still loading: draw nothing, never the old vector art
-  const [, , sw, sh] = sprite.crop;
+  const [, , sw, sh] = image === st?.image ? st.crop : sprite.crop;
   const width = sprite.width * scaleOf(kind, variant);
   const height = width * sh / sw;
   c.save();
@@ -223,8 +252,11 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
 }
 
 /** The light-only layer uses exactly the daylight sprite's framing, scale and mirroring. */
-export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, intensity: number, flip = false) {
-  const image = nightImages[kind], box = spriteBox(kind, variant);
+export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, intensity: number, flip = false, style?: HouseStyle) {
+  const st = styledOf(kind, style);
+  if (st && !st.light) st.light = load(st.night);
+  const own = !!st && ready(st.image) && ready(st.light);
+  const image = own ? st!.light : nightImages[kind], box = spriteBox(kind, variant, own ? style : undefined);
   if (!image?.complete || !image.naturalWidth || !box) return;
   c.save();
   c.globalAlpha *= intensity;
@@ -242,6 +274,7 @@ export function preloadBuildingSprites() {
     const k = kind as Kind;
     if (!nightImages[k]) { const im = new Image(); im.decoding = "async"; im.src = url; nightImages[k] = im; }
   }
+  for (const set of Object.values(styled)) for (const v of Object.values(set)) { v.image ??= load(v.day); v.light ??= load(v.night); }
   for (const s of Object.values(sprites)) if (s && !s.image) { s.image = new Image(); s.image.decoding = "async"; s.image.src = s.url; }
 }
 if (typeof window !== "undefined") preloadBuildingSprites();
