@@ -1787,36 +1787,21 @@ const COURT_GAIT: Record<CourtRole, { hem: number; robe: boolean; hip: number }>
 };
 function drawCourtFigure(c: C, q: CourtPose, t: number) {
   const im = huntIm(`courtfig-${q.role}`, COURT_FIG[q.role]); if (!im) return;
-  const [px, py] = iso(q.x, q.y), h = q.role === "prince" ? 23 : 21, w = (h * im.naturalWidth) / im.naturalHeight;
-  const sw = im.naturalWidth, sh = im.naturalHeight, g = COURT_GAIT[q.role];
-  // stride follows distance walked (≈0.55 tiles per two steps), like villagers — no foot sliding
-  const ph = ((q.dist ?? 0) / 0.55) * 6.2832, bob = q.walking ? Math.abs(Math.sin(ph)) * h * 0.015 : 0;
-  c.save(); c.fillStyle = "rgba(40,30,15,0.25)"; c.beginPath(); c.ellipse(px, py, w * 0.45, 2, 0, 0, 7); c.fill();
+  // same human scale as villagers/mayors (5.2); the prince stands a touch taller
+  const [px, py] = iso(q.x, q.y), h = q.role === "prince" ? 5.8 : 5.4, w = (h * im.naturalWidth) / im.naturalHeight;
+  void COURT_GAIT;
+  // stride follows distance walked — whole painted figure, gentle weight shift only (no spliced legs)
+  const ph = ((q.dist ?? 0) / 0.55) * 6.2832;
+  c.save(); c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(px + 0.6, py + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
   c.translate(px, py); if (q.dx < 0) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  const legs = q.walking && !g.robe ? folkImage("legsM") : null, foot = q.walking && g.robe ? folkImage("footF") : null;
-  if (legs) {
-    // painted 6-frame leg cycle under the upper body (same rig as the villagers)
-    const fw = legs.naturalWidth / WALK_FRAMES, f = Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES;
-    const lh = h * (1 - g.hem + 0.1), lw = (lh * fw) / legs.naturalHeight;
-    c.drawImage(legs, f * fw, 0, fw, legs.naturalHeight, -lw * 0.5, -lh, lw, lh);
-    // torso registered on its measured hip (not the sprite centre) and bobbing with the stride
-    c.drawImage(im, 0, 0, sw, sh * g.hem, -w * g.hip, -h - bob, w, h * g.hem);
-  } else if (foot) {
-    // long robe: shoes step out under the hem, hem sways in strips with the stride
-    const sway = Math.sin(ph), fs = h * 0.07, fw2 = (fs * foot.naturalWidth) / foot.naturalHeight, top = g.hem - 0.12, end = 0.95;
-    for (const s of [-1, 1]) { const lift = Math.max(0, Math.cos(ph) * s) * h * 0.02; c.drawImage(foot, s * sway * w * 0.14 - fw2 * 0.45, -fs - lift + h * 0.01, fw2, fs); }
-    c.drawImage(im, 0, 0, sw, sh * top, -w / 2, -h, w, h * top);
-    const N = 5;
-    for (let i = 0; i < N; i++) {
-      const a = top + ((end - top) * i) / N, b = top + ((end - top) * (i + 1)) / N, dx = sway * w * 0.03 * ((i + 1) / N);
-      c.drawImage(im, 0, sh * a, sw, sh * (b - a) + 0.5, -w / 2 + dx, -h + h * a, w, h * (b - a) + 0.05);
-    }
+  if (q.walking) {
+    const bob = Math.abs(Math.sin(ph)) * 0.07, lean = Math.sin(ph) * 0.03;
+    c.translate(0, -bob); c.transform(1, 0, lean, 1, 0, 0);
   } else {
-    // standing: slow breathing, feet planted
     const br = Math.sin(t / 2100 + q.x * 5); c.transform(1 - br * 0.004, 0, 0, 1 + br * 0.012, 0, 0);
-    c.drawImage(im, -w / 2, -h, w, h);
   }
+  c.drawImage(im, -w / 2, -h, w, h);
   c.restore();
 }
 // ---------------- player rituals: festive garlands and signposts ----------------
