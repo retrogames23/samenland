@@ -14,7 +14,7 @@ export const farmFloor = (r: number) => Math.floor(FARM_FLOOR_SHARE * Math.PI * 
 /** The same virtual food catchment for every character; slopes feed it with gardens/dairy,
  * shores with fishing, plains with grain. Existing exceptionally rich farms keep their yield. */
 export const foodCatchment = (r: number) => Math.ceil(Math.PI * r * r);
-export function foodCapacity(s: Seed, byKind: Map<Kind, unknown[]>, now: number, r = 0) {
+function capacityAt(s: Seed, byKind: Map<Kind, unknown[]>, now: number, r: number, catchment: (r: number) => number) {
   if (!s.user_id) return Infinity;
   const own = new Set((s.bought ?? []).filter(b => b.at <= now).map(b => b.item));
   const food = ["fisher", "hunter", "granary", "dairy"].filter(i => own.has(i)).length;
@@ -23,9 +23,10 @@ export function foodCapacity(s: Seed, byKind: Map<Kind, unknown[]>, now: number,
   // Different farming art must not silently reduce a town's household supply.
   const farm = FEED_FIELD * (byKind.get("field")?.length ?? 0) + FEED_GARDEN * (byKind.get("garden")?.length ?? 0) + FEED_PASTURE * (byKind.get("pasture")?.length ?? 0);
   // Founding terrain is never a penalty: hills, coasts and forests feed as many households as flat land of the same size.
-  const land = (8 + Math.max(farm, FEED_FIELD * foodCatchment(r))) * w;
+  const land = (8 + Math.max(farm, FEED_FIELD * catchment(r))) * w;
   return Math.max(FEED_BASE, Math.floor(Math.min(WILD_MAX * w, land) + land * (FEED_FOOD_ITEM * food + FEED_HEALTH_ITEM * health)));
 }
+export const foodCapacity = (s: Seed, byKind: Map<Kind, unknown[]>, now: number, r = 0) => capacityAt(s, byKind, now, r, foodCatchment);
 
 export function townTiles(s: Seed, seeds: Seed[], now: number) {
   const r = reachOf(s, radiusOf(effAge(s, seeds, now)));
@@ -53,11 +54,14 @@ export function occupiedHomes(s: Seed, seeds: Seed[], now: number, byKind: Map<K
     if (h) vacant.add(h.home.join(","));
   }
   const cap = foodCapacity(s, byKind, now, r);
-  const occupied = homes.slice(0, cap).filter(h => !vacant.has(h.home.join(","))).map(({ home, kind }) => {
+  const legacyCap = capacityAt(s, byKind, now, r, farmFloor);
+  const roster = homes.filter(h => !vacant.has(h.home.join(",")));
+  const family = ({ home, kind }: { home: HomeTile; kind: Kind }): Household => {
     const range = HOME_SIZES[kind];
     const size = range ? range[0] + Math.floor(hash(home[0], home[1], 400) * (range[1] - range[0] + 1)) : 0;
     return { home, kind, size };
-  });
+  };
+  const occupied = homes.slice(0, legacyCap).filter(h => !vacant.has(h.home.join(","))).map(family);
   // Retain every established ground-floor family before filling new apartments.
   // Food is a shared household budget: additional floors never create free meals.
   if (!s.user_id) return occupied;
@@ -71,7 +75,9 @@ export function occupiedHomes(s: Seed, seeds: Seed[], now: number, byKind: Map<K
     const size = range[0] + Math.floor(hash(h.home[0], h.home[1], 400 + unit * 40) * (range[1] - range[0] + 1));
     extra.push({ ...h, size, unit });
   }
-  return [...occupied, ...extra];
+  const retained = new Set(occupied.map(h => h.home.join(",")));
+  const outskirts = roster.filter(h => !retained.has(h.home.join(","))).slice(0, Math.max(0, cap - occupied.length - extra.length)).map(family);
+  return [...occupied, ...extra, ...outskirts];
 }
 
 export const householdsOf = (s: Seed, seeds: Seed[], now: number) => occupiedHomes(s, seeds, now, townTiles(s, seeds, now).byKind);
