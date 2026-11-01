@@ -2480,6 +2480,7 @@ export function Game() {
               {ins.build !== null ? (
                 <div className="mt-1 space-y-1 text-sm">
                   <div>{t.progress(Math.round(ins.build * 100))}</div>
+                  {ins.doneAt != null && ins.doneAt > now && <div className="text-xs text-muted-foreground">{ins.doneAt - now >= 3.6e6 ? t.etaH(Math.ceil((ins.doneAt - now) / 3.6e6)) : t.etaM(Math.max(1, Math.ceil((ins.doneAt - now) / 6e4)))}</div>}
                   <div className="h-2 w-full overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.round(ins.build * 100)}%` }} /></div>
                   <div className="text-xs text-muted-foreground">{t.needs}</div>
                   <div className="text-xs font-semibold">{t.builders}</div>

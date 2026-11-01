@@ -235,8 +235,8 @@ export type Kind =
   | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "belfry"
   | "bigstore" | "millrow" | "stonemason" | "hammerworks" | "smokehouse" | "saltquay"
   | "theater" | "opera" | "university" | "exchange" | "orangery" | "harvesthall" | "guildtower" | "lighthouse" | "seat1" | "seat2" | "seat3";
-/** build < 1: still a construction site (0 = staked out, 1 = finished). */
-export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; fire?: boolean; flood?: boolean; homeKind?: Kind };
+/** build < 1: still a construction site (0 = staked out, 1 = finished). doneAt: real ms when it stands (estimate for organic growth). */
+export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; doneAt?: number | undefined; fire?: boolean; flood?: boolean; homeKind?: Kind };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
 export const buildTime = (at: number) => Math.min(96, Math.max(1.5, at * 0.06));
 let buildP = 1;
@@ -593,7 +593,8 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     const mk = MONUMENT_BY_KIND.get(sp.kind);
     const mill = sawmillUp(s, seeds, now);
     const p = mk ? monumentProgress(s, now, mk, mill) : (now - sp.at) / specialBuild(s, mill);
-    best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p } : {}) };
+    const doneAt = p < 1 ? (mk ? monumentDone(s, seeds, mk) ?? undefined : specialDone(s, seeds, sp.at)) : undefined;
+    best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p, doneAt } : {}) };
     scache.set(ck, best);
     return best;
   }
@@ -607,7 +608,15 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
       buildP = 1;
       const k = forSeed(x, y, s, age, r, d);
       if (k && buildP < 1 && (FLAT.has(k) || k === "hay" || k === "fence")) continue;
-      if (k) { best = { kind: k, seed: s, v: hash(x, y, 5), ...(buildP < 1 ? { build: Math.max(0, buildP) } : {}) }; bestD = d; }
+      if (k) {
+        let doneAt: number | undefined;
+        if (buildP < 1) {
+          // estimate: remaining growth hours ÷ current growth rate (growth hours per real hour)
+          const rate = Math.max(0.05, effAge(s, seeds, now + 3.6e6) - age);
+          doneAt = now + ((bornAt(x, y, s) - age) / rate) * 3.6e6;
+        }
+        best = { kind: k, seed: s, v: hash(x, y, 5), ...(buildP < 1 ? { build: Math.max(0, buildP), doneAt } : {}) }; bestD = d;
+      }
     }
   }
   // trade roads keep their corridor: fields, gardens and pastures grow around them, never over them

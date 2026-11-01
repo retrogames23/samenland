@@ -1,7 +1,7 @@
 import { structureAt, FLAT, type Kind, type Seed } from "./world";
 import { townOf, type Person } from "./people";
 
-export type Inspect = { x: number; y: number; kind: Kind; seed: Seed; build: number | null; residents: Person[]; workers: Person[] };
+export type Inspect = { x: number; y: number; kind: Kind; seed: Seed; build: number | null; doneAt: number | null; residents: Person[]; workers: Person[] };
 
 /** Building or site under a click. Sprites rise above their tile, so tiles in front (+x/+y) are tried too. */
 export function inspectAt(x: number, y: number, seeds: Seed[], now: number): Inspect | null {
@@ -13,7 +13,7 @@ export function inspectAt(x: number, y: number, seeds: Seed[], now: number): Ins
     const near = (t: [number, number] | null, r: number) => !!t && Math.abs(t[0] - tx) <= r && Math.abs(t[1] - ty) <= r;
     const build = st.build === undefined ? null : st.build;
     return {
-      x: tx, y: ty, kind: st.kind, seed: st.seed, build,
+      x: tx, y: ty, kind: st.kind, seed: st.seed, build, doneAt: st.doneAt ?? null,
       residents: build === null ? people.filter((p) => p.home[0] === tx && p.home[1] === ty) : [],
       workers: people.filter((p) => p.home !== p.work && near(p.work, build === null ? 0 : 1.5) && (build === null || p.job === "builder")),
     };

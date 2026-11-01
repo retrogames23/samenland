@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { structureAt, buildTime, GROWTH_PACE, type Seed } from "./world";
+import { structureAt, buildTime, GROWTH_PACE, specialTile, SPECIAL_BUILD, type Seed } from "./world";
 import { townOf } from "./people";
 
 const seed: Seed = { id: "build-test", x: 512, y: 512, name: "T", hue: 30, created_at: new Date(0).toISOString() } as Seed;
@@ -18,5 +18,23 @@ describe("construction sites", () => {
     const now = (48 - buildTime(48) / 2) / GROWTH_PACE * 3.6e6;
     const t = townOf(seed, [seed], now);
     expect(t.people.some((p) => p.job === "builder")).toBe(true);
+  });
+  it("organic sites report their remaining build time (doneAt)", () => {
+    const now = (48 - buildTime(48) / 2) / GROWTH_PACE * 3.6e6;
+    const st = structureAt(510, 513, [seed], now);
+    expect(st?.doneAt).toBeGreaterThan(now);
+    // half the barn's build time remains: about buildTime(48)/2 growth hours ≈ 1.44 h at pace 1
+    expect(st!.doneAt! - now).toBeLessThan(buildTime(48) / GROWTH_PACE * 3.6e6);
+    expect(structureAt(510, 513, [seed], 49 / GROWTH_PACE * 3.6e6)?.doneAt).toBeUndefined();
+  });
+  it("bought sites report their exact finish time", () => {
+    const at = 1_000_000;
+    const bought: Seed = { ...seed, id: "bought-test", bought: [{ item: "granary", at }] } as Seed;
+    const tile = specialTile(bought, "granary");
+    expect(tile).not.toBeNull();
+    const st = structureAt(tile![0], tile![1], [bought], at + 1000);
+    expect(st?.build).toBeLessThan(1);
+    expect(st?.doneAt).toBe(at + SPECIAL_BUILD);
+    expect(structureAt(tile![0], tile![1], [bought], at + SPECIAL_BUILD + 1)?.doneAt).toBeUndefined();
   });
 });
