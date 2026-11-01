@@ -12,7 +12,7 @@ const gap = (a: Body, b: Body) => { const dx = b.x - a.x, dy = (b.y - a.y) * 2; 
 
 /** Most a body may be displaced from its true spot (screen units): crowds overlap a little instead of
  * flinging figures around, so tile hand-overs and dense gatherings never make anyone slide quickly. */
-export const MAX_SHIFT = 2.4;
+export const MAX_SHIFT = 6;
 /** Pushes overlapping bodies apart along their connecting line (a few passes, softened). Mutates and returns bodies. */
 export function separate<T extends Body>(bodies: T[], passes = 3, maxShift = MAX_SHIFT): T[] {
   const ox = bodies.map((b) => b.x), oy = bodies.map((b) => b.y);
@@ -23,8 +23,8 @@ export function separate<T extends Body>(bodies: T[], passes = 3, maxShift = MAX
       if (d >= need) continue;
       // exact overlap: split along a stable diagonal (by index) instead of a random direction
       if (d < 1e-6) { dx = ((i + j) & 1) ? 1 : -1; dy = 0.5; d = Math.hypot(dx, dy); }
-      // soft push (half the overlap per pass): no ping-pong between neighbours in a packed crowd
-      const push = (need - d) * 0.5, ux = dx / d, uy = dy / d / 2;
+      // soft push , bounded overall by MAX_SHIFT
+      const push = need - d, ux = dx / d, uy = dy / d / 2;
       a.x -= ux * push * (a.give / tot); a.y -= uy * push * (a.give / tot);
       b.x += ux * push * (b.give / tot); b.y += uy * push * (b.give / tot);
     }
