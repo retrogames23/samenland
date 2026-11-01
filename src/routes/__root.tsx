@@ -110,13 +110,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 
-const DOM_GUARD = `(function(){if(typeof Node!=="function"||!Node.prototype)return;var r=Node.prototype.removeChild;Node.prototype.removeChild=function(c){if(c.parentNode!==this){return c}return r.apply(this,arguments)};var i=Node.prototype.insertBefore;Node.prototype.insertBefore=function(n,ref){if(ref&&ref.parentNode!==this){return n}return i.apply(this,arguments)}})();`;
+// A stale or briefly unavailable code file (preview restart, new deploy) would leave a blank page; reload once per 30 s instead.
+const CHUNK_GUARD = `(function(){var re=/Importing a module script failed|Failed to fetch dynamically imported module|error loading dynamically imported module/i;function go(){try{var k="chunk-reload",t=Number(sessionStorage.getItem(k)||0);if(Date.now()-t<30000)return;sessionStorage.setItem(k,String(Date.now()))}catch(e){}setTimeout(function(){location.reload()},800)}window.addEventListener("vite:preloadError",function(e){e.preventDefault();go()});window.addEventListener("unhandledrejection",function(e){if(re.test(String(e.reason&&e.reason.message||e.reason)))go()});window.addEventListener("error",function(e){var s=e.target;if(s&&s.tagName==="SCRIPT"&&s.type==="module"){go();return}if(re.test(String(e.message)))go()},true)})();`;
+
+const DOM_GUARD =  `(function(){if(typeof Node!=="function"||!Node.prototype)return;var r=Node.prototype.removeChild;Node.prototype.removeChild=function(c){if(c.parentNode!==this){return c}return r.apply(this,arguments)};var i=Node.prototype.insertBefore;Node.prototype.insertBefore=function(n,ref){if(ref&&ref.parentNode!==this){return n}return i.apply(this,arguments)}})();`;
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="de" translate="no" className="notranslate" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: DOM_GUARD }} />
+        <script dangerouslySetInnerHTML={{ __html: CHUNK_GUARD }} />
         <HeadContent />
       </head>
       <body>
