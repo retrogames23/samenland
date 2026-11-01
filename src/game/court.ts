@@ -57,8 +57,9 @@ const loop = (pts: P[], period: number, t: number, phase = 0): { p: P; dx: numbe
   dist += Math.hypot(b[0] - a[0], b[1] - a[1]) * w;
   return { p: [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w], dx: (b[0] - a[0]) - (b[1] - a[1]), walking: u > 0.25, dist };
 };
-const GARDEN: P[] = [[8.2, 5.4], [11.6, 5.2], [12.4, 8.4], [10.6, 8.9], [7.6, 7.4]];
-const PATROL: P[] = [[11.5, 12.6], [10.2, 10.4], [7.6, 7.6], [10.2, 10.4]];
+// walks skirt the fountain (tiles 8–10) and pavilion (11–13 × 6–8) instead of crossing them
+const GARDEN: P[] = [[8.2, 5.4], [10.6, 5.4], [10.7, 7.5], [7.6, 7.4]];
+const PATROL: P[] = [[11.5, 12.6], [10.8, 10.8], [10.8, 7.6], [7.6, 7.6], [10.8, 7.6], [10.8, 10.8]];
 const BEDS: P[] = [[7.6, 1.6], [7.6, 5.2], [12.4, 5.2], [12.4, 1.6]];
 const YARD: P[] = [[5.4, 10.4], [5.8, 12.4], [3.2, 12.6], [5.4, 10.4]];
 
