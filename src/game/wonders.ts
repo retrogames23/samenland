@@ -21,7 +21,7 @@ function fits(kind: WonderKind, x: number, y: number): boolean {
   const t = terrain(x, y);
   if (!buildable(t)) return false;
   switch (kind) {
-    case "wreck": return t === "sand" && near(x, y, 2, (n) => n === "deep");
+    case "wreck": return t === "sand" && near(x, y, 4, isWater);
     case "cave": return t === "hill" && near(x, y, 1, (n) => n === "mountain");
     case "oak": return (t === "meadow" || t === "grass") && !near(x, y, 2, isWater);
     case "ruin": return t === "hill" && !near(x, y, 2, (n) => n === "mountain");

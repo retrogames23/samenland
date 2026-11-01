@@ -435,6 +435,13 @@
       "when": 1793528231627,
       "tag": "0061_way_quests",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1793540000000,
+      "tag": "0062_wonders",
+      "breakpoints": true
     }
   ]
 }
