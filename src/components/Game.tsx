@@ -43,6 +43,8 @@ import { Tavern } from "@/components/Tavern";
 import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
 import { MAYOR } from "@/game/lang/mayor";
+import { COURT } from "@/game/lang/court";
+import { atCourt, audienceHost, type AudienceHost } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
 import { Beer } from "lucide-react";
 import { seasonAt } from "@/game/season";
@@ -708,6 +710,7 @@ export function Game() {
             const q = poseOf(me, tw, S.seeds, nw), [ix, iy] = iso(q.x, q.y), k = 1 - Math.exp(-dt / 220);
             for (const o of S.seeds) if (o.id !== my.id && !visitSeen.current.has(o.id) && Math.hypot(q.x - o.x, q.y - o.y) <= radiusOf((nw - Date.parse(o.created_at)) / 36e5)) { visitSeen.current.add(o.id); visitFn.current(o, my); }
             for (const w of wonders()) if (!wonderSeen.current.has(w.key) && Math.hypot(q.x - w.x, q.y - w.y) <= WONDER_REACH) { wonderSeen.current.add(w.key); wonderFn.current(w.key, w.kind, my); }
+            { const near = atCourt(q.x, q.y); if (near !== courtNear.current) { courtNear.current = near; setNearCourt(near); } }
             cam.current.x += (ix - cam.current.x) * k; cam.current.y += (iy - 10 - cam.current.y) * k;
           }
         }
@@ -1012,6 +1015,11 @@ export function Game() {
   const visitSeen = useRef(new Set<string>());
   const visitFn = useRef<(o: Seed, my: Seed) => void>(() => {});
   const [visitNote, setVisitNote] = useState<string | null>(null);
+  // audience at the prince's seat: offered while the strolling mayor stands on the estate
+  const courtNear = useRef(false);
+  const [nearCourt, setNearCourt] = useState(false);
+  const [audience, setAudience] = useState<AudienceHost | null>(null);
+  useEffect(() => { if (!walk) { courtNear.current = false; setNearCourt(false); setAudience(null); } }, [walk]);
   useEffect(() => { if (!visitNote) return; const h = setTimeout(() => setVisitNote(null), 7000); return () => clearTimeout(h); }, [visitNote]);
   visitFn.current = (o, my) => {
     if (!owner || my.user_id !== userId) { visitSeen.current.delete(o.id); return; }
@@ -1626,6 +1634,19 @@ export function Game() {
         <div data-walk role="status" className="pointer-events-auto absolute inset-x-0 top-[22%] z-50 mx-auto w-fit max-w-[88vw] rounded-md border-2 border-wood bg-card px-5 py-4 text-center font-semibold text-foreground shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95" onClick={() => setVisitNote(null)}>
           <div className="text-2xl" aria-hidden>🪙</div>
           {visitNote}
+        </div>
+      )}
+      {walk && nearCourt && !audience && (
+        <div data-walk className="absolute inset-x-0 top-[14%] z-40 flex justify-center">
+          <WoodButton label={COURT[lang].ask} onClick={() => { setAudience(audienceHost(worldHour())); jingle("fanfare"); }} className="h-11 px-4"><span className="text-sm font-semibold">👑 {COURT[lang].ask}</span></WoodButton>
+        </div>
+      )}
+      {walk && audience && (
+        <div data-walk role="dialog" aria-label={COURT[lang].ask} className="absolute inset-x-0 top-[12%] z-50 mx-auto w-[min(26rem,90vw)] rounded-md border-2 border-wood bg-card px-5 py-4 text-foreground shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95">
+          <div className="text-center font-display text-lg font-bold">{COURT[lang][audience]}</div>
+          <p className="mt-2 text-sm italic leading-relaxed">{audience === "prince" ? COURT[lang].princeSays(my?.owner ?? "") : audience === "herald" ? COURT[lang].heraldSays(my?.owner ?? "") : COURT[lang].closedSays}</p>
+          {audience !== "closed" && <p className="mt-3 text-xs text-muted-foreground">{COURT[lang].soon}</p>}
+          <Button type="button" size="sm" variant="outline" className="mt-3 w-full" onClick={() => setAudience(null)}>{COURT[lang].bow}</Button>
         </div>
       )}
       {walk && (
