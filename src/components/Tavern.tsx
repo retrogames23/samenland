@@ -69,7 +69,8 @@ export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnr
   const shown = useMemo(() => inChannel(msgs, chan, userId, realm, blocked), [msgs, chan, userId, realm, blocked]);
   const unreadOf = (c: Channel) => unread(msgs, c, userId, realm, blocked, seen[chanKey(c)] ?? 0);
   const total = unreadOf("tavern") + peers.reduce((a, p) => a + unreadOf({ peer: p }), 0);
-  useEffect(() => onUnread(open ? 0 : total), [total, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  // no dot until the account's read marks have arrived — otherwise old messages flash as "new" in fresh browsers
+  useEffect(() => onUnread(open || !readsReady ? 0 : total), [total, open, readsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // mark current channel seen while open
   useEffect(() => {

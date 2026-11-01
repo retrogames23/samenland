@@ -2049,9 +2049,8 @@ export function draw(
       const st = structureAt(x, y, seeds, now);
       { const slot = tiles[nTiles] ?? (tiles[nTiles] = { x: 0, y: 0, cx: 0, cy: 0, st: null }); slot.x = x; slot.y = y; slot.cx = cx; slot.cy = cy; slot.st = st; nTiles++; }
       if (!detail) {
-        c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
         if (st && !FLAT.has(st.kind)) { /* drawn in pass 2 */ }
-        else if (st?.kind === "field") { c.fillStyle = texture(c, acreOf(x, y, st.seed).ripe ? "wheat" : "crops") ?? hsl(44, 45, 66); c.fill(); }
+        else if (st?.kind === "field") { c.fillStyle = texture(c, acreOf(x, y, st.seed).ripe ? "wheat" : "crops") ?? hsl(44, 45, 66); diamond(c, cx, cy, 1.06); c.fill(); } // slight overlap: no grid seams between acre tiles
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square")) { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#cdb084"; diamond(c, cx, cy, 0.85); c.fill(); }
         continue;
       }
@@ -2129,6 +2128,8 @@ export function draw(
         if (st.kind === "garden") {
           // dug bed: dark soil with raised rows of small plants instead of a flat vegetable photo
           c.fillStyle = texture(c, "fertile") ?? hsl(25, 35, 30); c.fill();
+          // warm the dug soil so beds read as sunny humus, not dark holes
+          c.save(); c.globalAlpha = 0.5; c.fillStyle = texture(c, "dirt") ?? hsl(30, 35, 55); c.fill(); c.restore();
           c.save(); c.clip(); c.lineCap = "round";
           // raised ridges: shaded trough + sunlit crest, so the bed reads as dug earth with depth
           for (let k = -3; k <= 3; k++) {
