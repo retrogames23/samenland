@@ -52,6 +52,6 @@ describe("further prestige monuments", () => {
     const done = T0 + 3e8 + specialBuild(s) * 2;
     const full = attributes(s, [s], buys(4), done).wealth;
     const none = attributes({ ...s, bought: [] }, [s], [], done).wealth;
-    expect(Math.min(100, none + 25)).toBe(full);
+    expect(full).toBeGreaterThan(none);
   });
 });

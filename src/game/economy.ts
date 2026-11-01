@@ -185,10 +185,17 @@ export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gif
 
 
 const clamp = (v: number) => Math.round(Math.max(0, Math.min(100, v)));
+/** Soft ceiling: values count fully up to SOFT_KNEE, above that they approach 100 ever more slowly,
+ * so late prestige buildings stay visible instead of vanishing into a hard cap. */
+export const SOFT_KNEE = 50, SOFT_SPAN = 60;
+export const soften = (v: number) => clamp(v <= SOFT_KNEE ? v : SOFT_KNEE + (100 - SOFT_KNEE) * (1 - Math.exp(-(v - SOFT_KNEE) / SOFT_SPAN)));
+/** Prosperity per finished trade road: degressive, but every road still counts. */
+export const ROAD_WEALTH = [10, 8, 6, 4], ROAD_WEALTH_TAIL = 3;
+export const roadWealth = (n: number) => { let w = 0; for (let i = 0; i < n; i++) w += ROAD_WEALTH[i] ?? ROAD_WEALTH_TAIL; return w; };
 /** Base values before buildings; a full larder (supply 1) adds SUPPLY_FOOD. */
-export const FOOD_BASE = 20, HEALTH_BASE = 25, SUPPLY_FOOD = 30;
+export const FOOD_BASE = 20, HEALTH_BASE = 25, SUPPLY_FOOD = 20;
 /** Residents one hut serves fully; above that its bonus shrinks, but never below PER_HEAD_MIN. */
-export const PER_HEAD_POP = 25, PER_HEAD_MIN = 0.4;
+export const PER_HEAD_POP = 25, PER_HEAD_MIN = 0.3;
 export const perHead = (pop: number) => Math.max(PER_HEAD_MIN, Math.min(1, PER_HEAD_POP / Math.max(1, pop)));
 
 /** Village attributes 0–100, derived from age, trade, charter, larder and purchased buildings. */
@@ -208,7 +215,7 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
     + Math.min(15, trade * (path === "trade" ? 8 : 5)) + (path === "farm" ? 15 : 0));
   const health = clamp(HEALTH_BASE + (food - 50) * 0.3 + k * ((has("healer") ? 20 : 0) + (has("herbs") ? HERBS_HEALTH : 0) + (has("library") ? 10 : 0))
     + (path === "culture" ? 15 : 0) + (near("healer") ? 15 : 0) + (shield ? 10 : 0));
-  const wealth = clamp(25 + Math.min(30, trade * 10) + (has("school") ? 20 : 0) + stage * 5 + (path === "craft" ? 10 : 0)
+  const wealth = clamp(25 + roadWealth(trade) + (has("school") ? 20 : 0) + stage * 5 + (path === "craft" ? 10 : 0)
     + (near("school") ? 10 : 0) + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 10 : 0) + (has("dairy") ? 5 : 0) + (has("woodcamp") ? WOODCAMP_WEALTH : 0));
   const b = activeBoons(s.decisions ?? [], now);
   const rb = rankBoons(s, purchases); b.food += rb.food; b.health += rb.health; b.wealth += rb.wealth;
@@ -220,13 +227,13 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   }
   for (const [it, wb] of Object.entries(WAY_BONUS)) if (has(it as Item)) { b.food += wb.food ?? 0; b.health += wb.health ?? 0; b.wealth += wb.wealth ?? 0; }
   // Wegezoll: trade beyond what growth can absorb turns into prosperity
-  b.wealth += speedParts(s, seeds, now).toll;
+  b.wealth += Math.round(speedParts(s, seeds, now).toll / 2);
   b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0; b.wealth += has("guard") ? 5 : 0;
   // weddings: a day of joy (health, prosperity) and lasting craft alliances between families
   const joy = weddingJoy(s, now);
   b.health += joy ? 10 : 0; b.wealth += (joy ? 5 : 0) + Math.min(ALLIANCE_MAX, alliances * ALLIANCE_WEALTH);
   if (stores) { b.food += stores.food; b.health += stores.health; b.wealth += stores.wealth; }
-  return { food: clamp(food + b.food), health: clamp(health + b.health), wealth: clamp(wealth + b.wealth), has };
+  return { food: soften(food + b.food), health: soften(health + b.health), wealth: soften(wealth + b.wealth), has };
 }
 
 // ---------------- guild ranks (Lehrling · Geselle · Meister) ----------------

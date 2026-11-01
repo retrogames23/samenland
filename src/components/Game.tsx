@@ -1775,8 +1775,8 @@ export function Game() {
               )}
               <div className="hidden gap-3 lg:flex">
                 {(["food", "health", "wealth"] as const).map((k) => (
-                  <div key={k} className="w-20 text-xs" title={k === "food" && larder ? t.goods.food(larder.food, larder.eaters) : undefined}>
-                    <div className="flex justify-between"><span>{t.attrs[k]}</span><span>{at[k]}</span></div>
+                  <div key={k} className="w-24 text-xs" title={k === "food" && larder ? t.goods.food(larder.food, larder.eaters) : undefined}>
+                    <div className="flex justify-between gap-1"><span className="truncate">{t.attrs[k]}</span><span>{at[k]}</span></div>
                     <div className="h-1.5 rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${at[k]}%` }} /></div>
                   </div>
                 ))}
