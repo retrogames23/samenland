@@ -794,6 +794,44 @@ export type Database = {
           },
         ]
       }
+      supporter_rewards: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          environment: string
+          id: string
+          reward: string
+          seed_id: string
+          stripe_session_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          environment?: string
+          id?: string
+          reward: string
+          seed_id: string
+          stripe_session_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          environment?: string
+          id?: string
+          reward?: string
+          seed_id?: string
+          stripe_session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supporter_rewards_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tax_cutover: {
         Row: {
           at: string
