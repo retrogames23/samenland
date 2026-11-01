@@ -5,7 +5,7 @@ import { townCharacter, type TownWay } from "@/game/character";
 import { TOWN_CHARACTER, type Lang } from "@/game/i18n";
 import type { Ware } from "@/game/goods";
 
-const WARE: Record<TownWay, Ware> = { grain: "grain", workshop: "tools", gateway: "fish" };
+const WARE: Record<TownWay, Ware> = { grain: "grain", workshop: "stone", gateway: "fish" };
 
 function Shield({ way }: { way: TownWay }) {
   return <span aria-hidden className="relative grid h-9 w-8 shrink-0 place-items-center text-wood">
