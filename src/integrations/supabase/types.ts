@@ -942,6 +942,72 @@ export type Database = {
           },
         ]
       }
+      wonder_finds: {
+        Row: {
+          created_at: string
+          first: boolean
+          id: string
+          realm: string
+          reward: number
+          seed_id: string
+          site: string
+        }
+        Insert: {
+          created_at?: string
+          first?: boolean
+          id?: string
+          realm: string
+          reward?: number
+          seed_id: string
+          site: string
+        }
+        Update: {
+          created_at?: string
+          first?: boolean
+          id?: string
+          realm?: string
+          reward?: number
+          seed_id?: string
+          site?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wonder_finds_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wonder_finds_site_fkey"
+            columns: ["site"]
+            isOneToOne: false
+            referencedRelation: "wonder_sites"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      wonder_sites: {
+        Row: {
+          key: string
+          kind: string
+          x: number
+          y: number
+        }
+        Insert: {
+          key: string
+          kind: string
+          x: number
+          y: number
+        }
+        Update: {
+          key?: string
+          kind?: string
+          x?: number
+          y?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -957,6 +1023,7 @@ export type Database = {
         Args: { _seed: string; _visited: string }
         Returns: number
       }
+      claim_wonder: { Args: { _seed: string; _site: string }; Returns: number }
       estate_assessment: {
         Args: { _pop: number; _wealth: number }
         Returns: number
