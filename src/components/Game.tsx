@@ -1966,16 +1966,13 @@ export function Game() {
         {settings && <div className="fixed inset-0 -z-10" aria-hidden onClick={() => setSettings(false)} />}
         {settings && (
           <Panel className="absolute right-0 top-full mt-2 w-64" inner="space-y-2 p-3 text-sm">
-            <div className="text-xs text-muted-foreground">{t.hud.language}</div>
-            <div className="grid grid-cols-2 gap-1" role="radiogroup" aria-label={t.hud.language}>
-              {LANGS.map((l) => (
-                <button key={l} type="button" role="radio" aria-checked={lang === l} lang={l} dir={RTL[l] ? "rtl" : "ltr"} onClick={() => switchLang(l)}
-                  className={`flex items-center gap-1.5 rounded-md border px-1.5 py-1 text-start ${lang === l ? "border-primary bg-accent text-foreground shadow-sm" : "border-transparent hover:bg-accent/50"}`}>
-                  <span className={`grid h-5 min-w-6 place-items-center rounded px-1 text-[10px] font-bold ${lang === l ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{LANG_LABEL[l]}</span>
-                  <span className="truncate text-xs">{LANG_NAME[l]}</span>
-                </button>
-              ))}
-            </div>
+            <label className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              {t.hud.language}
+              <select value={lang} aria-label={t.hud.language} onChange={(e) => switchLang(e.target.value as Lang)}
+                className="h-8 flex-1 rounded-md border border-border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                {LANGS.map((l) => <option key={l} value={l} lang={l}>{LANG_LABEL[l]} · {LANG_NAME[l]}</option>)}
+              </select>
+            </label>
             {isAdmin && (<>
               <div className="text-xs text-muted-foreground">{t.hud.realm}</div>
               <div className="grid grid-cols-2 gap-1">
