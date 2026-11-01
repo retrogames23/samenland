@@ -98,7 +98,7 @@ import { townCharacter, type TownWay } from "@/game/character";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { CHEST } from "@/game/lang/chest";
 import { CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
-import { TITLE_PRICE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
+import { TITLE_PRICE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, saplingsOwed, type Decision } from "@/game/encounters";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -1123,7 +1123,7 @@ export function Game() {
   const [waitShut, setWaitShut] = useState(false);
   const waitDone = (() => {
     if (!owner || !my || !at) return null;
-    const cheapest = Math.min(...(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && !at.has(it) && (ITEM_STAGE[it] ?? 0) <= myStage).map((it) => ITEMS[it]));
+    const cheapest = Math.min(...(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && canBuyWay(it, my ? wayOf(my) : undefined) && !at.has(it) && (ITEM_STAGE[it] ?? 0) <= myStage).map((it) => ITEMS[it]));
     if (cash >= cheapest) return null;
     const dur = specialBuild(my, sawmillUp(my, seeds, slow));
     const ends = [...specialSites(my).values()].map((s) => s.at + dur).filter((e) => e > slow);
@@ -1327,14 +1327,14 @@ export function Game() {
               })()}
             </div>
           )}
-          {(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && !at.has(it) && (ITEM_STAGE[it] ?? 0) <= myStage)
+          {(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && canBuyWay(it, my ? wayOf(my) : undefined) && !at.has(it) && (ITEM_STAGE[it] ?? 0) <= myStage)
             .sort((a, b) => ITEMS[a] - ITEMS[b])
             .map((it) => {
             return (
               <div key={it} className="rounded-md border border-border bg-secondary/60 p-2">
                 <div className="flex items-center gap-2">
                   {spriteUrl(SPECIAL_KIND[it]!) && <img src={spriteUrl(SPECIAL_KIND[it]!)} alt="" loading="lazy" className="h-12 w-12 shrink-0 object-contain drop-shadow" />}
-                  <span className="flex-1 font-semibold">{t.items[it]![0]}{GUILD[it] && <span className="ml-1 rounded-full bg-brass/30 px-1.5 py-0.5 text-[10px] text-wood">{t.charter.guild}</span>}</span>
+                  <span className="flex-1 font-semibold">{t.items[it]![0]}{GUILD[it] && <span className="ml-1 rounded-full bg-brass/30 px-1.5 py-0.5 text-[10px] text-wood">{t.charter.guild}</span>}{WAY_ITEM[it] && <span className="ml-1 rounded-full bg-brass/30 px-1.5 py-0.5 text-[10px] text-wood">{CHAR_ICON[WAY_ITEM[it]!]} {TOWN_CHARACTER[lang].names[WAY_ITEM[it]!]}</span>}</span>
                   <span className="text-xs text-muted-foreground">{t.taler(ITEMS[it])}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">{t.items[it]![1]}</div>

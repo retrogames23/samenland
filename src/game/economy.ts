@@ -9,7 +9,7 @@ import { radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pac
 
 /** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
 export const START_TALER = 160;
-export const ITEMS = { herbs: 90, hunter: 100, fisher: 140, woodcamp: 240, granary: 300, healer: 550, school: 1200, markethall: 450, guildhall: 450, library: 380, dairy: 350, firehouse: 600, guard: 750 } as const;
+export const ITEMS = { herbs: 90, hunter: 100, fisher: 140, woodcamp: 240, granary: 300, healer: 550, school: 1200, markethall: 450, guildhall: 450, library: 380, dairy: 350, firehouse: 600, guard: 750, bigstore: 380, stonemason: 380, smokehouse: 380, millrow: 700, hammerworks: 700, saltquay: 700 } as const;
 export type Item = keyof typeof ITEMS;
 /**
  * Prestige monuments built in paid steps (prices mirror the database purchase guard).
@@ -42,6 +42,13 @@ export const HUNTER_FOOD = 15, HERBS_HEALTH = 10, WOODCAMP_WEALTH = 5;
 /** Guild buildings: only villages with the matching charter may buy them (mirrored in the database guard). */
 export const GUILD: Partial<Record<Item, CharterPath>> = { markethall: "trade", guildhall: "craft", library: "culture", dairy: "farm" };
 export const canBuy = (it: Item, path?: string) => !GUILD[it] || GUILD[it] === path;
+/** Way buildings: only towns of the matching character may buy them (DB guard: one way family per village). Equal prices and bonus totals (20 / 30) per tier, so no founding site is favoured. */
+export const WAY_ITEM: Partial<Record<Item, TownWay>> = { bigstore: "grain", millrow: "grain", stonemason: "workshop", hammerworks: "workshop", smokehouse: "gateway", saltquay: "gateway" };
+export const WAY_BONUS: Record<string, { food?: number; health?: number; wealth?: number }> = {
+  bigstore: { food: 15, wealth: 5 }, stonemason: { wealth: 10, health: 10 }, smokehouse: { food: 10, wealth: 10 },
+  millrow: { food: 20, wealth: 10 }, hammerworks: { wealth: 20, health: 10 }, saltquay: { wealth: 20, food: 10 },
+};
+export const canBuyWay = (it: Item, way?: TownWay) => !WAY_ITEM[it] || WAY_ITEM[it] === way;
 /** Trade charter: +15 % taxes for every day completed after sealing. */
 export const TRADE_TAX = 0.15;
 export type Purchase = { id: string; seed_id: string; item: string; cost: number; created_at: string; x?: number | null; y?: number | null };
@@ -211,6 +218,7 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
     if (!has(`${k}${m.prices.length}` as Item) || monumentProgress(s, now, k) < 1) continue;
     b.food += m.food ?? 0; b.health += m.health ?? 0; b.wealth += m.wealth ?? 0;
   }
+  for (const [it, wb] of Object.entries(WAY_BONUS)) if (has(it as Item)) { b.food += wb.food ?? 0; b.health += wb.health ?? 0; b.wealth += wb.wealth ?? 0; }
   b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0; b.wealth += has("guard") ? 5 : 0;
   // weddings: a day of joy (health, prosperity) and lasting craft alliances between families
   const joy = weddingJoy(s, now);

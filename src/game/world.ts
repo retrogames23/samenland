@@ -233,6 +233,7 @@ export type Kind =
   | "stall" | "townhall" | "gatehouse" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue"
   | "patrician" | "villa" | "tenement" | "townhouse2" | "fachwerk" | "steinhaus" | "handwerker"
   | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "belfry"
+  | "bigstore" | "millrow" | "stonemason" | "hammerworks" | "smokehouse" | "saltquay"
   | "theater" | "opera" | "university" | "exchange" | "orangery" | "harvesthall" | "guildtower" | "lighthouse" | "seat1" | "seat2" | "seat3";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). */
 export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; fire?: boolean; flood?: boolean; homeKind?: Kind };
@@ -482,7 +483,7 @@ export const monumentOf = (item: string): MonumentKey | null => {
   return k && k in MONUMENT_DEFS && +m![2]! >= 1 && +m![2]! <= MONUMENT_DEFS[k].n ? k : null;
 };
 export const MONUMENT_BY_KIND = new Map<Kind, MonumentKey>(MONUMENT_KEYS.map((k) => [MONUMENT_DEFS[k].kind, k]));
-export const SPECIAL_KIND: Record<string, Kind> = { fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", guard: "guardhouse", hunter: "lodge", herbs: "herbhut", woodcamp: "woodcamp",
+export const SPECIAL_KIND: Record<string, Kind> = { fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", guard: "guardhouse", hunter: "lodge", herbs: "herbhut", woodcamp: "woodcamp", bigstore: "bigstore", millrow: "millrow", stonemason: "stonemason", hammerworks: "hammerworks", smokehouse: "smokehouse", saltquay: "saltquay",
   ...Object.fromEntries(MONUMENT_KEYS.map((k) => [`${k}1`, MONUMENT_DEFS[k].kind])) };
 /** Belfry steps (kept for the guild-rank requirement). */
 export const MONUMENT_STEPS = ["belfry1", "belfry2", "belfry3", "belfry4"] as const;
