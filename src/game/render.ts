@@ -2040,8 +2040,19 @@ export function draw(
         }
         if (!street && hash(x, y, 34) > 0.6) { c.fillStyle = "rgba(60,45,28,0.12)"; c.beginPath(); c.ellipse(cx + (hash(x, y, 33) - 0.5) * 3, cy, 1.3, 0.5, 0, 0, 7); c.fill(); }
       } else if (st.kind === "square" || st.kind === "market" || st.kind === "well") {
-        c.beginPath(); c.ellipse(cx, cy, TW * (0.56 + hash(x, y, 71) * 0.1), TH * (0.56 + hash(x, y, 72) * 0.1), 0, 0, 7);
-        c.fillStyle = texture(c, "cobble") ?? "#d3cab6"; c.fill();
+        // paving frays into the grass: trodden earth halo, fading rim, solid core, loose setts beyond the edge
+        const rx = TW * (0.56 + hash(x, y, 71) * 0.1), ry = TH * (0.56 + hash(x, y, 72) * 0.1);
+        const cob = texture(c, "cobble") ?? "#d3cab6";
+        c.globalAlpha = 0.35; c.fillStyle = texture(c, "dirt") ?? "#c49e6c";
+        c.beginPath(); c.ellipse(cx, cy, rx * 1.12, ry * 1.12, 0, 0, 7); c.fill();
+        c.fillStyle = cob;
+        c.globalAlpha = 0.45; c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, 7); c.fill();
+        c.globalAlpha = 1; c.beginPath(); c.ellipse(cx, cy, rx * 0.84, ry * 0.84, 0, 0, 7); c.fill();
+        for (let n = 0; n < 5; n++) {
+          const a = hash(x, y, 80 + n) * 6.283, d = 0.95 + hash(x, y, 90 + n) * 0.25;
+          c.globalAlpha = 0.7; c.beginPath(); c.ellipse(cx + Math.cos(a) * rx * d, cy + Math.sin(a) * ry * d, 0.9, 0.5, 0, 0, 7); c.fill();
+        }
+        c.globalAlpha = 1;
       } else if (st.kind === "field" || st.kind === "garden") {
         // Neighbouring plots merge into one acre: fill slightly past the tile, edge only towards non-fields.
         const ac = acreOf(x, y, st.seed), ripe = st.kind === "field" && ac.ripe;
@@ -2065,7 +2076,22 @@ export function draw(
           if (round(k1)) { const nx = lerp(Bq, Cq, 0.35); c.quadraticCurveTo(Bq[0], Bq[1], nx[0], nx[1]); }
         }
         c.closePath();
-        c.fillStyle = texture(c, ripe ? "wheat" : "crops") ?? hsl(ripe ? 44 : 80, 50, 60); c.fill();
+        if (st.kind === "garden") {
+          // dug bed: dark soil with raised rows of small plants instead of a flat vegetable photo
+          c.fillStyle = texture(c, "fertile") ?? hsl(25, 35, 30); c.fill();
+          c.save(); c.clip(); c.lineCap = "round";
+          for (let k = -3; k <= 3; k++) {
+            const f = k / 6, [a0, a1] = ac.along ? [pp(-0.6, f), pp(0.6, f)] : [pp(f, -0.6), pp(f, 0.6)];
+            c.strokeStyle = "rgba(25,16,8,0.35)"; c.lineWidth = 1; c.beginPath(); c.moveTo(a0[0], a0[1] + 0.6); c.lineTo(a1[0], a1[1] + 0.6); c.stroke();
+            for (let m = -4; m <= 4; m++) {
+              const g = m * 0.12, [px, py] = ac.along ? pp(g, f) : pp(f, g), h = hash(x * 7 + k, y * 5 + m, 660);
+              c.fillStyle = h > 0.5 ? "rgba(92,128,52,0.95)" : "rgba(118,150,64,0.95)";
+              c.beginPath(); c.ellipse(px, py - 0.5, 0.8 + h * 0.4, 0.55, 0, 0, 7); c.fill();
+              c.fillStyle = "rgba(170,200,110,0.6)"; c.beginPath(); c.ellipse(px - 0.25, py - 0.8, 0.35, 0.22, 0, 0, 7); c.fill();
+            }
+          }
+          c.restore();
+        } else { c.fillStyle = texture(c, ripe ? "wheat" : "crops") ?? hsl(ripe ? 44 : 80, 50, 60); c.fill(); }
         const same = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && o.kind === st.kind && acreOf(x + i, y + j, o.seed).id === ac.id; };
         if (st.kind === "field") {
           // furrows run the full length of the acre, continuing seamlessly across its tiles
@@ -2101,8 +2127,12 @@ export function draw(
         }
         c.stroke();
       } else if (st.kind === "pasture") {
-        c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
-        c.fillStyle = texture(c, "meadow") ?? hsl(84, 34, 70, 0.6); c.fill();
+        // grazed turf blends into the surrounding grass: soft overlapping patches, no tile-shaped edge
+        c.fillStyle = texture(c, "meadow") ?? hsl(84, 34, 70, 0.6);
+        c.globalAlpha = 0.4; c.beginPath(); c.ellipse(cx, cy, TW * 0.62, TH * 0.62, 0, 0, 7); c.fill();
+        c.globalAlpha = 0.18; c.fillStyle = "rgb(110,90,55)";
+        c.beginPath(); c.ellipse(cx + (hash(x, y, 701) - 0.5) * TW * 0.5, cy + (hash(x, y, 702) - 0.5) * TH * 0.5, 2.2, 1, 0, 0, 7); c.fill();
+        c.globalAlpha = 1;
       }
     }
   }
