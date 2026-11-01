@@ -23,7 +23,7 @@ export const createSupportCheckout = createServerFn({ method: "POST" })
     if (had) return { error: "taken" };
     const { data: { user } } = await supabase.auth.getUser();
     try {
-      const { createStripeClient, getStripeErrorMessage: _ } = await import("@/lib/stripe.server");
+      const { createStripeClient } = await import("@/lib/stripe.server");
       const stripe = createStripeClient(data.environment);
       const prices = await stripe.prices.list({ lookup_keys: [data.priceId] });
       const price = prices.data[0]; if (!price) return { error: "Price not found" };
