@@ -131,7 +131,7 @@ function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
 }
 
 /** win: a small window pane (rendered as a warm rectangle), otherwise an open flame/forge. */
-export type Light = { x: number; y: number; r: number; building?: { kind: Kind; variant: number; seed: number; flip?: boolean; style?: HouseStyle } };
+export type Light = { x: number; y: number; r: number; building?: { kind: Kind; variant: number; seed: number; flip?: boolean; style?: HouseStyle | undefined } };
 
 /** Local clock hour, cached per second (house lights depend on it). */
 let hrCache = { at: 0, hr: 12 };
