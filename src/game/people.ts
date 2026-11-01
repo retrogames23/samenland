@@ -512,7 +512,13 @@ function assignHauls(people: Person[], byKind: Map<Kind, Tile[]>, sites: Tile[],
     const go = (to: Tile | null, toIn: boolean, good: Good, dest: Dest, fromIn = p.workIndoor) => {
       if (to && d(w, to) > 1.5 && d(w, to) < 45) haul = { from: w, to, fromIn, toIn, good, dest };
     };
-    if (p.job === "woodcutter") {
+    const at = (k: Kind) => (byKind.get(k) ?? []).some((x) => x[0] === w[0] && x[1] === w[1]);
+    // way buildings send their own goods into town: grain sacks, smoked fish, ironware, salt
+    if (p.job === "carter" && at("bigstore")) go(nearest(w, kinds("bakery", "mill", "inn")), true, "grain", "mill");
+    else if (p.job === "fisher" && at("smokehouse")) go(nearest(w, kinds("inn", "market")), true, "bundle", "inn");
+    else if (p.job === "smith" && at("hammerworks")) { const st = siteFront(w), mk = nearest(w, kinds("market", "warehouse")); if (mk) go(mk, true, "bundle", "market"); else if (st) go(st, false, "bundle", "site"); }
+    else if (p.job === "merchant" && at("saltquay")) go(nearest(w, kinds("bakery", "inn", "market")), true, "flour", "inn");
+    else if (p.job === "woodcutter") {
       const mill = nearest(w, kinds("sawmill"));
       if (mill) go(mill, true, "log", "sawmill"); else { const st = siteFront(w); go(st ?? well, false, "log", st ? "site" : "store"); }
     } else if (p.job === "mason") {
