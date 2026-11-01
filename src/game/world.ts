@@ -834,12 +834,15 @@ export function matches(a: Seed, b: Seed) {
   const A = TRADE_TABLE[characterOf(a.x, a.y)], B = TRADE_TABLE[characterOf(b.x, b.y)];
   return A.exports.filter((g) => B.imports.includes(g)).length + B.exports.filter((g) => A.imports.includes(g)).length;
 }
+/** Towns of different ways (Kornkammer/Werkbank/Tor zur Welt) supply each other: +0.1 trade factor, still capped. */
+export const WAY_COMPLEMENT = 0.1;
 export const COMPLEMENT_MIN = 0.6, COMPLEMENT_MAX = 1.5, KONTOR_BONUS = 0.15;
 /** 0.6 for twins in character, rising to 1.5 for a perfect fit. */
 export const complement = (a: Seed, b: Seed) => COMPLEMENT_MIN + (COMPLEMENT_MAX - COMPLEMENT_MIN) * Math.min(4, matches(a, b)) / 4;
 /** Trade factor town `s` gets from a road to `o`: complement, +15 % with a Hansekontor era (Handelsstadt+, real age); trade charter lifts the cap. */
 export function tradeFactor(s: Seed, o: Seed, now: number) {
   let f = complement(s, o);
+  if (townCharacter(s).main !== townCharacter(o).main) f += WAY_COMPLEMENT;
   if (stageOf(ageHours(s, now)) >= 4) f += KONTOR_BONUS;
   const cap = s.charter?.path === "trade" && now > s.charter.at ? 1.75 : COMPLEMENT_MAX;
   return Math.min(cap, f);
