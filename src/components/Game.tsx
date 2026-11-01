@@ -1773,10 +1773,15 @@ export function Game() {
                   ))}
                 </button>
               )}
+              <button type="button" title={t.goods.larder} aria-label={`${t.attrs.food} ${at.food} · ${t.attrs.health} ${at.health} · ${t.attrs.wealth} ${at.wealth}`} onClick={() => setLarderOpen(true)} className="pointer-events-auto flex shrink-0 items-end gap-1 rounded px-1 py-1 hover:bg-muted lg:hidden">
+                {(["food", "health", "wealth"] as const).map((k) => (
+                  <span key={k} className="relative h-6 w-1.5 overflow-hidden rounded bg-muted"><span className="absolute inset-x-0 bottom-0 rounded bg-primary" style={{ height: `${at[k]}%` }} /></span>
+                ))}
+              </button>
               <div className="hidden gap-3 lg:flex">
                 {(["food", "health", "wealth"] as const).map((k) => (
-                  <div key={k} className="w-20 text-xs" title={k === "food" && larder ? t.goods.food(larder.food, larder.eaters) : undefined}>
-                    <div className="flex justify-between"><span>{t.attrs[k]}</span><span>{at[k]}</span></div>
+                  <div key={k} className="w-24 text-xs" title={k === "food" && larder ? t.goods.food(larder.food, larder.eaters) : undefined}>
+                    <div className="flex justify-between gap-1"><span className="truncate">{t.attrs[k]}</span><span>{at[k]}</span></div>
                     <div className="h-1.5 rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${at[k]}%` }} /></div>
                   </div>
                 ))}
@@ -1930,6 +1935,10 @@ export function Game() {
       })()}
       {larderOpen && larder && (
         <Parchment title={t.goods.larder} later={t.close} onLater={() => setLarderOpen(false)}>
+          {at && <div className="mb-3 grid grid-cols-3 gap-3">{(["food", "health", "wealth"] as const).map((k) => (
+            <div key={k} className="text-xs"><div className="flex justify-between gap-1"><span className="truncate">{t.attrs[k]}</span><span className="tabular-nums">{at[k]}</span></div>
+              <div className="h-1.5 rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${at[k]}%` }} /></div></div>
+          ))}</div>}
           <p className="mb-2 text-sm">{t.goods.larderIntro}</p>
           <table className="w-full text-sm tabular-nums">
             <thead><tr className="text-xs text-muted-foreground"><th /><th className="text-right">{t.goods.stock}</th><th className="text-right">{t.goods.made}</th><th className="text-right">{t.goods.used}</th></tr></thead>

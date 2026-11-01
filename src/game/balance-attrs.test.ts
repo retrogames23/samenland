@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { attributes, perHead } from "./economy";
+import { attributes, perHead, roadWealth, soften } from "./economy";
 import { boonsOf, type Larder } from "./goods";
 import type { Seed } from "./world";
 
@@ -23,7 +23,13 @@ describe("per-capita attributes", () => {
   it("a hut serves 25 residents fully, its share shrinks above, never below 40 %", () => {
     expect(perHead(20)).toBe(1);
     expect(perHead(50)).toBe(0.5);
-    expect(perHead(500)).toBe(0.4);
+    expect(perHead(500)).toBe(0.3);
+  });
+  it("roads give degressive prosperity: 10, 8, 6, 4, then 3 each", () => {
+    expect(roadWealth(1)).toBe(10); expect(roadWealth(3)).toBe(24); expect(roadWealth(6)).toBe(34);
+  });
+  it("values above 50 approach 100 softly, never reaching it from moderate sums", () => {
+    expect(soften(40)).toBe(40); expect(soften(110)).toBeLessThan(85); expect(soften(200)).toBeLessThan(100);
   });
   it("larder supply grows gradually with stored meals", () => {
     expect(boonsOf(L(10, 10)).supply).toBe(0.5);
