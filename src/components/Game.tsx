@@ -34,7 +34,7 @@ import { settleTreasury } from "@/lib/treasury.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
-import { QUESTS, questState, type Quest, type QuestClaim } from "@/game/quests";
+import { QUESTS, questState, questKey, WAY_SMALL, WAY_BIG, type Quest, type QuestClaim } from "@/game/quests";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { splashDone } from "@/game/splash";
 import { VillageRoll } from "@/components/VillageRoll";
@@ -1151,12 +1151,15 @@ export function Game() {
     encounters: encounters.filter((e) => e.seed_id === my.id).length,
     giftsSent: gifts.filter((g) => g.from_seed === my.id).length,
     residents, stage: myStage, roads: firstRoads.filter((f) => f.seed_id === my.id).length,
+    waySmall: purchases.some((p) => p.seed_id === my.id && WAY_SMALL.includes(p.item)),
+    wayBig: purchases.some((p) => p.seed_id === my.id && WAY_BIG.includes(p.item)),
   }) : null;
+  const questText = quest && my ? t.quests.list[questKey(quest.quest, wayOf(my))] ?? t.quests.list[quest.quest]! : null;
   const questHow = () => {
     if (!quest || !my) return;
-    const tabs: Partial<Record<Quest, Tab>> = { bless: "rituals", bless7: "rituals", build: "build", buy3: "build", buy6: "build", sign: "signs", gift: "towns", gifts5: "towns", road: "build", roads2: "build" };
+    const tabs: Partial<Record<Quest, Tab>> = { bless: "rituals", bless7: "rituals", build: "build", buy3: "build", buy6: "build", metro: "build", sign: "signs", gift: "towns", gifts5: "towns", road: "build", roads2: "build" };
     const tb = tabs[quest.quest];
-    if (tb) setTab(tb); else { focus(my.x, my.y); setMsg(t.quests.list[quest.quest]![1]); }
+    if (tb) setTab(tb); else { focus(my.x, my.y); setMsg(questText![1]); }
   };
   const claimQuest = async () => {
     if (!my || !userId || !quest?.ready) return;
@@ -2211,8 +2214,8 @@ export function Game() {
             </button>
             {!questFold && (
               <div className="mt-1 space-y-1">
-                <div className="font-semibold">{t.quests.list[quest.quest]![0]}</div>
-                <div className="text-xs opacity-80">{t.quests.list[quest.quest]![1]}</div>
+                <div className="font-semibold">{questText![0]}</div>
+                <div className="text-xs opacity-80">{questText![1]}</div>
                 <div className="h-1.5 overflow-hidden rounded bg-ink/15"><div className="h-full bg-brass" style={{ width: `${(100 * quest.have) / quest.need}%` }} /></div>
                 <div className="flex items-center justify-between text-xs"><span>{quest.have}/{quest.need}</span><span>{t.quests.reward(quest.reward)}</span></div>
                 {quest.ready
@@ -2225,8 +2228,8 @@ export function Game() {
       )}
       {owner && my && quest?.ready && questOpen && (
         <Parchment image={ART["quest"]} title={t.quests.doneTitle} later={t.quests.later} onLater={() => setQuestOpen(false)}>
-          <p className="text-center font-semibold">{t.quests.list[quest.quest]![0]}</p>
-          <p className="mt-2 text-center italic">{t.quests.says(my.owner)} „{t.quests.list[quest.quest]![2]}“</p>
+          <p className="text-center font-semibold">{questText![0]}</p>
+          <p className="mt-2 text-center italic">{t.quests.says(my.owner)} „{questText![2]}“</p>
           {quest.quest === "metro" && <p className="mt-1 text-center text-sm">{t.quests.end}</p>}
           <div className="mt-4 flex justify-center"><Button onClick={claimQuest}>{t.quests.claim} · {t.taler(quest.reward)}</Button></div>
         </Parchment>

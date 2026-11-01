@@ -18,11 +18,19 @@ export const QUEST_REWARD: Record<Quest, number> = {
   buy6: 250, hundred: 300, merchant: 400,
   metro: 600,
 };
+/** Way-specific quests: buy6 needs the small way building, metro the big one (mirrored by DB quest_guard). */
+export const WAY_SMALL = ["bigstore", "stonemason", "smokehouse"];
+export const WAY_BIG = ["millrow", "hammerworks", "saltquay"];
+export const WAY_QUESTS: readonly Quest[] = ["buy6", "metro"];
+/** Text key for a quest: way quests have one variant per town way. */
+export const questKey = (q: Quest, way?: string) => (way && WAY_QUESTS.includes(q) ? `${q}:${way}` : q);
 export type QuestClaim = { id: string; seed_id: string; quest: string; reward: number; created_at: string };
 
 export type QuestCtx = {
   blessings: number; purchases: number; signposts: number; encounters: number; giftsSent: number;
   residents: number; stage: number; roads?: number;
+  /** Own way buildings bought: small = Großspeicher/Steinmetzhütte/Räucherei, big = Windmühlenreihe/Hammerwerk/Salzkontor. */
+  waySmall?: boolean; wayBig?: boolean;
 };
 
 const need = (have: number, n: number): [number, number] => [Math.min(n, have), n];
@@ -45,10 +53,10 @@ export function questProgress(q: Quest, c: QuestCtx): [number, number] {
     case "fifty": return need(c.residents, 50);
     case "roads2": return need(c.roads ?? 0, 2);
     case "town": return [c.stage >= 3 ? 1 : 0, 1];
-    case "buy6": return need(c.purchases, 6);
+    case "buy6": return need(c.waySmall ? c.purchases : Math.min(c.purchases, 5), 6);
     case "hundred": return need(c.residents, 150);
     case "merchant": return [c.stage >= 4 ? 1 : 0, 1];
-    case "metro": return [c.stage >= 5 ? 1 : 0, 1];
+    case "metro": return [(c.stage >= 5 ? 1 : 0) + (c.wayBig ? 1 : 0), 2];
   }
 }
 
