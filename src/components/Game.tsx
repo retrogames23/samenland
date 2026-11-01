@@ -2478,7 +2478,7 @@ export function Game() {
         })()}
         {place && (() => {
           const ins = inspectAt(place.x, place.y, seeds, clock()) ?? place;
-          const name = t.kind[ins.kind] ?? ins.kind;
+          const name = t.kind[ins.kind] ?? (t.kinds as Record<string, string>)[ins.kind] ?? ins.kind;
           const list = (ps: Person[]) => ps.length ? (
             <ul className="mt-0.5 space-y-0.5">
               {ps.slice(0, 6).map((p) => (
