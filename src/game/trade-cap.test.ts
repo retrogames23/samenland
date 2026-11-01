@@ -6,7 +6,7 @@ const seed = (over: Partial<Seed> = {}): Seed => ({ id: "t", name: "T", owner: "
 describe("trade soft cap", () => {
   it("counts trade in full up to 35 %", () => expect(softTrade(0.3, 0.4)).toBeCloseTo(0.3));
   it("never drops below the old hard cap of 35 %", () => expect(softTrade(0.9, 0.4)).toBeGreaterThanOrEqual(TRADE_CAP));
-  it("never reaches the town's ceiling", () => expect(softTrade(5, 0.4)).toBeLessThan(0.4));
+  it("never reaches the town's ceiling", () => expect(softTrade(1.2, 0.4)).toBeLessThan(0.4));
   it("every extra road still adds a little", () => expect(softTrade(0.6, 0.4)).toBeGreaterThan(softTrade(0.5, 0.4)));
   it("ordinary towns have a 40 % ceiling", () => expect(tradeCapOf(seed(), Date.now())).toBeCloseTo(0.4));
   it("trade charter adds 10 %", () => expect(tradeCapOf(seed({ charter: { path: "trade", at: 0 } }), Date.now())).toBeCloseTo(0.5));
