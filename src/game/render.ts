@@ -1819,8 +1819,8 @@ function drawFestive(c: C, cx: number, cy: number, t: number, sd: number, L: Lig
 /** Carved wooden waymark standing beside the road at the village edge. */
 function drawSignpost(c: C, cx: number, cy: number, sd: number) {
   const im = folkImage("signpost"); if (!im) return;
-  const x = cx + 5, y = cy + 1, h = 13, w = (h * im.naturalWidth) / im.naturalHeight;
-  c.fillStyle = "rgba(25,18,10,0.25)"; c.beginPath(); c.ellipse(x + 1, y + 0.3, 3.4, 1.1, 0, 0, 7); c.fill();
+  const x = cx + 5, y = cy + 1, h = 7, w = (h * im.naturalWidth) / im.naturalHeight;
+  c.fillStyle = "rgba(25,18,10,0.25)"; c.beginPath(); c.ellipse(x + 0.6, y + 0.3, 2, 0.7, 0, 0, 7); c.fill();
   c.save(); c.translate(x, y); if (sd % 2) c.scale(-1, 1); c.drawImage(im, -w * 0.47, -h * 0.97, w, h); c.restore();
 }
 
@@ -2081,9 +2081,10 @@ export function draw(
           // standing plants on every ridge, back to front, fringing past the acre edge like real stalks
           const row = fieldRowImage(ripe);
           if (row && seasonAt(now).winter < 0.6) {
-            const w = ripe ? 15 : 13, hgt = (w * row.height) / row.width, flipRow = !ac.along;
-            for (let k = -2; k <= 2; k++) for (let m = -1; m <= 1; m += 2) {
-              const f = k / 4, g = m * 0.26 + (hash(x * 5 + k, y * 3 + m, 640) - 0.5) * 0.08;
+            // human scale: a grown villager is 5.2 px, ripe grain reaches about his hip (~2.6 px)
+            const w = ripe ? 4.6 : 4.2, hgt = (w * row.height) / row.width, flipRow = !ac.along;
+            for (let k = -2; k <= 2; k++) for (let m = -3; m <= 3; m += 2) {
+              const f = k / 4, g = m * 0.13 + (hash(x * 5 + k, y * 3 + m, 640) - 0.5) * 0.05;
               const [px, py] = ac.along ? pp(g, f) : pp(f, g);
               c.fillStyle = "rgba(30,22,10,0.22)"; c.beginPath(); c.ellipse(px + 0.6, py + 0.3, w * 0.42, 1.2, 0, 0, 7); c.fill();
               c.save(); c.translate(px, py); if (flipRow) c.scale(-1, 1);
