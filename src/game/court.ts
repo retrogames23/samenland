@@ -76,3 +76,15 @@ export function courtPoses(hour: number, t: number): CourtPose[] {
   if (hour >= 6 && hour < 19) put("groom", loop(YARD, 6e4, t));
   return out;
 }
+
+// ---------------- audience: who receives a visiting mayor (pure from the realm clock) ----------------
+/** Tiles from the estate centre within which a strolling mayor may ask for an audience. */
+export const AUDIENCE_REACH = 9;
+export type AudienceHost = "prince" | "herald" | "closed";
+/** Prince in the morning hall, the steward while he walks or dines, nobody at night. */
+export function audienceHost(hour: number): AudienceHost {
+  if (hour >= 9 && hour < 13) return "prince";
+  if (hour >= 7 && hour < 21) return "herald";
+  return "closed";
+}
+export const atCourt = (x: number, y: number) => { const c = courtCenter(); return Math.hypot(x - c.x, y - c.y) <= AUDIENCE_REACH; };
