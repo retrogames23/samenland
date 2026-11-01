@@ -44,6 +44,8 @@ import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
 import { MAYOR } from "@/game/lang/mayor";
 import { COURT } from "@/game/lang/court";
+import { PRINCELY } from "@/game/lang/princely";
+import { princelyClaims, princelyTask, favourOf, openTaskOf, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { atCourt, audienceHost, type AudienceHost } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
 import { Beer } from "lucide-react";
@@ -471,11 +473,13 @@ export function Game() {
         supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at"),
         supabase.from("village_visits").select("id, visitor_seed, visited_seed, reward, created_at"),
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("wonder_finds").select("id, seed_id, site, realm, first, reward, created_at"),
-      ]).then(([q, m, rf, vv, wf]) => {
+        (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("princely_tasks").select("id, seed_id, step, task, reward, accepted_at, done_at"),
+      ]).then(([q, m, rf, vv, wf, pt]) => {
+        princelyRows.current = (pt.data ?? []) as PrincelyRow[];
         for (const v of vv.data ?? []) visitSeen.current.add(v.visited_seed);
         wonderRows.current = (wf.data ?? []) as unknown as WonderFind[];
         syncWonders();
-        setClaims([...(q.data ?? []), ...visitClaims(vv.data ?? []), ...wonderClaims(wonderRows.current), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? [])]);
+        setClaims([...(q.data ?? []), ...visitClaims(vv.data ?? []), ...wonderClaims(wonderRows.current), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? []), ...princelyClaims(princelyRows.current)]);
         // tell the inviter once when a friend has answered the call
         const mine = ss.find((s) => uid && s.user_id === uid);
         const got = (rf.data ?? []).filter((x) => mine && x.referrer_seed === mine.id);
@@ -1019,6 +1023,24 @@ export function Game() {
   const courtNear = useRef(false);
   const [nearCourt, setNearCourt] = useState(false);
   const [audience, setAudience] = useState<AudienceHost | null>(null);
+  const princelyRows = useRef<PrincelyRow[]>([]);
+  const [decree, setDecree] = useState<string | null>(null);
+  const askDecree = async (seedId: string) => {
+    const P = PRINCELY[lang];
+    const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: string | null; error: unknown }>;
+    const { data, error } = await rpc("princely_audience", { _seed: seedId });
+    if (error || !data) { setDecree(P.fail); return; }
+    const sel = (supabase as unknown as { from: (t: string) => { select: (c: string) => { eq: (k: string, v: string) => PromiseLike<{ data: unknown[] | null }> } } }).from("princely_tasks").select("id, seed_id, step, task, reward, accepted_at, done_at").eq("seed_id", seedId);
+    const rows = ((await sel).data ?? []) as PrincelyRow[];
+    const prevDone = new Set(princelyRows.current.filter((r) => r.done_at).map((r) => r.id));
+    princelyRows.current = [...princelyRows.current.filter((r) => r.seed_id !== seedId), ...rows];
+    const fresh = rows.filter((r) => r.done_at && !prevDone.has(r.id));
+    if (fresh.length) { setClaims((c) => [...c, ...princelyClaims(fresh)]); jingle("coins"); }
+    const open = openTaskOf(rows, seedId), last = [...rows].sort((a, b) => b.step - a.step)[0];
+    const txt = (k: string) => P.task[k as PrincelyKind] ?? k;
+    setDecree(data === "done" ? P.done(last?.reward ?? 0) : data === "new" && open ? P.newTask(txt(open.task), open.reward) : data === "open" && open ? P.open(txt(open.task)) : data === "all" ? P.all : P.rest);
+  };
+  useEffect(() => { if (!audience) setDecree(null); }, [audience]);
   useEffect(() => { if (!walk) { courtNear.current = false; setNearCourt(false); setAudience(null); } }, [walk]);
   useEffect(() => { if (!visitNote) return; const h = setTimeout(() => setVisitNote(null), 7000); return () => clearTimeout(h); }, [visitNote]);
   visitFn.current = (o, my) => {
@@ -1645,7 +1667,11 @@ export function Game() {
         <div data-walk role="dialog" aria-label={COURT[lang].ask} className="absolute inset-x-0 top-[12%] z-50 mx-auto w-[min(26rem,90vw)] rounded-md border-2 border-wood bg-card px-5 py-4 text-foreground shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95">
           <div className="text-center font-display text-lg font-bold">{COURT[lang][audience]}</div>
           <p className="mt-2 text-sm italic leading-relaxed">{audience === "prince" ? COURT[lang].princeSays(my?.owner ?? "") : audience === "herald" ? COURT[lang].heraldSays(my?.owner ?? "") : COURT[lang].closedSays}</p>
-          {audience !== "closed" && <p className="mt-3 text-xs text-muted-foreground">{COURT[lang].soon}</p>}
+          {audience !== "closed" && my && my.user_id === userId && (<>
+            {decree && <p className="mt-3 text-sm italic leading-relaxed">{decree}</p>}
+            {!decree && <Button type="button" size="sm" className="mt-3 w-full" onClick={() => askDecree(my.id)}>📜 {PRINCELY[lang].ask}</Button>}
+            <p className="mt-2 text-xs text-muted-foreground">{PRINCELY[lang].favour(favourOf(princelyRows.current, my.id), PRINCELY_COUNT)}</p>
+          </>)}
           <Button type="button" size="sm" variant="outline" className="mt-3 w-full" onClick={() => setAudience(null)}>{COURT[lang].bow}</Button>
         </div>
       )}
