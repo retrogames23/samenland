@@ -525,6 +525,44 @@ export type Database = {
           },
         ]
       }
+      princely_tasks: {
+        Row: {
+          accepted_at: string
+          done_at: string | null
+          id: string
+          reward: number
+          seed_id: string
+          step: number
+          task: string
+        }
+        Insert: {
+          accepted_at?: string
+          done_at?: string | null
+          id?: string
+          reward?: number
+          seed_id: string
+          step: number
+          task: string
+        }
+        Update: {
+          accepted_at?: string
+          done_at?: string | null
+          id?: string
+          reward?: number
+          seed_id?: string
+          step?: number
+          task?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "princely_tasks_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchases: {
         Row: {
           cost: number
@@ -1039,6 +1077,15 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      princely_audience: { Args: { _seed: string }; Returns: string }
+      princely_task_def: {
+        Args: { _step: number }
+        Returns: Record<string, unknown>
+      }
+      princely_task_met: {
+        Args: { _seed: string; _since: string; _task: string }
         Returns: boolean
       }
       purge_user_data: { Args: { _uid: string }; Returns: undefined }
