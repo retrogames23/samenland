@@ -2,7 +2,9 @@ import type { QuestClaim } from "./quests";
 
 /** The prince's decrees: a fixed sequence of 12 (mirrors DB princely_task_def). Favour = decrees fulfilled. */
 export const PRINCELY_KINDS = ["wonder", "letter", "visit", "build", "gift", "road"] as const;
-export type PrincelyKind = (typeof PRINCELY_KINDS)[number];
+/** "court" = Hofdienst: swap target (DB princely_swap), always achievable by returning after 8 h. */
+export type PrincelyKind = (typeof PRINCELY_KINDS)[number] | "court";
+export const PRINCELY_SWAP_H = 24;
 export const PRINCELY_REWARDS = [40, 40, 50, 60, 60, 80, 80, 90, 100, 110, 120, 150];
 export const PRINCELY_COUNT = PRINCELY_REWARDS.length;
 export const PRINCELY_REST_H = 20;

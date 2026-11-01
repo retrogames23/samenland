@@ -11,11 +11,14 @@ type Text = {
   favour: (n: number, of: number) => string;
   ask: string;
   fail: string;
+  swap: string;
+  swapped: string;
+  wait: string;
 };
 
 export const PRINCELY: Record<Lang, Text> = {
   de: {
-    task: { wonder: "Sucht ein Naturwunder oder eine Landmarke in der Wildnis auf.", letter: "Schickt einen Brief an ein anderes Dorf.", visit: "Besucht persönlich einen anderen Schulzen.", build: "Lasst in Eurem Dorf ein Gebäude errichten.", gift: "Schickt einem Nachbarn ein Geschenk.", road: "Beschließt eine neue Handelsstraße." },
+    task: { wonder: "Sucht ein Naturwunder oder eine Landmarke in der Wildnis auf.", letter: "Schickt einen Brief an ein anderes Dorf.", visit: "Besucht persönlich einen anderen Schulzen.", build: "Lasst in Eurem Dorf ein Gebäude errichten.", gift: "Schickt einem Nachbarn ein Geschenk.", road: "Beschließt eine neue Handelsstraße.", court: 'Leistet Hofdienst: kehrt frühestens in 8 Stunden zum Schloss zurück.' },
     newTask: (t, r) => `„Wir erteilen Euch einen Erlass: ${t} Kehrt danach zu Uns zurück – Lohn: ${r} Taler.“`,
     open: (t) => `„Euer Erlass ist noch nicht erfüllt: ${t}“`,
     done: (r) => `„Wohlgetan! Nehmt ${r} Taler aus Unserer Schatulle und Unsere Gunst.“`,
@@ -23,9 +26,10 @@ export const PRINCELY: Record<Lang, Text> = {
     all: "„Ihr habt Uns treu gedient. Bald werden Wir Euch zum Ritter schlagen.“",
     favour: (n, of) => `Fürstliche Gunst: ${n} von ${of} Erlassen erfüllt`,
     ask: "Nach Erlassen fragen", fail: "Der Hof konnte Euch gerade nicht anhören.",
+    swap: 'Um einen anderen Erlass bitten', swapped: '„Nun gut, dient Uns stattdessen bei Hofe: Kehrt in 8 Stunden zurück.“', wait: '„Ihr habt heute schon um einen anderen Auftrag gebeten.“',
   },
   en: {
-    task: { wonder: "Seek out a natural wonder or landmark in the wild.", letter: "Send a letter to another village.", visit: "Visit another mayor in person.", build: "Have a building raised in your village.", gift: "Send a neighbour a gift.", road: "Decide on a new trade road." },
+    task: { wonder: "Seek out a natural wonder or landmark in the wild.", letter: "Send a letter to another village.", visit: "Visit another mayor in person.", build: "Have a building raised in your village.", gift: "Send a neighbour a gift.", road: "Decide on a new trade road.", court: 'Serve at court: return to the castle in 8 hours at the earliest.' },
     newTask: (t, r) => `"We grant you a decree: ${t} Then return to Us – reward: ${r} Taler."`,
     open: (t) => `"Your decree is not yet fulfilled: ${t}"`,
     done: (r) => `"Well done! Take ${r} Taler from Our coffer, and Our favour."`,
@@ -33,9 +37,10 @@ export const PRINCELY: Record<Lang, Text> = {
     all: "\"You have served Us faithfully. Soon We shall knight you.\"",
     favour: (n, of) => `Princely favour: ${n} of ${of} decrees fulfilled`,
     ask: "Ask for decrees", fail: "The court could not hear you just now.",
+    swap: 'Ask for another decree', swapped: '"Very well, serve Us at court instead: return in 8 hours."', wait: '"You already asked for another task today."',
   },
   fr: {
-    task: { wonder: "Trouvez une merveille naturelle ou un site dans la nature.", letter: "Envoyez une lettre à un autre village.", visit: "Rendez visite en personne à un autre maire.", build: "Faites construire un bâtiment dans votre village.", gift: "Envoyez un cadeau à un voisin.", road: "Décidez une nouvelle route commerciale." },
+    task: { wonder: "Trouvez une merveille naturelle ou un site dans la nature.", letter: "Envoyez une lettre à un autre village.", visit: "Rendez visite en personne à un autre maire.", build: "Faites construire un bâtiment dans votre village.", gift: "Envoyez un cadeau à un voisin.", road: "Décidez une nouvelle route commerciale.", court: 'Servez à la cour : revenez au château dans 8 heures au plus tôt.' },
     newTask: (t, r) => `« Nous vous confions un décret : ${t} Revenez ensuite – récompense : ${r} thalers. »`,
     open: (t) => `« Votre décret n'est pas encore accompli : ${t} »`,
     done: (r) => `« Bien joué ! Prenez ${r} thalers de Notre cassette, et Notre faveur. »`,
@@ -43,9 +48,10 @@ export const PRINCELY: Record<Lang, Text> = {
     all: "« Vous Nous avez fidèlement servi. Bientôt Nous vous adouberons. »",
     favour: (n, of) => `Faveur princière : ${n} décrets sur ${of} accomplis`,
     ask: "Demander des décrets", fail: "La cour n'a pu vous entendre pour l'instant.",
+    swap: 'Demander un autre décret', swapped: '« Soit, servez-Nous plutôt à la cour : revenez dans 8 heures. »', wait: "« Vous avez déjà demandé une autre mission aujourd'hui. »",
   },
   es: {
-    task: { wonder: "Buscad una maravilla natural o un hito en la naturaleza.", letter: "Enviad una carta a otra aldea.", visit: "Visitad en persona a otro alcalde.", build: "Haced levantar un edificio en vuestra aldea.", gift: "Enviad un regalo a un vecino.", road: "Decidid un nuevo camino comercial." },
+    task: { wonder: "Buscad una maravilla natural o un hito en la naturaleza.", letter: "Enviad una carta a otra aldea.", visit: "Visitad en persona a otro alcalde.", build: "Haced levantar un edificio en vuestra aldea.", gift: "Enviad un regalo a un vecino.", road: "Decidid un nuevo camino comercial.", court: 'Servid en la corte: volved al castillo dentro de 8 horas como pronto.' },
     newTask: (t, r) => `«Os otorgamos un decreto: ${t} Luego volved a Nos; recompensa: ${r} táleros.»`,
     open: (t) => `«Vuestro decreto aún no está cumplido: ${t}»`,
     done: (r) => `«¡Bien hecho! Tomad ${r} táleros de Nuestro cofre y Nuestro favor.»`,
@@ -53,9 +59,10 @@ export const PRINCELY: Record<Lang, Text> = {
     all: "«Nos habéis servido con lealtad. Pronto os armaremos caballero.»",
     favour: (n, of) => `Favor del príncipe: ${n} de ${of} decretos cumplidos`,
     ask: "Pedir decretos", fail: "La corte no pudo oíros ahora.",
+    swap: 'Pedir otro decreto', swapped: '«Sea, servidnos en la corte: volved dentro de 8 horas.»', wait: '«Ya pedisteis otra tarea hoy.»',
   },
   ar: {
-    task: { wonder: "ابحث عن أعجوبة طبيعية أو معلم في البرية.", letter: "أرسل رسالة إلى قرية أخرى.", visit: "زُر عمدة آخر بنفسك.", build: "شيّد مبنى في قريتك.", gift: "أرسل هدية إلى جار.", road: "قرّر طريقًا تجاريًا جديدًا." },
+    task: { wonder: "ابحث عن أعجوبة طبيعية أو معلم في البرية.", letter: "أرسل رسالة إلى قرية أخرى.", visit: "زُر عمدة آخر بنفسك.", build: "شيّد مبنى في قريتك.", gift: "أرسل هدية إلى جار.", road: "قرّر طريقًا تجاريًا جديدًا.", court: 'اخدم في البلاط: عُد إلى القصر بعد 8 ساعات على الأقل.' },
     newTask: (t, r) => `«نمنحك مرسومًا: ${t} ثم عُد إلينا – المكافأة: ${r} تالر.»`,
     open: (t) => `«لم يُنجَز مرسومك بعد: ${t}»`,
     done: (r) => `«أحسنت! خذ ${r} تالر من خزانتنا، ولك رضانا.»`,
@@ -63,9 +70,10 @@ export const PRINCELY: Record<Lang, Text> = {
     all: "«لقد خدمتنا بإخلاص. قريبًا نقلّدك الفروسية.»",
     favour: (n, of) => `رضا الأمير: ${n} من ${of} مراسيم منجزة`,
     ask: "اسأل عن المراسيم", fail: "تعذّر على البلاط سماعك الآن.",
+    swap: 'اطلب مرسومًا آخر', swapped: '«حسنًا، اخدمنا في البلاط بدلًا من ذلك: عُد بعد 8 ساعات.»', wait: '«لقد طلبت مهمة أخرى اليوم بالفعل.»',
   },
   hi: {
-    task: { wonder: "जंगल में कोई प्राकृतिक अजूबा या स्थल खोजें।", letter: "किसी दूसरे गाँव को पत्र भेजें।", visit: "किसी दूसरे मुखिया से स्वयं मिलें।", build: "अपने गाँव में कोई इमारत बनवाएँ।", gift: "किसी पड़ोसी को उपहार भेजें।", road: "एक नई व्यापार सड़क तय करें।" },
+    task: { wonder: "जंगल में कोई प्राकृतिक अजूबा या स्थल खोजें।", letter: "किसी दूसरे गाँव को पत्र भेजें।", visit: "किसी दूसरे मुखिया से स्वयं मिलें।", build: "अपने गाँव में कोई इमारत बनवाएँ।", gift: "किसी पड़ोसी को उपहार भेजें।", road: "एक नई व्यापार सड़क तय करें।", court: 'दरबार में सेवा करें: कम से कम 8 घंटे बाद महल लौटें।' },
     newTask: (t, r) => `"हम आपको एक फ़रमान देते हैं: ${t} फिर हमारे पास लौटें – इनाम: ${r} टालर।"`,
     open: (t) => `"आपका फ़रमान अभी पूरा नहीं हुआ: ${t}"`,
     done: (r) => `"शाबाश! हमारे ख़ज़ाने से ${r} टालर और हमारी कृपा लें।"`,
@@ -73,9 +81,10 @@ export const PRINCELY: Record<Lang, Text> = {
     all: "\"आपने निष्ठा से सेवा की। जल्द ही हम आपको नाइट बनाएँगे।\"",
     favour: (n, of) => `राजकृपा: ${of} में से ${n} फ़रमान पूरे`,
     ask: "फ़रमान पूछें", fail: "दरबार अभी आपकी बात नहीं सुन सका।",
+    swap: 'दूसरा फ़रमान माँगें', swapped: '"ठीक है, इसके बजाय दरबार में सेवा करें: 8 घंटे बाद लौटें।"', wait: '"आप आज पहले ही दूसरा काम माँग चुके हैं।"',
   },
   zh: {
-    task: { wonder: "前往野外寻找一处自然奇观或地标。", letter: "给另一个村庄寄一封信。", visit: "亲自拜访另一位村长。", build: "在你的村庄建造一座建筑。", gift: "给邻居送一份礼物。", road: "决定修建一条新的商路。" },
+    task: { wonder: "前往野外寻找一处自然奇观或地标。", letter: "给另一个村庄寄一封信。", visit: "亲自拜访另一位村长。", build: "在你的村庄建造一座建筑。", gift: "给邻居送一份礼物。", road: "决定修建一条新的商路。", court: '在宫廷效力：至少8小时后返回城堡。' },
     newTask: (t, r) => `"本王颁你一道谕令：${t}完成后回来复命——赏金 ${r} 塔勒。"`,
     open: (t) => `"你的谕令尚未完成：${t}"`,
     done: (r) => `"干得好！从本王金库领取 ${r} 塔勒，并受本王恩宠。"`,
@@ -83,9 +92,10 @@ export const PRINCELY: Record<Lang, Text> = {
     all: "\"你忠心效力。不久本王将封你为骑士。\"",
     favour: (n, of) => `亲王恩宠：已完成 ${n}/${of} 道谕令`,
     ask: "询问谕令", fail: "宫廷此刻无法接见你。",
+    swap: '请求另一道诏令', swapped: '"好吧，那就在宫廷为朕效力：8小时后再来。"', wait: '"你今天已经请求过换一项任务了。"',
   },
   ja: {
-    task: { wonder: "荒野の自然の驚異か名所を訪ねよ。", letter: "別の村へ手紙を送れ。", visit: "別の村長を自ら訪ねよ。", build: "村に建物を建てさせよ。", gift: "隣人に贈り物を送れ。", road: "新しい交易路を決めよ。" },
+    task: { wonder: "荒野の自然の驚異か名所を訪ねよ。", letter: "別の村へ手紙を送れ。", visit: "別の村長を自ら訪ねよ。", build: "村に建物を建てさせよ。", gift: "隣人に贈り物を送れ。", road: "新しい交易路を決めよ。", court: '宮廷に仕えよ：早くとも8時間後に城へ戻ること。' },
     newTask: (t, r) => `「そなたに勅令を授ける：${t}果たしたら戻れ――褒美は${r}ターラー。」`,
     open: (t) => `「勅令はまだ果たされておらぬ：${t}」`,
     done: (r) => `「見事であった！我が金庫より${r}ターラーと我が寵愛を授ける。」`,
@@ -93,5 +103,6 @@ export const PRINCELY: Record<Lang, Text> = {
     all: "「よく仕えてくれた。まもなくそなたを騎士に叙そう。」",
     favour: (n, of) => `領主の寵愛：勅令 ${n}/${of} 達成`,
     ask: "勅令を尋ねる", fail: "宮廷は今そなたの話を聞けぬ。",
+    swap: '別の勅令を願う', swapped: '「よかろう、代わりに宮廷に仕えよ。8時間後に戻るがよい。」', wait: '「今日はすでに別の任務を願い出ている。」',
   },
 };
