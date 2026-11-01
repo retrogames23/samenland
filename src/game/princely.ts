@@ -1,4 +1,4 @@
-import type { QuestClaim } from "./economy";
+import type { QuestClaim } from "./quests";
 
 /** The prince's decrees: a fixed sequence of 12 (mirrors DB princely_task_def). Favour = decrees fulfilled. */
 export const PRINCELY_KINDS = ["wonder", "letter", "visit", "build", "gift", "road"] as const;
