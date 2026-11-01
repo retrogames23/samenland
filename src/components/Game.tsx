@@ -1040,6 +1040,14 @@ export function Game() {
     const txt = (k: string) => P.task[k as PrincelyKind] ?? k;
     setDecree(data === "done" ? P.done(last?.reward ?? 0) : data === "new" && open ? P.newTask(txt(open.task), open.reward) : data === "open" && open ? P.open(txt(open.task)) : data === "all" ? P.all : P.rest);
   };
+  const swapDecree = async (seedId: string) => {
+    const P = PRINCELY[lang];
+    const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: string | null; error: unknown }>;
+    const { data, error } = await rpc("princely_swap", { _seed: seedId });
+    if (error || !data) { setDecree(P.fail); return; }
+    if (data === "swapped") princelyRows.current = princelyRows.current.map((r) => r.seed_id === seedId && !r.done_at ? { ...r, task: "court", accepted_at: new Date().toISOString() } : r);
+    setDecree(data === "swapped" ? P.swapped : data === "wait" ? P.wait : P.open(P.task.court));
+  };
   useEffect(() => { if (!audience) setDecree(null); }, [audience]);
   useEffect(() => { if (!walk) { courtNear.current = false; setNearCourt(false); setAudience(null); } }, [walk]);
   useEffect(() => { if (!visitNote) return; const h = setTimeout(() => setVisitNote(null), 7000); return () => clearTimeout(h); }, [visitNote]);
@@ -1670,6 +1678,7 @@ export function Game() {
           {audience !== "closed" && my && my.user_id === userId && (<>
             {decree && <p className="mt-3 text-sm italic leading-relaxed">{decree}</p>}
             {!decree && <Button type="button" size="sm" className="mt-3 w-full" onClick={() => askDecree(my.id)}>📜 {PRINCELY[lang].ask}</Button>}
+            {(() => { const o = openTaskOf(princelyRows.current, my.id); return o && o.task !== "court" && decree && decree !== PRINCELY[lang].swapped && decree !== PRINCELY[lang].wait ? <Button type="button" size="sm" variant="outline" className="mt-2 w-full" onClick={() => swapDecree(my.id)}>🔄 {PRINCELY[lang].swap}</Button> : null; })()}
             <p className="mt-2 text-xs text-muted-foreground">{PRINCELY[lang].favour(favourOf(princelyRows.current, my.id), PRINCELY_COUNT)}</p>
           </>)}
           <Button type="button" size="sm" variant="outline" className="mt-3 w-full" onClick={() => setAudience(null)}>{COURT[lang].bow}</Button>
