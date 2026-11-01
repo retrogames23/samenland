@@ -1915,21 +1915,21 @@ export function Game() {
       />
       {/* top bar */}
       <div ref={barRef} className="pointer-events-none absolute inset-x-2 top-[max(0.5rem,env(safe-area-inset-top))] z-30 md:inset-x-3 md:top-3">
-        <Panel inner="flex items-center gap-3 px-3 py-1.5 md:gap-5">
+        <Panel inner="flex items-center gap-1.5 px-1.5 py-1 md:gap-5 md:px-3 md:py-1.5">
           {my && <CharacterBadge seed={my} lang={lang} />}
           <div className="min-w-0 shrink">
-            <div title={my ? TOWN_CHARACTER[lang].land[wayOf(my)] : undefined} className="-my-[0.34em] truncate py-[0.34em] pl-0.5 pr-3 font-display text-2xl leading-none text-wood">{my ? my.name : "Samenland"}</div>
+            <div title={my ? TOWN_CHARACTER[lang].land[wayOf(my)] : undefined} className="-my-[0.34em] truncate py-[0.34em] pl-0.5 pr-1 font-display text-lg leading-none text-wood md:pr-3 md:text-2xl">{my ? my.name : "Samenland"}</div>
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
               {my && myStats ? `${CHAR_ICON[wayOf(my)]} ${TOWN_CHARACTER[lang].names[wayOf(my)]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[myRank]}${rankHint ? ` · ${rankHint}` : ""} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
           </div>
           {my && at ? (
             <>
-              <div className="flex shrink-0 items-center gap-2 text-sm font-semibold tabular-nums">
+              <div className="flex shrink-0 items-center gap-1.5 text-xs font-semibold tabular-nums md:gap-2 md:text-sm">
                 {(() => { const cap = chestCap(my.id, purchases), full = cash >= cap; return (
-                <span className={`flex items-center gap-1.5 ${full ? "text-destructive" : ""}`} title={`${CHEST[lang].title} · ${CHEST[lang].levels[chestLevel(my.id, purchases) - 1]}: ${Math.max(0, cash)} / ${t.taler(cap)}${full ? ` – ${CHEST[lang].full}` : ""}`}>
-                  <span aria-hidden className="grid h-5 w-5 place-items-center rounded-full border border-wood bg-[radial-gradient(circle_at_35%_30%,var(--color-coin-shine),var(--color-brass)_55%,var(--color-coin-edge))] text-[10px] font-bold leading-none text-wood shadow-[inset_0_-1px_0_var(--color-coin-edge)]">T</span>
-                  {Math.max(0, cash).toLocaleString(LOCALE[lang])}<span className="font-normal text-muted-foreground">/ {t.taler(cap)}</span>
+                <span className={`flex items-center gap-1 md:gap-1.5 ${full ? "text-destructive" : ""}`} title={`${CHEST[lang].title} · ${CHEST[lang].levels[chestLevel(my.id, purchases) - 1]}: ${Math.max(0, cash)} / ${t.taler(cap)}${full ? ` – ${CHEST[lang].full}` : ""}`}>
+                  <span aria-hidden className="hidden h-4 w-4 place-items-center rounded-full border border-wood bg-[radial-gradient(circle_at_35%_30%,var(--color-coin-shine),var(--color-brass)_55%,var(--color-coin-edge))] text-[9px] font-bold leading-none text-wood shadow-[inset_0_-1px_0_var(--color-coin-edge)] md:grid md:h-5 md:w-5 md:text-[10px]">T</span>
+                  {Math.max(0, cash).toLocaleString(LOCALE[lang])}<span className="font-normal text-muted-foreground">/<span className="md:hidden"> {cap.toLocaleString(LOCALE[lang])} {t.talerShort}</span><span className="hidden md:inline"> {t.taler(cap)}</span></span>
                 </span>); })()}
                 <span className="hidden text-xs font-normal text-primary sm:inline">{t.perDay(pop)}</span>
               </div>
@@ -1941,9 +1941,9 @@ export function Game() {
                   ))}
                 </button>
               )}
-              <button type="button" title={t.goods.larder} aria-label={`${t.attrs.food} ${at.food} · ${t.attrs.health} ${at.health} · ${t.attrs.wealth} ${at.wealth}`} onClick={() => setLarderOpen(true)} className="pointer-events-auto flex shrink-0 items-end gap-1 rounded px-1 py-1 hover:bg-muted lg:hidden">
+              <button type="button" title={t.goods.larder} aria-label={`${t.attrs.food} ${at.food} · ${t.attrs.health} ${at.health} · ${t.attrs.wealth} ${at.wealth}`} onClick={() => setLarderOpen(true)} className="pointer-events-auto flex shrink-0 items-end gap-1 rounded px-0.5 py-1 hover:bg-muted lg:hidden md:px-1">
                 {(["food", "health", "wealth"] as const).map((k) => (
-                  <span key={k} className="relative h-6 w-1.5 overflow-hidden rounded bg-muted"><span className="absolute inset-x-0 bottom-0 rounded bg-primary" style={{ height: `${at[k]}%` }} /></span>
+                  <span key={k} className="relative h-6 w-1 overflow-hidden rounded bg-muted md:w-1.5"><span className="absolute inset-x-0 bottom-0 rounded bg-primary" style={{ height: `${at[k]}%` }} /></span>
                 ))}
               </button>
               <div className="hidden gap-3 lg:flex">
@@ -1964,16 +1964,16 @@ export function Game() {
             <div>{t.seasons[season]} · {new Date(now).toLocaleTimeString(LOCALE[lang], { hour: "2-digit", minute: "2-digit", timeZone: REALM_TZ[realm] })}</div>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
-            <button type="button" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} onClick={toggleSound} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent">
+            <button type="button" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} onClick={toggleSound} className="grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:h-8 md:w-8">
               {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </button>
             <button type="button" aria-label={fs ? t.exitFullscreen : t.fullscreen} title={fs ? t.exitFullscreen : t.fullscreen} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())} className="hidden h-8 w-8 place-items-center rounded-md hover:bg-accent md:grid">
               {fs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
-            <button type="button" aria-label={t.guide.menu} title={t.guide.menu} onClick={() => setGuideOpen(true)} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent md:hidden">
+            <button type="button" aria-label={t.guide.menu} title={t.guide.menu} onClick={() => setGuideOpen(true)} className="grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:hidden">
               <BookOpen className="h-4 w-4" />
             </button>
-            <button type="button" aria-label={t.hud.settings} title={t.hud.settings} aria-expanded={settings} onClick={() => { if (!settings) { setWho(null); setPlace(null); } setSettings(!settings); }} className="grid h-8 w-8 place-items-center rounded-md hover:bg-accent">
+            <button type="button" aria-label={t.hud.settings} title={t.hud.settings} aria-expanded={settings} onClick={() => { if (!settings) { setWho(null); setPlace(null); } setSettings(!settings); }} className="grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:h-8 md:w-8">
               <Settings className="h-4 w-4" />
             </button>
           </div>

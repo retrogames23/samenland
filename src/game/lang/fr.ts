@@ -126,6 +126,8 @@ export const fr: Dict = {
   treasury: "Trésor du village",
   taxInfo: (n) => `${n} citoyens paient chaque jour l'impôt selon leur état`,
   taler: (n) => `${n.toLocaleString("fr-FR")} talers`,
+  talerShort: "T",
+
   attrs: { food: "Vivres", health: "Santé", wealth: "Prospérité" },
   shop: "Bâtir & recruter",
   monument: { title: "Prestige : le beffroi", steps: ["Poser les fondations", "Élever la maçonnerie", "Charpenter la chambre des cloches", "Bénir la cloche"], step: (i: number, n: number) => `Étape ${i} sur ${n}`, pay: "Payer l'étape", building: "Les bâtisseurs travaillent à cette étape …", done: "Le beffroi domine la ville.", wait: (h: number) => `Prochaine étape dans environ ${h} h` },

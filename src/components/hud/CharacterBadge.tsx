@@ -31,7 +31,7 @@ export function CharacterDetails({ seed, lang }: { seed: { x: number; y: number 
 
 export function CharacterBadge({ seed, lang }: { seed: { x: number; y: number }; lang: Lang }) {
   const c = townCharacter(seed), t = TOWN_CHARACTER[lang];
-  return <Popover><PopoverTrigger asChild><Button variant="ghost" size="icon" className="pointer-events-auto h-10 w-10 shrink-0" aria-label={`${t.title}: ${t.names[c.main]}`} title={t.names[c.main]}><Shield way={c.main} /></Button></PopoverTrigger>
+  return <Popover><PopoverTrigger asChild><Button variant="ghost" size="icon" className="pointer-events-auto h-8 w-8 shrink-0 md:h-10 md:w-10" aria-label={`${t.title}: ${t.names[c.main]}`} title={t.names[c.main]}><Shield way={c.main} /></Button></PopoverTrigger>
     <PopoverContent className="max-w-[calc(100vw-2rem)]" dir={lang === "ar" ? "rtl" : "ltr"}><CharacterDetails seed={seed} lang={lang} /></PopoverContent>
   </Popover>;
 }
