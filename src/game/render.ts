@@ -452,6 +452,7 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
   const v = s.v;
   if (s.kind === "pasture") {
       const p = P(cx, cy);
+      const lp = (a: Pt, b: Pt, k: number): Pt => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
       // wattle fence only along the outer edge of the paddock: posts with sagging rails, never a tile grid
       const isPas = (i: number, j: number) => structureAt(x + i, y + j, renderSeeds, renderNow)?.kind === "pasture";
       const edges: [number, number, Pt, Pt, Pt, Pt][] = [
@@ -466,13 +467,13 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
           c.strokeStyle = "rgba(92,64,38,0.9)"; c.lineWidth = 0.32; c.beginPath();
           for (let n = 0; n < posts; n++) {
             const f0 = n / posts, f1 = (n + 1) / posts, sag = 0.12 + hash(sd, n, 77) * 0.12;
-            const A = lerp(a, b, f0), B = lerp(a, b, f1), M = lerp(a, b, (f0 + f1) / 2);
+            const A = lp(a, b, f0), B = lp(a, b, f1), M = lp(a, b, (f0 + f1) / 2);
             c.moveTo(A[0], A[1] - hgt); c.quadraticCurveTo(M[0], M[1] - hgt + sag, B[0], B[1] - hgt);
           }
           c.stroke();
         }
         for (let n = 0; n <= posts; n++) {
-          const A = lerp(a, b, n / posts), lean = (hash(sd, n, 78) - 0.5) * 0.3;
+          const A = lp(a, b, n / posts), lean = (hash(sd, n, 78) - 0.5) * 0.3;
           c.strokeStyle = "rgba(40,28,16,0.25)"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(A[0] + 0.6, A[1] + 0.2); c.stroke();
           c.strokeStyle = "rgba(78,54,32,1)"; c.lineWidth = 0.42; c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(A[0] + lean, A[1] - 1.9); c.stroke();
           c.strokeStyle = "rgba(170,130,90,0.6)"; c.lineWidth = 0.15; c.beginPath(); c.moveTo(A[0] - 0.12, A[1] - 0.2); c.lineTo(A[0] - 0.12 + lean, A[1] - 1.8); c.stroke();
