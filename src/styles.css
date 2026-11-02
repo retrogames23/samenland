@@ -194,7 +194,7 @@
    on iOS keep a fixed clearance; installed (standalone) apps use the real safe area. */
 :root { --dock-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
 @supports (-webkit-touch-callout: none) {
-  :root { --dock-bottom: max(calc(env(safe-area-inset-bottom) + 0.5rem), 5.25rem); }
+  :root { --dock-bottom: max(calc(env(safe-area-inset-bottom) + 0.5rem), 3rem); }
 }
 @media (display-mode: standalone) {
   :root { --dock-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
