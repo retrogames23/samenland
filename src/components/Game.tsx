@@ -116,6 +116,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { firstFreeSite, placeTap } from "@/game/placement";
+import { saplingSpots } from "@/game/saplings";
 
 type Mode = "look" | "seed" | "tree" | "flower" | "lantern" | "sapling";
 
@@ -309,6 +310,7 @@ export function Game() {
   // start over the settled heartland, never the empty ocean at tile (0,0)
   const cam = useRef<Camera>((() => { const [x, y] = iso(500, 500); return { x, y, zoom: 2.6 }; })());
   const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
+  const sapCache = useRef<{ key: string; spots: [number, number][] }>({ key: "", spots: [] });
   const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, ghost: null as [number, number] | null, walk: false });
   st.current.walk = walk;
   st.current.seeds = seeds;
@@ -669,6 +671,32 @@ export function Game() {
         }
         ctx.restore();
       }
+      if (s.mode === "sapling") {
+        const me = s.seeds.find((x) => x.id === s.mine);
+        if (me) {
+          const nowC = clock(), key = `${me.id}|${s.seeds.length}|${s.plantings.size}|${Math.floor(nowC / 5000)}`;
+          if (sapCache.current.key !== key) sapCache.current = { key, spots: saplingSpots(me, s.seeds, (px, py) => s.plantings.has(`${px},${py}`), nowC) };
+          const z = c.zoom * dpr.current, pulse = 0.75 + Math.sin(performance.now() / 500) * 0.25;
+          ctx.save();
+          ctx.setTransform(z, 0, 0, z, cv.width / 2 - c.x * z, cv.height / 2 - c.y * z);
+          ctx.lineWidth = 1.2 / Math.max(0.5, c.zoom);
+          for (const [sx, sy] of sapCache.current.spots) {
+            const [gx, gy] = iso(sx, sy);
+            ctx.beginPath(); ctx.moveTo(gx, gy - 7); ctx.lineTo(gx + 14, gy); ctx.lineTo(gx, gy + 7); ctx.lineTo(gx - 14, gy); ctx.closePath();
+            ctx.fillStyle = `rgba(214,196,92,${0.28 * pulse})`; ctx.fill();
+            ctx.strokeStyle = `rgba(120,150,50,${0.85 * pulse})`; ctx.stroke();
+          }
+          const hv = h ?? null;
+          if (hv) {
+            const good = sapCache.current.spots.some(([a, b]) => Math.hypot(a - hv[0], b - hv[1]) < 1.6);
+            const [gx, gy] = iso(hv[0], hv[1]);
+            ctx.globalAlpha = good ? 0.85 : 0.4;
+            ctx.fillStyle = "#5e4630"; ctx.fillRect(gx - 0.6, gy - 9, 1.2, 9);
+            ctx.fillStyle = good ? "#6f9a3a" : "#a33a2c"; ctx.beginPath(); ctx.arc(gx, gy - 11, 4, 0, 7); ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
       const own = s.seeds.find((x) => x.id === s.mine);
       const gh = s.ghost ?? h;
       if (s.placing && gh && own) {
@@ -847,8 +875,12 @@ export function Game() {
       const my = seeds.find((s) => s.id === mine);
       const kind = my ? saplingsOwed(my.decisions ?? [], plantings.filter((p) => p.seed_id === my.id))[0] : undefined;
       if (!my || !kind) return setMode("look");
-      if (Math.hypot(x - my.x, y - my.y) > radiusOf(effAge(my, seeds, clock())) + 3) return setMsg(t.nearOnly);
-      if (!buildable(terrain(x, y)) || structureAt(x, y, seeds, clock()) || plantings.some((p) => p.x === x && p.y === y)) return setMsg(t.sapling.bad);
+      // forgiving tap: snap to the nearest highlighted meadow within ~1.5 tiles
+      const spots = saplingSpots(my, seeds, (px, py) => plantings.some((p) => p.x === px && p.y === py), clock());
+      let pick: [number, number] | null = null, pd = 1.6;
+      for (const sp of spots) { const d = Math.hypot(sp[0] - x, sp[1] - y); if (d < pd) { pd = d; pick = sp; } }
+      if (!pick) return setMsg(spots.length && Math.hypot(x - my.x, y - my.y) > radiusOf(effAge(my, seeds, clock())) + 3 ? t.nearOnly : t.sapling.bad);
+      [x, y] = pick;
       const { data } = await supabase.from("plantings").insert({ seed_id: my.id, kind, x, y }).select().single();
       if (!data) return setMsg(t.sapling.bad);
       setPlantings((p) => [...p, data as Planting]);

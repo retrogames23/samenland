@@ -224,7 +224,7 @@ const de = {
   soundOn: "Ton an",
   soundOff: "Ton aus",
   exitFullscreen: "Vollbild beenden",
-  sapling: { btn: "Setzling pflanzen", hint: "Tippe auf eine freie Wiese im Dorf, um den Setzling zu pflanzen.", planted: "Der Setzling ist gepflanzt – er wird mit den Jahreszeiten wachsen.", bad: "Hier kann kein Baum wachsen." },
+  sapling: { btn: "Setzling pflanzen", hint: "Die leuchtenden Wiesen am Dorfrand sind frei – tippe auf eine, um den Setzling zu pflanzen.", planted: "Der Setzling ist gepflanzt – er wird mit den Jahreszeiten wachsen.", bad: "Hier kann kein Baum wachsen." },
   enc: { couple: (a: string, b: string) => `${a} und ${b} geben sich heute das Jawort. Das ganze Dorf hofft auf ein Zeichen des Schulzen.`, look: "Hinschauen", later: "Später entscheiden", waiting: "Eine Entscheidung wartet auf dich", btn: "Besuch am Dorfplatz", title: "Eine Begegnung", decided: "Du hast eben erst entschieden – bleib dabei, bald kommt ein neuer Besuch.", free: "kostenlos", gain: (n: number) => `+${n} Taler`, fail: "Die Entscheidung konnte nicht getroffen werden.", poor: "Zu wenig Taler", done: "Der Schulze hat entschieden.", lasts: (h: number) => h >= 48 ? `${Math.round(h / 24)} Tage` : `${h} Std.`, growth: (p: number) => `+${p} % Wachstum`, food: "Nahrung", health: "Gesundheit", wealth: "Wohlstand", chronicle: "Chronik", dayN: (n: number) => `Tag ${n}`, none: "Noch keine Einträge.",
     events: {
       minstrel: ["Der Spielmann", "Ein Spielmann mit Laute und Federhut bittet, am Abend auf dem Dorfplatz aufspielen zu dürfen."],

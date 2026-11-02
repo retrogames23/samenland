@@ -548,6 +548,30 @@ export type Database = {
           },
         ]
       }
+      princely_errands: {
+        Row: {
+          created_at: string
+          errand: string
+          id: string
+          seed_id: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          errand: string
+          id?: string
+          seed_id: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          errand?: string
+          id?: string
+          seed_id?: string
+          task_id?: string
+        }
+        Relationships: []
+      }
       princely_tasks: {
         Row: {
           accepted_at: string
@@ -1144,6 +1168,10 @@ export type Database = {
         Returns: boolean
       }
       princely_audience: { Args: { _seed: string }; Returns: string }
+      princely_errand: {
+        Args: { _errand: string; _seed: string }
+        Returns: number
+      }
       princely_knight: { Args: { _seed: string }; Returns: string }
       princely_swap: { Args: { _seed: string }; Returns: string }
       princely_task_def: {
