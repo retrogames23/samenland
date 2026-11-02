@@ -659,8 +659,17 @@ export function cartAxisView(dx: number, dy: number, was: boolean): boolean {
   const r = Math.abs(dy) / Math.max(Math.abs(dx), 0.05);
   return was ? r > 0.75 : r > 1.05;
 }
+/** Carts currently shown from behind (hysteresis so slight slopes don't flip front/back every frame). */
+const cartAway = new Set<number | string>();
+export function cartAwayView(dx: number, dy: number, was: boolean): boolean {
+  const r = dy / Math.max(Math.abs(dx), 0.05);
+  return was ? r < 0.05 : r < -0.3;
+}
 function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: number, sd: number, _cover: string, t: number, key: number | string = sd) {
-  const away = dy < -0.15 * Math.abs(dx);
+  const away = cartAwayView(dx, dy, cartAway.has(key));
+  if (away) cartAway.add(key); else cartAway.delete(key);
+  if (cartAway.size > 256) cartAway.clear();
+  const baseA = c.globalAlpha; // inherit road fade; step blend multiplies it and restores it
   // steep stretches (steeper than the 2:1 diagonal): painted head-on / from-behind view instead of a tilted side view
   const axis = cartAxisView(dx, dy, cartAxis.has(key));
   if (axis) cartAxis.add(key); else cartAxis.delete(key);
@@ -720,7 +729,7 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
   const drawOx = () => {
     // short cross-blend into the next pose gives in-between leg positions instead of a flip-book cut
     c.drawImage(ox, f * fw, 0, fw, ox.naturalHeight, oxX - ow / 2, top, ow, oh);
-    if (u > 0.55) { c.globalAlpha = (u - 0.55) / 0.45; c.drawImage(ox, f2 * fw, 0, fw, ox.naturalHeight, oxX - ow / 2, top, ow, oh); c.globalAlpha = 1; }
+    if (u > 0.55) { c.globalAlpha = baseA * (u - 0.55) / 0.45; c.drawImage(ox, f2 * fw, 0, fw, ox.naturalHeight, oxX - ow / 2, top, ow, oh); c.globalAlpha = baseA; }
   };
   if (away) drawOx();
   c.drawImage(wag, wx, -wh + jolt, ww, wh);
