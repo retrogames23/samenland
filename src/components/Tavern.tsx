@@ -12,8 +12,8 @@ const seenKey = (uid: string | null) => `${SEEN}:${uid ?? "anon"}`;
 const readSeen = (uid: string | null): Record<string, number> => { try { return JSON.parse(localStorage.getItem(seenKey(uid)) ?? localStorage.getItem(SEEN) ?? "{}"); } catch { return {}; } };
 
 /** IRC-style tavern chat: one room per map, letters between mayors, blocking. Always mounted to count unread. */
-export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnread }: {
-  t: Dict; open: boolean; onClose: () => void; userId: string | null; my: Seed | undefined; seeds: Seed[]; realm: string; lang: string; onUnread: (n: number) => void;
+export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang, onUnread }: {
+  t: Dict; open: boolean; onClose: () => void; peer?: string | null; userId: string | null; my: Seed | undefined; seeds: Seed[]; realm: string; lang: string; onUnread: (n: number) => void;
 }) {
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [blocked, setBlocked] = useState<Set<string>>(new Set());
@@ -86,10 +86,12 @@ export function Tavern({ t, open, onClose, userId, my, seeds, realm, lang, onUnr
     try { localStorage.setItem(seenKey(userId), JSON.stringify(next)); } catch { /* account copy below */ }
     if (userId) void supabase.from("chat_reads").upsert({ user_id: userId, channel: k, seen_at: new Date(last).toISOString() }, { onConflict: "user_id,channel" });
   }, [open, chan, shown, seen, userId]);
+  // opened by tapping another mayor in the world: go straight to that letter channel
+  useEffect(() => { if (open && peer && peer !== userId) setChan({ peer }); }, [open, peer]); // eslint-disable-line react-hooks/exhaustive-deps
   // on opening: jump to a waiting letter when the main room has nothing new
   const wasOpen = useRef(false);
   useEffect(() => {
-    if (open && !wasOpen.current && unreadOf("tavern") === 0) {
+    if (open && !wasOpen.current && !peer && unreadOf("tavern") === 0) {
       const p = peers.find((x) => !blocked.has(x) && unreadOf({ peer: x }) > 0);
       if (p) setChan({ peer: p });
     }

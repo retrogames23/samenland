@@ -13,8 +13,9 @@ import { wonders, wonderClaims, firstFinder, WONDER_REACH, type WonderFind } fro
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townRank, rankInput, nextRankNeed } from "@/game/rank";
-import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, setMounted, setStrollHold, citizensOf, type Person } from "@/game/people";
+import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, setMounted, setStrollHold, citizensOf, isHomeKind, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
+import { banter } from "@/game/banter";
 import { weddingJoy } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
 import { larderOf, storedAt, chainOf, boonsOf, type Ware } from "@/game/goods";
@@ -50,7 +51,7 @@ import { SUPPORT } from "@/game/lang/support";
 import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
 import { princelyClaims, favourOf, openTaskOf, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
-import { atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
+import { courtPoses, atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
 import { Beer } from "lucide-react";
 import { seasonAt } from "@/game/season";
@@ -129,6 +130,37 @@ const sheetSwipe = (close: () => void) => {
     onTouchEnd: (e: import("react").TouchEvent<HTMLDivElement>) => { if (y0 != null && e.changedTouches[0]!.clientY - y0 > 60) close(); y0 = null; },
   };
 };
+
+/** One local speech bubble at a time (never stored): follows a villager (pid) or sits at a world point. */
+const bubble: { text: string; until: number; pid: number | null; sid: string | null; wx: number; wy: number; lift: number } = { text: "", until: 0, pid: null, sid: null, wx: 0, wy: 0, lift: 9 };
+const sayAt = (text: string, wx: number, wy: number, lift: number, pid: number | null = null, sid: string | null = null) => {
+  Object.assign(bubble, { text, wx, wy, lift, pid, sid, until: performance.now() + Math.min(9000, 3000 + text.length * 70) });
+};
+function drawBubble(ctx: CanvasRenderingContext2D, cv: HTMLCanvasElement, cam: Camera, dpr: number) {
+  const nowT = performance.now(); if (nowT > bubble.until || !bubble.text) return;
+  if (bubble.pid !== null) { const f = lastPeople.find((o) => o.q.p.id === bubble.pid && o.q.p.seed.id === bubble.sid); if (f) { bubble.wx = f.x; bubble.wy = f.y; } }
+  const sx = (bubble.wx - cam.x) * cam.zoom * dpr + cv.width / 2, sy = (bubble.wy - bubble.lift) * cam.zoom * dpr + cv.height / 2 - (cam.y * cam.zoom * dpr) - 6 * dpr;
+  const fs = 14 * dpr, maxW = 220 * dpr, pad = 8 * dpr;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.font = `italic 600 ${fs}px Georgia, 'Times New Roman', 'Noto Serif CJK SC', serif`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  // word wrap (CJK has no spaces: wrap per character)
+  const words = /\s/.test(bubble.text) ? bubble.text.split(/(\s+)/) : [...bubble.text];
+  const lines: string[] = []; let cur = "";
+  for (const w of words) { const nx = cur + w; if (ctx.measureText(nx).width > maxW && cur.trim()) { lines.push(cur.trim()); cur = w.trimStart(); } else cur = nx; }
+  if (cur.trim()) lines.push(cur.trim());
+  const lh = fs * 1.25, bw = Math.min(maxW, Math.max(...lines.map((l) => ctx.measureText(l).width))) + pad * 2, bh = lines.length * lh + pad * 1.6;
+  const fade = Math.min(1, (bubble.until - nowT) / 400);
+  const bx = Math.max(4, Math.min(cv.width - bw - 4, sx - bw / 2)), by = Math.max(4, sy - bh - 10 * dpr);
+  ctx.globalAlpha = fade;
+  ctx.fillStyle = "rgba(246,238,220,0.97)"; ctx.strokeStyle = "rgba(92,62,36,0.85)"; ctx.lineWidth = 2 * dpr;
+  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 10 * dpr); ctx.fill(); ctx.stroke();
+  const tx = Math.max(bx + 12 * dpr, Math.min(bx + bw - 12 * dpr, sx));
+  ctx.beginPath(); ctx.moveTo(tx - 7 * dpr, by + bh - 1); ctx.lineTo(sx, by + bh + 9 * dpr); ctx.lineTo(tx + 7 * dpr, by + bh - 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillRect(tx - 6 * dpr, by + bh - 3 * dpr, 12 * dpr, 3 * dpr);
+  ctx.fillStyle = "rgba(52,34,20,1)";
+  lines.forEach((l, i) => ctx.fillText(l, bx + bw / 2, by + pad * 0.8 + i * lh));
+  ctx.restore();
+}
 
 export function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -635,6 +667,7 @@ export function Game() {
       const h = s.hover;
       const ok = h && s.mode === "seed" ? canPlant(h[0], h[1], s.seeds) === null : null;
       draw(ctx, cv.width, cv.height, dpr.current, c, s.seeds, s.plantings, clock(), h, ok);
+      drawBubble(ctx, cv, c, dpr.current);
       if (s.mode === "seed") {
         // drawn above the night grade, so the founding marker stays readable at midnight
         const z = c.zoom * dpr.current, k = Math.SQRT2;
@@ -862,6 +895,47 @@ export function Game() {
     return best;
   };
   useEffect(() => { peopleFocus.sel = who ? pkey(who) : null; }, [who]);
+  // ---- talking: tap a villager, court servant or house for a fitting local speech bubble ----
+  const bVars = (town: string) => { const m = seeds.find((x) => x.id === mine); return { mayor: m?.owner ?? "", town }; };
+  const isNight = () => { const hr = worldHour(clock()); return hr >= 22 || hr < 6; };
+  const speak = (p: Person) => {
+    if (p.role === "mayor") return;
+    const nw = clock(), tw = townOf(p.seed, seeds, nw), q = poseOf(p, tw, seeds, nw);
+    const own = p.seed.id === mine, child = p.role === "child" || p.age < 14, night = isNight() || q.act === "sleep";
+    const myT = seeds.find((x) => x.id === mine)?.name ?? "";
+    const text = own ? banter(lang, { who: "own", traits: traitsOf(p.id), child, sick: !!p.sick, night }, bVars(p.seed.name))
+      : banter(lang, { who: "foreign", child, night }, bVars(myT));
+    const f = lastPeople.find((o) => o.q.p === p);
+    sayAt(text, f?.x ?? 0, f?.y ?? 0, 9, p.id, p.seed.id);
+  };
+  const courtAt = (e: { clientX: number; clientY: number }) => {
+    const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
+    const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
+    const bd = Math.max(3, (coarse ? 34 : 16) / c.zoom);
+    for (const q of courtPoses(worldHour(clock()), clock())) {
+      const [ix, iy] = iso(q.x, q.y);
+      if (Math.hypot(ix - wx, iy - 2.5 - wy) < bd) { sayAt(banter(lang, { who: "court", role: q.role, night: isNight() }, bVars(seeds.find((x) => x.id === mine)?.name ?? "")), ix, iy, 10); return true; }
+    }
+    return false;
+  };
+  const knock = (ins: Inspect) => {
+    if (!isHomeKind(ins.kind) || ins.build !== null) return false;
+    const nw = clock(), tw = townOf(ins.seed, seeds, nw);
+    const home = ins.residents.some((p) => { const a = poseOf(p, tw, seeds, nw).act; return a === "home" || a === "sleep" || a === "sick"; });
+    const own = ins.seed.id === mine, [ix, iy] = iso(ins.x, ins.y);
+    sayAt(banter(lang, { who: "house", own, home, night: isNight() }, bVars(own ? ins.seed.name : seeds.find((x) => x.id === mine)?.name ?? "")), ix, iy, 22);
+    return true;
+  };
+  /** Stroll mode: talk to whoever/whatever lies under the tap; true when something answered. */
+  const talkTo = (e: React.PointerEvent) => {
+    const p = personAt(e);
+    if (p && p.role === "mayor" && p.seed.id !== mine && p.seed.user_id && userId) { setDmPeer(p.seed.user_id); setTavernOpen(true); return true; }
+    if (p && p.role !== "mayor") { hm(); speak(p); return true; }
+    if (courtAt(e)) { tap(); return true; }
+    const [tx, ty] = tileAt(e), ins = inspectAt(tx, ty, seeds, clock());
+    if (ins && knock(ins)) { tap(); return true; }
+    return false;
+  };
   useEffect(() => { if (who || place) buzz(); }, [who, place]); // haptic tick when a sheet opens
   const onClick = async (x: number, y: number) => {
     setMsg(null);
@@ -1070,6 +1144,7 @@ export function Game() {
   const [introOpen, setIntroOpen] = useState(false);
   const [welcome, setWelcome] = useState(false);
   const [tavernOpen, setTavernOpen] = useState(false);
+  const [dmPeer, setDmPeer] = useState<string | null>(null);
   const [chatUnread, setChatUnread] = useState(0);
   const [rollOpen, setRollOpen] = useState(false);
   // the tutorial parchment greets every visitor on their very first page load,
@@ -1971,7 +2046,8 @@ export function Game() {
           if (d && !d.moved) {
             if (placing) { const [px, py] = tileAt(e); return buy(placing, px, py); }
             if (walk) {
-              // stroll mode: a tap sends the mayor there, nothing else opens
+              // stroll mode: tapping a person or house talks to them; elsewhere the mayor walks there
+              if (talkTo(e)) return;
               const [tx, ty] = tileAt(e), my = seeds.find((x) => x.id === mine);
               if (my) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (me && commandMayor(me, tw, seeds, nw, [tx, ty])) tap((e.clientX / window.innerWidth) * 2 - 1); }
               return;
@@ -1979,7 +2055,9 @@ export function Game() {
             if (mode === "look") {
               const best = personAt(e);
               const pan = (e.clientX / window.innerWidth) * 2 - 1;
-              if (best) { hm(pan); setPlace(null); return setWho(best); }
+              if (best && best.role === "mayor" && best.seed.id !== mine && best.seed.user_id && userId) { tap(pan); setWho(null); setPlace(null); setDmPeer(best.seed.user_id); setTavernOpen(true); return; }
+              if (best) { hm(pan); setPlace(null); speak(best); return setWho(best); }
+              if (courtAt(e)) { tap(pan); setWho(null); setPlace(null); return; }
               { const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
                 const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
                 const tr = lastTraders.find((f) => Math.hypot(f.x - wx, f.y - 3 - wy) < Math.max(4, 16 / c.zoom));
@@ -2003,7 +2081,7 @@ export function Game() {
                 tap(pan); setWho(null); setPlace(null); return true; };
               if (who?.role === "mayor" && who.seed.id === mine && sendMayor()) return;
               const ins = inspectAt(tx, ty, seeds, clock());
-              if (ins) { if (ins.kind === "pasture") baa(pan); else tap(pan); setWho(null); return setPlace(ins); }
+              if (ins) { if (ins.kind === "pasture") baa(pan); else tap(pan); setWho(null); knock(ins); return setPlace(ins); }
               const hadCard = !!who || !!place;
               setPlace(null); setWho(null);
               if (!hadCard && sendMayor()) return;
@@ -2463,7 +2541,7 @@ export function Game() {
           setMsg(z.visible ? null : `${p.first} ${z.act === "sleep" || z.act === "home" || z.act === "sick" ? t.roll.home : t.roll.inside}`);
         }} />
       )}
-      <Tavern t={t} open={tavernOpen} onClose={() => setTavernOpen(false)} userId={userId} my={my} seeds={seeds} realm={realm} lang={lang} onUnread={setChatUnread} />
+      <Tavern t={t} open={tavernOpen} onClose={() => { setTavernOpen(false); setDmPeer(null); }} peer={dmPeer} userId={userId} my={my} seeds={seeds} realm={realm} lang={lang} onUnread={setChatUnread} />
       {waitDone && !waitShut && !anyOpen && !decision.open && (
         <div className="pointer-events-none absolute inset-x-2 z-20 flex justify-center" style={{ top: barH + 56 }}>
           <Panel className="w-full max-w-md" inner="relative p-3 text-center">
