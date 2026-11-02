@@ -1842,39 +1842,9 @@ function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[],
   if (im) {
     const h = (w * im.naturalHeight) / im.naturalWidth;
     c.drawImage(im, mx - w / 2, by - h, w, h);
-    if (k === "fountain") drawFountainWater(c, mx, by - h, w, h, t);
   }
   if (k === "castle") { L.push({ x: mx - 10, y: by - 50, r: 4 }); L.push({ x: mx + 9, y: by - 48, r: 4 }); L.push({ x: mx, y: by - 10, r: 3 }); }
   if (k === "stable") L.push({ x: mx - 8, y: by - 14, r: 2.5 });
-}
-/** Living water on the fountain sprite: spout spray, trickles from the upper bowl, ripples in the basin. */
-function drawFountainWater(c: C, mx: number, top: number, w: number, h: number, t: number) {
-  c.save(); c.lineCap = "round";
-  const bowl = top + h * 0.19, pool = top + h * 0.62;
-  // spout: small rising spray that falls back into the upper bowl
-  for (let i = 0; i < 5; i++) {
-    const u = ((t / 900 + i / 5) % 1), a = (i - 2) * 0.55, hx = mx + a * u * 1.6, hy = top + h * 0.02 - Math.sin(u * Math.PI) * 1.6 + u * h * 0.14;
-    c.fillStyle = `rgba(215,235,245,${0.75 * (1 - u)})`; c.beginPath(); c.arc(hx, hy, 0.28, 0, 7); c.fill();
-  }
-  // trickles from the upper bowl's rim down into the basin, dashes travel downward
-  c.lineWidth = 0.35; c.setLineDash([0.7, 0.9]); c.lineDashOffset = -(t / 120) % 1.6;
-  for (const sx of [-1, -0.45, 0.45, 1]) {
-    const x0 = mx + sx * w * 0.27, x1 = mx + sx * w * 0.31;
-    c.strokeStyle = "rgba(200,228,240,0.7)"; c.beginPath(); c.moveTo(x0, bowl); c.quadraticCurveTo(x1 + sx * 0.4, bowl + 1, x1, pool - Math.abs(sx) * 0.8); c.stroke();
-  }
-  c.setLineDash([]);
-  // ripples in the basin where the water lands
-  for (let i = 0; i < 3; i++) {
-    const u = ((t / 1600 + i / 3) % 1);
-    c.strokeStyle = `rgba(225,240,248,${0.55 * (1 - u)})`; c.lineWidth = 0.25;
-    c.beginPath(); c.ellipse(mx, pool + 0.3, w * (0.12 + u * 0.24), h * (0.03 + u * 0.06), 0, 0, 7); c.stroke();
-  }
-  // glints dancing on the surface
-  for (let i = 0; i < 4; i++) {
-    const ph = t / 700 + i * 1.7, gx = mx + Math.sin(ph * 0.6 + i) * w * 0.28, gy = pool + Math.cos(ph * 0.5 + i * 2) * h * 0.05;
-    c.fillStyle = `rgba(255,255,250,${0.35 + 0.35 * Math.sin(ph * 2)})`; c.fillRect(gx - 0.3, gy - 0.08, 0.6, 0.16);
-  }
-  c.restore();
 }
 let courtFrame = -1; const courtFig = new Map<number, CourtPose[]>();
 function courtFigures(t: number) {
