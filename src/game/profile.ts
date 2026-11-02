@@ -12,7 +12,7 @@ export type Profile = {
 
 export function profileOf(s: Seed, me: Seed | null, seeds: Seed[], now: number): Profile {
   const c = townCharacter(s), ri = rankInput(s, seeds, now), tp = tradeProfile(s, now);
-  const buildings = [...new Set((s.bought ?? []).filter((b) => SPECIAL_KIND[b.item] && specialDone(s, seeds, b.at) <= now).map((b) => SPECIAL_KIND[b.item]))];
+  const buildings = [...new Set((s.bought ?? []).filter((b) => SPECIAL_KIND[b.item] && specialDone(s, seeds, b.at) <= now).map((b) => SPECIAL_KIND[b.item]!))];
   let vs: Profile["vs"] = null;
   if (me && me.id !== s.id) {
     const mp = tradeProfile(me, now);
