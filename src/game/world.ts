@@ -1,5 +1,6 @@
 import { nearCourt } from "./court";
 import { townCharacter, type TownWay } from "./character";
+import { biomeKey, type Biome } from "./biome";
 import { cacheTick, worldHour, worldWeekday, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
@@ -186,6 +187,7 @@ function rivers(): Float32Array {
       if (o >= 0 && o !== me) { ok = true; break; } // confluence
     }
     if (!ok || path.length < 25) continue;
+    if (geo !== "heartland" && path.some(([px, py]) => anchorNear(px, py, 16))) continue; // never through a founded village
     // smooth the grid walk into a flowing curve, then let it swing in gentle meanders
     const W = 5, sm: [number, number][] = [];
     for (let i = 0; i < path.length; i++) {
@@ -206,7 +208,7 @@ function rivers(): Float32Array {
     for (let i = 0; i + 1 < cur.length; i++) {
       const [ax, ay] = cur[i]!, [bx, by] = cur[i + 1]!;
       const seg = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) * 3));
-      const rw = Math.min(2.8, 1.1 + i * 0.006);
+      const rw = geo === "westwood" ? Math.min(3.8, 1.2 + i * 0.008) : Math.min(2.8, 1.1 + i * 0.006);
       for (let s = 0; s < seg; s++) {
         const px = ax + (bx - ax) * (s / seg), py = ay + (by - ay) * (s / seg);
         const R = Math.ceil(rw + 4), ix = Math.round(px), iy = Math.round(py);
@@ -222,9 +224,10 @@ function rivers(): Float32Array {
   return (riverField = f);
 }
 /** Distance (tiles) from the nearest river bank; negative inside a river. */
-export const riverDistAt = (x: number, y: number) => rivers()[y * MAP + x]!;
+export const riverDistAt = (x: number, y: number) => { syncGeo(); return rivers()[y * MAP + x]!; };
 export function terrain(x: number, y: number): Terrain {
   if (x < 0 || y < 0 || x >= MAP || y >= MAP) return "deep";
+  syncGeo();
   const k = y * MAP + x;
   const c = tcache[k]!;
   if (c) return TLIST[c - 1]!;
