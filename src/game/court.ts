@@ -1,4 +1,4 @@
-import { MAP, terrain, buildable } from "./world";
+import { MAP, terrain, buildable, onGeoChange } from "./world";
 import { wonders } from "./wonders";
 
 /** The prince's seat: one fixed estate near the map centre, pure from the shared terrain (same on every client). */
@@ -12,6 +12,7 @@ export const COURT_LAYOUT: Record<CourtPiece, [number, number, number]> = {
 export const COURT_GUARD = 30;
 
 let site: { x: number; y: number } | null = null;
+onGeoChange(() => { site = null; });
 function ok(x: number, y: number): boolean {
   for (let j = -2; j < COURT_N + 2; j++) for (let i = -2; i < COURT_N + 2; i++) { const t = terrain(x + i, y + j); if (!buildable(t) || t === "forest") return false; }
   for (const w of wonders()) if (w.x > x - 6 && w.x < x + COURT_N + 6 && w.y > y - 6 && w.y < y + COURT_N + 6) return false;
@@ -19,6 +20,7 @@ function ok(x: number, y: number): boolean {
 }
 /** Top-left tile of the estate. */
 export function courtSite(): { x: number; y: number } {
+  terrain(0, 0); // align with the current map geography
   if (site) return site;
   const c = MAP / 2 - COURT_N / 2;
   for (let r = 0; r < 420 && !site; r += 3) {
