@@ -697,7 +697,8 @@ export function links(seeds: Seed[]): Link[] {
     const gate = roadGate(a, b);
     if (gate === null) continue;
     const l = buildLink(a, b, d);
-    if (l) { l.since = Math.max(l.since, gate); l.build = roadDone(a, b)! - gate; linkCache.push(l); }
+    // player-decided roads start at the decision itself; only sample pairs wait for ROAD_AT
+    if (l) { if (gate !== -Infinity) { l.since = gate; l.build = roadDone(a, b)! - gate; } linkCache.push(l); }
   }
   for (const l of linkCache) l.tiles.forEach(([x, y], i) => { const k = y * MAP + x; if (!roadIdx.has(k)) roadIdx.set(k, { link: l, i }); });
   return linkCache;

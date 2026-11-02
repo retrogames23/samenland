@@ -1573,7 +1573,7 @@ export function Game() {
                   <span className="flex-1 font-semibold">{t.road.menu}</span>
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">{t.road.menuHint}</div>
-                {b ? <div className="mt-2 text-xs font-semibold text-wood">{t.road.busy(to?.name ?? "", Math.max(1, Math.ceil((b.done - now) / 3.6e6)))}</div>
+                {b ? <div className="mt-2 space-y-1"><div className="text-xs font-semibold text-wood">{t.road.busy(to?.name ?? "", Math.max(1, Math.ceil((b.done - now) / 3.6e6)))}</div><div className="h-1.5 w-full overflow-hidden rounded-full bg-ink/10"><div className="h-full rounded-full bg-brass" style={{ width: `${Math.round(Math.max(0, Math.min(1, (now - b.at) / Math.max(1, b.done - b.at))) * 100)}%` }} /></div></div>
                   : inc ? <div className="mt-2 space-y-1"><div className="text-xs font-semibold text-wood">{t.road.incoming(inc.from.name, Math.max(1, Math.ceil((inc.done - now) / 3.6e6)))}</div><Button size="sm" className="w-full" onClick={() => joinRoad(inc.from.id)}>{t.road.join}</Button></div>
                   : cs.length === 0 ? <div className="mt-2 text-xs">{t.road.none}</div>
                   : <Button size="sm" className="mt-2 w-full" onClick={openRoad}>{t.road.btn}</Button>}
