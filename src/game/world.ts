@@ -1,5 +1,7 @@
-import { nearCourt } from "./court";
-import { townCharacter, type TownWay } from "./character";
+import { nearCourt, resetCourt } from "./court";
+import { resetWonders } from "./wonders";
+import { townCharacter, resetCharacters, type TownWay } from "./character";
+import { biomeKey, type Biome } from "./biome";
 import { cacheTick, worldHour, worldWeekday, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
@@ -34,10 +36,54 @@ function fbm(x: number, y: number, s: number) {
 
 export type Terrain = "deep" | "water" | "sand" | "grass" | "meadow" | "fertile" | "forest" | "hill" | "mountain";
 const TLIST: Terrain[] = ["deep", "water", "sand", "grass", "meadow", "fertile", "forest", "hill", "mountain"];
-const tcache = new Uint8Array(MAP * MAP); // 0 = not computed, else index+1
+let tcache = new Uint8Array(MAP * MAP); // 0 = not computed, else index+1
 
+/**
+ * Regional geography: each biome (realm) has its own island outline, mountains and rivers.
+ * Heartland (Europe + lab) keeps the original formula exactly. Existing villages on the other
+ * maps are protected: their surroundings are lifted to dry lowland and no river crosses them.
+ */
+let geo: Biome = "heartland";
+const geoHooks: (() => void)[] = [];
+/** Register a cache reset that runs when the map geography switches (admin realm change). */
+export const onGeoChange = (f: () => void) => { geoHooks.push(f); };
+export const geoKey = () => biomeKey();
+function syncGeo() {
+  const b = biomeKey();
+  if (b === geo) return;
+  geo = b;
+  tcache = new Uint8Array(MAP * MAP); riverField = null; oceanMask = null;
+  shapeCache.clear(); lmCache.clear(); waterNearCache.clear(); birthCache.clear(); keptCache.clear();
+  siteCache.clear(); scache.clear(); cacheKey = ""; charCache.clear(); linkCache = [];
+  resetCourt(); resetWonders(); resetCharacters();
+  for (const f of geoHooks) f();
+}
+/** Founded villages (realm maps besides Europe) whose ground must stay dry, buildable lowland. */
+const ANCHORS: Record<Biome, [number, number][]> = {
+  heartland: [],
+  westwild: [[304, 405], [330, 354]],
+  westwood: [[297, 415]],
+  heath: [[374, 379], [404, 411]],
+};
+const ANCHOR_R = 30;
+function anchorNear(x: number, y: number, r: number) {
+  for (const [ax, ay] of ANCHORS[geo]) if (Math.hypot(x - ax, y - ay) < r) return true;
+  return false;
+}
+function protect(x: number, y: number, h: number) {
+  let w = 0;
+  for (const [ax, ay] of ANCHORS[geo]) { const d = Math.hypot(x - ax, y - ay); if (d < ANCHOR_R) w = Math.max(w, 1 - d / ANCHOR_R); }
+  if (!w) return h;
+  const s = w * w * (3 - 2 * w), target = Math.min(0.62, Math.max(0.46, h));
+  return h + (target - h) * Math.min(1, s * 1.6);
+}
 /** Island height with an irregular, bay-and-cape coastline (domain-warped radial falloff). */
 function heightAt(x: number, y: number) {
+  if (geo === "heartland") return heightEurope(x, y);
+  const h = geo === "westwild" ? heightFjords(x, y) : geo === "westwood" ? heightCoastPlain(x, y) : heightArchipelago(x, y);
+  return protect(x, y, h);
+}
+function heightEurope(x: number, y: number) {
   const wx = x + (fbm(x / 160, y / 160, 21) - 0.5) * 140;
   const wy = y + (fbm(x / 160, y / 160, 22) - 0.5) * 140;
   const cx = wx / MAP - 0.5, cy = wy / MAP - 0.5;
@@ -47,6 +93,49 @@ function heightAt(x: number, y: number) {
   const edge = Math.max(0, Math.hypot(cx, cy) * 2 - coast) * 2.2;
   const ridge = 1 - Math.abs(fbm(x / 120, y / 120, 25) * 2 - 1); // mountain chains
   return fbm(x / 90, y / 90, 1) * 0.75 + ridge * ridge * 0.3 - edge;
+}
+/** West isles: a long, tilted island with ragged fjords and a granite spine along its eastern side. */
+function heightFjords(x: number, y: number) {
+  const wx = x + (fbm(x / 130, y / 130, 221) - 0.5) * 110;
+  const wy = y + (fbm(x / 130, y / 130, 222) - 0.5) * 110;
+  const cx = wx / MAP - 0.47, cy = wy / MAP - 0.47;
+  const rx = cx * 0.8 + cy * 0.6, ry = -cx * 0.6 + cy * 0.8; // tilt the long axis
+  const ang = Math.atan2(ry, rx);
+  const coast = 0.7 + (vnoise(Math.cos(ang) * 6 + 40, Math.sin(ang) * 6 + 40, 223) - 0.5) * 0.5
+    + (vnoise(Math.cos(ang) * 14 + 7, Math.sin(ang) * 14 + 7, 224) - 0.5) * 0.18; // narrow fjords
+  const edge = Math.max(0, Math.hypot(rx * 0.95, ry * 1.6) * 2 - coast) * 2.6;
+  const ridge = 1 - Math.abs(fbm(x / 95, y / 95, 225) * 2 - 1);
+  const spine = Math.max(0, rx + 0.08) * 0.55; // highlands rise towards the east
+  return fbm(x / 80, y / 80, 201) * 0.7 + ridge * ridge * (0.22 + spine) - edge;
+}
+/** East coast: a broad, rounded land with a wide coastal plain, funnel-shaped bays and gentle hills. */
+function heightCoastPlain(x: number, y: number) {
+  const wx = x + (fbm(x / 200, y / 200, 321) - 0.5) * 170;
+  const wy = y + (fbm(x / 200, y / 200, 322) - 0.5) * 170;
+  const cx = wx / MAP - 0.47, cy = wy / MAP - 0.44;
+  const ang = Math.atan2(cy, cx);
+  const coast = 0.8 + (vnoise(Math.cos(ang) * 2 + 60, Math.sin(ang) * 2 + 60, 323) - 0.5) * 0.24;
+  const bay = Math.max(0, vnoise(Math.cos(ang) * 5 + 3, Math.sin(ang) * 5 + 3, 324) - 0.62) * 1.4; // estuaries
+  const edge = Math.max(0, Math.hypot(cx * 1.15, cy) * 2 - coast + bay) * 1.9;
+  const ridge = 1 - Math.abs(fbm(x / 150, y / 150, 325) * 2 - 1);
+  const inland = Math.max(0, -cx - 0.05) * 0.5; // a low range far to the west
+  return fbm(x / 110, y / 110, 301) * 0.68 + ridge * ridge * (0.14 + inland) - edge;
+}
+/** Far isle: a crescent main island with a volcanic ridge, ringed by smaller islets. */
+function heightArchipelago(x: number, y: number) {
+  const wx = x + (fbm(x / 140, y / 140, 421) - 0.5) * 120;
+  const wy = y + (fbm(x / 140, y / 140, 422) - 0.5) * 120;
+  const cx = wx / MAP - 0.42, cy = wy / MAP - 0.42;
+  const ang = Math.atan2(cy, cx), d = Math.hypot(cx, cy);
+  const coast = 0.62 + (vnoise(Math.cos(ang) * 4 + 80, Math.sin(ang) * 4 + 80, 423) - 0.5) * 0.36;
+  // crescent: a bay bites into the south-east side
+  const bite = Math.max(0, 0.22 - Math.hypot(cx - 0.2, cy - 0.2)) * 3.2;
+  const edge = Math.max(0, d * 2 - coast) * 2.4 + bite;
+  const ridge = 1 - Math.abs(fbm(x / 100, y / 100, 425) * 2 - 1);
+  const main = fbm(x / 85, y / 85, 401) * 0.72 + ridge * ridge * 0.36 - edge;
+  // islets scattered over the surrounding sea
+  const isl = fbm(x / 46, y / 46, 431) * 1.35 - 0.4 - Math.max(0, d - 0.33) * 3.2;
+  return d > 0.28 ? Math.max(main, isl) : main;
 }
 /**
  * Traced rivers: each one starts at a spring in the highlands and walks downhill (with a gentle
@@ -100,6 +189,7 @@ function rivers(): Float32Array {
       if (o >= 0 && o !== me) { ok = true; break; } // confluence
     }
     if (!ok || path.length < 25) continue;
+    if (geo !== "heartland" && path.some(([px, py]) => anchorNear(px, py, 16))) continue; // never through a founded village
     // smooth the grid walk into a flowing curve, then let it swing in gentle meanders
     const W = 5, sm: [number, number][] = [];
     for (let i = 0; i < path.length; i++) {
@@ -120,7 +210,7 @@ function rivers(): Float32Array {
     for (let i = 0; i + 1 < cur.length; i++) {
       const [ax, ay] = cur[i]!, [bx, by] = cur[i + 1]!;
       const seg = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) * 3));
-      const rw = Math.min(2.8, 1.1 + i * 0.006);
+      const rw = geo === "westwood" ? Math.min(3.8, 1.2 + i * 0.008) : Math.min(2.8, 1.1 + i * 0.006);
       for (let s = 0; s < seg; s++) {
         const px = ax + (bx - ax) * (s / seg), py = ay + (by - ay) * (s / seg);
         const R = Math.ceil(rw + 4), ix = Math.round(px), iy = Math.round(py);
@@ -136,9 +226,10 @@ function rivers(): Float32Array {
   return (riverField = f);
 }
 /** Distance (tiles) from the nearest river bank; negative inside a river. */
-export const riverDistAt = (x: number, y: number) => rivers()[y * MAP + x]!;
+export const riverDistAt = (x: number, y: number) => { syncGeo(); return rivers()[y * MAP + x]!; };
 export function terrain(x: number, y: number): Terrain {
   if (x < 0 || y < 0 || x >= MAP || y >= MAP) return "deep";
+  syncGeo();
   const k = y * MAP + x;
   const c = tcache[k]!;
   if (c) return TLIST[c - 1]!;

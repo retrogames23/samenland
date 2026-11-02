@@ -14,7 +14,7 @@ import { worldHour } from "./time";
 import { seasonAt } from "./season";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { MAP, hash, structureAt, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, type TradeGood, type Seed, type Kind } from "./world";
+import { geoKey, MAP, hash, structureAt, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -561,8 +561,10 @@ function assignHauls(people: Person[], byKind: Map<Kind, Tile[]>, sites: Tile[],
 
 /** Nearest open forest-edge tile (woodcutting) and open tile beside hills/rocks (quarry). */
 const spotCache = new Map<string, [Tile | null, Tile | null]>();
+let spotGeo = "";
 export function resourceSpots(s: Seed, r: number): [Tile | null, Tile | null] {
   const R = Math.ceil(r + 10), key = `${s.id}:${s.x}:${s.y}:${R}`;
+  if (spotGeo !== geoKey()) { spotGeo = geoKey(); spotCache.clear(); }
   const hit = spotCache.get(key); if (hit) return hit;
   let wood: Tile | null = null, rock: Tile | null = null, wd = Infinity, rd = Infinity;
   for (let y = s.y - R; y <= s.y + R; y++) for (let x = s.x - R; x <= s.x + R; x++) {

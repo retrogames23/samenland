@@ -8,6 +8,7 @@ export type TownCharacter = {
 };
 const ORDER: TownWay[] = ["grain", "workshop", "gateway"];
 const cache = new Map<string, TownCharacter>();
+export const resetCharacters = () => cache.clear();
 
 /** Equal-area terrain shares; woodland belongs to the land-based food route.
  * Sand is shore, not a penalty; no age, purchases or stored growth enter this label. */
