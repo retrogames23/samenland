@@ -961,9 +961,44 @@ export function driveMayor(p: Person, t: Town, seeds: Seed[], now: number, dx: n
   drive.dir = [dx / len, dy / len];
 }
 export const stopDrive = () => { drive = null; };
+/** Own steered mayor right now (for the live broadcast), or null when following the routine. */
+export function ownStroll(): { sid: string; x: number; y: number; dir: [number, number]; walking: boolean; dist: number } | null {
+  if (drive) return { sid: drive.sid, x: drive.x, y: drive.y, dir: drive.dir, walking: drive.moving, dist: drive.dist };
+  return null;
+}
+
+/** Live positions of other players' strolling mayors (Realtime broadcast, never stored); dist carries the stride phase. */
+export type RemoteSample = { x: number; y: number; dir: [number, number]; walking: boolean; mounted: boolean; dist: number; t: number };
+const remote = new Map<string, { a: RemoteSample; b: RemoteSample }>();
+/** Remote figures stay live this long without a packet, then fall back to their derived routine. */
+export const REMOTE_TTL = 8000;
+/** Render delay so motion is interpolated between two received samples. */
+const REMOTE_LAG = 260;
+export function setRemoteMayor(sid: string, s: Omit<RemoteSample, "t"> | null, at = Date.now()) {
+  if (!s) { remote.delete(sid); return; }
+  const n: RemoteSample = { ...s, t: at }, r = remote.get(sid);
+  if (!r || at - r.b.t > 2000 || Math.hypot(n.x - r.b.x, n.y - r.b.y) > 6) remote.set(sid, { a: n, b: n });
+  else remote.set(sid, { a: r.b, b: n });
+}
+export const clearRemoteMayors = () => remote.clear();
+/** Interpolated remote pose sample, or null when stale/absent. */
+export function remoteMayor(sid: string, wall = Date.now()): RemoteSample | null {
+  const r = remote.get(sid);
+  if (!r) return null;
+  if (wall - r.b.t > REMOTE_TTL) { remote.delete(sid); return null; }
+  const rt = wall - REMOTE_LAG, span = r.b.t - r.a.t;
+  const u = span > 0 ? Math.max(0, Math.min(1, (rt - r.a.t) / span)) : 1;
+  const l = (p: number, q: number) => p + (q - p) * u;
+  const walking = r.b.walking && wall - r.b.t < 1200;
+  return { x: l(r.a.x, r.b.x), y: l(r.a.y, r.b.y), dir: r.b.dir, walking, mounted: r.b.mounted, dist: l(r.a.dist, r.b.dist), t: r.b.t };
+}
 function orderPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): Pose | null {
   const dv = drive;
   if (dv && dv.id === p.id) return { ...base, x: dv.x, y: dv.y, dir: dv.dir, visible: true, walking: dv.moving, act: "stroll", phase: dv.dist / STRIDE, working: false, mounted };
+  if (!dv || dv.sid !== p.seed.id) {
+    const rm = remoteMayor(p.seed.id);
+    if (rm) return { ...base, x: rm.x, y: rm.y, dir: rm.dir, visible: true, walking: rm.walking, act: "stroll", phase: rm.dist, working: false, mounted: rm.mounted };
+  }
   const o = order;
   if (!o || o.id !== p.id) return null;
   const a: Tile = [Math.round(o.from[0]), Math.round(o.from[1])];

@@ -13,7 +13,8 @@ import { wonders, wonderClaims, firstFinder, WONDER_REACH, type WonderFind } fro
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townRank, rankInput, nextRankNeed } from "@/game/rank";
-import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, setMounted, setStrollHold, citizensOf, isHomeKind, type Person } from "@/game/people";
+import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, setMounted, setStrollHold, citizensOf, isHomeKind, setRemoteMayor, clearRemoteMayors, type Person } from "@/game/people";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { banter } from "@/game/banter";
 import { weddingJoy } from "@/game/weddings";
@@ -346,6 +347,7 @@ export function Game() {
   const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, ghost: null as [number, number] | null, walk: false });
   st.current.walk = walk;
   st.current.seeds = seeds;
+  const liveCh = useRef<RealtimeChannel | null>(null);
   st.current.placing = placing;
   st.current.ghost = ghost;
   st.current.mode = mode;
@@ -802,7 +804,7 @@ export function Game() {
     };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
     const onBlur = () => keys.clear();
-    let lastPan = performance.now(), walkDriven = false;
+    let lastPan = performance.now(), walkDriven = false, liveSent = 0, liveOn = false, liveW = false;
     panStep = () => {
       const now = performance.now(), dt = Math.min(50, now - lastPan); lastPan = now;
       if (st.current.walk) {
@@ -821,6 +823,11 @@ export function Game() {
             if (keys.size || held) { driveMayor(me, tw, S.seeds, nw, dx + dy, dy - dx, dt / 1000); walkDriven = true; }
             else if (walkDriven) { driveMayor(me, tw, S.seeds, nw, 0, 0, dt / 1000); walkDriven = false; }
             const q = poseOf(me, tw, S.seeds, nw), [ix, iy] = iso(q.x, q.y), k = 1 - Math.exp(-dt / 220);
+            // live broadcast for other players: ~4/s while walking, a heartbeat every 3 s while standing
+            if (liveCh.current && q.act === "stroll" && (now - liveSent > (q.walking ? 230 : 3000) || q.walking !== liveW)) {
+              liveSent = now; liveOn = true; liveW = q.walking;
+              void liveCh.current.send({ type: "broadcast", event: "pos", payload: { sid: my.id, x: +q.x.toFixed(2), y: +q.y.toFixed(2), dx: +q.dir[0].toFixed(2), dy: +q.dir[1].toFixed(2), w: q.walking, m: knights.current.has(my.id), d: +q.phase.toFixed(2) } });
+            }
             for (const o of S.seeds) if (o.id !== my.id && !visitSeen.current.has(o.id) && Math.hypot(q.x - o.x, q.y - o.y) <= radiusOf((nw - Date.parse(o.created_at)) / 36e5)) { visitSeen.current.add(o.id); visitFn.current(o, my); }
             for (const w of wonders()) if (!wonderSeen.current.has(w.key) && Math.hypot(q.x - w.x, q.y - w.y) <= WONDER_REACH) { wonderSeen.current.add(w.key); wonderFn.current(w.key, w.kind, my); }
             { const near = atCourt(q.x, q.y); if (near !== courtNear.current) { courtNear.current = near; setNearCourt(near); } }
@@ -841,6 +848,7 @@ export function Game() {
         return;
       }
       walkDriven = false;
+      if (liveOn) { liveOn = false; liveSent = 0; const S = st.current; if (S.mine) void liveCh.current?.send({ type: "broadcast", event: "pos", payload: { sid: S.mine, bye: true } }); }
       if (keys.size) {
         let dx = 0, dy = 0;
         for (const k of keys) { const v = KEYMAP[k]; if (v) { dx += v[0]; dy += v[1]; } }
@@ -1218,6 +1226,20 @@ export function Game() {
   };
   const knights = useRef<Set<string>>(new Set());
   const [, bumpKnight] = useState(0);
+  // live strolling mayors: one shared broadcast room per realm, purely ephemeral (no table writes)
+  useEffect(() => {
+    const ch = supabase.channel(`mayors:${realm}`, { config: { broadcast: { self: false } } });
+    ch.on("broadcast", { event: "pos" }, ({ payload }) => {
+      const m = payload as { sid?: string; x?: number; y?: number; dx?: number; dy?: number; w?: boolean; m?: boolean; d?: number; bye?: boolean };
+      if (typeof m.sid !== "string" || m.sid === st.current.mine) return;
+      if (m.bye) return setRemoteMayor(m.sid, null);
+      if (![m.x, m.y, m.dx, m.dy, m.d].every((v) => typeof v === "number" && Number.isFinite(v))) return;
+      if (m.x! < 0 || m.y! < 0 || m.x! > MAP || m.y! > MAP) return;
+      setRemoteMayor(m.sid, { x: m.x!, y: m.y!, dir: [m.dx!, m.dy!], walking: !!m.w, mounted: !!m.m, dist: m.d! });
+    }).subscribe();
+    liveCh.current = ch;
+    return () => { liveCh.current = null; clearRemoteMayors(); supabase.removeChannel(ch); };
+  }, [realm]);
   const kneel = async (seedId: string, female: boolean) => {
     const P = PRINCELY[lang];
     const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: string | null; error: unknown }>;

@@ -66,3 +66,4 @@
 - Knighthood: only knighthoods rows are stored (DB princely_knight: owner, 12 fulfilled decrees, once); the riding horse (KNIGHT_SPEED in people.ts, rider sprite for the own strolling mayor) is derived locally from that row.
 - Supporter decorations (src/game/supporter.ts): only paid reward rows are stored (supporter_rewards, written solely by the signed payment webhook); placement around the mayor seat is derived via decorMap and never affects any game value.
 - Speech bubbles (src/game/banter.ts + lang/banter.ts) are local-only and never stored; picks avoid the last 40 lines shown.
+- Live strolling mayors of other players travel only over the ephemeral Realtime broadcast room mayors:<realm> (people.ts setRemoteMayor/remoteMayor, TTL fallback to the derived routine); never write positions to tables — keeps DB load zero.
