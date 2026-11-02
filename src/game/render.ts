@@ -651,7 +651,7 @@ export function cartShear(dx: number, dy: number, away: boolean): number {
   return Math.max(-1.1, Math.min(1.1, slope - (away ? -0.5 : 0.5)));
 }
 /** Carts currently shown head-on/from behind; hysteresis keeps them from flipping views on gently curving roads. */
-const cartAxis = new Set<number>();
+const cartAxis = new Set<number | string>();
 /** Figures shown as parchment silhouettes last frame (occlusion hysteresis). */
 const ghostWas = new Set<number>();
 /** Head-on view enters above a dy/dx ratio of 1.05 and only leaves below 0.75. */
@@ -659,11 +659,11 @@ export function cartAxisView(dx: number, dy: number, was: boolean): boolean {
   const r = Math.abs(dy) / Math.max(Math.abs(dx), 0.05);
   return was ? r > 0.75 : r > 1.05;
 }
-function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: number, sd: number, _cover: string, t: number) {
+function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: number, sd: number, _cover: string, t: number, key: number | string = sd) {
   const away = dy < -0.15 * Math.abs(dx);
   // steep stretches (steeper than the 2:1 diagonal): painted head-on / from-behind view instead of a tilted side view
-  const axis = cartAxisView(dx, dy, cartAxis.has(sd));
-  if (axis) cartAxis.add(sd); else cartAxis.delete(sd);
+  const axis = cartAxisView(dx, dy, cartAxis.has(key));
+  if (axis) cartAxis.add(key); else cartAxis.delete(key);
   if (cartAxis.size > 256) cartAxis.clear();
   if (axis) {
     const back = dy < 0, im = cartAxisImage(back);
@@ -2342,9 +2342,9 @@ export function draw(
       const cartW = w.kind === "family" || w.kind === "gift" || w.kind === "aid", [ox2, oy2] = keepRight(m.direction[0], m.direction[1], cartW ? 3.2 : 4.2);
       const x = m.position[0] + ox2, y = m.position[1] + oy2;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
-      if (w.kind === "family" || w.kind === "gift" || w.kind === "aid") { roadProp(x, y, fade, () => drawCart(c, x, y, m.direction[0], m.direction[1], Math.sin(t / 220) * 0.3, w.sd, "", t * 0.8), false, `w${w.kind}:${w.sd}:${w.from.name}`); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: true, walker: w }); continue; }
+      if (w.kind === "family" || w.kind === "gift" || w.kind === "aid") { roadProp(x, y, fade, () => drawCart(c, x, y, m.direction[0], m.direction[1], Math.sin(t / 220) * 0.3, w.sd, "", t * 0.8, `w${w.kind}:${w.sd}:${w.from.id}:${w.to.id}`), false, `w${w.kind}:${w.sd}:${w.from.id}:${w.to.id}`, m.position[0], m.position[1]); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: true, walker: w }); continue; }
       const wid = `w${w.kind}:${w.sd}:${w.from.name}`;
-      if (w.kind === "transit") { const src = w.origin ?? w.from, ex = tradeProfile(src, now).exports, gd = ex[w.sd % Math.max(1, ex.length)] ?? null; roadProp(x, y, fade, () => drawCart(c, x, y, m.direction[0], m.direction[1], Math.sin(t / 220) * 0.3, w.sd, "", t), false, wid); lastTraders.push({ x, y, from: src.name, to: (w.dest ?? w.to).name, good: gd, cart: true }); continue; }
+      if (w.kind === "transit") { const src = w.origin ?? w.from, ex = tradeProfile(src, now).exports, gd = ex[w.sd % Math.max(1, ex.length)] ?? null; roadProp(x, y, fade, () => drawCart(c, x, y, m.direction[0], m.direction[1], Math.sin(t / 220) * 0.3, w.sd, "", t, `${wid}:${w.to.id}`), false, `${wid}:${w.to.id}`, m.position[0], m.position[1]); lastTraders.push({ x, y, from: src.name, to: (w.dest ?? w.to).name, good: gd, cart: true }); continue; }
       if (w.kind === "rider") { roadProp(x, y, fade, (context) => drawRider(context, x, y, m.direction[0], m.direction[1], w.sd, t), true, wid); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: false, walker: w }); continue; }
       if (w.kind === "trader") { const ex = tradeProfile(w.p0 ? w.to : w.from, now).exports, gd = ex[w.sd % Math.max(1, ex.length)] ?? null; roadProp(x, y, fade, () => drawWanderer(c, x, y, m.direction[0], m.direction[1], t * 0.7, w.sd, gd ? CARRY_OF[gd] : "bundle"), false, wid); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: gd, cart: false, walker: w }); continue; }
       roadProp(x, y, fade, (context) => drawWanderer(context, x, y, m.direction[0], m.direction[1], t * (w.kind === "messenger" || w.kind === "letter" ? 1.4 : w.kind === "bridal" ? 0.6 : 0.8), w.sd, w.kind === "journeyman" ? "bundle" : null, w.kind === "bridal" ? (w.sex === "m" ? "groom" : "bride") : undefined), w.kind === "messenger" || w.kind === "letter", wid);
