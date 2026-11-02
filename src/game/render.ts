@@ -1843,8 +1843,8 @@ function fountainFrames(im: HTMLImageElement) {
     const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
     const cx = cv.getContext("2d")!, id = cx.createImageData(W, H), d = id.data; d.set(src);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const i = (y * W + x) * 4, r = src[i], g = src[i + 1], b = src[i + 2];
-      if (src[i + 3] < 30 || b < 110 || b < r + 15) continue;
+      const i = (y * W + x) * 4, r = src[i]!, g = src[i + 1]!, b = src[i + 2]!;
+      if (src[i + 3]! < 30 || b < 110 || b < r + 15) continue;
       const band = (((y >> 2) - f + ((x >> 3) & 1)) % 4 + 4) % 4;
       const k = band === 0 ? 1.22 : band === 2 ? 0.9 : 1;
       if (k === 1) continue;
@@ -1865,7 +1865,7 @@ function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[],
   if (im) {
     const h = (w * im.naturalHeight) / im.naturalWidth;
     const fr = k === "fountain" ? fountainFrames(im) : null;
-    c.drawImage(fr ? fr[Math.floor(t / 180) % fr.length] : im, mx - w / 2, by - h, w, h);
+    c.drawImage(fr ? fr[Math.floor(t / 180) % fr.length]! : im, mx - w / 2, by - h, w, h);
   }
   if (k === "castle") { L.push({ x: mx - 10, y: by - 50, r: 4 }); L.push({ x: mx + 9, y: by - 48, r: 4 }); L.push({ x: mx, y: by - 10, r: 3 }); }
   if (k === "stable") L.push({ x: mx - 8, y: by - 14, r: 2.5 });
