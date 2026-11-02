@@ -484,6 +484,13 @@
       "when": 1793567780328,
       "tag": "0068_supporter_rewards",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1793616467904,
+      "tag": "0069_wonder_limit_3",
+      "breakpoints": true
     }
   ]
 }
