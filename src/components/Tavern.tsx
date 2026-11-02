@@ -91,7 +91,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
   // on opening: jump to a waiting letter when the main room has nothing new
   const wasOpen = useRef(false);
   useEffect(() => {
-    if (open && !wasOpen.current && unreadOf("tavern") === 0) {
+    if (open && !wasOpen.current && !peer && unreadOf("tavern") === 0) {
       const p = peers.find((x) => !blocked.has(x) && unreadOf({ peer: x }) > 0);
       if (p) setChan({ peer: p });
     }
