@@ -41,6 +41,7 @@ import { QUESTS, questState, questKey, WAY_SMALL, WAY_BIG, type Quest, type Ques
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { splashDone } from "@/game/splash";
 import { VillageRoll } from "@/components/VillageRoll";
+import { TownProfile } from "@/components/TownProfile";
 import { Tavern } from "@/components/Tavern";
 import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
@@ -172,6 +173,7 @@ export function Game() {
   const [letters, setLetters] = useState<LetterRow[]>([]);
   const [bodies, setBodies] = useState<Record<string, string>>({});
   const [postTo, setPostTo] = useState<Seed | null>(null);
+  const [profile, setProfile] = useState<Seed | null>(null);
   const [postText, setPostText] = useState("");
   const [claims, setClaims] = useState<QuestClaim[]>([]);
   const [charters, setCharters] = useState<{ id: string; seed_id: string; path: string; created_at: string }[]>([]);
@@ -1849,7 +1851,7 @@ export function Game() {
         <ul className="max-h-[50vh] space-y-1 overflow-auto">
           {seeds.map((s) => (
             <li key={s.id}>
-              <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { focus(s.x, s.y); setTab(null); }}>
+              <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { setProfile(s); setTab(null); }}>
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
                   {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{t.roll.role["mayor"]![f ? 0 : 1]}: {s.owner}{support.get(s.id)?.has("seal") && <span title={SUPPORT[lang].seal} className="ms-1 text-primary">⚜️</span>}</>; })()} · {t.age(ageHours(s, now))}
@@ -2547,6 +2549,9 @@ export function Game() {
         </Parchment>
       )}
 
+      {profile && (
+        <TownProfile t={t} lang={lang} town={seeds.find((x) => x.id === profile.id) ?? profile} me={my ?? null} seeds={seeds} now={clock()} onClose={() => setProfile(null)} onLook={() => { focus(profile.x, profile.y); setProfile(null); }} />
+      )}
       {rollOpen && my && myTown && (
         <VillageRoll t={t} town={myTown} hue={my.hue} character={<CharacterDetails seed={my} lang={lang} />} onClose={() => setRollOpen(false)} onPick={(p) => {
           const now = clock();
