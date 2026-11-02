@@ -32,7 +32,7 @@ function fits(kind: WonderKind, x: number, y: number): boolean {
 
 let cache: Wonder[] | null = null;
 export const resetWonders = () => { cache = null; };
-/** All wonders on the map (same terrain for every realm). */
+/** All wonders on the current realm's map (each realm has its own geography). */
 export function wonders(): Wonder[] {
   terrain(0, 0); // align with the current map geography
   if (cache) return cache;
