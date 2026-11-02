@@ -22,3 +22,17 @@ describe("audience", () => {
     expect(atCourt(c.x + 8, c.y)).toBe(true); expect(atCourt(c.x + 12, c.y)).toBe(false);
   });
 });
+
+import { errandNear, courtPoses } from "./court";
+describe("court errands", () => {
+  it("finds the gardener only while he works and the mayor stands beside him", () => {
+    const g = courtPoses(10, 0).find((q) => q.role === "gardener")!;
+    expect(errandNear(10, 0, g.x + 0.5, g.y)).toBe("gardener");
+    expect(errandNear(10, 0, g.x + 6, g.y + 6)).toBeNull();
+    expect(errandNear(22, 0, g.x, g.y)).toBeNull();
+  });
+  it("skips errands already done", () => {
+    const g = courtPoses(10, 0).find((q) => q.role === "gardener")!;
+    expect(errandNear(10, 0, g.x, g.y, new Set(["gardener"]))).not.toBe("gardener");
+  });
+});

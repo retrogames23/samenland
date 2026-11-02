@@ -100,3 +100,22 @@ export function audienceHost(hour: number): AudienceHost {
   return "closed";
 }
 export const atCourt = (x: number, y: number) => { const c = courtCenter(); return Math.hypot(x - c.x, y - c.y) <= AUDIENCE_REACH; };
+
+// ---------------- Hofdienst: two errands on the estate (mirrors DB princely_errand) ----------------
+export const ERRANDS = ["gardener", "groom"] as const;
+export type Errand = (typeof ERRANDS)[number];
+/** Tiles within which the strolling mayor can speak to a court servant. */
+export const ERRAND_REACH = 2.2;
+/** Realm hours the servant is on the estate (gardener 6–17, groom 6–19). */
+export const ERRAND_HOURS: Record<Errand, [number, number]> = { gardener: [6, 17], groom: [6, 19] };
+/** The servant the mayor stands next to (nearest within reach), or null. */
+export function errandNear(hour: number, t: number, x: number, y: number, skip: ReadonlySet<string> = new Set()): Errand | null {
+  let best: Errand | null = null, bd = ERRAND_REACH;
+  for (const q of courtPoses(hour, t)) {
+    if (q.role !== "gardener" && q.role !== "groom") continue;
+    if (skip.has(q.role)) continue;
+    const d = Math.hypot(q.x - x, q.y - y);
+    if (d <= bd) { bd = d; best = q.role; }
+  }
+  return best;
+}

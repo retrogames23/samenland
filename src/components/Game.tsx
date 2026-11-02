@@ -50,7 +50,7 @@ import { SUPPORT } from "@/game/lang/support";
 import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
 import { princelyClaims, favourOf, openTaskOf, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
-import { atCourt, audienceHost, type AudienceHost } from "@/game/court";
+import { atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
 import { Beer } from "lucide-react";
 import { seasonAt } from "@/game/season";
@@ -507,6 +507,7 @@ export function Game() {
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("princely_tasks").select("id, seed_id, step, task, reward, accepted_at, done_at"),
       ]).then(([q, m, rf, vv, wf, pt]) => {
         princelyRows.current = (pt.data ?? []) as PrincelyRow[];
+        loadErrands();
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: { seed_id: string }[] | null }> } }).from("knighthoods").select("seed_id").then(({ data }) => { knights.current = new Set((data ?? []).map((k) => k.seed_id)); });
         for (const v of vv.data ?? []) visitSeen.current.add(v.visited_seed);
         wonderRows.current = (wf.data ?? []) as unknown as WonderFind[];
@@ -762,6 +763,7 @@ export function Game() {
             for (const o of S.seeds) if (o.id !== my.id && !visitSeen.current.has(o.id) && Math.hypot(q.x - o.x, q.y - o.y) <= radiusOf((nw - Date.parse(o.created_at)) / 36e5)) { visitSeen.current.add(o.id); visitFn.current(o, my); }
             for (const w of wonders()) if (!wonderSeen.current.has(w.key) && Math.hypot(q.x - w.x, q.y - w.y) <= WONDER_REACH) { wonderSeen.current.add(w.key); wonderFn.current(w.key, w.kind, my); }
             { const near = atCourt(q.x, q.y); if (near !== courtNear.current) { courtNear.current = near; setNearCourt(near); } }
+            { const ct = courtTask(my.id); const e = ct ? errandNear(worldHour(nw), nw, q.x, q.y, new Set(errandDone.current.filter((r) => r.task_id === ct.id).map((r) => r.errand))) : null; if (e !== errNear.current) { errNear.current = e; setNearErrand(e); } }
             if (drag.current?.moved) camFree.current = true;
             if (!camFree.current) { cam.current.x += (ix - cam.current.x) * k; cam.current.y += (iy - 10 - cam.current.y) * k; }
             else {
@@ -1085,6 +1087,28 @@ export function Game() {
   const [nearCourt, setNearCourt] = useState(false);
   const [audience, setAudience] = useState<AudienceHost | null>(null);
   const princelyRows = useRef<PrincelyRow[]>([]);
+  // Hofdienst: errands done for the open "court" decree (owner-only rows, mirrors DB princely_errand)
+  const errandDone = useRef<{ task_id: string; errand: string }[]>([]);
+  const errNear = useRef<Errand | null>(null);
+  const [nearErrand, setNearErrand] = useState<Errand | null>(null);
+  const [errandNote, setErrandNote] = useState<string | null>(null);
+  const [, bumpErrand] = useState(0);
+  const courtTask = (seedId: string) => { const o = openTaskOf(princelyRows.current, seedId); return o && o.task === "court" ? o : null; };
+  const loadErrands = () => {
+    (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: { task_id: string; errand: string }[] | null }> } }).from("princely_errands").select("task_id, errand")
+      .then(({ data }) => { errandDone.current = data ?? []; errNear.current = null; bumpErrand((n) => n + 1); });
+  };
+  const doErrand = async (seedId: string, e: Errand) => {
+    const P = PRINCELY[lang], ct = courtTask(seedId);
+    if (!ct) return;
+    const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: number | null; error: unknown }>;
+    const { data, error } = await rpc("princely_errand", { _seed: seedId, _errand: e });
+    if (error || data == null || data < 0) { setErrandNote(P.fail); return; }
+    if (!errandDone.current.some((r) => r.task_id === ct.id && r.errand === e)) errandDone.current = [...errandDone.current, { task_id: ct.id, errand: e }];
+    errNear.current = null; setNearErrand(null); bumpErrand((n) => n + 1);
+    setErrandNote(P.errand[e][1] + (data >= ERRANDS.length ? " " + P.errandReady : ""));
+    jingle(data >= ERRANDS.length ? "fanfare" : "coins");
+  };
   const knights = useRef<Set<string>>(new Set());
   const [, bumpKnight] = useState(0);
   const kneel = async (seedId: string, female: boolean) => {
@@ -1117,11 +1141,12 @@ export function Game() {
     const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: string | null; error: unknown }>;
     const { data, error } = await rpc("princely_swap", { _seed: seedId });
     if (error || !data) { setDecree(P.fail); return; }
-    if (data === "swapped") princelyRows.current = princelyRows.current.map((r) => r.seed_id === seedId && !r.done_at ? { ...r, task: "court", accepted_at: new Date().toISOString() } : r);
+    if (data === "swapped") { princelyRows.current = princelyRows.current.map((r) => r.seed_id === seedId && !r.done_at ? { ...r, task: "court", accepted_at: new Date().toISOString() } : r); errNear.current = null; bumpErrand((n) => n + 1); }
     setDecree(data === "swapped" ? P.swapped : data === "wait" ? P.wait : P.open(P.task.court));
   };
   useEffect(() => { if (!audience) setDecree(null); }, [audience]);
-  useEffect(() => { if (!walk) { courtNear.current = false; setNearCourt(false); setAudience(null); } }, [walk]);
+  useEffect(() => { if (!walk) { courtNear.current = false; setNearCourt(false); setAudience(null); errNear.current = null; setNearErrand(null); } }, [walk]);
+  useEffect(() => { if (!errandNote) return; const h = setTimeout(() => setErrandNote(null), 9000); return () => clearTimeout(h); }, [errandNote]);
   useEffect(() => { if (!visitNote) return; const h = setTimeout(() => setVisitNote(null), 9000); return () => clearTimeout(h); }, [visitNote]);
   visitFn.current = (o, my) => {
     if (!owner || my.user_id !== userId) { visitSeen.current.delete(o.id); return; }
@@ -1765,6 +1790,24 @@ export function Game() {
           <div className="text-2xl" aria-hidden>🪙</div>
           {visitNote}
         </div>
+      )}
+      {walk && my && courtTask(my.id) && !audience && (() => {
+        const P = PRINCELY[lang], ct = courtTask(my.id)!, done = new Set(errandDone.current.filter((r) => r.task_id === ct.id).map((r) => r.errand));
+        return (
+          <div data-walk className="absolute left-2 top-2 z-40 w-[min(16rem,70vw)] rounded-md border-2 border-wood bg-card/95 px-3 py-2 text-xs text-foreground shadow-[var(--shadow-panel)]">
+            <div className="font-display text-sm font-bold">👑 {P.errandTitle} · {done.size}/{ERRANDS.length}</div>
+            <ul className="mt-1 space-y-0.5">{ERRANDS.map((e) => <li key={e} className={done.has(e) ? "text-muted-foreground line-through" : ""}>{done.has(e) ? "✓" : "○"} {P.errandWho[e]}</li>)}</ul>
+            <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{done.size >= ERRANDS.length ? P.errandReady : P.errandHint}</p>
+          </div>
+        );
+      })()}
+      {walk && my && nearErrand && !audience && (
+        <div data-walk className="absolute inset-x-0 top-[22%] z-40 flex justify-center">
+          <WoodButton label={PRINCELY[lang].errand[nearErrand][0]} onClick={() => void doErrand(my.id, nearErrand)} className="h-11 px-4"><span className="text-sm font-semibold">{nearErrand === "gardener" ? "🌹" : "🐎"} {PRINCELY[lang].errand[nearErrand][0]}</span></WoodButton>
+        </div>
+      )}
+      {walk && errandNote && (
+        <div data-walk role="status" className="pointer-events-auto absolute inset-x-0 top-[30%] z-50 mx-auto w-fit max-w-[88vw] rounded-md border-2 border-wood bg-card px-5 py-3 text-center text-sm italic text-foreground shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95" onClick={() => setErrandNote(null)}>{errandNote}</div>
       )}
       {walk && nearCourt && !audience && (
         <div data-walk className="absolute inset-x-0 top-[14%] z-40 flex justify-center">
