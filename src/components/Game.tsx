@@ -1397,10 +1397,12 @@ export function Game() {
     if (e.code === "bought" && /^title[1-3]$/.test(e.item)) return [t.office.fest, t.office.festBody(my?.owner ?? n, itemName(e.item))];
     if (e.code === "stage") return [t.fest.stage[0], t.fest.stage[1](t.stages[e.stage] ?? "")];
     if (e.code === "built" && SEAT_KINDS.includes(e.kind)) { const p = t.fest.seat[SEAT_KINDS.indexOf(e.kind)]; if (p) return p; }
-    const name = e.code === "built" ? (t.kind[e.kind] ?? e.kind) : e.code === "bought" ? (itemName(e.item)) : chronLine(e);
+    // moves, brides, journeymen: plain news, never a "finished – everyone gathers" inauguration
+    if (e.code !== "built" && e.code !== "bought") return [e.code === "moved" && !e.away ? t.fest.newcomers[0] : t.chron.title, chronLine(e)];
+    const name = e.code === "built" ? (t.kind[e.kind] ?? e.kind) : itemName(e.item);
     // only promise a gathering while the inauguration is actually running
     const live = (e.code === "built" || e.code === "bought") && clock() - e.at < FETE_SECS * 1000;
-    return [t.fest.built[0], (e.code === "built" || e.code === "bought") && !live ? t.fest.builtPast(name) : t.fest.built[1](name)];
+    return [t.fest.built[0], !live ? t.fest.builtPast(name) : t.fest.built[1](name)];
   };
   function openChron() {
     if (!my) return;
