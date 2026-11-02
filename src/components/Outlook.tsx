@@ -1,5 +1,5 @@
 import { RANK_NEED, rankInput } from "@/game/rank";
-import { LANDMARKS, STAGES, SEAT_KINDS, type Seed } from "@/game/world";
+import { LANDMARKS, STAGES, type Seed } from "@/game/world";
 import { ITEMS, MONUMENTS, canBuy, canBuyWay, type Item } from "@/game/economy";
 import { ITEM_STAGE } from "@/game/disasters";
 import { OUTLOOK } from "@/game/lang/outlook";
@@ -25,7 +25,7 @@ export function Outlook({ t, lang, my, seeds, now, rank, charter, way }: { t: T;
   const names = (s: number) => {
     const u = stageUnlocks(s, charter, way);
     return {
-      grows: u.grows.filter((k) => !SEAT_KINDS.includes(k) || k === "seat1").map(kn).concat(u.grows.filter((k) => SEAT_KINDS.includes(k) && k !== "seat1").map(kn)),
+      grows: u.grows.map(kn),
       unlocks: [...u.items.map((it) => t.items[it]?.[0] ?? it), ...u.monuments.map((k) => t.items[`${k}1`]?.[0] ?? k)],
     };
   };
