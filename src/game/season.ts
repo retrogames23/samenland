@@ -1,3 +1,4 @@
+import { biomeKey } from "./biome";
 export type Season = "winter" | "spring" | "summer" | "autumn";
 export type SeasonWeights = Record<Season, number>;
 const DAY = 86_400_000;
@@ -18,5 +19,5 @@ export function seasonAt(now: number): SeasonWeights {
 }
 export function seasonKey(now: number) {
   const w = seasonAt(now);
-  return `${Math.round(w.winter * 8)}:${Math.round(w.spring * 8)}:${Math.round(w.autumn * 8)}`;
+  return `${biomeKey()}:${Math.round(w.winter * 8)}:${Math.round(w.spring * 8)}:${Math.round(w.autumn * 8)}`;
 }

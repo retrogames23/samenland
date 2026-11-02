@@ -38,6 +38,6 @@ export const biomeLook = () => LOOK[biome];
 export function treeKind(v: number, conifer: number): "fir" | "birch" | "oak" {
   const l = LOOK[biome];
   if (!l) return v < conifer ? "fir" : v > 0.82 ? "birch" : "oak";
-  const c = Math.max(conifer, l.conifer);
+  const c = l.conifer > 0.5 ? Math.max(conifer, l.conifer) : Math.min(conifer, l.conifer);
   return v < c ? "fir" : v > 1 - l.birch ? "birch" : "oak";
 }

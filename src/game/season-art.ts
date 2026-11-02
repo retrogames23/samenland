@@ -1,4 +1,5 @@
 import { seasonAt, seasonKey } from "./season";
+import { biomeLook } from "./biome";
 
 let now = 0;
 export const setArtTime = (time: number) => { now = time; };
@@ -6,7 +7,8 @@ const cache = new WeakMap<HTMLImageElement, Map<string, HTMLCanvasElement>>();
 /** Small cached, alpha-preserving seasonal surfaces. No per-frame pixel processing. */
 export function seasonalImage(image: HTMLImageElement, role: "building" | "leaf" | "fir" | "ground" | "field" | "water" | "flower" = "building"): HTMLImageElement | HTMLCanvasElement {
   const w = seasonAt(now), key = `${role}:${seasonKey(now)}`;
-  if (w.winter + w.autumn + w.spring < 0.02 || role === "water" && w.winter < 0.02) return image;
+  const look = role === "building" ? null : biomeLook();
+  if (!look && (w.winter + w.autumn + w.spring < 0.02 || role === "water" && w.winter < 0.02)) return image;
   let entries = cache.get(image);
   if (!entries) { entries = new Map(); cache.set(image, entries); }
   const hit = entries.get(key); if (hit) return hit;
@@ -20,6 +22,12 @@ export function seasonalImage(image: HTMLImageElement, role: "building" | "leaf"
     if (r === undefined || green === undefined || b === undefined) continue;
     const lum=(r+green+b)/3;
     const foliage=green>r*0.85 && green>b*1.15;
+    if (look) {
+      // regional island look: tint foliage, stone, sand and water; heather speckles on open ground
+      const m = role==="water" ? look.water : foliage || role==="leaf" || role==="fir" ? look.green : lum>140 && r>b ? look.sand : look.stone;
+      r*=m[0]; green*=m[1]; b*=m[2];
+      if (look.heather && (role==="ground"||role==="flower") && foliage && ((x*131+y*53)%97)/97<look.heather) { r=r*0.4+128*0.6; green=green*0.4+82*0.6; b=b*0.4+120*0.6; }
+    }
     if (role==="leaf" && w.autumn>0) {
       const f=w.autumn*0.85, v=((x*17+y*7)%41)/41;
       r=r*(1-f)+(lum*1.6+35)*f; green=green*(1-f)+(lum*(0.85+v*0.45))*f; b=b*(1-f)+lum*0.4*f;

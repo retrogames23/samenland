@@ -6,7 +6,7 @@ import { PROSPERITY } from "@/game/lang/prosperity";
 import { ESTATE_TAX } from "@/game/prosperity";
 import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind } from "@/game/gifts";
 import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
-import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, type Realm } from "@/game/time";
+import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, type Realm } from "@/game/time";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type WonderFind } from "@/game/wonders";
@@ -2193,7 +2193,7 @@ export function Game() {
             <Button size="sm" onClick={() => setAuthOpen(true)}><LogIn className="mr-1 h-4 w-4" />{t.signIn}</Button>
           ) : null}
           <div className="ml-auto hidden text-right text-xs text-muted-foreground md:block">
-            <div>{new Date(now).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "long" })}</div>
+            <div>{gameDate(now, LOCALE[lang])}</div>
             <div>{t.seasons[season]} · {new Date(now).toLocaleTimeString(LOCALE[lang], { hour: "2-digit", minute: "2-digit", timeZone: REALM_TZ[realm] })}</div>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">

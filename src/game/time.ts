@@ -1,3 +1,4 @@
+import { setBiome } from "./biome";
 /** Four realms (separate maps), each with one shared clock, so everyone on a map sees the same day/night. */
 export type Realm = "us-west" | "us-east" | "europe" | "asia" | "lab";
 export const REALMS: Realm[] = ["us-west", "us-east", "europe", "asia"];
@@ -27,6 +28,7 @@ function makeFmt(z: string) {
 let cache = { min: -1, base: 0 };
 export function setRealm(r: Realm) {
   lab = r === "lab";
+  setBiome(r);
   if (REALM_TZ[r] === tz) return;
   tz = REALM_TZ[r];
   fmt = makeFmt(tz);
@@ -66,3 +68,13 @@ export function worldWeekday(now: number): number {
   return WD.indexOf(wdFmt.f.format(new Date(now)));
 }
 export const isSunday = (now: number) => worldWeekday(now) === 0;
+
+/** In-game calendar: today's realm date, the year shifted back to around 1500 (2026 → 1500, 2027 → 1501). */
+export const YEAR_SHIFT = 526;
+export function gameDate(now: number, locale: string, month: "long" | "short" = "long"): string {
+  const parts = new Intl.DateTimeFormat(locale, { timeZone: tz, day: "numeric", month, year: "numeric" }).formatToParts(new Date(now));
+  return parts.map((p) => p.type === "year" ? String(Number(new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric" }).format(new Date(now))) - YEAR_SHIFT) : p.value).join("");
+}
+export function gameYear(now: number): number {
+  return Number(new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric" }).format(new Date(now))) - YEAR_SHIFT;
+}
