@@ -34,3 +34,17 @@ describe("steering the mayor", () => {
     expect(commandMayor(other, t, seeds, now, [s.x + 1, s.y])).toBe(false);
   });
 });
+
+describe("stroll routing in a dense village", () => {
+  it("reaches walkable tiles beyond corner-to-corner houses", async () => {
+    const { setStrollHold } = await import("./people");
+    const r = { id: "dense", name: "R", owner: "Anna Huber", user_id: "u1", x: 520, y: 480, hue: 30, created_at: "2026-10-07T23:29:00Z" } as unknown as Seed;
+    const at = Date.parse("2026-11-02T15:00:00Z");
+    const t = townOf(r, [r], at), me = t.people.find((p) => p.role === "mayor")!;
+    setStrollHold(true);
+    let ok = 0;
+    for (let dx = -8; dx <= 8; dx++) for (let dy = -8; dy <= 8; dy++) if (commandMayor(me, t, [r], at, [r.x + dx, r.y + dy])) ok++;
+    setStrollHold(false);
+    expect(ok).toBeGreaterThan(50);
+  });
+});
