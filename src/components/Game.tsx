@@ -42,6 +42,9 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { splashDone } from "@/game/splash";
 import { VillageRoll } from "@/components/VillageRoll";
 import { TownProfile } from "@/components/TownProfile";
+import { Outlook } from "@/components/Outlook";
+import { OUTLOOK } from "@/game/lang/outlook";
+import { RANK_NEED } from "@/game/rank";
 import { Tavern } from "@/components/Tavern";
 import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
@@ -1569,6 +1572,7 @@ export function Game() {
       </div>
       {tab === "build" && my && at && (
         <div className="space-y-2">
+          <Outlook t={t} lang={lang} my={my} seeds={seeds} now={slow} rank={myRank} charter={myCharter} way={wayOf(my)} />
           {my.user_id && (() => {
             const ct = CHEST[lang], lvl = chestLevel(my.id, purchases), cap = chestCap(my.id, purchases), blk = chestBlock(my, purchases, now);
             const step = CHEST_STEPS[Math.min(lvl - 1, 2)]!, fill = Math.min(1, Math.max(0, cash) / cap);
@@ -1641,11 +1645,12 @@ export function Game() {
               })()}
             </div>
           )}
-          {(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && canBuyWay(it, my ? wayOf(my) : undefined) && !at.has(it) && (ITEM_STAGE[it] ?? 0) <= myStage)
-            .sort((a, b) => ITEMS[a] - ITEMS[b])
+          {(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && canBuyWay(it, my ? wayOf(my) : undefined) && !at.has(it))
+            .sort((a, b) => ((ITEM_STAGE[a] ?? 0) > myStage ? 1 : 0) - ((ITEM_STAGE[b] ?? 0) > myStage ? 1 : 0) || (ITEM_STAGE[a] ?? 0) - (ITEM_STAGE[b] ?? 0) || ITEMS[a] - ITEMS[b])
             .map((it) => {
+            const lockedIt = (ITEM_STAGE[it] ?? 0) > myStage;
             return (
-              <div key={it} className="rounded-md border border-border bg-secondary/60 p-2">
+              <div key={it} className={`rounded-md border border-border bg-secondary/60 p-2 ${lockedIt ? "opacity-60" : ""}`}>
                 <div className="flex items-center gap-2">
                   {spriteUrl(SPECIAL_KIND[it]!) && <img src={spriteUrl(SPECIAL_KIND[it]!)} alt="" loading="lazy" className="h-12 w-12 shrink-0 object-contain drop-shadow" />}
                   <span className="flex-1 font-semibold">{t.items[it]![0]}{GUILD[it] && <span className="ml-1 rounded-full bg-brass/30 px-1.5 py-0.5 text-[10px] text-wood">{t.charter.guild}</span>}{WAY_ITEM[it] && <span className="ml-1 rounded-full bg-brass/30 px-1.5 py-0.5 text-[10px] text-wood">{CHAR_ICON[WAY_ITEM[it]!]} {TOWN_CHARACTER[lang].names[WAY_ITEM[it]!]}</span>}</span>
@@ -1654,13 +1659,23 @@ export function Game() {
                 <div className="text-xs text-muted-foreground">{t.items[it]![1]}</div>
                 <div className="mt-1.5">
                   {at.has(it) ? <span className="text-xs font-semibold text-primary">{t.owned}</span> : (
-                    (ITEM_STAGE[it] ?? 0) > myStage ? <span className="text-xs text-muted-foreground">{t.needStage(t.stages[ITEM_STAGE[it]!] ?? "")}</span> :
+                    (ITEM_STAGE[it] ?? 0) > myStage ? <span className="text-xs text-muted-foreground">🔒 {t.needStage(t.stages[ITEM_STAGE[it]!] ?? "")}{RANK_NEED[ITEM_STAGE[it]! - 1] ? ` (${RANK_NEED[ITEM_STAGE[it]! - 1]![0]} ${OUTLOOK[lang].cit}, ${RANK_NEED[ITEM_STAGE[it]! - 1]![1]} ${OUTLOOK[lang].homes}${RANK_NEED[ITEM_STAGE[it]! - 1]![2] ? `, ${RANK_NEED[ITEM_STAGE[it]! - 1]![2]} ${OUTLOOK[lang].roads}` : ""})` : ""}</span> :
                     <Button size="sm" className="h-7 w-full" disabled={cash < ITEMS[it]} onClick={() => { setPlacing(it); setTab(null); setMsg(t.place.pick(t.items[it]![0])); if (my) focus(my.x, my.y); }}>{t.hud.build}</Button>
                   )}
                 </div>
               </div>
             );
           })}
+          {my && MONUMENT_KEYS.filter((k) => myStage < MONUMENTS[k].stage && (!MONUMENTS[k].way || MONUMENTS[k].way === wayOf(my))).sort((a, b) => MONUMENTS[a].stage - MONUMENTS[b].stage).map((key) => (
+            <div key={`lock-${key}`} className="rounded-md border border-brass/40 bg-brass/5 p-2 opacity-60">
+              <div className="flex items-center gap-2">
+                {spriteUrl(MONUMENT_DEFS[key].kind) && <img src={spriteUrl(MONUMENT_DEFS[key].kind)} alt="" loading="lazy" className="h-12 w-10 shrink-0 object-contain grayscale" />}
+                <span className="flex-1 font-semibold">{t.monuments[key]!.title}</span>
+              </div>
+              <div className="text-xs text-muted-foreground">{t.items[`${key}1`]![1]}</div>
+              <div className="mt-1 text-xs text-muted-foreground">🔒 {t.needStage(t.stages[MONUMENTS[key].stage] ?? "")}</div>
+            </div>
+          ))}
           {my && MONUMENT_KEYS.filter((k) => myStage >= MONUMENTS[k].stage && (!MONUMENTS[k].way || MONUMENTS[k].way === wayOf(my))).map((key) => {
             const steps = monumentSteps(key), mt = t.monuments[key]!;
             const paid = purchases.filter((p) => p.seed_id === my.id && steps.includes(p.item));
@@ -2553,7 +2568,7 @@ export function Game() {
         <TownProfile t={t} lang={lang} town={seeds.find((x) => x.id === profile.id) ?? profile} me={my ?? null} seeds={seeds} now={clock()} onClose={() => setProfile(null)} onLook={() => { focus(profile.x, profile.y); setProfile(null); }} />
       )}
       {rollOpen && my && myTown && (
-        <VillageRoll t={t} town={myTown} hue={my.hue} character={<CharacterDetails seed={my} lang={lang} />} onClose={() => setRollOpen(false)} onPick={(p) => {
+        <VillageRoll t={t} town={myTown} hue={my.hue} character={<><CharacterDetails seed={my} lang={lang} /><div className="mt-2"><Outlook t={t} lang={lang} my={my} seeds={seeds} now={slow} rank={myRank} charter={myCharter} way={wayOf(my)} /></div></>} onClose={() => setRollOpen(false)} onPick={(p) => {
           const now = clock();
           const z = poseOf(p, townOf(p.seed, seeds, now), seeds, now);
           setRollOpen(false);
