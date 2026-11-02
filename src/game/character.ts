@@ -1,4 +1,4 @@
-import { MAP, terrain, onGeoChange, type Terrain } from "./world";
+import { MAP, terrain, type Terrain } from "./world";
 
 export type TownWay = "grain" | "workshop" | "gateway";
 export type TownCharacter = {
@@ -8,7 +8,7 @@ export type TownCharacter = {
 };
 const ORDER: TownWay[] = ["grain", "workshop", "gateway"];
 const cache = new Map<string, TownCharacter>();
-onGeoChange(() => cache.clear());
+export const resetCharacters = () => cache.clear();
 
 /** Equal-area terrain shares; woodland belongs to the land-based food route.
  * Sand is shore, not a penalty; no age, purchases or stored growth enter this label. */

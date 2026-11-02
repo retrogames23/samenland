@@ -1,4 +1,4 @@
-import { onGeoChange, MAP, hash, terrain, buildable, isWater, type Terrain } from "./world";
+import { MAP, hash, terrain, buildable, isWater, type Terrain } from "./world";
 
 /** Discoverable wonders in the wild: pure from the shared terrain, identical on every client and mirrored by DB wonder_sites. */
 export type WonderKind = "wreck" | "cave" | "oak" | "ruin" | "caravan" | "spring";
@@ -31,7 +31,7 @@ function fits(kind: WonderKind, x: number, y: number): boolean {
 }
 
 let cache: Wonder[] | null = null;
-onGeoChange(() => { cache = null; });
+export const resetWonders = () => { cache = null; };
 /** All wonders on the map (same terrain for every realm). */
 export function wonders(): Wonder[] {
   terrain(0, 0); // align with the current map geography

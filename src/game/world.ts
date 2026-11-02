@@ -1,5 +1,6 @@
-import { nearCourt } from "./court";
-import { townCharacter, type TownWay } from "./character";
+import { nearCourt, resetCourt } from "./court";
+import { resetWonders } from "./wonders";
+import { townCharacter, resetCharacters, type TownWay } from "./character";
 import { biomeKey, type Biome } from "./biome";
 import { cacheTick, worldHour, worldWeekday, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
@@ -54,6 +55,7 @@ function syncGeo() {
   tcache = new Uint8Array(MAP * MAP); riverField = null; oceanMask = null;
   shapeCache.clear(); lmCache.clear(); waterNearCache.clear(); birthCache.clear(); keptCache.clear();
   siteCache.clear(); scache.clear(); cacheKey = ""; charCache.clear(); linkCache = [];
+  resetCourt(); resetWonders(); resetCharacters();
   for (const f of geoHooks) f();
 }
 /** Founded villages (realm maps besides Europe) whose ground must stay dry, buildable lowland. */
