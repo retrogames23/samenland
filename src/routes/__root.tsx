@@ -42,7 +42,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   useEffect(() => {
     // stale code chunk after an update: reload once instead of showing a blank page
     if (/Importing a module script failed|Failed to fetch dynamically imported module/i.test(String((error as Error | undefined)?.message))) {
-      const k = "chunk-reload";
+      const k = "chunk-reload-react";
       if (Date.now() - Number(sessionStorage.getItem(k) ?? 0) > 30000) { sessionStorage.setItem(k, String(Date.now())); location.reload(); return; }
     }
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
