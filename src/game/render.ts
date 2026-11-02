@@ -1884,9 +1884,11 @@ function courtFigures(t: number) {
   return courtFig;
 }
 /** Court walking styles: hem = where the painted legs start (fraction of height); robe = long garment (stepping shoes + swaying hem). */
-const COURT_GAIT: Record<CourtRole, { hem: number; robe: boolean; hip: number }> = {
-  prince: { hem: 0.8, robe: false, hip: 0.5 }, princess: { hem: 0.82, robe: true, hip: 0.5 },
-  herald: { hem: 0.66, robe: false, hip: 0.465 }, guard: { hem: 0.66, robe: false, hip: 0.48 }, gardener: { hem: 0.66, robe: false, hip: 0.47 }, groom: { hem: 0.63, robe: false, hip: 0.48 },
+// hem = row where the legs separate, col = column of the gap between the painted legs (fractions, measured on the sprites)
+const COURT_GAIT: Record<CourtRole, { hem: number; robe: boolean; hip: number; col: number }> = {
+  prince: { hem: 0.81, robe: false, hip: 0.5, col: 0.56 }, princess: { hem: 0.9, robe: true, hip: 0.5, col: 0.5 },
+  herald: { hem: 0.66, robe: false, hip: 0.465, col: 0.45 }, guard: { hem: 0.72, robe: false, hip: 0.48, col: 0.37 },
+  gardener: { hem: 0.69, robe: false, hip: 0.47, col: 0.36 }, groom: { hem: 0.63, robe: false, hip: 0.48, col: 0.62 },
 };
 function drawCourtFigure(c: C, q: CourtPose, t: number) {
   const im = huntIm(`courtfig-${q.role}`, COURT_FIG[q.role]); if (!im) return;
@@ -1905,10 +1907,10 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
   const nw = im.naturalWidth, nh = im.naturalHeight, sh = nh * g.hem, lh = h * (1 - g.hem), s = Math.sin(ph), co = Math.cos(ph);
   c.translate(0, -Math.abs(s) * 0.07);
   // legs/hem: the figure's own painted lower part, split into two legs that swing opposite ways
-  const swing = w * (g.robe ? 0.09 : 0.15);
+  const swing = w * (g.robe ? 0.04 : 0.1);
   const leg = (half: 0 | 1, off: number, lift: number) => {
     c.save(); c.translate(off, -lift);
-    c.drawImage(im, half * nw / 2, sh, nw / 2, nh - sh, -w / 2 + half * w / 2, -lh, w / 2, lh);
+    const sx0 = half ? nw * g.col : 0, sw = half ? nw * (1 - g.col) : nw * g.col; c.drawImage(im, sx0, sh, sw, nh - sh, -w / 2 + (sx0 / nw) * w, -lh, (sw / nw) * w, lh);
     c.restore();
   };
   const back = s > 0 ? 1 : 0; // leg moving backward is drawn first
@@ -1917,9 +1919,6 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
     c.save(); c.transform(1, 0, s * 0.06, 1, 0, 0);
     leg(back as 0 | 1, off(back as 0 | 1), lift(back as 0 | 1)); leg((1 - back) as 0 | 1, off((1 - back) as 0 | 1), lift((1 - back) as 0 | 1));
     c.restore();
-    // shoe tips peeking out alternately under the robe
-    c.fillStyle = "#3a2a1c";
-    for (const hf of [0, 1] as const) { const f = (hf ? -1 : 1) * s; if (f > 0.2) { c.beginPath(); c.ellipse(f * w * 0.18 + (hf ? -0.5 : 0.5), -0.15, 0.45, 0.2, 0, 0, 7); c.fill(); } }
   } else {
     leg(back as 0 | 1, off(back as 0 | 1), lift(back as 0 | 1)); leg((1 - back) as 0 | 1, off((1 - back) as 0 | 1), lift((1 - back) as 0 | 1));
   }
