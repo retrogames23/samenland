@@ -13,7 +13,8 @@ import { wonders, wonderClaims, firstFinder, WONDER_REACH, type WonderFind } fro
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townRank, rankInput, nextRankNeed } from "@/game/rank";
-import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, setMounted, setStrollHold, citizensOf, isHomeKind, type Person } from "@/game/people";
+import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, setMounted, setStrollHold, citizensOf, isHomeKind, setRemoteMayor, clearRemoteMayors, type Person } from "@/game/people";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { banter } from "@/game/banter";
 import { weddingJoy } from "@/game/weddings";
@@ -1218,6 +1219,20 @@ export function Game() {
   };
   const knights = useRef<Set<string>>(new Set());
   const [, bumpKnight] = useState(0);
+  // live strolling mayors: one shared broadcast room per realm, purely ephemeral (no table writes)
+  useEffect(() => {
+    const ch = supabase.channel(`mayors:${realm}`, { config: { broadcast: { self: false } } });
+    ch.on("broadcast", { event: "pos" }, ({ payload }) => {
+      const m = payload as { sid?: string; x?: number; y?: number; dx?: number; dy?: number; w?: boolean; m?: boolean; d?: number; bye?: boolean };
+      if (typeof m.sid !== "string" || m.sid === st.current.mine) return;
+      if (m.bye) return setRemoteMayor(m.sid, null);
+      if (![m.x, m.y, m.dx, m.dy, m.d].every((v) => typeof v === "number" && Number.isFinite(v))) return;
+      if (m.x! < 0 || m.y! < 0 || m.x! > MAP || m.y! > MAP) return;
+      setRemoteMayor(m.sid, { x: m.x!, y: m.y!, dir: [m.dx!, m.dy!], walking: !!m.w, mounted: !!m.m, dist: m.d! });
+    }).subscribe();
+    liveCh.current = ch;
+    return () => { liveCh.current = null; clearRemoteMayors(); supabase.removeChannel(ch); };
+  }, [realm]);
   const kneel = async (seedId: string, female: boolean) => {
     const P = PRINCELY[lang];
     const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: string | null; error: unknown }>;
