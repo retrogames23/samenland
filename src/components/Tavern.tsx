@@ -99,12 +99,22 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [shown.length, open, chan]);
 
+  // one send at a time: the field clears at once and the button locks, so a slow reply can't trigger a second copy
+  const sendingRef = useRef(false);
+  const [sending, setSending] = useState(false);
   const send = async () => {
     const body = text.trim();
-    if (!body || !userId || !my) return;
-    const { error } = await supabase.from("chat_messages").insert({ body, sender_id: userId, sender_seed: my.id, realm, recipient_id: chan === "tavern" ? null : chan.peer });
-    if (error) toast.error(error.message.includes("blocked") ? t.tavern.refused : error.message.includes("too fast") ? t.tavern.slow : t.tavern.fail);
-    else setText("");
+    if (!body || !userId || !my || sendingRef.current) return;
+    sendingRef.current = true; setSending(true); setText("");
+    const { data, error } = await supabase.from("chat_messages").insert({ body, sender_id: userId, sender_seed: my.id, realm, recipient_id: chan === "tavern" ? null : chan.peer }).select().single();
+    sendingRef.current = false; setSending(false);
+    if (error) {
+      setText((cur) => cur || body);
+      toast.error(error.message.includes("blocked") ? t.tavern.refused : error.message.includes("too fast") ? t.tavern.slow : t.tavern.fail);
+    } else if (data) {
+      const m = data as ChatMsg;
+      setMsgs((ms) => (ms.some((x) => x.id === m.id) ? ms : [...ms.slice(-299), m]));
+    }
   };
   const toggleBlock = async (uid: string) => {
     if (blocked.has(uid)) {
