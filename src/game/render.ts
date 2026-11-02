@@ -1885,7 +1885,7 @@ function courtFigures(t: number) {
 }
 /** Court walking styles: hem = where the painted legs start (fraction of height); robe = long garment (stepping shoes + swaying hem). */
 const COURT_GAIT: Record<CourtRole, { hem: number; robe: boolean; hip: number }> = {
-  prince: { hem: 0.84, robe: true, hip: 0.5 }, princess: { hem: 0.82, robe: true, hip: 0.5 },
+  prince: { hem: 0.8, robe: false, hip: 0.5 }, princess: { hem: 0.82, robe: true, hip: 0.5 },
   herald: { hem: 0.66, robe: false, hip: 0.465 }, guard: { hem: 0.66, robe: false, hip: 0.48 }, gardener: { hem: 0.66, robe: false, hip: 0.47 }, groom: { hem: 0.63, robe: false, hip: 0.48 },
 };
 function drawCourtFigure(c: C, q: CourtPose, t: number) {
@@ -1894,7 +1894,7 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
   const [px, py] = iso(q.x, q.y), h = q.role === "prince" ? 5.8 : 5.4, w = (h * im.naturalWidth) / im.naturalHeight;
   const g = COURT_GAIT[q.role];
   // stride follows distance walked so feet never slide
-  const ph = ((q.dist ?? 0) / 0.55) * 6.2832;
+  const ph = ((q.dist ?? 0) / 0.11) * 6.2832;
   c.save(); c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(px + 0.6, py + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
   c.translate(px, py); if (q.dx < 0) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
@@ -1905,7 +1905,7 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
   const nw = im.naturalWidth, nh = im.naturalHeight, sh = nh * g.hem, lh = h * (1 - g.hem), s = Math.sin(ph), co = Math.cos(ph);
   c.translate(0, -Math.abs(s) * 0.07);
   // legs/hem: the figure's own painted lower part, split into two legs that swing opposite ways
-  const swing = w * (g.robe ? 0.05 : 0.13);
+  const swing = w * (g.robe ? 0.09 : 0.15);
   const leg = (half: 0 | 1, off: number, lift: number) => {
     c.save(); c.translate(off, -lift);
     c.drawImage(im, half * nw / 2, sh, nw / 2, nh - sh, -w / 2 + half * w / 2, -lh, w / 2, lh);
