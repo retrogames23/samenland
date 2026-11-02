@@ -27,7 +27,11 @@ import { sacksAt, breadOut, fishingNow } from "./crafts";
 import { isSunday } from "./time";
 import { activeRaid, RAID_LEN } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
-import { decorMap, type RewardKey } from "./supporter";
+import { decorMap, seatTile, type RewardKey } from "./supporter";
+import { dogStep, type DogPose } from "./dog";
+import dogTrotU from "@/assets/sprites/support/dog-trot.webp";
+import dogSitU from "@/assets/sprites/support/dog-sit.webp";
+import dogSleepU from "@/assets/sprites/support/dog-sleep.webp";
 import { SUPPORT_ART, SUPPORT_W } from "./support-art";
 import wreckU from "@/assets/sprites/wonders/wreck.webp";
 import caveU from "@/assets/sprites/wonders/cave.webp";
@@ -1786,6 +1790,40 @@ let wonderFound = new Set<string>();
 let supportOwned = new Map<string, Set<string>>();
 /** Granted supporter rewards per village id (set by the UI). */
 export function setSupportOwned(m: Map<string, Set<string>>) { supportOwned = m; }
+/** Last drawn dog position per village (world tiles), so the UI can react to clicks on it. */
+export const dogSpots = new Map<string, { x: number; y: number }>();
+const DOG_W = 4.6;
+/** Village dog: painted 4-frame trot cycle stepped by distance (no foot sliding), sit and curled-up sleep poses. */
+function drawDog(c: C, d: DogPose, px: number, py: number, t: number, seedK: number) {
+  c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  if (d.mode === "sleep") {
+    const im = huntIm("dog-sleep", dogSleepU); if (im) {
+      const w = DOG_W * 1.35, h = (w * im.naturalHeight) / im.naturalWidth, br = 1 + Math.sin(t / 900) * 0.025; // slow breathing
+      c.translate(px, py); c.scale(1, br); c.drawImage(im, -w / 2, -h * 0.85, w, h);
+    }
+    c.restore(); return;
+  }
+  c.fillStyle = "rgba(30,36,22,0.3)"; c.beginPath(); c.ellipse(px, py, 2, 0.7, 0, 0, 7); c.fill();
+  if (d.mode === "sit") {
+    const im = huntIm("dog-sit", dogSitU); if (im) {
+      const w = DOG_W * 0.72, h = (w * im.naturalHeight) / im.naturalWidth;
+      // panting / looking around: a tiny head-bob and occasional turn
+      const turn = hash(Math.floor(t / 3500), seedK, 775) < 0.4;
+      c.translate(px, py - Math.abs(Math.sin(t / 240)) * 0.06); if (turn) c.scale(-1, 1);
+      c.drawImage(im, -w / 2, -h, w, h);
+    }
+    c.restore(); return;
+  }
+  const sheet = huntIm("dog-trot", dogTrotU); if (!sheet) { c.restore(); return; }
+  // stride: one painted frame per ~0.11 tiles trotting, 0.08 walking — feet plant instead of sliding
+  const ph = d.dist / (d.mode === "trot" ? 0.11 : 0.08), f0 = Math.floor(ph) & 3, mix = ph - Math.floor(ph);
+  const bob = Math.abs(Math.sin(ph * Math.PI)) * (d.mode === "trot" ? 0.35 : 0.15);
+  const fw = sheet.naturalWidth / 4, fh = sheet.naturalHeight, w = DOG_W, h = (w * fh) / fw;
+  c.translate(px, py - bob); if (d.flip) c.scale(-1, 1);
+  c.drawImage(sheet, f0 * fw, 0, fw, fh, -w / 2, -h, w, h);
+  if (mix > 0.6) { c.globalAlpha = (mix - 0.6) * 2.5; c.drawImage(sheet, ((f0 + 1) & 3) * fw, 0, fw, fh, -w / 2, -h, w, h); }
+  c.restore();
+}
 function drawSupport(c: C, k: RewardKey, cx: number, cy: number, L: Light[], night: boolean) {
   const u = SUPPORT_ART[k], w = SUPPORT_W[k]; if (!u || !w) return;
   const im = huntIm(`support-${k}`, u); if (!im) return;
@@ -2339,6 +2377,7 @@ export function draw(
   lastPeople.length = 0; lastTraders.length = 0;
   const folkOn = cam.zoom >= 0.9; // villagers are sub-pixel below this; skipping them changes nothing visible
   const steer = steeredMayor();
+  const dogMayors = new Map<string, Pose>();
   if (folkOn) for (const sd of seeds) {
     // generous margin: strollers and the steered mayor wander well beyond the built-up edge — never cull them at the border
     const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 14;
@@ -2353,6 +2392,7 @@ export function draw(
       if (Math.hypot(q.x - sd.x, q.y - sd.y) > r0 * 0.8 || (steer && q.p.role === "mayor" && q.act === "stroll")) { const [lx, ly] = iso(q.x, q.y); L.push({ x: lx, y: ly - 2, r: 7 }); }
       if (!folk.has(k)) folk.set(k, []);
       folk.get(k)!.push(q);
+      if (q.p.role === "mayor" && supportOwned.get(sd.id)?.has("dog")) dogMayors.set(sd.id, q);
     }
   }
   const robbers = framePool.robbers; robbers.clear();
@@ -2382,6 +2422,17 @@ export function draw(
     const tw = townOf(sd, seeds, now);
     if (tw.maypole) addProp(tw.maypole[1] * MAP + tw.maypole[0], (cx, cy) => drawMaypole(c, cx, cy, t));
     tw.cows.forEach((cw, i) => addProp(cw[1] * MAP + cw[0], (cx, cy) => drawCow(c, cx, cy, now, cw[0] * 31 + cw[1] + i * 7, i)));
+  }
+  // supporter dogs: romp by the mayor's seat, heel when the mayor walks, sleep by the door at night
+  dogSpots.clear();
+  if (folkOn) for (const sd of seeds) {
+    if (!supportOwned.get(sd.id)?.has("dog")) continue;
+    const [hx, hy] = seatTile(sd), mq = dogMayors.get(sd.id);
+    const near = mq || (hx >= x0 - 4 && hx <= x1 + 4 && hy >= y0 - 4 && hy <= y1 + 4); if (!near) continue;
+    const d = dogStep(sd.id, [hx, hy + 1], mq ? { x: mq.x, y: mq.y, walking: mq.walking } : null, worldHour(now), Date.now(), freeGround);
+    dogSpots.set(sd.id, { x: d.x, y: d.y });
+    const [px, py] = iso(d.x, d.y), sk = sd.x * 7 + sd.y;
+    addProp(Math.round(d.y) * MAP + Math.round(d.x), () => drawDog(c, d, px, py, t, sk));
   }
 
   // ---- bridges: one straight span per water crossing, abutment to abutment ----

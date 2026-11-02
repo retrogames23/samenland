@@ -1035,6 +1035,32 @@ export type Database = {
         }
         Relationships: []
       }
+      village_dogs: {
+        Row: {
+          name: string
+          seed_id: string
+          updated_at: string
+        }
+        Insert: {
+          name: string
+          seed_id: string
+          updated_at?: string
+        }
+        Update: {
+          name?: string
+          seed_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "village_dogs_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: true
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       village_visits: {
         Row: {
           created_at: string
