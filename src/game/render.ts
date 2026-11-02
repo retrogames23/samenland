@@ -2198,6 +2198,25 @@ export function draw(
               const s2 = 0.8 + h * 0.35; c.drawImage(crow, -w * s2 / 2, -hgt * s2 * 0.92, w * s2, hgt * s2); c.restore();
             }
           }
+          // wattle edging along the outer sides: a low woven border that stands up from the bed
+          c.lineCap = "round";
+          for (let k = 0; k < 4; k++) if (outer[k]) {
+            const A = q[k]!, Bq = q[(k + 1) & 3]!;
+            c.strokeStyle = "rgba(25,18,10,0.25)"; c.lineWidth = 0.6; c.beginPath(); c.moveTo(A[0] + 0.4, A[1] + 0.3); c.lineTo(Bq[0] + 0.4, Bq[1] + 0.3); c.stroke();
+            c.strokeStyle = "#7a5a36"; c.lineWidth = 0.7; c.beginPath(); c.moveTo(A[0], A[1] - 0.45); c.lineTo(Bq[0], Bq[1] - 0.45); c.stroke();
+            c.strokeStyle = "rgba(200,165,110,0.6)"; c.lineWidth = 0.22; c.beginPath(); c.moveTo(A[0], A[1] - 0.7); c.lineTo(Bq[0], Bq[1] - 0.7); c.stroke();
+          }
+          // bean-pole tripod on some beds: three poles leaning to a common tip, strictly upright overall
+          if (hash(x, y, 670) > 0.62 && seasonAt(now).winter < 0.6) {
+            const [bx, by] = pp((hash(x, y, 671) - 0.5) * 0.4, (hash(x, y, 672) - 0.5) * 0.4), Hh = 6;
+            c.fillStyle = "rgba(25,18,10,0.22)"; c.beginPath(); c.ellipse(bx + 1.2, by + 0.3, 2.2, 0.6, 0, 0, 7); c.fill();
+            const feet: Pt[] = [[bx - 1.2, by + 0.2], [bx + 1.2, by + 0.2], [bx, by - 0.5]];
+            for (const [i, f] of feet.entries()) {
+              c.strokeStyle = i === 1 ? "#5a3f24" : "#7d5b38"; c.lineWidth = 0.35; c.beginPath(); c.moveTo(f[0], f[1]); c.lineTo(bx, by - Hh); c.stroke();
+              c.fillStyle = "rgba(78,118,48,0.9)";
+              for (let n = 1; n < 5; n++) { const fr = n / 5, lx = f[0] + (bx - f[0]) * fr, ly = f[1] + (by - Hh - f[1]) * fr; c.beginPath(); c.ellipse(lx + (n & 1 ? 0.4 : -0.4), ly, 0.55, 0.4, 0, 0, 7); c.fill(); }
+            }
+          }
         } else { c.fillStyle = texture(c, ripe ? "wheat" : "crops") ?? hsl(ripe ? 44 : 80, 50, 60); c.fill(); }
         const same = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && o.kind === st.kind && acreOf(x + i, y + j, o.seed).id === ac.id; };
         if (st.kind === "field") {
@@ -2234,12 +2253,37 @@ export function draw(
         }
         c.stroke();
       } else if (st.kind === "pasture") {
-        // grazed turf blends into the surrounding grass: soft overlapping patches, no tile-shaped edge
-        c.fillStyle = texture(c, "meadow") ?? hsl(84, 34, 70, 0.6);
-        c.globalAlpha = 0.4; c.beginPath(); c.ellipse(cx, cy, TW * 0.62, TH * 0.62, 0, 0, 7); c.fill();
-        c.globalAlpha = 0.18; c.fillStyle = "rgb(110,90,55)";
-        c.beginPath(); c.ellipse(cx + (hash(x, y, 701) - 0.5) * TW * 0.5, cy + (hash(x, y, 702) - 0.5) * TH * 0.5, 2.2, 1, 0, 0, 7); c.fill();
-        c.globalAlpha = 1;
+        // grazed paddock: short, sun-yellowed turf clearly lighter than wild meadow, trodden tracks, clipped tufts
+        const isP = (i: number, j: number) => structureAt(x + i, y + j, seeds, now)?.kind === "pasture";
+        const k2 = 0.5 + (isP(1, 0) && isP(0, 1) && isP(-1, 0) && isP(0, -1) ? 0.06 : 0);
+        c.beginPath(); const d0 = pp(-k2, -k2), d1 = pp(k2, -k2), d2 = pp(k2, k2), d3 = pp(-k2, k2);
+        c.moveTo(d0[0], d0[1]); c.lineTo(d1[0], d1[1]); c.lineTo(d2[0], d2[1]); c.lineTo(d3[0], d3[1]); c.closePath();
+        c.fillStyle = texture(c, "grass") ?? hsl(80, 30, 60); c.fill();
+        c.globalAlpha = 0.32; c.fillStyle = "rgb(196,190,110)"; c.fill(); c.globalAlpha = 1;
+        // trodden sheep track crossing the paddock (in iso: a gentle curve along the tile diagonal)
+        c.save(); c.clip(); c.lineCap = "round";
+        const ta = pp(-0.6, (hash(x, y, 703) - 0.5) * 0.6), tb = pp(0.6, (hash(x, y, 704) - 0.5) * 0.6), tm = pp(0, (hash(x, y, 705) - 0.5) * 0.8);
+        c.strokeStyle = "rgba(140,112,70,0.35)"; c.lineWidth = 1.1; c.beginPath(); c.moveTo(ta[0], ta[1]); c.quadraticCurveTo(tm[0], tm[1], tb[0], tb[1]); c.stroke();
+        c.restore();
+        // clipped tufts: short vertical stubble, never taller than a sheep's hoof
+        c.strokeStyle = "rgba(96,110,52,0.8)"; c.lineWidth = 0.28; c.beginPath();
+        for (let n = 0; n < 6; n++) {
+          const u = hash(x, y, 710 + n) - 0.5, v = hash(x, y, 720 + n) - 0.5, [px, py] = pp(u * 0.85, v * 0.85);
+          for (let b = -1; b <= 1; b++) { c.moveTo(px + b * 0.3, py); c.lineTo(px + b * 0.45, py - 0.6 - hash(x, y, 730 + n) * 0.3); }
+        }
+        c.stroke();
+        // wooden water trough on some tiles: a box drawn in true iso (long side along the tile x-axis)
+        if (hash(x, y, 740) > 0.8) {
+          const o = pp(0.15, -0.15), L = 0.32, Wd = 0.12, H = 1.1;
+          const A = pp(0.15 - L, -0.15 - Wd), B = pp(0.15 + L, -0.15 - Wd), Cc = pp(0.15 + L, -0.15 + Wd), D = pp(0.15 - L, -0.15 + Wd);
+          c.fillStyle = "rgba(25,18,10,0.3)"; c.beginPath(); c.ellipse(o[0] + 1, o[1] + 0.6, 4, 1.2, 0, 0, 7); c.fill();
+          const face = (p: Pt[], col: string) => { c.beginPath(); c.moveTo(p[0]![0], p[0]![1]); for (const q of p.slice(1)) c.lineTo(q[0], q[1]); c.closePath(); c.fillStyle = col; c.fill(); };
+          face([D, Cc, [Cc[0], Cc[1] - H], [D[0], D[1] - H]], "#6b4a2c"); // front face, lit
+          face([Cc, B, [B[0], B[1] - H], [Cc[0], Cc[1] - H]], "#4a3220"); // right face, shade
+          face([[A[0], A[1] - H], [B[0], B[1] - H], [Cc[0], Cc[1] - H], [D[0], D[1] - H]], "#7a5634");
+          const s = 0.75, m = (p: Pt): Pt => [o[0] + (p[0] - o[0]) * s, o[1] - H + (p[1] - o[1]) * s];
+          face([m(A), m(B), m(Cc), m(D)], "rgba(90,130,140,0.9)");
+        }
       }
     }
   }
