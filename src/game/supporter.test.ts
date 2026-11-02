@@ -13,8 +13,9 @@ describe("supporter rewards", () => {
   it("unknown rewards are never allowed", () => expect(allowed("support_10", "dragon")).toBe(false));
   it("already granted rewards are no longer selectable", () => {
     expect(openRewards(["statue", "seal"])).not.toContain("statue");
-    expect(openRewards(["statue", "seal"])).toHaveLength(6);
+    expect(openRewards(["statue", "seal"])).toHaveLength(7);
   });
+  it("the village dog needs the 10 euro tier", () => { expect(tierOf("dog")).toBe(10); expect(allowed("support_5", "dog")).toBe(false); expect(allowed("support_10", "dog")).toBe(true); });
   it("tiers are 3 and 5 euro", () => { expect(tierOf("linden")).toBe(5); expect(tierOf("lanterns")).toBe(3); });
   it("10 € unlocks up to two 5-euro rewards", () => {
     expect(allowedSet("support_10", ["statue", "linden"])).toBe(true);
