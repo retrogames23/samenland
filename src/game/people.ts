@@ -917,7 +917,7 @@ export function commandMayor(p: Person, t: Town, seeds: Seed[], now: number, to:
   const tiles = mayorRoute(t, a, g, seeds);
   const last = tiles[tiles.length - 1] ?? a;
   if (Math.abs(last[0] - g[0]) + Math.abs(last[1] - g[1]) > 0 && tiles.length <= 1) return false;
-  const to2: Tile = last[0] === g[0] && last[1] === g[1] ? g : last;
+  const pts = o.pts;
   const pts: Tile[] = [from, ...tiles.slice(1, -1), to2];
   order = { id: p.id, sid: p.seed.id, from, to: to2, at: now, v: hold ? DRIVE_SPEED : ORDER_SPEED, pts }; drive = null;
   return true;
