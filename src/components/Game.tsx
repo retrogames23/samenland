@@ -1137,7 +1137,18 @@ export function Game() {
   wonderFn.current = (key, kind, my) => {
     if (!owner || my.user_id !== userId) { wonderSeen.current.delete(key); return; }
     (supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: number | null; error: unknown }>)("claim_wonder", { _seed: my.id, _site: key }).then(({ data, error }) => {
-      if (error || !data) { if (error) wonderSeen.current.delete(key); return; }
+      if (error || !data) {
+        if (error) {
+          wonderSeen.current.delete(key);
+          if (/too many/.test(String((error as { message?: string }).message ?? ""))) {
+            // daily limit: keep the site quiet until reload so the note isn't repeated every frame
+            wonderSeen.current.add(key);
+            const P = PRINCELY[lang], o = openTaskOf(princelyRows.current, my.id);
+            setVisitNote(o && o.task === "wonder" ? `${P.tired} ${P.ready}` : P.tired);
+          }
+        }
+        return;
+      }
       const realm = my.realm ?? "europe", before = firstFinder(wonderRows.current, key, realm);
       const row: WonderFind = { id: `local-w-${key}`, seed_id: my.id, site: key, realm, first: !before, reward: data, created_at: new Date().toISOString() };
       wonderRows.current = [...wonderRows.current, row]; syncWonders();
@@ -1145,7 +1156,9 @@ export function Game() {
       jingle("fanfare"); setTimeout(() => jingle("coins"), 700);
       const name = t.wonder.names[kind] ?? kind;
       const by = before ? st.current.seeds.find((s) => s.id === before.seed_id)?.name ?? "?" : "";
-      setVisitNote(before ? t.wonder.later(name, data, by) : t.wonder.first(name, data));
+      const o = openTaskOf(princelyRows.current, my.id);
+      const base = before ? t.wonder.later(name, data, by) : t.wonder.first(name, data);
+      setVisitNote(o && o.task === "wonder" ? `${base} ${PRINCELY[lang].ready}` : base);
     });
   };
   const [seenGifts, setSeenGifts] = useState<string[]>([]);
