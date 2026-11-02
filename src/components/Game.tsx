@@ -130,6 +130,37 @@ const sheetSwipe = (close: () => void) => {
   };
 };
 
+/** One local speech bubble at a time (never stored): follows a villager (pid) or sits at a world point. */
+const bubble: { text: string; until: number; pid: number | null; sid: string | null; wx: number; wy: number; lift: number } = { text: "", until: 0, pid: null, sid: null, wx: 0, wy: 0, lift: 9 };
+const sayAt = (text: string, wx: number, wy: number, lift: number, pid: number | null = null, sid: string | null = null) => {
+  Object.assign(bubble, { text, wx, wy, lift, pid, sid, until: performance.now() + Math.min(9000, 3000 + text.length * 70) });
+};
+function drawBubble(ctx: CanvasRenderingContext2D, cv: HTMLCanvasElement, cam: Camera, dpr: number) {
+  const nowT = performance.now(); if (nowT > bubble.until || !bubble.text) return;
+  if (bubble.pid !== null) { const f = lastPeople.find((o) => o.q.p.id === bubble.pid && o.q.p.seed.id === bubble.sid); if (f) { bubble.wx = f.x; bubble.wy = f.y; } }
+  const sx = (bubble.wx - cam.x) * cam.zoom * dpr + cv.width / 2, sy = (bubble.wy - bubble.lift) * cam.zoom * dpr + cv.height / 2 - (cam.y * cam.zoom * dpr) - 6 * dpr;
+  const fs = 14 * dpr, maxW = 220 * dpr, pad = 8 * dpr;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.font = `italic 600 ${fs}px Georgia, 'Times New Roman', 'Noto Serif CJK SC', serif`; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  // word wrap (CJK has no spaces: wrap per character)
+  const words = /\s/.test(bubble.text) ? bubble.text.split(/(\s+)/) : [...bubble.text];
+  const lines: string[] = []; let cur = "";
+  for (const w of words) { const nx = cur + w; if (ctx.measureText(nx).width > maxW && cur.trim()) { lines.push(cur.trim()); cur = w.trimStart(); } else cur = nx; }
+  if (cur.trim()) lines.push(cur.trim());
+  const lh = fs * 1.25, bw = Math.min(maxW, Math.max(...lines.map((l) => ctx.measureText(l).width))) + pad * 2, bh = lines.length * lh + pad * 1.6;
+  const fade = Math.min(1, (bubble.until - nowT) / 400);
+  const bx = Math.max(4, Math.min(cv.width - bw - 4, sx - bw / 2)), by = Math.max(4, sy - bh - 10 * dpr);
+  ctx.globalAlpha = fade;
+  ctx.fillStyle = "rgba(246,238,220,0.97)"; ctx.strokeStyle = "rgba(92,62,36,0.85)"; ctx.lineWidth = 2 * dpr;
+  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 10 * dpr); ctx.fill(); ctx.stroke();
+  const tx = Math.max(bx + 12 * dpr, Math.min(bx + bw - 12 * dpr, sx));
+  ctx.beginPath(); ctx.moveTo(tx - 7 * dpr, by + bh - 1); ctx.lineTo(sx, by + bh + 9 * dpr); ctx.lineTo(tx + 7 * dpr, by + bh - 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillRect(tx - 6 * dpr, by + bh - 3 * dpr, 12 * dpr, 3 * dpr);
+  ctx.fillStyle = "rgba(52,34,20,1)";
+  lines.forEach((l, i) => ctx.fillText(l, bx + bw / 2, by + pad * 0.8 + i * lh));
+  ctx.restore();
+}
+
 export function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rawSeeds, setSeeds] = useState<Seed[]>([]);
