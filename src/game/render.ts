@@ -2105,7 +2105,7 @@ export function draw(
       const live = sharp || nearTown(x, y);
       if (live) natureAt(c, x, y, cx, cy, t, false); // ore rocks
 
-      if (!st) continue;
+      if (!st) { if (live && !inCourt(x, y)) wildTurf(c, x, y, cx, cy, terrain(x, y)); continue; }
       const sd = x * 1000 + y;
       const pp = P(cx, cy);
       if (st.kind === "bridge") {
