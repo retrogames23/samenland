@@ -1960,13 +1960,6 @@ export function Game() {
                 <span className="hidden text-xs font-normal text-primary sm:inline">{t.perDay(pop)}</span>
               </div>
               <div className="hidden text-sm sm:block">{t.people(residents)}</div>
-              {larder && larder.flows.length > 0 && (
-                <button type="button" title={t.goods.larder} onClick={() => setLarderOpen(true)} className="pointer-events-auto hidden items-center gap-2 rounded px-1 text-xs tabular-nums hover:bg-muted md:flex">
-                  {[...larder.flows].sort((a, b) => b.stock - a.stock).slice(0, 4).map((f) => (
-                    <span key={f.ware} className="flex items-center gap-0.5"><WareIcon ware={f.ware} />{f.stock}<span className={f.trend > 0 ? "text-primary" : "text-muted-foreground"}>{f.trend > 0 ? "▲" : f.trend < 0 ? "▼" : ""}</span></span>
-                  ))}
-                </button>
-              )}
               <button type="button" title={t.goods.larder} aria-label={`${t.attrs.food} ${at.food} · ${t.attrs.health} ${at.health} · ${t.attrs.wealth} ${at.wealth}`} onClick={() => setLarderOpen(true)} className="pointer-events-auto flex shrink-0 items-end gap-1 rounded px-0.5 py-1 hover:bg-muted lg:hidden md:px-1">
                 {(["food", "health", "wealth"] as const).map((k) => (
                   <span key={k} className="relative h-6 w-1 overflow-hidden rounded bg-muted md:w-1.5"><span className="absolute inset-x-0 bottom-0 rounded bg-primary" style={{ height: `${at[k]}%` }} /></span>
@@ -2148,20 +2141,7 @@ export function Game() {
             <div key={k} className="text-xs"><div className="flex justify-between gap-1"><span className="truncate">{t.attrs[k]}</span><span className="tabular-nums">{at[k]}</span></div>
               <div className="h-1.5 rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${at[k]}%` }} /></div></div>
           ))}</div>}
-          <p className="mb-2 text-sm">{t.goods.larderIntro}</p>
-          <table className="w-full text-sm tabular-nums">
-            <thead><tr className="text-xs text-muted-foreground"><th /><th className="text-right">{t.goods.stock}</th><th className="text-right">{t.goods.made}</th><th className="text-right">{t.goods.used}</th></tr></thead>
-            <tbody>
-              {larder.flows.map((f) => (
-                <tr key={f.ware}>
-                  <td className="flex items-center gap-1.5 py-0.5"><WareIcon ware={f.ware} size={26} />{wareName(f.ware, 2)}</td>
-                  <td className="text-right font-semibold">{f.stock}</td><td className="text-right text-primary">+{f.made}</td><td className="text-right text-muted-foreground">−{f.used}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-2 text-xs text-muted-foreground">{t.goods.food(larder.food, larder.eaters)}</p>
-          {larder.flows.every((f) => !f.stock) && <p className="mt-2 text-sm italic">{t.goods.young}</p>}
+          <p className="text-xs text-muted-foreground">{t.goods.food(larder.food, larder.eaters)}</p>
           <div className="mt-3 border-t border-border pt-2 text-sm">
             <p className="mb-1 font-semibold">{t.goods.boonsTitle}</p>
             <ul className="space-y-0.5">
