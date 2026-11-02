@@ -1831,7 +1831,7 @@ function drawCourtLabel(c: C, cam: Camera, w: number, h: number, z: number, dpr:
 }
 const COURT_ART: Record<CourtPiece, string> = { castle: castleU, stable: stableU, fountain: fountainU, pavilion: pavilionU };
 const COURT_FIG: Record<CourtRole, string> = { prince: princeU, princess: princessU, herald: heraldU, guard: guardU, gardener: gardenerU, groom: courtGroomU };
-function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[]) {
+function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[], t = 0) {
   const n = COURT_LAYOUT[k][2], im = huntIm(`court-${k}`, COURT_ART[k]);
   // centre of the footprint, the front tile sits n-1 tiles toward the viewer
   // world-pixel widths matched to 5.4px figures (church 32, farmhouse 23): castle ≈3× a church,
@@ -1842,9 +1842,39 @@ function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[])
   if (im) {
     const h = (w * im.naturalHeight) / im.naturalWidth;
     c.drawImage(im, mx - w / 2, by - h, w, h);
+    if (k === "fountain") drawFountainWater(c, mx, by - h, w, h, t);
   }
   if (k === "castle") { L.push({ x: mx - 10, y: by - 50, r: 4 }); L.push({ x: mx + 9, y: by - 48, r: 4 }); L.push({ x: mx, y: by - 10, r: 3 }); }
   if (k === "stable") L.push({ x: mx - 8, y: by - 14, r: 2.5 });
+}
+/** Living water on the fountain sprite: spout spray, trickles from the upper bowl, ripples in the basin. */
+function drawFountainWater(c: C, mx: number, top: number, w: number, h: number, t: number) {
+  c.save(); c.lineCap = "round";
+  const bowl = top + h * 0.19, pool = top + h * 0.62;
+  // spout: small rising spray that falls back into the upper bowl
+  for (let i = 0; i < 5; i++) {
+    const u = ((t / 900 + i / 5) % 1), a = (i - 2) * 0.55, hx = mx + a * u * 1.6, hy = top + h * 0.02 - Math.sin(u * Math.PI) * 1.6 + u * h * 0.14;
+    c.fillStyle = `rgba(215,235,245,${0.75 * (1 - u)})`; c.beginPath(); c.arc(hx, hy, 0.28, 0, 7); c.fill();
+  }
+  // trickles from the upper bowl's rim down into the basin, dashes travel downward
+  c.lineWidth = 0.35; c.setLineDash([0.7, 0.9]); c.lineDashOffset = -(t / 120) % 1.6;
+  for (const sx of [-1, -0.45, 0.45, 1]) {
+    const x0 = mx + sx * w * 0.27, x1 = mx + sx * w * 0.31;
+    c.strokeStyle = "rgba(200,228,240,0.7)"; c.beginPath(); c.moveTo(x0, bowl); c.quadraticCurveTo(x1 + sx * 0.4, bowl + 1, x1, pool - Math.abs(sx) * 0.8); c.stroke();
+  }
+  c.setLineDash([]);
+  // ripples in the basin where the water lands
+  for (let i = 0; i < 3; i++) {
+    const u = ((t / 1600 + i / 3) % 1);
+    c.strokeStyle = `rgba(225,240,248,${0.55 * (1 - u)})`; c.lineWidth = 0.25;
+    c.beginPath(); c.ellipse(mx, pool + 0.3, w * (0.12 + u * 0.24), h * (0.03 + u * 0.06), 0, 0, 7); c.stroke();
+  }
+  // glints dancing on the surface
+  for (let i = 0; i < 4; i++) {
+    const ph = t / 700 + i * 1.7, gx = mx + Math.sin(ph * 0.6 + i) * w * 0.28, gy = pool + Math.cos(ph * 0.5 + i * 2) * h * 0.05;
+    c.fillStyle = `rgba(255,255,250,${0.35 + 0.35 * Math.sin(ph * 2)})`; c.fillRect(gx - 0.3, gy - 0.08, 0.6, 0.16);
+  }
+  c.restore();
 }
 let courtFrame = -1; const courtFig = new Map<number, CourtPose[]>();
 function courtFigures(t: number) {
@@ -1862,18 +1892,40 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
   const im = huntIm(`courtfig-${q.role}`, COURT_FIG[q.role]); if (!im) return;
   // same human scale as villagers/mayors (5.2); the prince stands a touch taller
   const [px, py] = iso(q.x, q.y), h = q.role === "prince" ? 5.8 : 5.4, w = (h * im.naturalWidth) / im.naturalHeight;
-  void COURT_GAIT;
-  // stride follows distance walked — whole painted figure, gentle weight shift only (no spliced legs)
+  const g = COURT_GAIT[q.role];
+  // stride follows distance walked so feet never slide
   const ph = ((q.dist ?? 0) / 0.55) * 6.2832;
   c.save(); c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(px + 0.6, py + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
   c.translate(px, py); if (q.dx < 0) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  if (q.walking) {
-    const bob = Math.abs(Math.sin(ph)) * 0.07, lean = Math.sin(ph) * 0.03;
-    c.translate(0, -bob); c.transform(1, 0, lean, 1, 0, 0);
-  } else {
+  if (!q.walking) {
     const br = Math.sin(t / 2100 + q.x * 5); c.transform(1 - br * 0.004, 0, 0, 1 + br * 0.012, 0, 0);
+    c.drawImage(im, -w / 2, -h, w, h); c.restore(); return;
   }
+  const nw = im.naturalWidth, nh = im.naturalHeight, sh = nh * g.hem, lh = h * (1 - g.hem), s = Math.sin(ph), co = Math.cos(ph);
+  c.translate(0, -Math.abs(s) * 0.07);
+  // legs/hem: the figure's own painted lower part, split into two legs that swing opposite ways
+  const swing = w * (g.robe ? 0.05 : 0.13);
+  const leg = (half: 0 | 1, off: number, lift: number) => {
+    c.save(); c.translate(off, -lift);
+    c.drawImage(im, half * nw / 2, sh, nw / 2, nh - sh, -w / 2 + half * w / 2, -lh, w / 2, lh);
+    c.restore();
+  };
+  const back = s > 0 ? 1 : 0; // leg moving backward is drawn first
+  const off = (hf: 0 | 1) => (hf ? -1 : 1) * s * swing, lift = (hf: 0 | 1) => Math.max(0, (hf ? -co : co)) * (g.robe ? 0.12 : 0.3);
+  if (g.robe) {
+    c.save(); c.transform(1, 0, s * 0.06, 1, 0, 0);
+    leg(back as 0 | 1, off(back as 0 | 1), lift(back as 0 | 1)); leg((1 - back) as 0 | 1, off((1 - back) as 0 | 1), lift((1 - back) as 0 | 1));
+    c.restore();
+    // shoe tips peeking out alternately under the robe
+    c.fillStyle = "#3a2a1c";
+    for (const hf of [0, 1] as const) { const f = (hf ? -1 : 1) * s; if (f > 0.2) { c.beginPath(); c.ellipse(f * w * 0.18 + (hf ? -0.5 : 0.5), -0.15, 0.45, 0.2, 0, 0, 7); c.fill(); } }
+  } else {
+    leg(back as 0 | 1, off(back as 0 | 1), lift(back as 0 | 1)); leg((1 - back) as 0 | 1, off((1 - back) as 0 | 1), lift((1 - back) as 0 | 1));
+  }
+  // upper body with a slight overlap over the hip seam and a soft counter-sway
+  c.transform(1, 0, -s * 0.025, 1, 0, 0);
+  c.drawImage(im, 0, 0, nw, sh + nh * 0.01, -w / 2, -h, w, h * g.hem + h * 0.01);
   c.drawImage(im, -w / 2, -h, w, h);
   c.restore();
 }
@@ -2532,7 +2584,7 @@ export function draw(
       L.push({ x: cx + 5, y: cy - 6, r: focused ? 7 : 2.5 });
       if (focused) L.push({ x: cx + 5, y: cy + 1, r: 6 });
     }
-    if (!st) { const cp = courtPieces().get(y * MAP + x); if (cp) drawCourtPiece(c, cp, cx, cy, L); for (const q of courtFigures(t).get(y * MAP + x) ?? []) drawCourtFigure(c, q, t); }
+    if (!st) { const cp = courtPieces().get(y * MAP + x); if (cp) drawCourtPiece(c, cp, cx, cy, L, t); for (const q of courtFigures(t).get(y * MAP + x) ?? []) drawCourtFigure(c, q, t); }
     if (!st) { const wk = wonderMap().get(y * MAP + x); if (wk) drawWonder(c, wk, cx, cy, t, !wonderFound.has(`${wk}:${x}:${y}`), L); }
     if (!st && supportOwned.size) { const dk = decorMap(seeds, supportOwned, now, MAP).get(y * MAP + x); if (dk) drawSupport(c, dk, cx, cy, L, worldHour(now) >= 19 || worldHour(now) < 7); }
     { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
