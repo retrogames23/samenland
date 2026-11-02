@@ -2271,8 +2271,10 @@ export function draw(
 
   // road traffic, messengers and stalls join the tile depth order: houses in front hide them (no object above a front roof)
   const vip = framePool.vip; vip.length = 0;
-  const roadProp = (x: number, y: number, a: number, f: (context: C) => void, important = false, id?: string) => {
-    let [tx, ty] = toTile(x, y);
+  // anchor (ax, ay): depth point on the road centre line, so the keep-right lane offset never tips a cart into a house's tile
+  const roadProp = (x: number, y: number, a: number, f: (context: C) => void, important = false, id?: string, ax = x, ay = y) => {
+    let [tx, ty] = toTile(ax, ay);
+    x = ax; y = ay;
     if (id !== undefined) { // depth-bucket hysteresis: a cart on a tile seam keeps its bucket until clearly past it, so roofs don't flicker it in and out
       const fa = (x / (TW / 2) + y / (TH / 2)) / 2, fb = (y / (TH / 2) - x / (TW / 2)) / 2;
       const prev = propTileMemo.get(id);
@@ -2326,7 +2328,7 @@ export function draw(
       const good = ex[Math.floor(hash(sn, k, 5) * ex.length)] ?? null, cart = !twin && hash(sn, k, 3) < 0.55; // twins: porters walk straight from workshop to workshop
       // oncoming traffic passes on the right: carts keep a wide lane, walkers the verge
       const [ox, oy] = keepRight(dx, dy, cart ? 3.2 : 4.2);
-      if (cart) roadProp(x + ox, y + oy, fade, () => drawCart(c, x + ox, y + oy, dx, dy, bob, sn + k, "", t), false, `t${sn}:${k}`);
+      if (cart) roadProp(x + ox, y + oy, fade, () => drawCart(c, x + ox, y + oy, dx, dy, bob, sn + k, "", t, `t${l.a.id}:${l.b.id}:${k}`), false, `t${l.a.id}:${l.b.id}:${k}`, x, y);
       else roadProp(x + ox, y + oy, fade, () => drawWanderer(c, x + ox, y + oy, dx, dy, t, sn + k, good ? CARRY_OF[good] : null), false, `p${sn}:${k}`);
       lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
     }
