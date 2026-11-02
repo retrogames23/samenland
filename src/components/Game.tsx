@@ -1122,7 +1122,7 @@ export function Game() {
   };
   useEffect(() => { if (!audience) setDecree(null); }, [audience]);
   useEffect(() => { if (!walk) { courtNear.current = false; setNearCourt(false); setAudience(null); } }, [walk]);
-  useEffect(() => { if (!visitNote) return; const h = setTimeout(() => setVisitNote(null), 7000); return () => clearTimeout(h); }, [visitNote]);
+  useEffect(() => { if (!visitNote) return; const h = setTimeout(() => setVisitNote(null), 9000); return () => clearTimeout(h); }, [visitNote]);
   visitFn.current = (o, my) => {
     if (!owner || my.user_id !== userId) { visitSeen.current.delete(o.id); return; }
     supabase.rpc("claim_visit", { _seed: my.id, _visited: o.id }).then(({ data, error }) => {
