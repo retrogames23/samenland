@@ -17,6 +17,7 @@ import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
 import { houseLit, candleFlicker } from "./night";
 import { setArtTime } from "./season-art";
 import { seasonKey, seasonAt } from "./season";
+import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
 import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
@@ -138,7 +139,7 @@ function doorV(c: C, p: ReturnType<typeof P>, u: number, v: number, sd: number, 
 
 function tree(c: C, x: number, y: number, s: number, t: number, v: number, sd: number, conifer = 0.5) {
   const sway = Math.sin(t / 1300 + v * 10) * 0.6;
-  const k = v < conifer ? "fir" : v > 0.82 ? "birch" : "oak";
+  const k = treeKind(v, conifer);
   if (drawNature(c, k, x, y, s, sway, hash(sd, 5, 5) > 0.5)) return;
   blob(c, x, y - 7 * s, 4 * s, hsl(100, 30, 40), sd, false);
 }
