@@ -188,3 +188,15 @@
   -webkit-mask-image: radial-gradient(ellipse 72% 70% at center, black 62%, transparent 100%);
   mask-image: radial-gradient(ellipse 72% 70% at center, black 62%, transparent 100%);
 }
+
+/* Mobile dock: one bottom anchor for every bottom HUD element. iOS Safari's floating
+   toolbar overlays the page but is not part of safe-area-inset-bottom, so browser tabs
+   on iOS keep a fixed clearance; installed (standalone) apps use the real safe area. */
+:root { --dock-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+@supports (-webkit-touch-callout: none) {
+  :root { --dock-bottom: max(calc(env(safe-area-inset-bottom) + 0.5rem), 5.25rem); }
+}
+@media (display-mode: standalone) {
+  :root { --dock-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+}
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
