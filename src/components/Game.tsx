@@ -775,15 +775,8 @@ export function Game() {
       e.preventDefault();
       const r = cv.getBoundingClientRect();
       const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1;
-      // trackpad two-finger swipe (pixel deltas, sideways or fractional, no ctrl): pan instead of zoom
-      const pad = !e.ctrlKey && e.deltaMode === 0 && (e.deltaX !== 0 || !Number.isInteger(e.deltaY) || Math.abs(e.deltaY) < 40);
-      if (pad) {
-        cam.current.x += e.deltaX / cam.current.zoom; cam.current.y += e.deltaY / cam.current.zoom;
-        fling.current = { vx: 0, vy: 0, t: performance.now() };
-        if (st.current.walk) camFree.current = true;
-        return;
-      }
-      // pinch (ctrl) is fine-grained; mouse wheels are capped per tick so one fast spin never slams the zoom
+      // every wheel / trackpad two-finger swipe zooms (laptop users pan by dragging); pinch (ctrl) is fine-grained,
+      // deltas are capped per tick so one fast spin never slams the zoom
       const dy = Math.max(-80, Math.min(80, e.deltaY * unit)) * (e.ctrlKey ? 4 : 1);
       target.current = {
         zoom: Math.min(st.current.walk ? 20 : 12, Math.max(MIN_ZOOM, target.current.zoom * Math.exp(-dy * 0.0012))),
