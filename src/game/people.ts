@@ -967,7 +967,7 @@ export function ownStroll(): { sid: string; x: number; y: number; dir: [number, 
   return null;
 }
 
-/** Live positions of other players' strolling mayors (Realtime broadcast, never stored). */
+/** Live positions of other players' strolling mayors (Realtime broadcast, never stored); dist carries the stride phase. */
 export type RemoteSample = { x: number; y: number; dir: [number, number]; walking: boolean; mounted: boolean; dist: number; t: number };
 const remote = new Map<string, { a: RemoteSample; b: RemoteSample }>();
 /** Remote figures stay live this long without a packet, then fall back to their derived routine. */
@@ -997,7 +997,7 @@ function orderPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): 
   if (dv && dv.id === p.id) return { ...base, x: dv.x, y: dv.y, dir: dv.dir, visible: true, walking: dv.moving, act: "stroll", phase: dv.dist / STRIDE, working: false, mounted };
   if (!dv || dv.sid !== p.seed.id) {
     const rm = remoteMayor(p.seed.id);
-    if (rm) return { ...base, x: rm.x, y: rm.y, dir: rm.dir, visible: true, walking: rm.walking, act: "stroll", phase: rm.dist / STRIDE, working: false, mounted: rm.mounted };
+    if (rm) return { ...base, x: rm.x, y: rm.y, dir: rm.dir, visible: true, walking: rm.walking, act: "stroll", phase: rm.dist, working: false, mounted: rm.mounted };
   }
   const o = order;
   if (!o || o.id !== p.id) return null;
