@@ -1050,7 +1050,15 @@ export function Game() {
   const startWalk = () => { if (!my) return; setTab(null); setWho(null); setPlace(null); setPlacing(null); const cv = canvasRef.current; target.current = { zoom: 16, ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; setWalk(true); };
   const wasWalk = useRef(false);
   useEffect(() => { setStrollHold(walk); if (wasWalk.current && !walk) { clearMayorOrder(); target.current = { ...target.current, zoom: Math.min(12, target.current.zoom) }; } wasWalk.current = walk; }, [walk]);
-  const findMayor = () => { if (!my) return; const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (!me) return focus(my.x, my.y); const z = poseOf(me, tw, seeds, nw); focus(z.x, z.y); setPlace(null); setWho(me); };
+  const findMayor = () => {
+    if (!my) return; const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (!me) return focus(my.x, my.y);
+    const z = poseOf(me, tw, seeds, nw);
+    // camera far from the mayor: activate him in place, so the player picks a goal without losing the view
+    const [ix, iy] = iso(z.x, z.y), c = cam.current, cv = canvasRef.current;
+    const off = Math.hypot((ix - c.x) * c.zoom, (iy - c.y) * c.zoom), half = Math.min(cv?.clientWidth ?? 800, cv?.clientHeight ?? 600) * 0.4;
+    if (!walk && off > half) { setTab(null); setWho(null); setPlace(null); setPlacing(null); camFree.current = true; setWalk(true); return; }
+    camFree.current = false; focus(z.x, z.y); setPlace(null); if (!walk) setWho(me);
+  };
   const myCharter = my ? charters.find((c) => c.seed_id === my.id)?.path : undefined;
   const sealCharter = async () => {
     if (!my || !userId || !charterPick) return;
