@@ -50,7 +50,8 @@ import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
 import { MAYOR } from "@/game/lang/mayor";
 import { COURT } from "@/game/lang/court";
-import { setCourtLabel, setSupportOwned } from "@/game/render";
+import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso } from "@/game/render";
+import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT } from "@/game/lang/support";
 import { paymentsEnvOrNull } from "@/lib/stripe";
@@ -291,8 +292,19 @@ export function Game() {
     const { data } = await supabase.from("supporter_rewards").select("seed_id, reward").eq("environment", env);
     const m = new Map<string, Set<string>>();
     for (const r of data ?? []) { const v = m.get(r.seed_id) ?? new Set<string>(); v.add(r.reward); m.set(r.seed_id, v); }
-    setSupport(m); setSupportOwned(m); return m;
+    setSupport(m); return m;
   }, []);
+  // village dog names (owner-chosen, public); the dog itself is derived in src/game/dog.ts
+  const [dogNames, setDogNames] = useState<Map<string, string>>(new Map());
+  useEffect(() => { void supabase.from("village_dogs").select("seed_id, name").then(({ data }) => setDogNames(new Map((data ?? []).map((r) => [r.seed_id, r.name])))); }, []);
+  // preview only: Roggenfeld gets the dog for testing, so the reward can be seen without a payment
+  useEffect(() => {
+    const host = typeof location !== "undefined" ? location.hostname : "";
+    const preview = host.includes("id-preview") || host === "localhost" || host.includes("lovableproject");
+    const m = new Map([...support].map(([k, v]) => [k, new Set(v)]));
+    if (preview) for (const sd of seeds) if (sd.name === "Roggenfeld") { const v = m.get(sd.id) ?? new Set<string>(); v.add("dog"); m.set(sd.id, v); }
+    setSupportOwned(m);
+  }, [support, seeds]);
   useEffect(() => {
     void loadSupport();
     const back = typeof location !== "undefined" && new URLSearchParams(location.search).get("support") === "thanks";
@@ -934,6 +946,11 @@ export function Game() {
   };
   /** Stroll mode: talk to whoever/whatever lies under the tap; true when something answered. */
   const talkTo = (e: React.PointerEvent) => {
+    { const [tx, ty] = tileAt(e);
+      for (const [sid, d] of dogSpots) if (Math.hypot(d.x - tx, d.y - ty) < 0.9) {
+        const dt = DOG[lang], n = dogNames.get(sid) ?? dt.unnamed, ls = dt.lines(n), [wx, wy] = dogIso(d.x, d.y);
+        sayAt(isNight() ? dt.sleepy(n) : ls[Math.floor(Math.random() * ls.length)]!, wx, wy, 5); tap(); return true;
+      } }
     const p = personAt(e);
     if (p && p.role === "mayor" && p.seed.id !== mine && p.seed.user_id && userId) { setDmPeer(p.seed.user_id); setTavernOpen(true); return true; }
     if (p && p.role !== "mayor") { hm(); speak(p); return true; }
@@ -2363,7 +2380,7 @@ export function Game() {
       )}
       {supportOpen && (
         <Parchment title={SUPPORT[lang].title} later={t.cancel} onLater={() => { setSupportOpen(false); void loadSupport(); }}>
-          <SupportBox lang={lang} seedId={home?.id ?? null} owned={home ? support.get(home.id) ?? new Set() : new Set()} signedIn={!!userId} />
+          <SupportBox lang={lang} seedId={home?.id ?? null} owned={home ? support.get(home.id) ?? new Set() : new Set()} signedIn={!!userId} hasDog={!!home && (support.get(home.id)?.has("dog") || (home.name === "Roggenfeld" && /id-preview|localhost|lovableproject/.test(location.hostname)))} dogName={home ? dogNames.get(home.id) ?? "" : ""} onDogName={async (n) => { if (!home) return false; const { error } = await supabase.from("village_dogs").upsert({ seed_id: home.id, name: n, updated_at: new Date().toISOString() }); if (!error) setDogNames((m) => new Map(m).set(home.id, n)); return !error; }} />
         </Parchment>
       )}
       {bugOpen && userId && (

@@ -8,9 +8,11 @@ import { REWARDS, SUPPORT_PRICES, allowedSet, type RewardKey, type SupportPrice 
 import { getStripe, getStripeEnvironment, paymentsTestMode } from "@/lib/stripe";
 import { createSupportCheckout } from "@/lib/support.functions";
 import { SUPPORT_ART } from "@/game/support-art";
+import { DOG } from "@/game/lang/dog";
 
-export function SupportBox({ lang, seedId, owned, signedIn }: { lang: Lang; seedId: string | null; owned: Set<string>; signedIn: boolean }) {
-  const t = SUPPORT[lang];
+export function SupportBox({ lang, seedId, owned, signedIn, hasDog, dogName, onDogName }: { lang: Lang; seedId: string | null; owned: Set<string>; signedIn: boolean; hasDog?: boolean; dogName?: string; onDogName?: (n: string) => Promise<boolean> }) {
+  const t = SUPPORT[lang], dt = DOG[lang];
+  const [dn, setDn] = useState(dogName ?? ""); const [dnOk, setDnOk] = useState(false);
   const [picked, setPicked] = useState<RewardKey[]>([]);
   const reward = picked[0] ?? null;
   const [price, setPrice] = useState<SupportPrice | null>(null);
@@ -27,6 +29,15 @@ export function SupportBox({ lang, seedId, owned, signedIn }: { lang: Lang; seed
 
   return (
     <div className="space-y-3 text-sm">
+      {hasDog && onDogName && (
+        <form className="flex items-end gap-2 rounded border border-primary/30 p-2" onSubmit={async (e) => { e.preventDefault(); const n = dn.trim().slice(0, 20); if (n) setDnOk(await onDogName(n)); }}>
+          <img src={dogSit} alt="" className="h-10 w-10 object-contain" />
+          <label className="flex-1 text-xs">{dt.label}
+            <input value={dn} maxLength={20} onChange={(e) => { setDn(e.target.value); setDnOk(false); }} placeholder={dt.placeholder} className="mt-1 w-full rounded border border-input bg-background px-2 py-1 text-sm" />
+          </label>
+          <Button size="sm" type="submit">{dnOk ? dt.saved : dt.save}</Button>
+        </form>
+      )}
       {paymentsTestMode && <p className="rounded border border-primary/40 bg-primary/10 px-2 py-1 text-center text-xs">{t.test}</p>}
       <p>{t.intro}</p>
       <p className="rounded border border-border bg-background/50 p-2 text-xs font-semibold">⚖️ {t.cosmetic}</p>
