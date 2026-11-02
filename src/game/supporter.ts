@@ -4,13 +4,14 @@
 // Rewards never touch growth, money, food or any other game mechanic.
 import { LANDMARKS, SEAT_KINDS, landmarkSpots, terrain, buildable, structureAt, type Seed } from "./world";
 
-export type RewardKey = "seal" | "vane" | "beegarden" | "lanterns" | "statue" | "linden" | "fountain" | "rosearch";
-export type Tier = 3 | 5;
+export type RewardKey = "seal" | "vane" | "beegarden" | "lanterns" | "statue" | "linden" | "fountain" | "rosearch" | "dog";
+export type Tier = 3 | 5 | 10;
 
 /** Order matters: it is the order in which decorations take free tiles around the seat. */
 export const REWARDS: { key: RewardKey; tier: Tier }[] = [
   { key: "seal", tier: 3 }, { key: "vane", tier: 3 }, { key: "beegarden", tier: 3 }, { key: "lanterns", tier: 3 },
   { key: "statue", tier: 5 }, { key: "linden", tier: 5 }, { key: "fountain", tier: 5 }, { key: "rosearch", tier: 5 },
+  { key: "dog", tier: 10 },
 ];
 export const REWARD_KEYS = REWARDS.map((r) => r.key);
 /** Price ids of the payment provider and their amount in euro. */

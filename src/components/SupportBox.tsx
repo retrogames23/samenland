@@ -1,3 +1,4 @@
+import dogSit from "@/assets/sprites/support/dog-sit.webp";
 import { useCallback, useMemo, useState } from "react";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
@@ -41,9 +42,9 @@ export function SupportBox({ lang, seedId, owned, signedIn }: { lang: Lang; seed
         <>
           <div className="text-xs font-semibold uppercase tracking-wider">{t.pick}</div>
           <p className="text-xs italic text-muted-foreground">{t.two}</p>
-          {([3, 5] as const).map((tier) => (
+          {([3, 5, 10] as const).map((tier) => (
             <div key={tier} className="space-y-1">
-              <div className="text-xs text-muted-foreground">{tier === 3 ? t.tier3 : t.tier5}</div>
+              <div className="text-xs text-muted-foreground">{tier === 3 ? t.tier3 : tier === 5 ? t.tier5 : t.tier10}</div>
               <div className="grid grid-cols-2 gap-1.5">
                 {REWARDS.filter((r) => r.tier === tier).map((r) => {
                   const has = owned.has(r.key), on = picked.includes(r.key);
@@ -51,7 +52,7 @@ export function SupportBox({ lang, seedId, owned, signedIn }: { lang: Lang; seed
                     <button key={r.key} type="button" disabled={has} onClick={() => setPicked((p) => on ? p.filter((k) => k !== r.key) : p.length >= 2 ? [p[1]!, r.key] : [...p, r.key])}
                       className={`flex items-center gap-2 rounded border p-1.5 text-start transition disabled:opacity-45 ${on ? "border-primary bg-primary/15" : "border-border bg-background/40 hover:border-primary/60"}`}>
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center">
-                        {SUPPORT_ART[r.key] ? <img src={SUPPORT_ART[r.key]} alt="" className="max-h-10 max-w-10 object-contain" loading="lazy" /> : <span className="text-2xl">⚜️</span>}
+                        {(SUPPORT_ART[r.key] ?? (r.key === "dog" ? dogSit : null)) ? <img src={SUPPORT_ART[r.key] ?? dogSit} alt="" className="max-h-10 max-w-10 object-contain" loading="lazy" /> : <span className="text-2xl">⚜️</span>}
                       </span>
                       <span className="min-w-0">
                         <span className="block text-xs font-semibold leading-tight">{t.names[r.key]}</span>
