@@ -198,7 +198,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
               <input value={text} maxLength={300} disabled={!userId || !my} onChange={(e) => setText(e.target.value)}
                 placeholder={!my ? t.tavern.needVillage : chan === "tavern" ? t.tavern.say : t.tavern.sayLetter(people.get(chan.peer)?.owner ?? "")}
                 className="min-w-0 flex-1 rounded border border-ink/30 bg-parchment/60 px-2 py-1 font-mono text-sm outline-none focus:border-ink/60" />
-              <button type="submit" disabled={!text.trim() || !my} className="rounded bg-primary px-3 text-sm text-primary-foreground disabled:opacity-40">{t.tavern.send}</button>
+              <button type="submit" disabled={!text.trim() || !my || sending} className="rounded bg-primary px-3 text-sm text-primary-foreground disabled:opacity-40">{t.tavern.send}</button>
             </form>
           </div>
         </div>
