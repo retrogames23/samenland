@@ -116,6 +116,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { firstFreeSite, placeTap } from "@/game/placement";
+import { saplingSpots } from "@/game/saplings";
 
 type Mode = "look" | "seed" | "tree" | "flower" | "lantern" | "sapling";
 
@@ -309,6 +310,7 @@ export function Game() {
   // start over the settled heartland, never the empty ocean at tile (0,0)
   const cam = useRef<Camera>((() => { const [x, y] = iso(500, 500); return { x, y, zoom: 2.6 }; })());
   const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
+  const sapCache = useRef<{ key: string; spots: [number, number][] }>({ key: "", spots: [] });
   const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, ghost: null as [number, number] | null, walk: false });
   st.current.walk = walk;
   st.current.seeds = seeds;
