@@ -520,6 +520,18 @@ function smoothRoad(l: { tiles: [number, number][] }): Pt[] {
     }
     return raw[i]!;
   });
+  // water crossings: road meets the bridge exactly at its abutments (raw bank tile centres, as drawBridgeSpan
+  // uses) and traffic runs straight along the deck between them, never beside it through the river
+  const wet = (i: number) => isWater(terrain(l.tiles[i]![0], l.tiles[i]![1]));
+  for (let i = 0; i < raw.length; i++) {
+    if (!wet(i)) continue;
+    let j = i; while (j + 1 < raw.length && wet(j + 1)) j++;
+    const s0 = Math.max(0, i - 1), s1 = Math.min(raw.length - 1, j + 1), A = raw[s0]!, B = raw[s1]!;
+    for (let k = s0; k <= s1; k++) { const f = s1 === s0 ? 0 : (k - s0) / (s1 - s0); out[k] = [A[0] + (B[0] - A[0]) * f, A[1] + (B[1] - A[1]) * f]; }
+    // ease the approach on each bank so the band bends into the abutment instead of kinking
+    for (const [k, p] of [[s0 - 1, A], [s1 + 1, B]] as const) if (k >= 0 && k < raw.length && !wet(k)) out[k] = [(out[k]![0] + p[0]) / 2, (out[k]![1] + p[1]) / 2];
+    i = j;
+  }
   smoothCache.set(l, out); return out;
 }
 const boxCache = new WeakMap<object, [number, number, number, number]>();
