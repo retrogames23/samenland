@@ -98,12 +98,12 @@ function heightEurope(x: number, y: number) {
 function heightFjords(x: number, y: number) {
   const wx = x + (fbm(x / 130, y / 130, 221) - 0.5) * 110;
   const wy = y + (fbm(x / 130, y / 130, 222) - 0.5) * 110;
-  const cx = wx / MAP - 0.42, cy = wy / MAP - 0.46;
+  const cx = wx / MAP - 0.47, cy = wy / MAP - 0.47;
   const rx = cx * 0.8 + cy * 0.6, ry = -cx * 0.6 + cy * 0.8; // tilt the long axis
   const ang = Math.atan2(ry, rx);
   const coast = 0.7 + (vnoise(Math.cos(ang) * 6 + 40, Math.sin(ang) * 6 + 40, 223) - 0.5) * 0.5
     + (vnoise(Math.cos(ang) * 14 + 7, Math.sin(ang) * 14 + 7, 224) - 0.5) * 0.18; // narrow fjords
-  const edge = Math.max(0, Math.hypot(rx * 0.75, ry * 1.55) * 2 - coast) * 2.6;
+  const edge = Math.max(0, Math.hypot(rx * 0.95, ry * 1.6) * 2 - coast) * 2.6;
   const ridge = 1 - Math.abs(fbm(x / 95, y / 95, 225) * 2 - 1);
   const spine = Math.max(0, rx + 0.08) * 0.55; // highlands rise towards the east
   return fbm(x / 80, y / 80, 201) * 0.7 + ridge * ridge * (0.22 + spine) - edge;
@@ -134,8 +134,8 @@ function heightArchipelago(x: number, y: number) {
   const ridge = 1 - Math.abs(fbm(x / 100, y / 100, 425) * 2 - 1);
   const main = fbm(x / 85, y / 85, 401) * 0.72 + ridge * ridge * 0.36 - edge;
   // islets scattered over the surrounding sea
-  const isl = fbm(x / 46, y / 46, 431) * 1.35 - 0.38 - Math.max(0, d - 0.36) * 0.9;
-  return Math.max(main, d > 0.3 && d < 0.48 ? isl : -1);
+  const isl = fbm(x / 46, y / 46, 431) * 1.35 - 0.4 - Math.max(0, d - 0.33) * 3.2;
+  return d > 0.28 ? Math.max(main, isl) : main;
 }
 /**
  * Traced rivers: each one starts at a spring in the highlands and walks downhill (with a gentle
