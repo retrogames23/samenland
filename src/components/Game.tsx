@@ -112,6 +112,7 @@ const CHAR_ICON: Record<TownWay, string> = { grain: "🌾", workshop: "⚒", gat
 const wayOf = (p: { x: number; y: number }) => townCharacter(p).main;
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { TOWN_CHARACTER } from "@/game/i18n";
+import { onIsland } from "@/game/islands";
 import { townCharacter, type TownWay } from "@/game/character";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { CHEST } from "@/game/lang/chest";
@@ -2158,7 +2159,7 @@ export function Game() {
         <Panel inner="flex items-center gap-1.5 px-1.5 py-1 md:gap-5 md:px-3 md:py-1.5">
           {my && <CharacterBadge seed={my} lang={lang} />}
           <div className="min-w-0 shrink">
-            <div title={my ? TOWN_CHARACTER[lang].land[wayOf(my)] : undefined} className="-my-[0.34em] truncate py-[0.34em] pl-0.5 pr-1 font-display text-lg leading-none text-wood md:pr-3 md:text-2xl">{my ? my.name : "Samenland"}</div>
+            <div title={my ? TOWN_CHARACTER[lang].land[wayOf(my)] : undefined} className="-my-[0.34em] truncate py-[0.34em] pl-0.5 pr-1 font-display text-lg leading-none text-wood md:pr-3 md:text-2xl">{my ? my.name : "Samenland"}{my && <span className="ml-1.5 text-sm text-muted-foreground md:text-base">{onIsland(lang, realm)}</span>}</div>
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
               {my && myStats ? `${CHAR_ICON[wayOf(my)]} ${TOWN_CHARACTER[lang].names[wayOf(my)]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[myRank]}${rankHint ? ` · ${rankHint}` : ""} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
