@@ -1675,6 +1675,32 @@ function nearTown(x: number, y: number) {
   for (const m of mask) { const dx = x - m.x, dy = y - m.y; if (dx * dx + dy * dy <= m.r2) return true; }
   return false;
 }
+/**
+ * Wild meadow in 2.5D: upright grass blades (vertical, lit from the upper left) and, on flower meadows,
+ * small blossoms on stalks — pure hash per tile, so baked chunks and the live view agree.
+ */
+function wildTurf(g: C, x: number, y: number, cx: number, cy: number, tr: string) {
+  if (tr !== "grass" && tr !== "meadow" && tr !== "hill" && tr !== "fertile") return;
+  const n = tr === "meadow" ? 5 : 3;
+  g.lineCap = "round";
+  for (let i = 0; i < n; i++) {
+    const h = hash(x, y, 820 + i); if (h < 0.25) continue;
+    // stay inside the iso diamond: u,v in tile space, projected with the 2:1 ratio
+    const u = hash(x, y, 830 + i) - 0.5, v = hash(x, y, 840 + i) - 0.5;
+    const px = cx + (u - v) * TW * 0.42, py = cy + (u + v) * TH * 0.42;
+    const tall = 1.1 + h * 1.1;
+    g.fillStyle = "rgba(30,24,10,0.14)"; g.beginPath(); g.ellipse(px + 0.5, py + 0.15, 1.2, 0.35, 0, 0, 7); g.fill();
+    g.strokeStyle = tr === "hill" ? "rgba(92,104,58,0.85)" : "rgba(70,100,40,0.85)"; g.lineWidth = 0.32; g.beginPath();
+    for (let b = -1; b <= 1; b++) { g.moveTo(px + b * 0.35, py); g.lineTo(px + b * 0.6, py - tall * (b ? 0.8 : 1)); }
+    g.stroke();
+    g.strokeStyle = "rgba(190,200,120,0.5)"; g.lineWidth = 0.14; g.beginPath(); g.moveTo(px - 0.4, py - 0.1); g.lineTo(px - 0.65, py - tall * 0.75); g.stroke();
+    if (tr === "meadow" && h > 0.55) {
+      const col = ["#f2ead2", "#e8c547", "#c8463a", "#9b84c4"][Math.floor(hash(x, y, 850 + i) * 4)]!;
+      g.strokeStyle = "rgba(70,96,40,0.9)"; g.lineWidth = 0.18; g.beginPath(); g.moveTo(px + 0.9, py); g.lineTo(px + 0.9, py - tall - 0.6); g.stroke();
+      g.fillStyle = col; g.beginPath(); g.ellipse(px + 0.9, py - tall - 0.7, 0.5, 0.32, 0, 0, 7); g.fill();
+    }
+  }
+}
 /** Wild trees, bushes, crags and ore rocks of one tile — the single source for every zoom level. */
 function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean) {
   if (inCourt(x, y)) return; // the estate keeps open lawns
@@ -1686,6 +1712,7 @@ function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number,
     }
   }
   if (!free) return;
+  wildTurf(g, x, y, cx, cy, tr);
   if (tr === "mountain" && hash(x, y, 26) > 0.55) drawNature(g, "crag", cx + (hash(x, y, 28) - 0.5) * 6, cy + 4, 0.55 + hash(x, y, 27) * 0.5, 0, hash(x, y, 29) > 0.5);
   if (tr === "forest") {
     if (hash(x, y, 19) > 0.35) tree(g, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6);
