@@ -9,8 +9,8 @@ export const WONDER_CELL = 96;
 /** How close (tiles) the mayor must walk to discover a wonder. */
 export const WONDER_REACH = 1.8;
 /** Reward for the first discoverer on a map, and for every later village (mirrors DB claim_wonder). */
-export const WONDER_FIRST = 100;
-export const WONDER_LATER = 40;
+export const WONDER_FIRST = 60;
+export const WONDER_LATER = 50;
 
 const near = (x: number, y: number, r: number, f: (t: Terrain) => boolean) => {
   for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if ((i || j) && f(terrain(x + i, y + j))) return true;
@@ -59,3 +59,5 @@ export function firstFinder(rows: WonderFind[], site: string, realm: string): Wo
   for (const r of rows) if (r.site === site && r.realm === realm && (!best || r.created_at < best.created_at)) best = r;
   return best;
 }
+/** Whole days since the first discovery (0 = today). */
+export const daysSince = (iso: string, now: number) => Math.max(0, Math.floor((now - Date.parse(iso)) / 864e5));
