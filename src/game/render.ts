@@ -1898,27 +1898,23 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
     const br = Math.sin(t / 2100 + q.x * 5); c.transform(1 - br * 0.004, 0, 0, 1 + br * 0.012, 0, 0);
     c.drawImage(im, -w / 2, -h, w, h); c.restore(); return;
   }
-  const nw = im.naturalWidth, nh = im.naturalHeight, sh = nh * g.hem, lh = h * (1 - g.hem), s = Math.sin(ph), co = Math.cos(ph);
-  c.translate(0, -Math.abs(s) * 0.07);
-  // legs/hem: the figure's own painted lower part, split into two legs that swing opposite ways
-  const swing = w * (g.robe ? 0.04 : 0.1);
-  const leg = (half: 0 | 1, off: number, lift: number) => {
-    c.save(); c.translate(off, -lift);
-    const sx0 = half ? nw * g.col : 0, sw = half ? nw * (1 - g.col) : nw * g.col; c.drawImage(im, sx0, sh, sw, nh - sh, -w / 2 + (sx0 / nw) * w, -lh, (sw / nw) * w, lh);
-    c.restore();
-  };
-  const back = s > 0 ? 1 : 0; // leg moving backward is drawn first
-  const off = (hf: 0 | 1) => (hf ? -1 : 1) * s * swing, lift = (hf: 0 | 1) => Math.max(0, (hf ? -co : co)) * (g.robe ? 0.12 : 0.3);
+  // painted walk cycle like the villagers: never slice the standing pose into sliding strips
+  const nw = im.naturalWidth, nh = im.naturalHeight, f = Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES;
+  const bob = Math.abs(Math.sin(ph)) * 0.07;
+  c.translate(0, -bob);
   if (g.robe) {
-    c.save(); c.transform(1, 0, s * 0.06, 1, 0, 0);
-    leg(back as 0 | 1, off(back as 0 | 1), lift(back as 0 | 1)); leg((1 - back) as 0 | 1, off((1 - back) as 0 | 1), lift((1 - back) as 0 | 1));
-    c.restore();
+    // long gown: painted shoes step out under the hem
+    const foot = folkImage("footF"), sway = Math.sin(ph), fs = h * 0.11, fw2 = foot ? (fs * foot.naturalWidth) / foot.naturalHeight : 0;
+    if (foot) for (const sd of [-1, 1]) { const lift = Math.max(0, Math.cos(ph) * sd) * h * 0.025; c.drawImage(foot, sd * sway * w * 0.16 - fw2 * 0.45, -fs - lift + h * 0.02, fw2, fs); }
+    c.drawImage(im, 0, 0, nw, nh * 0.93, -w / 2, -h, w, h * 0.93);
   } else {
-    leg(back as 0 | 1, off(back as 0 | 1), lift(back as 0 | 1)); leg((1 - back) as 0 | 1, off((1 - back) as 0 | 1), lift((1 - back) as 0 | 1));
+    const legs = folkImage("legsM");
+    if (legs) {
+      const fw = legs.naturalWidth / WALK_FRAMES, lh = h * (1 - g.hem + 0.1), lw = (lh * fw) / legs.naturalHeight;
+      c.drawImage(legs, f * fw, 0, fw, legs.naturalHeight, -lw * 0.5, -lh, lw, lh);
+      c.drawImage(im, 0, 0, nw, nh * g.hem, -w * g.hip, -h, w, h * g.hem);
+    } else c.drawImage(im, -w / 2, -h, w, h);
   }
-  // upper body with a slight overlap over the hip seam and a soft counter-sway
-  c.transform(1, 0, -s * 0.025, 1, 0, 0);
-  c.drawImage(im, 0, 0, nw, sh + nh * 0.01, -w / 2, -h, w, h * g.hem + h * 0.01);
   c.restore();
 }
 // ---------------- player rituals: festive garlands and signposts ----------------
