@@ -710,9 +710,19 @@ export function Game() {
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const r = cv.getBoundingClientRect();
-      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1;
+      // trackpad two-finger swipe (pixel deltas, sideways or fractional, no ctrl): pan instead of zoom
+      const pad = !e.ctrlKey && e.deltaMode === 0 && (e.deltaX !== 0 || !Number.isInteger(e.deltaY) || Math.abs(e.deltaY) < 40);
+      if (pad) {
+        cam.current.x += e.deltaX / cam.current.zoom; cam.current.y += e.deltaY / cam.current.zoom;
+        fling.current = { vx: 0, vy: 0, t: performance.now() };
+        if (st.current.walk) camFree.current = true;
+        return;
+      }
+      // pinch (ctrl) is fine-grained; mouse wheels are capped per tick so one fast spin never slams the zoom
+      const dy = Math.max(-80, Math.min(80, e.deltaY * unit)) * (e.ctrlKey ? 4 : 1);
       target.current = {
-        zoom: Math.min(st.current.walk ? 20 : 12, Math.max(MIN_ZOOM, target.current.zoom * Math.exp(-dy * 0.0015))),
+        zoom: Math.min(st.current.walk ? 20 : 12, Math.max(MIN_ZOOM, target.current.zoom * Math.exp(-dy * 0.0012))),
         ax: (e.clientX - r.left) * dpr.current,
         ay: (e.clientY - r.top) * dpr.current,
       };
@@ -1138,14 +1148,17 @@ export function Game() {
     if (!owner || my.user_id !== userId) { wonderSeen.current.delete(key); return; }
     (supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: number | null; error: unknown }>)("claim_wonder", { _seed: my.id, _site: key }).then(({ data, error }) => {
       if (error || !data) {
+        const P = PRINCELY[lang], o = openTaskOf(princelyRows.current, my.id);
         if (error) {
           wonderSeen.current.delete(key);
           if (/too many/.test(String((error as { message?: string }).message ?? ""))) {
             // daily limit: keep the site quiet until reload so the note isn't repeated every frame
             wonderSeen.current.add(key);
-            const P = PRINCELY[lang], o = openTaskOf(princelyRows.current, my.id);
             setVisitNote(o && o.task === "wonder" ? `${P.tired} ${P.ready}` : P.tired);
           }
+        } else {
+          // reward 0: this village already logged the site — say so instead of staying silent
+          setVisitNote(P.seen);
         }
         return;
       }
