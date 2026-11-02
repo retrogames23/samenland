@@ -491,6 +491,13 @@
       "when": 1793616467904,
       "tag": "0069_wonder_limit_3",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1793658124929,
+      "tag": "0070_village_dogs",
+      "breakpoints": true
     }
   ]
 }
