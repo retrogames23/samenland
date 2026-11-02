@@ -1792,36 +1792,39 @@ let supportOwned = new Map<string, Set<string>>();
 export function setSupportOwned(m: Map<string, Set<string>>) { supportOwned = m; }
 /** Last drawn dog position per village (world tiles), so the UI can react to clicks on it. */
 export const dogSpots = new Map<string, { x: number; y: number }>();
-const DOG_W = 4.6;
+const DOG_W = 2.4; // small curly dog: knee-high next to a 5.2-unit villager
 /** Village dog: painted 4-frame trot cycle stepped by distance (no foot sliding), sit and curled-up sleep poses. */
 function drawDog(c: C, d: DogPose, px: number, py: number, t: number, seedK: number) {
   c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   if (d.mode === "sleep") {
     const im = huntIm("dog-sleep", dogSleepU); if (im) {
       const w = DOG_W * 1.35, h = (w * im.naturalHeight) / im.naturalWidth, br = 1 + Math.sin(t / 900) * 0.025; // slow breathing
-      c.translate(px, py); c.scale(1, br); c.drawImage(im, -w / 2, -h * 0.85, w, h);
+      c.translate(px, py); c.scale(1, br); c.drawImage(im, -w / 2, -h * 0.88, w, h);
     }
     c.restore(); return;
   }
-  c.fillStyle = "rgba(30,36,22,0.3)"; c.beginPath(); c.ellipse(px, py, 2, 0.7, 0, 0, 7); c.fill();
+  // two-step ground contact: soft cast shadow down-right (light from upper left) + dark contact under the paws
+  c.fillStyle = "rgba(30,36,22,0.16)"; c.beginPath(); c.ellipse(px + 0.5, py + 0.15, DOG_W * 0.48, DOG_W * 0.15, 0, 0, 7); c.fill();
+  c.fillStyle = "rgba(24,28,18,0.34)"; c.beginPath(); c.ellipse(px, py, DOG_W * 0.3, DOG_W * 0.08, 0, 0, 7); c.fill();
   if (d.mode === "sit") {
     const im = huntIm("dog-sit", dogSitU); if (im) {
       const w = DOG_W * 0.72, h = (w * im.naturalHeight) / im.naturalWidth;
       // panting / looking around: a tiny head-bob and occasional turn
       const turn = hash(Math.floor(t / 3500), seedK, 775) < 0.4;
-      c.translate(px, py - Math.abs(Math.sin(t / 240)) * 0.06); if (turn) c.scale(-1, 1);
-      c.drawImage(im, -w / 2, -h, w, h);
+      c.translate(px, py); if (turn) c.scale(-1, 1);
+      const pant = 1 + Math.sin(t / 240) * 0.012; // breathing compresses toward the ground, never lifts the paws
+      c.scale(1, pant); c.drawImage(im, -w / 2, -h * 0.93, w, h);
     }
     c.restore(); return;
   }
   const sheet = huntIm("dog-trot", dogTrotU); if (!sheet) { c.restore(); return; }
   // stride: one painted frame per ~0.11 tiles trotting, 0.08 walking — feet plant instead of sliding
   const ph = d.dist / (d.mode === "trot" ? 0.11 : 0.08), f0 = Math.floor(ph) & 3, mix = ph - Math.floor(ph);
-  const bob = Math.abs(Math.sin(ph * Math.PI)) * (d.mode === "trot" ? 0.35 : 0.15);
+  const bob = Math.abs(Math.sin(ph * Math.PI)) * (d.mode === "trot" ? 0.12 : 0.05);
   const fw = sheet.naturalWidth / 4, fh = sheet.naturalHeight, w = DOG_W, h = (w * fh) / fw;
   c.translate(px, py - bob); if (d.flip) c.scale(-1, 1);
-  c.drawImage(sheet, f0 * fw, 0, fw, fh, -w / 2, -h, w, h);
-  if (mix > 0.6) { c.globalAlpha = (mix - 0.6) * 2.5; c.drawImage(sheet, ((f0 + 1) & 3) * fw, 0, fw, fh, -w / 2, -h, w, h); }
+  c.drawImage(sheet, f0 * fw, 0, fw, fh, -w / 2, -h * 0.93, w, h);
+  if (mix > 0.6) { c.globalAlpha = (mix - 0.6) * 2.5; c.drawImage(sheet, ((f0 + 1) & 3) * fw, 0, fw, fh, -w / 2, -h * 0.93, w, h); }
   c.restore();
 }
 function drawSupport(c: C, k: RewardKey, cx: number, cy: number, L: Light[], night: boolean) {
