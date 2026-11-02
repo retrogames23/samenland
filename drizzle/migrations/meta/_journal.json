@@ -498,6 +498,13 @@
       "when": 1793658124929,
       "tag": "0070_village_dogs",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1793662503797,
+      "tag": "0071_wonder_reward_values",
+      "breakpoints": true
     }
   ]
 }
