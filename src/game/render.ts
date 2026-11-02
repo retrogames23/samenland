@@ -20,7 +20,7 @@ import { seasonKey, seasonAt } from "./season";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
 import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
-import { townOf, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, type Pose } from "./people";
+import { townOf, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, type Pose } from "./people";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow } from "./crafts";
@@ -2303,7 +2303,9 @@ export function draw(
     // generous margin: strollers and the steered mayor wander well beyond the built-up edge — never cull them at the border
     const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 14;
     const mine = steer && steer.sid === sd.id && steer.x >= x0 - 2 && steer.x <= x1 + 2 && steer.y >= y0 - 2 && steer.y <= y1 + 2;
-    if (!mine && (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1)) continue;
+    const rm = mine ? null : remoteMayor(sd.id);
+    const live = !!rm && rm.x >= x0 - 2 && rm.x <= x1 + 2 && rm.y >= y0 - 2 && rm.y <= y1 + 2;
+    if (!mine && !live && (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1)) continue;
     const r0 = reachOf(sd, radiusOf(effAge(sd, seeds, now)));
     for (const q of townPosesSmooth(sd, seeds, now)) {
       const k = Math.round(q.y) * MAP + Math.round(q.x);
