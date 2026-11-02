@@ -853,7 +853,7 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
 export const ORDER_SPEED = 0.34;
 /** Seconds the mayor waits at the goal before returning to the daily routine. */
 export const ORDER_IDLE = 50;
-type Order = { id: number; sid: string; from: Tile; to: Tile; at: number; v: number };
+type Order = { id: number; sid: string; from: Tile; to: Tile; at: number; v: number; pts: Tile[] };
 /** Stroll mode: tap orders don't expire and use the brisk stroll pace. Local-only. */
 let hold = false;
 export const setStrollHold = (on: boolean) => { hold = on; };
@@ -863,13 +863,63 @@ export function steeredMayor(): { sid: string; x: number; y: number } | null {
   return order ? { sid: order.sid, x: order.to[0], y: order.to[1] } : null;
 }
 let order: Order | null = null;
+/** Max tiles searched around start/goal for the mayor's tap route. */
+const MAYOR_PAD = 24, MAYOR_SPAN = 220;
+/**
+ * Tap route for the player's mayor: A* over a box spanning start and goal, with buildings,
+ * mountains, water and court walls strictly blocked (same rule as joystick steering). Returns the
+ * tile path to the goal, or to the reachable tile nearest it when the goal is cut off.
+ */
+export function mayorRoute(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
+  const x0 = Math.max(1, Math.min(a[0], b[0]) - MAYOR_PAD), y0 = Math.max(1, Math.min(a[1], b[1]) - MAYOR_PAD);
+  const x1 = Math.min(MAP - 2, Math.max(a[0], b[0]) + MAYOR_PAD), y1 = Math.min(MAP - 2, Math.max(a[1], b[1]) + MAYOR_PAD);
+  const W = x1 - x0 + 1, H = y1 - y0 + 1;
+  const idx = (x: number, y: number) => (y - y0) * W + (x - x0);
+  const dist = new Float64Array(W * H).fill(Infinity), prev = new Int32Array(W * H).fill(-1);
+  const heap: [number, number][] = [];
+  const push = (d: number, i: number) => { heap.push([d, i]); let k = heap.length - 1; while (k > 0) { const p = (k - 1) >> 1; if (heap[p]![0] <= heap[k]![0]) break; [heap[p], heap[k]] = [heap[k]!, heap[p]!]; k = p; } };
+  const pop = () => { const top = heap[0]!; const last = heap.pop()!; if (heap.length) { heap[0] = last; let k = 0; for (;;) { const l = k * 2 + 1, r = l + 1; let m = k; if (l < heap.length && heap[l]![0] < heap[m]![0]) m = l; if (r < heap.length && heap[r]![0] < heap[m]![0]) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k]!, heap[m]!]; k = m; } } return top; };
+  const hh = (x: number, y: number) => Math.abs(x - b[0]) + Math.abs(y - b[1]);
+  const si = idx(a[0], a[1]), gi = idx(b[0], b[1]);
+  let best = si, bestH = hh(a[0], a[1]);
+  dist[si] = 0; push(bestH, si);
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]] as const;
+  const ok = (x: number, y: number) => free(t, x, y, seeds);
+  while (heap.length) {
+    const [f, i] = pop();
+    const x = x0 + (i % W), y = y0 + Math.floor(i / W);
+    if (f - hh(x, y) > dist[i]! + 1e-9) continue;
+    const h = hh(x, y); if (h < bestH) { bestH = h; best = i; }
+    if (i === gi) break;
+    for (const [dx, dy] of DIRS) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < x0 || nx > x1 || ny < y0 || ny > y1 || !ok(nx, ny)) continue;
+      if (dx && dy && (!ok(x + dx, y) || !ok(x, y + dy))) continue; // never cut a corner
+      const st = structureAt(nx, ny, seeds, t.now);
+      const c = (st && WALK.has(st.kind) ? 1 : 1.6) * (dx && dy ? Math.SQRT2 : 1);
+      const ni = idx(nx, ny), nd = dist[i]! + c;
+      if (nd < dist[ni]!) { dist[ni] = nd; prev[ni] = i; push(nd + hh(nx, ny), ni); }
+    }
+  }
+  const end = prev[gi] !== -1 || gi === si ? gi : best;
+  const path: Tile[] = [];
+  for (let i = end; i !== -1; i = prev[i]!) path.push([x0 + (i % W), y0 + Math.floor(i / W)]);
+  return path.reverse();
+}
 /** Local-only steering of the player's own figure; never stored, other clients keep seeing the routine. */
 export function commandMayor(p: Person, t: Town, seeds: Seed[], now: number, to: Tile): boolean {
   const g: Tile = [Math.round(to[0]), Math.round(to[1])];
   if (p.role !== "mayor" || !free(t, g[0], g[1], seeds)) return false;
   const q = poseOf(p, t, seeds, now);
   const from: Tile = q.visible ? [q.x, q.y] : doorOf(t, p.home, seeds);
-  order = { id: p.id, sid: p.seed.id, from, to: g, at: now, v: hold ? DRIVE_SPEED : ORDER_SPEED }; drive = null;
+  const a: Tile = [Math.round(from[0]), Math.round(from[1])];
+  if (Math.abs(a[0] - g[0]) > MAYOR_SPAN || Math.abs(a[1] - g[1]) > MAYOR_SPAN) return false;
+  const tiles = mayorRoute(t, a, g, seeds);
+  const last = tiles[tiles.length - 1] ?? a;
+  if (Math.abs(last[0] - g[0]) + Math.abs(last[1] - g[1]) > 0 && tiles.length <= 1) return false;
+  const to2: Tile = last[0] === g[0] && last[1] === g[1] ? g : last;
+  const pts: Tile[] = [from, ...tiles.slice(1, -1), to2];
+  order = { id: p.id, sid: p.seed.id, from, to: to2, at: now, v: hold ? DRIVE_SPEED : ORDER_SPEED, pts }; drive = null;
   return true;
 }
 /** Current goal of the steered mayor, or null when idle (for the marker). */
@@ -917,7 +967,7 @@ function orderPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): 
   const o = order;
   if (!o || o.id !== p.id) return null;
   const a: Tile = [Math.round(o.from[0]), Math.round(o.from[1])];
-  const pts = [o.from, ...route(t, a, o.to, seeds).slice(1, -1), o.to];
+  const pts = o.pts;
   const secs = (now - o.at) / 1000, dd = secs * o.v, len = lenOf(pts);
   const q = along(pts, dd);
   if (q && dd < len) return { ...base, ...q, visible: true, walking: true, act: "stroll", phase: dd / STRIDE, working: false };
