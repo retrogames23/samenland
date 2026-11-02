@@ -1925,7 +1925,6 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
   // upper body with a slight overlap over the hip seam and a soft counter-sway
   c.transform(1, 0, -s * 0.025, 1, 0, 0);
   c.drawImage(im, 0, 0, nw, sh + nh * 0.01, -w / 2, -h, w, h * g.hem + h * 0.01);
-  c.drawImage(im, -w / 2, -h, w, h);
   c.restore();
 }
 // ---------------- player rituals: festive garlands and signposts ----------------
