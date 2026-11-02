@@ -917,7 +917,7 @@ export function commandMayor(p: Person, t: Town, seeds: Seed[], now: number, to:
   const tiles = mayorRoute(t, a, g, seeds);
   const last = tiles[tiles.length - 1] ?? a;
   if (Math.abs(last[0] - g[0]) + Math.abs(last[1] - g[1]) > 0 && tiles.length <= 1) return false;
-  const pts = o.pts;
+  const to2: Tile = last[0] === g[0] && last[1] === g[1] ? g : last;
   const pts: Tile[] = [from, ...tiles.slice(1, -1), to2];
   order = { id: p.id, sid: p.seed.id, from, to: to2, at: now, v: hold ? DRIVE_SPEED : ORDER_SPEED, pts }; drive = null;
   return true;
@@ -967,7 +967,7 @@ function orderPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): 
   const o = order;
   if (!o || o.id !== p.id) return null;
   const a: Tile = [Math.round(o.from[0]), Math.round(o.from[1])];
-  const pts = [o.from, ...route(t, a, o.to, seeds).slice(1, -1), o.to];
+  const pts = o.pts;
   const secs = (now - o.at) / 1000, dd = secs * o.v, len = lenOf(pts);
   const q = along(pts, dd);
   if (q && dd < len) return { ...base, ...q, visible: true, walking: true, act: "stroll", phase: dd / STRIDE, working: false };
