@@ -35,7 +35,7 @@ const de: Book = {
       ["Winter", "Geschlossene Schneedecke, gefrorene Böden, kürzere Arbeitszeiten, mehr Hunger und mehr Kranke."],
     ]],
     ["Dorfentwicklung, Zuzug & Hochzeiten", [
-      ["Vom Weiler zur Metropole", "Die Stufe deines Ortes richtet sich allein danach, was wirklich in ihm steht und wer dort wohnt – nicht nach der Uhr. Zum Weiler wird er mit 15 Bürgern in vier bewohnten Wohnungen, zum Dorf mit 80 Bürgern in 28 bewohnten Wohnungen, zur Kleinstadt mit 280 Bürgern in 100 bewohnten Wohnungen. Die Handelsstadt verlangt 750 Bürger, 260 bewohnte Wohnungen und eine fertige Handelsstraße, die Metropole 1.600 Bürger, 480 bewohnte Wohnungen und zwei Handelsstraßen. In der Titelzeile oben siehst du stets, was zum nächsten Schritt noch fehlt."],
+      ["Vom Weiler zur Metropole", "Die Stufe deines Ortes richtet sich allein danach, was wirklich in ihm steht und wer dort wohnt – nicht nach der Uhr. Zum Weiler wird er mit 15 Bürgern in vier bewohnten Wohnungen, zum Dorf mit 80 Bürgern in 28 bewohnten Wohnungen, zur Kleinstadt mit 280 Bürgern in 100 bewohnten Wohnungen. Die Handelsstadt verlangt 750 Bürger, 260 bewohnte Wohnungen und eine fertige Handelsstraße, die Metropole 1.500 Bürger, 430 bewohnte Wohnungen und zwei Handelsstraßen. In der Titelzeile oben siehst du stets, was zum nächsten Schritt noch fehlt."],
       ["Wohnraum, Zuzug & Wegzug", "Mit dem Wachstum zimmern die Bauleute neue Häuser. Sobald ein Dach gerichtet ist, ziehen neue Familien ein, bringen frische Arbeitskräfte ins Dorf und zahlen täglich Steuern. Doch die Natur allein ernährt nur eine begrenzte Zahl von Familien: Fehlt es an Nahrung und Gewerbe, wandern Familien ab und Häuser am Ortsrand stehen leer, bis neue Versorgungsbauten sie wieder füllen."],
       ["Hochzeiten", "Wenn junge Leute einen Hausstand gründen, läuten die Hochzeitsglocken. Je größer, satter und wohlhabender dein Ort ist, desto öfter wird geheiratet. Im kleinen Dorf ist jede Hochzeit ein Großereignis: Alle versammeln sich und der Schulze wird um seinen Segen gebeten. In der Stadt feiert man meist im Kreis der Familie – nur seltene Prunkhochzeiten rufen noch den ganzen Ort zusammen. Jede Hochzeit stiftet eine Mitgift in die Gemeindekasse, die mit dem Wohlstand wächst."],
     ]],
@@ -100,7 +100,7 @@ const en: Book = {
       ["Winter", "Closed snow cover, frozen ground, shorter working hours, more hunger and more sickness."],
     ]],
     ["Growth, newcomers & weddings", [
-      ["From hamlet to metropolis", "The rank of your settlement depends solely on what truly stands there and who lives there – never on the clock. It becomes a hamlet with 15 citizens in four occupied dwellings, a village with 80 citizens in 28 occupied dwellings, a small town with 280 citizens in 100 occupied dwellings. A trading town takes 750 citizens, 260 occupied dwellings and one finished trade road; a metropolis 1,600 citizens, 480 occupied dwellings and two trade roads. The title bar above always shows what is still missing for the next step."],
+      ["From hamlet to metropolis", "The rank of your settlement depends solely on what truly stands there and who lives there – never on the clock. It becomes a hamlet with 15 citizens in four occupied dwellings, a village with 80 citizens in 28 occupied dwellings, a small town with 280 citizens in 100 occupied dwellings. A trading town takes 750 citizens, 260 occupied dwellings and one finished trade road; a metropolis 1,500 citizens, 430 occupied dwellings and two trade roads. The title bar above always shows what is still missing for the next step."],
       ["Homes, newcomers & leaving", "As it grows, the builders raise new houses. As soon as a roof is up, new families move in, bring fresh hands and pay taxes every day. But nature alone feeds only so many families: without food and crafts, families move away and houses on the edge stand empty until new supply buildings fill them again."],
       ["Weddings", "When young people start a household, the wedding bells ring. The larger, better fed and wealthier your settlement, the more often people marry. In a small village every wedding is a great event: everyone gathers and the headman is asked for his blessing. In a town most weddings are family affairs – only rare grand weddings still bring the whole place together. Every wedding gives a dowry to the village chest that grows with prosperity."],
     ]],
@@ -165,7 +165,7 @@ const fr: Book = {
       ["Hiver", "Neige, sol gelé, journées de travail plus courtes, plus de faim et plus de malades."],
     ]],
     ["Croissance, nouveaux venus & mariages", [
-      ["Du hameau à la métropole", "Le rang de ton bourg dépend uniquement de ce qui s'y trouve vraiment et de qui y vit – jamais de l'horloge. Il devient hameau avec 15 habitants dans quatre logements occupés, village avec 80 habitants dans 28 logements occupés, bourg avec 280 habitants dans 100 logements occupés. La cité marchande demande 750 habitants, 260 logements occupés et une route commerciale achevée ; la métropole 1 600 habitants, 480 logements occupés et deux routes. La barre de titre indique toujours ce qui manque pour l'étape suivante."],
+      ["Du hameau à la métropole", "Le rang de ton bourg dépend uniquement de ce qui s'y trouve vraiment et de qui y vit – jamais de l'horloge. Il devient hameau avec 15 habitants dans quatre logements occupés, village avec 80 habitants dans 28 logements occupés, bourg avec 280 habitants dans 100 logements occupés. La cité marchande demande 750 habitants, 260 logements occupés et une route commerciale achevée ; la métropole 1 500 habitants, 430 logements occupés et deux routes. La barre de titre indique toujours ce qui manque pour l'étape suivante."],
       ["Logis, arrivées & départs", "Les bâtisseurs élèvent de nouvelles maisons. Dès qu'un toit est posé, des familles emménagent, apportent des bras et paient l'impôt chaque jour. Mais la nature seule ne nourrit qu'un nombre limité de familles : sans nourriture ni métiers, des familles partent et les maisons en bordure restent vides jusqu'à ce que de nouveaux bâtiments les remplissent."],
       ["Mariages", "Quand des jeunes fondent un foyer, les cloches sonnent. Plus ton bourg est grand, bien nourri et prospère, plus on s'y marie. Au village, chaque mariage est un grand événement : tous se rassemblent et l'on demande la bénédiction du bourgmestre. En ville, on fête surtout en famille – seules de rares noces fastueuses réunissent encore toute la cité. Chaque mariage verse une dot au trésor, qui augmente avec la prospérité."],
     ]],
@@ -230,7 +230,7 @@ const es: Book = {
       ["Invierno", "Nieve, suelo helado, jornadas más cortas, más hambre y más enfermos."],
     ]],
     ["Crecimiento, recién llegados y bodas", [
-      ["De caserío a metrópoli", "El rango de tu pueblo depende solo de lo que realmente hay en él y de quién vive allí, nunca del reloj. Se convierte en aldea con 15 vecinos en cuatro viviendas ocupadas, en pueblo con 80 vecinos en 28 viviendas ocupadas y en villa con 280 vecinos en 100 viviendas ocupadas. La ciudad mercantil pide 750 vecinos, 260 viviendas ocupadas y un camino comercial terminado; la metrópoli, 1.600 vecinos, 480 viviendas ocupadas y dos caminos. La barra de título siempre muestra lo que falta para el siguiente paso."],
+      ["De caserío a metrópoli", "El rango de tu pueblo depende solo de lo que realmente hay en él y de quién vive allí, nunca del reloj. Se convierte en aldea con 15 vecinos en cuatro viviendas ocupadas, en pueblo con 80 vecinos en 28 viviendas ocupadas y en villa con 280 vecinos en 100 viviendas ocupadas. La ciudad mercantil pide 750 vecinos, 260 viviendas ocupadas y un camino comercial terminado; la metrópoli, 1.500 vecinos, 430 viviendas ocupadas y dos caminos. La barra de título siempre muestra lo que falta para el siguiente paso."],
       ["Viviendas, llegadas y partidas", "Los constructores levantan casas nuevas. En cuanto hay tejado, llegan familias, aportan manos y pagan impuestos cada día. Pero la naturaleza sola alimenta a pocas familias: sin comida ni oficios, algunas se marchan y las casas de las afueras quedan vacías hasta que nuevos edificios de abastecimiento las llenan."],
       ["Bodas", "Cuando los jóvenes forman un hogar, suenan las campanas. Cuanto más grande, mejor alimentado y próspero es tu pueblo, más bodas hay. En la aldea cada boda es un gran acontecimiento: todos se reúnen y se pide la bendición del alcalde. En la ciudad se celebra sobre todo en familia; solo raras bodas fastuosas reúnen aún a todo el lugar. Cada boda aporta una dote al tesoro que crece con la prosperidad."],
     ]],
@@ -295,7 +295,7 @@ const ar: Book = {
       ["الشتاء", "ثلج وأرض متجمدة وساعات عمل أقصر وجوع ومرض أكثر."],
     ]],
     ["النمو والوافدون والأعراس", [
-      ["من نجع إلى حاضرة", "مرتبة بلدتك تقوم فقط على ما يقوم فيها فعلاً ومن يسكنها، لا على الساعة. تصير نجعاً بخمسة عشر مواطناً في أربعة مساكن مأهولة، وقرية بـ80 مواطناً في 28 مسكناً مأهولة، وبلدة صغيرة بـ280 مواطناً في 100 مسكن مأهولاً. وتتطلب البلدة التجارية 750 مواطناً و260 مسكناً مأهولاً وطريق تجارة مكتملاً، والحاضرة 1600 مواطن و480 مسكناً مأهولاً وطريقين. وشريط العنوان في الأعلى يبيّن دائماً ما ينقص للخطوة التالية."],
+      ["من نجع إلى حاضرة", "مرتبة بلدتك تقوم فقط على ما يقوم فيها فعلاً ومن يسكنها، لا على الساعة. تصير نجعاً بخمسة عشر مواطناً في أربعة مساكن مأهولة، وقرية بـ80 مواطناً في 28 مسكناً مأهولة، وبلدة صغيرة بـ280 مواطناً في 100 مسكن مأهولاً. وتتطلب البلدة التجارية 750 مواطناً و260 مسكناً مأهولاً وطريق تجارة مكتملاً، والحاضرة 1500 مواطن و430 مسكناً مأهولاً وطريقين. وشريط العنوان في الأعلى يبيّن دائماً ما ينقص للخطوة التالية."],
       ["المساكن والوافدون والراحلون", "يبني البنّاؤون بيوتاً جديدة، وحين يكتمل سقف تنتقل إليها عائلات تجلب أيدي عاملة وتدفع الضرائب يومياً. لكن الطبيعة وحدها لا تطعم إلا عدداً محدوداً: بلا طعام وحِرف ترحل عائلات وتبقى بيوت الأطراف خالية حتى تملأها مبانٍ تموينية جديدة."],
       ["الأعراس", "حين يؤسس الشباب بيتاً تُقرع أجراس العرس. كلما كبرت بلدتك وشبع أهلها وازدادوا رخاءً كثرت الأعراس. في القرية الصغيرة كل عرس حدث كبير يجتمع فيه الجميع ويُطلب فيه دعاء الشيخ، أما في المدينة فيُحتفل غالباً بين الأهل، ولا تجمع البلدة كلها إلا أعراس فاخرة نادرة. وكل عرس يهب مهراً للخزينة يزداد مع الرخاء."],
     ]],
@@ -360,7 +360,7 @@ const hi: Book = {
       ["सर्दी", "बर्फ़, जमी ज़मीन, छोटे काम के घंटे, ज़्यादा भूख और ज़्यादा बीमार।"],
     ]],
     ["विकास, नए लोग और विवाह", [
-      ["पुरवे से महानगर तक", "तुम्हारी बस्ती का दर्जा सिर्फ़ इस पर टिका है कि वहाँ सचमुच क्या खड़ा है और कौन रहता है – घड़ी पर नहीं। 15 नागरिक चार आबाद आवासों में हों तो बस्ती, 80 नागरिक 28 आबाद आवासों में हों तो गाँव, 280 नागरिक 100 आबाद आवासों में हों तो कस्बा बनता है। व्यापारिक नगर के लिए 750 नागरिक, 260 आबाद आवास और एक तैयार व्यापार मार्ग चाहिए; महानगर के लिए 1600 नागरिक, 480 आबाद आवास और दो मार्ग। ऊपर की शीर्षक-पट्टी हमेशा बताती है कि अगले कदम के लिए क्या बाक़ी है।"],
+      ["पुरवे से महानगर तक", "तुम्हारी बस्ती का दर्जा सिर्फ़ इस पर टिका है कि वहाँ सचमुच क्या खड़ा है और कौन रहता है – घड़ी पर नहीं। 15 नागरिक चार आबाद आवासों में हों तो बस्ती, 80 नागरिक 28 आबाद आवासों में हों तो गाँव, 280 नागरिक 100 आबाद आवासों में हों तो कस्बा बनता है। व्यापारिक नगर के लिए 750 नागरिक, 260 आबाद आवास और एक तैयार व्यापार मार्ग चाहिए; महानगर के लिए 1500 नागरिक, 430 आबाद आवास और दो मार्ग। ऊपर की शीर्षक-पट्टी हमेशा बताती है कि अगले कदम के लिए क्या बाक़ी है।"],
       ["घर, आगमन और पलायन", "कारीगर नए घर बनाते हैं; छत पड़ते ही परिवार आते हैं, काम करते हैं और रोज़ कर देते हैं। पर अकेली प्रकृति सीमित परिवारों को ही खिलाती है: भोजन और धंधों के बिना परिवार चले जाते हैं और किनारे के घर ख़ाली रहते हैं, जब तक नई आपूर्ति इमारतें उन्हें फिर न भर दें।"],
       ["विवाह", "जब युवा घर बसाते हैं, तो शादी की घंटियाँ बजती हैं। बस्ती जितनी बड़ी, भरपेट और समृद्ध, उतनी ज़्यादा शादियाँ। छोटे गाँव में हर शादी बड़ा उत्सव है: सब इकट्ठा होते हैं और प्रधान का आशीर्वाद माँगा जाता है। शहर में ज़्यादातर शादियाँ परिवार तक सीमित रहती हैं – केवल दुर्लभ भव्य शादियाँ पूरे नगर को जुटाती हैं। हर शादी ख़ज़ाने में दहेज देती है, जो समृद्धि के साथ बढ़ता है।"],
     ]],
@@ -425,7 +425,7 @@ const zh: Book = {
       ["冬", "积雪覆盖，土地冰封，劳作时间缩短，饥饿与病人增多。"],
     ]],
     ["发展、新居民与婚礼", [
-      ["从小村到大都会", "聚落的等级只取决于那里真实矗立着什么、住着谁，与时间无关。15位居民、四户已入住住宅即成为小村落，80位居民、28户已入住住宅成为村庄，280位居民、100户已入住住宅成为小镇。商贸城镇需要750位居民、260户已入住住宅和一条建成的商路；大都会需要1600位居民、480户已入住住宅和两条商路。上方标题栏会始终显示迈向下一步还缺什么。"],
+      ["从小村到大都会", "聚落的等级只取决于那里真实矗立着什么、住着谁，与时间无关。15位居民、四户已入住住宅即成为小村落，80位居民、28户已入住住宅成为村庄，280位居民、100户已入住住宅成为小镇。商贸城镇需要750位居民、260户已入住住宅和一条建成的商路；大都会需要1500位居民、430户已入住住宅和两条商路。上方标题栏会始终显示迈向下一步还缺什么。"],
       ["住房、迁入与迁出", "工匠们建起新房，屋顶一盖好，新家庭便搬进来，带来人手并每天纳税。但单靠大自然只能养活有限的家庭：缺少食物和行业时，人家会迁走，边缘的房屋空着，直到新的供给建筑把它们重新填满。"],
       ["婚礼", "年轻人成家时，婚礼钟声响起。聚落越大、越富足、越繁荣，婚礼就越频繁。在小村庄里，每场婚礼都是盛事：人人聚集，并请村长祝福。在城镇里，婚礼多在家人间举行——只有罕见的盛大婚礼才会召集全城。每场婚礼都会向公库献上嫁妆，数额随繁荣增长。"],
     ]],
@@ -490,7 +490,7 @@ const ja: Book = {
       ["冬", "雪に覆われ、地面は凍り、働く時間は短くなり、飢えと病人が増えます。"],
     ]],
     ["発展、移住者、婚礼", [
-      ["小村から大都市へ", "集落の格付けは、そこに実際に何が建ち、誰が住んでいるかだけで決まります——時計は関係ありません。15人の住民と4戸の入居済み住戸で小さな集落、80人と28戸の入居済み住戸で村、280人と100戸の入居済み住戸で小さな町になります。交易の町には750人・260戸の入居済み住戸・完成した交易路1本、大都市には1600人・480戸の入居済み住戸・交易路2本が必要です。上のタイトルバーには、次の段階に足りないものがいつも表示されます。"],
+      ["小村から大都市へ", "集落の格付けは、そこに実際に何が建ち、誰が住んでいるかだけで決まります——時計は関係ありません。15人の住民と4戸の入居済み住戸で小さな集落、80人と28戸の入居済み住戸で村、280人と100戸の入居済み住戸で小さな町になります。交易の町には750人・260戸の入居済み住戸・完成した交易路1本、大都市には1500人・430戸の入居済み住戸・交易路2本が必要です。上のタイトルバーには、次の段階に足りないものがいつも表示されます。"],
       ["住まい、移住と転出", "大工が新しい家を建て、屋根がかかると新しい家族が移り住み、働き手となって毎日税を納めます。けれど自然だけでは養える家族に限りがあります。食べ物や生業が足りないと家族は去り、外れの家は新しい供給の建物が埋めるまで空き家になります。"],
       ["婚礼", "若者が所帯を持つと婚礼の鐘が鳴ります。集落が大きく、満ち足り、豊かなほど婚礼は増えます。小さな村ではどの婚礼も一大行事で、皆が集まり村長に祝福を願います。町では多くが家族内の祝いになり、まれな盛大な婚礼だけが町じゅうを集めます。婚礼ごとに持参金が金庫に納められ、その額は豊かさとともに増えます。"],
     ]],

@@ -10,9 +10,9 @@ describe("settlement rank from real state", () => {
     expect(rankOf({ citizens: 750, homes: 260, roads: 0 })).toBe(3);
     expect(rankOf({ citizens: 750, homes: 260, roads: 1 })).toBe(4);
   });
-  it("Metropole needs 1600 citizens, 480 homes and two roads", () => {
-    expect(rankOf({ citizens: 1599, homes: 480, roads: 2 })).toBe(4);
-    expect(rankOf({ citizens: 1600, homes: 480, roads: 2 })).toBe(5);
+  it("Metropole needs 1500 citizens, 430 homes and two roads", () => {
+    expect(rankOf({ citizens: 1499, homes: 430, roads: 2 })).toBe(4);
+    expect(rankOf({ citizens: 1500, homes: 430, roads: 2 })).toBe(5);
   });
   it("reports what is missing for the next rank", () => expect(nextRankNeed({ citizens: 30, homes: 12, roads: 0 })).toEqual({ citizens: 50, homes: 16, roads: 0 }));
 });

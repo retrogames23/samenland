@@ -29,9 +29,9 @@ describe("character dwellings", () => {
     const people = [0, 1, 2].map(unit => ({ id: dwellingKey(4, 4, unit) * 8, hh: dwellingKey(4, 4, unit), home: [4, 4], role: "head", last: "Weber", age: 30, job: "farmer" } as Person));
     expect(rollOf(people).households.length).toBe(3);
   });
-  it("90 occupied dwellings allow a metropolis even when housed on fewer tiles", () => {
-    expect(rankOf({ citizens: 300, homes: 90, roads: 2 })).toBe(5);
-    expect(rankOf({ citizens: 300, homes: 89, roads: 2 })).toBe(4);
+  it("430 occupied dwellings allow a metropolis even when housed on fewer tiles", () => {
+    expect(rankOf({ citizens: 1500, homes: 430, roads: 2 })).toBe(5);
+    expect(rankOf({ citizens: 1500, homes: 429, roads: 2 })).toBe(4);
   });
 });
 describe("equal food catchments", () => {
