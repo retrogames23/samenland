@@ -894,7 +894,8 @@ export function mayorRoute(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
     for (const [dx, dy] of DIRS) {
       const nx = x + dx, ny = y + dy;
       if (nx < x0 || nx > x1 || ny < y0 || ny > y1 || !ok(nx, ny)) continue;
-      if (dx && dy && (!ok(x + dx, y) || !ok(x, y + dy))) continue; // never cut a corner
+      // diagonal steps between free tiles are allowed: dense villages place houses corner to corner,
+      // and a strict corner rule walled the mayor into a handful of tiles
       const st = structureAt(nx, ny, seeds, t.now);
       const c = (st && WALK.has(st.kind) ? 1 : 1.6) * (dx && dy ? Math.SQRT2 : 1);
       const ni = idx(nx, ny), nd = dist[i]! + c;

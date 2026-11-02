@@ -938,8 +938,9 @@ export function Game() {
     if (p && p.role === "mayor" && p.seed.id !== mine && p.seed.user_id && userId) { setDmPeer(p.seed.user_id); setTavernOpen(true); return true; }
     if (p && p.role !== "mayor") { hm(); speak(p); return true; }
     if (courtAt(e)) { tap(); return true; }
+    // knock only when the house itself was clicked; paths and meadows beside it send the mayor there
     const [tx, ty] = tileAt(e), ins = inspectAt(tx, ty, seeds, clock());
-    if (ins && knock(ins)) { tap(); return true; }
+    if (ins && ins.x === tx && ins.y === ty && knock(ins)) { tap(); return true; }
     return false;
   };
   useEffect(() => { if (who || place) buzz(); }, [who, place]); // haptic tick when a sheet opens
