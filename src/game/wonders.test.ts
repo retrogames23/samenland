@@ -9,8 +9,8 @@ describe("wonders", () => {
     expect(new Set(w.map((x) => x.key)).size).toBe(w.length);
     for (const x of w) expect(buildable(terrain(x.x, x.y))).toBe(true);
   });
-  it("first finder gets 100, later villages 40", () => {
-    expect(WONDER_FIRST).toBe(100); expect(WONDER_LATER).toBe(40);
+  it("first finder gets 60, every later village 50 once", () => {
+    expect(WONDER_FIRST).toBe(60); expect(WONDER_LATER).toBe(50);
   });
   it("first finder is the earliest row on the same map only", () => {
     const rows: WonderFind[] = [
