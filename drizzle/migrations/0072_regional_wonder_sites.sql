@@ -1,4 +1,3 @@
--- Wonder sites of the regional island maps (each realm now has its own geography).
 INSERT INTO public.wonder_sites(key, kind, x, y) VALUES
 ('wreck:244:139','wreck',244,139),
 ('wreck:309:151','wreck',309,151),
