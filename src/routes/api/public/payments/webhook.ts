@@ -18,6 +18,12 @@ async function grant(session: any, env: StripeEnv) {
     );
     if (error && error.code !== "23505") throw error;
   }
+  // name chosen while picking the dog: only set if the village has no dog name yet
+  const dn = String(m.dogName ?? "").trim().slice(0, 20);
+  if (keys.includes("dog") && dn) {
+    const { error } = await supabaseAdmin.from("village_dogs").upsert({ seed_id: m.seedId, name: dn }, { onConflict: "seed_id", ignoreDuplicates: true });
+    if (error) console.error("support webhook: dog name", error.message);
+  }
 }
 
 export const Route = createFileRoute("/api/public/payments/webhook")({

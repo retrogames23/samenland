@@ -7,7 +7,8 @@ type Result = { clientSecret: string } | { error: string };
 
 export const createSupportCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { priceId: string; rewards: string[]; seedId: string; returnUrl: string; environment: "sandbox" | "live" }) => {
+  .inputValidator((d: { priceId: string; rewards: string[]; seedId: string; returnUrl: string; environment: "sandbox" | "live"; dogName?: string }) => {
+    if (d.dogName !== undefined && (typeof d.dogName !== "string" || d.dogName.trim().length > 20)) throw new Error("Invalid dog name");
     if (!(d.priceId in SUPPORT_PRICES)) throw new Error("Invalid price");
     if (!Array.isArray(d.rewards) || !d.rewards.every((k) => (REWARD_KEYS as string[]).includes(k)) || !allowedSet(d.priceId as SupportPrice, d.rewards)) throw new Error("Reward not available for this amount");
     if (!/^[0-9a-f-]{36}$/.test(d.seedId)) throw new Error("Invalid village");
@@ -37,7 +38,8 @@ export const createSupportCheckout = createServerFn({ method: "POST" })
         if (ex.data.length) { customer = ex.data[0]!.id; await stripe.customers.update(customer, { metadata: { ...ex.data[0]!.metadata, userId } }); }
       }
       if (!customer) customer = (await stripe.customers.create({ ...(user?.email && { email: user.email }), metadata: { userId } })).id;
-      const meta = { userId, seedId: data.seedId, reward: data.rewards.join(","), managed_payments: "true" };
+      const dogName = data.rewards.includes("dog") ? (data.dogName ?? "").trim().slice(0, 20) : "";
+      const meta = { userId, seedId: data.seedId, reward: data.rewards.join(","), managed_payments: "true", ...(dogName && { dogName }) };
       const session = await stripe.checkout.sessions.create({
         line_items: [{ price: price.id, quantity: 1 }],
         mode: "payment",

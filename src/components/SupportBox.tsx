@@ -14,15 +14,16 @@ export function SupportBox({ lang, seedId, owned, signedIn, hasDog, dogName, onD
   const t = SUPPORT[lang], dt = DOG[lang];
   const [dn, setDn] = useState(dogName ?? ""); const [dnOk, setDnOk] = useState(false);
   const [picked, setPicked] = useState<RewardKey[]>([]);
+  const [newDog, setNewDog] = useState("");
   const reward = picked[0] ?? null;
   const [price, setPrice] = useState<SupportPrice | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const fetchClientSecret = useCallback(async () => {
-    const r = await createSupportCheckout({ data: { priceId: price!, rewards: picked, seedId: seedId!, returnUrl: `${window.location.origin}/?support=thanks`, environment: getStripeEnvironment() } });
+    const r = await createSupportCheckout({ data: { priceId: price!, rewards: picked, seedId: seedId!, returnUrl: `${window.location.origin}/?support=thanks`, environment: getStripeEnvironment(), ...(picked.includes("dog") && newDog.trim() && { dogName: newDog.trim().slice(0, 20) }) } });
     if ("error" in r) { const m = r.error === "taken" ? t.taken : r.error; setErr(m); throw new Error(m); }
     return r.clientSecret;
-  }, [price, picked, seedId, t.taken]);
+  }, [price, picked, seedId, t.taken, newDog]);
   const options = useMemo(() => ({ fetchClientSecret }), [fetchClientSecret]);
 
   const prices = (Object.keys(SUPPORT_PRICES) as SupportPrice[]).filter((p) => picked.length > 0 && allowedSet(p, picked));
@@ -75,6 +76,11 @@ export function SupportBox({ lang, seedId, owned, signedIn, hasDog, dogName, onD
               </div>
             </div>
           ))}
+          {picked.includes("dog") && (
+            <label className="block rounded border border-primary/30 p-2 text-xs">{dt.label}
+              <input value={newDog} maxLength={20} onChange={(e) => setNewDog(e.target.value)} placeholder={dt.placeholder} className="mt-1 w-full rounded border border-input bg-background px-2 py-1 text-sm" />
+            </label>
+          )}
           {reward && (
             <>
               <div className="text-xs font-semibold uppercase tracking-wider">{t.amount}</div>
