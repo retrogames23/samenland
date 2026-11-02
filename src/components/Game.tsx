@@ -804,7 +804,7 @@ export function Game() {
     };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
     const onBlur = () => keys.clear();
-    let lastPan = performance.now(), walkDriven = false, liveSent = 0, liveOn = false;
+    let lastPan = performance.now(), walkDriven = false, liveSent = 0, liveOn = false, liveW = false;
     panStep = () => {
       const now = performance.now(), dt = Math.min(50, now - lastPan); lastPan = now;
       if (st.current.walk) {
@@ -824,8 +824,8 @@ export function Game() {
             else if (walkDriven) { driveMayor(me, tw, S.seeds, nw, 0, 0, dt / 1000); walkDriven = false; }
             const q = poseOf(me, tw, S.seeds, nw), [ix, iy] = iso(q.x, q.y), k = 1 - Math.exp(-dt / 220);
             // live broadcast for other players: ~4/s while walking, a heartbeat every 3 s while standing
-            if (liveCh.current && q.act === "stroll" && now - liveSent > (q.walking ? 230 : 3000)) {
-              liveSent = now; liveOn = true;
+            if (liveCh.current && q.act === "stroll" && (now - liveSent > (q.walking ? 230 : 3000) || q.walking !== liveW)) {
+              liveSent = now; liveOn = true; liveW = q.walking;
               void liveCh.current.send({ type: "broadcast", event: "pos", payload: { sid: my.id, x: +q.x.toFixed(2), y: +q.y.toFixed(2), dx: +q.dir[0].toFixed(2), dy: +q.dir[1].toFixed(2), w: q.walking, m: knights.current.has(my.id), d: +q.phase.toFixed(2) } });
             }
             for (const o of S.seeds) if (o.id !== my.id && !visitSeen.current.has(o.id) && Math.hypot(q.x - o.x, q.y - o.y) <= radiusOf((nw - Date.parse(o.created_at)) / 36e5)) { visitSeen.current.add(o.id); visitFn.current(o, my); }
