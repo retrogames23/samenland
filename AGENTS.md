@@ -40,3 +40,4 @@
 - Gift dismissal receipts live in recipient-only public.gift_reads and are merged before displaying gift overlays, with an account-scoped browser fallback; this prevents read thank-you letters replaying across browsers and map reloads.
 - Inactivity: user_activity.last_active_at is touched on every visit (touch_activity RPC); the daily /api/public/idle-sweep warns after 90 days and purges village+account (purge_user_data) 7 days later — admins exempt.
 - Kummerkasten: bug_reports rows + private bug-shots bucket (user-id folder) are written by the player; the daily /api/public/bug-digest sends one digest with 7-day signed image links and marks rows sent — no other read path, so reports stay private.
+- Mobile bottom HUD (rail, drawers, banners, walk stick) anchors only to the --dock-bottom CSS token in styles.css, never to raw env(safe-area-inset-bottom) — iOS Safari's floating toolbar is not in the safe area, so one token keeps every bottom element clear of it.

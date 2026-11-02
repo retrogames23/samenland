@@ -1774,7 +1774,7 @@ export function Game() {
         </div>
       )}
       {walk && (
-        <div data-walk className="pointer-events-none absolute inset-x-0 bottom-3 z-40 flex flex-col items-center gap-2 pb-[env(safe-area-inset-bottom)]">
+        <div data-walk className="pointer-events-none absolute inset-x-0 bottom-[var(--dock-bottom)] z-40 flex flex-col items-center gap-2">
           {coarse ? <WalkStick out={stick} label={t.hud.walk} /> : <span className="rounded bg-background/70 px-2 py-0.5 text-[11px] text-foreground/80">{t.hud.walkHint}</span>}
           <WoodButton label={t.hud.walkExit} onClick={() => { stick.current = { dx: 0, dy: 0 }; setWalk(false); }} className="pointer-events-auto h-11 gap-1.5 px-4">
             <X className="h-4 w-4" /><span className="text-xs">{t.hud.walkExit}</span>
@@ -2047,7 +2047,7 @@ export function Game() {
       </div>
 
       {/* build rail: left on desktop, bottom on phones */}
-      <div className="pointer-events-none absolute inset-x-2 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-30 md:inset-x-auto md:bottom-auto md:left-3 md:top-[var(--bar-h,6rem)]" style={{ "--bar-h": `${barH + 8}px` } as import("react").CSSProperties}>
+      <div className="pointer-events-none absolute inset-x-2 bottom-[var(--dock-bottom)] z-30 md:inset-x-auto md:bottom-auto md:left-3 md:top-[var(--bar-h,6rem)]" style={{ "--bar-h": `${barH + 8}px` } as import("react").CSSProperties}>
         <Panel inner="!bg-wood !border-0 flex gap-1 p-1 md:flex-col">
           {tabs.map(({ k, icon: I, label }) => (
             <WoodButton key={k} label={label} active={tab === k} onClick={() => { setMoreOpen(false); pick(k); }} className={`h-11 flex-1 flex-col gap-0.5 md:flex md:h-14 md:w-14 md:flex-none ${k === "rituals" || k === "signs" ? "max-md:hidden" : ""}`}>
@@ -2089,7 +2089,7 @@ export function Game() {
         )}
       </div>
       {tab && (
-        <div className="pointer-events-none absolute inset-x-2 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 md:inset-x-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
+        <div className="pointer-events-none absolute inset-x-2 bottom-[calc(var(--dock-bottom)+4.5rem)] z-30 md:inset-x-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
           <div {...sheetSwipe(() => pick(tab))}><Panel className="max-h-[min(72dvh,calc(100dvh-11rem))] overflow-y-auto overscroll-contain max-md:rounded-t-2xl">{drawer}</Panel></div>
         </div>
       )}
@@ -2587,7 +2587,7 @@ export function Game() {
         </div>
       )}
 
-      <div className="pointer-events-none absolute bottom-[calc(5rem+env(safe-area-inset-bottom))] left-2 right-2 z-20 flex flex-col items-end space-y-2 text-sm md:bottom-52 md:left-auto md:right-3 md:w-80">
+      <div className="pointer-events-none absolute bottom-[calc(var(--dock-bottom)+4.5rem)] left-2 right-2 z-20 flex flex-col items-end space-y-2 text-sm md:bottom-52 md:left-auto md:right-3 md:w-80">
         {placing && coarse && ghost && (() => {
           const own = seeds.find((s) => s.id === mine);
           const err = own ? canPlaceSpecial(placing, ghost[0], ghost[1], own, seeds, clock()) as keyof typeof t.place | null : "ground";
