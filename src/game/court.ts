@@ -32,6 +32,13 @@ export function courtSite(): { x: number; y: number } {
 export const courtCenter = () => { const s = courtSite(); return { x: s.x + COURT_N / 2, y: s.y + COURT_N / 2 }; };
 export function inCourt(x: number, y: number) { const s = courtSite(); return x >= s.x - 1 && y >= s.y - 1 && x <= s.x + COURT_N && y <= s.y + COURT_N; }
 export function nearCourt(x: number, y: number) { const c = courtCenter(); return Math.hypot(x - c.x, y - c.y) < COURT_GUARD; }
+/** Solid estate footprint (castle, stable, fountain, pavilion): nobody walks through these walls. */
+export function courtSolid(x: number, y: number): boolean {
+  const s = courtSite(), i = x - s.x, j = y - s.y;
+  if (i < 0 || j < 0 || i >= COURT_N || j >= COURT_N) return false;
+  for (const [i0, j0, n] of Object.values(COURT_LAYOUT)) if (i >= i0 && j >= j0 && i < i0 + n && j < j0 + n) return true;
+  return false;
+}
 
 let pieceM: Map<number, CourtPiece> | null = null;
 /** Front tile key → piece drawn there. */

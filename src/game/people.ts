@@ -590,7 +590,7 @@ function free(t: Town, x: number, y: number, seeds: Seed[]): boolean {
   const hit = t.freeC.get(k);
   if (hit !== undefined) return hit;
   const st = structureAt(x, y, seeds, t.now);
-  const ok = st ? WALK.has(st.kind) || (FLAT.has(st.kind) && st.kind !== "hay") : buildable(terrain(x, y));
+  const ok = !courtSolid(x, y) && (st ? WALK.has(st.kind) || (FLAT.has(st.kind) && st.kind !== "hay") : buildable(terrain(x, y)));
   t.freeC.set(k, ok);
   return ok;
 }
