@@ -67,3 +67,4 @@
 - Supporter decorations (src/game/supporter.ts): only paid reward rows are stored (supporter_rewards, written solely by the signed payment webhook); placement around the mayor seat is derived via decorMap and never affects any game value.
 - Speech bubbles (src/game/banter.ts + lang/banter.ts) are local-only and never stored; picks avoid the last 40 lines shown.
 - Live strolling mayors of other players travel only over the ephemeral Realtime broadcast room mayors:<realm> (people.ts setRemoteMayor/remoteMayor, TTL fallback to the derived routine); never write positions to tables — keeps DB load zero.
+- Village dog (supporter reward "dog", src/game/dog.ts): only the reward row and owner-chosen name (village_dogs) are stored; routine (romp, heel, night sleep by the seat) derives from clock + mayor pose, chase smoothing is local-only — purely cosmetic, never affects the game.
