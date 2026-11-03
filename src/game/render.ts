@@ -1769,9 +1769,9 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   while (chunkCache.size > 140) chunkCache.delete(chunkCache.keys().next().value!);
   return cv;
 }
-function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false) {
+function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false): number {
   const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow);
-  let baked = 0;
+  let baked = 0, drawn = 0;
   const cx0 = Math.floor(x0 / CH), cx1 = Math.floor(x1 / CH), cy0 = Math.floor(y0 / CH), cy1 = Math.floor(y1 / CH);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
     const iy = s - ix;
@@ -1788,8 +1788,9 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
     }
     if (!cached) baked++;
     const cv = groundChunk(ix, iy, q, sk) as (HTMLCanvasElement & { ox: number; oy: number }) | null;
-    if (cv) c.drawImage(cv, cv.ox, cv.oy, cv.width / q, cv.height / q);
+    if (cv) { c.drawImage(cv, cv.ox, cv.oy, cv.width / q, cv.height / q); drawn++; }
   }
+  return drawn;
 }
 
 // ---------------- wonders in the wild (src/game/wonders.ts) ----------------
@@ -2599,6 +2600,7 @@ export function draw(
       else if (!st && (inside || (x >= x0 - 4 && x <= x1 + 4 && y >= y0 - 4 && y <= y1 + 4))) wildFigures(x, y, hunt, c);
     }
   }
+  renderStats.tiles = nTiles; { let n = 0; for (const v of folk.values()) n += v.length; renderStats.folk = n; }
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
   const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
   for (let ti = 0; ti < nTiles; ti++) {
