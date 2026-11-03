@@ -424,6 +424,8 @@ function huntFigures(lx: number, ly: number, out: Bucket, c: C, L?: Light[]) {
     c.strokeStyle = "rgba(60,40,22,0.9)"; c.lineWidth = 0.18; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx - dir * 1.1, by); c.stroke();
   });
 }
+/** Static pasture fence paths per tile (rails, post shadow, post, post highlight). */
+const fenceCache = new Map<number, Path2D[]>();
 /** Visual house style from the town terrain character; plains keep the classic art. */
 const houseStyle = (s: Structure): HouseStyle | undefined => { const m = townCharacter(s.seed).main; return m === "grain" ? undefined : m; };
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
@@ -466,30 +468,35 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
         [0, 1, p(-0.5, 0.5), p(0.5, 0.5), p(-0.5, 0.5, 1.6), p(0.5, 0.5, 1.6)],
         [1, 0, p(0.5, -0.5), p(0.5, 0.5), p(0.5, -0.5, 1.6), p(0.5, 0.5, 1.6)],
       ];
-      for (const [i, j, a, b] of edges) {
-        if (isPas(i, j)) continue;
-        const posts = 3;
+      // fence geometry is static: built once per tile + open-edge mask as Path2D, then four strokes per tile
+      const mask = (isPas(0, 1) ? 0 : 1) | (isPas(1, 0) ? 0 : 2);
+      if (mask) {
+        const fkey = (y * MAP + x) * 4 + mask;
+        let fp = fenceCache.get(fkey);
+        if (!fp) {
+          fp = [new Path2D(), new Path2D(), new Path2D(), new Path2D()];
+          for (const [ei, [, , a, b]] of edges.entries()) {
+            if (!(mask & (1 << ei))) continue;
+            const posts = 3;
+            for (const hgt of [0.8, 1.5]) for (let n = 0; n < posts; n++) {
+              const f0 = n / posts, f1 = (n + 1) / posts, sag = 0.12 + hash(sd, n, 77) * 0.12;
+              const A = lp(a, b, f0), B = lp(a, b, f1), M = lp(a, b, (f0 + f1) / 2);
+              fp[0]!.moveTo(A[0], A[1] - hgt); fp[0]!.quadraticCurveTo(M[0], M[1] - hgt + sag, B[0], B[1] - hgt);
+            }
+            for (let n = 0; n <= posts; n++) {
+              const A = lp(a, b, n / posts), lean = (hash(sd, n, 78) - 0.5) * 0.3;
+              fp[1]!.moveTo(A[0], A[1]); fp[1]!.lineTo(A[0] + 0.6, A[1] + 0.2);
+              fp[2]!.moveTo(A[0], A[1]); fp[2]!.lineTo(A[0] + lean, A[1] - 1.9);
+              fp[3]!.moveTo(A[0] - 0.12, A[1] - 0.2); fp[3]!.lineTo(A[0] - 0.12 + lean, A[1] - 1.8);
+            }
+          }
+          fenceCache.set(fkey, fp); if (fenceCache.size > 3000) fenceCache.clear();
+        }
         c.lineCap = "round";
-        for (const hgt of [0.8, 1.5]) {
-          c.strokeStyle = "rgba(92,64,38,0.9)"; c.lineWidth = 0.32; c.beginPath();
-          for (let n = 0; n < posts; n++) {
-            const f0 = n / posts, f1 = (n + 1) / posts, sag = 0.12 + hash(sd, n, 77) * 0.12;
-            const A = lp(a, b, f0), B = lp(a, b, f1), M = lp(a, b, (f0 + f1) / 2);
-            c.moveTo(A[0], A[1] - hgt); c.quadraticCurveTo(M[0], M[1] - hgt + sag, B[0], B[1] - hgt);
-          }
-          c.stroke();
-        }
-        // posts batched per layer: one shadow, one wood and one highlight stroke per fence edge
-        for (const [col, lw, k] of [["rgba(40,28,16,0.25)", 0.5, 0], ["rgba(78,54,32,1)", 0.42, 1], ["rgba(170,130,90,0.6)", 0.15, 2]] as const) {
-          c.strokeStyle = col; c.lineWidth = lw; c.beginPath();
-          for (let n = 0; n <= posts; n++) {
-            const A = lp(a, b, n / posts), lean = (hash(sd, n, 78) - 0.5) * 0.3;
-            if (k === 0) { c.moveTo(A[0], A[1]); c.lineTo(A[0] + 0.6, A[1] + 0.2); }
-            else if (k === 1) { c.moveTo(A[0], A[1]); c.lineTo(A[0] + lean, A[1] - 1.9); }
-            else { c.moveTo(A[0] - 0.12, A[1] - 0.2); c.lineTo(A[0] - 0.12 + lean, A[1] - 1.8); }
-          }
-          c.stroke();
-        }
+        c.strokeStyle = "rgba(92,64,38,0.9)"; c.lineWidth = 0.32; c.stroke(fp[0]!);
+        c.strokeStyle = "rgba(40,28,16,0.25)"; c.lineWidth = 0.5; c.stroke(fp[1]!);
+        c.strokeStyle = "rgba(78,54,32,1)"; c.lineWidth = 0.42; c.stroke(fp[2]!);
+        c.strokeStyle = "rgba(170,130,90,0.6)"; c.lineWidth = 0.15; c.stroke(fp[3]!);
       }
       // with villagers on the tile, sheep and people are resolved and depth-sorted together in pass 2
       if (v > 0.35 && !sharedPasture.has(sd)) {
