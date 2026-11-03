@@ -1694,8 +1694,7 @@ function nearTown(x: number, y: number) {
  * Wild meadow in 2.5D: upright grass blades (vertical, lit from the upper left) and, on flower meadows,
  * small blossoms on stalks — pure hash per tile, so baked chunks and the live view agree.
  */
-function wildTurf(g: C, x: number, y: number, cx: number, cy: number, tr: string) {
-  if (tr !== "grass" && tr !== "meadow" && tr !== "hill" && tr !== "fertile") return;
+function wildTurfPaths(g: C, x: number, y: number, cx: number, cy: number, tr: string) {
   const n = tr === "meadow" ? 5 : 3;
   g.lineCap = "round";
   for (let i = 0; i < n; i++) {
@@ -1715,6 +1714,24 @@ function wildTurf(g: C, x: number, y: number, cx: number, cy: number, tr: string
       g.fillStyle = col; g.beginPath(); g.ellipse(px + 0.9, py - tall - 0.7, 0.5, 0.32, 0, 0, 7); g.fill();
     }
   }
+}
+/** Pre-rendered turf tiles (terrain × variant): one drawImage per tile instead of ~40 path ops. */
+const TURF_VARIANTS = 12, TURF_S = 3, TURF_W = TW + 4, TURF_UP = 6, TURF_H = TH + TURF_UP + 2;
+const turfSprites = new Map<string, HTMLCanvasElement>();
+function turfSprite(tr: string, v: number): HTMLCanvasElement {
+  const key = tr + v; let cv = turfSprites.get(key);
+  if (!cv) {
+    cv = document.createElement("canvas"); cv.width = TURF_W * TURF_S; cv.height = TURF_H * TURF_S;
+    const g = cv.getContext("2d")!; g.setTransform(TURF_S, 0, 0, TURF_S, 0, 0);
+    wildTurfPaths(g, 9001 + v, 4243, TURF_W / 2, TURF_UP + TH / 2, tr);
+    turfSprites.set(key, cv);
+  }
+  return cv;
+}
+function wildTurf(g: C, x: number, y: number, cx: number, cy: number, tr: string) {
+  if (tr !== "grass" && tr !== "meadow" && tr !== "hill" && tr !== "fertile") return;
+  const sp = turfSprite(tr, Math.floor(hash(x, y, 819) * TURF_VARIANTS));
+  g.drawImage(sp, cx - TURF_W / 2, cy - TURF_UP - TH / 2, TURF_W, TURF_H);
 }
 /** Wild trees, bushes, crags and ore rocks of one tile — the single source for every zoom level. */
 function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean) {
