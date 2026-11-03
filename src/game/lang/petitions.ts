@@ -64,7 +64,7 @@ const VOICE: Partial<Record<Lang, Partial<Record<Quest, [string, string]>>>> = {
   },
 };
 
-export type Petition = { milestone: boolean; header: string; plea?: string; thanks?: string; who?: string };
+export type Petition = { milestone: boolean; header: string; plea?: string | undefined; thanks?: string | undefined; who?: string | undefined };
 
 /** Presentation of the current task: who asks, their words, or a milestone header. */
 export function petitionOf(q: Quest, lang: Lang, variant: boolean): Petition {
