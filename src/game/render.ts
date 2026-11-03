@@ -2800,7 +2800,7 @@ export function draw(
     const [sx, sy] = iso(at.x + dir[0], at.y + dir[1]), ddx = sx - px, ddy = sy - py;
     const gait = speed > 0.02 ? s / 0.55 : null, night = worldHour(now) >= 19 || worldHour(now) < 7;
     const fade = v.phase === "arrive" ? Math.min(1, v.t / 1500) : v.phase === "leave" ? Math.min(1, (ride - v.t) / 1500) : 1;
-    if (night) L.push({ x: px, y: py - 8, r: 9 });
+    if (night) L.push({ x: px, y: py - 7, r: 6 });
     heraldSpots.set(sd.id, { x: px, y: py });
     roadProp(px, py, fade, (context) => drawHerald(context, px, py, ddx, ddy, gait, speed, t, v.phase === "wait", night, sd.x * 13 + sd.y), true, `herald:${sd.id}`);
   }
