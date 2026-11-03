@@ -1657,6 +1657,8 @@ export function Game() {
       if (labOpen) return setLabOpen(false);
       if (supportOpen) return setSupportOpen(false);
       if (bugOpen) return setBugOpen(false);
+      if (thanks) return setThanks(false);
+      if (imprint) return setImprint(false);
       if (inviteOpen) return setInviteOpen(false);
       if (authOpen) return setAuthOpen(false);
       if (tavernOpen) return setTavernOpen(false);
