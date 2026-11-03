@@ -171,6 +171,9 @@ function drawBubble(ctx: CanvasRenderingContext2D, cv: HTMLCanvasElement, cam: C
 
 export function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // dev diagnostics HUD: written straight to the DOM, never through React state
+  const perfRef = useRef<HTMLDivElement>(null);
+  const perf = useRef({ sum: 0, n: 0, max: 0, t: 0 });
   const [rawSeeds, setSeeds] = useState<Seed[]>([]);
   const [blessings, setBlessings] = useState<{ id: string; seed_id: string; created_at: string }[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
