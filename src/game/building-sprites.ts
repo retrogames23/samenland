@@ -279,6 +279,12 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   const [, , sw, sh] = image === st?.image ? st.crop : sprite.crop;
   const width = sprite.width * scaleOf(kind, variant);
   const height = width * sh / sw;
+  // fast path (most houses): unmirrored, finished, no moving parts — one drawImage, no save()/restore()
+  if (reveal >= 1 && !flip && kind !== "mill" && kind !== "watermill" && kind !== "campfire") {
+    if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
+    c.drawImage(seasonalImage(image), x - width / 2, y + sprite.base - height, width, height);
+    return true;
+  }
   c.save();
   c.imageSmoothingEnabled = true;
   c.imageSmoothingQuality = "high";
