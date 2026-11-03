@@ -554,6 +554,16 @@ export function chaikin(p: Pt[], rounds = 2): Pt[] {
   return a;
 }
 type Ribbon = { path: Path2D; tufts: [number, number, number][] };
+// deterministic depth order with hysteresis: near-ties keep last frame's order, exact ties break by id
+const DEPTH_HYST = 0.75;
+const depthWas = new Map<string, number>();
+export function sortDepth<T extends { x: number; y: number }>(items: T[], id: (t: T) => string): T[] {
+  const keyed = items.map((it) => { const k = id(it), was = depthWas.get(k); const y = was !== undefined && Math.abs(was - it.y) < DEPTH_HYST ? was : it.y; depthWas.set(k, y); return { it, k, y }; });
+  keyed.sort((a, b) => a.y - b.y || a.it.x - b.it.x || (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
+  for (let i = 0; i < keyed.length; i++) items[i] = keyed[i]!.it;
+  if (depthWas.size > 4000) depthWas.clear();
+  return items;
+}
 const ribbonCache = new WeakMap<object, Map<string, Ribbon>>();
 /** Built, dry stretches of a trade road drawn as one smooth band with frayed verges, instead of per-tile strokes. */
 function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], now: number) {
@@ -592,7 +602,7 @@ function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], n
       }
     }
     rb = { path, tufts }; byKey.set(key, rb);
-    if (byKey.size > 8) byKey.delete(byKey.keys().next().value!);
+    if (byKey.size > 250) byKey.delete(byKey.keys().next().value!);
   }
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
   c.strokeStyle = "rgba(70,52,30,0.16)"; c.lineWidth = 6.6; c.stroke(rb.path); // trodden, soft verge
@@ -2643,7 +2653,8 @@ export function draw(
       type Item = Body & { q?: Pose; sh?: (typeof flock)[number] };
       const items: Item[] = fk.map((q) => { const [px, py] = iso(q.x, q.y); return { x: px, y: py, r: q.p.age < 15 ? FOOT.child : FOOT.adult, give: q.walking ? 1 : 0.5, q }; });
       for (const sh of flock) items.push({ x: cx + sh.m.dx, y: cy + sh.m.dy, r: FOOT.sheep, give: 0.15, sh });
-      separate(items).sort((a, b) => a.y - b.y);
+      separate(items);
+      sortDepth(items, (it) => (it.q ? `p${it.q.p.id}` : `s${it.sh!.k}`));
       for (const it of items) {
         if (it.sh) { const m = it.sh.m; drawSheep(c, it.x, it.y, m.flip, t + it.sh.k * 1700, m.walking, m.graze, m.sleeping); continue; }
         const q = it.q!, px = it.x, py = it.y;
