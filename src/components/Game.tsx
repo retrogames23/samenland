@@ -1639,7 +1639,7 @@ export function Game() {
     <div className="space-y-3 p-3 text-sm">
       <div className="flex items-center justify-between">
         <Head>{tabs.find((x) => x.k === tab)?.label}</Head>
-        <button type="button" aria-label={t.hud.close} onClick={() => setTab(null)} className="hit text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+        <button type="button" aria-label={t.hud.close} onClick={() => setTab(null)} className="hit relative text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
       </div>
       {tab === "build" && my && at && (
         <div className="space-y-2">
@@ -2244,16 +2244,16 @@ export function Game() {
             <div>{t.seasons[season]} · {new Date(now).toLocaleTimeString(LOCALE[lang], { hour: "2-digit", minute: "2-digit", timeZone: REALM_TZ[realm] })}</div>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
-            <button type="button" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} onClick={toggleSound} className="hit grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:h-8 md:w-8">
+            <button type="button" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} onClick={toggleSound} className="hit relative grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:h-8 md:w-8">
               {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </button>
             <button type="button" aria-label={fs ? t.exitFullscreen : t.fullscreen} title={fs ? t.exitFullscreen : t.fullscreen} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())} className="hidden h-8 w-8 place-items-center rounded-md hover:bg-accent md:grid">
               {fs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
-            <button type="button" aria-label={t.guide.menu} title={t.guide.menu} onClick={() => setGuideOpen(true)} className="hit grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:hidden">
+            <button type="button" aria-label={t.guide.menu} title={t.guide.menu} onClick={() => setGuideOpen(true)} className="hit relative grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:hidden">
               <BookOpen className="h-4 w-4" />
             </button>
-            <button type="button" aria-label={t.hud.settings} title={t.hud.settings} aria-expanded={settings} onClick={() => { if (!settings) { setWho(null); setPlace(null); } setSettings(!settings); }} className="hit grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:h-8 md:w-8">
+            <button type="button" aria-label={t.hud.settings} title={t.hud.settings} aria-expanded={settings} onClick={() => { if (!settings) { setWho(null); setPlace(null); } setSettings(!settings); }} className="hit relative grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:h-8 md:w-8">
               <Settings className="h-4 w-4" />
             </button>
           </div>
@@ -2905,7 +2905,7 @@ export function Game() {
         {msg && (
           <div role="status" className={`pointer-events-auto flex w-full items-start gap-2 rounded-md border-2 border-wood bg-card py-2 pl-3 pr-1.5 text-foreground shadow-[var(--shadow-panel)] md:w-auto ${tab ? "max-md:fixed max-md:inset-x-2 max-md:z-40 max-md:w-auto" : ""}`} style={tab ? { top: barH + 16 } : undefined}>
             <span className="min-w-0 flex-1">{msg}</span>
-            <button type="button" aria-label={t.hud.close} onClick={() => setMsg(null)} className="hit grid h-6 w-6 shrink-0 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"><X className="h-4 w-4" /></button>
+            <button type="button" aria-label={t.hud.close} onClick={() => setMsg(null)} className="hit relative grid h-6 w-6 shrink-0 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"><X className="h-4 w-4" /></button>
           </div>
         )}
         {who && (() => {
@@ -2921,7 +2921,7 @@ export function Game() {
               <div aria-hidden className="mx-auto mb-1 h-1 w-10 rounded-full bg-muted-foreground/40 md:hidden" />
               <div className="flex items-start justify-between gap-3">
                 <div className="font-['Caveat'] text-xl leading-tight">{who.first} {who.last}</div>
-                <button type="button" aria-label={t.close} className="hit -m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
+                <button type="button" aria-label={t.close} className="hit relative -m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
               </div>
               <div className="text-sm">{t.personAge(who.age)} · {t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
               {who.estate && <div className="mt-1 text-xs"><div>{PROSPERITY[lang].estates[who.estate]}</div><div className="text-muted-foreground">{PROSPERITY[lang].tax(who.sick ? 0 : ESTATE_TAX[who.estate])}</div></div>}
@@ -2976,7 +2976,7 @@ export function Game() {
               <div aria-hidden className="mx-auto mb-1 h-1 w-10 rounded-full bg-muted-foreground/40 md:hidden" />
               <div className="flex items-start justify-between gap-3">
                 <div className="font-['Caveat'] text-xl leading-tight">{ins.build !== null ? t.site(name) : name}</div>
-                <button type="button" aria-label={t.close} className="hit -m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setPlace(null)}>×</button>
+                <button type="button" aria-label={t.close} className="hit relative -m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setPlace(null)}>×</button>
               </div>
               <div className="text-xs text-muted-foreground">{t.inTown(name, ins.seed.name)}</div>
               {ins.build !== null ? (

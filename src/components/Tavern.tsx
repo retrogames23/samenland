@@ -165,7 +165,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
             </button>
             <h2 className="truncate font-display text-2xl leading-none sm:text-3xl">{t.tavern.title}</h2>
           </div>
-          <button type="button" aria-label={t.close} onClick={onClose} className="hit grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-ink/10"><X className="h-4 w-4" /></button>
+          <button type="button" aria-label={t.close} onClick={onClose} className="hit relative grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-ink/10"><X className="h-4 w-4" /></button>
         </div>
         <div className="relative flex min-h-0 flex-1">
           <aside className={`${side ? "absolute inset-0 z-10 block bg-card/95" : "hidden"} space-y-2 overflow-auto border-r border-ink/25 p-3 text-sm sm:static sm:block sm:w-44 sm:shrink-0 sm:bg-transparent sm:p-2 sm:text-xs`}>

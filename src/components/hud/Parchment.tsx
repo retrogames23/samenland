@@ -29,7 +29,7 @@ export function Parchment({ image, title, later, onLater, wide, children }: {
           <div className="mx-auto my-2 h-px w-2/3 bg-ink/30" />
           {children}
           <div className="mt-4 flex justify-center">
-            <button type="button" onClick={onLater} className="hit font-display text-xl text-ink/70 underline decoration-ink/30 underline-offset-4 hover:text-ink">{later}</button>
+            <button type="button" onClick={onLater} className="hit relative font-display text-xl text-ink/70 underline decoration-ink/30 underline-offset-4 hover:text-ink">{later}</button>
           </div>
         </div>
       </div>
