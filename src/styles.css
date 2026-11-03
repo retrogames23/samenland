@@ -200,3 +200,18 @@
   :root { --dock-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
 }
 html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+
+/* Landscape notch clearance: HUD edges never slip under the camera housing. */
+:root {
+  --safe-l: max(0.5rem, env(safe-area-inset-left));
+  --safe-r: max(0.5rem, env(safe-area-inset-right));
+}
+
+/* Invisible touch target: the visible icon stays small, the hit area grows to at least 44x44 px on touch screens. */
+@utility hit {
+  position: relative;
+  &::after { content: ""; position: absolute; inset: 0; }
+  @media (pointer: coarse) {
+    &::after { inset: auto; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }
+  }
+}
