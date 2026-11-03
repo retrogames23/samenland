@@ -583,7 +583,8 @@ export function Game() {
         princelyRows.current = (pt.data ?? []) as PrincelyRow[];
         loadErrands();
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: { seed_id: string }[] | null }> } }).from("knighthoods").select("seed_id").then(({ data }) => { knights.current = new Set((data ?? []).map((k) => k.seed_id)); });
-        for (const v of vv.data ?? []) visitSeen.current.add(v.visited_seed);
+        // only this player's own visits mark a town as seen — other players' visits must not block the welcome gift
+        { const me = ss.find((s) => uid && s.user_id === uid); for (const v of vv.data ?? []) if (me && v.visitor_seed === me.id) visitSeen.current.add(v.visited_seed); }
         wonderRows.current = (wf.data ?? []) as unknown as WonderFind[];
         syncWonders();
         setClaims([...(q.data ?? []), ...visitClaims(vv.data ?? []), ...wonderClaims(wonderRows.current), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? []), ...princelyClaims(princelyRows.current)]);
