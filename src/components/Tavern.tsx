@@ -147,8 +147,8 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
   const chanBtn = (c: Channel, name: string) => {
     const on = chanKey(c) === chanKey(chan), n = unreadOf(c);
     return (
-      <button key={chanKey(c)} type="button" onClick={() => { setChan(c); setSide(false); }} className={`flex w-full items-center justify-between truncate rounded px-1.5 py-0.5 text-left max-sm:min-h-11 ${on ? "bg-ink/15 font-semibold" : "hover:bg-ink/10"}`}>
-        <span className="truncate">{name}</span>{n > 0 && !on && <span className="ml-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{n}</span>}
+      <button key={chanKey(c)} type="button" onClick={() => { setChan(c); setSide(false); }} className={`flex w-full items-center justify-between truncate rounded px-1.5 py-0.5 text-start max-sm:min-h-11 ${on ? "bg-ink/15 font-semibold" : "hover:bg-ink/10"}`}>
+        <span className="truncate">{name}</span>{n > 0 && !on && <span className="ms-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{n}</span>}
       </button>
     );
   };
@@ -161,14 +161,14 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
           <div className="flex min-w-0 items-center gap-2">
             <button type="button" onClick={() => setSide((v) => !v)} className="hit relative shrink-0 rounded border border-ink/30 px-2 py-0.5 text-xs sm:hidden">
               {chan === "tavern" ? `# ${t.tavern.room}` : `@ ${people.get(chan.peer)?.owner ?? t.tavern.stranger}`} ▾
-              {total - unreadOf(chan) > 0 && <span className="absolute -right-1.5 -top-1.5 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{total - unreadOf(chan)}</span>}
+              {total - unreadOf(chan) > 0 && <span className="absolute -end-1.5 -top-1.5 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{total - unreadOf(chan)}</span>}
             </button>
             <h2 className="truncate font-display text-2xl leading-none sm:text-3xl">{t.tavern.title}</h2>
           </div>
           <button type="button" aria-label={t.close} onClick={onClose} className="hit relative grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-ink/10"><X className="h-4 w-4" /></button>
         </div>
         <div className="relative flex min-h-0 flex-1">
-          <aside className={`${side ? "absolute inset-0 z-10 block bg-card/95" : "hidden"} space-y-2 overflow-auto border-r border-ink/25 p-3 text-sm sm:static sm:block sm:w-44 sm:shrink-0 sm:bg-transparent sm:p-2 sm:text-xs`}>
+          <aside className={`${side ? "absolute inset-0 z-10 block bg-card/95" : "hidden"} space-y-2 overflow-auto border-e border-ink/25 p-3 text-sm sm:static sm:block sm:w-44 sm:shrink-0 sm:bg-transparent sm:p-2 sm:text-xs`}>
             {chanBtn("tavern", `# ${t.tavern.room}`)}
             <div>
               <div className="px-1.5 pt-1 font-semibold uppercase tracking-wide text-ink/60">{t.tavern.letters}</div>
@@ -177,7 +177,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
             <div>
               <div className="px-1.5 pt-1 font-semibold uppercase tracking-wide text-ink/60">{t.tavern.mayors}</div>
               {others.map(([u, s]) => (
-                <button key={u} type="button" onClick={() => setMenu(menu === u ? null : u)} className={`block w-full truncate rounded px-1.5 py-0.5 text-left hover:bg-ink/10 max-sm:min-h-11 ${blocked.has(u) ? "line-through opacity-50" : ""}`}>{s.owner}</button>
+                <button key={u} type="button" onClick={() => setMenu(menu === u ? null : u)} className={`block w-full truncate rounded px-1.5 py-0.5 text-start hover:bg-ink/10 max-sm:min-h-11 ${blocked.has(u) ? "line-through opacity-50" : ""}`}>{s.owner}</button>
               ))}
               {!others.length && <div className="px-1.5 text-ink/50">{t.tavern.alone}</div>}
             </div>
@@ -195,22 +195,22 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
               {userId && !shown.length && <div className="text-ink/60">{chan === "tavern" ? t.tavern.empty : t.tavern.emptyLetter}</div>}
               {shown.map((m) => (
                 <div key={m.id} className="break-words">
-                  <span className="text-ink/50">[{time(m.created_at)}]</span>{" "}
+                  <span dir="ltr" className="text-ink/50">[{time(m.created_at)}]</span>{" "}
                   <button type="button" disabled={m.sender_id === userId} onClick={() => setMenu(menu === m.sender_id ? null : m.sender_id)} className="font-semibold text-primary hover:underline disabled:text-ink disabled:no-underline">&lt;{label(m.sender_id, m.sender_seed)}&gt;</button>{" "}
-                  <span>{m.body}</span>
+                  <span dir="auto">{m.body}</span>
                 </div>
               ))}
               <div ref={end} />
             </div>
             {menu && (
-              <div className="absolute right-3 top-2 z-10 w-56 rounded border border-ink/30 bg-parchment p-2 text-sm shadow-lg">
+              <div className="absolute end-3 top-2 z-10 w-56 rounded border border-ink/30 bg-parchment p-2 text-sm shadow-lg">
                 <div className="mb-1 font-semibold">{label(menu)}</div>
-                {!blocked.has(menu) && <button type="button" className="block w-full rounded px-1 py-0.5 text-left hover:bg-ink/10 max-sm:min-h-11" onClick={() => { setChan({ peer: menu }); setMenu(null); }}>✉ {t.tavern.write}</button>}
-                <button type="button" className="block w-full rounded px-1 py-0.5 text-left hover:bg-ink/10 max-sm:min-h-11" onClick={() => toggleBlock(menu)}>{blocked.has(menu) ? t.tavern.unblock : t.tavern.block}</button>
+                {!blocked.has(menu) && <button type="button" className="block w-full rounded px-1 py-0.5 text-start hover:bg-ink/10 max-sm:min-h-11" onClick={() => { setChan({ peer: menu }); setMenu(null); }}>✉ {t.tavern.write}</button>}
+                <button type="button" className="block w-full rounded px-1 py-0.5 text-start hover:bg-ink/10 max-sm:min-h-11" onClick={() => toggleBlock(menu)}>{blocked.has(menu) ? t.tavern.unblock : t.tavern.block}</button>
               </div>
             )}
             <form className="flex gap-2 border-t border-ink/25 p-2" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-              <input value={text} maxLength={300} disabled={!userId || !my} onChange={(e) => setText(e.target.value)}
+              <input dir="auto" value={text} maxLength={300} disabled={!userId || !my} onChange={(e) => setText(e.target.value)}
                 placeholder={!my ? t.tavern.needVillage : chan === "tavern" ? t.tavern.say : t.tavern.sayLetter(people.get(chan.peer)?.owner ?? "")}
                 className="min-w-0 flex-1 rounded border border-ink/30 bg-parchment/60 px-2 py-1 font-mono text-base outline-none sm:text-sm focus:border-ink/60" />
               <button type="submit" disabled={!text.trim() || !my || sending} className="min-h-11 rounded bg-primary px-3 text-sm text-primary-foreground disabled:opacity-40 sm:min-h-0">{t.tavern.send}</button>
