@@ -1348,14 +1348,9 @@ export function Game() {
   /** Courier: the prince's messenger rides into the own village, so decrees no longer need a trip to court (DB princely_audience has no location check). */
   const [herald, setHerald] = useState(false);
   const [, bumpHerald] = useState(0);
-  /** Is a dispatch waiting? Only after the first audience at court, while decrees remain and the 20 h rest has passed (or one is open to report on). */
-  const heraldDue = (seedId: string) => {
-    const rows = princelyRows.current.filter((r) => r.seed_id === seedId);
-    if (!rows.length || rows.filter((r) => r.done_at).length >= PRINCELY_COUNT) return false;
-    if (rows.some((r) => !r.done_at)) return true;
-    const last = Math.max(...rows.map((r) => Date.parse(r.done_at!)));
-    return Date.now() - last >= PRINCELY_REST_H * 3600e3;
-  };
+  /** Is the messenger in the village (riding in or waiting)? Derived by heraldVisit, the same visit the map draws. */
+  const heraldDue = (seedId: string) => { const v = heraldVisit(princelyRows.current, seedId, Date.now()); return !!v && v.phase !== "leave"; };
+  const openHerald = () => { setDecree(null); setHerald(true); jingle("fanfare"); };
   const askDecree = async (seedId: string) => {
     const P = PRINCELY[lang];
     const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: string | null; error: unknown }>;
