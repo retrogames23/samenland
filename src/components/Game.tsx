@@ -38,6 +38,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText, MoreHorizontal } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
 import { QUESTS, questState, questKey, WAY_SMALL, WAY_BIG, type Quest, type QuestClaim } from "@/game/quests";
+import { petitionOf, feastTitle } from "@/game/lang/petitions";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { splashDone } from "@/game/splash";
 import { VillageRoll } from "@/components/VillageRoll";
@@ -1562,6 +1563,7 @@ export function Game() {
     wayBig: purchases.some((p) => p.seed_id === my.id && WAY_BIG.includes(p.item)),
   }) : null;
   const questText = quest && my ? t.quests.list[questKey(quest.quest, wayOf(my))] ?? t.quests.list[quest.quest]! : null;
+  const petition = quest && my ? petitionOf(quest.quest, lang, questKey(quest.quest, wayOf(my)) !== quest.quest) : null;
   const questHow = () => {
     if (!quest || !my) return;
     const tabs: Partial<Record<Quest, Tab>> = { bless: "rituals", bless7: "rituals", build: "build", buy3: "build", buy6: "build", metro: "build", sign: "signs", gift: "towns", gifts5: "towns", road: "build", roads2: "build" };
@@ -2812,7 +2814,7 @@ export function Game() {
         <Parchment image={ART["quest"]} title={petition!.milestone ? feastTitle(lang) : petition!.who!} later={t.quests.later} onLater={() => setQuestOpen(false)}>
           <p className="text-center font-semibold">{questText![0]}</p>
           {petition!.thanks && <p className="mt-2 text-center italic">{petition!.thanks}</p>}
-          <p className="mt-2 text-center italic">{t.quests.says(my.owner)} „{questText![2]}“</p>
+          {!petition!.thanks && <p className="mt-2 text-center italic">{t.quests.says(my.owner)} „{questText![2]}“</p>}
           {quest.quest === "metro" && <p className="mt-1 text-center text-sm">{t.quests.end}</p>}
           <div className="mt-4 flex justify-center"><Button onClick={claimQuest}>{t.quests.claim} · {t.taler(quest.reward)}</Button></div>
         </Parchment>
