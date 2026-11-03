@@ -59,7 +59,7 @@ function mantleLayers(im: HTMLImageElement): Layers | null {
       const u = x / W, v = y / H, inLegs = u > MANTLE.legL && u < MANTLE.legR;
       const copy = (t: Uint8ClampedArray, k = 1) => { t[i] = d[i]!; t[i + 1] = d[i + 1]!; t[i + 2] = d[i + 2]!; t[i + 3] = a * k; };
       // a) back mantle: everything below the belt except the painted legs between the facings
-      if (v > 0.5 && !(inLegs && v > 0.62)) copy(bi.data);
+      if (v > 0.5 && v < 0.88 && !(inLegs && v > 0.62)) copy(bi.data, Math.min(1, (0.88 - v) / 0.03));
       // d) torso down to the natural tunic hem, alpha fading out instead of a scissor cut
       if (v < 0.56 || (inLegs && v < MANTLE.torsoEnd)) copy(ti.data, Math.min(1, Math.max(0, (MANTLE.torsoEnd - v) / MANTLE.fade)));
       // e) front ermine facings (white fur incl. its black tails), lying over torso and legs
