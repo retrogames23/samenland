@@ -2321,6 +2321,63 @@ const framePool = {
 };
 
 /** Per-frame counters for the dev diagnostics HUD (mutated in place, no allocation). */
+// ---- flat town dressing (turf, paths, squares, acres) baked per 16x16-tile chunk ----
+// Static between growth steps: a cheap signature of the chunk's structures decides when to re-bake,
+// at most one bake per frame; chunks not baked yet are drawn tile by tile as before (identical look, no waiting).
+const FC = 16;
+type FlatChunk = { sig: number; checked: number; cv: (HTMLCanvasElement & { ox: number; oy: number }) | null; q: number; sk: string };
+const flatCache = new Map<number, FlatChunk>();
+const flatKinds = new Map<string, number>();
+const flatSet = new Set<number>();
+function flatSig(ix: number, iy: number, seeds: Seed[], now: number): number {
+  let h = 17, any = false;
+  for (let y = iy * FC - 1; y <= iy * FC + FC; y++) for (let x = ix * FC - 1; x <= ix * FC + FC; x++) {
+    if (x < 0 || y < 0 || x >= MAP || y >= MAP) continue;
+    const nt = nearTown(x, y), st = nt ? structureAt(x, y, seeds, now) : null;
+    let v = nt ? 1 : 0;
+    if (st) {
+      let k = flatKinds.get(st.kind); if (k === undefined) { k = flatKinds.size + 1; flatKinds.set(st.kind, k); }
+      v += k * 4 + (st.build ? 2 : 0) + (st.kind === "field" && acreOf(x, y, st.seed).ripe ? 1 << 12 : 0) + (st.seed.id.charCodeAt(0) << 14);
+    }
+    if (v) any = true;
+    h = (Math.imul(h, 31) + v) | 0;
+  }
+  return any ? h || 1 : 0;
+}
+function bakeFlat(ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number): (HTMLCanvasElement & { ox: number; oy: number }) | null {
+  const X0 = ix * FC, Y0 = iy * FC, X1 = Math.min(MAP - 1, X0 + FC - 1), Y1 = Math.min(MAP - 1, Y0 + FC - 1);
+  const left = iso(X0, Y1)[0] - TW * 1.5, right = iso(X1, Y0)[0] + TW * 1.5, top = iso(X0, Y0)[1] - TH - 30, bottom = iso(X1, Y1)[1] + TH + 12;
+  const cv = document.createElement("canvas") as HTMLCanvasElement & { ox: number; oy: number };
+  cv.width = Math.ceil((right - left) * q); cv.height = Math.ceil((bottom - top) * q);
+  const g = cv.getContext("2d")!;
+  g.setTransform(q, 0, 0, q, -left * q, -top * q);
+  for (let s = X0 + Y0; s <= X1 + Y1; s++) for (let x = Math.max(X0, s - Y1); x <= Math.min(X1, s - Y0); x++) {
+    const y = s - x, [cx, cy] = iso(x, y);
+    flatTile(g, x, y, cx, cy, structureAt(x, y, seeds, now), seeds, now, t);
+  }
+  cv.ox = left; cv.oy = top;
+  return cv;
+}
+function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
+  flatSet.clear();
+  const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(now), ready = allTexturesReady() && natureReady();
+  let bakes = 0, checks = 0;
+  const cx0 = Math.floor(x0 / FC), cx1 = Math.floor(x1 / FC), cy0 = Math.floor(y0 / FC), cy1 = Math.floor(y1 / FC);
+  for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
+    const iy = s - ix, key = iy * 4096 + ix;
+    let e = flatCache.get(key);
+    if (!e) { e = { sig: -1, checked: -1e9, cv: null, q: 0, sk: "" }; flatCache.set(key, e); }
+    else { flatCache.delete(key); flatCache.set(key, e); }
+    if (t - e.checked > 2000 && checks < 3) { checks++; e.checked = t; const sg = flatSig(ix, iy, seeds, now); if (sg !== e.sig) { e.sig = sg; e.q = 0; } }
+    if (e.sig === -1) continue; // not inspected yet: live tiles this frame
+    if (e.sig === 0) { flatSet.add(key); continue; } // nothing flat here (open country lives in the ground chunks)
+    const fresh = e.cv && e.q === q && e.sk === sk;
+    if (!fresh && ready && bakes < 1) { bakes++; e.cv = bakeFlat(ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; }
+    if (e.cv && e.sk === sk) { c.drawImage(e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
+  }
+  while (flatCache.size > 64) flatCache.delete(flatCache.keys().next().value!);
+  return flatSet;
+}
 /** Flat ground dressing of one tile (turf, ore rocks, paths, squares, acres) — drawn live or baked into a flat chunk. */
 function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number) {
     const live = nearTown(x, y);
@@ -2431,6 +2488,7 @@ export function draw(
   }
 
   // ---- pass 1c: flat things on the ground ----
+  const flatDone = drawFlatChunks(c, x0, x1, y0, y1, z, seeds, now, t);
   for (let s = x0 + y0; s <= x1 + y1; s++) {
     for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
       const y = s - x;
@@ -2445,8 +2503,7 @@ export function draw(
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square")) { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#cdb084"; diamond(c, cx, cy, 0.85); c.fill(); }
         continue;
       }
-      const fk0 = flatKey(x, y, q1c, sk1c);
-      if (!flatDone.has(fk0)) flatTile(c, x, y, cx, cy, st, seeds, now, t);
+      if (!flatDone.has(((y / FC) | 0) * 4096 + ((x / FC) | 0))) flatTile(c, x, y, cx, cy, st, seeds, now, t);
     }
   }
   // ---- trade roads as one continuous ribbon each (the tile steps stay logic only) ----
