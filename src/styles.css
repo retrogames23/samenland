@@ -204,6 +204,9 @@
 }
 html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
 
+/* Large screens: rem-based HUD grows gently (16 → 18 px root at 4K) so text stays readable without breaking proportions. */
+@media (min-width: 1920px) { html { font-size: clamp(16px, 0.42vw + 8px, 18px); } }
+
 /* Landscape notch clearance: HUD edges never slip under the camera housing. */
 :root {
   --safe-l: max(0.5rem, env(safe-area-inset-left));

@@ -274,6 +274,9 @@ export function Game() {
   const [hover, setHover] = useState<[number, number] | null>(null);
   // touch placement: the preview sits on its own tile until the player confirms
   const [ghost, setGhost] = useState<[number, number] | null>(null);
+  const hotkey = useRef<(e: KeyboardEvent) => void>(() => {});
+  /** soft camera glide target (screen-iso coords) for the Space key; any drag or pan key cancels it */
+  const glide = useRef<{ x: number; y: number } | null>(null);
   const [coarse, setCoarse] = useState(false);
   // hybrid input (iPad + trackpad, touch laptops): start from the media query, then follow the device actually used —
   // a mouse/trackpad switches to fine mode (no joystick), the next finger switches back; state only flips on change
@@ -834,11 +837,11 @@ export function Game() {
     // keyboard panning: WASD + arrow keys, smooth per frame
     const keys = new Set<string>();
     const KEYMAP: Record<string, [number, number]> = { w: [0, -1], arrowup: [0, -1], s: [0, 1], arrowdown: [0, 1], a: [-1, 0], arrowleft: [-1, 0], d: [1, 0], arrowright: [1, 0] };
-    const typing = (e: KeyboardEvent) => { const el = e.target as HTMLElement | null; return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable); };
+    const typing = (e: KeyboardEvent) => { const el = e.target as HTMLElement | null; return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable); };
     const onKeyDown = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
-      if (k === "escape" && st.current.walk) { setWalk(false); return; }
-      if (!KEYMAP[k] || typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (!KEYMAP[k]) { hotkey.current(e); return; }
       e.preventDefault(); keys.add(k);
     };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
@@ -890,6 +893,9 @@ export function Game() {
       }
       walkDriven = false;
       if (liveOn) { liveOn = false; liveSent = 0; const S = st.current; if (S.mine) void liveCh.current?.send({ type: "broadcast", event: "pos", payload: { sid: S.mine, bye: true } }); }
+      { const g = glide.current;
+        if (g && (keys.size || drag.current)) glide.current = null;
+        else if (g) { const k = 1 - Math.exp(-dt / 160); cam.current.x += (g.x - cam.current.x) * k; cam.current.y += (g.y - cam.current.y) * k; if (Math.hypot(g.x - cam.current.x, g.y - cam.current.y) < 0.5) glide.current = null; } }
       if (keys.size) {
         let dx = 0, dy = 0;
         for (const k of keys) { const v = KEYMAP[k]; if (v) { dx += v[0]; dy += v[1]; } }
@@ -1636,6 +1642,45 @@ export function Game() {
   };
   const [moreOpen, setMoreOpen] = useState(false);
   const pick = (k: Tab) => setTab(tab === k ? null : k);
+  // desktop hotkeys (read fresh every render via the ref; the key listener lives in the canvas effect and skips form fields)
+  const overview = useRef<number | null>(null);
+  hotkey.current = (e: KeyboardEvent) => {
+    const k = e.key.toLowerCase(), done = () => e.preventDefault();
+    if (k === "escape") {
+      // 1. topmost window, 2. mode / placement / inspection, 3. stroll
+      if (supportOpen) return setSupportOpen(false);
+      if (bugOpen) return setBugOpen(false);
+      if (inviteOpen) return setInviteOpen(false);
+      if (authOpen) return setAuthOpen(false);
+      if (tavernOpen) return setTavernOpen(false);
+      if (rollOpen) return setRollOpen(false);
+      if (larderOpen) return setLarderOpen(false);
+      if (chronOpen) return setChronOpen(false);
+      if (guideOpen) return setGuideOpen(false);
+      if (settings) return setSettings(false);
+      if (moreOpen) return setMoreOpen(false);
+      if (editMayor) return setEditMayor(false);
+      if (placing) { setPlacing(null); setMsg(null); return; }
+      if (mode !== "look") return setMode("look");
+      if (who || place) { setWho(null); setPlace(null); return; }
+      if (tab) return setTab(null);
+      if (walk) { stick.current = { dx: 0, dy: 0 }; setWalk(false); }
+      return;
+    }
+    if (k === " " || k === "spacebar") { done(); if (walk) camFree.current = false; else if (my) { const [gx, gy] = iso(my.x, my.y); fling.current = { vx: 0, vy: 0, t: performance.now() }; glide.current = { x: gx, y: gy }; } return; }
+    if (k === "+" || k === "=" || k === "e") { done(); return zoomBy(1.6); }
+    if (k === "-" || k === "_" || k === "q") { done(); return zoomBy(1 / 1.6); }
+    if (walk) return;
+    if (k === "b") { done(); return pick(my ? "build" : "plant"); }
+    if (k === "t") { done(); return setTavernOpen((v) => !v); }
+    if (k === "m") {
+      // map overview: zoom far out over the island, the second press returns to the earlier zoom
+      done(); const cv = canvasRef.current; if (!cv) return;
+      const back = overview.current;
+      overview.current = back == null ? target.current.zoom : null;
+      target.current = { zoom: back ?? Math.max(MIN_ZOOM, 0.08), ax: cv.width / 2, ay: cv.height / 2 };
+    }
+  };
   const tabs: { k: Tab; icon: typeof Hammer; label: string }[] = [
     ...(my ? [
       { k: "build" as Tab, icon: Hammer, label: t.hud.build },
