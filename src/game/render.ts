@@ -2738,6 +2738,7 @@ export function draw(
     }
   }
   { const pt4 = performance.now(); const P = renderStats.phase; P[0] = Math.max(P[0]!, pt1 - pt0); P[1] = Math.max(P[1]!, pt2 - pt1); P[2] = Math.max(P[2]!, pt3 - pt2); P[3] = Math.max(P[3]!, pt4 - pt3); }
+  if (typeof window !== "undefined") (window as unknown as { __rs: unknown }).__rs = { ...renderStats, tex: allTexturesReady(), nat: natureReady() };
   renderStats.tiles = nTiles; { let n = 0; for (const v of folk.values()) n += v.length; renderStats.folk = n; }
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
   const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
