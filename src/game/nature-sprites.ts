@@ -95,8 +95,8 @@ export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: num
   const im = seasonalImage(i, k === "fir" ? "fir" : rock ? "building" : "leaf"), top = rock ? -h * 0.72 : -h + h * 0.02;
   if (!flip && Math.abs(sway) < 0.01) { c.drawImage(im, x - w / 2, y + top, w, h); return true; }
   // zero-save: one absolute matrix (world × translate × mirror/sway shear), then back to the world matrix
-  const B = c.getTransform(), fx = flip ? -1 : 1, sh = sway * 0.04;
-  c.setTransform(B.a * fx, B.b * fx, B.a * sh + B.c, B.b * sh + B.d, B.a * x + B.c * y + B.e, B.b * x + B.d * y + B.f);
+  const B = c.getTransform(), fx = flip ? -1 : 1, sk = sway * 0.04;
+  c.setTransform(B.a * fx, B.b * fx, B.a * sk + B.c, B.b * sk + B.d, B.a * x + B.c * y + B.e, B.b * x + B.d * y + B.f);
   c.drawImage(im, -w / 2, top, w, h);
   c.setTransform(B);
   return true;
