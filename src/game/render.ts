@@ -1891,7 +1891,7 @@ function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Struct
     a = { kind: st.kind as "field" | "garden", ripe, along: ac.along, outer, winter, hx, hy, k2: 0 };
     key = `${st.kind[0]}${+ripe}${+ac.along}${outer.map((o) => +o).join("")}${+winter}|${v}`;
   }
-  const sp = agriSprite(a, key);
+  const sp = agriSprite(a, key + seasonKey(now));
   if (sp) c.drawImage(sp, cx - AGRI_W / 2, cy - AGRI_UP, AGRI_W, AGRI_H);
 }
 /** Wild trees, bushes, crags and ore rocks of one tile — the single source for every zoom level. */
