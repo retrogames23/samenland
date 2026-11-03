@@ -2792,15 +2792,14 @@ export function Game() {
         <div className={`absolute right-16 z-30 max-w-[calc(100vw-5rem)] md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
           <div className="parchment px-3 py-2 text-sm text-ink shadow">
             <button type="button" onClick={() => setQuestFold((f) => !f)} className="flex w-full items-center justify-between gap-2 text-left">
-              <span className="font-display text-lg leading-none">{t.quests.card}</span>
-              <span className="text-[10px] opacity-70">{t.quests.step(quest.index + 1, QUESTS.length)}</span>
+              <span className="font-display text-base leading-tight">{petition!.header}</span>
             </button>
             {!questFold && (
               <div className="mt-1 space-y-1">
                 <div className="font-semibold">{questText![0]}</div>
-                <div className="text-xs opacity-80">{questText![1]}</div>
-                <div className="h-1.5 overflow-hidden rounded bg-ink/15"><div className="h-full bg-brass" style={{ width: `${(100 * quest.have) / quest.need}%` }} /></div>
-                <div className="flex items-center justify-between text-xs"><span>{quest.have}/{quest.need}</span><span>{t.quests.reward(quest.reward)}</span></div>
+                <div className={`text-xs opacity-80 ${petition!.plea ? "italic" : ""}`}>{petition!.plea ?? questText![1]}</div>
+                {quest.need > 1 && <div className="h-1 overflow-hidden rounded bg-ink/10"><div className="h-full bg-brass/70" style={{ width: `${(100 * quest.have) / quest.need}%` }} /></div>}
+                <div className="text-end text-xs opacity-70">{t.quests.reward(quest.reward)}</div>
                 {quest.ready
                   ? <Button size="sm" className="h-7 w-full" onClick={() => setQuestOpen(true)}>{t.quests.claim}</Button>
                   : <Button size="sm" variant="outline" className="h-7 w-full" onClick={questHow}>{t.quests.how}</Button>}
@@ -2810,8 +2809,9 @@ export function Game() {
         </div>
       )}
       {owner && my && quest?.ready && questOpen && (
-        <Parchment image={ART["quest"]} title={t.quests.doneTitle} later={t.quests.later} onLater={() => setQuestOpen(false)}>
+        <Parchment image={ART["quest"]} title={petition!.milestone ? feastTitle(lang) : petition!.who!} later={t.quests.later} onLater={() => setQuestOpen(false)}>
           <p className="text-center font-semibold">{questText![0]}</p>
+          {petition!.thanks && <p className="mt-2 text-center italic">{petition!.thanks}</p>}
           <p className="mt-2 text-center italic">{t.quests.says(my.owner)} „{questText![2]}“</p>
           {quest.quest === "metro" && <p className="mt-1 text-center text-sm">{t.quests.end}</p>}
           <div className="mt-4 flex justify-center"><Button onClick={claimQuest}>{t.quests.claim} · {t.taler(quest.reward)}</Button></div>
