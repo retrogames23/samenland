@@ -2144,7 +2144,7 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
   // stride follows distance walked so feet never slide
   const ph = ((q.dist ?? 0) / 0.11) * 6.2832;
   // shadow centred between the feet (legs hang from hipX), so the figure strides exactly over it
-  const g0 = COURT_GAIT[q.role], cx0 = q.walking || q.role === "prince" ? 0 : (0.5 - g0.hipX) * w;
+  const g0 = COURT_GAIT[q.role], cx0 = 0;
   c.save(); c.translate(px, py); if (q.dx < 0) c.scale(-1, 1);
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(cx0, 0.1, w * 0.45, 0.6, 0, 0, 7); c.fill();
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
