@@ -1769,9 +1769,9 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   while (chunkCache.size > 140) chunkCache.delete(chunkCache.keys().next().value!);
   return cv;
 }
-function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false) {
+function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false): number {
   const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow);
-  let baked = 0;
+  let baked = 0, drawn = 0;
   const cx0 = Math.floor(x0 / CH), cx1 = Math.floor(x1 / CH), cy0 = Math.floor(y0 / CH), cy1 = Math.floor(y1 / CH);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
     const iy = s - ix;
@@ -1788,8 +1788,9 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
     }
     if (!cached) baked++;
     const cv = groundChunk(ix, iy, q, sk) as (HTMLCanvasElement & { ox: number; oy: number }) | null;
-    if (cv) c.drawImage(cv, cv.ox, cv.oy, cv.width / q, cv.height / q);
+    if (cv) { c.drawImage(cv, cv.ox, cv.oy, cv.width / q, cv.height / q); drawn++; }
   }
+  return drawn;
 }
 
 // ---------------- wonders in the wild (src/game/wonders.ts) ----------------
@@ -2127,6 +2128,8 @@ const framePool = {
   birds: [] as [number, number, number, number][],
 };
 
+/** Per-frame counters for the dev diagnostics HUD (mutated in place, no allocation). */
+export const renderStats = { tiles: 0, folk: 0, chunks: 0 };
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
@@ -2146,15 +2149,16 @@ export function draw(
   const x0 = Math.max(0, Math.min(...cs.map((p) => p[0])) - 2), x1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[0])) + 2);
   const y0 = Math.max(0, Math.min(...cs.map((p) => p[1])) - 2), y1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[1])) + 5);
   // One rendering path at every map zoom: no threshold where trees, house facing or pastures switch.
-  const detail = true, sharp = cam.zoom >= 1.3; // sharp: ground painted per tile (crisper texture only)
+  // Ground always comes from baked chunks (2x supersampled at close zoom): repainting textures,
+  // gradients and clips per tile every frame blew the 16 ms budget while panning.
+  const detail = true, sharp = false;
   const cs0x = cam.x - w / 2 / z, cs1x = cam.x + w / 2 / z, cs0y = cam.y - h / 2 / z, cs1y = cam.y + h / 2 / z;
   const L = framePool.lights; L.length = 0;
   // pooled per-frame buffers: slots and maps are reused across frames to keep GC pauses out of the loop
   const tiles = framePool.tiles; let nTiles = 0;
 
-  let edges: GroundEdge[] = [];
-  if (sharp) edges = drawGround(c, x0, x1, y0, y1, t, true);
-  else drawGroundChunks(c, x0, x1, y0, y1, z, cs0x, cs1x, cs0y, cs1y);
+  const edges: GroundEdge[] = [];
+  renderStats.chunks = drawGroundChunks(c, x0, x1, y0, y1, z, cs0x, cs1x, cs0y, cs1y);
   // frayed edges: a few grass tufts and pebbles breaking up the borderline
   if (detail) {
     for (const e of edges) {
@@ -2596,6 +2600,7 @@ export function draw(
       else if (!st && (inside || (x >= x0 - 4 && x <= x1 + 4 && y >= y0 - 4 && y <= y1 + 4))) wildFigures(x, y, hunt, c);
     }
   }
+  renderStats.tiles = nTiles; { let n = 0; for (const v of folk.values()) n += v.length; renderStats.folk = n; }
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
   const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
   for (let ti = 0; ti < nTiles; ti++) {

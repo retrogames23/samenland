@@ -10,7 +10,7 @@ import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, is
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type WonderFind } from "@/game/wonders";
-import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, signpostMap, type Camera } from "@/game/render";
+import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townRank, rankInput, nextRankNeed } from "@/game/rank";
 import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, parkMayor, mayorAway, setMounted, setStrollHold, citizensOf, isHomeKind, setRemoteMayor, clearRemoteMayors, type Person } from "@/game/people";
@@ -171,6 +171,9 @@ function drawBubble(ctx: CanvasRenderingContext2D, cv: HTMLCanvasElement, cam: C
 
 export function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // dev diagnostics HUD: written straight to the DOM, never through React state
+  const perfRef = useRef<HTMLDivElement>(null);
+  const perf = useRef({ sum: 0, n: 0, max: 0, t: 0 });
   const [rawSeeds, setSeeds] = useState<Seed[]>([]);
   const [blessings, setBlessings] = useState<{ id: string; seed_id: string; created_at: string }[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
@@ -686,7 +689,21 @@ export function Game() {
       const s = st.current;
       const h = s.hover;
       const ok = h && s.mode === "seed" ? canPlant(h[0], h[1], s.seeds) === null : null;
+      const t0 = performance.now();
       draw(ctx, cv.width, cv.height, dpr.current, c, s.seeds, s.plantings, clock(), h, ok);
+      if (import.meta.env.DEV) {
+        const ms = performance.now() - t0, p = perf.current;
+        p.sum += ms; p.n++; p.max = Math.max(p.max, ms);
+        if (t0 - p.t >= 500) {
+          const el = perfRef.current;
+          if (el) {
+            const avg = p.sum / p.n, fps = (p.n * 1000) / (t0 - p.t);
+            el.textContent = `${fps.toFixed(0)} fps · render ${avg.toFixed(1)} ms (max ${p.max.toFixed(1)}) · tiles ${renderStats.tiles} · folk ${renderStats.folk} · chunks ${renderStats.chunks} · zoom ${c.zoom.toFixed(2)}`;
+            el.style.color = avg > 12 ? "#ff6b5a" : avg > 8 ? "#ffd166" : "#9be59b";
+          }
+          p.sum = 0; p.n = 0; p.max = 0; p.t = t0;
+        }
+      }
       drawBubble(ctx, cv, c, dpr.current);
       if (s.mode === "seed") {
         // drawn above the night grade, so the founding marker stays readable at midnight
@@ -2034,8 +2051,10 @@ export function Game() {
         </div>
       )}
       <LoadingScreen title="Samenland" lines={t.loading} onDone={openGuide} />
+      {import.meta.env.DEV && <div ref={perfRef} className="pointer-events-none absolute left-1 top-1 z-50 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] leading-tight" />}
       <canvas
         ref={canvasRef}
+        style={{ touchAction: "none" }}
         className="absolute inset-0 h-full w-full cursor-grab touch-none"
         onLostPointerCapture={(e) => { touches.current.delete(e.pointerId); if (touches.current.size < 2) pinch.current = null; }}
         onPointerDown={(e) => {
