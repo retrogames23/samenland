@@ -936,7 +936,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       const legs = folkImage("legsM");
       if (legs) {
         const f = gaitFrame(ph);
-        drawLegged(c, robe, 0, fw, fh, legs, f, ww, hh, MAYOR_LEGS, bob, 0);
+        drawLegged(c, robe, 0, fw, fh, legs, f, ww, hh, MAYOR_LEGS, bob, 0, ph);
       } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     insignia(c, q, hgt);
@@ -956,7 +956,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     // each trade sprite: measured hip x (fraction of width) and tunic hem (fraction of height)
     const g = HIPS[k] ?? DEFAULT_FIG, f = frameOf(legs.naturalWidth / WALK_FRAMES);
     const yb = walkBob(ph, hgt);
-    drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, hgt, g, yb, yb);
+    drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, hgt, g, yb, yb, ph);
   } else if (skirt) {
     // long skirt: two painted shoes step out under the hem, the hem sways in strips with the stride
     const foot = folkImage("footF"), sw = im.naturalWidth, sh = im.naturalHeight, top = 0.8;
@@ -2169,7 +2169,7 @@ function drawCourtWalk(c: C, im: HTMLImageElement, role: CourtRole, w: number, h
     return;
   }
   const legs = folkImage("legsM");
-  if (legs) drawLegged(c, im, 0, nw, nh, legs, f, w, h, g, -bob, -bob);
+  if (legs) drawLegged(c, im, 0, nw, nh, legs, f, w, h, g, -bob, -bob, ph);
   else c.drawImage(im, -w / 2, -h - bob, w, h);
 }
 
