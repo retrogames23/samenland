@@ -87,24 +87,33 @@ export function drawMantled(
   const fw = legs.naturalWidth / WALK_FRAMES, lh = h * (1 - g.hipY), lw = ((lh * fw) / legs.naturalHeight) * g.legWidthScale;
   if (!L) { c.drawImage(im, sx, 0, sw, sh, x0, -h + dy, w, h); return; }
   c.drawImage(L.back, 0, 0, sw, sh, x0 + sway, -h + dy, w, h);
-  c.drawImage(legs, frame * fw, 0, fw, legs.naturalHeight, -lw / 2, -lh + dy, lw, lh);
+  drawLegPair(c, legs, frame, lw, lh, dy, ph);
   c.drawImage(L.torso, 0, 0, sw, sh, x0, -h + dy, w, h);
   c.drawImage(L.front, 0, 0, sw, sh, x0 + sway * 0.4, -h + dy, w, h);
+}
+
+/** Swing-phase foot lift for each leg half: footY = -sin(swingPhase) · legLength · 0.15, only while that leg swings. */
+export function footLifts(ph: number, lh: number): [number, number] {
+  const s = Math.sin(ph), k = lh * 0.15;
+  return [s > 0 ? -s * k : 0, s < 0 ? s * k : 0];
+}
+/** Paints the leg pair as two halves; the swinging leg rises (its top tucks behind the torso hem). */
+export function drawLegPair(c: C, legs: HTMLImageElement, frame: number, lw: number, lh: number, dy: number, ph: number | undefined, spread = 0) {
+  const fw = legs.naturalWidth / WALK_FRAMES, lnh = legs.naturalHeight;
+  if (ph === undefined && spread <= 0.001) { c.drawImage(legs, frame * fw, 0, fw, lnh, -lw / 2, -lh + dy, lw, lh); return; }
+  const [la, lb] = ph === undefined ? [0, 0] : footLifts(ph, lh), hf = fw / 2;
+  c.drawImage(legs, frame * fw, 0, hf, lnh, -lw / 2 - spread, -lh + dy + la, lw / 2, lh);
+  c.drawImage(legs, frame * fw + hf, 0, hf, lnh, spread, -lh + dy + lb, lw / 2, lh);
 }
 
 /** Draws legs (frame of the shared cycle) then the torso cut at its hem, in the figure's local frame (feet at 0,0). */
 export function drawLegged(
   c: C, im: CanvasImageSource, sx: number, sw: number, sh: number, legs: HTMLImageElement, frame: number,
-  w: number, h: number, g: FigureConfig, legDy = 0, torsoDy = 0,
+  w: number, h: number, g: FigureConfig, legDy = 0, torsoDy = 0, ph?: number,
 ) {
   const fw = legs.naturalWidth / WALK_FRAMES, lnh = legs.naturalHeight;
-  const lh = h * (1 - g.hipY), lw = ((lh * fw) / lnh) * g.legWidthScale, s = g.legSpread * h;
-  if (s > 0.001) {
-    // split the pair down the middle and part the two legs
-    const hf = fw / 2;
-    c.drawImage(legs, frame * fw, 0, hf, lnh, -lw / 2 - s, -lh + legDy, lw / 2, lh);
-    c.drawImage(legs, frame * fw + hf, 0, hf, lnh, s, -lh + legDy, lw / 2, lh);
-  } else c.drawImage(legs, frame * fw, 0, fw, lnh, -lw / 2, -lh + legDy, lw, lh);
+  const lh = h * (1 - g.hipY), lw = ((lh * fw) / lnh) * g.legWidthScale;
+  drawLegPair(c, legs, frame, lw, lh, legDy, ph, g.legSpread * h);
   c.drawImage(im, sx, 0, sw, sh * g.hemY, -w * g.hipX, -h + torsoDy, w, h * g.hemY);
 }
 
