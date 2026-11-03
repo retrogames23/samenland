@@ -51,7 +51,7 @@ import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
 import { MAYOR } from "@/game/lang/mayor";
 import { COURT } from "@/game/lang/court";
-import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso } from "@/game/render";
+import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, heraldSpots } from "@/game/render";
 import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT } from "@/game/lang/support";
@@ -60,7 +60,7 @@ import { THANKS, OSS } from "@/game/lang/thanks";
 import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
 import { HERALD, edictText } from "@/game/lang/edicts";
-import { princelyClaims, favourOf, openTaskOf, PRINCELY_COUNT, PRINCELY_REST_H, type PrincelyRow, type PrincelyKind } from "@/game/princely";
+import { princelyClaims, favourOf, openTaskOf, heraldVisit, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { courtPoses, courtCenter, atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
 import { Beer, ChevronDown, MapPin } from "lucide-react";
@@ -585,7 +585,7 @@ export function Game() {
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("wonder_finds").select("id, seed_id, site, realm, first, reward, created_at"),
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("princely_tasks").select("id, seed_id, step, task, reward, accepted_at, done_at"),
       ]).then(([q, m, rf, vv, wf, pt]) => {
-        princelyRows.current = (pt.data ?? []) as PrincelyRow[];
+        princelyRows.current = (pt.data ?? []) as PrincelyRow[]; setHeraldRows(princelyRows.current);
         loadErrands();
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: { seed_id: string }[] | null }> } }).from("knighthoods").select("seed_id").then(({ data }) => { knights.current = new Set((data ?? []).map((k) => k.seed_id)); });
         // only this player's own visits mark a town as seen — other players' visits must not block the welcome gift
@@ -1348,13 +1348,15 @@ export function Game() {
   /** Courier: the prince's messenger rides into the own village, so decrees no longer need a trip to court (DB princely_audience has no location check). */
   const [herald, setHerald] = useState(false);
   const [, bumpHerald] = useState(0);
-  /** Is a dispatch waiting? Only after the first audience at court, while decrees remain and the 20 h rest has passed (or one is open to report on). */
-  const heraldDue = (seedId: string) => {
-    const rows = princelyRows.current.filter((r) => r.seed_id === seedId);
-    if (!rows.length || rows.filter((r) => r.done_at).length >= PRINCELY_COUNT) return false;
-    if (rows.some((r) => !r.done_at)) return true;
-    const last = Math.max(...rows.map((r) => Date.parse(r.done_at!)));
-    return Date.now() - last >= PRINCELY_REST_H * 3600e3;
+  /** Is the messenger in the village (riding in or waiting)? Derived by heraldVisit, the same visit the map draws. */
+  const heraldDue = (seedId: string) => { const v = heraldVisit(princelyRows.current, seedId, Date.now()); return !!v && v.phase !== "leave"; };
+  const openHerald = () => { setDecree(null); setHerald(true); jingle("fanfare"); };
+  /** Tap on the own village's messenger (screen spot from the last frame). */
+  const heraldHit = (e: { clientX: number; clientY: number }) => {
+    const me = my && my.user_id === userId ? heraldSpots.get(my.id) : undefined; if (!me || !canvasRef.current) return false;
+    const r = canvasRef.current.getBoundingClientRect(), c = cam.current;
+    const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
+    return Math.hypot(me.x - wx, me.y - 6 - wy) < Math.max(7, 18 / c.zoom);
   };
   const askDecree = async (seedId: string) => {
     const P = PRINCELY[lang];
@@ -1364,7 +1366,7 @@ export function Game() {
     const sel = (supabase as unknown as { from: (t: string) => { select: (c: string) => { eq: (k: string, v: string) => PromiseLike<{ data: unknown[] | null }> } } }).from("princely_tasks").select("id, seed_id, step, task, reward, accepted_at, done_at").eq("seed_id", seedId);
     const rows = ((await sel).data ?? []) as PrincelyRow[];
     const prevDone = new Set(princelyRows.current.filter((r) => r.done_at).map((r) => r.id));
-    princelyRows.current = [...princelyRows.current.filter((r) => r.seed_id !== seedId), ...rows];
+    princelyRows.current = [...princelyRows.current.filter((r) => r.seed_id !== seedId), ...rows]; setHeraldRows(princelyRows.current);
     const fresh = rows.filter((r) => r.done_at && !prevDone.has(r.id));
     if (fresh.length) { setClaims((c) => [...c, ...princelyClaims(fresh)]); jingle("coins"); }
     const open = openTaskOf(rows, seedId), last = [...rows].sort((a, b) => b.step - a.step)[0];
@@ -1377,7 +1379,7 @@ export function Game() {
     const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: string | null; error: unknown }>;
     const { data, error } = await rpc("princely_swap", { _seed: seedId });
     if (error || !data) { setDecree(P.fail); return; }
-    if (data === "swapped") { princelyRows.current = princelyRows.current.map((r) => r.seed_id === seedId && !r.done_at ? { ...r, task: "court", accepted_at: new Date().toISOString() } : r); errNear.current = null; bumpErrand((n) => n + 1); }
+    if (data === "swapped") { princelyRows.current = princelyRows.current.map((r) => r.seed_id === seedId && !r.done_at ? { ...r, task: "court", accepted_at: new Date().toISOString() } : r); errNear.current = null; bumpErrand((n) => n + 1); setHeraldRows(princelyRows.current); }
     setDecree(data === "swapped" ? P.swapped : data === "wait" ? P.wait : P.open(P.task.court));
   };
   useEffect(() => { if (!audience && !herald) setDecree(null); }, [audience, herald]);
@@ -2239,6 +2241,7 @@ export function Game() {
             if (placing) { const [px, py] = tileAt(e); return buy(placing, px, py); }
             if (walk) {
               // stroll mode: tapping a person or house talks to them; elsewhere the mayor walks there
+              if (heraldHit(e)) { openHerald(); return; }
               if (talkTo(e)) return;
               const [tx, ty] = tileAt(e), my = seeds.find((x) => x.id === mine);
               if (my) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (me && commandMayor(me, tw, seeds, nw, [tx, ty])) tap((e.clientX / window.innerWidth) * 2 - 1); }
@@ -2248,6 +2251,7 @@ export function Game() {
               const best = personAt(e);
               const pan = (e.clientX / window.innerWidth) * 2 - 1;
               if (best && best.role === "mayor" && best.seed.id !== mine && best.seed.user_id && userId) { tap(pan); setWho(null); setPlace(null); setDmPeer(best.seed.user_id); setTavernOpen(true); return; }
+              if (heraldHit(e)) { openHerald(); return; }
               if (best) { hm(pan); setPlace(null); speak(best); return setWho(best); }
               if (courtAt(e)) { tap(pan); setWho(null); setPlace(null); return; }
               { const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
@@ -2807,7 +2811,7 @@ export function Game() {
 
       {owner && my && my.user_id === userId && claimsReady && !panelOpen && !walk && !herald && heraldDue(my.id) && (
         <div className="absolute inset-x-0 z-30 flex justify-center pointer-events-none" style={{ top: barH + 8 }}>
-          <WoodButton label={HERALD[lang].button} onClick={() => { setDecree(null); setHerald(true); jingle("fanfare"); }} className="pointer-events-auto h-10 px-3 animate-in fade-in"><span className="text-sm font-semibold">📜 {HERALD[lang].button}</span></WoodButton>
+          <WoodButton label={HERALD[lang].button} onClick={() => { const hs = heraldSpots.get(my.id); if (hs) { cam.current.x = hs.x; cam.current.y = hs.y - 6; } openHerald(); }} className="pointer-events-auto h-10 px-3 animate-in fade-in"><span className="text-sm font-semibold">📜 {HERALD[lang].button}</span></WoodButton>
         </div>
       )}
       {herald && my && (

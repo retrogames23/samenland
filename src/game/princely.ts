@@ -22,3 +22,29 @@ export const princelyClaims = (rows: PrincelyRow[]): QuestClaim[] =>
 
 export const favourOf = (rows: PrincelyRow[], seedId: string) => rows.filter((r) => r.seed_id === seedId && r.done_at).length;
 export const openTaskOf = (rows: PrincelyRow[], seedId: string) => rows.find((r) => r.seed_id === seedId && !r.done_at) ?? null;
+
+/** The prince's messenger in the village (pure, never stored): rides in when a dispatch is due, waits by the mayor's seat, rides off once it is taken. */
+export const HERALD_RIDE_S = 25;
+/** Hours after a decree was handed out until the messenger comes back for the report. */
+export const HERALD_RETURN_H = 6;
+export type HeraldVisit = { phase: "arrive" | "wait" | "leave"; p: number; t: number };
+export function heraldVisit(rows: PrincelyRow[], seedId: string, now: number): HeraldVisit | null {
+  const mine = rows.filter((r) => r.seed_id === seedId);
+  if (!mine.length) return null; // the first decree is always granted at court
+  const ride = HERALD_RIDE_S * 1000, open = mine.find((r) => !r.done_at);
+  const leave = (from: number): HeraldVisit | null => (now >= from && now - from < ride ? { phase: "leave", p: (now - from) / ride, t: now - from } : null);
+  let arrive: number;
+  if (open) {
+    const acc = Date.parse(open.accepted_at);
+    if (open.step > 1) { const l = leave(acc); if (l) return l; }
+    arrive = acc + HERALD_RETURN_H * 3600e3;
+  } else {
+    const last = Math.max(...mine.map((r) => Date.parse(r.done_at!)));
+    const l = leave(last); if (l) return l;
+    if (mine.length >= PRINCELY_COUNT) return null;
+    arrive = last + PRINCELY_REST_H * 3600e3;
+  }
+  if (now < arrive) return null;
+  const t = now - arrive;
+  return t < ride ? { phase: "arrive", p: t / ride, t } : { phase: "wait", p: 1, t };
+}
