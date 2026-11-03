@@ -23,6 +23,21 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
   const [seen, setSeen] = useState<Record<string, number>>({});
   const [showBlocked, setShowBlocked] = useState(false);
   const end = useRef<HTMLDivElement>(null);
+  const shell = useRef<HTMLDivElement>(null);
+  // iOS keyboard: Safari only shrinks/shifts the visual viewport, so the overlay is pinned to it directly.
+  // Written straight to the element's style (rAF-batched) — no React state, typing never re-renders through this.
+  useEffect(() => {
+    const vv = window.visualViewport, el = shell.current;
+    if (!open || !vv || !el) return;
+    let raf = 0;
+    const fit = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => {
+      el.style.top = `${vv.offsetTop}px`; el.style.height = `${vv.height}px`;
+      end.current?.scrollIntoView({ block: "end" });
+    }); };
+    fit();
+    vv.addEventListener("resize", fit); vv.addEventListener("scroll", fit);
+    return () => { cancelAnimationFrame(raf); vv.removeEventListener("resize", fit); vv.removeEventListener("scroll", fit); el.style.top = ""; el.style.height = ""; };
+  }, [open]);
 
   const [side, setSide] = useState(false);
   // read marks live on the account (chat_reads), merged with this browser's copy — survives preview frames and other devices
@@ -132,7 +147,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
   const chanBtn = (c: Channel, name: string) => {
     const on = chanKey(c) === chanKey(chan), n = unreadOf(c);
     return (
-      <button key={chanKey(c)} type="button" onClick={() => { setChan(c); setSide(false); }} className={`flex w-full items-center justify-between truncate rounded px-1.5 py-0.5 text-left ${on ? "bg-ink/15 font-semibold" : "hover:bg-ink/10"}`}>
+      <button key={chanKey(c)} type="button" onClick={() => { setChan(c); setSide(false); }} className={`flex w-full items-center justify-between truncate rounded px-1.5 py-0.5 text-left max-sm:min-h-11 ${on ? "bg-ink/15 font-semibold" : "hover:bg-ink/10"}`}>
         <span className="truncate">{name}</span>{n > 0 && !on && <span className="ml-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{n}</span>}
       </button>
     );
@@ -140,17 +155,17 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
   const others = [...people.entries()].filter(([u, s]) => u !== userId && s.realm === realm);
 
   return (
-    <div className="absolute inset-0 z-40 grid place-items-center overflow-hidden bg-foreground/40 p-2 sm:p-3" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="parchment relative flex h-[min(80vh,640px)] w-full max-w-[min(48rem,calc(100vw-1rem))] flex-col overflow-hidden text-ink">
+    <div ref={shell} className="fixed inset-x-0 top-0 z-40 grid h-[100dvh] place-items-center overflow-hidden bg-foreground/40 pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[var(--safe-l)] pr-[var(--safe-r)] pt-[max(0.5rem,env(safe-area-inset-top))] max-md:place-items-stretch sm:p-3" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="parchment relative flex h-full max-h-[640px] w-full max-w-[min(48rem,calc(100vw-1rem))] flex-col overflow-hidden text-ink max-md:max-h-none max-md:max-w-none md:h-[min(80dvh,640px)] md:justify-self-center">
         <div className="flex items-center justify-between border-b border-ink/25 px-4 py-2">
           <div className="flex min-w-0 items-center gap-2">
-            <button type="button" onClick={() => setSide((v) => !v)} className="relative shrink-0 rounded border border-ink/30 px-2 py-0.5 text-xs sm:hidden">
+            <button type="button" onClick={() => setSide((v) => !v)} className="hit relative shrink-0 rounded border border-ink/30 px-2 py-0.5 text-xs sm:hidden">
               {chan === "tavern" ? `# ${t.tavern.room}` : `@ ${people.get(chan.peer)?.owner ?? t.tavern.stranger}`} ▾
               {total - unreadOf(chan) > 0 && <span className="absolute -right-1.5 -top-1.5 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{total - unreadOf(chan)}</span>}
             </button>
             <h2 className="truncate font-display text-2xl leading-none sm:text-3xl">{t.tavern.title}</h2>
           </div>
-          <button type="button" aria-label={t.close} onClick={onClose} className="grid h-7 w-7 place-items-center rounded-full hover:bg-ink/10"><X className="h-4 w-4" /></button>
+          <button type="button" aria-label={t.close} onClick={onClose} className="hit relative grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-ink/10"><X className="h-4 w-4" /></button>
         </div>
         <div className="relative flex min-h-0 flex-1">
           <aside className={`${side ? "absolute inset-0 z-10 block bg-card/95" : "hidden"} space-y-2 overflow-auto border-r border-ink/25 p-3 text-sm sm:static sm:block sm:w-44 sm:shrink-0 sm:bg-transparent sm:p-2 sm:text-xs`}>
@@ -162,7 +177,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
             <div>
               <div className="px-1.5 pt-1 font-semibold uppercase tracking-wide text-ink/60">{t.tavern.mayors}</div>
               {others.map(([u, s]) => (
-                <button key={u} type="button" onClick={() => setMenu(menu === u ? null : u)} className={`block w-full truncate rounded px-1.5 py-0.5 text-left hover:bg-ink/10 ${blocked.has(u) ? "line-through opacity-50" : ""}`}>{s.owner}</button>
+                <button key={u} type="button" onClick={() => setMenu(menu === u ? null : u)} className={`block w-full truncate rounded px-1.5 py-0.5 text-left hover:bg-ink/10 max-sm:min-h-11 ${blocked.has(u) ? "line-through opacity-50" : ""}`}>{s.owner}</button>
               ))}
               {!others.length && <div className="px-1.5 text-ink/50">{t.tavern.alone}</div>}
             </div>
@@ -190,15 +205,15 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
             {menu && (
               <div className="absolute right-3 top-2 z-10 w-56 rounded border border-ink/30 bg-parchment p-2 text-sm shadow-lg">
                 <div className="mb-1 font-semibold">{label(menu)}</div>
-                {!blocked.has(menu) && <button type="button" className="block w-full rounded px-1 py-0.5 text-left hover:bg-ink/10" onClick={() => { setChan({ peer: menu }); setMenu(null); }}>✉ {t.tavern.write}</button>}
-                <button type="button" className="block w-full rounded px-1 py-0.5 text-left hover:bg-ink/10" onClick={() => toggleBlock(menu)}>{blocked.has(menu) ? t.tavern.unblock : t.tavern.block}</button>
+                {!blocked.has(menu) && <button type="button" className="block w-full rounded px-1 py-0.5 text-left hover:bg-ink/10 max-sm:min-h-11" onClick={() => { setChan({ peer: menu }); setMenu(null); }}>✉ {t.tavern.write}</button>}
+                <button type="button" className="block w-full rounded px-1 py-0.5 text-left hover:bg-ink/10 max-sm:min-h-11" onClick={() => toggleBlock(menu)}>{blocked.has(menu) ? t.tavern.unblock : t.tavern.block}</button>
               </div>
             )}
             <form className="flex gap-2 border-t border-ink/25 p-2" onSubmit={(e) => { e.preventDefault(); void send(); }}>
               <input value={text} maxLength={300} disabled={!userId || !my} onChange={(e) => setText(e.target.value)}
                 placeholder={!my ? t.tavern.needVillage : chan === "tavern" ? t.tavern.say : t.tavern.sayLetter(people.get(chan.peer)?.owner ?? "")}
-                className="min-w-0 flex-1 rounded border border-ink/30 bg-parchment/60 px-2 py-1 font-mono text-sm outline-none focus:border-ink/60" />
-              <button type="submit" disabled={!text.trim() || !my || sending} className="rounded bg-primary px-3 text-sm text-primary-foreground disabled:opacity-40">{t.tavern.send}</button>
+                className="min-w-0 flex-1 rounded border border-ink/30 bg-parchment/60 px-2 py-1 font-mono text-base outline-none sm:text-sm focus:border-ink/60" />
+              <button type="submit" disabled={!text.trim() || !my || sending} className="min-h-11 rounded bg-primary px-3 text-sm text-primary-foreground disabled:opacity-40 sm:min-h-0">{t.tavern.send}</button>
             </form>
           </div>
         </div>
