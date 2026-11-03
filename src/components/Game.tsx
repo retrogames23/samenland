@@ -59,7 +59,8 @@ import { Survey } from "@/components/Survey";
 import { THANKS, OSS } from "@/game/lang/thanks";
 import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
-import { princelyClaims, favourOf, openTaskOf, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
+import { HERALD, edictText } from "@/game/lang/edicts";
+import { princelyClaims, favourOf, openTaskOf, PRINCELY_COUNT, PRINCELY_REST_H, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { courtPoses, courtCenter, atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
 import { Beer, ChevronDown, MapPin } from "lucide-react";
@@ -1344,6 +1345,17 @@ export function Game() {
     setDecree(P.dubbed(P.sir(female))); jingle("fanfare");
   };
   const [decree, setDecree] = useState<string | null>(null);
+  /** Courier: the prince's messenger rides into the own village, so decrees no longer need a trip to court (DB princely_audience has no location check). */
+  const [herald, setHerald] = useState(false);
+  const [, bumpHerald] = useState(0);
+  /** Is a dispatch waiting? Only after the first audience at court, while decrees remain and the 20 h rest has passed (or one is open to report on). */
+  const heraldDue = (seedId: string) => {
+    const rows = princelyRows.current.filter((r) => r.seed_id === seedId);
+    if (!rows.length || rows.filter((r) => r.done_at).length >= PRINCELY_COUNT) return false;
+    if (rows.some((r) => !r.done_at)) return true;
+    const last = Math.max(...rows.map((r) => Date.parse(r.done_at!)));
+    return Date.now() - last >= PRINCELY_REST_H * 3600e3;
+  };
   const askDecree = async (seedId: string) => {
     const P = PRINCELY[lang];
     const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: string | null; error: unknown }>;
@@ -1356,8 +1368,9 @@ export function Game() {
     const fresh = rows.filter((r) => r.done_at && !prevDone.has(r.id));
     if (fresh.length) { setClaims((c) => [...c, ...princelyClaims(fresh)]); jingle("coins"); }
     const open = openTaskOf(rows, seedId), last = [...rows].sort((a, b) => b.step - a.step)[0];
-    const txt = (k: string) => P.task[k as PrincelyKind] ?? k;
+    const txt = (k: string) => (open && k === open.task && k !== "court" ? edictText(lang, open.step) : null) ?? P.task[k as PrincelyKind] ?? k;
     setDecree(data === "done" ? P.done(last?.reward ?? 0) : data === "new" && open ? P.newTask(txt(open.task), open.reward) : data === "open" && open ? P.open(txt(open.task)) : data === "all" ? P.all : P.rest);
+    if (data === "done" || data === "new") bumpHerald((n) => n + 1);
   };
   const swapDecree = async (seedId: string) => {
     const P = PRINCELY[lang];
@@ -1367,7 +1380,7 @@ export function Game() {
     if (data === "swapped") { princelyRows.current = princelyRows.current.map((r) => r.seed_id === seedId && !r.done_at ? { ...r, task: "court", accepted_at: new Date().toISOString() } : r); errNear.current = null; bumpErrand((n) => n + 1); }
     setDecree(data === "swapped" ? P.swapped : data === "wait" ? P.wait : P.open(P.task.court));
   };
-  useEffect(() => { if (!audience) setDecree(null); }, [audience]);
+  useEffect(() => { if (!audience && !herald) setDecree(null); }, [audience, herald]);
   useEffect(() => { if (!walk) { courtGoal.current = null; courtNear.current = false; setNearCourt(false); setAudience(null); errNear.current = null; setNearErrand(null); } }, [walk]);
   useEffect(() => { if (!errandNote) return; const h = setTimeout(() => setErrandNote(null), 9000); return () => clearTimeout(h); }, [errandNote]);
   useEffect(() => { if (!visitNote) return; const h = setTimeout(() => setVisitNote(null), 9000); return () => clearTimeout(h); }, [visitNote]);
