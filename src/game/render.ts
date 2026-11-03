@@ -2132,7 +2132,7 @@ function courtFigures(t: number) {
 /** Court anatomy: legs keep LEG_RATIO height from the hip; the prince wears a floor-length ermine
  * mantle, so he walks like the princess — swaying hem, only boot tips step out (no cut through the fur). */
 const COURT_GAIT: Record<CourtRole, FigureConfig> = {
-  prince: fig(0.5, 0.56, { style: "mantle" }), princess: fig(0.5, 0.8, { style: "robe" }),
+  prince: fig(0.61, 0.56, { style: "mantle" }), princess: fig(0.5, 0.8, { style: "robe" }),
   herald: fig(0.465, 0.66), guard: fig(0.48, 0.72, { legWidthScale: 1.06 }),
   gardener: fig(0.47, 0.69), groom: fig(0.48, 0.63, { legWidthScale: 1.05 }),
 };
@@ -2143,12 +2143,14 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
   const [px, py] = iso(q.x, q.y), h = courtHeight(q.role), w = (h * im.naturalWidth) / im.naturalHeight;
   // stride follows distance walked so feet never slide
   const ph = ((q.dist ?? 0) / 0.11) * 6.2832;
-  c.save(); c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(px + 0.6, py + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
-  c.translate(px, py); if (q.dx < 0) c.scale(-1, 1);
+  // shadow centred between the feet (legs hang from hipX), so the figure strides exactly over it
+  const g0 = COURT_GAIT[q.role], cx0 = q.walking || q.role === "prince" ? 0 : (0.5 - g0.hipX) * w;
+  c.save(); c.translate(px, py); if (q.dx < 0) c.scale(-1, 1);
+  c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(cx0, 0.1, w * 0.45, 0.6, 0, 0, 7); c.fill();
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   if (!q.walking) {
     const br = Math.sin(t / 2100 + q.x * 5); c.transform(1 - br * 0.004, 0, 0, 1 + br * 0.012, 0, 0);
-    c.drawImage(im, -w / 2, -h, w, h); c.restore(); return;
+    c.drawImage(im, -w * (q.role === "prince" ? g0.hipX : 0.5), -h, w, h); c.restore(); return;
   }
   drawCourtWalk(c, im, q.role, w, h, ph);
   c.restore();

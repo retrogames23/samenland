@@ -86,7 +86,7 @@ export function drawMantled(
   const L = mantleLayers(im), x0 = -w * g.hipX, sway = Math.sin(ph) * w * 0.03;
   const fw = legs.naturalWidth / WALK_FRAMES, lh = h * (1 - g.hipY), lw = ((lh * fw) / legs.naturalHeight) * g.legWidthScale;
   if (!L) { c.drawImage(im, sx, 0, sw, sh, x0, -h + dy, w, h); return; }
-  c.drawImage(L.back, 0, 0, sw, sh, x0 + sway, -h + dy, w, h * 0.92);
+  c.drawImage(L.back, 0, 0, sw, sh, x0 + sway, -h + dy, w, h);
   c.drawImage(legs, frame * fw, 0, fw, legs.naturalHeight, -lw / 2, -lh + dy, lw, lh);
   c.drawImage(L.torso, 0, 0, sw, sh, x0, -h + dy, w, h);
   c.drawImage(L.front, 0, 0, sw, sh, x0 + sway * 0.4, -h + dy, w, h);
