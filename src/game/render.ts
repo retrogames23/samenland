@@ -1942,7 +1942,6 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   const X0 = ix * CH, Y0 = iy * CH, X1 = Math.min(MAP - 1, X0 + CH - 1), Y1 = Math.min(MAP - 1, Y0 + CH - 1);
   // bounding box of the chunk diamond in world pixels
   const left = iso(X0, Y1)[0] - TW, right = iso(X1, Y0)[0] + TW, top = iso(X0, Y0)[1] - TH - PAD_TOP, bottom = iso(X1, Y1)[1] + TH;
-  const tb0 = performance.now();
   const cv = document.createElement("canvas");
   cv.width = Math.ceil((right - left) * q); cv.height = Math.ceil((bottom - top) * q);
   const g = cv.getContext("2d")!;
@@ -1953,7 +1952,6 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(d[0], d[1]); g.lineTo(e[0], e[1]); g.closePath(); g.clip();
   drawGround(g, X0, X1, Y0, Y1, 0, false);
   g.restore();
-  const tb1 = performance.now();
   let missing = false;
   for (let s = X0 + Y0; s <= X1 + Y1; s++) for (let x = Math.max(X0, s - Y1); x <= Math.min(X1, s - Y0); x++) {
     const y = s - x;
@@ -1962,7 +1960,6 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
     natureAt(g, x, y, cx, cy, 0, true);
   }
   if (!allTexturesReady() || !natureReady()) missing = true;
-  { const tb2 = performance.now(); renderStats.bakes++; renderStats.bakeGround = Math.max(renderStats.bakeGround, tb1 - tb0); renderStats.bakeNature = Math.max(renderStats.bakeNature, tb2 - tb1); renderStats.bakeMs = Math.max(renderStats.bakeMs, tb2 - tb0); }
   (cv as HTMLCanvasElement & { ox?: number; oy?: number }).ox = left;
   (cv as HTMLCanvasElement & { ox?: number; oy?: number }).oy = top;
   if (missing) return cv; // not cached: re-bake once images have loaded
@@ -2382,7 +2379,6 @@ function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[]
 }
 function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
   flatSet.clear();
-  if ((globalThis as unknown as { __noready?: boolean }).__noready) return flatSet;
   const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(now), ready = allTexturesReady() && natureReady();
   let bakes = 0;
   const cx0 = Math.floor(x0 / FC), cx1 = Math.floor(x1 / FC), cy0 = Math.floor(y0 / FC), cy1 = Math.floor(y1 / FC);
@@ -2395,7 +2391,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     const stale = e.dirty || e.q !== q || e.sk !== sk || (!e.full && t - e.baked > 2000);
     if (stale && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; renderStats.bakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; e.dirty = false; }
     if (e.empty && e.q === q) { flatSet.add(key); continue; }
-    if (e.cv && e.q === q && e.sk === sk) { if (!(globalThis as unknown as { __noflat?: boolean }).__noflat) c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
+    if (e.cv && e.q === q && e.sk === sk) { c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
   }
   while (flatCache.size > 64) flatCache.delete(flatCache.keys().next().value!);
   return flatSet;
@@ -2455,7 +2451,7 @@ function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Struct
     }
 }
 
-export const renderStats = { tiles: 0, folk: 0, chunks: 0, bakeMs: 0, bakeGround: 0, bakeNature: 0, bakes: 0, phase: [0, 0, 0, 0] as number[] };
+export const renderStats = { tiles: 0, folk: 0, chunks: 0 };
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
@@ -2484,7 +2480,7 @@ export function draw(
   const tiles = framePool.tiles; let nTiles = 0;
 
   const edges: GroundEdge[] = [];
-  const pt0 = performance.now(); frameBakes = 0;
+  frameBakes = 0;
   renderStats.chunks = drawGroundChunks(c, x0, x1, y0, y1, z, cs0x, cs1x, cs0y, cs1y);
   // frayed edges: a few grass tufts and pebbles breaking up the borderline
   if (detail) {
@@ -2511,9 +2507,7 @@ export function draw(
   }
 
   // ---- pass 1c: flat things on the ground ----
-  const pt1 = performance.now();
   const flatDone = drawFlatChunks(c, x0, x1, y0, y1, z, seeds, now, t);
-  const pt2 = performance.now();
   for (let s = x0 + y0; s <= x1 + y1; s++) {
     for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
       const y = s - x;
@@ -2539,7 +2533,6 @@ export function draw(
     drawRoadRibbon(c, l, seeds, now);
   }
 
-  const pt3 = performance.now();
   // ---- villagers, bucketed by tile for depth sorting ----
   const folk = framePool.folk; folk.clear();
   lastPeople.length = 0; lastTraders.length = 0;
@@ -2750,8 +2743,6 @@ export function draw(
       else if (!st && (inside || (x >= x0 - 4 && x <= x1 + 4 && y >= y0 - 4 && y <= y1 + 4))) wildFigures(x, y, hunt, c);
     }
   }
-  { const pt4 = performance.now(); const P = renderStats.phase; P[0] = Math.max(P[0]!, pt1 - pt0); P[1] = Math.max(P[1]!, pt2 - pt1); P[2] = Math.max(P[2]!, pt3 - pt2); P[3] = Math.max(P[3]!, pt4 - pt3); }
-  if (typeof window !== "undefined") (window as unknown as { __rs: unknown }).__rs = { ...renderStats, phase: [...renderStats.phase] }; renderStats.phase.fill(0); renderStats.bakeMs = 0; renderStats.bakeGround = 0;
   renderStats.tiles = nTiles; { let n = 0; for (const v of folk.values()) n += v.length; renderStats.folk = n; }
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
   const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
