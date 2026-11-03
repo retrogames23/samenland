@@ -55,6 +55,7 @@ import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT } from "@/game/lang/support";
 import { Survey } from "@/components/Survey";
+import { THANKS, OSS } from "@/game/lang/thanks";
 import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
 import { princelyClaims, favourOf, openTaskOf, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
@@ -303,6 +304,7 @@ export function Game() {
   const [authOpen, setAuthOpen] = useState(false);
   const [settings, setSettings] = useState(false);
   const [imprint, setImprint] = useState(false);
+  const [thanks, setThanks] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [labOpen, setLabOpen] = useState(false);
@@ -2363,8 +2365,22 @@ export function Game() {
             {userId && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setBugOpen(true); setSettings(false); }}>📜 {BUGS[lang].button}</Button>}
             <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 border-t border-border/60 pt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
               <a href="https://lovable.dev/invite/LN0I260" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">♥ {t.imprint.built}</a>
-              <button type="button" onClick={() => setImprint(!imprint)} className="uppercase hover:text-foreground">{t.imprint.title}</button>
+              <button type="button" onClick={() => { setThanks(!thanks); setImprint(false); }} className="uppercase hover:text-foreground">{THANKS[lang].title}</button>
+              <button type="button" onClick={() => { setImprint(!imprint); setThanks(false); }} className="uppercase hover:text-foreground">{t.imprint.title}</button>
             </div>
+            {thanks && (
+              <div className="max-h-72 space-y-1.5 overflow-y-auto rounded border border-border/60 bg-background/40 p-2 text-[11px] leading-snug text-muted-foreground">
+                <ul className="list-disc space-y-1 ps-4">
+                  <li>{THANKS[lang].settlers}</li>
+                  <li>{THANKS[lang].anno}</li>
+                  <li>{THANKS[lang].simcity}</li>
+                  <li>{THANKS[lang].oss}</li>
+                </ul>
+                <div className="flex flex-wrap gap-x-2 gap-y-0.5 ps-4" dir="ltr">
+                  {OSS.map(([n, u]) => <a key={n} href={u} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:text-foreground hover:underline">{n}</a>)}
+                </div>
+              </div>
+            )}
             {imprint && (
               <div className="space-y-1.5 rounded border border-border/60 bg-background/40 p-2 text-[11px] leading-snug text-muted-foreground">
                 <div className="text-foreground">Stephan Dörner<br />Bornholmer Str. 89<br />10439 Berlin</div>
