@@ -1979,7 +1979,7 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
     const X0 = ix * CH, Y0 = iy * CH, X1 = X0 + CH - 1, Y1 = Y0 + CH - 1;
     if (iso(X1, Y0)[0] + TW < vx0 || iso(X0, Y1)[0] - TW > vx1 || iso(X1, Y1)[1] + TH < vy0 || iso(X0, Y0)[1] - TH - PAD_TOP > vy1) continue;
     const cached = chunkCache.has(`${ix},${iy},${q},${sk}`);
-    if (!cached && baked >= 1) { // spread baking over frames; fall back to another cached quality if any
+    if (!cached && (baked >= 1 || frameBakes >= 1)) { // spread baking over frames; fall back to another cached quality if any
       const oq = [2, 1, 0.5].find((o) => o !== q && chunkCache.has(`${ix},${iy},${o},${sk}`));
       const lo = oq ? chunkCache.get(`${ix},${iy},${oq},${sk}`) as (HTMLCanvasElement & { ox: number; oy: number }) : undefined;
       if (lo && oq) c.drawImage(lo, lo.ox, lo.oy, lo.width / oq, lo.height / oq);
@@ -1987,7 +1987,7 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
       else { const [a, b] = iso(X0 + CH / 2, Y0 + CH / 2); c.fillStyle = "#7a8a50"; c.beginPath(); c.moveTo(a, b - CH * TH / 2); c.lineTo(a + CH * TW / 2, b); c.lineTo(a, b + CH * TH / 2); c.lineTo(a - CH * TW / 2, b); c.fill(); }
       continue;
     }
-    if (!cached) baked++;
+    if (!cached) { baked++; frameBakes++; }
     const cv = groundChunk(ix, iy, q, sk) as (HTMLCanvasElement & { ox: number; oy: number }) | null;
     if (cv) { c.drawImage(cv, cv.ox, cv.oy, cv.width / q, cv.height / q); drawn++; }
   }
@@ -2337,6 +2337,8 @@ const framePool = {
 const FC = 16;
 type FlatChunk = { bm?: ImageBitmap | null; cv: (HTMLCanvasElement & { ox: number; oy: number }) | null; q: number; sk: string; tok: Int32Array; dirty: boolean; full: boolean; baked: number; empty: boolean };
 const flatCache = new Map<number, FlatChunk>();
+/** Bakes (ground or flat chunk) started this frame: one per frame keeps every frame short while panning. */
+let frameBakes = 0;
 const flatKinds = new Map<string, number>();
 const flatSet = new Set<number>();
 function flatTok(x: number, y: number, st: Structure | null): number {
@@ -2391,7 +2393,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     else { flatCache.delete(key); flatCache.set(key, e); }
     // art still loading: bake anyway, but refresh that chunk every 2 s until it is complete
     const stale = e.dirty || e.q !== q || e.sk !== sk || (!e.full && t - e.baked > 2000);
-    if (stale && bakes < 1) { bakes++; renderStats.bakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; e.dirty = false; }
+    if (stale && bakes < 1 && (frameBakes < 1 || !e.cv && !e.empty)) { bakes++; frameBakes++; renderStats.bakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; e.dirty = false; }
     if (e.empty && e.q === q) { flatSet.add(key); continue; }
     if (e.cv && e.q === q && e.sk === sk) { if (!(globalThis as unknown as { __noflat?: boolean }).__noflat) c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
   }
@@ -2482,7 +2484,7 @@ export function draw(
   const tiles = framePool.tiles; let nTiles = 0;
 
   const edges: GroundEdge[] = [];
-  const pt0 = performance.now();
+  const pt0 = performance.now(); frameBakes = 0;
   renderStats.chunks = drawGroundChunks(c, x0, x1, y0, y1, z, cs0x, cs1x, cs0y, cs1y);
   // frayed edges: a few grass tufts and pebbles breaking up the borderline
   if (detail) {
