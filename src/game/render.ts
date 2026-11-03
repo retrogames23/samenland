@@ -22,7 +22,7 @@ import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSp
 import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, type Pose } from "./people";
-import { fig, drawLegged, drawRobeWalk, LEG_RATIO, type FigureConfig } from "./figure";
+import { fig, drawLegged, drawRobeWalk, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow } from "./crafts";
@@ -837,7 +837,7 @@ function folkOf(q: Pose): FolkSprite {
 const HIPS: Partial<Record<FolkSprite, FigureConfig>> = {
   man: fig(0.45, 0.63), farmer: fig(0.28, 0.66), porter: fig(0.47, 0.65), builder: fig(0.45, 0.64),
   woodcutter: fig(0.5, 0.62), mason: fig(0.42, 0.62), elder: fig(0.45, 0.7, { legWidthScale: 1.04 }),
-  robber: fig(0.47, 0.72, { legWidthScale: 1.1, legSpread: 0.02 }), groom: fig(0.56, 0.74, { legWidthScale: 1.06 }),
+  robber: fig(0.47, 0.72, { legWidthScale: 1.06 }), groom: fig(0.56, 0.74, { legWidthScale: 1.06 }),
 };
 const DEFAULT_FIG = fig(0.46, 0.66);
 const MAYOR_LEGS = fig(0.503, 0.58);
@@ -935,7 +935,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       // vest + breeches, not a robe: cut the torso at the belt and step full-length painted legs from the hip
       const legs = folkImage("legsM");
       if (legs) {
-        const f = Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES;
+        const f = gaitFrame(ph);
         drawLegged(c, robe, 0, fw, fh, legs, f, ww, hh, MAYOR_LEGS, bob, 0);
       } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
@@ -945,7 +945,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   }
   const sheet = q.walking ? walkSheet(k) : null;
   const legs = q.walking && !sheet && legsFor(q) ? folkImage("legsM") : null;
-  const frameOf = (fw: number) => { void fw; return Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES; };
+  const frameOf = (fw: number) => { void fw; return gaitFrame(ph); };
   if (sheet) {
     // real painted walk cycle: frame follows the stride phase (one 2π = two steps)
     const fw = sheet.naturalWidth / WALK_FRAMES, f = frameOf(fw);
@@ -955,7 +955,8 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     // modular figure: one hip-registered painted leg cycle shared by all trades, trade torso on top
     // each trade sprite: measured hip x (fraction of width) and tunic hem (fraction of height)
     const g = HIPS[k] ?? DEFAULT_FIG, f = frameOf(legs.naturalWidth / WALK_FRAMES);
-    drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, hgt, g);
+    const yb = walkBob(ph, hgt);
+    drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, hgt, g, yb, yb);
   } else if (skirt) {
     // long skirt: two painted shoes step out under the hem, the hem sways in strips with the stride
     const foot = folkImage("footF"), sw = im.naturalWidth, sh = im.naturalHeight, top = 0.8;
@@ -2131,8 +2132,8 @@ function courtFigures(t: number) {
 /** Court anatomy: legs keep LEG_RATIO height from the hip; the prince wears a floor-length ermine
  * mantle, so he walks like the princess — swaying hem, only boot tips step out (no cut through the fur). */
 const COURT_GAIT: Record<CourtRole, FigureConfig> = {
-  prince: fig(0.5, 0.8, { style: "robe" }), princess: fig(0.5, 0.8, { style: "robe" }),
-  herald: fig(0.465, 0.66), guard: fig(0.48, 0.72, { legWidthScale: 1.12, legSpread: 0.025 }),
+  prince: fig(0.5, 0.56, { style: "mantle" }), princess: fig(0.5, 0.8, { style: "robe" }),
+  herald: fig(0.465, 0.66), guard: fig(0.48, 0.72, { legWidthScale: 1.06 }),
   gardener: fig(0.47, 0.69), groom: fig(0.48, 0.63, { legWidthScale: 1.05 }),
 };
 const courtHeight = (r: CourtRole) => (r === "prince" ? 5.8 : 5.4);
@@ -2154,8 +2155,12 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
 }
 function drawCourtWalk(c: C, im: HTMLImageElement, role: CourtRole, w: number, h: number, ph: number) {
   const g = COURT_GAIT[role], nw = im.naturalWidth, nh = im.naturalHeight;
-  const f = Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES;
-  const bob = Math.abs(Math.sin(ph)) * 0.07;
+  const f = gaitFrame(ph), bob = -walkBob(ph, h);
+  if (g.style === "mantle") {
+    const legs = folkImage("legsM");
+    if (legs) drawMantled(c, im, 0, nw, nh, legs, f, w, h, g, ph, -bob); else c.drawImage(im, -w / 2, -h - bob, w, h);
+    return;
+  }
   if (g.style === "robe") {
     // stately mantle: slower, heavier swing than a skirt
     drawRobeWalk(c, im, 0, nw, nh, folkImage("footF"), w, h, ph, g.hemY, 0.93, -bob, role === "prince" ? 0.025 : 0.035);
@@ -2175,9 +2180,9 @@ function labEntries(): LabEntry[] {
     label: k, h: 5.2, cfg: robe ? fig(0.5, 0.8, { style: "robe" }) : (HIPS[k] ?? DEFAULT_FIG),
     draw: (c, _w, h, ph) => {
       const im = folkImage(k); if (!im) return null;
-      const w = (h * im.naturalWidth) / im.naturalHeight, bob = Math.abs(Math.sin(ph)) * 0.07;
+      const w = (h * im.naturalWidth) / im.naturalHeight, bob = -walkBob(ph, h);
       if (robe) drawRobeWalk(c, im, 0, im.naturalWidth, im.naturalHeight, folkImage("footF"), w, h, ph, 0.8, 0.93, -bob);
-      else { const legs = folkImage("legsM"); const f = Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES;
+      else { const legs = folkImage("legsM"); const f = gaitFrame(ph);
         if (legs) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, h, HIPS[k] ?? DEFAULT_FIG, -bob, -bob); }
       return w;
     },
@@ -2186,10 +2191,10 @@ function labEntries(): LabEntry[] {
     label: `Schulze ${sex} ${age}`, h: 5.3, cfg: sex === "m" ? MAYOR_LEGS : fig(0.5, 0.8, { style: "robe" }),
     draw: (c, _w, h, ph) => {
       const im = folkImage(mayorSheet(sex, age)); if (!im) return null;
-      const fw = im.naturalWidth / WORK_FRAMES, fh = im.naturalHeight, w = (h * fw) / fh, bob = Math.abs(Math.sin(ph)) * 0.07;
-      const legs = folkImage("legsM"), f = Math.floor((((ph / 6.2832) % 1) + 1) % 1 * WALK_FRAMES) % WALK_FRAMES;
+      const fw = im.naturalWidth / WORK_FRAMES, fh = im.naturalHeight, w = (h * fw) / fh, bob = -walkBob(ph, h);
+      const legs = folkImage("legsM"), f = gaitFrame(ph);
       if (sex === "f") drawRobeWalk(c, im, 0, fw, fh, folkImage("footF"), w, h, ph, 0.8, 0.93, -bob);
-      else if (legs) drawLegged(c, im, 0, fw, fh, legs, f, w, h, MAYOR_LEGS, bob, 0);
+      else if (legs) drawLegged(c, im, 0, fw, fh, legs, f, w, h, MAYOR_LEGS, -bob, -bob);
       return w;
     },
   });
@@ -2220,6 +2225,8 @@ export function drawFigureLab(c: C, W: number, H: number, t: number, o: LabOpts)
     if (o.lines && g) {
       const line = (fy: number, col: string) => { c.strokeStyle = col; c.beginPath(); c.moveTo(x - ww * 0.8, y - h + fy * h); c.lineTo(x + ww * 0.8, y - h + fy * h); c.stroke(); };
       line(g.style === "robe" ? 1 - LEG_RATIO : g.hipY, "rgba(220,30,30,0.9)"); line(g.hemY, "rgba(20,160,60,0.9)");
+      // dashed ground line: soles must sit on it in stance, not slide
+      c.setLineDash([4, 3]); line(1, "rgba(40,40,40,0.85)"); c.setLineDash([]);
     }
     c.fillStyle = "#e0007a"; c.beginPath(); c.arc(x, y, 2.5, 0, 7); c.fill();
   });
