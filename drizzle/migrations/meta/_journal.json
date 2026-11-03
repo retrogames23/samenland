@@ -512,6 +512,13 @@
       "when": 1793722563645,
       "tag": "0072_plantings_fruit_kinds",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1793735037030,
+      "tag": "0073_player_survey",
+      "breakpoints": true
     }
   ]
 }

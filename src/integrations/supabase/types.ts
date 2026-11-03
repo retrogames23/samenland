@@ -856,6 +856,36 @@ export type Database = {
           },
         ]
       }
+      survey_answers: {
+        Row: {
+          answers: Json
+          created_at: string
+          lang: string
+          status: string
+          survey: string
+          user_id: string
+          wish: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          lang?: string
+          status: string
+          survey?: string
+          user_id: string
+          wish?: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          lang?: string
+          status?: string
+          survey?: string
+          user_id?: string
+          wish?: string
+        }
+        Relationships: []
+      }
       tax_cutover: {
         Row: {
           at: string
@@ -1014,6 +1044,21 @@ export type Database = {
           last_active_at?: string
           user_id?: string
           warning_sent_at?: string | null
+        }
+        Relationships: []
+      }
+      user_days: {
+        Row: {
+          day: string
+          user_id: string
+        }
+        Insert: {
+          day: string
+          user_id: string
+        }
+        Update: {
+          day?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1213,6 +1258,11 @@ export type Database = {
       send_letter: {
         Args: { _body: string; _from: string; _to: string }
         Returns: string
+      }
+      survey_open: { Args: never; Returns: boolean }
+      survey_submit: {
+        Args: { _answers: Json; _lang: string; _status: string; _wish: string }
+        Returns: boolean
       }
       tax_receipt_start: { Args: never; Returns: string }
       touch_activity: { Args: { _lang?: string }; Returns: undefined }
