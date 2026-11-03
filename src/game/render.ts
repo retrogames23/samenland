@@ -2372,7 +2372,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     if (e.sig === -1) continue; // not inspected yet: live tiles this frame
     if (e.sig === 0) { flatSet.add(key); continue; } // nothing flat here (open country lives in the ground chunks)
     const fresh = e.cv && e.q === q && e.sk === sk;
-    if (!fresh && ready && bakes < 1) { bakes++; e.cv = bakeFlat(ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; }
+    if (!fresh && ready && bakes < 1) { bakes++; renderStats.bakes++; e.cv = bakeFlat(ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; }
     if (e.cv && e.sk === sk) { c.drawImage(e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
   }
   while (flatCache.size > 64) flatCache.delete(flatCache.keys().next().value!);

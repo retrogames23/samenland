@@ -698,7 +698,7 @@ export function Game() {
           const el = perfRef.current;
           if (el) {
             const avg = p.sum / p.n, fps = (p.n * 1000) / (t0 - p.t);
-            el.textContent = `${fps.toFixed(0)} fps · render ${avg.toFixed(1)} ms (max ${p.max.toFixed(1)}) · tiles ${renderStats.tiles} · folk ${renderStats.folk} · chunks ${renderStats.chunks} · zoom ${c.zoom.toFixed(2)} · bake ${renderStats.bakeMs.toFixed(0)}/${renderStats.bakeGround.toFixed(0)}/${renderStats.bakeNature.toFixed(0)} n${renderStats.bakes}`;
+            el.textContent = `${fps.toFixed(0)} fps · render ${avg.toFixed(1)} ms (max ${p.max.toFixed(1)}) · tiles ${renderStats.tiles} · folk ${renderStats.folk} · chunks ${renderStats.chunks} · zoom ${c.zoom.toFixed(2)} · bakes ${renderStats.bakes}`;
             renderStats.bakeMs = 0; renderStats.bakeGround = 0; renderStats.bakeNature = 0;
             el.style.color = avg > 12 ? "#ff6b5a" : avg > 8 ? "#ffd166" : "#9be59b";
           }
