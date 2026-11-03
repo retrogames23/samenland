@@ -20,12 +20,37 @@ export interface FigureConfig {
   legWidthScale: number;
   /** Extra stance gap per leg (fraction of figure height) so legs don't pinch under wide coats. */
   legSpread: number;
-  /** "legs" = breeches on the shared leg cycle; "robe" = floor-length garment, stepping shoes + swaying hem. */
-  style: "legs" | "robe";
+  /** "legs" = breeches on the shared leg cycle; "robe" = floor-length garment, stepping shoes + swaying hem;
+   * "mantle" = cape over the shoulders: lower coat hangs behind the striding legs, swinging as one piece. */
+  style: "legs" | "robe" | "mantle";
 }
 
 export const fig = (hipX: number, hemY: number, o: Partial<FigureConfig> = {}): FigureConfig =>
   ({ hipX, hemY, hipY: 1 - LEG_RATIO, legWidthScale: 1, legSpread: 0, style: "legs", ...o });
+
+/** Hip bounce: body dips at foot contact, rises mid-swing (≈2.5 % of height). Negative = up. */
+export const walkBob = (ph: number, h: number) => -Math.abs(Math.sin(ph)) * h * 0.025;
+
+/** Leg-cycle frame with a non-linear phase: stance advances evenly (sole stays planted), swing catches up faster. */
+export function gaitFrame(ph: number) {
+  const u = (((ph / 6.2832) % 1) + 1) % 1;
+  const w = u - 0.07 * Math.sin(u * 4 * Math.PI); // two steps per cycle: slower in stance, quicker in swing
+  return Math.floor((((w % 1) + 1) % 1) * WALK_FRAMES) % WALK_FRAMES;
+}
+
+/** Cape figure: back of the mantle (below hemY) swings behind, legs stride in front, upper body on top. */
+export function drawMantled(
+  c: C, im: CanvasImageSource, sx: number, sw: number, sh: number, legs: HTMLImageElement, frame: number,
+  w: number, h: number, g: FigureConfig, ph: number, dy = 0,
+) {
+  const end = 0.9, sway = Math.sin(ph) * w * 0.03;
+  // whole lower mantle as one piece, slightly narrowed so it reads as behind the legs
+  c.globalAlpha = 1;
+  c.drawImage(im, sx, sh * g.hemY, sw, sh * (end - g.hemY), -w * g.hipX * 0.96 + sway, -h + h * g.hemY + dy, w * 0.96, h * (end - g.hemY));
+  const fw = legs.naturalWidth / WALK_FRAMES, lh = h * (1 - g.hipY), lw = ((lh * fw) / legs.naturalHeight) * g.legWidthScale;
+  c.drawImage(legs, frame * fw, 0, fw, legs.naturalHeight, -lw / 2, -lh + dy, lw, lh);
+  c.drawImage(im, sx, 0, sw, sh * g.hemY, -w * g.hipX, -h + dy, w, h * g.hemY);
+}
 
 /** Draws legs (frame of the shared cycle) then the torso cut at its hem, in the figure's local frame (feet at 0,0). */
 export function drawLegged(
