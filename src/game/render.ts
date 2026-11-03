@@ -479,11 +479,16 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
           }
           c.stroke();
         }
-        for (let n = 0; n <= posts; n++) {
-          const A = lp(a, b, n / posts), lean = (hash(sd, n, 78) - 0.5) * 0.3;
-          c.strokeStyle = "rgba(40,28,16,0.25)"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(A[0] + 0.6, A[1] + 0.2); c.stroke();
-          c.strokeStyle = "rgba(78,54,32,1)"; c.lineWidth = 0.42; c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(A[0] + lean, A[1] - 1.9); c.stroke();
-          c.strokeStyle = "rgba(170,130,90,0.6)"; c.lineWidth = 0.15; c.beginPath(); c.moveTo(A[0] - 0.12, A[1] - 0.2); c.lineTo(A[0] - 0.12 + lean, A[1] - 1.8); c.stroke();
+        // posts batched per layer: one shadow, one wood and one highlight stroke per fence edge
+        for (const [col, lw, k] of [["rgba(40,28,16,0.25)", 0.5, 0], ["rgba(78,54,32,1)", 0.42, 1], ["rgba(170,130,90,0.6)", 0.15, 2]] as const) {
+          c.strokeStyle = col; c.lineWidth = lw; c.beginPath();
+          for (let n = 0; n <= posts; n++) {
+            const A = lp(a, b, n / posts), lean = (hash(sd, n, 78) - 0.5) * 0.3;
+            if (k === 0) { c.moveTo(A[0], A[1]); c.lineTo(A[0] + 0.6, A[1] + 0.2); }
+            else if (k === 1) { c.moveTo(A[0], A[1]); c.lineTo(A[0] + lean, A[1] - 1.9); }
+            else { c.moveTo(A[0] - 0.12, A[1] - 0.2); c.lineTo(A[0] - 0.12 + lean, A[1] - 1.8); }
+          }
+          c.stroke();
         }
       }
       // with villagers on the tile, sheep and people are resolved and depth-sorted together in pass 2
@@ -553,7 +558,7 @@ export function chaikin(p: Pt[], rounds = 2): Pt[] {
   }
   return a;
 }
-type Ribbon = { path: Path2D; tufts: [number, number, number][] };
+type Ribbon = { path: Path2D; tufts: [number, number, number][]; blades?: Path2D; pebbles?: Path2D };
 // deterministic depth order with hysteresis: near-ties keep last frame's order, exact ties break by id
 const DEPTH_HYST = 0.75;
 const depthWas = new Map<string, number>();
@@ -609,13 +614,16 @@ function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], n
   c.strokeStyle = texture(c, "dirt") ?? "#c49e6c"; c.lineWidth = 4.6; c.stroke(rb.path);
   c.strokeStyle = "rgba(60,45,28,0.10)"; c.lineWidth = 1.4; c.stroke(rb.path); // worn centre line
   c.restore();
-  for (const [x, y, h] of rb.tufts) {
-    if (h < 0.55) {
-      c.strokeStyle = "rgba(78,96,46,0.5)"; c.lineWidth = 0.35; c.beginPath();
-      for (let b = -1; b <= 1; b++) { c.moveTo(x + b * 0.4, y); c.lineTo(x + b * 0.8, y - 1.1 - h * 0.8); }
-      c.stroke();
-    } else { c.fillStyle = "hsla(32,14%,46%,0.5)"; c.beginPath(); c.ellipse(x, y, 0.45, 0.25, 0, 0, 7); c.fill(); }
+  if (!rb.blades) { // verge tufts and pebbles are static: two cached paths, two draw calls per road
+    const bl = new Path2D(), pb = new Path2D();
+    for (const [x, y, h] of rb.tufts) {
+      if (h < 0.55) for (let b = -1; b <= 1; b++) { bl.moveTo(x + b * 0.4, y); bl.lineTo(x + b * 0.8, y - 1.1 - h * 0.8); }
+      else { pb.moveTo(x + 0.45, y); pb.ellipse(x, y, 0.45, 0.25, 0, 0, 7); }
+    }
+    rb.blades = bl; rb.pebbles = pb;
   }
+  c.strokeStyle = "rgba(78,96,46,0.5)"; c.lineWidth = 0.35; c.stroke(rb.blades);
+  c.fillStyle = "hsla(32,14%,46%,0.5)"; c.fill(rb.pebbles!);
 }
 /** Screen-space bounds of a smoothed road (cached per link object). */
 function roadBox(l: { tiles: [number, number][] }): [number, number, number, number] {
