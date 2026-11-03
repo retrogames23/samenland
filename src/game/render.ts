@@ -2331,30 +2331,40 @@ const framePool = {
 
 /** Per-frame counters for the dev diagnostics HUD (mutated in place, no allocation). */
 // ---- flat town dressing (turf, paths, squares, acres) baked per 16x16-tile chunk ----
-// Static between growth steps: a cheap signature of the chunk's structures decides when to re-bake,
-// at most one bake per frame; chunks not baked yet are drawn tile by tile as before (identical look, no waiting).
+// Each baked chunk remembers a token per tile; pass 1c compares the tokens of the tiles it already resolves
+// (no extra structure lookups) and marks a chunk dirty when growth changed it. At most one bake per frame;
+// chunks not baked yet are drawn tile by tile as before (identical look, the frame never waits).
 const FC = 16;
-type FlatChunk = { full?: boolean; baked: number; sig: number; checked: number; cv: (HTMLCanvasElement & { ox: number; oy: number }) | null; q: number; sk: string };
+type FlatChunk = { cv: (HTMLCanvasElement & { ox: number; oy: number }) | null; q: number; sk: string; tok: Int32Array; dirty: boolean; full: boolean; baked: number; empty: boolean };
 const flatCache = new Map<number, FlatChunk>();
 const flatKinds = new Map<string, number>();
 const flatSet = new Set<number>();
-function flatSig(ix: number, iy: number, seeds: Seed[], now: number): number {
-  let h = 17, any = false;
-  for (let y = iy * FC - 1; y <= iy * FC + FC; y++) for (let x = ix * FC - 1; x <= ix * FC + FC; x++) {
-    if (x < 0 || y < 0 || x >= MAP || y >= MAP) continue;
-    const nt = nearTown(x, y), st = nt ? structureAt(x, y, seeds, now) : null;
-    let v = nt ? 1 : 0;
-    if (st) {
-      let k = flatKinds.get(st.kind); if (k === undefined) { k = flatKinds.size + 1; flatKinds.set(st.kind, k); }
-      v += k * 4 + (st.build ? 2 : 0) + (st.kind === "field" && acreOf(x, y, st.seed).ripe ? 1 << 12 : 0) + (st.seed.id.charCodeAt(0) << 14);
-    }
-    if (v) any = true;
-    h = (Math.imul(h, 31) + v) | 0;
-  }
-  return any ? h || 1 : 0;
+function flatTok(x: number, y: number, st: Structure | null): number {
+  const nt = nearTown(x, y);
+  if (!st) return nt ? 1 : 0;
+  let k = flatKinds.get(st.kind); if (k === undefined) { k = flatKinds.size + 1; flatKinds.set(st.kind, k); }
+  return 2 + k * 4 + (nt ? 1 : 0) + (st.build !== undefined ? 1 << 10 : 0) + (st.kind === "field" && acreOf(x, y, st.seed).ripe ? 1 << 11 : 0) + ((st.seed.id.charCodeAt(0) * 31 + st.seed.id.charCodeAt(1)) << 12);
 }
-function bakeFlat(ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number): (HTMLCanvasElement & { ox: number; oy: number }) | null {
+/** Called from pass 1c for every visible tile: flags the tile's baked chunk (and edge neighbours) when its content changed. */
+function flatCheck(x: number, y: number, st: Structure | null) {
+  const ix = (x / FC) | 0, iy = (y / FC) | 0, e = flatCache.get(iy * 4096 + ix);
+  if (!e || !e.cv && !e.empty || e.dirty) return;
+  const i = (y - iy * FC) * FC + (x - ix * FC);
+  if (e.tok[i] === flatTok(x, y, st)) return;
+  e.dirty = true;
+  // paths and acres look at their neighbours: a change on the chunk edge also refreshes the chunk next door
+  for (const [dx, dy] of NB8) { const n = flatCache.get((((y + dy) / FC) | 0) * 4096 + (((x + dx) / FC) | 0)); if (n) n.dirty = true; }
+}
+function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number) {
   const X0 = ix * FC, Y0 = iy * FC, X1 = Math.min(MAP - 1, X0 + FC - 1), Y1 = Math.min(MAP - 1, Y0 + FC - 1);
+  let any = false;
+  const sts: (Structure | null)[] = [];
+  for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) {
+    const st = structureAt(x, y, seeds, now), tk = flatTok(x, y, st);
+    e.tok[(y - Y0) * FC + (x - X0)] = tk; sts[(y - Y0) * FC + (x - X0)] = st; if (tk) any = true;
+  }
+  e.empty = !any; e.cv = null;
+  if (!any) return;
   const left = iso(X0, Y1)[0] - TW * 1.5, right = iso(X1, Y0)[0] + TW * 1.5, top = iso(X0, Y0)[1] - TH - 30, bottom = iso(X1, Y1)[1] + TH + 12;
   const cv = document.createElement("canvas") as HTMLCanvasElement & { ox: number; oy: number };
   cv.width = Math.ceil((right - left) * q); cv.height = Math.ceil((bottom - top) * q);
@@ -2362,28 +2372,25 @@ function bakeFlat(ix: number, iy: number, q: number, seeds: Seed[], now: number,
   g.setTransform(q, 0, 0, q, -left * q, -top * q);
   for (let s = X0 + Y0; s <= X1 + Y1; s++) for (let x = Math.max(X0, s - Y1); x <= Math.min(X1, s - Y0); x++) {
     const y = s - x, [cx, cy] = iso(x, y);
-    flatTile(g, x, y, cx, cy, structureAt(x, y, seeds, now), seeds, now, t);
+    flatTile(g, x, y, cx, cy, sts[(y - Y0) * FC + (x - X0)] ?? null, seeds, now, t);
   }
-  cv.ox = left; cv.oy = top;
-  return cv;
+  cv.ox = left; cv.oy = top; e.cv = cv;
 }
 function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
   flatSet.clear();
   const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(now), ready = allTexturesReady() && natureReady();
-  let bakes = 0, checks = 0;
+  let bakes = 0;
   const cx0 = Math.floor(x0 / FC), cx1 = Math.floor(x1 / FC), cy0 = Math.floor(y0 / FC), cy1 = Math.floor(y1 / FC);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
     const iy = s - ix, key = iy * 4096 + ix;
     let e = flatCache.get(key);
-    if (!e) { e = { sig: -1, checked: -1e9, cv: null, q: 0, sk: "", baked: 0 }; flatCache.set(key, e); }
+    if (!e) { e = { cv: null, q: 0, sk: "", tok: new Int32Array(FC * FC), dirty: true, full: false, baked: -1e9, empty: false }; flatCache.set(key, e); }
     else { flatCache.delete(key); flatCache.set(key, e); }
-    if (t - e.checked > 2000 && checks < 3) { checks++; e.checked = t; const ts0 = performance.now(); const sg = flatSig(ix, iy, seeds, now); renderStats.bakeMs = Math.max(renderStats.bakeMs, performance.now() - ts0); if (sg !== e.sig) { e.sig = sg; e.q = 0; } }
-    if (e.sig === -1) continue; // not inspected yet: live tiles this frame
-    if (e.sig === 0) { flatSet.add(key); continue; } // nothing flat here (open country lives in the ground chunks)
-    // art still loading: bake anyway (never fall back to per-tile work), but refresh that chunk every 2 s until complete
-    const fresh = e.cv && e.q === q && e.sk === sk && (e.full || t - e.baked < 2000);
-    if (!fresh && bakes < 1) { bakes++; renderStats.bakes++; const tb = performance.now(); e.cv = bakeFlat(ix, iy, q, seeds, now, t); renderStats.bakeGround = Math.max(renderStats.bakeGround, performance.now() - tb); e.q = q; e.sk = sk; e.full = ready; e.baked = t; }
-    if (e.cv && e.sk === sk) { c.drawImage(e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
+    // art still loading: bake anyway, but refresh that chunk every 2 s until it is complete
+    const stale = e.dirty || e.q !== q || e.sk !== sk || (!e.full && t - e.baked > 2000);
+    if (stale && bakes < 1) { bakes++; renderStats.bakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; e.dirty = false; }
+    if (e.empty && e.q === q) { flatSet.add(key); continue; }
+    if (e.cv && e.q === q && e.sk === sk) { c.drawImage(e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
   }
   while (flatCache.size > 64) flatCache.delete(flatCache.keys().next().value!);
   return flatSet;
@@ -2516,6 +2523,7 @@ export function draw(
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square")) { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#cdb084"; diamond(c, cx, cy, 0.85); c.fill(); }
         continue;
       }
+      flatCheck(x, y, st);
       if (!flatDone.has(((y / FC) | 0) * 4096 + ((x / FC) | 0))) flatTile(c, x, y, cx, cy, st, seeds, now, t);
     }
   }
