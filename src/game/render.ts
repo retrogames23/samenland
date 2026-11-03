@@ -2494,7 +2494,7 @@ export function draw(
       const y = s - x;
       const [cx, cy] = iso(x, y);
       // diamond culling: the tile rectangle's corners lie off-canvas; tall sprites rise from below, so keep a deep bottom margin
-      if (cx < cs0x - 60 || cx > cs1x + 60 || cy < cs0y - 30 || cy > cs1y + 160) continue;
+      if (cx < cs0x - 44 || cx > cs1x + 44 || cy < cs0y - 20 || cy > cs1y + 96) continue; // margins: widest sprite half-width / tallest sprite height
       const st = structureAt(x, y, seeds, now);
       { const slot = tiles[nTiles] ?? (tiles[nTiles] = { x: 0, y: 0, cx: 0, cy: 0, st: null }); slot.x = x; slot.y = y; slot.cx = cx; slot.cy = cy; slot.st = st; nTiles++; }
       if (!detail) {
