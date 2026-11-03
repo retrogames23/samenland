@@ -1695,7 +1695,7 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
 }
 
 // ---- mid-zoom ground cache: static terrain (+ forests, crags) baked per 32x32-tile chunk ----
-const CH = 32, PAD_TOP = 40;
+const CH = 16, PAD_TOP = 40; // 16 tiles: one bake costs a quarter of the old 32-tile chunk, so panning never stalls on a big raster
 const chunkCache = new Map<string, HTMLCanvasElement>();
 // Tiles a town could ever cover: their trees/rocks are drawn live (and cleared by buildings);
 // everywhere else they are baked into ground chunks — same placement either way, so zoom never changes the scene.
@@ -1967,7 +1967,7 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   (cv as HTMLCanvasElement & { ox?: number; oy?: number }).oy = top;
   if (missing) return cv; // not cached: re-bake once images have loaded
   chunkCache.set(key, cv);
-  while (chunkCache.size > 140) chunkCache.delete(chunkCache.keys().next().value!);
+  while (chunkCache.size > 200) chunkCache.delete(chunkCache.keys().next().value!);
   return cv;
 }
 function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false): number {
