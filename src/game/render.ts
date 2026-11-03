@@ -2185,7 +2185,7 @@ function labEntries(): LabEntry[] {
       const w = (h * im.naturalWidth) / im.naturalHeight, bob = -walkBob(ph, h);
       if (robe) drawRobeWalk(c, im, 0, im.naturalWidth, im.naturalHeight, folkImage("footF"), w, h, ph, 0.8, 0.93, -bob);
       else { const legs = folkImage("legsM"); const f = gaitFrame(ph);
-        if (legs) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, h, HIPS[k] ?? DEFAULT_FIG, -bob, -bob); }
+        if (legs) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, h, HIPS[k] ?? DEFAULT_FIG, -bob, -bob, ph); }
       return w;
     },
   });
@@ -2196,7 +2196,7 @@ function labEntries(): LabEntry[] {
       const fw = im.naturalWidth / WORK_FRAMES, fh = im.naturalHeight, w = (h * fw) / fh, bob = -walkBob(ph, h);
       const legs = folkImage("legsM"), f = gaitFrame(ph);
       if (sex === "f") drawRobeWalk(c, im, 0, fw, fh, folkImage("footF"), w, h, ph, 0.8, 0.93, -bob);
-      else if (legs) drawLegged(c, im, 0, fw, fh, legs, f, w, h, MAYOR_LEGS, -bob, -bob);
+      else if (legs) drawLegged(c, im, 0, fw, fh, legs, f, w, h, MAYOR_LEGS, -bob, -bob, ph);
       return w;
     },
   });
