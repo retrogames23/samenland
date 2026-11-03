@@ -2720,8 +2720,8 @@ export function draw(
       for (const sh of flock) items.push({ x: cx + sh.m.dx, y: cy + sh.m.dy, r: FOOT.sheep, give: 0.15, sh });
       separate(items);
       sortDepth(items, (it) => (it.q ? `p${it.q.p.id}` : `s${it.sh!.k}`));
-      if (folkCtx !== c) { folkCtx = c; folkM = c.getTransform(); } else if (folkFrame !== t) folkM = c.getTransform();
-      folkFrame = t;
+      if (folkFrame !== t || !folkM) { folkM = c.getTransform(); folkFrame = t; }
+      folkCtx = c;
       for (const it of items) {
         if (it.sh) { const m = it.sh.m; drawSheep(c, it.x, it.y, m.flip, t + it.sh.k * 1700, m.walking, m.graze, m.sleeping); continue; }
         const q = it.q!, px = it.x, py = it.y;
@@ -2753,6 +2753,7 @@ export function draw(
           c.fillStyle = "#f6ecd6"; c.fillText(q.p.first, px, py - 7.3);
         }
       }
+      folkCtx = null;
     }
     if (hover && hover[0] === x && hover[1] === y) {
       c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
