@@ -54,6 +54,7 @@ import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso } from "@/game/
 import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT } from "@/game/lang/support";
+import { Survey } from "@/components/Survey";
 import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
 import { princelyClaims, favourOf, openTaskOf, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
@@ -2434,6 +2435,7 @@ export function Game() {
           </div>
         </Panel>
       </div>
+      <Survey userId={userId} lang={lang} />
 
       {plantAsk && (() => {
         const [px, py] = plantAsk;
