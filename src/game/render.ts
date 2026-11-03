@@ -2787,7 +2787,7 @@ export function draw(
     let goal: [number, number] = [hx + 0.5, hy + 2.5];
     for (const [ox, oy] of [[0, 2], [1, 2], [2, 1], [-1, 2], [2, 2], [0, 3], [3, 1], [1, 3], [-2, 2], [3, 3]] as const) {
       const st = structureAt(hx + ox, hy + oy, seeds, now);
-      if (!isWater(hx + ox, hy + oy) && (!st || PATHLIKE.has(st.kind))) { goal = [hx + ox, hy + oy]; break; }
+      if (!isWater(terrain(hx + ox, hy + oy)) && (!st || PATHLIKE.has(st.kind))) { goal = [hx + ox, hy + oy]; break; }
     }
     const path = heraldPath(sd, seeds, goal);
     const P = v.phase === "leave" ? [...path].reverse() : path;
