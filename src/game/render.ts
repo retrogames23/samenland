@@ -182,8 +182,10 @@ function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking
   const ph = walking ? t / 360 : 0, f0 = Math.floor(ph) & 3, mix = ph - Math.floor(ph);
   const bob = sleeping ? 0 : walking ? Math.abs(Math.sin(ph * Math.PI)) * 0.18 : Math.sin(t / 2600) * 0.12;
   c.fillStyle = "rgba(30,36,22,0.32)"; c.beginPath(); c.ellipse(x, y, 2.4, 0.8, 0, 0, 7); c.fill();
-  c.save(); c.translate(x, y - bob); if (flip) c.scale(-1, 1);
-  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  // zero-save: absolute matrix (world × translate × mirror), reset to the world matrix afterwards
+  const B = c.getTransform(), fs = flip ? -1 : 1, ga = c.globalAlpha;
+  c.setTransform(B.a * fs, B.b * fs, B.c, B.d, B.a * x + B.c * (y - bob) + B.e, B.b * x + B.d * (y - bob) + B.f);
+  if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
   if (sheet) {
     const fw = sheet.naturalWidth / 4, fh = sheet.naturalHeight, ww = w * 1.1, h = (ww * fh) / fw;
     c.drawImage(sheet, f0 * fw, 0, fw, fh, -ww / 2, -h, ww, h);
@@ -192,7 +194,7 @@ function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking
     const h = (w * im.naturalHeight) / im.naturalWidth;
     c.drawImage(im, -w / 2, -h * 0.95, w, h);
   }
-  c.restore();
+  c.globalAlpha = ga; c.setTransform(B);
 }
 
 const roofHue = (s: Structure, slate = false) => slate ? [215, 12, 46] : [12 + s.v * 18 + (s.seed.hue % 20) - 10, 48, 50];
@@ -424,6 +426,8 @@ function huntFigures(lx: number, ly: number, out: Bucket, c: C, L?: Light[]) {
     c.strokeStyle = "rgba(60,40,22,0.9)"; c.lineWidth = 0.18; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx - dir * 1.1, by); c.stroke();
   });
 }
+/** Static pasture fence paths per tile (rails, post shadow, post, post highlight). */
+const fenceCache = new Map<number, Path2D[]>();
 /** Visual house style from the town terrain character; plains keep the classic art. */
 const houseStyle = (s: Structure): HouseStyle | undefined => { const m = townCharacter(s.seed).main; return m === "grain" ? undefined : m; };
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
@@ -466,25 +470,35 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
         [0, 1, p(-0.5, 0.5), p(0.5, 0.5), p(-0.5, 0.5, 1.6), p(0.5, 0.5, 1.6)],
         [1, 0, p(0.5, -0.5), p(0.5, 0.5), p(0.5, -0.5, 1.6), p(0.5, 0.5, 1.6)],
       ];
-      for (const [i, j, a, b] of edges) {
-        if (isPas(i, j)) continue;
-        const posts = 3;
-        c.lineCap = "round";
-        for (const hgt of [0.8, 1.5]) {
-          c.strokeStyle = "rgba(92,64,38,0.9)"; c.lineWidth = 0.32; c.beginPath();
-          for (let n = 0; n < posts; n++) {
-            const f0 = n / posts, f1 = (n + 1) / posts, sag = 0.12 + hash(sd, n, 77) * 0.12;
-            const A = lp(a, b, f0), B = lp(a, b, f1), M = lp(a, b, (f0 + f1) / 2);
-            c.moveTo(A[0], A[1] - hgt); c.quadraticCurveTo(M[0], M[1] - hgt + sag, B[0], B[1] - hgt);
+      // fence geometry is static: built once per tile + open-edge mask as Path2D, then four strokes per tile
+      const mask = (isPas(0, 1) ? 0 : 1) | (isPas(1, 0) ? 0 : 2);
+      if (mask) {
+        const fkey = (y * MAP + x) * 4 + mask;
+        let fp = fenceCache.get(fkey);
+        if (!fp) {
+          fp = [new Path2D(), new Path2D(), new Path2D(), new Path2D()];
+          for (const [ei, [, , a, b]] of edges.entries()) {
+            if (!(mask & (1 << ei))) continue;
+            const posts = 3;
+            for (const hgt of [0.8, 1.5]) for (let n = 0; n < posts; n++) {
+              const f0 = n / posts, f1 = (n + 1) / posts, sag = 0.12 + hash(sd, n, 77) * 0.12;
+              const A = lp(a, b, f0), B = lp(a, b, f1), M = lp(a, b, (f0 + f1) / 2);
+              fp[0]!.moveTo(A[0], A[1] - hgt); fp[0]!.quadraticCurveTo(M[0], M[1] - hgt + sag, B[0], B[1] - hgt);
+            }
+            for (let n = 0; n <= posts; n++) {
+              const A = lp(a, b, n / posts), lean = (hash(sd, n, 78) - 0.5) * 0.3;
+              fp[1]!.moveTo(A[0], A[1]); fp[1]!.lineTo(A[0] + 0.6, A[1] + 0.2);
+              fp[2]!.moveTo(A[0], A[1]); fp[2]!.lineTo(A[0] + lean, A[1] - 1.9);
+              fp[3]!.moveTo(A[0] - 0.12, A[1] - 0.2); fp[3]!.lineTo(A[0] - 0.12 + lean, A[1] - 1.8);
+            }
           }
-          c.stroke();
+          fenceCache.set(fkey, fp); if (fenceCache.size > 3000) fenceCache.clear();
         }
-        for (let n = 0; n <= posts; n++) {
-          const A = lp(a, b, n / posts), lean = (hash(sd, n, 78) - 0.5) * 0.3;
-          c.strokeStyle = "rgba(40,28,16,0.25)"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(A[0] + 0.6, A[1] + 0.2); c.stroke();
-          c.strokeStyle = "rgba(78,54,32,1)"; c.lineWidth = 0.42; c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(A[0] + lean, A[1] - 1.9); c.stroke();
-          c.strokeStyle = "rgba(170,130,90,0.6)"; c.lineWidth = 0.15; c.beginPath(); c.moveTo(A[0] - 0.12, A[1] - 0.2); c.lineTo(A[0] - 0.12 + lean, A[1] - 1.8); c.stroke();
-        }
+        c.lineCap = "round";
+        c.strokeStyle = "rgba(92,64,38,0.9)"; c.lineWidth = 0.32; c.stroke(fp[0]!);
+        c.strokeStyle = "rgba(40,28,16,0.25)"; c.lineWidth = 0.5; c.stroke(fp[1]!);
+        c.strokeStyle = "rgba(78,54,32,1)"; c.lineWidth = 0.42; c.stroke(fp[2]!);
+        c.strokeStyle = "rgba(170,130,90,0.6)"; c.lineWidth = 0.15; c.stroke(fp[3]!);
       }
       // with villagers on the tile, sheep and people are resolved and depth-sorted together in pass 2
       if (v > 0.35 && !sharedPasture.has(sd)) {
@@ -553,7 +567,7 @@ export function chaikin(p: Pt[], rounds = 2): Pt[] {
   }
   return a;
 }
-type Ribbon = { path: Path2D; tufts: [number, number, number][] };
+type Ribbon = { path: Path2D; tufts: [number, number, number][]; blades?: Path2D; pebbles?: Path2D };
 // deterministic depth order with hysteresis: near-ties keep last frame's order, exact ties break by id
 const DEPTH_HYST = 0.75;
 const depthWas = new Map<string, number>();
@@ -609,13 +623,16 @@ function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], n
   c.strokeStyle = texture(c, "dirt") ?? "#c49e6c"; c.lineWidth = 4.6; c.stroke(rb.path);
   c.strokeStyle = "rgba(60,45,28,0.10)"; c.lineWidth = 1.4; c.stroke(rb.path); // worn centre line
   c.restore();
-  for (const [x, y, h] of rb.tufts) {
-    if (h < 0.55) {
-      c.strokeStyle = "rgba(78,96,46,0.5)"; c.lineWidth = 0.35; c.beginPath();
-      for (let b = -1; b <= 1; b++) { c.moveTo(x + b * 0.4, y); c.lineTo(x + b * 0.8, y - 1.1 - h * 0.8); }
-      c.stroke();
-    } else { c.fillStyle = "hsla(32,14%,46%,0.5)"; c.beginPath(); c.ellipse(x, y, 0.45, 0.25, 0, 0, 7); c.fill(); }
+  if (!rb.blades) { // verge tufts and pebbles are static: two cached paths, two draw calls per road
+    const bl = new Path2D(), pb = new Path2D();
+    for (const [x, y, h] of rb.tufts) {
+      if (h < 0.55) for (let b = -1; b <= 1; b++) { bl.moveTo(x + b * 0.4, y); bl.lineTo(x + b * 0.8, y - 1.1 - h * 0.8); }
+      else { pb.moveTo(x + 0.45, y); pb.ellipse(x, y, 0.45, 0.25, 0, 0, 7); }
+    }
+    rb.blades = bl; rb.pebbles = pb;
   }
+  c.strokeStyle = "rgba(78,96,46,0.5)"; c.lineWidth = 0.35; c.stroke(rb.blades);
+  c.fillStyle = "hsla(32,14%,46%,0.5)"; c.fill(rb.pebbles!);
 }
 /** Screen-space bounds of a smoothed road (cached per link object). */
 function roadBox(l: { tiles: [number, number][] }): [number, number, number, number] {
@@ -843,6 +860,8 @@ function insignia(c: C, q: Pose, hgt: number) {
       if (cloth) { const ch2 = h * 0.38, cw = (ch2 * cloth.width) / cloth.height; c.drawImage(cloth, hgt * 0.32, -h * 0.95, cw, ch2); } }
   }
 }
+/** World matrix of the main canvas while villagers are drawn: lets drawFolk place sprites without save()/getTransform(). */
+let folkCtx: C | null = null, folkM: DOMMatrix | null = null, folkFrame = -1;
 function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const k = folkOf(q), im = folkImage(k); if (!im) return null;
   const kid = k === "child", hgt = kid ? 3.2 + q.p.age * 0.08 : 5.2;
@@ -857,14 +876,15 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   // whole-sprite rocking looked like see-sawing; only painted frame cycles animate work now
   void TOOL_WORK; void tilt;
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
-  c.save(); c.translate(X, Y - bob); if (face < 0) c.scale(-1, 1); c.rotate(tilt);
-  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  // zero-save placement: one absolute matrix (world × translate × mirror) instead of save/translate/scale/rotate/restore
+  const B = c === folkCtx ? folkM! : c.getTransform(), fs = face < 0 ? -1 : 1;
+  c.setTransform(B.a * fs, B.b * fs, B.c, B.d, B.a * X + B.c * (Y - bob) + B.e, B.b * X + B.d * (Y - bob) + B.f);
+  if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
   const jw = q.working && !q.carry && !kid ? JOB_WORK[q.p.job] : undefined;
   const fishing = q.p.job !== "fisher" || fishingNow(localHour(), isSunday(renderNow), seasonAt(renderNow).winter);
   const mow = q.working ? (workSheet(k) ?? (jw && fishing ? folkImage(q.p.job === "mayor" ? mayorSheet(q.p.sex, q.p.age) : q.p.sex === "f" ? jw.f : jw.m) : null)) : null;
   if (mow) {
     // painted work cycle; neighbouring frames cross-fade so the motion flows instead of flipping
-    c.rotate(-tilt);
     const per = jw?.per ?? 2400, u = (((t + hash(q.p.id, 31, 9) * per) % per) / per) * WORK_FRAMES, f = Math.floor(u) % WORK_FRAMES, mix = u - Math.floor(u);
     const fw = mow.naturalWidth / WORK_FRAMES, fh = mow.naturalHeight, hh = hgt * (jw?.scale ?? (k === "farmer" ? 1.3 : 1.15)), ww = (hh * fw) / fh;
     const ease = mix * mix * (3 - 2 * mix);
@@ -880,7 +900,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       if (sp && a > 0.02) { const sh = 2.4, sw = (sh * sp.naturalWidth) / sp.naturalHeight; c.globalCompositeOperation = "lighter"; c.globalAlpha = a; c.drawImage(sp, 2.6 - sw / 2, -2.4 - sh * 0.75, sw, sh); c.globalAlpha = 1; c.globalCompositeOperation = "source-over"; }
     }
     insignia(c, q, hgt);
-    c.restore();
+    c.setTransform(B);
     return [X, Y - hgt];
   }
   // the mayor keeps his robe of office (first frame of his talk cycle) when standing and walking,
@@ -916,7 +936,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     insignia(c, q, hgt);
-    c.restore();
+    c.setTransform(B);
     return [X, Y - hgt - bob];
   }
   const sheet = q.walking ? walkSheet(k) : null;
@@ -963,7 +983,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     c.drawImage(im, -w / 2, -hgt, w, hgt);
   }
   insignia(c, q, hgt);
-  c.restore();
+  c.setTransform(B);
   return [X, Y - hgt - bob];
 }
 function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
@@ -1675,7 +1695,7 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
 }
 
 // ---- mid-zoom ground cache: static terrain (+ forests, crags) baked per 32x32-tile chunk ----
-const CH = 32, PAD_TOP = 40;
+const CH = 16, PAD_TOP = 40; // 16 tiles: one bake costs a quarter of the old 32-tile chunk, so panning never stalls on a big raster
 const chunkCache = new Map<string, HTMLCanvasElement>();
 // Tiles a town could ever cover: their trees/rocks are drawn live (and cleared by buildings);
 // everywhere else they are baked into ground chunks — same placement either way, so zoom never changes the scene.
@@ -1895,7 +1915,7 @@ function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Struct
   if (sp) c.drawImage(sp, cx - AGRI_W / 2, cy - AGRI_UP, AGRI_W, AGRI_H);
 }
 /** Wild trees, bushes, crags and ore rocks of one tile — the single source for every zoom level. */
-function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean) {
+function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean, turf = true) {
   if (inCourt(x, y)) return; // the estate keeps open lawns
   const tr = terrain(x, y);
   if (tr === "hill" || tr === "mountain") {
@@ -1905,7 +1925,7 @@ function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number,
     }
   }
   if (!free) return;
-  wildTurf(g, x, y, cx, cy, tr);
+  if (turf) wildTurf(g, x, y, cx, cy, tr);
   if (tr === "mountain" && hash(x, y, 26) > 0.55) drawNature(g, "crag", cx + (hash(x, y, 28) - 0.5) * 6, cy + 4, 0.55 + hash(x, y, 27) * 0.5, 0, hash(x, y, 29) > 0.5);
   if (tr === "forest") {
     if (hash(x, y, 19) > 0.35) tree(g, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6);
@@ -1944,7 +1964,7 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   (cv as HTMLCanvasElement & { ox?: number; oy?: number }).oy = top;
   if (missing) return cv; // not cached: re-bake once images have loaded
   chunkCache.set(key, cv);
-  while (chunkCache.size > 140) chunkCache.delete(chunkCache.keys().next().value!);
+  while (chunkCache.size > 200) chunkCache.delete(chunkCache.keys().next().value!);
   return cv;
 }
 function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false): number {
@@ -1956,7 +1976,7 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
     const X0 = ix * CH, Y0 = iy * CH, X1 = X0 + CH - 1, Y1 = Y0 + CH - 1;
     if (iso(X1, Y0)[0] + TW < vx0 || iso(X0, Y1)[0] - TW > vx1 || iso(X1, Y1)[1] + TH < vy0 || iso(X0, Y0)[1] - TH - PAD_TOP > vy1) continue;
     const cached = chunkCache.has(`${ix},${iy},${q},${sk}`);
-    if (!cached && baked >= 1) { // spread baking over frames; fall back to another cached quality if any
+    if (!cached && (baked >= 1 || frameBakes >= 1)) { // spread baking over frames; fall back to another cached quality if any
       const oq = [2, 1, 0.5].find((o) => o !== q && chunkCache.has(`${ix},${iy},${o},${sk}`));
       const lo = oq ? chunkCache.get(`${ix},${iy},${oq},${sk}`) as (HTMLCanvasElement & { ox: number; oy: number }) : undefined;
       if (lo && oq) c.drawImage(lo, lo.ox, lo.oy, lo.width / oq, lo.height / oq);
@@ -1964,7 +1984,7 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
       else { const [a, b] = iso(X0 + CH / 2, Y0 + CH / 2); c.fillStyle = "#7a8a50"; c.beginPath(); c.moveTo(a, b - CH * TH / 2); c.lineTo(a + CH * TW / 2, b); c.lineTo(a, b + CH * TH / 2); c.lineTo(a - CH * TW / 2, b); c.fill(); }
       continue;
     }
-    if (!cached) baked++;
+    if (!cached) { baked++; frameBakes++; }
     const cv = groundChunk(ix, iy, q, sk) as (HTMLCanvasElement & { ox: number; oy: number }) | null;
     if (cv) { c.drawImage(cv, cv.ox, cv.oy, cv.width / q, cv.height / q); drawn++; }
   }
@@ -2307,6 +2327,130 @@ const framePool = {
 };
 
 /** Per-frame counters for the dev diagnostics HUD (mutated in place, no allocation). */
+// ---- flat town dressing (turf, paths, squares, acres) baked per 16x16-tile chunk ----
+// Each baked chunk remembers a token per tile; pass 1c compares the tokens of the tiles it already resolves
+// (no extra structure lookups) and marks a chunk dirty when growth changed it. At most one bake per frame;
+// chunks not baked yet are drawn tile by tile as before (identical look, the frame never waits).
+const FC = 16;
+type FlatChunk = { bm?: ImageBitmap | null; cv: (HTMLCanvasElement & { ox: number; oy: number }) | null; q: number; sk: string; tok: Int32Array; dirty: boolean; full: boolean; baked: number; empty: boolean };
+const flatCache = new Map<number, FlatChunk>();
+/** Bakes (ground or flat chunk) started this frame: one per frame keeps every frame short while panning. */
+let frameBakes = 0;
+const flatKinds = new Map<string, number>();
+const flatSet = new Set<number>();
+function flatTok(x: number, y: number, st: Structure | null): number {
+  const nt = nearTown(x, y);
+  if (!st) return nt ? 1 : 0;
+  let k = flatKinds.get(st.kind); if (k === undefined) { k = flatKinds.size + 1; flatKinds.set(st.kind, k); }
+  return 2 + k * 4 + (nt ? 1 : 0) + (st.build !== undefined ? 1 << 10 : 0) + (st.kind === "field" && acreOf(x, y, st.seed).ripe ? 1 << 11 : 0) + ((st.seed.id.charCodeAt(0) * 31 + st.seed.id.charCodeAt(1)) << 12);
+}
+/** Called from pass 1c for every visible tile: flags the tile's baked chunk (and edge neighbours) when its content changed. */
+function flatCheck(x: number, y: number, st: Structure | null) {
+  const ix = (x / FC) | 0, iy = (y / FC) | 0, e = flatCache.get(iy * 4096 + ix);
+  if (!e || !e.cv && !e.empty || e.dirty) return;
+  const i = (y - iy * FC) * FC + (x - ix * FC);
+  if (e.tok[i] === flatTok(x, y, st)) return;
+  e.dirty = true;
+  // paths and acres look at their neighbours: a change on the chunk edge also refreshes the chunk next door
+  for (const [dx, dy] of NB8) { const n = flatCache.get((((y + dy) / FC) | 0) * 4096 + (((x + dx) / FC) | 0)); if (n) n.dirty = true; }
+}
+function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number) {
+  const X0 = ix * FC, Y0 = iy * FC, X1 = Math.min(MAP - 1, X0 + FC - 1), Y1 = Math.min(MAP - 1, Y0 + FC - 1);
+  let any = false;
+  const sts: (Structure | null)[] = [];
+  for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) {
+    const st = structureAt(x, y, seeds, now), tk = flatTok(x, y, st);
+    e.tok[(y - Y0) * FC + (x - X0)] = tk; sts[(y - Y0) * FC + (x - X0)] = st; if (tk) any = true;
+  }
+  e.empty = !any; e.cv = null;
+  if (!any) return;
+  const left = iso(X0, Y1)[0] - TW * 1.5, right = iso(X1, Y0)[0] + TW * 1.5, top = iso(X0, Y0)[1] - TH - 30, bottom = iso(X1, Y1)[1] + TH + 12;
+  const cv = document.createElement("canvas") as HTMLCanvasElement & { ox: number; oy: number };
+  cv.width = Math.ceil((right - left) * q); cv.height = Math.ceil((bottom - top) * q);
+  const g = cv.getContext("2d")!;
+  g.setTransform(q, 0, 0, q, -left * q, -top * q);
+  for (let s = X0 + Y0; s <= X1 + Y1; s++) for (let x = Math.max(X0, s - Y1); x <= Math.min(X1, s - Y0); x++) {
+    const y = s - x, [cx, cy] = iso(x, y);
+    flatTile(g, x, y, cx, cy, sts[(y - Y0) * FC + (x - X0)] ?? null, seeds, now, t);
+  }
+  cv.ox = left; cv.oy = top; e.cv = cv; e.bm?.close(); e.bm = null;
+  // snapshot into an immutable bitmap: blitting it is a plain texture copy, not a replay of the recorded sprite draws
+  if (typeof createImageBitmap === "function") void createImageBitmap(cv).then((bm) => { if (e.cv === cv) e.bm = bm; else bm.close(); }, () => {});
+}
+function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
+  flatSet.clear();
+  const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(now), ready = allTexturesReady() && natureReady();
+  let bakes = 0;
+  const cx0 = Math.floor(x0 / FC), cx1 = Math.floor(x1 / FC), cy0 = Math.floor(y0 / FC), cy1 = Math.floor(y1 / FC);
+  for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
+    const iy = s - ix, key = iy * 4096 + ix;
+    let e = flatCache.get(key);
+    if (!e) { e = { cv: null, q: 0, sk: "", tok: new Int32Array(FC * FC), dirty: true, full: false, baked: -1e9, empty: false }; flatCache.set(key, e); }
+    else { flatCache.delete(key); flatCache.set(key, e); }
+    // art still loading: bake anyway, but refresh that chunk every 2 s until it is complete
+    const stale = e.dirty || e.q !== q || e.sk !== sk || (!e.full && t - e.baked > 2000);
+    if (stale && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; e.dirty = false; }
+    if (e.empty && e.q === q) { flatSet.add(key); continue; }
+    if (e.cv && e.q === q && e.sk === sk) { c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
+  }
+  while (flatCache.size > 64) flatCache.delete(flatCache.keys().next().value!);
+  return flatSet;
+}
+/** Flat ground dressing of one tile (turf, ore rocks, paths, squares, acres) — drawn live or baked into a flat chunk. */
+function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number) {
+    const live = nearTown(x, y);
+    if (live) natureAt(c, x, y, cx, cy, t, false); // ore rocks
+
+    if (!st) { if (live && !inCourt(x, y)) wildTurf(c, x, y, cx, cy, terrain(x, y)); return; }
+    const sd = x * 1000 + y;
+    const pp = P(cx, cy);
+    if (st.kind === "bridge") {
+      /* drawn as one continuous span per crossing (see drawBridgeSpan) */
+    } else if (st.kind === "road") {
+      /* drawn as one continuous ribbon per trade road (see drawRoadRibbon) */
+    } else if (st.kind === "path" || st.kind === "street" || st.kind === "avenue" || st.kind === "rail") {
+      const street = st.kind === "street" || st.kind === "avenue";
+      const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
+      const wBase = street ? 7 : 4.6;
+      const isP = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && PATHLIKE.has(o.kind); };
+      // Connect orthogonal neighbours; a diagonal only when no orthogonal step already links them,
+      // so adjacent path tiles never form a lattice of crossing strokes.
+      const con: [number, number][] = [];
+      for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) if (isP(i, j)) con.push([i, j]);
+      for (const [i, j] of [[1, 1], [-1, -1], [1, -1], [-1, 1]] as [number, number][]) if (isP(i, j) && !isP(i, 0) && !isP(0, j)) con.push([i, j]);
+      c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = col;
+      for (const [i, j] of con) {
+        const m = pp(i * 0.5, j * 0.5);
+        c.lineWidth = wBase * (0.92 + hash(x + i, y + j, 300) * 0.16);
+        c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke();
+      }
+      if (con.length === 1) {
+        // dead end: the track tapers out into the grass instead of stopping abruptly
+        const [i, j] = con[0]!; const e = pp(-i * 0.3, -j * 0.3);
+        c.globalAlpha = 0.6; c.lineWidth = wBase * 0.55; c.beginPath(); c.moveTo(cx, cy); c.lineTo(e[0], e[1]); c.stroke(); c.globalAlpha = 1;
+      } else {
+        c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, wBase * 0.5, wBase * 0.32, 0, 0, 7); c.fill();
+      }
+      if (!street && hash(x, y, 34) > 0.6) { c.fillStyle = "rgba(60,45,28,0.12)"; c.beginPath(); c.ellipse(cx + (hash(x, y, 33) - 0.5) * 3, cy, 1.3, 0.5, 0, 0, 7); c.fill(); }
+    } else if (st.kind === "square" || st.kind === "market" || st.kind === "well") {
+      // paving frays into the grass: trodden earth halo, fading rim, solid core, loose setts beyond the edge
+      const rx = TW * (0.56 + hash(x, y, 71) * 0.1), ry = TH * (0.56 + hash(x, y, 72) * 0.1);
+      const cob = texture(c, "cobble") ?? "#d3cab6";
+      c.globalAlpha = 0.35; c.fillStyle = texture(c, "dirt") ?? "#c49e6c";
+      c.beginPath(); c.ellipse(cx, cy, rx * 1.12, ry * 1.12, 0, 0, 7); c.fill();
+      c.fillStyle = cob;
+      c.globalAlpha = 0.45; c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, 7); c.fill();
+      c.globalAlpha = 1; c.beginPath(); c.ellipse(cx, cy, rx * 0.84, ry * 0.84, 0, 0, 7); c.fill();
+      for (let n = 0; n < 5; n++) {
+        const a = hash(x, y, 80 + n) * 6.283, d = 0.95 + hash(x, y, 90 + n) * 0.25;
+        c.globalAlpha = 0.7; c.beginPath(); c.ellipse(cx + Math.cos(a) * rx * d, cy + Math.sin(a) * ry * d, 0.9, 0.5, 0, 0, 7); c.fill();
+      }
+      c.globalAlpha = 1;
+    } else if (st.kind === "field" || st.kind === "garden" || st.kind === "pasture") {
+      drawAgri(c, x, y, cx, cy, st, seeds, now);
+    }
+}
+
 export const renderStats = { tiles: 0, folk: 0, chunks: 0 };
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
@@ -2336,6 +2480,7 @@ export function draw(
   const tiles = framePool.tiles; let nTiles = 0;
 
   const edges: GroundEdge[] = [];
+  frameBakes = 0;
   renderStats.chunks = drawGroundChunks(c, x0, x1, y0, y1, z, cs0x, cs1x, cs0y, cs1y);
   // frayed edges: a few grass tufts and pebbles breaking up the borderline
   if (detail) {
@@ -2362,12 +2507,13 @@ export function draw(
   }
 
   // ---- pass 1c: flat things on the ground ----
+  const flatDone = drawFlatChunks(c, x0, x1, y0, y1, z, seeds, now, t);
   for (let s = x0 + y0; s <= x1 + y1; s++) {
     for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
       const y = s - x;
       const [cx, cy] = iso(x, y);
       // diamond culling: the tile rectangle's corners lie off-canvas; tall sprites rise from below, so keep a deep bottom margin
-      if (cx < cs0x - 60 || cx > cs1x + 60 || cy < cs0y - 30 || cy > cs1y + 160) continue;
+      if (cx < cs0x - 44 || cx > cs1x + 44 || cy < cs0y - 20 || cy > cs1y + 96) continue; // margins: widest sprite half-width / tallest sprite height
       const st = structureAt(x, y, seeds, now);
       { const slot = tiles[nTiles] ?? (tiles[nTiles] = { x: 0, y: 0, cx: 0, cy: 0, st: null }); slot.x = x; slot.y = y; slot.cx = cx; slot.cy = cy; slot.st = st; nTiles++; }
       if (!detail) {
@@ -2376,57 +2522,8 @@ export function draw(
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square")) { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#cdb084"; diamond(c, cx, cy, 0.85); c.fill(); }
         continue;
       }
-      const live = sharp || nearTown(x, y);
-      if (live) natureAt(c, x, y, cx, cy, t, false); // ore rocks
-
-      if (!st) { if (live && !inCourt(x, y)) wildTurf(c, x, y, cx, cy, terrain(x, y)); continue; }
-      const sd = x * 1000 + y;
-      const pp = P(cx, cy);
-      if (st.kind === "bridge") {
-        /* drawn as one continuous span per crossing (see drawBridgeSpan) */
-      } else if (st.kind === "road") {
-        /* drawn as one continuous ribbon per trade road (see drawRoadRibbon) */
-      } else if (st.kind === "path" || st.kind === "street" || st.kind === "avenue" || st.kind === "rail") {
-        const street = st.kind === "street" || st.kind === "avenue";
-        const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
-        const wBase = street ? 7 : 4.6;
-        const isP = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && PATHLIKE.has(o.kind); };
-        // Connect orthogonal neighbours; a diagonal only when no orthogonal step already links them,
-        // so adjacent path tiles never form a lattice of crossing strokes.
-        const con: [number, number][] = [];
-        for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) if (isP(i, j)) con.push([i, j]);
-        for (const [i, j] of [[1, 1], [-1, -1], [1, -1], [-1, 1]] as [number, number][]) if (isP(i, j) && !isP(i, 0) && !isP(0, j)) con.push([i, j]);
-        c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = col;
-        for (const [i, j] of con) {
-          const m = pp(i * 0.5, j * 0.5);
-          c.lineWidth = wBase * (0.92 + hash(x + i, y + j, 300) * 0.16);
-          c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke();
-        }
-        if (con.length === 1) {
-          // dead end: the track tapers out into the grass instead of stopping abruptly
-          const [i, j] = con[0]!; const e = pp(-i * 0.3, -j * 0.3);
-          c.globalAlpha = 0.6; c.lineWidth = wBase * 0.55; c.beginPath(); c.moveTo(cx, cy); c.lineTo(e[0], e[1]); c.stroke(); c.globalAlpha = 1;
-        } else {
-          c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, wBase * 0.5, wBase * 0.32, 0, 0, 7); c.fill();
-        }
-        if (!street && hash(x, y, 34) > 0.6) { c.fillStyle = "rgba(60,45,28,0.12)"; c.beginPath(); c.ellipse(cx + (hash(x, y, 33) - 0.5) * 3, cy, 1.3, 0.5, 0, 0, 7); c.fill(); }
-      } else if (st.kind === "square" || st.kind === "market" || st.kind === "well") {
-        // paving frays into the grass: trodden earth halo, fading rim, solid core, loose setts beyond the edge
-        const rx = TW * (0.56 + hash(x, y, 71) * 0.1), ry = TH * (0.56 + hash(x, y, 72) * 0.1);
-        const cob = texture(c, "cobble") ?? "#d3cab6";
-        c.globalAlpha = 0.35; c.fillStyle = texture(c, "dirt") ?? "#c49e6c";
-        c.beginPath(); c.ellipse(cx, cy, rx * 1.12, ry * 1.12, 0, 0, 7); c.fill();
-        c.fillStyle = cob;
-        c.globalAlpha = 0.45; c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, 7); c.fill();
-        c.globalAlpha = 1; c.beginPath(); c.ellipse(cx, cy, rx * 0.84, ry * 0.84, 0, 0, 7); c.fill();
-        for (let n = 0; n < 5; n++) {
-          const a = hash(x, y, 80 + n) * 6.283, d = 0.95 + hash(x, y, 90 + n) * 0.25;
-          c.globalAlpha = 0.7; c.beginPath(); c.ellipse(cx + Math.cos(a) * rx * d, cy + Math.sin(a) * ry * d, 0.9, 0.5, 0, 0, 7); c.fill();
-        }
-        c.globalAlpha = 1;
-      } else if (st.kind === "field" || st.kind === "garden" || st.kind === "pasture") {
-        drawAgri(c, x, y, cx, cy, st, seeds, now);
-      }
+      flatCheck(x, y, st);
+      if (!flatDone.has(((y / FC) | 0) * 4096 + ((x / FC) | 0))) flatTile(c, x, y, cx, cy, st, seeds, now, t);
     }
   }
   // ---- trade roads as one continuous ribbon each (the tile steps stay logic only) ----
@@ -2658,7 +2755,7 @@ export function draw(
       else if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
       continue; // forests and crags are baked into the ground chunks
     }
-    if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true);
+    if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true, false); // turf already lies in the flat pass
     if (st?.kind === "coop" && st.build === undefined) drawHens(c, cx, cy, x * 31 + y);
     if (hash(x, y, 501) < 0.006) { const tr = st ? null : terrain(x, y); if (tr === "water" || (tr === "sand" && hash(x, y, 502) < 0.5)) birds.push([cx, cy, 1, x * 7 + y]); }
     if (st?.kind === "field" && hash(x, y, 503) < 0.02) birds.push([cx, cy, 0, x * 7 + y]);
@@ -2706,6 +2803,8 @@ export function draw(
       for (const sh of flock) items.push({ x: cx + sh.m.dx, y: cy + sh.m.dy, r: FOOT.sheep, give: 0.15, sh });
       separate(items);
       sortDepth(items, (it) => (it.q ? `p${it.q.p.id}` : `s${it.sh!.k}`));
+      if (folkFrame !== t || !folkM) { folkM = c.getTransform(); folkFrame = t; }
+      folkCtx = c;
       for (const it of items) {
         if (it.sh) { const m = it.sh.m; drawSheep(c, it.x, it.y, m.flip, t + it.sh.k * 1700, m.walking, m.graze, m.sleeping); continue; }
         const q = it.q!, px = it.x, py = it.y;
@@ -2737,6 +2836,7 @@ export function draw(
           c.fillStyle = "#f6ecd6"; c.fillText(q.p.first, px, py - 7.3);
         }
       }
+      folkCtx = null;
     }
     if (hover && hover[0] === x && hover[1] === y) {
       c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();

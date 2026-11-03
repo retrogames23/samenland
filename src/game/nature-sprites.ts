@@ -85,18 +85,20 @@ export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: num
   const i = img(s.url); if (!i) return true; // loading: draw nothing rather than old art
   const [, , sw, sh] = s.crop;
   const w = s.width * scale, h = (w * sh) / sw;
-  c.save();
-  c.translate(x, y);
-  c.transform(flip ? -1 : 1, 0, sway * 0.04, 1, 0, 0);
   const rock = k === "crag" || k === "boulder" || k === "ore" || k === "coal";
   // rocks rest on their own painted ground footprint: no detached tree shadow, sprite sunk onto the tile
-  if (!rock) {
+  if (!rock) { // shadow in plain world space (the ellipse is symmetric, so mirroring never mattered)
     c.fillStyle = "rgba(25,30,15,0.28)";
-    c.beginPath(); c.ellipse(w * 0.12, 0, w * 0.42, w * 0.16, 0, 0, 7); c.fill();
+    c.beginPath(); c.ellipse(x + (flip ? -1 : 1) * w * 0.12, y, w * 0.42, w * 0.16, 0, 0, 7); c.fill();
   }
-  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-  c.drawImage(seasonalImage(i, k === "fir" ? "fir" : rock ? "building" : "leaf"), -w / 2, rock ? -h * 0.72 : -h + h * 0.02, w, h);
-  c.restore();
+  if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
+  const im = seasonalImage(i, k === "fir" ? "fir" : rock ? "building" : "leaf"), top = rock ? -h * 0.72 : -h + h * 0.02;
+  if (!flip && Math.abs(sway) < 0.01) { c.drawImage(im, x - w / 2, y + top, w, h); return true; }
+  // zero-save: one absolute matrix (world × translate × mirror/sway shear), then back to the world matrix
+  const B = c.getTransform(), fx = flip ? -1 : 1, sk = sway * 0.04;
+  c.setTransform(B.a * fx, B.b * fx, B.a * sk + B.c, B.b * sk + B.d, B.a * x + B.c * y + B.e, B.b * x + B.d * y + B.f);
+  c.drawImage(im, -w / 2, top, w, h);
+  c.setTransform(B);
   return true;
 }
 
