@@ -818,6 +818,7 @@ export function Game() {
     let lastPan = performance.now(), walkDriven = false, liveSent = 0, liveOn = false, liveW = false;
     panStep = () => {
       const now = performance.now(), dt = Math.min(50, now - lastPan); lastPan = now;
+      { const pd = panDelta.current; if (pd.dx || pd.dy) { cam.current.x -= pd.dx / cam.current.zoom; cam.current.y -= pd.dy / cam.current.zoom; pd.dx = 0; pd.dy = 0; } }
       if (st.current.walk) {
         // stroll mode: the keys steer the own mayor and the camera follows him softly
         const S = st.current, my = S.seeds.find((x) => x.id === S.mine);
@@ -902,6 +903,8 @@ export function Game() {
   const drag = useRef<{ x: number; y: number; moved: boolean; t0?: number; touch?: boolean; sx?: number; sy?: number; ghost?: boolean } | null>(null);
   // inertia: screen px/ms of the last drag; decays in the pan loop
   const fling = useRef({ vx: 0, vy: 0, t: 0 });
+  /** drag deltas (screen px) gathered between frames; applied once per rAF tick so pointer rate never fights the display rate */
+  const panDelta = useRef({ dx: 0, dy: 0 });
   const lastTap = useRef({ t: 0, x: 0, y: 0 });
   const touches = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ dist: number; mx: number; my: number } | null>(null);
@@ -2077,8 +2080,8 @@ export function Game() {
               if (!g || g[0] !== nt[0] || g[1] !== nt[1]) { st.current.ghost = nt; setGhost(nt); }
               d.x = e.clientX; d.y = e.clientY;
             } else if (d.moved) {
-              cam.current.x -= dx / cam.current.zoom;
-              cam.current.y -= dy / cam.current.zoom;
+              panDelta.current.dx += dx;
+              panDelta.current.dy += dy;
               const nowT = performance.now(), f = fling.current, el = Math.max(1, nowT - f.t);
               const a = Math.min(1, el / 50); // smoothed release velocity over the last ~80 ms
               f.vx = f.vx * (1 - a) + (dx / el) * a; f.vy = f.vy * (1 - a) + (dy / el) * a; f.t = nowT;
