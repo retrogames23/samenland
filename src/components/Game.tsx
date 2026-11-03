@@ -125,6 +125,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { firstFreeSite, placeTap } from "@/game/placement";
 import { saplingSpots } from "@/game/saplings";
+import FigureLab from "@/components/FigureLab";
 
 type Mode = "look" | "seed" | "tree" | "flower" | "lantern" | "sapling";
 
@@ -303,6 +304,7 @@ export function Game() {
   const [imprint, setImprint] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [labOpen, setLabOpen] = useState(false);
   // supporter decorations: only granted rows are stored, placement is derived (src/game/supporter.ts)
   const [support, setSupport] = useState<Map<string, Set<string>>>(new Map());
   const loadSupport = useCallback(async () => {
@@ -1648,6 +1650,7 @@ export function Game() {
     const k = e.key.toLowerCase(), done = () => e.preventDefault();
     if (k === "escape") {
       // 1. topmost window, 2. mode / placement / inspection, 3. stroll
+      if (labOpen) return setLabOpen(false);
       if (supportOpen) return setSupportOpen(false);
       if (bugOpen) return setBugOpen(false);
       if (inviteOpen) return setInviteOpen(false);
@@ -1672,6 +1675,7 @@ export function Game() {
     if (k === "-" || k === "_" || k === "q") { done(); return zoomBy(1 / 1.6); }
     if (walk) return;
     if (k === "b") { done(); return pick(my ? "build" : "plant"); }
+    if (k === "p" && (import.meta.env.DEV || location.search.includes("figs"))) { done(); return setLabOpen((v) => !v); }
     if (k === "t") { done(); return setTavernOpen((v) => !v); }
     if (k === "m") {
       // map overview: zoom far out over the island, the second press returns to the earlier zoom
@@ -2709,6 +2713,7 @@ export function Game() {
           setMsg(z.visible ? null : `${p.first} ${z.act === "sleep" || z.act === "home" || z.act === "sick" ? t.roll.home : t.roll.inside}`);
         }} />
       )}
+      {labOpen && <FigureLab onClose={() => setLabOpen(false)} />}
       <Tavern t={t} open={tavernOpen} onClose={() => { setTavernOpen(false); setDmPeer(null); }} peer={dmPeer} userId={userId} my={my} seeds={seeds} realm={realm} lang={lang} onUnread={setChatUnread} />
       {waitDone && !waitShut && !anyOpen && !decision.open && (
         <div className="pointer-events-none absolute inset-x-2 z-20 flex justify-center" style={{ top: barH + 56 }}>
