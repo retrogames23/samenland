@@ -55,16 +55,27 @@ export function courtPieces(): Map<number, CourtPiece> {
 export type CourtRole = "prince" | "princess" | "herald" | "guard" | "gardener" | "groom";
 export type CourtPose = { role: CourtRole; x: number; y: number; walking: boolean; dx: number; dist?: number };
 type P = [number, number];
+/** Court stride (tiles per full gait cycle ≈ 0.4 × figure height); each leg is a whole number of cycles. */
+export const COURT_STRIDE = 0.38;
+const cycles = (a: P, b: P) => Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / COURT_STRIDE));
+/** Waypoint deadzone in tiles (~3 px): closer than this counts as arrived. */
+const ARRIVE = 0.1;
 const loop = (pts: P[], period: number, t: number, phase = 0): { p: P; dx: number; walking: boolean; dist: number } => {
   const segs = pts.length, f = (((t / period + phase) % 1) + 1) % 1 * segs, k = Math.floor(f), u = f - k;
   const a = pts[k]!, b = pts[(k + 1) % segs]!;
   // linger a little at each waypoint so walks read calmly
   const w = Math.min(1, Math.max(0, (u - 0.25) / 0.75));
-  // distance walked along the loop (tiles) drives the stride, so feet never slide
-  let dist = Math.floor(t / period + phase) * 1000;
-  for (let i = 0; i < k; i++) { const p0 = pts[i]!, p1 = pts[(i + 1) % segs]!; dist += Math.hypot(p1[0] - p0[0], p1[1] - p0[1]); }
-  dist += Math.hypot(b[0] - a[0], b[1] - a[1]) * w;
-  return { p: [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w], dx: (b[0] - a[0]) - (b[1] - a[1]), walking: u > 0.25, dist };
+  // distance-driven stride: every leg holds a whole number of gait cycles, so the figure always
+  // arrives (and rests) with closed feet instead of freezing mid-step
+  let cyc = 0;
+  for (let i = 0; i < k; i++) cyc += cycles(pts[i]!, pts[(i + 1) % segs]!);
+  cyc += cycles(a, b) * w;
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]), walking = u > 0.25 && len * (1 - w) > ARRIVE;
+  // facing hysteresis: a leg with little horizontal screen travel keeps the previous leg's facing
+  const sdx = (s0: P, s1: P) => (s1[0] - s0[0]) - (s1[1] - s0[1]);
+  let dx = sdx(a, b);
+  for (let i = 1; Math.abs(dx) < 0.5 && i < segs; i++) { const p0 = pts[(k - i + segs) % segs]!, p1 = pts[(k - i + 1 + segs) % segs]!; const d = sdx(p0, p1); if (Math.abs(d) >= 0.5) dx = d; }
+  return { p: [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w], dx, walking, dist: cyc * COURT_STRIDE };
 };
 // walks skirt the fountain (tiles 8–10) and pavilion (11–13 × 6–8) instead of crossing them
 const GARDEN: P[] = [[8.2, 5.4], [10.6, 5.4], [10.7, 7.5], [7.6, 7.4]];

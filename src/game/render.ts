@@ -41,7 +41,7 @@ import oakU from "@/assets/sprites/wonders/oak.webp";
 import ruinU from "@/assets/sprites/wonders/ruin.webp";
 import caravanU from "@/assets/sprites/wonders/caravan.webp";
 import springU from "@/assets/sprites/wonders/spring.webp";
-import { courtPieces, courtPoses, inCourt, courtSite, courtCenter, COURT_LAYOUT, type CourtPiece, type CourtPose, type CourtRole } from "./court";
+import { courtPieces, courtPoses, inCourt, courtSite, courtCenter, COURT_LAYOUT, COURT_STRIDE, type CourtPiece, type CourtPose, type CourtRole } from "./court";
 import castleU from "@/assets/sprites/court/castle.webp";
 import stableU from "@/assets/sprites/court/stable.webp";
 import fountainU from "@/assets/sprites/court/fountain.webp";
@@ -2142,7 +2142,7 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
   // same human scale as villagers/mayors (5.2); the prince stands a touch taller
   const [px, py] = iso(q.x, q.y), h = courtHeight(q.role), w = (h * im.naturalWidth) / im.naturalHeight;
   // stride follows distance walked so feet never slide
-  const ph = ((q.dist ?? 0) / 0.11) * 6.2832;
+  const ph = ((q.dist ?? 0) / COURT_STRIDE) * 6.2832;
   // shadow centred between the feet (legs hang from hipX), so the figure strides exactly over it
   const g0 = COURT_GAIT[q.role], cx0 = 0;
   c.save(); c.translate(px, py); if (q.dx < 0) c.scale(-1, 1);
