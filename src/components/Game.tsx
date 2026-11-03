@@ -1639,7 +1639,7 @@ export function Game() {
     <div className="space-y-3 p-3 text-sm">
       <div className="flex items-center justify-between">
         <Head>{tabs.find((x) => x.k === tab)?.label}</Head>
-        <button type="button" aria-label={t.hud.close} onClick={() => setTab(null)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+        <button type="button" aria-label={t.hud.close} onClick={() => setTab(null)} className="hit text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
       </div>
       {tab === "build" && my && at && (
         <div className="space-y-2">
@@ -2201,7 +2201,7 @@ export function Game() {
         onPointerLeave={() => { st.current.hover = null; setHover(null); }}
       />
       {/* top bar */}
-      <div ref={barRef} className="pointer-events-none absolute inset-x-2 top-[max(0.5rem,env(safe-area-inset-top))] z-30 md:inset-x-3 md:top-3">
+      <div ref={barRef} className="pointer-events-none absolute left-[var(--safe-l)] right-[var(--safe-r)] top-[max(0.5rem,env(safe-area-inset-top))] z-30 md:left-[max(0.75rem,env(safe-area-inset-left))] md:right-[max(0.75rem,env(safe-area-inset-right))] md:top-[max(0.75rem,env(safe-area-inset-top))]">
         <Panel inner="flex items-center gap-1.5 px-1.5 py-1 md:gap-5 md:px-3 md:py-1.5">
           {my && <CharacterBadge seed={my} lang={lang} />}
           <div className="min-w-0 shrink">
@@ -2244,16 +2244,16 @@ export function Game() {
             <div>{t.seasons[season]} · {new Date(now).toLocaleTimeString(LOCALE[lang], { hour: "2-digit", minute: "2-digit", timeZone: REALM_TZ[realm] })}</div>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
-            <button type="button" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} onClick={toggleSound} className="grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:h-8 md:w-8">
+            <button type="button" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} onClick={toggleSound} className="hit grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:h-8 md:w-8">
               {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </button>
             <button type="button" aria-label={fs ? t.exitFullscreen : t.fullscreen} title={fs ? t.exitFullscreen : t.fullscreen} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())} className="hidden h-8 w-8 place-items-center rounded-md hover:bg-accent md:grid">
               {fs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
-            <button type="button" aria-label={t.guide.menu} title={t.guide.menu} onClick={() => setGuideOpen(true)} className="grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:hidden">
+            <button type="button" aria-label={t.guide.menu} title={t.guide.menu} onClick={() => setGuideOpen(true)} className="hit grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:hidden">
               <BookOpen className="h-4 w-4" />
             </button>
-            <button type="button" aria-label={t.hud.settings} title={t.hud.settings} aria-expanded={settings} onClick={() => { if (!settings) { setWho(null); setPlace(null); } setSettings(!settings); }} className="grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:h-8 md:w-8">
+            <button type="button" aria-label={t.hud.settings} title={t.hud.settings} aria-expanded={settings} onClick={() => { if (!settings) { setWho(null); setPlace(null); } setSettings(!settings); }} className="hit grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:h-8 md:w-8">
               <Settings className="h-4 w-4" />
             </button>
           </div>
@@ -2314,7 +2314,7 @@ export function Game() {
       </div>
 
       {/* build rail: left on desktop, bottom on phones */}
-      <div className="pointer-events-none absolute inset-x-2 bottom-[var(--dock-bottom)] z-30 md:inset-x-auto md:bottom-auto md:left-3 md:top-[var(--bar-h,6rem)]" style={{ "--bar-h": `${barH + 8}px` } as import("react").CSSProperties}>
+      <div className="pointer-events-none absolute left-[var(--safe-l)] right-[var(--safe-r)] bottom-[var(--dock-bottom)] z-30 md:right-auto md:bottom-auto md:left-[max(0.75rem,env(safe-area-inset-left))] md:top-[var(--bar-h,6rem)]" style={{ "--bar-h": `${barH + 8}px` } as import("react").CSSProperties}>
         <Panel inner="!bg-wood !border-0 flex gap-1 p-1 md:flex-col">
           {tabs.map(({ k, icon: I, label }) => (
             <WoodButton key={k} label={label} active={tab === k} onClick={() => { setMoreOpen(false); pick(k); }} className={`h-11 flex-1 flex-col gap-0.5 md:flex md:h-14 md:w-14 md:flex-none ${k === "rituals" || k === "signs" ? "max-md:hidden" : ""}`}>
@@ -2356,13 +2356,13 @@ export function Game() {
         )}
       </div>
       {tab && (
-        <div className="pointer-events-none absolute inset-x-2 bottom-[calc(var(--dock-bottom)+4.5rem)] z-30 md:inset-x-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
+        <div className="pointer-events-none absolute left-[var(--safe-l)] right-[var(--safe-r)] bottom-[calc(var(--dock-bottom)+4.5rem)] z-30 md:right-auto md:bottom-auto md:left-24 md:top-24 md:w-72">
           <div {...sheetSwipe(() => pick(tab))}><Panel className="max-h-[min(72dvh,calc(100dvh-11rem))] overflow-y-auto overscroll-contain max-md:rounded-t-2xl">{drawer}</Panel></div>
         </div>
       )}
 
       {/* minimap + zoom */}
-      <div className="pointer-events-none absolute bottom-3 right-3 z-20 hidden md:block">
+      <div className="pointer-events-none absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] z-20 hidden md:block">
         <Panel inner="p-1.5">
           <Minimap seeds={seeds} mine={mine} view={view} onJump={(x, y) => focus(x, y)} />
           <div className="mt-1.5 flex gap-1">
@@ -2824,7 +2824,7 @@ export function Game() {
             <Panel inner="p-4">
               <div className="relative">
                 <h1 className="flex justify-center leading-none text-wood"><img src={logoUrl} alt="Samenland" width={371} height={360} className="h-28 w-auto" /></h1>
-                <button type="button" aria-label={t.hud.close} onClick={() => setAuthOpen(false)} className="absolute right-0 top-0 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+                <button type="button" aria-label={t.hud.close} onClick={() => setAuthOpen(false)} className="hit absolute right-0 top-0 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{t.tagline}</p>
               <form className="mt-3 space-y-2" onSubmit={(e) => { e.preventDefault(); emailAuth(); }}>
@@ -2844,7 +2844,7 @@ export function Game() {
         </div>
       )}
 
-      <div className="pointer-events-none absolute bottom-[calc(var(--dock-bottom)+4.5rem)] left-2 right-2 z-20 flex flex-col items-end space-y-2 text-sm md:bottom-52 md:left-auto md:right-3 md:w-80">
+      <div className="pointer-events-none absolute bottom-[calc(var(--dock-bottom)+4.5rem)] left-[var(--safe-l)] right-[var(--safe-r)] z-20 flex flex-col items-end space-y-2 text-sm md:bottom-52 md:left-auto md:right-3 md:w-80">
         {placing && coarse && ghost && (() => {
           const own = seeds.find((s) => s.id === mine);
           const err = own ? canPlaceSpecial(placing, ghost[0], ghost[1], own, seeds, clock()) as keyof typeof t.place | null : "ground";
@@ -2905,7 +2905,7 @@ export function Game() {
         {msg && (
           <div role="status" className={`pointer-events-auto flex w-full items-start gap-2 rounded-md border-2 border-wood bg-card py-2 pl-3 pr-1.5 text-foreground shadow-[var(--shadow-panel)] md:w-auto ${tab ? "max-md:fixed max-md:inset-x-2 max-md:z-40 max-md:w-auto" : ""}`} style={tab ? { top: barH + 16 } : undefined}>
             <span className="min-w-0 flex-1">{msg}</span>
-            <button type="button" aria-label={t.hud.close} onClick={() => setMsg(null)} className="grid h-6 w-6 shrink-0 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"><X className="h-4 w-4" /></button>
+            <button type="button" aria-label={t.hud.close} onClick={() => setMsg(null)} className="hit grid h-6 w-6 shrink-0 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"><X className="h-4 w-4" /></button>
           </div>
         )}
         {who && (() => {
@@ -2921,7 +2921,7 @@ export function Game() {
               <div aria-hidden className="mx-auto mb-1 h-1 w-10 rounded-full bg-muted-foreground/40 md:hidden" />
               <div className="flex items-start justify-between gap-3">
                 <div className="font-['Caveat'] text-xl leading-tight">{who.first} {who.last}</div>
-                <button type="button" aria-label={t.close} className="-m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
+                <button type="button" aria-label={t.close} className="hit -m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
               </div>
               <div className="text-sm">{t.personAge(who.age)} · {t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
               {who.estate && <div className="mt-1 text-xs"><div>{PROSPERITY[lang].estates[who.estate]}</div><div className="text-muted-foreground">{PROSPERITY[lang].tax(who.sick ? 0 : ESTATE_TAX[who.estate])}</div></div>}
@@ -2976,7 +2976,7 @@ export function Game() {
               <div aria-hidden className="mx-auto mb-1 h-1 w-10 rounded-full bg-muted-foreground/40 md:hidden" />
               <div className="flex items-start justify-between gap-3">
                 <div className="font-['Caveat'] text-xl leading-tight">{ins.build !== null ? t.site(name) : name}</div>
-                <button type="button" aria-label={t.close} className="-m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setPlace(null)}>×</button>
+                <button type="button" aria-label={t.close} className="hit -m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setPlace(null)}>×</button>
               </div>
               <div className="text-xs text-muted-foreground">{t.inTown(name, ins.seed.name)}</div>
               {ins.build !== null ? (

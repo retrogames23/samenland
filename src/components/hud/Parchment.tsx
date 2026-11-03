@@ -18,7 +18,7 @@ export function Parchment({ image, title, later, onLater, wide, children }: {
         className={`parchment relative max-h-full w-full overflow-auto overscroll-contain max-md:max-h-[88dvh] max-md:rounded-b-none max-md:pb-[env(safe-area-inset-bottom)] max-md:animate-in max-md:slide-in-from-bottom ${wide ? "max-w-2xl" : "max-w-xl"} max-md:max-w-none`}>
         <div aria-hidden className="sticky top-0 z-10 mx-auto h-0 md:hidden"><div className="mx-auto mt-1.5 h-1 w-12 rounded-full bg-ink/30" /></div>
         <button type="button" aria-label={later} onClick={onLater}
-          className="absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-parchment/80 text-ink/60 shadow-sm hover:bg-parchment hover:text-ink md:h-7 md:w-7">
+          className="hit absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-parchment/80 text-ink/60 shadow-sm hover:bg-parchment hover:text-ink md:h-7 md:w-7">
           <X className="h-4 w-4" />
         </button>
         {image && (
@@ -29,7 +29,7 @@ export function Parchment({ image, title, later, onLater, wide, children }: {
           <div className="mx-auto my-2 h-px w-2/3 bg-ink/30" />
           {children}
           <div className="mt-4 flex justify-center">
-            <button type="button" onClick={onLater} className="font-display text-xl text-ink/70 underline decoration-ink/30 underline-offset-4 hover:text-ink">{later}</button>
+            <button type="button" onClick={onLater} className="hit font-display text-xl text-ink/70 underline decoration-ink/30 underline-offset-4 hover:text-ink">{later}</button>
           </div>
         </div>
       </div>
