@@ -2660,6 +2660,27 @@ export function draw(
     const [px, py] = iso(d.x, d.y), sk = sd.x * 7 + sd.y;
     addProp(Math.round(d.y) * MAP + Math.round(d.x), () => drawDog(c, d, px, py, t, sk));
   }
+  // the prince's messenger: rides in along the village's road, waits by the mayor's seat, rides off (pure from decree rows + clock)
+  heraldSpots.clear();
+  if (folkOn && heraldRows.length) for (const sd of seeds) {
+    const v = heraldVisit(heraldRows, sd.id, Date.now()); if (!v) continue;
+    const [hx, hy] = seatTile(sd);
+    if (hx < x0 - 20 || hx > x1 + 20 || hy < y0 - 20 || hy > y1 + 20) continue;
+    const path = heraldPath(sd, seeds, [hx + 1.3, hy + 1.4]);
+    const P = v.phase === "leave" ? [...path].reverse() : path;
+    const len = polyLen(P), ride = HERALD_RIDE_S * 1000;
+    // arrival eases out to a standstill, departure eases in from it; the gait follows distance so hooves never slide
+    const s = v.phase === "arrive" ? len * (1 - (1 - v.p) ** 2.2) : v.phase === "leave" ? len * v.p ** 2 : len;
+    const speed = v.phase === "arrive" ? 2.2 * (1 - v.p) ** 1.2 : v.phase === "leave" ? 2 * v.p : 0;
+    const at = polyAt(P, s), [px, py] = iso(at.x, at.y);
+    const dir = v.phase === "wait" ? polyAt(P, len - 0.01).dir : at.dir;
+    const [sx, sy] = iso(at.x + dir[0], at.y + dir[1]), ddx = sx - px, ddy = sy - py;
+    const gait = speed > 0.02 ? s / 0.55 : null, night = worldHour(now) >= 19 || worldHour(now) < 7;
+    const fade = v.phase === "arrive" ? Math.min(1, v.t / 1500) : v.phase === "leave" ? Math.min(1, (ride - v.t) / 1500) : 1;
+    if (night) L.push({ x: px, y: py - 8, r: 9 });
+    heraldSpots.set(sd.id, { x: px, y: py });
+    addProp(Math.round(at.y) * MAP + Math.round(at.x), () => { c.globalAlpha = fade; drawHerald(c, px, py, ddx, ddy, gait, speed, t, v.phase === "wait", night, sd.x * 13 + sd.y); c.globalAlpha = 1; });
+  }
 
   // ---- bridges: one straight span per water crossing, abutment to abutment ----
   if (detail) for (const l of links(seeds)) {
