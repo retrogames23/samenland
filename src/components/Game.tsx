@@ -1563,7 +1563,7 @@ export function Game() {
     wayBig: purchases.some((p) => p.seed_id === my.id && WAY_BIG.includes(p.item)),
   }) : null;
   const questText = quest && my ? t.quests.list[questKey(quest.quest, wayOf(my))] ?? t.quests.list[quest.quest]! : null;
-  const petition = quest && my ? petitionOf(quest.quest, lang, questKey(quest.quest, wayOf(my)) !== quest.quest) : null;
+  const petition = quest && my ? petitionOf(quest.quest, lang, questKey(quest.quest, wayOf(my)) !== quest.quest, myTown?.people) : null;
   const questHow = () => {
     if (!quest || !my) return;
     const tabs: Partial<Record<Quest, Tab>> = { bless: "rituals", bless7: "rituals", build: "build", buy3: "build", buy6: "build", metro: "build", sign: "signs", gift: "towns", gifts5: "towns", road: "build", roads2: "build" };
@@ -2796,6 +2796,7 @@ export function Game() {
             <button type="button" onClick={() => setQuestFold((f) => !f)} className="flex w-full items-center justify-between gap-2 text-left">
               <span className="font-display text-base leading-tight">{petition!.header}</span>
             </button>
+            {!questFold && petition!.person && <button type="button" className="hit text-xs text-wood underline" onClick={() => { const nw = clock(), tw = townOf(my!, seeds, nw), p = tw.people.find((q) => q.id === petition!.person!.id); const z = p ? poseOf(p, tw, seeds, nw) : null; if (z) focus(z.x, z.y); if (p) setWho(p); }}>{petition!.find}</button>}
             {!questFold && (
               <div className="mt-1 space-y-1">
                 <div className="font-semibold">{questText![0]}</div>
