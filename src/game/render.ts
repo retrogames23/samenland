@@ -2321,6 +2321,61 @@ const framePool = {
 };
 
 /** Per-frame counters for the dev diagnostics HUD (mutated in place, no allocation). */
+/** Flat ground dressing of one tile (turf, ore rocks, paths, squares, acres) — drawn live or baked into a flat chunk. */
+function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number) {
+    const live = nearTown(x, y);
+    if (live) natureAt(c, x, y, cx, cy, t, false); // ore rocks
+
+    if (!st) { if (live && !inCourt(x, y)) wildTurf(c, x, y, cx, cy, terrain(x, y)); return; }
+    const sd = x * 1000 + y;
+    const pp = P(cx, cy);
+    if (st.kind === "bridge") {
+      /* drawn as one continuous span per crossing (see drawBridgeSpan) */
+    } else if (st.kind === "road") {
+      /* drawn as one continuous ribbon per trade road (see drawRoadRibbon) */
+    } else if (st.kind === "path" || st.kind === "street" || st.kind === "avenue" || st.kind === "rail") {
+      const street = st.kind === "street" || st.kind === "avenue";
+      const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
+      const wBase = street ? 7 : 4.6;
+      const isP = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && PATHLIKE.has(o.kind); };
+      // Connect orthogonal neighbours; a diagonal only when no orthogonal step already links them,
+      // so adjacent path tiles never form a lattice of crossing strokes.
+      const con: [number, number][] = [];
+      for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) if (isP(i, j)) con.push([i, j]);
+      for (const [i, j] of [[1, 1], [-1, -1], [1, -1], [-1, 1]] as [number, number][]) if (isP(i, j) && !isP(i, 0) && !isP(0, j)) con.push([i, j]);
+      c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = col;
+      for (const [i, j] of con) {
+        const m = pp(i * 0.5, j * 0.5);
+        c.lineWidth = wBase * (0.92 + hash(x + i, y + j, 300) * 0.16);
+        c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke();
+      }
+      if (con.length === 1) {
+        // dead end: the track tapers out into the grass instead of stopping abruptly
+        const [i, j] = con[0]!; const e = pp(-i * 0.3, -j * 0.3);
+        c.globalAlpha = 0.6; c.lineWidth = wBase * 0.55; c.beginPath(); c.moveTo(cx, cy); c.lineTo(e[0], e[1]); c.stroke(); c.globalAlpha = 1;
+      } else {
+        c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, wBase * 0.5, wBase * 0.32, 0, 0, 7); c.fill();
+      }
+      if (!street && hash(x, y, 34) > 0.6) { c.fillStyle = "rgba(60,45,28,0.12)"; c.beginPath(); c.ellipse(cx + (hash(x, y, 33) - 0.5) * 3, cy, 1.3, 0.5, 0, 0, 7); c.fill(); }
+    } else if (st.kind === "square" || st.kind === "market" || st.kind === "well") {
+      // paving frays into the grass: trodden earth halo, fading rim, solid core, loose setts beyond the edge
+      const rx = TW * (0.56 + hash(x, y, 71) * 0.1), ry = TH * (0.56 + hash(x, y, 72) * 0.1);
+      const cob = texture(c, "cobble") ?? "#d3cab6";
+      c.globalAlpha = 0.35; c.fillStyle = texture(c, "dirt") ?? "#c49e6c";
+      c.beginPath(); c.ellipse(cx, cy, rx * 1.12, ry * 1.12, 0, 0, 7); c.fill();
+      c.fillStyle = cob;
+      c.globalAlpha = 0.45; c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, 7); c.fill();
+      c.globalAlpha = 1; c.beginPath(); c.ellipse(cx, cy, rx * 0.84, ry * 0.84, 0, 0, 7); c.fill();
+      for (let n = 0; n < 5; n++) {
+        const a = hash(x, y, 80 + n) * 6.283, d = 0.95 + hash(x, y, 90 + n) * 0.25;
+        c.globalAlpha = 0.7; c.beginPath(); c.ellipse(cx + Math.cos(a) * rx * d, cy + Math.sin(a) * ry * d, 0.9, 0.5, 0, 0, 7); c.fill();
+      }
+      c.globalAlpha = 1;
+    } else if (st.kind === "field" || st.kind === "garden" || st.kind === "pasture") {
+      drawAgri(c, x, y, cx, cy, st, seeds, now);
+    }
+}
+
 export const renderStats = { tiles: 0, folk: 0, chunks: 0, bakeMs: 0, bakeGround: 0, bakeNature: 0, bakes: 0 };
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
@@ -2390,57 +2445,8 @@ export function draw(
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square")) { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#cdb084"; diamond(c, cx, cy, 0.85); c.fill(); }
         continue;
       }
-      const live = sharp || nearTown(x, y);
-      if (live) natureAt(c, x, y, cx, cy, t, false); // ore rocks
-
-      if (!st) { if (live && !inCourt(x, y)) wildTurf(c, x, y, cx, cy, terrain(x, y)); continue; }
-      const sd = x * 1000 + y;
-      const pp = P(cx, cy);
-      if (st.kind === "bridge") {
-        /* drawn as one continuous span per crossing (see drawBridgeSpan) */
-      } else if (st.kind === "road") {
-        /* drawn as one continuous ribbon per trade road (see drawRoadRibbon) */
-      } else if (st.kind === "path" || st.kind === "street" || st.kind === "avenue" || st.kind === "rail") {
-        const street = st.kind === "street" || st.kind === "avenue";
-        const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
-        const wBase = street ? 7 : 4.6;
-        const isP = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && PATHLIKE.has(o.kind); };
-        // Connect orthogonal neighbours; a diagonal only when no orthogonal step already links them,
-        // so adjacent path tiles never form a lattice of crossing strokes.
-        const con: [number, number][] = [];
-        for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) if (isP(i, j)) con.push([i, j]);
-        for (const [i, j] of [[1, 1], [-1, -1], [1, -1], [-1, 1]] as [number, number][]) if (isP(i, j) && !isP(i, 0) && !isP(0, j)) con.push([i, j]);
-        c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = col;
-        for (const [i, j] of con) {
-          const m = pp(i * 0.5, j * 0.5);
-          c.lineWidth = wBase * (0.92 + hash(x + i, y + j, 300) * 0.16);
-          c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke();
-        }
-        if (con.length === 1) {
-          // dead end: the track tapers out into the grass instead of stopping abruptly
-          const [i, j] = con[0]!; const e = pp(-i * 0.3, -j * 0.3);
-          c.globalAlpha = 0.6; c.lineWidth = wBase * 0.55; c.beginPath(); c.moveTo(cx, cy); c.lineTo(e[0], e[1]); c.stroke(); c.globalAlpha = 1;
-        } else {
-          c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, wBase * 0.5, wBase * 0.32, 0, 0, 7); c.fill();
-        }
-        if (!street && hash(x, y, 34) > 0.6) { c.fillStyle = "rgba(60,45,28,0.12)"; c.beginPath(); c.ellipse(cx + (hash(x, y, 33) - 0.5) * 3, cy, 1.3, 0.5, 0, 0, 7); c.fill(); }
-      } else if (st.kind === "square" || st.kind === "market" || st.kind === "well") {
-        // paving frays into the grass: trodden earth halo, fading rim, solid core, loose setts beyond the edge
-        const rx = TW * (0.56 + hash(x, y, 71) * 0.1), ry = TH * (0.56 + hash(x, y, 72) * 0.1);
-        const cob = texture(c, "cobble") ?? "#d3cab6";
-        c.globalAlpha = 0.35; c.fillStyle = texture(c, "dirt") ?? "#c49e6c";
-        c.beginPath(); c.ellipse(cx, cy, rx * 1.12, ry * 1.12, 0, 0, 7); c.fill();
-        c.fillStyle = cob;
-        c.globalAlpha = 0.45; c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, 7); c.fill();
-        c.globalAlpha = 1; c.beginPath(); c.ellipse(cx, cy, rx * 0.84, ry * 0.84, 0, 0, 7); c.fill();
-        for (let n = 0; n < 5; n++) {
-          const a = hash(x, y, 80 + n) * 6.283, d = 0.95 + hash(x, y, 90 + n) * 0.25;
-          c.globalAlpha = 0.7; c.beginPath(); c.ellipse(cx + Math.cos(a) * rx * d, cy + Math.sin(a) * ry * d, 0.9, 0.5, 0, 0, 7); c.fill();
-        }
-        c.globalAlpha = 1;
-      } else if (st.kind === "field" || st.kind === "garden" || st.kind === "pasture") {
-        drawAgri(c, x, y, cx, cy, st, seeds, now);
-      }
+      const fk0 = flatKey(x, y, q1c, sk1c);
+      if (!flatDone.has(fk0)) flatTile(c, x, y, cx, cy, st, seeds, now, t);
     }
   }
   // ---- trade roads as one continuous ribbon each (the tile steps stay logic only) ----
