@@ -275,6 +275,8 @@ export function Game() {
   // touch placement: the preview sits on its own tile until the player confirms
   const [ghost, setGhost] = useState<[number, number] | null>(null);
   const hotkey = useRef<(e: KeyboardEvent) => void>(() => {});
+  /** soft camera glide target (screen-iso coords) for the Space key; any drag or pan key cancels it */
+  const glide = useRef<{ x: number; y: number } | null>(null);
   const [coarse, setCoarse] = useState(false);
   // hybrid input (iPad + trackpad, touch laptops): start from the media query, then follow the device actually used —
   // a mouse/trackpad switches to fine mode (no joystick), the next finger switches back; state only flips on change
@@ -891,6 +893,9 @@ export function Game() {
       }
       walkDriven = false;
       if (liveOn) { liveOn = false; liveSent = 0; const S = st.current; if (S.mine) void liveCh.current?.send({ type: "broadcast", event: "pos", payload: { sid: S.mine, bye: true } }); }
+      { const g = glide.current;
+        if (g && (keys.size || drag.current)) glide.current = null;
+        else if (g) { const k = 1 - Math.exp(-dt / 160); cam.current.x += (g.x - cam.current.x) * k; cam.current.y += (g.y - cam.current.y) * k; if (Math.hypot(g.x - cam.current.x, g.y - cam.current.y) < 0.5) glide.current = null; } }
       if (keys.size) {
         let dx = 0, dy = 0;
         for (const k of keys) { const v = KEYMAP[k]; if (v) { dx += v[0]; dy += v[1]; } }
@@ -1662,7 +1667,7 @@ export function Game() {
       if (walk) { stick.current = { dx: 0, dy: 0 }; setWalk(false); }
       return;
     }
-    if (k === " " || k === "spacebar") { done(); if (walk) camFree.current = false; else if (my) focus(my.x, my.y); return; }
+    if (k === " " || k === "spacebar") { done(); if (walk) camFree.current = false; else if (my) { const [gx, gy] = iso(my.x, my.y); fling.current = { vx: 0, vy: 0, t: performance.now() }; glide.current = { x: gx, y: gy }; } return; }
     if (k === "+" || k === "=" || k === "e") { done(); return zoomBy(1.6); }
     if (k === "-" || k === "_" || k === "q") { done(); return zoomBy(1 / 1.6); }
     if (walk) return;
