@@ -2325,7 +2325,7 @@ const framePool = {
 // Static between growth steps: a cheap signature of the chunk's structures decides when to re-bake,
 // at most one bake per frame; chunks not baked yet are drawn tile by tile as before (identical look, no waiting).
 const FC = 16;
-type FlatChunk = { sig: number; checked: number; cv: (HTMLCanvasElement & { ox: number; oy: number }) | null; q: number; sk: string };
+type FlatChunk = { full?: boolean; baked: number; sig: number; checked: number; cv: (HTMLCanvasElement & { ox: number; oy: number }) | null; q: number; sk: string };
 const flatCache = new Map<number, FlatChunk>();
 const flatKinds = new Map<string, number>();
 const flatSet = new Set<number>();
@@ -2366,13 +2366,14 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
     const iy = s - ix, key = iy * 4096 + ix;
     let e = flatCache.get(key);
-    if (!e) { e = { sig: -1, checked: -1e9, cv: null, q: 0, sk: "" }; flatCache.set(key, e); }
+    if (!e) { e = { sig: -1, checked: -1e9, cv: null, q: 0, sk: "", baked: 0 }; flatCache.set(key, e); }
     else { flatCache.delete(key); flatCache.set(key, e); }
     if (t - e.checked > 2000 && checks < 3) { checks++; e.checked = t; const sg = flatSig(ix, iy, seeds, now); if (sg !== e.sig) { e.sig = sg; e.q = 0; } }
     if (e.sig === -1) continue; // not inspected yet: live tiles this frame
     if (e.sig === 0) { flatSet.add(key); continue; } // nothing flat here (open country lives in the ground chunks)
-    const fresh = e.cv && e.q === q && e.sk === sk;
-    if (!fresh && ready && bakes < 1) { bakes++; renderStats.bakes++; e.cv = bakeFlat(ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; }
+    // art still loading: bake anyway (never fall back to per-tile work), but refresh that chunk every 2 s until complete
+    const fresh = e.cv && e.q === q && e.sk === sk && (e.full || t - e.baked < 2000);
+    if (!fresh && bakes < 1) { bakes++; renderStats.bakes++; e.cv = bakeFlat(ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; }
     if (e.cv && e.sk === sk) { c.drawImage(e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
   }
   while (flatCache.size > 64) flatCache.delete(flatCache.keys().next().value!);
