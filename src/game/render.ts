@@ -41,7 +41,7 @@ import oakU from "@/assets/sprites/wonders/oak.webp";
 import ruinU from "@/assets/sprites/wonders/ruin.webp";
 import caravanU from "@/assets/sprites/wonders/caravan.webp";
 import springU from "@/assets/sprites/wonders/spring.webp";
-import { courtPieces, courtPoses, inCourt, courtSite, courtCenter, COURT_LAYOUT, type CourtPiece, type CourtPose, type CourtRole } from "./court";
+import { courtPieces, courtPoses, inCourt, courtSite, courtCenter, COURT_LAYOUT, COURT_STRIDE, type CourtPiece, type CourtPose, type CourtRole } from "./court";
 import castleU from "@/assets/sprites/court/castle.webp";
 import stableU from "@/assets/sprites/court/stable.webp";
 import fountainU from "@/assets/sprites/court/fountain.webp";
@@ -936,7 +936,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       const legs = folkImage("legsM");
       if (legs) {
         const f = gaitFrame(ph);
-        drawLegged(c, robe, 0, fw, fh, legs, f, ww, hh, MAYOR_LEGS, bob, 0);
+        drawLegged(c, robe, 0, fw, fh, legs, f, ww, hh, MAYOR_LEGS, bob, 0, ph);
       } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     insignia(c, q, hgt);
@@ -956,7 +956,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     // each trade sprite: measured hip x (fraction of width) and tunic hem (fraction of height)
     const g = HIPS[k] ?? DEFAULT_FIG, f = frameOf(legs.naturalWidth / WALK_FRAMES);
     const yb = walkBob(ph, hgt);
-    drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, hgt, g, yb, yb);
+    drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, hgt, g, yb, yb, ph);
   } else if (skirt) {
     // long skirt: two painted shoes step out under the hem, the hem sways in strips with the stride
     const foot = folkImage("footF"), sw = im.naturalWidth, sh = im.naturalHeight, top = 0.8;
@@ -2142,7 +2142,7 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
   // same human scale as villagers/mayors (5.2); the prince stands a touch taller
   const [px, py] = iso(q.x, q.y), h = courtHeight(q.role), w = (h * im.naturalWidth) / im.naturalHeight;
   // stride follows distance walked so feet never slide
-  const ph = ((q.dist ?? 0) / 0.11) * 6.2832;
+  const ph = ((q.dist ?? 0) / COURT_STRIDE) * 6.2832;
   // shadow centred between the feet (legs hang from hipX), so the figure strides exactly over it
   const g0 = COURT_GAIT[q.role], cx0 = 0;
   c.save(); c.translate(px, py); if (q.dx < 0) c.scale(-1, 1);
@@ -2169,7 +2169,7 @@ function drawCourtWalk(c: C, im: HTMLImageElement, role: CourtRole, w: number, h
     return;
   }
   const legs = folkImage("legsM");
-  if (legs) drawLegged(c, im, 0, nw, nh, legs, f, w, h, g, -bob, -bob);
+  if (legs) drawLegged(c, im, 0, nw, nh, legs, f, w, h, g, -bob, -bob, ph);
   else c.drawImage(im, -w / 2, -h - bob, w, h);
 }
 
@@ -2185,7 +2185,7 @@ function labEntries(): LabEntry[] {
       const w = (h * im.naturalWidth) / im.naturalHeight, bob = -walkBob(ph, h);
       if (robe) drawRobeWalk(c, im, 0, im.naturalWidth, im.naturalHeight, folkImage("footF"), w, h, ph, 0.8, 0.93, -bob);
       else { const legs = folkImage("legsM"); const f = gaitFrame(ph);
-        if (legs) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, h, HIPS[k] ?? DEFAULT_FIG, -bob, -bob); }
+        if (legs) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, h, HIPS[k] ?? DEFAULT_FIG, -bob, -bob, ph); }
       return w;
     },
   });
@@ -2196,7 +2196,7 @@ function labEntries(): LabEntry[] {
       const fw = im.naturalWidth / WORK_FRAMES, fh = im.naturalHeight, w = (h * fw) / fh, bob = -walkBob(ph, h);
       const legs = folkImage("legsM"), f = gaitFrame(ph);
       if (sex === "f") drawRobeWalk(c, im, 0, fw, fh, folkImage("footF"), w, h, ph, 0.8, 0.93, -bob);
-      else if (legs) drawLegged(c, im, 0, fw, fh, legs, f, w, h, MAYOR_LEGS, -bob, -bob);
+      else if (legs) drawLegged(c, im, 0, fw, fh, legs, f, w, h, MAYOR_LEGS, -bob, -bob, ph);
       return w;
     },
   });
