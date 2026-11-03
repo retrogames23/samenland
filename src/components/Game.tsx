@@ -1351,6 +1351,13 @@ export function Game() {
   /** Is the messenger in the village (riding in or waiting)? Derived by heraldVisit, the same visit the map draws. */
   const heraldDue = (seedId: string) => { const v = heraldVisit(princelyRows.current, seedId, Date.now()); return !!v && v.phase !== "leave"; };
   const openHerald = () => { setDecree(null); setHerald(true); jingle("fanfare"); };
+  /** Tap on the own village's messenger (screen spot from the last frame). */
+  const heraldHit = (e: { clientX: number; clientY: number }) => {
+    const me = my && my.user_id === userId ? heraldSpots.get(my.id) : undefined; if (!me || !canvasRef.current) return false;
+    const r = canvasRef.current.getBoundingClientRect(), c = cam.current;
+    const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
+    return Math.hypot(me.x - wx, me.y - 6 - wy) < Math.max(7, 18 / c.zoom);
+  };
   const askDecree = async (seedId: string) => {
     const P = PRINCELY[lang];
     const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: string | null; error: unknown }>;
@@ -2234,6 +2241,7 @@ export function Game() {
             if (placing) { const [px, py] = tileAt(e); return buy(placing, px, py); }
             if (walk) {
               // stroll mode: tapping a person or house talks to them; elsewhere the mayor walks there
+              if (heraldHit(e)) { openHerald(); return; }
               if (talkTo(e)) return;
               const [tx, ty] = tileAt(e), my = seeds.find((x) => x.id === mine);
               if (my) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (me && commandMayor(me, tw, seeds, nw, [tx, ty])) tap((e.clientX / window.innerWidth) * 2 - 1); }
@@ -2243,6 +2251,7 @@ export function Game() {
               const best = personAt(e);
               const pan = (e.clientX / window.innerWidth) * 2 - 1;
               if (best && best.role === "mayor" && best.seed.id !== mine && best.seed.user_id && userId) { tap(pan); setWho(null); setPlace(null); setDmPeer(best.seed.user_id); setTavernOpen(true); return; }
+              if (heraldHit(e)) { openHerald(); return; }
               if (best) { hm(pan); setPlace(null); speak(best); return setWho(best); }
               if (courtAt(e)) { tap(pan); setWho(null); setPlace(null); return; }
               { const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
@@ -2802,7 +2811,7 @@ export function Game() {
 
       {owner && my && my.user_id === userId && claimsReady && !panelOpen && !walk && !herald && heraldDue(my.id) && (
         <div className="absolute inset-x-0 z-30 flex justify-center pointer-events-none" style={{ top: barH + 8 }}>
-          <WoodButton label={HERALD[lang].button} onClick={() => { setDecree(null); setHerald(true); jingle("fanfare"); }} className="pointer-events-auto h-10 px-3 animate-in fade-in"><span className="text-sm font-semibold">📜 {HERALD[lang].button}</span></WoodButton>
+          <WoodButton label={HERALD[lang].button} onClick={() => { const hs = heraldSpots.get(my.id); if (hs) { cam.current.x = hs.x; cam.current.y = hs.y - 6; } openHerald(); }} className="pointer-events-auto h-10 px-3 animate-in fade-in"><span className="text-sm font-semibold">📜 {HERALD[lang].button}</span></WoodButton>
         </div>
       )}
       {herald && my && (
