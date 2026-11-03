@@ -1795,7 +1795,7 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
     const X0 = ix * CH, Y0 = iy * CH, X1 = X0 + CH - 1, Y1 = Y0 + CH - 1;
     if (iso(X1, Y0)[0] + TW < vx0 || iso(X0, Y1)[0] - TW > vx1 || iso(X1, Y1)[1] + TH < vy0 || iso(X0, Y0)[1] - TH - PAD_TOP > vy1) continue;
     const cached = chunkCache.has(`${ix},${iy},${q},${sk}`);
-    if (!cached && baked >= 3) { // spread baking over frames; fall back to another cached quality if any
+    if (!cached && baked >= 1) { // spread baking over frames; fall back to another cached quality if any
       const oq = [2, 1, 0.5].find((o) => o !== q && chunkCache.has(`${ix},${iy},${o},${sk}`));
       const lo = oq ? chunkCache.get(`${ix},${iy},${oq},${sk}`) as (HTMLCanvasElement & { ox: number; oy: number }) : undefined;
       if (lo && oq) c.drawImage(lo, lo.ox, lo.oy, lo.width / oq, lo.height / oq);
