@@ -2374,6 +2374,8 @@ function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[]
     const y = s - x, [cx, cy] = iso(x, y);
     flatTile(g, x, y, cx, cy, sts[(y - Y0) * FC + (x - X0)] ?? null, seeds, now, t);
   }
+  // flatten the recorded commands into pixels once, so later frames blit a bitmap instead of replaying hundreds of sprite draws
+  g.getImageData(0, 0, 1, 1);
   cv.ox = left; cv.oy = top; e.cv = cv;
 }
 function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
