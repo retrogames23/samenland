@@ -2805,6 +2805,20 @@ export function Game() {
         </Parchment>
       )}
 
+      {owner && my && my.user_id === userId && claimsReady && !panelOpen && !walk && !herald && heraldDue(my.id) && (
+        <div className="absolute inset-x-0 z-30 flex justify-center pointer-events-none" style={{ top: barH + 8 }}>
+          <WoodButton label={HERALD[lang].button} onClick={() => { setDecree(null); setHerald(true); jingle("fanfare"); }} className="pointer-events-auto h-10 px-3 animate-in fade-in"><span className="text-sm font-semibold">📜 {HERALD[lang].button}</span></WoodButton>
+        </div>
+      )}
+      {herald && my && (
+        <Parchment title={HERALD[lang].title} later={HERALD[lang].leave} onLater={() => setHerald(false)}>
+          <p className="text-sm italic leading-relaxed text-ink">{HERALD[lang].arrive}</p>
+          {decree ? <p className="mt-3 text-sm italic leading-relaxed text-ink">{decree}</p>
+            : <Button type="button" size="sm" className="mt-3 w-full" onClick={() => askDecree(my.id)}>📜 {HERALD[lang].ask}</Button>}
+          {decree && openTaskOf(princelyRows.current, my.id) && <p className="mt-2 text-xs italic text-muted-foreground">{HERALD[lang].read}</p>}
+          <p className="mt-2 text-xs text-muted-foreground">{PRINCELY[lang].favour(favourOf(princelyRows.current, my.id), PRINCELY_COUNT)}</p>
+        </Parchment>
+      )}
       {owner && quest && claimsReady && !panelOpen && (
         <div className={`absolute right-16 z-30 ${waitDone && !waitShut && !anyOpen && !decision.open ? "max-md:hidden" : ""} max-w-[calc(100vw-5rem)] md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
           <div className="parchment px-3 py-2 text-sm text-ink shadow">
