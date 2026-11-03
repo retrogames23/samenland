@@ -183,7 +183,7 @@ function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking
   const bob = sleeping ? 0 : walking ? Math.abs(Math.sin(ph * Math.PI)) * 0.18 : Math.sin(t / 2600) * 0.12;
   c.fillStyle = "rgba(30,36,22,0.32)"; c.beginPath(); c.ellipse(x, y, 2.4, 0.8, 0, 0, 7); c.fill();
   // zero-save: absolute matrix (world × translate × mirror), reset to the world matrix afterwards
-  const B = c.getTransform(), fs = flip ? -1 : 1;
+  const B = c.getTransform(), fs = flip ? -1 : 1, ga = c.globalAlpha;
   c.setTransform(B.a * fs, B.b * fs, B.c, B.d, B.a * x + B.c * (y - bob) + B.e, B.b * x + B.d * (y - bob) + B.f);
   if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
   if (sheet) {
@@ -194,7 +194,7 @@ function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking
     const h = (w * im.naturalHeight) / im.naturalWidth;
     c.drawImage(im, -w / 2, -h * 0.95, w, h);
   }
-  c.globalAlpha = 1; c.setTransform(B);
+  c.globalAlpha = ga; c.setTransform(B);
 }
 
 const roofHue = (s: Structure, slate = false) => slate ? [215, 12, 46] : [12 + s.v * 18 + (s.seed.hue % 20) - 10, 48, 50];
