@@ -1,5 +1,6 @@
 import type { Lang } from "@/game/i18n";
 import type { Quest } from "@/game/quests";
+import type { Job, Person } from "@/game/people";
 
 /** Mayor's tasks dressed as villagers' petitions; growth thresholds are celebrated milestones instead. Presentation only — quest keys, rewards and the DB guard are unchanged. */
 export type Speaker = "elder" | "herb" | "carpenter" | "inn" | "carter" | "trader" | "guild" | "sexton";
@@ -21,17 +22,18 @@ type Chrome = {
   thanks: (name: string) => string;
   milestone: string;
   feast: string;
+  find: string;
 };
 
 const CHROME: Record<Lang, Chrome> = {
-  de: { roles: { elder: "die Dorfälteste", herb: "die Kräuterfrau", carpenter: "der Zimmermann", inn: "der Wirt", carter: "der Fuhrmann", trader: "der Händler", guild: "der Zunftmeister", sexton: "der Küster" }, plea: (n, r) => `Eine Bitte von ${n}, ${r}`, thanks: (n) => `${n} dankt dir`, milestone: "Das Dorf wächst", feast: "Ein Festtag fürs Dorf!" },
-  en: { roles: { elder: "the village elder", herb: "the herb-wife", carpenter: "the carpenter", inn: "the innkeeper", carter: "the carter", trader: "the trader", guild: "the guild master", sexton: "the sexton" }, plea: (n, r) => `A request from ${n}, ${r}`, thanks: (n) => `${n} thanks you`, milestone: "The village grows", feast: "A feast day for the village!" },
-  fr: { roles: { elder: "la doyenne", herb: "l'herboriste", carpenter: "le charpentier", inn: "l'aubergiste", carter: "le charretier", trader: "le marchand", guild: "le maître de guilde", sexton: "le sacristain" }, plea: (n, r) => `Une requête de ${n}, ${r}`, thanks: (n) => `${n} vous remercie`, milestone: "Le village grandit", feast: "Jour de fête au village !" },
-  es: { roles: { elder: "la anciana", herb: "la herbolaria", carpenter: "el carpintero", inn: "el posadero", carter: "el carretero", trader: "el mercader", guild: "el maestro gremial", sexton: "el sacristán" }, plea: (n, r) => `Una petición de ${n}, ${r}`, thanks: (n) => `${n} te da las gracias`, milestone: "La aldea crece", feast: "¡Día de fiesta en la aldea!" },
-  ar: { roles: { elder: "كبيرة القرية", herb: "العشّابة", carpenter: "النجّار", inn: "صاحب النُّزُل", carter: "العربجي", trader: "التاجر", guild: "شيخ الطائفة", sexton: "خادم الكنيسة" }, plea: (n, r) => `طلب من ${n}، ${r}`, thanks: (n) => `${n} يشكرك`, milestone: "القرية تكبر", feast: "يوم عيد في القرية!" },
-  hi: { roles: { elder: "गाँव की बुज़ुर्ग", herb: "जड़ी-बूटी वाली", carpenter: "बढ़ई", inn: "सराय वाला", carter: "गाड़ीवान", trader: "व्यापारी", guild: "श्रेणी-प्रमुख", sexton: "गिरजे का सेवक" }, plea: (n, r) => `${n} (${r}) का निवेदन`, thanks: (n) => `${n} आपका धन्यवाद करते हैं`, milestone: "गाँव बढ़ रहा है", feast: "गाँव में उत्सव का दिन!" },
-  zh: { roles: { elder: "村中长者", herb: "草药婆婆", carpenter: "木匠", inn: "旅店老板", carter: "车夫", trader: "商人", guild: "行会师傅", sexton: "教堂司事" }, plea: (n, r) => `${r}${n}的请求`, thanks: (n) => `${n}向你致谢`, milestone: "村庄在成长", feast: "村里的节日！" },
-  ja: { roles: { elder: "村の長老", herb: "薬草師", carpenter: "大工", inn: "宿屋の主人", carter: "荷馬車引き", trader: "商人", guild: "ギルドの親方", sexton: "教会守" }, plea: (n, r) => `${r}${n}からのお願い`, thanks: (n) => `${n}からの感謝`, milestone: "村は育っています", feast: "村の祝いの日！" },
+  de: { roles: { elder: "die Dorfälteste", herb: "die Kräuterfrau", carpenter: "der Zimmermann", inn: "der Wirt", carter: "der Fuhrmann", trader: "der Händler", guild: "der Zunftmeister", sexton: "der Küster" }, plea: (n, r) => `Eine Bitte von ${n}, ${r}`, thanks: (n) => `${n} dankt dir`, milestone: "Das Dorf wächst", feast: "Ein Festtag fürs Dorf!", find: "Aufsuchen" },
+  en: { roles: { elder: "the village elder", herb: "the herb-wife", carpenter: "the carpenter", inn: "the innkeeper", carter: "the carter", trader: "the trader", guild: "the guild master", sexton: "the sexton" }, plea: (n, r) => `A request from ${n}, ${r}`, thanks: (n) => `${n} thanks you`, milestone: "The village grows", feast: "A feast day for the village!", find: "Find" },
+  fr: { roles: { elder: "la doyenne", herb: "l'herboriste", carpenter: "le charpentier", inn: "l'aubergiste", carter: "le charretier", trader: "le marchand", guild: "le maître de guilde", sexton: "le sacristain" }, plea: (n, r) => `Une requête de ${n}, ${r}`, thanks: (n) => `${n} vous remercie`, milestone: "Le village grandit", feast: "Jour de fête au village !", find: "Trouver" },
+  es: { roles: { elder: "la anciana", herb: "la herbolaria", carpenter: "el carpintero", inn: "el posadero", carter: "el carretero", trader: "el mercader", guild: "el maestro gremial", sexton: "el sacristán" }, plea: (n, r) => `Una petición de ${n}, ${r}`, thanks: (n) => `${n} te da las gracias`, milestone: "La aldea crece", feast: "¡Día de fiesta en la aldea!", find: "Buscar" },
+  ar: { roles: { elder: "كبيرة القرية", herb: "العشّابة", carpenter: "النجّار", inn: "صاحب النُّزُل", carter: "العربجي", trader: "التاجر", guild: "شيخ الطائفة", sexton: "خادم الكنيسة" }, plea: (n, r) => `طلب من ${n}، ${r}`, thanks: (n) => `${n} يشكرك`, milestone: "القرية تكبر", feast: "يوم عيد في القرية!", find: "ابحث" },
+  hi: { roles: { elder: "गाँव की बुज़ुर्ग", herb: "जड़ी-बूटी वाली", carpenter: "बढ़ई", inn: "सराय वाला", carter: "गाड़ीवान", trader: "व्यापारी", guild: "श्रेणी-प्रमुख", sexton: "गिरजे का सेवक" }, plea: (n, r) => `${n} (${r}) का निवेदन`, thanks: (n) => `${n} आपका धन्यवाद करते हैं`, milestone: "गाँव बढ़ रहा है", feast: "गाँव में उत्सव का दिन!", find: "खोजें" },
+  zh: { roles: { elder: "村中长者", herb: "草药婆婆", carpenter: "木匠", inn: "旅店老板", carter: "车夫", trader: "商人", guild: "行会师傅", sexton: "教堂司事" }, plea: (n, r) => `${r}${n}的请求`, thanks: (n) => `${n}向你致谢`, milestone: "村庄在成长", feast: "村里的节日！", find: "寻找" },
+  ja: { roles: { elder: "村の長老", herb: "薬草師", carpenter: "大工", inn: "宿屋の主人", carter: "荷馬車引き", trader: "商人", guild: "ギルドの親方", sexton: "教会守" }, plea: (n, r) => `${r}${n}からのお願い`, thanks: (n) => `${n}からの感謝`, milestone: "村は育っています", feast: "村の祝いの日！", find: "会いに行く" },
 };
 
 /** Personal plea + thanks in the villager's voice. Languages without their own wording fall back to the quest list text. */
@@ -64,16 +66,31 @@ const VOICE: Partial<Record<Lang, Partial<Record<Quest, [string, string]>>>> = {
   },
 };
 
-export type Petition = { milestone: boolean; header: string; plea?: string | undefined; thanks?: string | undefined; who?: string | undefined };
+export type Petition = { milestone: boolean; header: string; plea?: string | undefined; thanks?: string | undefined; who?: string | undefined; person?: Person | undefined; find?: string | undefined };
+
+/** Real villagers who can voice each speaker (sex matches the role wording); elder = oldest resident. */
+const JOBS: Record<Speaker, readonly Job[]> = {
+  elder: ["retired"], herb: ["herbalist", "healer"], carpenter: ["builder", "sawyer", "crafter"], inn: ["innkeeper"],
+  carter: ["carter"], trader: ["merchant"], guild: ["smith", "crafter", "miller", "baker"], sexton: ["priest"],
+};
+const SEX: Record<Speaker, "f" | "m"> = { elder: "f", herb: "f", carpenter: "m", inn: "m", carter: "m", trader: "m", guild: "m", sexton: "m" };
+
+/** A resident actually living in the village who fits the speaker, chosen stably by id; none -> archetype stays. */
+export function speakerIn(s: Speaker, people: readonly Person[]): Person | undefined {
+  const ok = people.filter((p) => p.role !== "mayor" && p.role !== "guest" && p.sex === SEX[s] && p.age >= 16 && (s === "elder" ? p.age >= 60 : JOBS[s].includes(p.job)));
+  if (!ok.length) return undefined;
+  return s === "elder" ? ok.reduce((a, b) => (b.age > a.age || (b.age === a.age && b.id < a.id) ? b : a)) : ok.reduce((a, b) => (b.id < a.id ? b : a));
+}
 
 /** Presentation of the current task: who asks, their words, or a milestone header. */
-export function petitionOf(q: Quest, lang: Lang, variant: boolean): Petition {
+export function petitionOf(q: Quest, lang: Lang, variant: boolean, people: readonly Person[] = []): Petition {
   const c = CHROME[lang] ?? CHROME.en;
   const s = SPEAKER[q];
   if (!s || MILESTONES.includes(q)) return { milestone: true, header: c.milestone };
-  const name = NAMES[s];
+  const person = speakerIn(s, people);
+  const name = person ? `${person.first} ${person.last}`.trim() : NAMES[s];
   const v = variant ? undefined : VOICE[lang]?.[q];
-  return { milestone: false, header: c.plea(name, c.roles[s]), plea: v?.[0], thanks: v?.[1], who: c.thanks(name) };
+  return { milestone: false, header: c.plea(name, c.roles[s]), plea: v?.[0], thanks: v?.[1], who: c.thanks(person?.first ?? name), person, find: person ? c.find : undefined };
 }
 
 export const feastTitle = (lang: Lang) => (CHROME[lang] ?? CHROME.en).feast;
