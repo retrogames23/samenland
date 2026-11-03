@@ -931,6 +931,17 @@ export function mayorGoal(now: number): Tile | null {
   return now - order.at < 600000 ? order.to : null;
 }
 export const clearMayorOrder = () => { order = null; drive = null; };
+/** Leaving stroll mode: the mayor stays where he is (local-only), instead of snapping back to his routine. */
+export function parkMayor(p: Person, t: Town, seeds: Seed[], now: number) {
+  if (p.role !== "mayor") return;
+  if (drive && drive.id === p.id) { drive.moving = false; return; }
+  if (!order || order.id !== p.id) return;
+  const q = poseOf(p, t, seeds, now);
+  drive = { id: p.id, sid: p.seed.id, x: q.x, y: q.y, dir: q.dir, moving: false, dist: 0 };
+  order = null;
+}
+/** True while the own mayor stands or walks away from his routine (stroll position kept). */
+export const mayorAway = () => !!drive || !!order;
 /** Walking pace when the player steers the mayor directly (tiles/s). */
 export const DRIVE_SPEED = 0.38;
 /** Knights ride: speed factor of the riding horse in stroll mode (local-only, from the knighthood row). */
