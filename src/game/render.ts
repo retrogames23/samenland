@@ -1906,7 +1906,7 @@ function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Struct
   if (sp) c.drawImage(sp, cx - AGRI_W / 2, cy - AGRI_UP, AGRI_W, AGRI_H);
 }
 /** Wild trees, bushes, crags and ore rocks of one tile — the single source for every zoom level. */
-function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean) {
+function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean, turf = true) {
   if (inCourt(x, y)) return; // the estate keeps open lawns
   const tr = terrain(x, y);
   if (tr === "hill" || tr === "mountain") {
@@ -1916,7 +1916,7 @@ function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number,
     }
   }
   if (!free) return;
-  wildTurf(g, x, y, cx, cy, tr);
+  if (turf) wildTurf(g, x, y, cx, cy, tr);
   if (tr === "mountain" && hash(x, y, 26) > 0.55) drawNature(g, "crag", cx + (hash(x, y, 28) - 0.5) * 6, cy + 4, 0.55 + hash(x, y, 27) * 0.5, 0, hash(x, y, 29) > 0.5);
   if (tr === "forest") {
     if (hash(x, y, 19) > 0.35) tree(g, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6);
@@ -2736,7 +2736,7 @@ export function draw(
       else if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
       continue; // forests and crags are baked into the ground chunks
     }
-    if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true);
+    if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true, false); // turf already lies in the flat pass
     if (st?.kind === "coop" && st.build === undefined) drawHens(c, cx, cy, x * 31 + y);
     if (hash(x, y, 501) < 0.006) { const tr = st ? null : terrain(x, y); if (tr === "water" || (tr === "sand" && hash(x, y, 502) < 0.5)) birds.push([cx, cy, 1, x * 7 + y]); }
     if (st?.kind === "field" && hash(x, y, 503) < 0.02) birds.push([cx, cy, 0, x * 7 + y]);
