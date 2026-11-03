@@ -940,7 +940,9 @@ export function Game() {
     const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor");
     if (!me) return;
     const c = aud ? courtCenter() : { x, y };
-    for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1], [2, 0], [0, 2], [-2, 0], [0, -2]]) {
+    const offs: [number, number][] = [];
+    for (let r = 0; r <= (aud ? 8 : 2); r++) for (let ox = -r; ox <= r; ox++) for (let oy = -r; oy <= r; oy++) if (Math.max(Math.abs(ox), Math.abs(oy)) === r) offs.push([ox, oy]);
+    for (const [ox, oy] of offs) {
       if (commandMayor(me, tw, seeds, nw, [Math.round(c.x) + ox, Math.round(c.y) + oy])) { courtGoal.current = errand ?? "audience"; camFree.current = false; return; }
     }
   };
