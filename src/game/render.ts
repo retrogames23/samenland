@@ -1922,6 +1922,7 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   const X0 = ix * CH, Y0 = iy * CH, X1 = Math.min(MAP - 1, X0 + CH - 1), Y1 = Math.min(MAP - 1, Y0 + CH - 1);
   // bounding box of the chunk diamond in world pixels
   const left = iso(X0, Y1)[0] - TW, right = iso(X1, Y0)[0] + TW, top = iso(X0, Y0)[1] - TH - PAD_TOP, bottom = iso(X1, Y1)[1] + TH;
+  const tb0 = performance.now();
   const cv = document.createElement("canvas");
   cv.width = Math.ceil((right - left) * q); cv.height = Math.ceil((bottom - top) * q);
   const g = cv.getContext("2d")!;
@@ -1932,6 +1933,7 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.lineTo(d[0], d[1]); g.lineTo(e[0], e[1]); g.closePath(); g.clip();
   drawGround(g, X0, X1, Y0, Y1, 0, false);
   g.restore();
+  const tb1 = performance.now();
   let missing = false;
   for (let s = X0 + Y0; s <= X1 + Y1; s++) for (let x = Math.max(X0, s - Y1); x <= Math.min(X1, s - Y0); x++) {
     const y = s - x;
@@ -1940,6 +1942,7 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
     natureAt(g, x, y, cx, cy, 0, true);
   }
   if (!allTexturesReady() || !natureReady()) missing = true;
+  { const tb2 = performance.now(); renderStats.bakes++; renderStats.bakeGround = Math.max(renderStats.bakeGround, tb1 - tb0); renderStats.bakeNature = Math.max(renderStats.bakeNature, tb2 - tb1); renderStats.bakeMs = Math.max(renderStats.bakeMs, tb2 - tb0); }
   (cv as HTMLCanvasElement & { ox?: number; oy?: number }).ox = left;
   (cv as HTMLCanvasElement & { ox?: number; oy?: number }).oy = top;
   if (missing) return cv; // not cached: re-bake once images have loaded
@@ -2307,7 +2310,7 @@ const framePool = {
 };
 
 /** Per-frame counters for the dev diagnostics HUD (mutated in place, no allocation). */
-export const renderStats = { tiles: 0, folk: 0, chunks: 0 };
+export const renderStats = { tiles: 0, folk: 0, chunks: 0, bakeMs: 0, bakeGround: 0, bakeNature: 0, bakes: 0 };
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
