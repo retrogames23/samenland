@@ -62,7 +62,7 @@ import { PRINCELY } from "@/game/lang/princely";
 import { princelyClaims, favourOf, openTaskOf, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { courtPoses, courtCenter, atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
-import { Beer } from "lucide-react";
+import { Beer, ChevronDown, MapPin } from "lucide-react";
 import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, jingle, disposeAudio } from "@/game/audio";
 import {
