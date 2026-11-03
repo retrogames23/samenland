@@ -2376,7 +2376,7 @@ export function Game() {
       {/* minimap + zoom */}
       <div className="pointer-events-none absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] end-[max(0.75rem,env(safe-area-inset-right))] z-20 hidden md:block">
         <Panel inner="p-1.5">
-          <Minimap seeds={seeds} mine={mine} view={view} onJump={(x, y) => focus(x, y)} />
+          <div dir="ltr"><Minimap seeds={seeds} mine={mine} view={view} onJump={(x, y) => focus(x, y)} /></div>
           <div className="mt-1.5 flex gap-1">
             <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.hud.zoomOut} onClick={() => zoomBy(1 / 1.6)}><Minus className="h-4 w-4" /></Button>
             <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.hud.zoomIn} onClick={() => zoomBy(1.6)}><Plus className="h-4 w-4" /></Button>
