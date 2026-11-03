@@ -1733,6 +1733,167 @@ function wildTurf(g: C, x: number, y: number, cx: number, cy: number, tr: string
   const sp = turfSprite(tr, Math.floor(hash(x, y, 819) * TURF_VARIANTS));
   g.drawImage(sp, cx - TURF_W / 2, cy - TURF_UP - TH / 2, TURF_W, TURF_H);
 }
+// ---------------- farmland: live base fill (world-anchored textures) + cached detail sprites ----------------
+type Pt2 = [number, number];
+const NS4: [number, number][] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const lerp2 = (a: Pt2, b: Pt2, f: number): Pt2 => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+/** Organic acre outline: outer sides bow gently, outer corners are rounded off (hashes from the variant coords). */
+function acrePath(c: C, cx: number, cy: number, hx: number, hy: number, outer: boolean[]) {
+  const pp = P(cx, cy);
+  const q = [pp(-0.52, -0.52), pp(0.52, -0.52), pp(0.52, 0.52), pp(-0.52, 0.52)];
+  const round = (k: number) => outer[(k + 3) & 3]! && outer[k]!;
+  c.beginPath();
+  const st0 = round(0) ? lerp2(q[0]!, q[1]!, 0.35) : q[0]!; c.moveTo(st0[0], st0[1]);
+  for (let k = 0; k < 4; k++) {
+    const A = q[k]!, Bq = q[(k + 1) & 3]!, Cq = q[(k + 2) & 3]!, k1 = (k + 1) & 3;
+    const end = round(k1) ? lerp2(Bq, A, 0.35) : Bq;
+    if (outer[k]) {
+      const mid = lerp2(A, Bq, 0.5), wob = (hash(hx * 2 + NS4[k]![0], hy * 2 + NS4[k]![1], 77) - 0.5) * 0.25;
+      const ctl = lerp2(mid, [cx, cy], wob);
+      c.quadraticCurveTo(ctl[0], ctl[1], end[0], end[1]);
+    } else c.lineTo(end[0], end[1]);
+    if (round(k1)) { const nx = lerp2(Bq, Cq, 0.35); c.quadraticCurveTo(Bq[0], Bq[1], nx[0], nx[1]); }
+  }
+  c.closePath();
+  return q;
+}
+type AgriSpec = { kind: "field" | "garden" | "pasture"; ripe: boolean; along: boolean; outer: boolean[]; winter: boolean; hx: number; hy: number; k2: number };
+/** Furrows, plants, wattle, bean poles, tufts and troughs — everything except the textured base fill. */
+function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
+  const pp = P(cx, cy), { hx: x, hy: y, ripe, along, outer } = a;
+  if (a.kind === "pasture") {
+    const k2 = a.k2, d0 = pp(-k2, -k2), d1 = pp(k2, -k2), d2 = pp(k2, k2), d3 = pp(-k2, k2);
+    c.save(); c.beginPath(); c.moveTo(d0[0], d0[1]); c.lineTo(d1[0], d1[1]); c.lineTo(d2[0], d2[1]); c.lineTo(d3[0], d3[1]); c.closePath(); c.clip(); c.lineCap = "round";
+    const ta = pp(-0.6, (hash(x, y, 703) - 0.5) * 0.6), tb = pp(0.6, (hash(x, y, 704) - 0.5) * 0.6), tm = pp(0, (hash(x, y, 705) - 0.5) * 0.8);
+    c.strokeStyle = "rgba(140,112,70,0.35)"; c.lineWidth = 1.1; c.beginPath(); c.moveTo(ta[0], ta[1]); c.quadraticCurveTo(tm[0], tm[1], tb[0], tb[1]); c.stroke();
+    c.restore();
+    c.lineCap = "round"; c.strokeStyle = "rgba(96,110,52,0.8)"; c.lineWidth = 0.28; c.beginPath();
+    for (let n = 0; n < 6; n++) {
+      const u = hash(x, y, 710 + n) - 0.5, v = hash(x, y, 720 + n) - 0.5, [px, py] = pp(u * 0.85, v * 0.85);
+      for (let b = -1; b <= 1; b++) { c.moveTo(px + b * 0.3, py); c.lineTo(px + b * 0.45, py - 0.6 - hash(x, y, 730 + n) * 0.3); }
+    }
+    c.stroke();
+    if (hash(x, y, 740) > 0.8) {
+      const o = pp(0.15, -0.15), L = 0.32, Wd = 0.12, H = 1.1;
+      const A = pp(0.15 - L, -0.15 - Wd), B = pp(0.15 + L, -0.15 - Wd), Cc = pp(0.15 + L, -0.15 + Wd), D = pp(0.15 - L, -0.15 + Wd);
+      c.fillStyle = "rgba(25,18,10,0.3)"; c.beginPath(); c.ellipse(o[0] + 1, o[1] + 0.6, 4, 1.2, 0, 0, 7); c.fill();
+      const face = (p: Pt2[], col: string) => { c.beginPath(); c.moveTo(p[0]![0], p[0]![1]); for (const q of p.slice(1)) c.lineTo(q[0], q[1]); c.closePath(); c.fillStyle = col; c.fill(); };
+      face([D, Cc, [Cc[0], Cc[1] - H], [D[0], D[1] - H]], "#6b4a2c");
+      face([Cc, B, [B[0], B[1] - H], [Cc[0], Cc[1] - H]], "#4a3220");
+      face([[A[0], A[1] - H], [B[0], B[1] - H], [Cc[0], Cc[1] - H], [D[0], D[1] - H]], "#7a5634");
+      const s = 0.75, m = (p: Pt2): Pt2 => [o[0] + (p[0] - o[0]) * s, o[1] - H + (p[1] - o[1]) * s];
+      face([m(A), m(B), m(Cc), m(D)], "rgba(90,130,140,0.9)");
+    }
+    return;
+  }
+  c.save(); const q = acrePath(c, cx, cy, x, y, outer); c.clip(); c.lineCap = "round";
+  if (a.kind === "garden") {
+    for (let k = -3; k <= 3; k++) {
+      const f = k / 6, [a0, a1] = along ? [pp(-0.6, f), pp(0.6, f)] : [pp(f, -0.6), pp(f, 0.6)];
+      c.strokeStyle = "rgba(20,12,6,0.4)"; c.lineWidth = 1.1; c.beginPath(); c.moveTo(a0[0], a0[1] + 0.7); c.lineTo(a1[0], a1[1] + 0.7); c.stroke();
+      c.strokeStyle = "rgba(160,120,80,0.28)"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(a0[0], a0[1] - 0.3); c.lineTo(a1[0], a1[1] - 0.3); c.stroke();
+    }
+  } else {
+    for (let k = -2; k <= 2; k++) {
+      const f = k / 4, [a0, a1] = along ? [pp(-0.6, f), pp(0.6, f)] : [pp(f, -0.6), pp(f, 0.6)];
+      c.strokeStyle = "rgba(35,24,12,0.38)"; c.lineWidth = 1.3; c.beginPath(); c.moveTo(a0[0], a0[1] + 0.9); c.lineTo(a1[0], a1[1] + 0.9); c.stroke();
+      c.strokeStyle = ripe ? "rgba(255,230,160,0.22)" : "rgba(170,140,100,0.25)"; c.lineWidth = 0.7; c.beginPath(); c.moveTo(a0[0], a0[1] - 0.3); c.lineTo(a1[0], a1[1] - 0.3); c.stroke();
+    }
+  }
+  c.restore();
+  if (a.kind === "garden") {
+    const crow = fieldRowImage(false);
+    if (crow && !a.winter) {
+      const w = 2.6, hgt = (w * crow.height) / crow.width;
+      for (let k = -3; k <= 3; k++) for (let m = -2; m <= 2; m++) {
+        const h = hash(x * 7 + k, y * 5 + m, 660); if (h < 0.15) continue;
+        const f = k / 6, gg = m * 0.2 + (h - 0.5) * 0.08, [px, py] = along ? pp(gg, f) : pp(f, gg);
+        c.fillStyle = "rgba(20,14,6,0.25)"; c.beginPath(); c.ellipse(px + 0.4, py + 0.2, w * 0.4, 0.7, 0, 0, 7); c.fill();
+        c.save(); c.translate(px, py); if (h > 0.6) c.scale(-1, 1);
+        const s2 = 0.8 + h * 0.35; c.drawImage(crow, -w * s2 / 2, -hgt * s2 * 0.92, w * s2, hgt * s2); c.restore();
+      }
+    }
+    c.lineCap = "round";
+    for (let k = 0; k < 4; k++) if (outer[k]) {
+      const A = q[k]!, Bq = q[(k + 1) & 3]!;
+      c.strokeStyle = "rgba(25,18,10,0.25)"; c.lineWidth = 0.6; c.beginPath(); c.moveTo(A[0] + 0.4, A[1] + 0.3); c.lineTo(Bq[0] + 0.4, Bq[1] + 0.3); c.stroke();
+      c.strokeStyle = "#7a5a36"; c.lineWidth = 0.7; c.beginPath(); c.moveTo(A[0], A[1] - 0.45); c.lineTo(Bq[0], Bq[1] - 0.45); c.stroke();
+      c.strokeStyle = "rgba(200,165,110,0.6)"; c.lineWidth = 0.22; c.beginPath(); c.moveTo(A[0], A[1] - 0.7); c.lineTo(Bq[0], Bq[1] - 0.7); c.stroke();
+    }
+    if (hash(x, y, 670) > 0.62 && !a.winter) {
+      const [bx, by] = pp((hash(x, y, 671) - 0.5) * 0.4, (hash(x, y, 672) - 0.5) * 0.4), Hh = 6;
+      c.fillStyle = "rgba(25,18,10,0.22)"; c.beginPath(); c.ellipse(bx + 1.2, by + 0.3, 2.2, 0.6, 0, 0, 7); c.fill();
+      const feet: Pt2[] = [[bx - 1.2, by + 0.2], [bx + 1.2, by + 0.2], [bx, by - 0.5]];
+      for (const [i, f] of feet.entries()) {
+        c.strokeStyle = i === 1 ? "#5a3f24" : "#7d5b38"; c.lineWidth = 0.35; c.beginPath(); c.moveTo(f[0], f[1]); c.lineTo(bx, by - Hh); c.stroke();
+        c.fillStyle = "rgba(78,118,48,0.9)";
+        for (let n = 1; n < 5; n++) { const fr = n / 5, lx = f[0] + (bx - f[0]) * fr, ly = f[1] + (by - Hh - f[1]) * fr; c.beginPath(); c.ellipse(lx + (n & 1 ? 0.4 : -0.4), ly, 0.55, 0.4, 0, 0, 7); c.fill(); }
+      }
+    }
+  } else {
+    const row = fieldRowImage(ripe);
+    if (row && !a.winter) {
+      const w = ripe ? 4.6 : 4.2, hgt = (w * row.height) / row.width, flipRow = !along;
+      for (let k = -2; k <= 2; k++) for (let m = -3; m <= 3; m += 2) {
+        const f = k / 4, gg = m * 0.13 + (hash(x * 5 + k, y * 3 + m, 640) - 0.5) * 0.05;
+        const [px, py] = along ? pp(gg, f) : pp(f, gg);
+        c.fillStyle = "rgba(30,22,10,0.22)"; c.beginPath(); c.ellipse(px + 0.6, py + 0.3, w * 0.42, 1.2, 0, 0, 7); c.fill();
+        c.save(); c.translate(px, py); if (flipRow) c.scale(-1, 1);
+        c.drawImage(row, -w / 2, -hgt * 0.92, w, hgt); c.restore();
+      }
+    }
+  }
+  // field balk: a few grass tufts along the outer edges
+  c.strokeStyle = "rgba(78,96,46,0.5)"; c.lineWidth = 0.35; c.lineCap = "round"; c.beginPath();
+  for (let k = 0; k < 4; k++) if (outer[k]) for (let n = 0; n < 3; n++) {
+    const f = 0.2 + 0.3 * n + (hash(x, y, 500 + k * 3 + n) - 0.5) * 0.15;
+    const p = lerp2(q[k]!, q[(k + 1) & 3]!, f);
+    for (let b = -1; b <= 1; b++) { c.moveTo(p[0] + b * 0.35, p[1]); c.lineTo(p[0] + b * 0.7, p[1] - 0.9 - hash(x + b, y + n, 510 + k) * 0.6); }
+  }
+  c.stroke();
+}
+const AGRI_VARIANTS = 6, AGRI_S = 3, AGRI_W = 48, AGRI_UP = 20, AGRI_H = 34;
+const agriSprites = new Map<string, HTMLCanvasElement>();
+function agriSprite(a: AgriSpec, key: string): HTMLCanvasElement | null {
+  let cv = agriSprites.get(key);
+  if (cv) return cv;
+  // plant art not loaded yet: draw nothing cached (the fill is still shown) and retry next frame
+  if (a.kind !== "pasture" && !a.winter && !fieldRowImage(a.kind === "field" && a.ripe)) return null;
+  cv = document.createElement("canvas"); cv.width = AGRI_W * AGRI_S; cv.height = AGRI_H * AGRI_S;
+  const g = cv.getContext("2d")!; g.setTransform(AGRI_S, 0, 0, AGRI_S, 0, 0);
+  agriDetail(g, AGRI_W / 2, AGRI_UP, a);
+  agriSprites.set(key, cv);
+  while (agriSprites.size > 500) agriSprites.delete(agriSprites.keys().next().value!);
+  return cv;
+}
+/** One farmland tile: a textured base fill (few ops) plus one cached detail sprite. */
+function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Structure, seeds: Seed[], now: number) {
+  const v = Math.floor(hash(x, y, 661) * AGRI_VARIANTS), hx = 7001 + v * 3, hy = 5003;
+  const winter = seasonAt(now).winter >= 0.6;
+  let a: AgriSpec, key: string;
+  if (st.kind === "pasture") {
+    const isP = (i: number, j: number) => structureAt(x + i, y + j, seeds, now)?.kind === "pasture";
+    const k2 = 0.5 + (isP(1, 0) && isP(0, 1) && isP(-1, 0) && isP(0, -1) ? 0.06 : 0);
+    const pp = P(cx, cy), d0 = pp(-k2, -k2), d1 = pp(k2, -k2), d2 = pp(k2, k2), d3 = pp(-k2, k2);
+    c.beginPath(); c.moveTo(d0[0], d0[1]); c.lineTo(d1[0], d1[1]); c.lineTo(d2[0], d2[1]); c.lineTo(d3[0], d3[1]); c.closePath();
+    c.fillStyle = texture(c, "grass") ?? hsl(80, 30, 60); c.fill();
+    c.globalAlpha = 0.32; c.fillStyle = "rgb(196,190,110)"; c.fill(); c.globalAlpha = 1;
+    a = { kind: "pasture", ripe: false, along: false, outer: [], winter, hx, hy, k2 }; key = `p${k2}|${v}`;
+  } else {
+    const ac = acreOf(x, y, st.seed), ripe = st.kind === "field" && ac.ripe;
+    const sameA = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && o.kind === st.kind && acreOf(x + i, y + j, o.seed).id === ac.id; };
+    const outer = NS4.map(([i, j]) => !sameA(i, j));
+    acrePath(c, cx, cy, hx, hy, outer);
+    if (st.kind === "garden") {
+      c.fillStyle = texture(c, "fertile") ?? hsl(25, 35, 30); c.fill();
+      c.globalAlpha = 0.5; c.fillStyle = texture(c, "dirt") ?? hsl(30, 35, 55); c.fill(); c.globalAlpha = 1;
+    } else { c.fillStyle = texture(c, ripe ? "wheat" : "crops") ?? hsl(ripe ? 44 : 80, 50, 60); c.fill(); }
+    a = { kind: st.kind as "field" | "garden", ripe, along: ac.along, outer, winter, hx, hy, k2: 0 };
+    key = `${st.kind[0]}${+ripe}${+ac.along}${outer.map((o) => +o).join("")}${+winter}|${v}`;
+  }
+  const sp = agriSprite(a, key);
+  if (sp) c.drawImage(sp, cx - AGRI_W / 2, cy - AGRI_UP, AGRI_W, AGRI_H);
+}
 /** Wild trees, bushes, crags and ore rocks of one tile — the single source for every zoom level. */
 function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean) {
   if (inCourt(x, y)) return; // the estate keeps open lawns
