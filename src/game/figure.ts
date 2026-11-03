@@ -20,13 +20,17 @@ export interface FigureConfig {
   legWidthScale: number;
   /** Extra stance gap per leg (fraction of figure height) so legs don't pinch under wide coats. */
   legSpread: number;
+  /** Swing-phase foot lift as a fraction of leg length. */
+  lift: number;
+  /** Tiles per full gait cycle (two steps). */
+  stride?: number;
   /** "legs" = breeches on the shared leg cycle; "robe" = floor-length garment, stepping shoes + swaying hem;
    * "mantle" = cape over the shoulders: lower coat hangs behind the striding legs, swinging as one piece. */
   style: "legs" | "robe" | "mantle";
 }
 
 export const fig = (hipX: number, hemY: number, o: Partial<FigureConfig> = {}): FigureConfig =>
-  ({ hipX, hemY, hipY: 1 - LEG_RATIO, legWidthScale: 1, legSpread: 0, style: "legs", ...o });
+  ({ hipX, hemY, hipY: 1 - LEG_RATIO, legWidthScale: 1, legSpread: 0, lift: 0.15, style: "legs", ...o });
 
 /** Hip bounce: body dips at foot contact, rises mid-swing (≈2.5 % of height). Negative = up. */
 export const walkBob = (ph: number, h: number) => -Math.abs(Math.sin(ph)) * h * 0.025;
@@ -93,15 +97,15 @@ export function drawMantled(
 }
 
 /** Swing-phase foot lift for each leg half: footY = -sin(swingPhase) · legLength · 0.15, only while that leg swings. */
-export function footLifts(ph: number, lh: number): [number, number] {
-  const s = Math.sin(ph), k = lh * 0.15;
+export function footLifts(ph: number, lh: number, lift = 0.15): [number, number] {
+  const s = Math.sin(ph), k = lh * lift;
   return [s > 0 ? -s * k : 0, s < 0 ? s * k : 0];
 }
 /** Paints the leg pair as two halves; the swinging leg rises (its top tucks behind the torso hem). */
-export function drawLegPair(c: C, legs: HTMLImageElement, frame: number, lw: number, lh: number, dy: number, ph: number | undefined, spread = 0) {
+export function drawLegPair(c: C, legs: HTMLImageElement, frame: number, lw: number, lh: number, dy: number, ph: number | undefined, spread = 0, lift = 0.15) {
   const fw = legs.naturalWidth / WALK_FRAMES, lnh = legs.naturalHeight;
   if (ph === undefined && spread <= 0.001) { c.drawImage(legs, frame * fw, 0, fw, lnh, -lw / 2, -lh + dy, lw, lh); return; }
-  const [la, lb] = ph === undefined ? [0, 0] : footLifts(ph, lh), hf = fw / 2;
+  const [la, lb] = ph === undefined ? [0, 0] : footLifts(ph, lh, lift), hf = fw / 2;
   c.drawImage(legs, frame * fw, 0, hf, lnh, -lw / 2 - spread, -lh + dy + la, lw / 2, lh);
   c.drawImage(legs, frame * fw + hf, 0, hf, lnh, spread, -lh + dy + lb, lw / 2, lh);
 }
@@ -113,7 +117,7 @@ export function drawLegged(
 ) {
   const fw = legs.naturalWidth / WALK_FRAMES, lnh = legs.naturalHeight;
   const lh = h * (1 - g.hipY), lw = ((lh * fw) / lnh) * g.legWidthScale;
-  drawLegPair(c, legs, frame, lw, lh, legDy, ph, g.legSpread * h);
+  drawLegPair(c, legs, frame, lw, lh, legDy, ph, g.legSpread * h, g.lift);
   c.drawImage(im, sx, 0, sw, sh * g.hemY, -w * g.hipX, -h + torsoDy, w, h * g.hemY);
 }
 

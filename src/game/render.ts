@@ -41,7 +41,7 @@ import oakU from "@/assets/sprites/wonders/oak.webp";
 import ruinU from "@/assets/sprites/wonders/ruin.webp";
 import caravanU from "@/assets/sprites/wonders/caravan.webp";
 import springU from "@/assets/sprites/wonders/spring.webp";
-import { courtPieces, courtPoses, inCourt, courtSite, courtCenter, COURT_LAYOUT, COURT_STRIDE, type CourtPiece, type CourtPose, type CourtRole } from "./court";
+import { courtPieces, courtPoses, inCourt, courtSite, courtCenter, COURT_LAYOUT, COURT_STRIDE, GUARD_STRIDE, type CourtPiece, type CourtPose, type CourtRole } from "./court";
 import castleU from "@/assets/sprites/court/castle.webp";
 import stableU from "@/assets/sprites/court/stable.webp";
 import fountainU from "@/assets/sprites/court/fountain.webp";
@@ -2133,7 +2133,7 @@ function courtFigures(t: number) {
  * mantle, so he walks like the princess — swaying hem, only boot tips step out (no cut through the fur). */
 const COURT_GAIT: Record<CourtRole, FigureConfig> = {
   prince: fig(0.61, 0.56, { style: "mantle" }), princess: fig(0.5, 0.8, { style: "robe" }),
-  herald: fig(0.465, 0.66), guard: fig(0.48, 0.72, { legWidthScale: 1.06 }),
+  herald: fig(0.465, 0.66), guard: fig(0.48, 0.72, { lift: 0.05, stride: GUARD_STRIDE }),
   gardener: fig(0.47, 0.69), groom: fig(0.48, 0.63, { legWidthScale: 1.05 }),
 };
 const courtHeight = (r: CourtRole) => (r === "prince" ? 5.8 : 5.4);
@@ -2142,7 +2142,7 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
   // same human scale as villagers/mayors (5.2); the prince stands a touch taller
   const [px, py] = iso(q.x, q.y), h = courtHeight(q.role), w = (h * im.naturalWidth) / im.naturalHeight;
   // stride follows distance walked so feet never slide
-  const ph = ((q.dist ?? 0) / COURT_STRIDE) * 6.2832;
+  const ph = ((q.dist ?? 0) / (COURT_GAIT[q.role].stride ?? COURT_STRIDE)) * 6.2832;
   // shadow centred between the feet (legs hang from hipX), so the figure strides exactly over it
   const g0 = COURT_GAIT[q.role], cx0 = 0;
   c.save(); c.translate(px, py); if (q.dx < 0) c.scale(-1, 1);
