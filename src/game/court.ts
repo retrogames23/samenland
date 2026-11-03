@@ -57,10 +57,12 @@ export type CourtPose = { role: CourtRole; x: number; y: number; walking: boolea
 type P = [number, number];
 /** Court stride (tiles per full gait cycle ≈ 0.4 × figure height); each leg is a whole number of cycles. */
 export const COURT_STRIDE = 0.38;
-const cycles = (a: P, b: P) => Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / COURT_STRIDE));
+/** Guards march: long calm strides (~0.6 × figure height per step). */
+export const GUARD_STRIDE = 0.62;
+const cycles = (a: P, b: P, st = COURT_STRIDE) => Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / st));
 /** Waypoint deadzone in tiles (~3 px): closer than this counts as arrived. */
 const ARRIVE = 0.1;
-const loop = (pts: P[], period: number, t: number, phase = 0): { p: P; dx: number; walking: boolean; dist: number } => {
+const loop = (pts: P[], period: number, t: number, phase = 0, st = COURT_STRIDE): { p: P; dx: number; walking: boolean; dist: number } => {
   const segs = pts.length, f = (((t / period + phase) % 1) + 1) % 1 * segs, k = Math.floor(f), u = f - k;
   const a = pts[k]!, b = pts[(k + 1) % segs]!;
   // linger a little at each waypoint so walks read calmly
@@ -68,14 +70,14 @@ const loop = (pts: P[], period: number, t: number, phase = 0): { p: P; dx: numbe
   // distance-driven stride: every leg holds a whole number of gait cycles, so the figure always
   // arrives (and rests) with closed feet instead of freezing mid-step
   let cyc = 0;
-  for (let i = 0; i < k; i++) cyc += cycles(pts[i]!, pts[(i + 1) % segs]!);
-  cyc += cycles(a, b) * w;
+  for (let i = 0; i < k; i++) cyc += cycles(pts[i]!, pts[(i + 1) % segs]!, st);
+  cyc += cycles(a, b, st) * w;
   const len = Math.hypot(b[0] - a[0], b[1] - a[1]), walking = u > 0.25 && len * (1 - w) > ARRIVE;
   // facing hysteresis: a leg with little horizontal screen travel keeps the previous leg's facing
   const sdx = (s0: P, s1: P) => (s1[0] - s0[0]) - (s1[1] - s0[1]);
   let dx = sdx(a, b);
   for (let i = 1; Math.abs(dx) < 0.5 && i < segs; i++) { const p0 = pts[(k - i + segs) % segs]!, p1 = pts[(k - i + 1 + segs) % segs]!; const d = sdx(p0, p1); if (Math.abs(d) >= 0.5) dx = d; }
-  return { p: [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w], dx, walking, dist: cyc * COURT_STRIDE };
+  return { p: [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w], dx, walking, dist: cyc * st };
 };
 // walks skirt the fountain (tiles 8–10) and pavilion (11–13 × 6–8) instead of crossing them
 const GARDEN: P[] = [[8.2, 5.4], [10.6, 5.4], [10.7, 7.5], [7.6, 7.4]];
@@ -95,8 +97,8 @@ export function courtPoses(hour: number, t: number): CourtPose[] {
   if (hour >= 8 && hour < 13) put("princess", loop(GARDEN, 1.1e5, t, 0.5));
   else if (hour >= 13 && hour < 17) put("princess", loop(GARDEN, 9e4, t, 0.04));
   if (hour >= 7 && hour < 21) put("herald", hour < 13 ? stay([8.2, 7.2], -1) : loop([[12, 12.2], [12.6, 11.4]], 4e4, t));
-  put("guard", loop(PATROL, 7e4, t));
-  put("guard", day ? loop(PATROL, 7e4, t, 0.5) : stay([12.7, 12.5]));
+  put("guard", loop(PATROL, 7e4, t, 0, GUARD_STRIDE));
+  put("guard", day ? loop(PATROL, 7e4, t, 0.5, GUARD_STRIDE) : stay([12.7, 12.5]));
   if (hour >= 6 && hour < 17) put("gardener", loop(BEDS, 1.2e5, t));
   if (hour >= 6 && hour < 19) put("groom", loop(YARD, 6e4, t));
   return out;
