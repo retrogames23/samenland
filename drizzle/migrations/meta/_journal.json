@@ -505,6 +505,13 @@
       "when": 1793662503797,
       "tag": "0071_wonder_reward_values",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793722563645,
+      "tag": "0072_plantings_fruit_kinds",
+      "breakpoints": true
     }
   ]
 }

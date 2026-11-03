@@ -1,0 +1,2 @@
+ALTER TABLE public.plantings DROP CONSTRAINT IF EXISTS plantings_kind_check;
+ALTER TABLE public.plantings ADD CONSTRAINT plantings_kind_check CHECK (kind IN ('tree','flower','lantern','cherry','quince'));
