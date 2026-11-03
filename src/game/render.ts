@@ -2377,12 +2377,12 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     let e = flatCache.get(key);
     if (!e) { e = { sig: -1, checked: -1e9, cv: null, q: 0, sk: "", baked: 0 }; flatCache.set(key, e); }
     else { flatCache.delete(key); flatCache.set(key, e); }
-    if (t - e.checked > 2000 && checks < 3) { checks++; e.checked = t; const sg = flatSig(ix, iy, seeds, now); if (sg !== e.sig) { e.sig = sg; e.q = 0; } }
+    if (t - e.checked > 2000 && checks < 3) { checks++; e.checked = t; const ts0 = performance.now(); const sg = flatSig(ix, iy, seeds, now); renderStats.bakeMs = Math.max(renderStats.bakeMs, performance.now() - ts0); if (sg !== e.sig) { e.sig = sg; e.q = 0; } }
     if (e.sig === -1) continue; // not inspected yet: live tiles this frame
     if (e.sig === 0) { flatSet.add(key); continue; } // nothing flat here (open country lives in the ground chunks)
     // art still loading: bake anyway (never fall back to per-tile work), but refresh that chunk every 2 s until complete
     const fresh = e.cv && e.q === q && e.sk === sk && (e.full || t - e.baked < 2000);
-    if (!fresh && bakes < 1) { bakes++; renderStats.bakes++; e.cv = bakeFlat(ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; }
+    if (!fresh && bakes < 1) { bakes++; renderStats.bakes++; const tb = performance.now(); e.cv = bakeFlat(ix, iy, q, seeds, now, t); renderStats.bakeGround = Math.max(renderStats.bakeGround, performance.now() - tb); e.q = q; e.sk = sk; e.full = ready; e.baked = t; }
     if (e.cv && e.sk === sk) { c.drawImage(e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
   }
   while (flatCache.size > 64) flatCache.delete(flatCache.keys().next().value!);
