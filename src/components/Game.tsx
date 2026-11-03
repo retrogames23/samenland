@@ -1662,7 +1662,7 @@ export function Game() {
       if (walk) { stick.current = { dx: 0, dy: 0 }; setWalk(false); }
       return;
     }
-    if (k === " " || k === "spacebar") { done(); if (walk) camFree.current = false; else if (my) findMayor(); return; }
+    if (k === " " || k === "spacebar") { done(); if (walk) camFree.current = false; else if (my) focus(my.x, my.y); return; }
     if (k === "+" || k === "=" || k === "e") { done(); return zoomBy(1.6); }
     if (k === "-" || k === "_" || k === "q") { done(); return zoomBy(1 / 1.6); }
     if (walk) return;
