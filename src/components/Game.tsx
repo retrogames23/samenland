@@ -13,7 +13,7 @@ import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type Wonde
 import { draw, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townRank, rankInput, nextRankNeed } from "@/game/rank";
-import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, setMounted, setStrollHold, citizensOf, isHomeKind, setRemoteMayor, clearRemoteMayors, type Person } from "@/game/people";
+import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, parkMayor, mayorAway, setMounted, setStrollHold, citizensOf, isHomeKind, setRemoteMayor, clearRemoteMayors, type Person } from "@/game/people";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { banter } from "@/game/banter";
@@ -843,6 +843,7 @@ export function Game() {
             for (const w of wonders()) if (!wonderSeen.current.has(w.key) && Math.hypot(q.x - w.x, q.y - w.y) <= WONDER_REACH) { wonderSeen.current.add(w.key); wonderFn.current(w.key, w.kind, my); }
             { const near = atCourt(q.x, q.y); if (near !== courtNear.current) { courtNear.current = near; setNearCourt(near); } }
             { const ct = courtTask(my.id); const e = ct ? errandNear(worldHour(nw), nw, q.x, q.y, new Set(errandDone.current.filter((r) => r.task_id === ct.id).map((r) => r.errand))) : null; if (e !== errNear.current) { errNear.current = e; setNearErrand(e); } }
+            { const gl = courtGoal.current; if (gl && (gl === "audience" ? courtNear.current : errNear.current === gl)) { courtGoal.current = null; courtArrive.current(gl); } }
             if (drag.current?.moved) camFree.current = true;
             if (!camFree.current) { cam.current.x += (ix - cam.current.x) * k; cam.current.y += (iy - 10 - cam.current.y) * k; }
             else {
@@ -927,13 +928,29 @@ export function Game() {
     const f = lastPeople.find((o) => o.q.p === p);
     sayAt(text, f?.x ?? 0, f?.y ?? 0, 9, p.id, p.seed.id);
   };
+  /** Clicked a court figure in stroll mode: servants count for the Hofdienst, prince/herald grant the audience; too far → walk there first. */
+  const courtAct = (role: string, x: number, y: number) => {
+    if (!walk || !my || my.user_id !== userId) return;
+    const ct = courtTask(my.id);
+    const errand = (role === "gardener" || role === "groom") && ct && !errandDone.current.some((r) => r.task_id === ct.id && r.errand === role) ? role as Errand : null;
+    const aud = role === "prince" || role === "princess" || role === "herald";
+    if (!errand && !aud) return;
+    if (errand && errNear.current === errand) { void doErrand(my.id, errand); return; }
+    if (aud && courtNear.current) { setAudience(audienceHost(worldHour(clock()))); jingle("fanfare"); return; }
+    const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor");
+    if (!me) return;
+    const c = aud ? courtCenter() : { x, y };
+    for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1], [2, 0], [0, 2], [-2, 0], [0, -2]]) {
+      if (commandMayor(me, tw, seeds, nw, [Math.round(c.x) + ox, Math.round(c.y) + oy])) { courtGoal.current = errand ?? "audience"; camFree.current = false; return; }
+    }
+  };
   const courtAt = (e: { clientX: number; clientY: number }) => {
     const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
     const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
     const bd = Math.max(3, (coarse ? 34 : 16) / c.zoom);
     for (const q of courtPoses(worldHour(clock()), clock())) {
       const [ix, iy] = iso(q.x, q.y);
-      if (Math.hypot(ix - wx, iy - 2.5 - wy) < bd) { sayAt(banter(lang, { who: "court", role: q.role, night: isNight() }, bVars(seeds.find((x) => x.id === mine)?.name ?? "")), ix, iy, 10); return true; }
+      if (Math.hypot(ix - wx, iy - 2.5 - wy) < bd) { courtAct(q.role, q.x, q.y); sayAt(banter(lang, { who: "court", role: q.role, night: isNight() }, bVars(seeds.find((x) => x.id === mine)?.name ?? "")), ix, iy, 10); return true; }
     }
     return false;
   };
@@ -1068,7 +1085,7 @@ export function Game() {
   };
   const startWalk = () => { if (!my) return; setTab(null); setWho(null); setPlace(null); setPlacing(null); const cv = canvasRef.current; target.current = { zoom: 16, ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; setWalk(true); };
   const wasWalk = useRef(false);
-  useEffect(() => { setStrollHold(walk); if (wasWalk.current && !walk) { clearMayorOrder(); target.current = { ...target.current, zoom: Math.min(12, target.current.zoom) }; } wasWalk.current = walk; }, [walk]);
+  useEffect(() => { setStrollHold(walk); if (wasWalk.current && !walk) { if (my) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (me) parkMayor(me, tw, seeds, nw); } target.current = { ...target.current, zoom: Math.min(12, target.current.zoom) }; } wasWalk.current = walk; }, [walk]);
   const findMayor = () => {
     if (!my) return; const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (!me) return focus(my.x, my.y);
     const z = poseOf(me, tw, seeds, nw);
@@ -1222,6 +1239,9 @@ export function Game() {
   const [visitNote, setVisitNote] = useState<string | null>(null);
   // audience at the prince's seat: offered while the strolling mayor stands on the estate
   const courtNear = useRef(false);
+  /** Court figure the mayor was sent to by a click; acted on when he arrives. */
+  const courtGoal = useRef<Errand | "audience" | null>(null);
+  const courtArrive = useRef<(g: Errand | "audience") => void>(() => {});
   /** Stroll mode: the player scrolled the map away; the camera stops following until the mayor is sent off again. */
   const camFree = useRef(false);
   const [nearCourt, setNearCourt] = useState(false);
@@ -1249,6 +1269,7 @@ export function Game() {
     setErrandNote(P.errand[e][1] + (data >= ERRANDS.length ? " " + P.errandReady : ""));
     jingle(data >= ERRANDS.length ? "fanfare" : "coins");
   };
+  courtArrive.current = (gl) => { if (!my) return; if (gl === "audience") { setAudience(audienceHost(worldHour(clock()))); jingle("fanfare"); } else void doErrand(my.id, gl); };
   const knights = useRef<Set<string>>(new Set());
   const [, bumpKnight] = useState(0);
   // live strolling mayors: one shared broadcast room per realm, purely ephemeral (no table writes)
@@ -1299,7 +1320,7 @@ export function Game() {
     setDecree(data === "swapped" ? P.swapped : data === "wait" ? P.wait : P.open(P.task.court));
   };
   useEffect(() => { if (!audience) setDecree(null); }, [audience]);
-  useEffect(() => { if (!walk) { courtNear.current = false; setNearCourt(false); setAudience(null); errNear.current = null; setNearErrand(null); } }, [walk]);
+  useEffect(() => { if (!walk) { courtGoal.current = null; courtNear.current = false; setNearCourt(false); setAudience(null); errNear.current = null; setNearErrand(null); } }, [walk]);
   useEffect(() => { if (!errandNote) return; const h = setTimeout(() => setErrandNote(null), 9000); return () => clearTimeout(h); }, [errandNote]);
   useEffect(() => { if (!visitNote) return; const h = setTimeout(() => setVisitNote(null), 9000); return () => clearTimeout(h); }, [visitNote]);
   visitFn.current = (o, my) => {
@@ -2004,6 +2025,7 @@ export function Game() {
           <WoodButton label={t.hud.walkExit} onClick={() => { stick.current = { dx: 0, dy: 0 }; setWalk(false); }} className="pointer-events-auto h-11 gap-1.5 px-4">
             <X className="h-4 w-4" /><span className="text-xs">{t.hud.walkExit}</span>
           </WoodButton>
+          {mayorAway() && <WoodButton label={t.hud.walkHome} onClick={() => { stick.current = { dx: 0, dy: 0 }; clearMayorOrder(); setWalk(false); }} className="pointer-events-auto h-9 px-3"><span className="text-xs">🏠 {t.hud.walkHome}</span></WoodButton>}
         </div>
       )}
       <LoadingScreen title="Samenland" lines={t.loading} onDone={openGuide} />
