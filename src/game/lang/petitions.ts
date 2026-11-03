@@ -26,7 +26,7 @@ type Chrome = {
 };
 
 const CHROME: Record<Lang, Chrome> = {
-  de: { roles: { elder: "die Dorfälteste", herb: "die Kräuterfrau", carpenter: "der Zimmermann", inn: "der Wirt", carter: "der Fuhrmann", trader: "der Händler", guild: "der Zunftmeister", sexton: "der Küster" }, plea: (n, r) => `Eine Bitte von ${n}, ${r}`, thanks: (n) => `${n} dankt dir`, milestone: "Das Dorf wächst", feast: "Ein Festtag fürs Dorf!", find: "Aufsuchen" },
+  de: { roles: { elder: "der Dorfältesten", herb: "der Kräuterfrau", carpenter: "dem Zimmermann", inn: "dem Wirt", carter: "dem Fuhrmann", trader: "dem Händler", guild: "dem Zunftmeister", sexton: "dem Küster" }, plea: (n, r) => `Eine Bitte von ${n}, ${r}`, thanks: (n) => `${n} dankt dir`, milestone: "Das Dorf wächst", feast: "Ein Festtag fürs Dorf!", find: "Aufsuchen" },
   en: { roles: { elder: "the village elder", herb: "the herb-wife", carpenter: "the carpenter", inn: "the innkeeper", carter: "the carter", trader: "the trader", guild: "the guild master", sexton: "the sexton" }, plea: (n, r) => `A request from ${n}, ${r}`, thanks: (n) => `${n} thanks you`, milestone: "The village grows", feast: "A feast day for the village!", find: "Find" },
   fr: { roles: { elder: "la doyenne", herb: "l'herboriste", carpenter: "le charpentier", inn: "l'aubergiste", carter: "le charretier", trader: "le marchand", guild: "le maître de guilde", sexton: "le sacristain" }, plea: (n, r) => `Une requête de ${n}, ${r}`, thanks: (n) => `${n} vous remercie`, milestone: "Le village grandit", feast: "Jour de fête au village !", find: "Trouver" },
   es: { roles: { elder: "la anciana", herb: "la herbolaria", carpenter: "el carpintero", inn: "el posadero", carter: "el carretero", trader: "el mercader", guild: "el maestro gremial", sexton: "el sacristán" }, plea: (n, r) => `Una petición de ${n}, ${r}`, thanks: (n) => `${n} te da las gracias`, milestone: "La aldea crece", feast: "¡Día de fiesta en la aldea!", find: "Buscar" },
@@ -77,7 +77,7 @@ const SEX: Record<Speaker, "f" | "m"> = { elder: "f", herb: "f", carpenter: "m",
 
 /** A resident actually living in the village who fits the speaker, chosen stably by id; none -> archetype stays. */
 export function speakerIn(s: Speaker, people: readonly Person[]): Person | undefined {
-  const ok = people.filter((p) => p.role !== "mayor" && p.role !== "guest" && p.sex === SEX[s] && p.age >= 16 && (s === "elder" ? p.age >= 60 : JOBS[s].includes(p.job)));
+  const ok = people.filter((p) => p.role !== "mayor" && p.role !== "guest" && p.sex === SEX[s] && p.age >= 16 && (s === "elder" ? true : JOBS[s].includes(p.job)));
   if (!ok.length) return undefined;
   return s === "elder" ? ok.reduce((a, b) => (b.age > a.age || (b.age === a.age && b.id < a.id) ? b : a)) : ok.reduce((a, b) => (b.id < a.id ? b : a));
 }

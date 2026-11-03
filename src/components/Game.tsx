@@ -62,7 +62,7 @@ import { PRINCELY } from "@/game/lang/princely";
 import { princelyClaims, favourOf, openTaskOf, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { courtPoses, courtCenter, atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
-import { Beer } from "lucide-react";
+import { Beer, ChevronDown, MapPin } from "lucide-react";
 import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, jingle, disposeAudio } from "@/game/audio";
 import {
@@ -188,6 +188,7 @@ export function Game() {
   const [profile, setProfile] = useState<Seed | null>(null);
   const [postText, setPostText] = useState("");
   const [claims, setClaims] = useState<QuestClaim[]>([]);
+  const [claimsReady, setClaimsReady] = useState(false);
   const [charters, setCharters] = useState<{ id: string; seed_id: string; path: string; created_at: string }[]>([]);
   const [charterOpen, setCharterOpen] = useState(false);
   const [firstRoads, setFirstRoads] = useState<{ id: string; seed_id: string; target_id: string; created_at: string }[]>([]);
@@ -591,6 +592,7 @@ export function Game() {
         wonderRows.current = (wf.data ?? []) as unknown as WonderFind[];
         syncWonders();
         setClaims([...(q.data ?? []), ...visitClaims(vv.data ?? []), ...wonderClaims(wonderRows.current), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? []), ...princelyClaims(princelyRows.current)]);
+        setClaimsReady(true);
         // tell the inviter once when a friend has answered the call
         const mine = ss.find((s) => uid && s.user_id === uid);
         const got = (rf.data ?? []).filter((x) => mine && x.referrer_seed === mine.id);
@@ -2790,13 +2792,16 @@ export function Game() {
         </Parchment>
       )}
 
-      {owner && quest && !panelOpen && (
-        <div className={`absolute right-16 z-30 max-w-[calc(100vw-5rem)] md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
+      {owner && quest && claimsReady && !panelOpen && (
+        <div className={`absolute right-16 z-30 ${waitDone && !waitShut && !anyOpen && !decision.open ? "max-md:hidden" : ""} max-w-[calc(100vw-5rem)] md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
           <div className="parchment px-3 py-2 text-sm text-ink shadow">
-            <button type="button" onClick={() => setQuestFold((f) => !f)} className="flex w-full items-center justify-between gap-2 text-left">
-              <span className="font-display text-base leading-tight">{petition!.header}</span>
-            </button>
-            {!questFold && petition!.person && <button type="button" className="hit text-xs text-wood underline" onClick={() => { const nw = clock(), tw = townOf(my!, seeds, nw), p = tw.people.find((q) => q.id === petition!.person!.id); const z = p ? poseOf(p, tw, seeds, nw) : null; if (z) focus(z.x, z.y); if (p) setWho(p); }}>{petition!.find}</button>}
+            <div className="flex w-full items-start gap-1">
+              <button type="button" aria-expanded={!questFold} onClick={() => setQuestFold((f) => !f)} className="flex min-w-0 flex-1 items-start justify-between gap-2 text-start">
+                <span className="font-display text-base leading-tight">{petition!.header}</span>
+                <ChevronDown className={`mt-0.5 h-4 w-4 shrink-0 opacity-60 transition-transform ${questFold ? "" : "rotate-180"}`} />
+              </button>
+              {petition!.person && <button type="button" aria-label={petition!.find} title={petition!.find} className="hit shrink-0 rounded p-0.5 text-wood hover:bg-ink/10" onClick={() => { const nw = clock(), tw = townOf(my!, seeds, nw), p = tw.people.find((q) => q.id === petition!.person!.id); const z = p ? poseOf(p, tw, seeds, nw) : null; if (z) focus(z.x, z.y); if (p) setWho(p); }}><MapPin className="h-4 w-4" /></button>}
+            </div>
             {!questFold && (
               <div className="mt-1 space-y-1">
                 <div className="font-semibold">{questText![0]}</div>
@@ -2815,7 +2820,7 @@ export function Game() {
         <Parchment image={ART["quest"]} title={petition!.milestone ? feastTitle(lang) : petition!.who!} later={t.quests.later} onLater={() => setQuestOpen(false)}>
           <p className="text-center font-semibold">{questText![0]}</p>
           {petition!.thanks && <p className="mt-2 text-center italic">{petition!.thanks}</p>}
-          {!petition!.thanks && <p className="mt-2 text-center italic">{t.quests.says(my.owner)} „{questText![2]}“</p>}
+          {!petition!.thanks && <p className="mt-2 text-center italic">{petition!.milestone ? "" : `${t.quests.says(my.owner)} `}„{questText![2]}“</p>}
           {quest.quest === "metro" && <p className="mt-1 text-center text-sm">{t.quests.end}</p>}
           <div className="mt-4 flex justify-center"><Button onClick={claimQuest}>{t.quests.claim} · {t.taler(quest.reward)}</Button></div>
         </Parchment>
