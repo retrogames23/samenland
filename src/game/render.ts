@@ -2443,7 +2443,7 @@ function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Struct
     }
 }
 
-export const renderStats = { tiles: 0, folk: 0, chunks: 0, bakeMs: 0, bakeGround: 0, bakeNature: 0, bakes: 0 };
+export const renderStats = { tiles: 0, folk: 0, chunks: 0, bakeMs: 0, bakeGround: 0, bakeNature: 0, bakes: 0, phase: [0, 0, 0, 0] as number[] };
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
@@ -2472,6 +2472,7 @@ export function draw(
   const tiles = framePool.tiles; let nTiles = 0;
 
   const edges: GroundEdge[] = [];
+  const pt0 = performance.now();
   renderStats.chunks = drawGroundChunks(c, x0, x1, y0, y1, z, cs0x, cs1x, cs0y, cs1y);
   // frayed edges: a few grass tufts and pebbles breaking up the borderline
   if (detail) {
@@ -2498,7 +2499,9 @@ export function draw(
   }
 
   // ---- pass 1c: flat things on the ground ----
+  const pt1 = performance.now();
   const flatDone = drawFlatChunks(c, x0, x1, y0, y1, z, seeds, now, t);
+  const pt2 = performance.now();
   for (let s = x0 + y0; s <= x1 + y1; s++) {
     for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
       const y = s - x;
@@ -2523,6 +2526,7 @@ export function draw(
     drawRoadRibbon(c, l, seeds, now);
   }
 
+  const pt3 = performance.now();
   // ---- villagers, bucketed by tile for depth sorting ----
   const folk = framePool.folk; folk.clear();
   lastPeople.length = 0; lastTraders.length = 0;
@@ -2733,6 +2737,7 @@ export function draw(
       else if (!st && (inside || (x >= x0 - 4 && x <= x1 + 4 && y >= y0 - 4 && y <= y1 + 4))) wildFigures(x, y, hunt, c);
     }
   }
+  { const pt4 = performance.now(); const P = renderStats.phase; P[0] = Math.max(P[0]!, pt1 - pt0); P[1] = Math.max(P[1]!, pt2 - pt1); P[2] = Math.max(P[2]!, pt3 - pt2); P[3] = Math.max(P[3]!, pt4 - pt3); }
   renderStats.tiles = nTiles; { let n = 0; for (const v of folk.values()) n += v.length; renderStats.folk = n; }
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
   const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
