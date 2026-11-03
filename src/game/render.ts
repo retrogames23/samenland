@@ -2389,7 +2389,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     else { flatCache.delete(key); flatCache.set(key, e); }
     // art still loading: bake anyway, but refresh that chunk every 2 s until it is complete
     const stale = e.dirty || e.q !== q || e.sk !== sk || (!e.full && t - e.baked > 2000);
-    if (stale && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; renderStats.bakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; e.dirty = false; }
+    if (stale && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; e.dirty = false; }
     if (e.empty && e.q === q) { flatSet.add(key); continue; }
     if (e.cv && e.q === q && e.sk === sk) { c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
   }
