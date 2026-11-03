@@ -851,6 +851,8 @@ function insignia(c: C, q: Pose, hgt: number) {
       if (cloth) { const ch2 = h * 0.38, cw = (ch2 * cloth.width) / cloth.height; c.drawImage(cloth, hgt * 0.32, -h * 0.95, cw, ch2); } }
   }
 }
+/** World matrix of the main canvas while villagers are drawn: lets drawFolk place sprites without save()/getTransform(). */
+let folkCtx: C | null = null, folkM: DOMMatrix | null = null, folkFrame = -1;
 function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const k = folkOf(q), im = folkImage(k); if (!im) return null;
   const kid = k === "child", hgt = kid ? 3.2 + q.p.age * 0.08 : 5.2;
@@ -865,14 +867,15 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   // whole-sprite rocking looked like see-sawing; only painted frame cycles animate work now
   void TOOL_WORK; void tilt;
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
-  c.save(); c.translate(X, Y - bob); if (face < 0) c.scale(-1, 1); c.rotate(tilt);
-  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  // zero-save placement: one absolute matrix (world × translate × mirror) instead of save/translate/scale/rotate/restore
+  const B = c === folkCtx ? folkM! : c.getTransform(), fs = face < 0 ? -1 : 1;
+  c.setTransform(B.a * fs, B.b * fs, B.c, B.d, B.a * X + B.c * (Y - bob) + B.e, B.b * X + B.d * (Y - bob) + B.f);
+  if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
   const jw = q.working && !q.carry && !kid ? JOB_WORK[q.p.job] : undefined;
   const fishing = q.p.job !== "fisher" || fishingNow(localHour(), isSunday(renderNow), seasonAt(renderNow).winter);
   const mow = q.working ? (workSheet(k) ?? (jw && fishing ? folkImage(q.p.job === "mayor" ? mayorSheet(q.p.sex, q.p.age) : q.p.sex === "f" ? jw.f : jw.m) : null)) : null;
   if (mow) {
     // painted work cycle; neighbouring frames cross-fade so the motion flows instead of flipping
-    c.rotate(-tilt);
     const per = jw?.per ?? 2400, u = (((t + hash(q.p.id, 31, 9) * per) % per) / per) * WORK_FRAMES, f = Math.floor(u) % WORK_FRAMES, mix = u - Math.floor(u);
     const fw = mow.naturalWidth / WORK_FRAMES, fh = mow.naturalHeight, hh = hgt * (jw?.scale ?? (k === "farmer" ? 1.3 : 1.15)), ww = (hh * fw) / fh;
     const ease = mix * mix * (3 - 2 * mix);
@@ -888,7 +891,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       if (sp && a > 0.02) { const sh = 2.4, sw = (sh * sp.naturalWidth) / sp.naturalHeight; c.globalCompositeOperation = "lighter"; c.globalAlpha = a; c.drawImage(sp, 2.6 - sw / 2, -2.4 - sh * 0.75, sw, sh); c.globalAlpha = 1; c.globalCompositeOperation = "source-over"; }
     }
     insignia(c, q, hgt);
-    c.restore();
+    c.setTransform(B);
     return [X, Y - hgt];
   }
   // the mayor keeps his robe of office (first frame of his talk cycle) when standing and walking,
@@ -924,7 +927,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     insignia(c, q, hgt);
-    c.restore();
+    c.setTransform(B);
     return [X, Y - hgt - bob];
   }
   const sheet = q.walking ? walkSheet(k) : null;
@@ -971,7 +974,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     c.drawImage(im, -w / 2, -hgt, w, hgt);
   }
   insignia(c, q, hgt);
-  c.restore();
+  c.setTransform(B);
   return [X, Y - hgt - bob];
 }
 function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
@@ -2717,6 +2720,8 @@ export function draw(
       for (const sh of flock) items.push({ x: cx + sh.m.dx, y: cy + sh.m.dy, r: FOOT.sheep, give: 0.15, sh });
       separate(items);
       sortDepth(items, (it) => (it.q ? `p${it.q.p.id}` : `s${it.sh!.k}`));
+      if (folkCtx !== c) { folkCtx = c; folkM = c.getTransform(); } else if (folkFrame !== t) folkM = c.getTransform();
+      folkFrame = t;
       for (const it of items) {
         if (it.sh) { const m = it.sh.m; drawSheep(c, it.x, it.y, m.flip, t + it.sh.k * 1700, m.walking, m.graze, m.sleeping); continue; }
         const q = it.q!, px = it.x, py = it.y;
