@@ -2485,6 +2485,28 @@ export function Game() {
           </div>
         </Parchment>
       )}
+      {thanks && (
+        <Parchment wide title={THANKS[lang].title} later={t.close} onLater={() => setThanks(false)}>
+          <ul className="list-disc space-y-2 ps-5 text-ink">
+            <li>{THANKS[lang].settlers}</li>
+            <li>{THANKS[lang].anno}</li>
+            <li>{THANKS[lang].simcity}</li>
+            <li>{THANKS[lang].oss}</li>
+          </ul>
+          <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 ps-5 text-sm text-ink/80" dir="ltr">
+            {OSS.map(([n, u]) => <a key={n} href={u} target="_blank" rel="noopener noreferrer" className="underline decoration-ink/30 underline-offset-2 hover:text-ink">{n}</a>)}
+          </div>
+        </Parchment>
+      )}
+      {imprint && (
+        <Parchment title={t.imprint.title} later={t.close} onLater={() => setImprint(false)}>
+          <div className="space-y-3 text-center text-ink">
+            <div>Stephan Dörner<br />Bornholmer Str. 89<br />10439 Berlin</div>
+            <div>{t.imprint.contact}: <a href="mailto:stephan.doerner@posteo.de" className="underline decoration-ink/30 underline-offset-2">stephan.doerner@posteo.de</a></div>
+            <p className="text-sm italic text-ink/80">{t.imprint.note}</p>
+          </div>
+        </Parchment>
+      )}
       {supportOpen && (
         <Parchment title={SUPPORT[lang].title} later={t.cancel} onLater={() => { setSupportOpen(false); void loadSupport(); }}>
           <SupportBox lang={lang} seedId={home?.id ?? null} owned={home ? support.get(home.id) ?? new Set() : new Set()} signedIn={!!userId} hasDog={!!home && (support.get(home.id)?.has("dog") || (home.name === "Roggenfeld" && /id-preview|localhost|lovableproject/.test(location.hostname)))} dogName={home ? dogNames.get(home.id) ?? "" : ""} onDogName={async (n) => { if (!home) return false; const { error } = await supabase.from("village_dogs").upsert({ seed_id: home.id, name: n, updated_at: new Date().toISOString() }); if (!error) setDogNames((m) => new Map(m).set(home.id, n)); return !error; }} />
