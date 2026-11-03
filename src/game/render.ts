@@ -2335,7 +2335,7 @@ const framePool = {
 // (no extra structure lookups) and marks a chunk dirty when growth changed it. At most one bake per frame;
 // chunks not baked yet are drawn tile by tile as before (identical look, the frame never waits).
 const FC = 16;
-type FlatChunk = { cv: (HTMLCanvasElement & { ox: number; oy: number }) | null; q: number; sk: string; tok: Int32Array; dirty: boolean; full: boolean; baked: number; empty: boolean };
+type FlatChunk = { bm?: ImageBitmap | null; cv: (HTMLCanvasElement & { ox: number; oy: number }) | null; q: number; sk: string; tok: Int32Array; dirty: boolean; full: boolean; baked: number; empty: boolean };
 const flatCache = new Map<number, FlatChunk>();
 const flatKinds = new Map<string, number>();
 const flatSet = new Set<number>();
@@ -2374,7 +2374,9 @@ function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[]
     const y = s - x, [cx, cy] = iso(x, y);
     flatTile(g, x, y, cx, cy, sts[(y - Y0) * FC + (x - X0)] ?? null, seeds, now, t);
   }
-  cv.ox = left; cv.oy = top; e.cv = cv;
+  cv.ox = left; cv.oy = top; e.cv = cv; e.bm?.close(); e.bm = null;
+  // snapshot into an immutable bitmap: blitting it is a plain texture copy, not a replay of the recorded sprite draws
+  if (typeof createImageBitmap === "function") void createImageBitmap(cv).then((bm) => { if (e.cv === cv) e.bm = bm; else bm.close(); }, () => {});
 }
 function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
   flatSet.clear();
@@ -2391,7 +2393,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     const stale = e.dirty || e.q !== q || e.sk !== sk || (!e.full && t - e.baked > 2000);
     if (stale && bakes < 1) { bakes++; renderStats.bakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; e.dirty = false; }
     if (e.empty && e.q === q) { flatSet.add(key); continue; }
-    if (e.cv && e.q === q && e.sk === sk) { if (!(globalThis as unknown as { __noflat?: boolean }).__noflat) c.drawImage(e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
+    if (e.cv && e.q === q && e.sk === sk) { if (!(globalThis as unknown as { __noflat?: boolean }).__noflat) c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
   }
   while (flatCache.size > 64) flatCache.delete(flatCache.keys().next().value!);
   return flatSet;
