@@ -2784,7 +2784,12 @@ export function draw(
     const v = heraldVisit(heraldRows, sd.id, Date.now()); if (!v) continue;
     const [hx, hy] = seatTile(sd);
     if (hx < x0 - 20 || hx > x1 + 20 || hy < y0 - 20 || hy > y1 + 20) continue;
-    const path = heraldPath(sd, seeds, [hx + 0.5, hy + 2.6]);
+    let goal: [number, number] = [hx + 0.5, hy + 2.5];
+    for (const [ox, oy] of [[0, 2], [1, 2], [2, 1], [-1, 2], [2, 2], [0, 3], [3, 1], [1, 3], [-2, 2], [3, 3]] as const) {
+      const st = structureAt(hx + ox, hy + oy, seeds, now);
+      if (!isWater(hx + ox, hy + oy) && (!st || PATHLIKE.has(st.kind))) { goal = [hx + ox, hy + oy]; break; }
+    }
+    const path = heraldPath(sd, seeds, goal);
     const P = v.phase === "leave" ? [...path].reverse() : path;
     const len = polyLen(P), ride = HERALD_RIDE_S * 1000;
     // arrival eases out to a standstill, departure eases in from it; the gait follows distance so hooves never slide
