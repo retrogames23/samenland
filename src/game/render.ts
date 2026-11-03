@@ -52,6 +52,7 @@ import heraldU from "@/assets/sprites/court/herald.webp";
 import guardU from "@/assets/sprites/court/guard.webp";
 import gardenerU from "@/assets/sprites/court/gardener.webp";
 import courtGroomU from "@/assets/sprites/court/groom.webp";
+import { heraldVisit, HERALD_RIDE_S, type PrincelyRow } from "./princely";
 import { SEAT_KINDS, hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
@@ -673,6 +674,87 @@ function drawRider(c: C, x: number, y: number, dx: number, dy: number, sd: numbe
   c.fillStyle = "rgba(20,15,10,0.36)"; c.beginPath(); c.ellipse(0, -0.2, W * 0.36, 1, 0, 0, 7); c.fill();
   c.drawImage(im, f * fw, 0, fw, im.naturalHeight, -W / 2, -H - lift, W, H);
   if (u > 0.55) { c.globalAlpha = (u - 0.55) / 0.45; c.drawImage(im, f2 * fw, 0, fw, im.naturalHeight, -W / 2, -H - lift, W, H); c.globalAlpha = 1; }
+  c.restore();
+}
+// ---------------- the prince's messenger (heraldVisit in princely.ts) ----------------
+let heraldRows: PrincelyRow[] = [];
+/** Decree rows from the UI; the messenger's visit is derived from them and the clock. */
+export function setHeraldRows(r: PrincelyRow[]) { heraldRows = r; }
+/** Screen position of each village's messenger this frame (tap target). */
+export const heraldSpots = new Map<string, { x: number; y: number }>();
+const heraldPaths = new Map<string, [number, number][]>();
+/** Approach in tile coordinates: the last stretch of the village's first road, else open land from a hashed side. */
+function heraldPath(sd: Seed, seeds: Seed[], goal: [number, number]): [number, number][] {
+  const key = `${sd.id}:${seeds.length}:${goal[0]}:${goal[1]}`, hit = heraldPaths.get(key); if (hit) return hit;
+  const l = links(seeds).find((k) => k.a.id === sd.id || k.b.id === sd.id);
+  let pts: [number, number][];
+  if (l && l.tiles.length > 4) {
+    const tl = l.a.id === sd.id ? [...l.tiles].reverse() : l.tiles, n = tl.length;
+    pts = tl.slice(Math.max(0, n - 16)).map(([x, y]) => [x, y] as [number, number]);
+  } else {
+    const a = hash(sd.x, sd.y, 77) * Math.PI * 2;
+    pts = [[goal[0] + Math.cos(a) * 15, goal[1] + Math.sin(a) * 15]];
+  }
+  pts.push(goal);
+  if (heraldPaths.size > 64) heraldPaths.clear();
+  heraldPaths.set(key, pts); return pts;
+}
+const polyLen = (P: [number, number][]) => { let d = 0; for (let i = 1; i < P.length; i++) d += Math.hypot(P[i]![0] - P[i - 1]![0], P[i]![1] - P[i - 1]![1]); return d; };
+function polyAt(P: [number, number][], s: number) {
+  for (let i = 1; i < P.length; i++) {
+    const a = P[i - 1]!, b = P[i]!, d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (s <= d || i === P.length - 1) { const u = d ? Math.min(1, Math.max(0, s / d)) : 1; return { x: a[0] + (b[0] - a[0]) * u, y: a[1] + (b[1] - a[1]) * u, dir: [(b[0] - a[0]) / (d || 1), (b[1] - a[1]) / (d || 1)] as [number, number] }; }
+    s -= d;
+  }
+  const e = P[P.length - 1]!; return { x: e[0], y: e[1], dir: [1, 0] as [number, number] };
+}
+/** Mounted herald: distance-driven trot with cross-faded frames, dust under the hooves while moving;
+ * standing he breathes, nods, paws the ground and holds up the sealed dispatch; a lantern at night. */
+function drawHerald(c: C, x: number, y: number, dx: number, dy: number, gait: number | null, speed: number, t: number, waiting: boolean, night: boolean, sk: number) {
+  const away = dy < -0.15 * Math.abs(dx), im = riderImage(away);
+  if (!im) return;
+  const H = 11, fw = im.naturalWidth / 4, W = (fw / im.naturalHeight) * H, nh = im.naturalHeight;
+  c.save(); c.translate(x, y);
+  // dust kicked up behind the hooves, stronger at a full trot
+  if (speed > 0.05) {
+    const bx = -dx / (Math.hypot(dx, dy) || 1), by = -dy / (Math.hypot(dx, dy) || 1);
+    for (let i = 0; i < 4; i++) {
+      const age = (t / 520 + i / 4 + sk * 0.13) % 1, r = 0.6 + age * 2.2;
+      c.fillStyle = `rgba(150,128,96,${(1 - age) * 0.22 * Math.min(1, speed)})`;
+      c.beginPath(); c.ellipse(bx * age * 5 + (i - 1.5) * 0.7, by * age * 2.5 - 0.4 - age * 1.4, r, r * 0.6, 0, 0, 7); c.fill();
+    }
+  }
+  const face = screenFacing(dx, dy); if (away ? face > 0 : face < 0) c.scale(-1, 1);
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  c.fillStyle = "rgba(20,15,10,0.36)"; c.beginPath(); c.ellipse(0, -0.2, W * 0.36, 1, 0, 0, 7); c.fill();
+  if (gait !== null) {
+    const g = ((gait % 4) + 4) % 4, f = Math.floor(g), u = g - f, f2 = (f + 1) & 3, lift = Math.abs(Math.sin(g * Math.PI)) * 0.25 * Math.min(1, speed);
+    c.drawImage(im, f * fw, 0, fw, nh, -W / 2, -H - lift, W, H);
+    if (u > 0.55) { c.globalAlpha *= (u - 0.55) / 0.45; c.drawImage(im, f2 * fw, 0, fw, nh, -W / 2, -H - lift, W, H); }
+  } else {
+    // standing: slow breath, an occasional nod (pivot at the hooves) and a pawing hoof every few seconds
+    const br = Math.sin(t / 1300 + sk), cyc = (t / 1000 + sk) % 7.3, nod = cyc > 3 && cyc < 3.8 ? Math.sin(((cyc - 3) / 0.8) * Math.PI) : 0;
+    const paw = cyc > 5.6 && cyc < 6.4 ? Math.sin(((cyc - 5.6) / 0.8) * Math.PI) : 0;
+    c.save(); c.rotate(nod * 0.012); c.transform(1 - br * 0.004, 0, 0, 1 + br * 0.012, 0, 0);
+    c.drawImage(im, 0, 0, fw, nh, -W / 2, -H, W, H);
+    if (paw > 0) { const a = c.globalAlpha; c.globalAlpha = a * paw * 0.8; c.drawImage(im, fw, 0, fw, nh, -W / 2, -H, W, H); c.globalAlpha = a; }
+    c.restore();
+  }
+  if (waiting) { // sealed dispatch held up, the wax glints softly
+    const pulse = 0.5 + 0.5 * Math.sin(t / 600 + sk), sxp = W * 0.12, syp = -H * 0.86 + Math.sin(t / 1300 + sk) * 0.08;
+    const gl = c.createRadialGradient(sxp, syp, 0, sxp, syp, 2.4);
+    gl.addColorStop(0, `rgba(255,215,140,${0.35 + pulse * 0.3})`); gl.addColorStop(1, "rgba(255,215,140,0)");
+    c.fillStyle = gl; c.beginPath(); c.arc(sxp, syp, 2.4, 0, 7); c.fill();
+    c.fillStyle = "#efe2c2"; c.strokeStyle = "rgba(90,60,30,0.7)"; c.lineWidth = 0.12;
+    c.beginPath(); c.rect(sxp - 0.9, syp - 0.6, 1.8, 1.2); c.fill(); c.stroke();
+    c.fillStyle = `rgb(${150 + pulse * 40},28,24)`; c.beginPath(); c.arc(sxp, syp + 0.1, 0.42, 0, 7); c.fill();
+  }
+  if (night) { // lantern on a short pole by the saddle
+    const lx = -W * 0.18, ly = -H * 0.62 + (gait !== null ? Math.sin(t / 140) * 0.15 : 0);
+    const gl = c.createRadialGradient(lx, ly, 0, lx, ly, 3); gl.addColorStop(0, "rgba(255,200,110,0.55)"); gl.addColorStop(1, "rgba(255,200,110,0)");
+    c.fillStyle = gl; c.beginPath(); c.arc(lx, ly, 3, 0, 7); c.fill();
+    c.fillStyle = "#ffd98a"; c.beginPath(); c.rect(lx - 0.3, ly - 0.4, 0.6, 0.8); c.fill();
+  }
   c.restore();
 }
 /** Painted market stall standing on the verge (y = ground line). */
