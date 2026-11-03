@@ -193,8 +193,11 @@
    toolbar overlays the page but is not part of safe-area-inset-bottom, so browser tabs
    on iOS keep a fixed clearance; installed (standalone) apps use the real safe area. */
 :root { --dock-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+/* phones only (narrow or short landscape): iPads have no floating bottom toolbar, so they keep the real safe area */
 @supports (-webkit-touch-callout: none) {
-  :root { --dock-bottom: max(calc(env(safe-area-inset-bottom) + 0.5rem), 3rem); }
+  @media (max-width: 767px), (max-height: 500px) {
+    :root { --dock-bottom: max(calc(env(safe-area-inset-bottom) + 0.5rem), 3rem); }
+  }
 }
 @media (display-mode: standalone) {
   :root { --dock-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
