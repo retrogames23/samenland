@@ -67,7 +67,7 @@ import { princelyClaims, favourOf, openTaskOf, heraldVisit, PRINCELY_COUNT, type
 import { courtPoses, courtCenter, atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
 import { Beer, ChevronDown, MapPin, Dices, Music } from "lucide-react";
-import { setMusic } from "@/game/music";
+import { setMusic, setTavernMusic } from "@/game/music";
 import { MUSIC } from "@/game/lang/music";
 import { suggestTownName } from "@/game/town-names";
 import { seasonAt } from "@/game/season";
@@ -1315,6 +1315,8 @@ export function Game() {
   const [welcome, setWelcome] = useState(false);
   const [tavernOpen, setTavernOpen] = useState(false);
   const [dmPeer, setDmPeer] = useState<string | null>(null);
+  useEffect(() => { setTavernMusic(tavernOpen); }, [tavernOpen]);
+  useEffect(() => () => setTavernMusic(false), []);
   const [chatUnread, setChatUnread] = useState(0);
   const [rollOpen, setRollOpen] = useState(false);
   // the tutorial parchment greets every visitor on their very first page load,
