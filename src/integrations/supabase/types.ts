@@ -1254,6 +1254,10 @@ export type Database = {
         Returns: boolean
       }
       purge_user_data: { Args: { _uid: string }; Returns: undefined }
+      rename_seed: {
+        Args: { p_name: string; p_seed: string }
+        Returns: undefined
+      }
       road_done: { Args: { _a: string; _b: string }; Returns: string }
       send_letter: {
         Args: { _body: string; _from: string; _to: string }
