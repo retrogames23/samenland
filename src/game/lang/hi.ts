@@ -288,7 +288,7 @@ export const hi: Dict = {
       "tithe:plead": "कुछ मोहलत की अर्ज़ी दें",
       "maypole:pole": "उत्सव-ध्वज स्थापित करें",
       "maypole:games": "दोपहर में खेलकूद का उत्सव घोषित करें",
-      "nursery:cherry": "फूलों वाला चेरी पेड़ लगाएँ", "nursery:quince": "बिही का पेड़ लगाएँ", "nursery:pass": "उसे जाने दें",
+      "nursery:cherry": "फूलों वाला चेरी पेड़ लगाएँ", "nursery:quince": "नाशपाती का पेड़ लगाएँ", "nursery:pass": "उसे जाने दें",
       "journeyman:host": "रोटी और बसेरे का प्रबंध करें", "journeyman:settle": "गाँव में स्थायी नागरिकता दें", "journeyman:pass": "राह का पाथेय देकर विदा करें",
       "merchant:market": "हाट के लिए थोक में सौदा खरीदें", "merchant:inn": "सराय हेतु सुगंधित मसाले लें", "merchant:pass": "विनम्रतापूर्वक मना करें",
       "boundary:common": "उसे साझी शामिलात भूमि घोषित करें", "boundary:award": "साक्ष्यों के आधार पर एक परिवार को सौंपें", "boundary:tavern": "सराय में बैठकर आपस में सुलह कराएँ",

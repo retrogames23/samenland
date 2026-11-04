@@ -288,7 +288,7 @@ export const es: Dict = {
       "tithe:plead": "Suplicar una moratoria",
       "maypole:pole": "Alzar el árbol de mayo",
       "maypole:games": "Decretar una tarde de juegos",
-      "nursery:cherry": "Plantar un cerezo en flor", "nursery:quince": "Plantar un membrillo", "nursery:pass": "Dejarle seguir",
+      "nursery:cherry": "Plantar un cerezo en flor", "nursery:quince": "Plantar un peral", "nursery:pass": "Dejarle seguir",
       "journeyman:host": "Ofrecerle yantar y aposento", "journeyman:settle": "Ofrecerle avecindarse", "journeyman:pass": "Despedirlo con provisiones",
       "merchant:market": "Comprar abundante género para el mercado", "merchant:inn": "Especias para la taberna", "merchant:pass": "Declinar cortésmente",
       "boundary:common": "Declararlo pasto comunal", "boundary:award": "Adjudicarlo a una familia", "boundary:tavern": "Zanjar la disputa ante una jarra",

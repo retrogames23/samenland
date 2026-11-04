@@ -288,7 +288,7 @@ export const fr: Dict = {
       "tithe:plead": "Implorer un délai de grâce",
       "maypole:pole": "Dresser un bel arbre de mai",
       "maypole:games": "Déclarer une après-midi de jeux",
-      "nursery:cherry": "Planter un cerisier à fleurs", "nursery:quince": "Planter un cognassier", "nursery:pass": "Le laisser repartir",
+      "nursery:cherry": "Planter un cerisier à fleurs", "nursery:quince": "Planter un poirier", "nursery:pass": "Le laisser repartir",
       "journeyman:host": "Lui accorder le gîte et le couvert", "journeyman:settle": "Lui offrir le droit de cité", "journeyman:pass": "Le pourvoir de provisions de route",
       "merchant:market": "Faire de gros achats pour la place", "merchant:inn": "Acheter des épices pour la taverne", "merchant:pass": "Décliner poliment",
       "boundary:common": "En faire un bien communal", "boundary:award": "L'attribuer à l'une des familles", "boundary:tavern": "Régler cela autour d'une pinte",

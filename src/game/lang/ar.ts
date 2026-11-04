@@ -288,7 +288,7 @@ export const ar: Dict = {
       "tithe:plead": "الرجاء في استمهال الأجل وتأجيل الدفع",
       "maypole:pole": "نصب سارية الربيع وإدخال البهجة عليهم",
       "maypole:games": "إعلان أصيل يوم ألعاب ومرح للجميع",
-      "nursery:cherry": "غرس شجرة كرز مزهرة", "nursery:quince": "غرس شجرة سفرجل", "nursery:pass": "دعه يمضي",
+      "nursery:cherry": "غرس شجرة كرز مزهرة", "nursery:quince": "غرس شجرة كمثرى", "nursery:pass": "دعه يمضي",
       "journeyman:host": "بذل المأوى وإكرام مثواه بالطعام", "journeyman:settle": "عرض المقام الدائم والمواطنة في القرية", "journeyman:pass": "تزويده بزاد للمسير وتوديعه",
       "merchant:market": "ابتياع بضاعة وافرة لعرضها في السوق", "merchant:inn": "شراء التوابل لنكهة أطعمة الحانة", "merchant:pass": "الاعتذار له بلطف واستغناء",
       "boundary:common": "جعل شريط المرج مشاعاً بين الجميع", "boundary:award": "القضاء بأحقية إحدى العائلتين به", "boundary:tavern": "التوفيق بينهما وإصلاح ذات البين في الحانة",
