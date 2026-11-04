@@ -80,3 +80,5 @@
 - Prince's messenger: heraldVisit (princely.ts) derives arrive/wait/leave from decree rows + clock and render.ts draws it on the village road (setHeraldRows); never stored, every client sees the same rider, only the owner may tap it.
 - Planted rare trees (cherry/quince) are spared in render.ts via sparePlanted: fields/gardens/pastures/hay/fences are not drawn on their tile; display only, structureAt and household capacity unchanged so taxes stay identical.
 - Carp pond: a fishery placed away from water derives a pond on a neighbour tile (pondTiles in world.ts); render suppresses structures there — never stored.
+- Builders' night rest: bought builds and monuments progress on workClock (time.ts: WORK_START–WORK_END realm hours at WORK_RATE, still at night, equal to real time per whole day); every finish time goes through specialDone/workDone, never `at + specialBuild` — so the shop, mails and chronicle agree and daily balance stays unchanged.
+- Town bell: render emits a "bell" sound source for seat3/townhall/belfry/church/cathedral (so from Kleinstadt on); audio.ts rings morning/midday/evening peals and day-time hour strikes only.
