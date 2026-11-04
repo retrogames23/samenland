@@ -117,6 +117,7 @@ import {
 } from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<TownWay, string> = { grain: "🌾", workshop: "⚒", gateway: "⚓" };
+const WAY_BUILDS: Record<TownWay, string[]> = { grain: ["bigstore", "millrow", "harvesthall"], workshop: ["stonemason", "hammerworks", "guildtower"], gateway: ["smokehouse", "saltquay", "lighthouse"] };
 const wayOf = (p: { x: number; y: number }) => townCharacter(p).main;
 import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { TOWN_CHARACTER } from "@/game/i18n";
@@ -2536,7 +2537,7 @@ export function Game() {
             </div>
             <p className="mt-3 text-center text-xs text-muted-foreground">{TOWN_CHARACTER[lang].land[c]}</p>
             <div className="mt-3 space-y-1 rounded-md border border-border bg-muted/40 p-2 text-xs">
-              <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].builds}</span><span className="text-right font-semibold">{FOUNDING[lang].special[c]}</span></div>
+              <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].builds}</span><span className="text-right font-semibold">{WAY_BUILDS[c].map((k) => t.kind[k]).join(", ")}</span></div>
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].style}</span><span className="text-right">{FOUNDING[lang].look[c]}</span></div>
               {near && nd < 120 && (() => { const nw = wayOf(near); const nn = TOWN_CHARACTER[lang].names[nw]; return <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].neighbour}</span><span className="text-right">{CHAR_ICON[nw]} {nw !== c ? FOUNDING[lang].fits(near.name, nn) : FOUNDING[lang].same(near.name, nn)}</span></div>; })()}
               <p className="pt-1 text-center font-semibold text-primary">{FOUNDING[lang].fair}</p>
@@ -3106,7 +3107,7 @@ export function Game() {
           return (
             <div className="pointer-events-none fixed z-50 rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" ref={tipRef} style={{ left: (ptrRef.current ?? ptr)[0] + 18, top: (ptrRef.current ?? ptr)[1] + 18 }}>
               <span className={err ? "text-destructive" : "text-primary"}>{err ? "✕ " : "✓ "}</span>{txt}
-              {hw && <div className="mt-0.5 font-semibold">{CHAR_ICON[hw]} {TOWN_CHARACTER[lang].names[hw]} <span className="font-normal text-muted-foreground">· {FOUNDING[lang].special[hw]}</span></div>}
+              {hw && <div className="mt-0.5 font-semibold">{CHAR_ICON[hw]} {TOWN_CHARACTER[lang].names[hw]} <span className="font-normal text-muted-foreground">· {WAY_BUILDS[hw].map((k) => t.kind[k]).join(", ")}</span></div>}
             </div>
           );
         })()}
