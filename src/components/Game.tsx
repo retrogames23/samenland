@@ -124,6 +124,7 @@ import { onIsland } from "@/game/islands";
 import { townCharacter, type TownWay } from "@/game/character";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { CHEST } from "@/game/lang/chest";
+import { FOUNDING } from "@/game/lang/founding";
 import { CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
 import { TITLE_PRICE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, pendingEncounter, saplingsOwed, type Decision } from "@/game/encounters";
@@ -2534,6 +2535,12 @@ export function Game() {
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.nearest}</span><span className="text-right">{near ? t.plantAsk.near(near.name, Math.round(nd)) : t.plantAsk.none}</span></div>
             </div>
             <p className="mt-3 text-center text-xs text-muted-foreground">{TOWN_CHARACTER[lang].land[c]}</p>
+            <div className="mt-3 space-y-1 rounded-md border border-border bg-muted/40 p-2 text-xs">
+              <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].builds}</span><span className="text-right font-semibold">{FOUNDING[lang].special[c]}</span></div>
+              <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].style}</span><span className="text-right">{FOUNDING[lang].look[c]}</span></div>
+              {near && nd < 120 && (() => { const nw = wayOf(near); const nn = TOWN_CHARACTER[lang].names[nw]; return <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].neighbour}</span><span className="text-right">{CHAR_ICON[nw]} {nw !== c ? FOUNDING[lang].fits(near.name, nn) : FOUNDING[lang].same(near.name, nn)}</span></div>; })()}
+              <p className="pt-1 text-center font-semibold text-primary">{FOUNDING[lang].fair}</p>
+            </div>
             <div className="mt-3 border-t border-border pt-3"><CharacterDetails seed={{ x: px, y: py }} lang={lang} /></div>
             <div className="mt-4 flex justify-center">
               <Button type="button" size="sm" disabled={planting} onClick={plantNow}>{planting ? t.plantAsk.wait : t.plantAsk.ok}</Button>
@@ -3095,9 +3102,11 @@ export function Game() {
             const d = o ? Math.max(1, Math.ceil(MIN_SEED_DISTANCE - Math.hypot(hover[0] - o.x, hover[1] - o.y))) : 1;
             txt = t.seedHint.near(err.slice(5), d);
           } else if (err) txt = err === "court" ? t.court : err === "hill" ? t.seedHint.hill : t.seedHint.water;
+          const hw = err ? null : wayOf({ x: hover[0], y: hover[1] });
           return (
             <div className="pointer-events-none fixed z-50 rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" ref={tipRef} style={{ left: (ptrRef.current ?? ptr)[0] + 18, top: (ptrRef.current ?? ptr)[1] + 18 }}>
               <span className={err ? "text-destructive" : "text-primary"}>{err ? "✕ " : "✓ "}</span>{txt}
+              {hw && <div className="mt-0.5 font-semibold">{CHAR_ICON[hw]} {TOWN_CHARACTER[lang].names[hw]} <span className="font-normal text-muted-foreground">· {FOUNDING[lang].special[hw]}</span></div>}
             </div>
           );
         })()}
