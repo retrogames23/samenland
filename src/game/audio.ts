@@ -1,4 +1,4 @@
-import { worldHour, clock, isSunday } from "./time";
+import { worldHour, clock, isSunday, isWorkHour, WORK_START, WORK_END } from "./time";
 /**
  * Procedural soundscape (Web Audio, no sample files). The render loop hands in a scene summary a few
  * times per second; this module only mixes — it never touches game state, so worlds stay deterministic.
@@ -113,6 +113,14 @@ export function bell(pan = 0) {
     tone(pan, 0.2, 392, 390, 2.4, "sine", 3000); tone(pan, 0.08, 940, 935, 1.6, "sine", 3000); tone(pan, 0.05, 1290, 1285, 1.0, "triangle", 3000);
   }, k * 1100);
 }
+/** One bronze strike of the town bell: fundamental, hum and inharmonic partials with a long decay. */
+function strike(pan: number, v: number) {
+  tone(pan, 0.13 * v, 392, 390, 2.6, "sine", 3000); tone(pan, 0.05 * v, 196, 195, 3.2, "sine"); tone(pan, 0.04 * v, 940, 935, 1.5, "sine", 3000); tone(pan, 0.025 * v, 1290, 1285, 0.9, "triangle", 3000);
+}
+/** Ringing the bell for morning, midday and evening: a slow swinging series of strikes. */
+function peal(pan: number, v: number) {
+  for (let i = 0; i < 7; i++) setTimeout(() => ctx && enabled && strike(pan, v * (i % 2 ? 0.8 : 1)), i * 900);
+}
 export function tap(pan = 0) {
   if (!ctx || !enabled) return;
   burst(pan, 0.18, 300, 0.12, "lowpass"); tone(pan, 0.05, 880, 860, 0.5, "sine");
@@ -222,7 +230,7 @@ function tick() {
     switch (src.k) {
       case "campfire": if (rnd() < 6 * dt) burst(src.pan, 0.12 * v * rnd(), 2000 + rnd() * 3000, 0.02 + rnd() * 0.04); break;
       case "smithy": if (rnd() < 0.7 * dt) { burst(src.pan, 0.1 * v, 2500, 0.05); tone(src.pan, 0.05 * v, 1900, 1850, 0.35, "triangle"); } break;
-      case "site": if (rnd() < 0.9 * dt) burst(src.pan, 0.1 * v, 700, 0.06, "bandpass"); break;
+      case "site": if (isWorkHour(clock()) && rnd() < 0.9 * dt) burst(src.pan, 0.1 * v, 700, 0.06, "bandpass"); break;
       case "sawmill": if (rnd() < 0.25 * dt) burst(src.pan, 0.05 * v, 1800, 0.5, "bandpass"); break;
       case "mill": if (rnd() < 0.2 * dt) tone(src.pan, 0.03 * v, 120, 95, 0.6, "sawtooth", 300); break;
       case "watermill": if (rnd() < 0.15 * dt) tone(src.pan, 0.04 * v, 500 + rnd() * 400, 1200, 0.08); break;
@@ -236,9 +244,16 @@ function tick() {
   if (isSunday(clock()) && wh >= 9.75 && wh < 9.75 + 1 / 60 && lastPeal !== Math.floor(clock() / 864e5)) {
     lastPeal = Math.floor(clock() / 864e5); bell(0); setTimeout(() => ctx && enabled && bell(0), 2600);
   }
+  // town bell (from Kleinstadt on): morning bell at WORK_START wakes the sites, midday bell, evening bell at
+  // WORK_END ends the builders' day; in between it strikes the full hour. Silent at night.
   if (wh - key < 1 / 60 && lastBell !== key) {
-    const ch = s.sources.find((x) => x.k === "church");
-    if (ch) { lastBell = key; for (let i = 0; i < ((key % 12) || 12); i++) setTimeout(() => ctx && enabled && tone(ch.pan, 0.12 * ch.near, 392, 390, 2.4, "sine"), i * 1600); }
+    const b = s.sources.filter((x) => x.k === "bell").sort((p, q) => q.near - p.near)[0];
+    if (b && key >= WORK_START && key <= WORK_END) {
+      lastBell = key;
+      const v = Math.max(0.35, b.near);
+      if (key === WORK_START || key === 12 || key === WORK_END) { peal(b.pan, v); if (key === WORK_END) setTimeout(() => ctx && enabled && peal(b.pan, v * 0.8), 3600); }
+      else for (let i = 0; i < ((key % 12) || 12); i++) setTimeout(() => ctx && enabled && strike(b.pan, v), i * 1700);
+    }
   }
 }
 
