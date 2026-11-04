@@ -6,8 +6,8 @@ import { floodFood } from "./disasters";
 import { farmRecipe } from "./food-route";
 
 /** Stored goods — derived purely from town, clock and season, never saved. */
-export type Ware = "log" | "planks" | "stone" | "grain" | "flour" | "bread" | "fish" | "game" | "herbs" | "cheese";
-export const WARES: Ware[] = ["log", "planks", "stone", "grain", "flour", "bread", "fish", "game", "herbs", "cheese"];
+export type Ware = "log" | "planks" | "stone" | "grain" | "flour" | "bread" | "fish" | "game" | "herbs" | "cheese" | "beer" | "salt" | "cloth";
+export const WARES: Ware[] = ["log", "planks", "stone", "grain", "flour", "bread", "fish", "game", "herbs", "cheese", "beer", "salt", "cloth"];
 const FOOD: Ware[] = ["bread", "fish", "game", "cheese"];
 
 /** Recipes: job → [input, output, units per worker per day, input per output]. */
@@ -25,6 +25,7 @@ export const STORES: Record<Ware, Kind[]> = {
   log: ["woodcamp", "sawmill", "warehouse"], planks: ["sawmill", "warehouse"], stone: ["warehouse", "smithy"],
   grain: ["granary", "barn", "mill", "watermill"], flour: ["mill", "watermill", "bakery"], bread: ["bakery", "inn", "market"],
   fish: ["fishery", "harbor", "market"], game: ["lodge", "inn"], herbs: ["herbhut", "infirmary"], cheese: ["dairy", "market"],
+  beer: ["inn", "beginenhof", "market"], salt: ["saltquay", "station", "warehouse"], cloth: ["manufactory", "beginenhof", "market"],
 };
 
 export type Flow = { ware: Ware; stock: number; made: number; used: number; trend: -1 | 0 | 1 };
@@ -32,6 +33,7 @@ export type Larder = { flows: Flow[]; food: number; eaters: number; byKind: Map<
 type Tile = [number, number];
 
 const cache = new Map<string, Larder>();
+const eaters0 = (t: { people: unknown[] }) => t.people.length;
 
 /** Share of today's work done at this world hour (work 7–18). */
 const workDone = (h: number) => Math.min(1, Math.max(0, (h - 7) / 11));
@@ -90,6 +92,15 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
     if (out > 0) { add(made, r[1], out); add(used, r[0]!, out * r[3]); }
   }
   if (byKind.has("dairy")) add(made, "cheese", 4 * byKind.get("dairy")!.length);
+  // 1500 trade goods, display only (never food, never a boon): beer is brewed under the inn's brewing right
+  // from the village's own barley and hops, salt arrives from Lüneburg via kontor or salt quay, cloth from looms
+  const nk = (k: Kind) => byKind.get(k)?.length ?? 0;
+  const brew = nk("inn") + nk("beginenhof");
+  if (brew) { add(made, "beer", 6 * brew); add(used, "beer", Math.min(6 * brew, eaters0(t) * 0.5)); }
+  const salt = nk("saltquay") * 2 + nk("station");
+  if (salt) { add(made, "salt", 4 * salt); add(used, "salt", Math.min(4 * salt, (made.get("fish") ?? 0) * 0.3 + (made.get("game") ?? 0) * 0.3)); }
+  const loom = nk("manufactory") * 2 + nk("beginenhof");
+  if (loom) add(made, "cloth", 2 * loom);
   // builders use timber and stone; everyone eats once a day, herbs for the sick
   const builders = jobs.get("builder") ?? 0;
   add(used, "planks", builders * 2); add(used, "log", builders * 1); add(used, "stone", builders * 1.5);
