@@ -131,7 +131,9 @@ import { CHEST } from "@/game/lang/chest";
 import { FOUNDING } from "@/game/lang/founding";
 import { CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
 import { TITLE_PRICE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
-import { ENCOUNTERS, choiceOf, pendingEncounter, saplingsOwed, type Decision } from "@/game/encounters";
+import { ENCOUNTERS, choiceOf, saplingsOwed, type Decision } from "@/game/encounters";
+import { pendingAll, isCommons, commonsVoices, adviceIdx } from "@/game/commons";
+import { COMMONS_TEXT } from "@/game/lang/commons";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1299,7 +1301,7 @@ export function Game() {
     charter: owner && !myCharter && charterReady(my!.created_at, now),
     pact: owner && !!pactPartner,
     // visitors only come while someone watches: the tab must have been open and visible for a few minutes
-    encounter: owner && watching && !!pendingEncounter(my!, my!.decisions ?? [], now),
+    encounter: owner && watching && !!pendingAll(my!, my!.decisions ?? [], now, effAge(my!, seeds, now)),
   }, (k) => (snooze[k] ?? 0) > now);
   const anyOpen = roadOpen || charterOpen || encOpen || pactOpen;
   const sealShown = !anyOpen && !decision.open && decision.due.length > 0;
@@ -2730,7 +2732,7 @@ export function Game() {
         </Parchment>
       )}
       {encOpen && my && (() => {
-        const ev = pendingEncounter(my, my.decisions ?? [], clock());
+        const ev = pendingAll(my, my.decisions ?? [], clock(), effAge(my, seeds, clock()));
         const fxText = (e: string, c: string) => {
           const ch = choiceOf(e, c)!; const f = ch.fx as { h?: number; growth?: number; food?: number; health?: number; wealth?: number };
           const parts = [f.growth ? t.enc.growth(Math.round(f.growth * 100)) : "", f.food ? `+${f.food} ${t.enc.food}` : "", f.health ? `+${f.health} ${t.enc.health}` : "", f.wealth ? `+${f.wealth} ${t.enc.wealth}` : ""].filter(Boolean);
@@ -2746,6 +2748,20 @@ export function Game() {
                       const live = w && clock() - w.at < 3 * 3600e3;
                       return <>
                         <p className="mt-2 text-center font-display text-xl leading-snug">{live ? t.enc.couple(`${w.a.first} ${w.a.last}`, `${w.b.first} ${w.b.maiden ?? w.b.last}`) : t.enc.events[ev]![1]}</p>
+                        {isCommons(ev) && (() => {
+                          const ct = COMMONS_TEXT[lang], nw = clock(), tw = townOf(my, seeds, nw);
+                          const n = (my.decisions ?? []).filter((d) => isCommons(d.event)).length;
+                          const v = commonsVoices(ev, tw.people, n);
+                          const jobOf = (p: Person) => t.job[p.job]?.[p.sex === "f" ? 0 : 1] ?? p.job;
+                          const show = (p: Person) => { const tw2 = townOf(my, seeds, clock()), q = tw2.people.find((x) => x.id === p.id); const z = q ? poseOf(q, tw2, seeds, clock()) : null; later("encounter"); if (z) focus(z.x, z.y); if (q) setWho(q); };
+                          return <>
+                            {v.asker && <p className="mt-2 text-center text-xs text-muted-foreground">{ct.asks(`${v.asker.first} ${v.asker.last}`, jobOf(v.asker))} <button type="button" className="hit underline decoration-dotted" onClick={() => show(v.asker!)}>{ct.find}</button></p>}
+                            {v.advisor && <div className="mt-3 rounded-md border border-brass/50 bg-brass/10 p-2 text-sm">
+                              <div className="text-xs font-semibold text-wood">{ct.counsel(`${v.advisor.first} ${v.advisor.last}`, v.herb ? ct.roles.herb : ct.roles.elder)}</div>
+                              <div className="italic">{ct.advice[ev][adviceIdx(nw)]}</div>
+                            </div>}
+                          </>;
+                        })()}
                         {live && <div className="mt-2 text-center"><button type="button" className="rounded-md border-2 border-brass px-3 py-1 text-sm font-semibold text-wood hover:bg-brass/20" onClick={() => { const nw = clock(), tw = townOf(my, seeds, nw), p = tw.people.find((q) => q.id === w.a.id); const z = p ? poseOf(p, tw, seeds, nw) : null; later("encounter"); if (z) focus(z.x, z.y); if (p) setWho(p); }}>{t.enc.look}</button></div>}
                       </>;
                     })()}

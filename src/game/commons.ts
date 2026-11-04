@@ -7,6 +7,8 @@
 import { terrain, buildable, riverDistAt, hash, MAP, type Seed } from "./world";
 import { pendingEncounter, ENCOUNTER_FROM, COMMONS_KEYS, type Decision, type EventKey } from "./encounters";
 import { worldHour, workDone } from "./time";
+import { seasonAt } from "./season";
+import type { Person, Job } from "./people";
 
 export type CommonsKey = "hutewald" | "backtag" | "steg";
 /** Days between two commons questions (mirrored by the DB encounter_guard, with a small tolerance). */
@@ -108,8 +110,6 @@ export function stegOf(decisions: Decision[]): { at: number; done: number; toget
   return { at: d.at, done: workDone(d.at, (together ? STEG_WORK_H : STEG_CARPENTER_H) * 3.6e6), together };
 }
 
-import type { Person, Job } from "./people";
-import { seasonAt } from "./season";
 const ASKER: Record<CommonsKey, Job[]> = { hutewald: ["farmer", "hunter", "woodcutter"], backtag: ["baker", "homemaker", "miller"], steg: ["miller", "builder", "farmer"] };
 /**
  * Who brings the question (a real resident by trade) and who counsels the village: the herb-wife or
