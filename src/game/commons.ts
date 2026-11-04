@@ -107,3 +107,25 @@ export function stegOf(decisions: Decision[]): { at: number; done: number; toget
   const together = d.choice !== "carpenter";
   return { at: d.at, done: workDone(d.at, (together ? STEG_WORK_H : STEG_CARPENTER_H) * 3.6e6), together };
 }
+
+import type { Person, Job } from "./people";
+import { seasonAt } from "./season";
+const ASKER: Record<CommonsKey, Job[]> = { hutewald: ["farmer", "hunter", "woodcutter"], backtag: ["baker", "homemaker", "miller"], steg: ["miller", "builder", "farmer"] };
+/**
+ * Who brings the question (a real resident by trade) and who counsels the village: the herb-wife or
+ * healer as the community's wise woman, else the eldest. Stable for one question (hashed on the count).
+ */
+export function commonsVoices(key: CommonsKey, people: Person[], n: number): { asker: Person | null; advisor: Person | null; herb: boolean } {
+  const adults = people.filter((p) => p.role !== "mayor" && p.role !== "guest" && p.age >= 18 && !p.sick);
+  let asker: Person | null = null;
+  for (const j of ASKER[key]) { const l = adults.filter((p) => p.job === j); if (l.length) { asker = l[Math.floor(hash(n, l.length, 1811) * l.length)]!; break; } }
+  asker ??= adults.length ? adults[Math.floor(hash(n, adults.length, 1812) * adults.length)]! : null;
+  const wise = adults.filter((p) => p !== asker && (p.job === "herbalist" || p.job === "healer")).sort((a, b) => (a.sex === "f" ? 0 : 1) - (b.sex === "f" ? 0 : 1) || b.age - a.age)[0];
+  const advisor = wise ?? adults.filter((p) => p !== asker).sort((a, b) => b.age - a.age)[0] ?? null;
+  return { asker, advisor, herb: !!wise };
+}
+/** Counsel variant: 0 in spring/summer, 1 in autumn/winter. */
+export function adviceIdx(now: number): 0 | 1 {
+  const w = seasonAt(now);
+  return w.autumn + w.winter > w.spring + w.summer ? 1 : 0;
+}
