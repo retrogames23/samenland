@@ -31,6 +31,8 @@ export function homeDraw(l: Link, at: number): number {
   return Math.sign(pull(l.b) - pull(l.a));
 }
 
+/** Daily journeyman chance on a road touching a Gesellenherberge (0.3 otherwise). */
+export const HERBERGE_WALZ = 0.5;
 /** Walkers that start on road l during UTC day d (0–2 per day: a journeyman some days, a messenger most days). */
 export function walkersOn(l: Link, d: number): Walker[] {
   const sn = roadId(l), n = l.tiles.length, out: Walker[] = [];
@@ -46,7 +48,9 @@ export function walkersOn(l: Link, d: number): Walker[] {
     out.push({ kind, from: fwd ? l.a : l.b, to: fwd ? l.b : l.a, t0, t1: t0 + (n / SPEED[kind]) * 1000, sd, sex,
       name: names[Math.floor(hash(sd, 2, 1504) * names.length)]!, craft: CRAFTS[Math.floor(hash(sd, 3, 1504) * CRAFTS.length)]! });
   };
-  if (hash(sn, d, 1501) < 0.3) add("journeyman", 0);
+  // a Gesellenherberge at either end draws journeymen on the Walz more often (purchase rows only, so all clients agree)
+  const inn = [l.a, l.b].some((t) => t.bought?.some((b) => b.item === "herberge" && b.at <= d * DAY));
+  if (hash(sn, d, 1501) < (inn ? HERBERGE_WALZ : 0.3)) add("journeyman", 0);
   if (hash(sn, d, 1505) < 0.6) add("messenger", 1);
   // a bride from one town marries into the neighbour and walks over in her wedding dress (~every 25 days per road)
   if (hash(sn, d, 1506) < 0.04) add("bridal", 2);
