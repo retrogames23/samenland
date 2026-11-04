@@ -2346,7 +2346,7 @@ export function Game() {
             onClick(x, y);
           }
         }}
-        onPointerLeave={() => { st.current.hover = null; setHover(null); if (tileInfoRef.current) tileInfoRef.current.style.display = "none"; }}
+        onPointerLeave={(e) => { st.current.hover = null; setHover(null); if (e.pointerType === "mouse" && tileInfoRef.current) tileInfoRef.current.style.display = "none"; }}
       />
       {/* top bar */}
       <div ref={barRef} className="pointer-events-none absolute left-[var(--safe-l)] right-[var(--safe-r)] top-[max(0.5rem,env(safe-area-inset-top))] z-30 md:left-[max(0.75rem,env(safe-area-inset-left))] md:right-[max(0.75rem,env(safe-area-inset-right))] md:top-[max(0.75rem,env(safe-area-inset-top))]">
