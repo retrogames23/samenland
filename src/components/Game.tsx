@@ -1753,6 +1753,20 @@ export function Game() {
   ];
   const Head = ({ children }: { children: React.ReactNode }) => <div className="font-display text-2xl leading-none text-wood">{children}</div>;
 
+  const guestbook = my && owner ? (() => {
+    const now2 = clock(); const got = seeds.flatMap((o) => (o.letters ?? []).filter((g) => g.to === my.id && letterArrives(o, my, g.at) <= now2).map((g) => ({ ...g, o }))).sort((a, b) => b.at - a.at).slice(0, 20);
+    return (
+      <div className="mt-2 border-t border-border pt-2 text-xs">
+        <div className="font-display text-sm text-foreground">{t.post.book}</div>
+        {got.length === 0 ? <div className="text-muted-foreground">{t.post.empty}</div> : (
+          <ul className="max-h-40 space-y-1 overflow-auto">{got.map((g) => (
+            <li key={g.id}><button type="button" className="w-full rounded px-1 py-0.5 text-left hover:bg-accent" onClick={() => { setRollOpen(false); setTab(null); setFest((q) => [{ at: letterArrives(g.o, my, g.at), code: "letter", id: g.id, other: g.o.name }, ...q]); }}>
+              <span className="italic text-foreground">„{bodies[g.id] ?? t.post.sealed}“</span> <span className="text-muted-foreground">{t.post.from(g.o.name)}</span>
+            </button></li>
+          ))}</ul>)}
+      </div>
+    );
+  })() : null;
   const drawer = tab && (
     <div className="space-y-3 p-3 text-sm">
       <div className="flex items-center justify-between">
@@ -1997,11 +2011,11 @@ export function Game() {
             : <Button type="submit" size="sm" className="w-full" disabled={!form.name.trim() || !form.owner.trim() || !form.gender}>{t.plant}</Button>}
         </form>
       ))}
-      {tab === "towns" && my && (() => {
+      {tab === "build" && my && (() => {
         const g = (xs: string[]) => xs.map((x) => t.trade.goods[x] ?? x).join(", ");
         const prof = tradeProfile(my, now), parts = tradePartners(my, seeds, now), hints = tradeHints(my, seeds, now);
         return (
-          <div className="mb-2 space-y-1 border-b border-border pb-2 text-xs text-muted-foreground">
+          <div className="mt-3 space-y-1 border-t border-border pt-2 text-xs text-muted-foreground">
             <div className="font-display text-sm text-foreground">{t.trade.title}</div>
             <div>{t.trade.exports}: {g(prof.exports)}</div>
             <div>{t.trade.imports}: {g(prof.imports)}</div>
@@ -2042,18 +2056,6 @@ export function Game() {
           </div>
         );
       })()}
-      {tab === "towns" && my && owner && (
-        <div className="mb-2 border-b border-border pb-2 text-xs">
-          <div className="font-display text-sm text-foreground">{t.post.book}</div>
-          {(() => { const now2 = clock(); const got = seeds.flatMap((o) => (o.letters ?? []).filter((g) => g.to === my.id && letterArrives(o, my, g.at) <= now2).map((g) => ({ ...g, o }))).sort((a, b) => b.at - a.at).slice(0, 20);
-            return got.length === 0 ? <div className="text-muted-foreground">{t.post.empty}</div> : (
-              <ul className="max-h-40 space-y-1 overflow-auto">{got.map((g) => (
-                <li key={g.id}><button type="button" className="w-full rounded px-1 py-0.5 text-left hover:bg-accent" onClick={() => { setTab(null); setFest((q) => [{ at: letterArrives(g.o, my, g.at), code: "letter", id: g.id, other: g.o.name }, ...q]); }}>
-                  <span className="italic text-foreground">„{bodies[g.id] ?? t.post.sealed}“</span> <span className="text-muted-foreground">{t.post.from(g.o.name)}</span>
-                </button></li>
-              ))}</ul>); })()}
-        </div>
-      )}
       {tab === "towns" && (
         <ul className="max-h-[50vh] space-y-1 overflow-auto">
           {seeds.map((s) => (
@@ -2800,7 +2802,7 @@ export function Game() {
         <TownProfile t={t} lang={lang} town={seeds.find((x) => x.id === profile.id) ?? profile} me={my ?? null} seeds={seeds} now={clock()} onClose={() => setProfile(null)} onLook={() => { focus(profile.x, profile.y); setProfile(null); }} />
       )}
       {rollOpen && my && myTown && (
-        <VillageRoll t={t} town={myTown} hue={my.hue} character={<><CharacterDetails seed={my} lang={lang} /><div className="mt-2"><Outlook t={t} lang={lang} my={my} seeds={seeds} now={slow} rank={myRank} charter={myCharter} way={wayOf(my)} /></div></>} onClose={() => setRollOpen(false)} onPick={(p) => {
+        <VillageRoll t={t} town={myTown} hue={my.hue} character={<><CharacterDetails seed={my} lang={lang} /><div className="mt-2"><Outlook t={t} lang={lang} my={my} seeds={seeds} now={slow} rank={myRank} charter={myCharter} way={wayOf(my)} /></div>{guestbook}</>} onClose={() => setRollOpen(false)} onPick={(p) => {
           const now = clock();
           const z = poseOf(p, townOf(p.seed, seeds, now), seeds, now);
           setRollOpen(false);
