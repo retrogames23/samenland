@@ -7,7 +7,7 @@ export const STONE_FIRE = 0.6;
  * and purchases (fire house, town guard). Nothing is stored: every client sees the same fire at the same moment.
  * Raid losses are mirrored by the database function village_raids, so the treasury stays tamper-proof.
  */
-import { terrain, isWater, waterNearby, radiusOf, ageHours, MAP, type Seed } from "./world";
+import { terrain, isWater, waterNearby, riverDistAt, radiusOf, ageHours, MAP, type Seed } from "./world";
 
 const H = 3.6e6, DAY = 864e5, WEEK = 7 * DAY;
 export const FIRE_CHANCE = 0.3, FIRE_CHANCE_GUARDED = 0.08;
@@ -58,6 +58,18 @@ export function fires(s: Seed, now: number): Fire[] {
 
 const FLOOD_MONTHS = new Set([2, 3, 9, 10]);
 const fcache = new Map<string, number[]>();
+/** River water (not sea): only rivers burst their banks. */
+const riverWater = (x: number, y: number) => isWater(terrain(x, y)) && riverDistAt(x, y) < 0;
+/** A river runs within RIVER_REACH tiles of the village core; sea coasts never flood. */
+export const RIVER_REACH = 8;
+const rvCache = new Map<number, boolean>();
+export function nearRiver(s: Seed) {
+  const key = s.y * MAP + s.x, hit = rvCache.get(key); if (hit !== undefined) return hit;
+  let ok = false;
+  for (let j = -RIVER_REACH; j <= RIVER_REACH && !ok; j++) for (let i = -RIVER_REACH; i <= RIVER_REACH; i++)
+    if (Math.hypot(i, j) <= RIVER_REACH && riverWater(s.x + i, s.y + j)) { ok = true; break; }
+  rvCache.set(key, ok); return ok;
+}
 function shoreTiles(s: Seed, r: number) {
   const key = `${s.id}:${s.x}:${s.y}:${Math.round(r)}`; const hit = fcache.get(key); if (hit) return hit;
   const out: number[] = []; const R = Math.ceil(r);
@@ -65,14 +77,14 @@ function shoreTiles(s: Seed, r: number) {
     if (Math.hypot(i, j) > r) continue;
     const x = s.x + i, y = s.y + j; if (isWater(terrain(x, y))) continue;
     let wet = false;
-    for (let b = -1; b <= 1 && !wet; b++) for (let a = -1; a <= 1; a++) if (isWater(terrain(x + a, y + b))) { wet = true; break; }
+    for (let b = -1; b <= 1 && !wet; b++) for (let a = -1; a <= 1; a++) if (riverWater(x + a, y + b)) { wet = true; break; }
     if (wet) out.push(y * MAP + x);
   }
   if (fcache.size > 300) fcache.clear();
   fcache.set(key, out); return out;
 }
 export function floods(s: Seed, now: number): Flood[] {
-  if (!hasWater(s)) return [];
+  if (!nearRiver(s)) return [];
   const c0 = Date.parse(s.created_at), out: Flood[] = [], P = 14 * DAY;
   for (let k = 1; c0 + k * P <= now; k++) {
     const start = c0 + k * P;
