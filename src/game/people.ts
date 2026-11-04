@@ -1,6 +1,6 @@
 import { setChosenTraits } from "./traits";
 import { cacheTick, isSunday } from "./time";
-import { civicWealth, estateAt, CULTURE_SICK, type Estate } from "./prosperity";
+import { civicWealth, estateAt, CULTURE_SICK, BEGINEN_SICK, type Estate } from "./prosperity";
 import { weddingDates, weddingJoy } from "./weddings";
 import { hasTrait } from "./traits";
 import { pathHeading } from "./motion";
@@ -92,6 +92,7 @@ const SLOTS: Partial<Record<Kind, [Job, number]>> = {
   bakery: ["baker", 2], smithy: ["smith", 2], inn: ["innkeeper", 2], mill: ["miller", 1], workshop: ["crafter", 2],
   factory: ["priest", 2], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
   fishery: ["fisher", 1], infirmary: ["healer", 1], school: ["teacher", 1], granary: ["carter", 1], markethall: ["merchant", 2], guildhall: ["crafter", 2], library: ["teacher", 1], dairy: ["farmer", 2], firehouse: ["firewarden", 2], guardhouse: ["watchman", 3], lodge: ["hunter", 1], herbhut: ["herbalist", 1], woodcamp: ["woodcutter", 2],
+  backhaus: ["baker", 1], herberge: ["innkeeper", 1], beginenhof: ["herbalist", 3],
   bigstore: ["carter", 2], millrow: ["miller", 2], stonemason: ["mason", 2], hammerworks: ["smith", 2], smokehouse: ["fisher", 2], saltquay: ["merchant", 2],
 };
 // healers tend the sick inside the infirmary, so big towns don't crowd its doorstep
@@ -300,7 +301,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const oak = mastOn(decs, now) ? oakSpot(s) : null;
   if (oak) for (let i = 0; i < 4; i++) pigs.push(nearFree(oak, s.x * 17 + s.y + i * 37));
   // bake day: neighbours queue with baskets at the common oven for an hour
-  const bake = bakeGathering(decs, now), oven = byKind.get("bakery")?.[0];
+  const bake = bakeGathering(decs, now), oven = byKind.get("backhaus")?.[0] ?? byKind.get("bakery")?.[0];
   if (bake != null && oven) {
     const c = front(oven) ?? oven;
     for (const q of people) {
@@ -442,7 +443,7 @@ export function sickRate(s: Seed, now: number): number {
   if (weddingJoy(s, now)) return 0;
   const own = (i: string) => s.bought?.some((b) => b.item === i && b.at <= now);
   const healer = own("healer") || own("infirmary");
-  return Math.max(0.01, 0.06 + 0.03 * seasonAt(now).winter - (own("herbs") ? 0.015 : 0) - (healer ? 0.035 : 0) - (s.charter?.path === "culture" && s.charter.at <= now ? CULTURE_SICK : 0));
+  return Math.max(0.01, 0.06 + 0.03 * seasonAt(now).winter - (own("herbs") ? 0.015 : 0) - (healer ? 0.035 : 0) - (s.charter?.path === "culture" && s.charter.at <= now ? CULTURE_SICK : 0) - (own("beginen") ? BEGINEN_SICK : 0));
 }
 /** Does the household at home key `hh` (x*1024+y) nurse a sick member right now? Pure in seed, home and time. */
 export const sickHome = (s: Seed, hh: number, now: number) => hash(hh, Math.floor(now / (SICK_DAYS * 864e5)), 1301) < sickRate(s, now);

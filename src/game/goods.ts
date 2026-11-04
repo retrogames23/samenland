@@ -40,6 +40,8 @@ const workDone = (h: number) => Math.min(1, Math.max(0, (h - 7) / 11));
 export const YOUNG_WOOD = 3, YOUNG_STONE = 1.5;
 /** Grain storage: a base heap, plus room in every mill and the granary; the rest spoils or feeds the animals. */
 export const GRAIN_BASE = 40, GRAIN_PER_MILL = 30, GRAIN_PER_GRANARY = 80;
+/** Communal bakehouse: share of the usual food need. */
+export const BACKHAUS_GRAIN = 0.9;
 /** One sheaf as porridge counts as half a meal. */
 export const GRAIN_MEAL = 0.5;
 /** Meals a villager eats per day, extra hunger at full winter, and days of surplus kept in store. */
@@ -93,7 +95,8 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   add(used, "planks", builders * 2); add(used, "log", builders * 1); add(used, "stone", builders * 1.5);
   const eaters = t.people.length;
   // one meal a head, more in the cold months
-  let need = eaters * (MEAL_PER_HEAD + WINTER_HUNGER * sw.winter);
+  // a communal bakehouse bakes for everyone at once: a tenth less grain goes to waste
+  let need = eaters * (MEAL_PER_HEAD + WINTER_HUNGER * sw.winter) * (byKind.has("backhaus") ? BACKHAUS_GRAIN : 1);
   for (const w of FOOD) { const take = Math.min(need, made.get(w) ?? 0); if (take) { add(used, w, take); need -= take; } }
   // porridge: left-over grain fills the remaining hunger (after the mills took their share)
   if (need > 0) add(used, "grain", Math.min(need, Math.max(0, (made.get("grain") ?? 0) - (used.get("grain") ?? 0))));

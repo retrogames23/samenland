@@ -66,4 +66,6 @@ export function sickTaxRate(s: Seed, at: number): number {
 }
 /** Culture charter: learned healers and clean scriptoria cut the daily sickness chance (live villagers and new tax receipts only). */
 export const CULTURE_SICK = 0.02;
+/** Beguines nurse the sick: fewer households fall ill (live villagers and new resident-tax receipts only, never legacy tax). */
+export const BEGINEN_SICK = 0.015;
 export const sickLoss = (assessed: number, rate: number) => Math.floor(assessed * rate * SICK_SHARE);
