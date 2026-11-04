@@ -162,7 +162,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
             <h2 className="truncate font-display text-2xl leading-none sm:text-3xl">{t.tavern.title}</h2>
             <button type="button" aria-label={t.close} onClick={onClose} className="hit relative grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-ink/10"><X className="h-4 w-4" /></button>
           </div>
-            <button type="button" onClick={() => setSide((v) => !v)} className="hit relative mt-2 inline-flex min-h-9 max-w-full items-center truncate rounded border border-ink/30 px-3 text-sm sm:hidden">
+            <button type="button" onClick={() => setSide((v) => !v)} className="hit relative mt-2 inline-flex min-h-9 max-w-full items-center rounded border border-ink/30 px-3 text-sm sm:hidden">
               {chan === "tavern" ? `# ${t.tavern.room}` : `@ ${people.get(chan.peer)?.owner ?? t.tavern.stranger}`} ▾
               {total - unreadOf(chan) > 0 && <span className="absolute -end-1.5 -top-1.5 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{total - unreadOf(chan)}</span>}
             </button>
