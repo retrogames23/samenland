@@ -3199,7 +3199,7 @@ export function Game() {
         })()}
         {hover && (
           <div className="hidden rounded bg-card/80 px-2 py-1 text-xs text-muted-foreground md:block">
-            {t.terrain[terrain(hover[0], hover[1])]}{resourceAt(hover[0], hover[1]) === "stone" ? ` · ${t.resource.stone}` : ""} · {hover[0]}, {hover[1]}
+            {t.terrain[terrain(hover[0], hover[1])]}{resourceAt(hover[0], hover[1]) === "stone" ? ` · ${t.resource["stone"]}` : ""} · {hover[0]}, {hover[1]}
           </div>
         )}
       </div>
