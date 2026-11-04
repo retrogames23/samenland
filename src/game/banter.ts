@@ -7,6 +7,7 @@ import type { Lang } from "./i18n";
 import type { Trait } from "./traits";
 import { SEASON_BANTER } from "./lang/banter-season";
 import { seasonAt } from "./season";
+import { clock } from "./time";
 
 const recent: string[] = [];
 const RECENT = 40;
@@ -39,7 +40,7 @@ export function banter(lang: Lang, c: BanterCtx, vars: { mayor: string; town: st
   // own villagers sometimes speak about what the season shows on the map (one pooled line among the others)
   let L: typeof L0 = L0;
   if (c.who === "own" && !c.sick && !c.child && !c.night) {
-    const w = seasonAt(Date.now()), sk = (Object.keys(w) as (keyof typeof w)[]).reduce((a, b) => (w[b] > w[a] ? b : a));
+    const w = seasonAt(clock()), sk = (Object.keys(w) as (keyof typeof w)[]).reduce((a, b) => (w[b] > w[a] ? b : a));
     L = { ...L0, own_craft: [...(L0.own_craft ?? []), ...SEASON_BANTER[lang][sk]] };
   }
   // one category drawn at random among those this language has, so trait lines mix with generic ones
