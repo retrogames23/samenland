@@ -17,6 +17,16 @@ describe("banter", () => {
     expect(seen.size).toBe(n);
   });
   it("every language covers every base category", () => {
-    for (const l of LANGS) for (const k of ["own_any", "own_child", "foreign_any", "court_prince", "house_own", "house_foreign", "house_empty", "house_night"] as const) expect(BANTER[l][k]?.length ?? 0).toBeGreaterThan(0);
+    for (const l of LANGS) for (const k of ["own_any", "own_craft", "own_child", "foreign_any", "court_prince", "house_own", "house_foreign", "house_empty", "house_night"] as const) expect(BANTER[l][k]?.length ?? 0).toBeGreaterThan(0);
+  });
+  it("keeps the old funny lines in the pools", () => {
+    expect(BANTER.de.house_own!.some((s) => s.includes("Schuhe"))).toBe(true);
+    expect(BANTER.de.own_any!.some((s) => s.includes("Wolken"))).toBe(true);
+    // craft lines live in their own pool, so they never crowd out the witty generic ones
+    for (const l of LANGS) for (const s of BANTER[l].own_craft!) expect(BANTER[l].own_any!).not.toContain(s);
+  });
+  it("keeps everyday-craft lines a minority of what villagers say", () => {
+    for (const l of LANGS) expect(BANTER[l].own_craft!.length).toBeLessThanOrEqual(BANTER[l].own_any!.length);
+    expect(banterCats({ who: "own", traits: ["early"], child: false, sick: false, night: false })).toContain("own_any");
   });
 });
