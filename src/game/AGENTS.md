@@ -77,3 +77,4 @@
 - Mayor tasks are presented as villager petitions or growth milestones via src/game/lang/petitions.ts (presentation only); quest keys, order, rewards and the DB quest guard stay unchanged so existing claims remain valid.
 - Prince's courier: once a seed has an audience row, decrees are fetched/handed in via princely_audience from the own village (HERALD in lang/edicts.ts, heraldDue in Game.tsx); step-flavoured texts in edictText, kinds unchanged — no DB change.
 - Prince's messenger: heraldVisit (princely.ts) derives arrive/wait/leave from decree rows + clock and render.ts draws it on the village road (setHeraldRows); never stored, every client sees the same rider, only the owner may tap it.
+- Planted rare trees (cherry/quince) are spared in render.ts via sparePlanted: fields/gardens/pastures/hay/fences are not drawn on their tile; display only, structureAt and household capacity unchanged so taxes stay identical.
