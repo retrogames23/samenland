@@ -520,7 +520,7 @@ function fetePose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): P
     const dx = f.face[0] - f.spot[0], dy = f.face[1] - f.spot[1], m = Math.hypot(dx, dy) || 1;
     // bucket chain: helpers swing their pails toward the flames in a steady rhythm
     const swing = f.fire ? Math.max(0, Math.sin(now / 420 + p.id)) * 0.12 : 0;
-    return { ...base, x: f.spot[0] + (dx / m) * swing, y: f.spot[1] + (dy / m) * swing, visible: freeAt(t, f.spot[0], f.spot[1], seeds), walking: false, act, bucket, dir: [dx / m, dy / m] };
+    return { ...base, x: f.spot[0] + (dx / m) * swing, y: f.spot[1] + (dy / m) * swing, visible: freeAt(t, f.spot[0], f.spot[1], seeds), walking: false, act: f.work ? "work" : act, working: !!f.work || base.working, bucket, dir: [dx / m, dy / m] };
   }
   return null;
 }
