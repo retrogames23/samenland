@@ -312,6 +312,13 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     let from: Tile = [Math.round(s.x + r), s.y];
     for (let i = 0; i < 16; i++) { const a = hash(k0, i, 1420) * Math.PI * 2, x = Math.round(s.x + Math.cos(a) * (r + 1)), y = Math.round(s.y + Math.sin(a) * (r + 1)); if (open(x, y)) { from = [x, y]; break; } }
     const fc = well ?? meet;
+    // stand on a free tile near the well, never inside a house
+    const guestSpot = (c: Tile, dx: number, dy: number): Tile => {
+      const want: Tile = [c[0] + 1.1 + dx, c[1] + 0.4 + dy];
+      if (open(Math.round(want[0]), Math.round(want[1]))) return want;
+      for (let d = 1; d <= 3; d++) for (let a = 0; a < 8; a++) { const x = want[0] + Math.round(Math.cos(a * Math.PI / 4) * d), y = want[1] + Math.round(Math.sin(a * Math.PI / 4) * d); if (open(Math.round(x), Math.round(y))) return [x, y]; }
+      return want;
+    };
     cast.forEach(([job, sex, age, dx, dy], i) => {
       const h = (j: number) => hash(k0, i, 1430 + j);
       people.push({
@@ -319,7 +326,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
         home: from, work: null, workIndoor: false, speed: age < 14 ? 0.3 : 0.22,
         looks: { skin: h(1), hair: age >= 65 ? -1 : h(2), shirt: h(3), pants: h(4), hat: job !== "priest", stick: gn.event === "pilgrims" || job === "healer" },
         haul: null, role: "guest",
-        guest: { at: gn.at + i * 4000, until: gn.until, from, spot: [fc[0] + 1.1 + dx, fc[1] + 0.4 + dy], face: fc, event: gn.event },
+        guest: { at: gn.at + i * 4000, until: gn.until, from, spot: guestSpot(fc, dx, dy), face: fc, event: gn.event },
       });
     });
   }
@@ -483,7 +490,9 @@ function fetePose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): P
 
 function guestPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): Pose {
   const g = p.guest!;
-  if (now < g.at || now >= g.until) return { ...base, visible: false };
+  // travellers take a room for the night (22-6 world time) instead of waiting in the dark
+  const hr = worldHour(now);
+  if (now < g.at || now >= g.until || hr >= 22 || hr < 6) return { ...base, visible: false };
   const pts = [g.from, ...route(t, g.from, [Math.round(g.spot[0]), Math.round(g.spot[1])], seeds).slice(1, -1), g.spot];
   const len = lenOf(pts), dd = ((now - g.at) / 1000) * p.speed;
   if (dd < len) { const q = along(pts, dd); if (q) return { ...base, ...q, visible: true, walking: true, act: "guest", phase: dd / STRIDE }; }
