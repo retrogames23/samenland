@@ -3,7 +3,7 @@ import type { Lang } from "../i18n";
 import { FOLK } from "./banter-folk";
 
 export type BanterCat =
-  | "own_any" | "own_child" | "own_sick" | "own_night"
+  | "own_any" | "own_craft" | "own_child" | "own_sick" | "own_night"
   | "own_t_early" | "own_t_owl" | "own_t_sociable" | "own_t_homebody" | "own_t_storyteller" | "own_t_weather"
   | "own_t_nature" | "own_t_diligent" | "own_t_cheerful" | "own_t_worrier" | "own_t_pious" | "own_t_curious"
   | "foreign_any" | "foreign_child" | "foreign_night"
@@ -39,6 +39,8 @@ const de: Cat = {
     "Wenn der Fürst wüsste, wie gut wir's hier haben!",
     "Nicht stören, ich zähle gerade die Wolken.",
     "Man trifft sich, {mayor}!",
+  ],
+  own_craft: [
     "Riecht Ihr das? Frisch gedroschenes Korn – staubig und süß zugleich.",
     "Dieses Jahr liegt das Brachfeld, nächstes Jahr kommt Wintergetreide drauf. So bleibt der Boden gut.",
     "Die Zapfen sitzen fest im Gebälk – kein einziger Nagel im ganzen Dachstuhl.",
@@ -223,6 +225,8 @@ const en: Cat = {
     "The neighbour's hens escaped again.",
     "Don't disturb me, I'm counting clouds.",
     "Give my regards to your family!",
+  ],
+  own_craft: [
     "Smell that? Freshly threshed grain – dusty and sweet at once.",
     "This field lies fallow this year; next year it gets winter rye. Keeps the soil good.",
     "The pegs sit tight in the beams – not a single nail in the whole roof frame.",
@@ -404,7 +408,7 @@ const ja: Cat = {
 
 for (const [k, c] of [["fr", fr], ["es", es], ["ar", ar], ["hi", hi], ["zh", zh], ["ja", ja]] as const) {
   const f = FOLK[k];
-  c.own_any = [...(c.own_any ?? []), ...f.own_any];
+  c.own_craft = [...(c.own_craft ?? []), ...f.own_any];
   c.own_sick = [...(c.own_sick ?? []), ...f.own_sick];
   for (const [t, lines] of Object.entries(f.traits)) c[t as BanterCat] ??= lines;
 }
