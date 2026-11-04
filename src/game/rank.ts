@@ -1,6 +1,6 @@
 /** Settlement rank judged from what actually stands and lives in a town — never from the clock. */
 export type RankInput = { citizens: number; homes: number; roads: number };
-/** [citizens, occupied dwellings, finished trade roads] needed for Weiler … Metropole. */
+/** [citizens, occupied dwellings, finished trade roads] needed for Weiler … Hansestadt. */
 export const RANK_NEED: readonly [number, number, number][] = [
   [15, 4, 0], [80, 28, 0], [280, 100, 0], [750, 260, 1], [1500, 430, 2],
 ];
@@ -9,7 +9,7 @@ export function rankOf({ citizens, homes, roads }: RankInput) {
   for (const [c, h, rd] of RANK_NEED) { if (citizens >= c && homes >= h && roads >= rd) r++; else break; }
   return r;
 }
-/** What is still missing for the next rank (null at Metropole). */
+/** What is still missing for the next rank (null at Hansestadt). */
 export function nextRankNeed(i: RankInput) {
   const need = RANK_NEED[rankOf(i)];
   if (!need) return null;

@@ -269,7 +269,7 @@ export const ageHours = (s: Seed, now: number) => Math.max(0, (now - Date.parse(
 export const STAGES = [
   { name: "Ursprung", from: 0 }, { name: "Weiler", from: 24 },
   { name: "Dorf", from: 168 }, { name: "Kleinstadt", from: 2160 },
-  { name: "Handelsstadt", from: 4380 }, { name: "Metropole", from: 8760 },
+  { name: "Handelsstadt", from: 4380 }, { name: "Hansestadt", from: 8760 },
 ] as const;
 export const stageOf = (h: number) => {
   let stage = 0;
@@ -1068,7 +1068,7 @@ export function hubRoutes(s: Seed, seeds: Seed[]): { since: number }[] {
   return out;
 }
 
-/** Care gate: food/health buildings a player town needs before each later era (Kleinstadt, Handelsstadt, Metropole). */
+/** Care gate: food/health buildings a player town needs before each later era (Kleinstadt, Handelsstadt, Hansestadt). */
 export const CARE_FOOD = ["fisher", "hunter", "granary", "dairy", "markethall", "guildhall"], CARE_HEALTH = ["herbs", "healer", "library"];
 export const CARE_NEED: [number, number][] = [[1, 0], [2, 1], [3, 2]];
 /** Highest growth stage a town may reach with the care bought by `now` (sample towns are never gated). */
@@ -1088,7 +1088,7 @@ function careCeiling(s: Seed, now: number, v: number) {
   if (v <= c0) return v;
   return c0 + (ceil - c0 - 1) * (1 - Math.exp(-(v - c0) / (ceil * 0.3)));
 }
-/** Global pace: a town with typical neighbours reaches Metropole after ~2 real years. */
+/** Global pace: a town with typical neighbours reaches Hansestadt after ~2 real years. */
 export const GROWTH_PACE = 0.35;
 
 /** Mentor: a young town linked to a clearly older town grows MENTOR_RATE faster during its first MENTOR_SPAN hours. */
@@ -1145,7 +1145,7 @@ export function tradeHints(s: Seed, seeds: Seed[], now: number) {
 export type PactKind = "trade" | "shield" | "culture";
 export const PACTS: PactKind[] = ["trade", "shield", "culture"];
 export type WorkKind = "bridge" | "hall" | "tower";
-/** Each side pays this half (Taler); mirrors the database guard. */
+/** Each side pays this half (Mark); mirrors the database guard. */
 export const TWIN_WORKS: Record<WorkKind, number> = { bridge: 200, hall: 300, tower: 250 };
 export const TWIN_BONUS = 0.1, PACT_WAIT = 7 * 864e5, WORK_BUILD = 48 * 3.6e6, WORK_BONUS = 0.05;
 export const PACT_GROWTH: Record<PactKind, number> = { trade: 0.1, shield: 0, culture: 0.05 };
