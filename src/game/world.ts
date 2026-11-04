@@ -2,7 +2,7 @@ import { nearCourt, resetCourt } from "./court";
 import { resetWonders } from "./wonders";
 import { townCharacter, resetCharacters, type TownWay } from "./character";
 import { biomeKey, type Biome } from "./biome";
-import { cacheTick, worldHour, worldWeekday, type Realm } from "./time";
+import { cacheTick, worldHour, worldWeekday, workClock, workDone, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
 import { civicWealth, estateAt, estateHouse, RESIDENTIAL } from "./prosperity";
@@ -585,7 +585,7 @@ export function monumentProgress(s: Seed, now: number, key: MonumentKey = "belfr
   const steps = (s.bought ?? []).filter((b) => monumentOf(b.item) === key && b.at <= now);
   if (!steps.length) return 0;
   const last = Math.max(...steps.map((b) => b.at));
-  return Math.min(n, steps.length - 1 + Math.min(1, (now - last) / specialBuild(s, mill))) / n;
+  return Math.min(n, steps.length - 1 + Math.min(1, (workClock(now) - workClock(last)) / specialBuild(s, mill))) / n;
 }
 /** Craft charter halves the construction time of bought buildings. */
 /** Craft charter halves, a woodcutter's camp (ready timber) shortens build time by a quarter — both pure from purchases. */
@@ -597,8 +597,9 @@ export const sawmillUp = (s: Seed, seeds: Seed[], now: number) => effAge(s, seed
 export const specialBuild = (s: Seed, mill = false) => (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1) * (mill ? TIMBER_BUILD : 1) * (s.charter?.path === "craft" && (s.bought ?? []).some((b) => b.item === "rank2") ? 0.8 : 1);
 /** When a bought (non-monument) building started at `at` is finished – same rule as structureAt. */
 export function specialDone(s: Seed, seeds: Seed[], at: number): number {
-  const fast = at + specialBuild(s, true);
-  return sawmillUp(s, seeds, fast) ? fast : at + specialBuild(s, false);
+  // builders rest at night (workClock), the day shift makes up for it
+  const fast = workDone(at, specialBuild(s, true));
+  return sawmillUp(s, seeds, fast) ? fast : workDone(at, specialBuild(s, false));
 }
 /** When a fully paid monument is finished (last step + build time, same rule as structureAt), or null while steps are missing. */
 export function monumentDone(s: Seed, seeds: Seed[], key: MonumentKey): number | null {
@@ -684,7 +685,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     if (!sp || now < sp.at) continue;
     const mk = MONUMENT_BY_KIND.get(sp.kind);
     const mill = sawmillUp(s, seeds, now);
-    const p = mk ? monumentProgress(s, now, mk, mill) : (now - sp.at) / specialBuild(s, mill);
+    const p = mk ? monumentProgress(s, now, mk, mill) : (workClock(now) - workClock(sp.at)) / specialBuild(s, mill);
     const doneAt = p < 1 ? (mk ? monumentDone(s, seeds, mk) ?? undefined : specialDone(s, seeds, sp.at)) : undefined;
     best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p, doneAt } : {}) };
     scache.set(ck, best);

@@ -6,7 +6,7 @@ import { PROSPERITY } from "@/game/lang/prosperity";
 import { ESTATE_TAX } from "@/game/prosperity";
 import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind } from "@/game/gifts";
 import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
-import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, type Realm } from "@/game/time";
+import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, type Realm } from "@/game/time";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type WonderFind } from "@/game/wonders";
@@ -77,6 +77,7 @@ import {
   MIN_SEED_DISTANCE,
   specialSites,
   specialBuild,
+  specialDone,
   monumentProgress,
   MONUMENT_KEYS, MONUMENT_DEFS, monumentSteps, monumentOf,
   structureAt,
@@ -1623,8 +1624,7 @@ export function Game() {
     if (!owner || !my || !at) return null;
     const cheapest = Math.min(...(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && canBuyWay(it, my ? wayOf(my) : undefined) && !at.has(it) && (ITEM_STAGE[it] ?? 0) <= myStage).map((it) => ITEMS[it]));
     if (cash >= cheapest) return null;
-    const dur = specialBuild(my, sawmillUp(my, seeds, slow));
-    const ends = [...specialSites(my).values()].map((s) => s.at + dur).filter((e) => e > slow);
+    const ends = [...specialSites(my).values()].map((s) => specialDone(my, seeds, s.at)).filter((e) => e > slow);
     return ends.length ? Math.min(...ends) : null;
   })();
   // the "come back later" band stays shut for this build site: remembered per finishing building
@@ -1926,7 +1926,7 @@ export function Game() {
             const mill = sawmillUp(my, seeds, now), prog = monumentProgress(my, now, key, mill), n = steps.length, i = paid.length;
             const last = Math.max(0, ...paid.map((p) => Date.parse(p.created_at)));
             const ready = i === 0 || (prog >= i / n && now - last >= 3 * 3600000);
-            const waitH = Math.max(Math.ceil((last + 3 * 3600000 - now) / 3.6e6), Math.ceil(((i / n - prog) * n * specialBuild(my, mill)) / 3.6e6));
+            const waitH = Math.max(Math.ceil((last + 3 * 3600000 - now) / 3.6e6), Math.ceil((workDone(now, Math.max(0, (i / n - prog) * n * specialBuild(my, mill))) - now) / 3.6e6));
             const kind = MONUMENT_DEFS[key].kind, first = `${key}1`;
             return (
               <div key={key} className="rounded-md border border-brass/60 bg-brass/10 p-2">

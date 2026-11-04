@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { structureAt, buildTime, GROWTH_PACE, specialTile, SPECIAL_BUILD, type Seed } from "./world";
+import { structureAt, buildTime, GROWTH_PACE, specialTile, specialDone, type Seed } from "./world";
 import { townOf } from "./people";
 
 const seed: Seed = { id: "build-test", x: 512, y: 512, name: "T", hue: 30, created_at: new Date(0).toISOString() } as Seed;
@@ -34,7 +34,9 @@ describe("construction sites", () => {
     expect(tile).not.toBeNull();
     const st = structureAt(tile![0], tile![1], [bought], at + 1000);
     expect(st?.build).toBeLessThan(1);
-    expect(st?.doneAt).toBe(at + SPECIAL_BUILD);
-    expect(structureAt(tile![0], tile![1], [bought], at + SPECIAL_BUILD + 1)?.doneAt).toBeUndefined();
+    // bought at 01:16 Berlin time: builders wait for the morning bell, then work faster by day
+    const done = specialDone(bought, [bought], at);
+    expect(st?.doneAt).toBe(done);
+    expect(structureAt(tile![0], tile![1], [bought], done + 1)?.doneAt).toBeUndefined();
   });
 });

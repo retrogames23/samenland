@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
 
 // Scheduled every 15 min: writes a parchment letter to opted-in mayors whose bought building just finished.
-// Completion is derived from purchase time + specialBuild(seed), exactly as the game computes it; nothing is stored.
+// Completion is derived from purchase time + specialBuild(seed) in builders' work hours (specialDone), exactly as the game computes it; nothing is stored.
 const WINDOW = 3 * 3600000;
 
 export const Route = createFileRoute("/api/public/build-mail")({
@@ -13,7 +13,8 @@ export const Route = createFileRoute("/api/public/build-mail")({
         const denied = await authenticateCronRequest(request);
         if (denied) return denied;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { specialBuild, specialSites, sawmillUp } = await import("@/game/world");
+        const { specialSites, specialDone } = await import("@/game/world");
+        const { setRealm } = await import("@/game/time");
         const { DICT } = await import("@/game/i18n");
         const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
         const now = Date.now();
@@ -38,11 +39,12 @@ export const Route = createFileRoute("/api/public/build-mail")({
             bought: mine.map((b) => ({ item: b.item, at: Date.parse(b.created_at), x: b.x, y: b.y })).sort((a, b) => a.at - b.at),
             ...(ch ? { charter: { path: ch.path, at: Date.parse(ch.created_at) } } : {}),
           } as unknown as import("@/game/world").Seed;
-          const dur = specialBuild(s, sawmillUp(s, [s], now));
+          // night rest follows the village's own realm clock
+          setRealm((s0.realm ?? "europe") as import("@/game/time").Realm);
           const placed = new Set([...specialSites(s).values()].map((v) => v.at));
           const lang = (opts.find((o) => o.user_id === s0.user_id)?.lang ?? "de") as keyof typeof DICT;
           for (const b of mine) {
-            const done = Date.parse(b.created_at) + dur;
+            const done = specialDone(s, [s], Date.parse(b.created_at));
             if (!placed.has(Date.parse(b.created_at)) || done > now || done < now - WINDOW) continue;
             const { data: u } = await supabaseAdmin.auth.admin.getUserById(s0.user_id!);
             const email = u.user?.email;

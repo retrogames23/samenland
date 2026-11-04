@@ -434,6 +434,8 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
   const sd = x * 1000 + y;
   if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
   else if (s.build !== undefined && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: "site" });
+  // town bell: from the Kleinstadt seat (Amtshaus with bell gable) on, plus belfry, church and cathedral
+  if (s.build === undefined && BELL_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: "bell" });
   if (s.build !== undefined) { drawSite(c, s, cx, cy, t, true); return; }
   const flip = faceFlip(s.kind, x, y, (i, j) => { const k = structureAt(i, j, renderSeeds, renderNow)?.kind; return !!k && PATHLIKE.has(k); });
   const style = houseStyle(s);
@@ -874,6 +876,7 @@ const peopleSlots: { x: number; y: number; q: Pose }[] = [];
 const pushPerson = (x: number, y: number, q: Pose) => { const i = lastPeople.length; const o = peopleSlots[i] ?? (peopleSlots[i] = { x, y, q }); o.x = x; o.y = y; o.q = q; lastPeople.push(o); };
 /** Sound-emitting structures drawn this frame (world-screen coords), read by the audio mixer. */
 export const lastSources: { x: number; y: number; k: string }[] = [];
+const BELL_KINDS = new Set(["seat3", "townhall", "belfry", "church", "factory"]);
 const SOUND_KINDS = new Set(["campfire", "mill", "watermill", "smithy", "pasture", "church", "sawmill", "steamworks"]);
 function limb(c: C, pts: Pt[], col: string, w: number) {
   c.lineCap = "round"; c.lineJoin = "round";

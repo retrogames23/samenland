@@ -46,6 +46,27 @@ export function worldHour(now: number): number {
   return cache.base + (now - cache.min * 60000) / 3.6e6;
 }
 
+/**
+ * Builders' working day (north German town law around 1500): from the morning bell at WORK_START to the
+ * evening bell at WORK_END; at night no site may work (open light near timber meant fire). To keep build
+ * times balanced over a full day, the day shift works 24 / (WORK_END - WORK_START) times as fast.
+ */
+export const WORK_START = 6, WORK_END = 20;
+export const WORK_RATE = 24 / (WORK_END - WORK_START);
+export const isWorkHour = (now: number) => { const h = worldHour(now); return h >= WORK_START && h < WORK_END; };
+/** Monotonic "work clock" in ms: advances WORK_RATE× during the working day, stands still at night; equals real time over whole days. */
+export function workClock(now: number): number {
+  const h = worldHour(now), day = now - h * 3.6e6;
+  return day + Math.min(Math.max(h - WORK_START, 0), WORK_END - WORK_START) * WORK_RATE * 3.6e6;
+}
+/** Real moment when `ms` of work time have passed since `from` (inverse of workClock; pure). */
+export function workDone(from: number, ms: number): number {
+  const target = workClock(from) + ms;
+  let lo = from, hi = from + ms + 2 * 864e5;
+  for (let i = 0; i < 48; i++) { const m = (lo + hi) / 2; if (workClock(m) >= target) hi = m; else lo = m; }
+  return Math.ceil(hi);
+}
+
 /** Admin test map: time runs LAB_SPEED times faster from LAB_EPOCH, plus an optional jump (game hours). */
 export const LAB_EPOCH = Date.parse("2026-10-27T23:40:00Z");
 export const LAB_SPEED = 1;
