@@ -1,16 +1,24 @@
 import { worldHour, clock } from "./time";
 import nightSong from "@/assets/music/night_last_candle_waning.mp3.asset.json";
 import daySong from "@/assets/music/day_builders_dance.mp3.asset.json";
+import tavernSong from "@/assets/music/tavern_stein_auf_stein.mp3.asset.json";
 
 /**
  * Background music: situation playlists picked from the shared world clock. Plays only while both
  * sound and music are on; crossfades via a plain <audio> element (streams, no full decode on phones).
  */
-export type Mood = "day" | "night" | null;
+export type Mood = "day" | "night" | "tavern" | null;
 const PLAYLISTS: Record<Exclude<Mood, null>, string[]> = {
   day: [daySong.url],
   night: [nightSong.url],
+  tavern: [tavernSong.url],
 };
+let inTavern = false;
+/** While the tavern window is open its own song overrides the clock playlist (still silent if music is off). */
+export function setTavernMusic(open: boolean) {
+  if (inTavern === open) return;
+  inTavern = open; sync();
+}
 
 /** Which playlist the world clock calls for: dark = evening/night, light = daytime (dusk/dawn ramps of the sky tint). */
 export function moodAt(now = clock()): Mood {
@@ -42,7 +50,7 @@ function play(m: Exclude<Mood, null>) {
   void el.play().then(() => ramp(VOL)).catch(() => {});
 }
 function sync() {
-  const want = active && !(typeof document !== "undefined" && document.hidden) ? moodAt() : null;
+  const want = active && !(typeof document !== "undefined" && document.hidden) ? (inTavern ? "tavern" : moodAt()) : null;
   if (want === mood) { if (want && el?.paused) void el.play().catch(() => {}); return; }
   mood = want;
   if (el && !el.paused) ramp(0, () => { el!.pause(); if (want) play(want); });
