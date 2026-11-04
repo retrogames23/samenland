@@ -1314,12 +1314,39 @@ export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, see
   if (!buildable(tt) || tt === "forest") return "ground";
   const st = structureAt(x, y, seeds, now);
   if (st && !(st.kind === "field" || st.kind === "pasture" || st.kind === "garden")) return "taken";
-  if (kind === "fishery") {
-    let w = false;
-    for (let j = -2; j <= 2 && !w; j++) for (let i = -2; i <= 2; i++) if (isWater(terrain(x + i, y + j))) { w = true; break; }
-    if (!w) return "shore";
+  // away from water the fisher digs a carp pond beside his hut, so it needs one free neighbour tile
+  if (kind === "fishery" && !waterBeside(x, y) && !pondSpot(x, y)) return "shore";
+  return null;
+}
+
+const waterBeside = (x: number, y: number) => {
+  for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) if (isWater(terrain(x + i, y + j))) return true;
+  return false;
+};
+/** Neighbour tile of a dry-land fishery where its dug carp pond lies; pure function of the hut tile. */
+function pondSpot(x: number, y: number): [number, number] | null {
+  const nb: [number, number][] = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+  const o = Math.floor(hash(x, y, 4711) * 4);
+  for (let k = 0; k < 4; k++) {
+    const [i, j] = nb[(o + k) % 4]!, t = terrain(x + i, y + j);
+    if (buildable(t) && t !== "forest") return [x + i, y + j];
   }
   return null;
+}
+const pondCache = new Map<string, Set<number>>();
+/** Carp-pond tiles of every fishery that stands away from water (Karpfenteich) — derived, never stored. */
+export function pondTiles(seeds: Seed[]): Set<number> {
+  const key = seedsKey(seeds); const hit = pondCache.get(key); if (hit) return hit;
+  const out = new Set<number>();
+  for (const s of seeds) for (const [k, v] of specialSites(s)) {
+    if (v.kind !== "fishery") continue;
+    const x = k % MAP, y = Math.floor(k / MAP);
+    if (waterBeside(x, y)) continue;
+    const p = pondSpot(x, y); if (p) out.add(p[1] * MAP + p[0]);
+  }
+  if (pondCache.size > 20) pondCache.clear();
+  pondCache.set(key, out);
+  return out;
 }
 
 // ---------------- village character from geography ----------------
