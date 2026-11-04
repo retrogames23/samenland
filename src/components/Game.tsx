@@ -51,7 +51,7 @@ import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
 import { MAYOR } from "@/game/lang/mayor";
 import { COURT } from "@/game/lang/court";
-import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, heraldSpots } from "@/game/render";
+import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, heraldSpots, isPlantedRare } from "@/game/render";
 import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT } from "@/game/lang/support";
@@ -2278,7 +2278,8 @@ export function Game() {
                 if (!me || tx < tw.x0 || tx > tw.x1 || ty < tw.y0 || ty > tw.y1 || !commandMayor(me, tw, seeds, nw, [tx, ty])) return false;
                 tap(pan); setWho(null); setPlace(null); return true; };
               if (who?.role === "mayor" && who.seed.id === mine && sendMayor()) return;
-              const ins = inspectAt(tx, ty, seeds, clock());
+              const ins0 = inspectAt(tx, ty, seeds, clock());
+              const ins = ins0 && isPlantedRare(st.current.plantings, ins0.x, ins0.y) ? null : ins0;
               if (ins) { if (ins.kind === "pasture") baa(pan); else tap(pan); setWho(null); knock(ins); return setPlace(ins); }
               const hadCard = !!who || !!place;
               setPlace(null); setWho(null);
