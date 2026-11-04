@@ -1,4 +1,5 @@
 import { weddingLive } from "./weddings";
+import { seasonAt, type Season } from "./season";
 import type { Seed } from "./world";
 /**
  * Daily encounters ("Schulzen-Entscheidungen"): which encounter a village meets on a UTC day is a pure
@@ -57,13 +58,48 @@ function strHash(s: string) {
   h = Math.imul(h ^ (h >>> 15), 2246822507);
   return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
 }
-/** The village's n-th encounter: cycles through a per-village shuffled order, never the same one twice in a row. */
-export function eventOf(seedId: string, n: number): EventKey {
-  const k = EVENT_KEYS.length;
-  const order = (round: number) => [...EVENT_KEYS].sort((p, q) => strHash(`${seedId}:${round}:${p}`) - strHash(`${seedId}:${round}:${q}`));
-  const round = Math.floor(n / k), i = ((n % k) + k) % k, o = order(round);
-  if (o[0] === order(round - 1)[k - 1]) [o[0], o[1]] = [o[1]!, o[0]!];
-  return o[i]!;
+/** Base lottery weight: everyday visitors often, rare highlights seldom. */
+export const EVENT_WEIGHT: Partial<Record<EventKey, number>> = {
+  journeyman: 12, healer: 11, tinker: 10, orphan: 10, cow: 10, merchant: 11,
+  monk: 7, pilgrims: 7, widow: 7, boundary: 6, well: 6, minstrel: 8, storm: 6, wolf: 6, bees: 6, harvest: 6, fair: 6, maypole: 6,
+  painter: 3, surveyor: 3, nursery: 3, ruin: 3, tithe: 4,
+};
+/** Raw era from real age (mirrors STAGES thresholds in world.ts without importing it). */
+const eraOfAge = (h: number) => (h >= 2160 ? 3 : h >= 168 ? 2 : h >= 24 ? 1 : 0);
+/** Minimum era per encounter: no fair or painter for three huts. */
+const MIN_ERA: Partial<Record<EventKey, number>> = { pilgrims: 1, boundary: 1, tithe: 1, fair: 2, surveyor: 2, painter: 2 };
+/** Season multipliers (0 = never in that season). */
+const SEASON_MUL: Partial<Record<EventKey, Partial<Record<Season, number>>>> = {
+  maypole: { spring: 1.5, summer: 0, autumn: 0, winter: 0 },
+  harvest: { spring: 0, winter: 0, summer: 1, autumn: 2 },
+  bees: { spring: 2.5, summer: 1, autumn: 0.3, winter: 0 },
+  nursery: { spring: 2.5, autumn: 1.5, summer: 0.5, winter: 0.2 },
+  fair: { summer: 2, spring: 1, autumn: 1, winter: 0.3 },
+  well: { summer: 2 },
+  storm: { autumn: 2, winter: 1.5, summer: 0.7 },
+  wolf: { winter: 3, autumn: 1.2, spring: 0.5, summer: 0.3 },
+};
+/** Recent encounters that cannot return yet. */
+export const EVENT_COOLDOWN = 4;
+export type EventCtx = { ageH: number; season: Season; recent: string[] };
+/** Weight of an encounter in the given context (0 = impossible). */
+export function eventWeight(e: EventKey, ctx: EventCtx) {
+  if (eraOfAge(ctx.ageH) < (MIN_ERA[e] ?? 0)) return 0;
+  if (ctx.recent.includes(e)) return 0;
+  return (EVENT_WEIGHT[e] ?? 5) * (SEASON_MUL[e]?.[ctx.season] ?? 1);
+}
+const dominantSeason = (t: number): Season => {
+  const w = seasonAt(t);
+  return (Object.keys(w) as Season[]).reduce((a, b) => (w[b] > w[a] ? b : a));
+};
+/** The village's n-th encounter: weighted pseudo-random draw from (seed id, n), filtered by era, season and the last few events. */
+export function eventOf(seedId: string, n: number, ctx: EventCtx = { ageH: 1e6, season: "summer", recent: [] }): EventKey {
+  const opts = EVENT_KEYS.map((e) => [e, eventWeight(e, ctx)] as const).filter(([, w]) => w > 0);
+  const pool = opts.length ? opts : EVENT_KEYS.map((e) => [e, 1] as const);
+  const total = pool.reduce((s, [, w]) => s + w, 0);
+  let r = strHash(`${seedId}:draw:${n}`) * total;
+  for (const [e, w] of pool) { r -= w; if (r < 0) return e; }
+  return pool[pool.length - 1]![0];
 }
 export const choicesOf = (e: EventKey) => Object.keys(ENCOUNTERS[e]) as string[];
 export const choiceOf = (e: string, c: string): Choice | undefined => (ENCOUNTERS as Record<string, Record<string, Choice>>)[e]?.[c];
