@@ -1702,7 +1702,7 @@ export function Game() {
     if (walk) return;
     if (k === "b") { done(); return pick(my ? "build" : "plant"); }
     if (k === "p" && (import.meta.env.DEV || location.search.includes("figs"))) { done(); return setLabOpen((v) => !v); }
-    if (k === "t") { done(); return setTavernOpen((v) => !v); }
+    if (k === "t" && userId) { done(); return setTavernOpen((v) => !v); }
     if (k === "m") {
       // map overview: zoom far out over the island, the second press returns to the earlier zoom
       done(); const cv = canvasRef.current; if (!cv) return;
@@ -2410,10 +2410,12 @@ export function Game() {
               <ScrollText className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.menu}</span>
             </WoodButton>
           )}
-          <WoodButton label={t.tavern.menu} active={tavernOpen} onClick={() => setTavernOpen(true)} className="relative h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
-            <Beer className="h-5 w-5" /><span className="text-[10px] leading-none">{t.tavern.menu}</span>
-            {chatUnread > 0 && <span className="absolute end-1 top-1 h-2.5 w-2.5 rounded-full bg-destructive" />}
-          </WoodButton>
+          {userId && (
+            <WoodButton label={t.tavern.menu} active={tavernOpen} onClick={() => setTavernOpen(true)} className="relative h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
+              <Beer className="h-5 w-5" /><span className="text-[10px] leading-none">{t.tavern.menu}</span>
+              {chatUnread > 0 && <span className="absolute end-1 top-1 h-2.5 w-2.5 rounded-full bg-destructive" />}
+            </WoodButton>
+          )}
           {my && (
             <WoodButton label={t.mayorFind} onClick={findMayor} className="max-md:hidden h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
               <Crown className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.role["mayor"]![1]}</span>
