@@ -59,7 +59,6 @@ import { Survey } from "@/components/Survey";
 import { THANKS, OSS } from "@/game/lang/thanks";
 import { TILEINFO } from "@/game/lang/tileinfo";
 import { tileFacts } from "@/game/tile-info";
-import { isPlantedRare as plantedAt } from "@/game/render";
 import { RENAME } from "@/game/lang/rename";
 import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
@@ -2247,7 +2246,7 @@ export function Game() {
               if (box) {
                 if (e.pointerType !== "mouse") box.style.display = "none";
                 else {
-                  const f = tileFacts(nt[0], nt[1], st.current.seeds, clock(), plantedAt(st.current.plantings, nt[0], nt[1])), ti = TILEINFO[lang];
+                  const f = tileFacts(nt[0], nt[1], st.current.seeds, clock(), isPlantedRare(st.current.plantings, nt[0], nt[1])), ti = TILEINFO[lang];
                   const head = f.kind ? `${t.kind[f.kind] ?? (t.kinds as Record<string, string>)[f.kind] ?? f.kind}${f.seed ? ` (${f.seed})` : ""}` : t.terrain[f.terrain];
                   const parts = [head, ...(f.kind ? [t.terrain[f.terrain]] : []), ...f.animals.map((a) => ti.animals[a])];
                   box.textContent = parts.join(" · ") + (f.effects.length ? ` — ${f.effects.map((k) => ti.fx[k]).join(", ")}` : "");
