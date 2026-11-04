@@ -1915,7 +1915,7 @@ function acrePath(c: C, cx: number, cy: number, hx: number, hy: number, outer: b
   c.closePath();
   return q;
 }
-type AgriSpec = { kind: "field" | "garden" | "pasture"; ripe: boolean; look?: Look; along: boolean; outer: boolean[]; winter: boolean; hx: number; hy: number; k2: number };
+type AgriSpec = { kind: "field" | "garden" | "pasture"; ripe: boolean; look?: Look | undefined; along: boolean; outer: boolean[]; winter: boolean; hx: number; hy: number; k2: number };
 /** Furrows, plants, wattle, bean poles, tufts and troughs — everything except the textured base fill. */
 function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
   const pp = P(cx, cy), { hx: x, hy: y, ripe, along, outer } = a;
