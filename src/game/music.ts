@@ -14,7 +14,7 @@ import tavernSong from "@/assets/music/tavern_stein_auf_stein.mp3.asset.json";
 export type Mood = "day" | "night" | "tavern" | null;
 const PLAYLISTS: Record<Exclude<Mood, null>, string[]> = {
   day: [daySong0.url, daySong.url, daySong2.url],
-  night: [nightSong.url, nightSong2.url],
+  night: [nightSong.url, nightSong2.url, nightSong3.url],
   tavern: [tavernSong.url],
 };
 let inTavern = false;

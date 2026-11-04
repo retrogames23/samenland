@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { moodAt, songsOf } from "./music";
 import daySong from "@/assets/music/day_currents_through_the_city_gate.mp3.asset.json";
 import nightSong from "@/assets/music/night_last_candle_waning.mp3.asset.json";
+import nightSong3 from "@/assets/music/night_moonlight_on_the_well.mp3.asset.json";
 
 // Berlin is UTC+1 in November (winter time), so these UTC instants have known world hours.
 const at = (utc: string) => Date.parse(utc);
