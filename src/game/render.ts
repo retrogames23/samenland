@@ -53,7 +53,7 @@ import guardU from "@/assets/sprites/court/guard.webp";
 import gardenerU from "@/assets/sprites/court/gardener.webp";
 import courtGroomU from "@/assets/sprites/court/groom.webp";
 import { heraldVisit, HERALD_RIDE_S, type PrincelyRow } from "./princely";
-import { SEAT_KINDS, hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { SEAT_KINDS, hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -2558,15 +2558,37 @@ export function isPlantedRare(p: Map<string, Planting>, x: number, y: number) {
   const pl = p.get(`${x},${y}`);
   return !!pl && (pl.kind === "cherry" || pl.kind === "quince");
 }
+let pondsNow: Set<number> = new Set();
 function sparePlanted(x: number, y: number, st: Structure | null): Structure | null {
+  if (pondsNow.has(y * MAP + x)) return null;
   if (!st || KEEP_KINDS.has(st.kind)) return st;
   return isPlantedRare(plantedNow, x, y) ? null : st;
+}
+/** Dug carp pond beside a dry-land fishery: earthen rim, still water, lily pads and reeds. */
+function drawPond(c: C, x: number, y: number, cx: number, cy: number) {
+  const rx = TW * 0.4, ry = TH * 0.4;
+  c.fillStyle = "rgba(92,72,44,0.55)"; c.beginPath(); c.ellipse(cx, cy + 0.6, rx + 1.6, ry + 1.1, 0, 0, 7); c.fill();
+  const g = c.createLinearGradient(cx - rx, cy - ry, cx + rx, cy + ry);
+  g.addColorStop(0, "#7fa7a3"); g.addColorStop(0.55, "#4f7f80"); g.addColorStop(1, "#3c6568");
+  c.fillStyle = g; c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, 7); c.fill();
+  c.strokeStyle = "rgba(230,240,232,0.35)"; c.lineWidth = 0.6;
+  c.beginPath(); c.ellipse(cx - rx * 0.25, cy - ry * 0.3, rx * 0.35, ry * 0.18, 0, 3.4, 5.8); c.stroke();
+  for (let i = 0; i < 3; i++) {
+    const a = hash(x, y, 90 + i) * 6.28, px = cx + Math.cos(a) * rx * 0.55, py = cy + Math.sin(a) * ry * 0.55;
+    c.fillStyle = "#5f8a4a"; c.beginPath(); c.ellipse(px, py, 1.6, 0.9, 0, 0.4, 6.0); c.fill();
+  }
+  c.strokeStyle = "#6b7f3a"; c.lineWidth = 0.7; c.lineCap = "round";
+  for (let i = 0; i < 6; i++) {
+    const a = 2.2 + hash(x, y, 120 + i) * 1.6, bx = cx + Math.cos(a) * rx * 0.95, by = cy + Math.sin(a) * ry * 0.95, h = 3 + hash(x, y, 140 + i) * 3;
+    c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx - 0.4, by - h * 0.6, bx + (hash(x, y, 160 + i) - 0.5) * 1.5, by - h); c.stroke();
+  }
 }
 /** Flat ground dressing of one tile (turf, ore rocks, paths, squares, acres) — drawn live or baked into a flat chunk. */
 function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number) {
     const live = nearTown(x, y);
     if (live) natureAt(c, x, y, cx, cy, t, false); // ore rocks
 
+    if (pondsNow.has(y * MAP + x)) { drawPond(c, x, y, cx, cy); return; }
     if (!st) { if (live && !inCourt(x, y)) wildTurf(c, x, y, cx, cy, terrain(x, y)); return; }
     const sd = x * 1000 + y;
     const pp = P(cx, cy);
@@ -2622,7 +2644,7 @@ export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
 ) {
-  renderNow = now; renderSeeds = seeds; syncMask(seeds); setArtTime(now); setNatureTime(now); plantedNow = plantings;
+  renderNow = now; renderSeeds = seeds; syncMask(seeds); setArtTime(now); setNatureTime(now); plantedNow = plantings; pondsNow = pondTiles(seeds);
   lastPeople.length = 0; lastTraders.length = 0; lastSources.length = 0;
   signpostMap(seeds);
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
