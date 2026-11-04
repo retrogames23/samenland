@@ -34,13 +34,20 @@ export const ENCOUNTERS = {
   tithe: { pay: { cost: 25, fx: { h: 168, health: 5, wealth: 5 } }, bargain: { cost: 10, fx: {} }, plead: { cost: 0, fx: {} } },
   nursery: { cherry: { cost: 40, fx: { h: 168, health: 5 } }, quince: { cost: 35, fx: { h: 168, food: 8 } }, pass: { cost: 0, fx: {} } },
   maypole: { pole: { cost: 20, fx: { h: 96, health: 10 } }, games: { cost: 0, fx: { h: 48, health: 5 } } },
+  // Allmende questions (commons.ts): asked by residents about once a week, never drawn as visitors
+  hutewald: { mast: { cost: 0, fx: { h: 168, food: 10 } }, wild: { cost: 0, fx: { h: 168, food: 4, health: 4 } } },
+  backtag: { bake: { cost: 10, fx: { h: 168, health: 10, food: 4 } }, home: { cost: 0, fx: {} } },
+  steg: { together: { cost: 0, fx: { h: 96, health: 8 } }, carpenter: { cost: 40, fx: { h: 96, wealth: 8 } } },
 } as const satisfies Record<string, Record<string, Choice>>;
 export type EventKey = keyof typeof ENCOUNTERS;
 /**
  * Rotating visitors; "wedding" only appears while a real village wedding takes place.
  * "flood" is retired (kept for old decisions' boons): floods are a visible disaster in disasters.ts, never a text-only encounter.
  */
-export const EVENT_KEYS = (Object.keys(ENCOUNTERS) as EventKey[]).filter((k) => k !== "wedding" && k !== "flood");
+/** Commons questions (commons.ts) share the encounter slot but are never drawn as visitors. */
+export const COMMONS_KEYS = ["hutewald", "backtag", "steg"] as const;
+const NOT_DRAWN: ReadonlySet<string> = new Set(["wedding", "flood", ...COMMONS_KEYS]);
+export const EVENT_KEYS = (Object.keys(ENCOUNTERS) as EventKey[]).filter((k) => !NOT_DRAWN.has(k));
 export type Decision = { event: string; choice: string; at: number; cost: number };
 
 /** Villages meet their first visitor once they are this many hours old (3 minutes). */
@@ -118,7 +125,8 @@ export function pendingEncounter(seed: Pick<Seed, "id" | "created_at"> & Partial
   const last = decisions.reduce((m, d) => d.event === "wedding" ? m : Math.max(m, d.at), -Infinity);
   if ((now - last) / 3.6e6 < encounterGap(ageH)) return null;
   // context is anchored at the window start, so the open encounter never changes while it waits
-  const past = decisions.filter((d) => d.event !== "wedding").sort((a, b) => a.at - b.at);
+  // commons answers keep the visitor rhythm (gap) but not the visitor lottery, so visitor draws stay stable
+  const past = decisions.filter((d) => d.event !== "wedding" && !(COMMONS_KEYS as readonly string[]).includes(d.event)).sort((a, b) => a.at - b.at);
   const c0 = Date.parse(seed.created_at), from = past.length ? last : c0 + ENCOUNTER_FROM * 3.6e6;
   const ctx = { ageH: (from - c0) / 3.6e6, season: dominantSeason(from), recent: past.slice(-EVENT_COOLDOWN).map((d) => d.event) };
   return eventOf(seed.id, past.length, ctx);

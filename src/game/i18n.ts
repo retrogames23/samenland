@@ -1,4 +1,5 @@
 import { hi } from "./lang/hi";
+import { COMMONS_TEXT } from "./lang/commons";
 import { es } from "./lang/es";
 import { ar } from "./lang/ar";
 import { fr } from "./lang/fr";
@@ -1509,6 +1510,11 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
 
 export const DICT: Record<Lang, Dict> = { de, en, fr, es, ar, hi, zh, ja };
 export type Dict = typeof de;
+// Allmende questions (lang/commons.ts) join the encounter titles and answers in every language
+for (const l of Object.keys(DICT) as Lang[]) {
+  Object.assign(DICT[l].enc.events, COMMONS_TEXT[l].events);
+  Object.assign(DICT[l].enc.choices, COMMONS_TEXT[l].choices);
+}
 
 
 /** Translate a canPlant error code. */
