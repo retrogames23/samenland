@@ -56,9 +56,17 @@ import flourSacks from "@/assets/sprites/folk/flour-sacks.webp";
 import breadBasket from "@/assets/sprites/folk/bread-basket.webp";
 import fishBasket from "@/assets/sprites/folk/fish-basket.webp";
 import sparks from "@/assets/sprites/folk/sparks.webp";
+import sheaf from "@/assets/sprites/folk/sheaf.webp";
+import woodpile from "@/assets/sprites/folk/woodpile.webp";
+import iceTrough from "@/assets/sprites/folk/ice-trough.webp";
+import strawWrap from "@/assets/sprites/folk/straw-wrap.webp";
+import laundry from "@/assets/sprites/folk/laundry.webp";
+import wattle from "@/assets/sprites/folk/wattle.webp";
+import cooper from "@/assets/sprites/folk/cooper.webp";
+import loom from "@/assets/sprites/folk/loom.webp";
 import bannerClothUrl from "@/assets/sprites/folk/banner-cloth.webp";
 
-const URLS = { man, manWalk, legsM, woman, child, childWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, chain, beret, flourSacks, breadBasket, fishBasket, sparks, woodcutterWork, woodcutterFWork, masonWork, masonFWork, builderWork, builderFWork, gatherWork, gatherFWork, talkWork, talkFWork, talkWorkYoung, talkWorkMid, talkWorkOld, talkFWorkMid, talkFWorkMature, talkFWorkOld };
+const URLS = { sheaf, woodpile, iceTrough, strawWrap, laundry, wattle, cooper, loom, man, manWalk, legsM, woman, child, childWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, chain, beret, flourSacks, breadBasket, fishBasket, sparks, woodcutterWork, woodcutterFWork, masonWork, masonFWork, builderWork, builderFWork, gatherWork, gatherFWork, talkWork, talkFWork, talkWorkYoung, talkWorkMid, talkWorkOld, talkFWorkMid, talkFWorkMature, talkFWorkOld };
 export type FolkSprite = keyof typeof URLS;
 /** Mayor age cohorts 20–70: same 6-frame robe sheet layout per cohort, so standing, talking and walking all age together. */
 export type Cohort = "young" | "mid" | "mature" | "old";

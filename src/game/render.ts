@@ -25,7 +25,9 @@ import { townOf, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor,
 import { fig, drawLegged, drawRobeWalk, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
-import { sacksAt, breadOut, fishingNow } from "./crafts";
+import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
+import { sheavesOn, woodpileLevel, frost, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
+import { pealPause } from "./time";
 import { isSunday } from "./time";
 import { activeRaid, RAID_LEN } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
@@ -431,6 +433,44 @@ const fenceCache = new Map<number, Path2D[]>();
 /** Visual house style from the town terrain character; plains keep the classic art. */
 const houseStyle = (s: Structure): HouseStyle | undefined => { const m = townCharacter(s.seed).main; return m === "grain" ? undefined : m; };
 function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
+  const behind = s.build === undefined && isHomeKind(s.kind);
+  // firewood is stacked against the north wall, so the house in front hides most of it
+  if (behind) { const lv = woodpileLevel(renderNow), im = folkImage("woodpile"); if (im && hash(x, y, 81) < 0.7) {
+    const w = 9, h = (w * im.naturalHeight) / im.naturalWidth, vis = 0.45 + 0.55 * lv, sx = cx - 7, sy = cy - 4;
+    c.drawImage(im, 0, im.naturalHeight * (1 - vis), im.naturalWidth, im.naturalHeight * vis, sx - w / 2, sy - h * vis, w, h * vis); } }
+  drawStructureBase(c, s, cx, cy, x, y, t, L);
+  if (s.build === undefined) seasonalTrace(c, s, cx, cy, x, y, t, L);
+}
+/** Seasonal and craft traces in front of a finished structure (pure from tile, calendar and clock). */
+function seasonalTrace(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
+  const sd = x * 1000 + y, now = renderNow, k = s.kind;
+  if (k === "field") { const n = sheavesOn(sd, now); for (let i = 0; i < n; i++) prop(c, "sheaf", cx + (hash(x, y, 90 + i) - 0.5) * 12, cy + (hash(x, y, 95 + i) - 0.5) * 5, 3.2); return; }
+  if (k === "garden" && springWork(now) && hash(x, y, 82) < 0.5) { prop(c, "wattle", cx + 5, cy + 3, 8); return; }
+  if (k === "pasture" && frost(now) && hash(x, y, 83) < 0.3) { prop(c, "iceTrough", cx + 2, cy + 1, 6); return; }
+  if (k === "well" && frost(now)) { prop(c, "iceTrough", cx + 6, cy + 3, 5); return; }
+  if (isHomeKind(k)) {
+    if (laundryOut(sd, now) && hash(x, y, 84) < 0.5) prop(c, "laundry", cx + 8, cy + 4, 8);
+    if (strawOn(now) && hash(x, y, 85) < 0.18) prop(c, "strawWrap", cx - 9, cy + 5, 3.4);
+    if (dryingSmoke(sd, now) && hash(x, y, 86) < 0.4) smoke(c, cx - 3, cy - 16, t, sd, 0.45);
+    return;
+  }
+  if (k === "workshop" || k === "guildhall" || k === "manufactory") {
+    if (!workshopOpen(localHour(), isSunday(now))) return;
+    const ox = cx + 8, oy = cy + 4;
+    if (workshopCraft(sd) === "cooper") {
+      prop(c, "cooper", ox, oy, 7);
+      L.push({ x: ox - 1, y: oy - 1, r: 6 }); smoke(c, ox - 1, oy - 4, t, sd, 0.3);
+      // flames lick up between the staves
+      c.fillStyle = `rgba(255,${150 + Math.floor(60 * Math.sin(t / 90 + sd))},40,0.55)`; c.beginPath(); c.ellipse(ox - 1, oy - 1.2 - Math.abs(Math.sin(t / 130)) * 0.6, 0.9, 0.6, 0, 0, 7); c.fill();
+    } else {
+      prop(c, "loom", ox, oy, 6.5);
+      // the beater swings against the cloth in the weaver's rhythm
+      const im = folkImage("loom"); if (im) { const w = 6.5, h = (w * im.naturalHeight) / im.naturalWidth, by = oy - h * 0.85 + h * 0.45, sw = Math.sin(t / 380 + sd) * 0.5;
+        c.strokeStyle = "rgba(70,48,28,0.9)"; c.lineWidth = 0.35; c.beginPath(); c.moveTo(ox - w * 0.25 + sw, by); c.lineTo(ox + w * 0.2 + sw, by - h * 0.12); c.stroke(); }
+    }
+  }
+}
+function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
   if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
   else if (s.build !== undefined && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: "site" });
@@ -876,6 +916,8 @@ const peopleSlots: { x: number; y: number; q: Pose }[] = [];
 const pushPerson = (x: number, y: number, q: Pose) => { const i = lastPeople.length; const o = peopleSlots[i] ?? (peopleSlots[i] = { x, y, q }); o.x = x; o.y = y; o.q = q; lastPeople.push(o); };
 /** Sound-emitting structures drawn this frame (world-screen coords), read by the audio mixer. */
 export const lastSources: { x: number; y: number; k: string }[] = [];
+/** Trades that stop for a breath when the bell rings (field, site, wood and workshop). */
+const PEAL_JOBS: ReadonlySet<string> = new Set(["farmer", "builder", "mason", "woodcutter", "sawyer", "crafter", "smith", "homemaker"]);
 const BELL_KINDS = new Set(["seat3", "townhall", "belfry", "church", "factory"]);
 const SOUND_KINDS = new Set(["campfire", "mill", "watermill", "smithy", "pasture", "church", "sawmill", "steamworks"]);
 function limb(c: C, pts: Pt[], col: string, w: number) {
@@ -966,9 +1008,10 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const B = c === folkCtx ? folkM! : c.getTransform(), fs = face < 0 ? -1 : 1;
   c.setTransform(B.a * fs, B.b * fs, B.c, B.d, B.a * X + B.c * (Y - bob) + B.e, B.b * X + B.d * (Y - bob) + B.f);
   if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
-  const jw = q.working && !q.carry && !kid ? JOB_WORK[q.p.job] : undefined;
+  const bowed = q.working && pealPause(renderNow) && PEAL_JOBS.has(q.p.job);
+  const jw = q.working && !bowed && !q.carry && !kid ? JOB_WORK[q.p.job] : undefined;
   const fishing = q.p.job !== "fisher" || fishingNow(localHour(), isSunday(renderNow), seasonAt(renderNow).winter);
-  const mow = q.working ? (workSheet(k) ?? (jw && fishing ? folkImage(q.p.job === "mayor" ? mayorSheet(q.p.sex, q.p.age) : q.p.sex === "f" ? jw.f : jw.m) : null)) : null;
+  const mow = q.working && !bowed ? (workSheet(k) ?? (jw && fishing ? folkImage(q.p.job === "mayor" ? mayorSheet(q.p.sex, q.p.age) : q.p.sex === "f" ? jw.f : jw.m) : null)) : null;
   if (mow) {
     // painted work cycle; neighbouring frames cross-fade so the motion flows instead of flipping
     const per = jw?.per ?? 2400, u = (((t + hash(q.p.id, 31, 9) * per) % per) / per) * WORK_FRAMES, f = Math.floor(u) % WORK_FRAMES, mix = u - Math.floor(u);
@@ -1486,7 +1529,7 @@ function drawRoadWorks(c: C, x: number, y: number, dx: number, dy: number, t: nu
     c.fillStyle = "rgba(20,15,10,0.25)"; c.beginPath(); c.ellipse(wx + 0.5, wy, 1.6, 0.55, 0, 0, 7); c.fill();
     c.save(); c.translate(wx, wy); if ((dx >= 0 ? 1 : -1) * (w ? -1 : 1) < 0) c.scale(-1, 1);
     c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-    if (sheet) {
+    if (sheet && !pealPause(renderNow)) {
       const per = jw.per, u = (((t + hash(sd, w, 17) * per) % per) / per) * WORK_FRAMES, f = Math.floor(u) % WORK_FRAMES;
       const fw = sheet.naturalWidth / WORK_FRAMES, hh = h * jw.scale, ww = (hh * fw) / sheet.naturalHeight;
       c.drawImage(sheet, f * fw, 0, fw, sheet.naturalHeight, -ww / 2, -hh, ww, hh);
@@ -2624,7 +2667,13 @@ function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Struct
       const con: [number, number][] = [];
       for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as [number, number][]) if (isP(i, j)) con.push([i, j]);
       for (const [i, j] of [[1, 1], [-1, -1], [1, -1], [-1, 1]] as [number, number][]) if (isP(i, j) && !isP(i, 0) && !isP(0, j)) con.push([i, j]);
-      c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = col;
+      c.lineCap = "round"; c.lineJoin = "round";
+      if (!street && frost(now)) {
+        // shovelled through the snow: pale banks to both sides, trodden earth in the middle
+        c.strokeStyle = "rgba(238,242,246,0.9)";
+        for (const [i, j] of con) { const m = pp(i * 0.5, j * 0.5); c.lineWidth = wBase * 1.55; c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke(); }
+      }
+      c.strokeStyle = col;
       for (const [i, j] of con) {
         const m = pp(i * 0.5, j * 0.5);
         c.lineWidth = wBase * (0.92 + hash(x + i, y + j, 300) * 0.16);
