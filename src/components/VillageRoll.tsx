@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Parchment } from "@/components/hud/Parchment";
 import { Input } from "@/components/ui/input";
 import { rollOf, matches } from "@/game/roll";
@@ -12,6 +12,8 @@ export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T
   const [job, setJob] = useState("");
   const [sort, setSort] = useState<"house" | "name" | "age">("house");
   const [open, setOpen] = useState<Set<number>>(new Set());
+  const listRef = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
   const roll = useMemo(() => rollOf(town.people), [town]);
   const big = roll.total > 300;
   const jobs = useMemo(() => [...new Set(roll.households.flatMap((h) => h.people.map((p) => p.job)))].sort(), [roll]);
