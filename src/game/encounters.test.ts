@@ -32,10 +32,10 @@ describe("encounters", () => {
 });
 
 describe("encounter catalogue", () => {
-  it("has 24 rotating visitors plus the real wedding, each shown once per round", () => {
+  it("has 23 rotating visitors plus the real wedding and the retired flood, each shown once per round", () => {
     expect(Object.keys(ENCOUNTERS).length).toBe(25);
-    const seen = new Set(Array.from({ length: 24 }, (_, n) => eventOf("s", 48 + n)));
-    expect(seen.size).toBe(24); expect(seen.has("wedding")).toBe(false);
+    const seen = new Set(Array.from({ length: 23 }, (_, n) => eventOf("s", 46 + n)));
+    expect(seen.size).toBe(23); expect(seen.has("wedding")).toBe(false); expect(seen.has("flood")).toBe(false);
   });
 });
 
