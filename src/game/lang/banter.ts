@@ -1,5 +1,6 @@
 /** Speech-bubble lines for tapping people and houses. Placeholders: {mayor}, {town}, {name}. */
 import type { Lang } from "../i18n";
+import { FOLK } from "./banter-folk";
 
 export type BanterCat =
   | "own_any" | "own_child" | "own_sick" | "own_night"
@@ -400,5 +401,12 @@ const ja: Cat = {
   house_empty: ["誰も出てこない。窓から猫が覗いているだけ。", "静まり返っている。留守のようだ。"],
   house_night: ["真夜中ですよ！寝てください！"],
 };
+
+for (const [k, c] of [["fr", fr], ["es", es], ["ar", ar], ["hi", hi], ["zh", zh], ["ja", ja]] as const) {
+  const f = FOLK[k];
+  c.own_any = [...(c.own_any ?? []), ...f.own_any];
+  c.own_sick = [...(c.own_sick ?? []), ...f.own_sick];
+  for (const [t, lines] of Object.entries(f.traits)) c[t as BanterCat] ??= lines;
+}
 
 export const BANTER: Record<Lang, Cat> = { de, en, fr, es, ar, hi, zh, ja };
