@@ -35,8 +35,12 @@ describe("disasters", () => {
       expect(floodFood(s, f.end + DAY)).toBeGreaterThan(0);
     }
   });
-  it("a village within 8 tiles of a river can flood", () => {
+  it("a village founded near a river can flood", () => {
     expect(nearRiver({ ...base, x: 354, y: 150 })).toBe(true);
+  });
+  it("a village founded 24 tiles from a river floods once its outskirts reach the bank", () => {
+    const far = { ...base, id: "a392", x: 392, y: 150 };
+    expect(floods(far, c0 + 700 * DAY).length).toBeGreaterThan(0);
   });
   it("a sea-coast village without a river never floods", () => {
     const coast = { ...base, x: 264, y: 150 };
