@@ -580,8 +580,9 @@ export function Game() {
       Promise.all([
         supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at"),
         supabase.from("market_sales").select("id, seed_id, day, reward, created_at"),
-        supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at"),
-        supabase.from("village_visits").select("id, visitor_seed, visited_seed, reward, created_at"),
+        // signed-in only (RLS): guests would just get 401s
+        uid ? supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at") : Promise.resolve({ data: [] as { id: string; referrer_seed: string; referee_seed: string; reward: number; created_at: string }[] }),
+        uid ? supabase.from("village_visits").select("id, visitor_seed, visited_seed, reward, created_at") : Promise.resolve({ data: [] as { id: string; visitor_seed: string; visited_seed: string; reward: number; created_at: string }[] }),
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("wonder_finds").select("id, seed_id, site, realm, first, reward, created_at"),
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("princely_tasks").select("id, seed_id, step, task, reward, accepted_at, done_at"),
       ]).then(([q, m, rf, vv, wf, pt]) => {
