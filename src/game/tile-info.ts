@@ -16,7 +16,7 @@ export function tileFacts(x: number, y: number, seeds: Seed[], now: number, plan
   }
   if (kind === "pasture") animals.add("sheep");
   if (kind === "coop") animals.add("hen");
-  const sd = st?.seed ? seeds.find((s) => s.id === st.seed?.id) : null;
+  const sd = st?.seed ?? null;
   if (sd && townOf(sd, seeds, now).cows.some(([cx, cy]) => cx === x && cy === y)) animals.add("cow");
   const fx: Effect[] = [];
   if (planted) fx.push("planted");
