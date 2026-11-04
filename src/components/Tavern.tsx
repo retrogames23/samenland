@@ -159,7 +159,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
       <div onClick={(e) => e.stopPropagation()} className="parchment relative flex h-full max-h-[640px] w-full max-w-[min(48rem,calc(100vw-1rem))] flex-col overflow-hidden text-ink max-md:max-h-none max-md:max-w-none md:h-[min(80dvh,640px)] md:justify-self-center">
         <div className="border-b border-ink/25 px-4 pb-2 pt-5 sm:pt-4">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="truncate font-display text-2xl leading-none sm:text-3xl">{t.tavern.title}</h2>
+            <h2 className="truncate pe-2 pb-1 font-display text-2xl leading-tight sm:text-3xl">{t.tavern.title}</h2>
             <button type="button" aria-label={t.close} onClick={onClose} className="hit relative grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-ink/10"><X className="h-4 w-4" /></button>
           </div>
             <button type="button" onClick={() => setSide((v) => !v)} className="hit relative mt-2 inline-flex min-h-9 max-w-full items-center rounded border border-ink/30 px-3 text-sm sm:hidden">
@@ -190,7 +190,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
             ))}
           </aside>
           <div className="relative flex min-w-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 overflow-auto px-3 pb-2 pt-3 font-mono text-[13px] leading-snug">
+            <div className="min-h-0 flex-1 overflow-auto px-3 pb-2 pt-3 font-mono [mask-image:linear-gradient(to_bottom,transparent,black_1.25rem)] text-[13px] leading-snug">
               {!userId && <div className="text-ink/60">{t.tavern.signIn}</div>}
               {userId && !shown.length && <div className="text-ink/60">{chan === "tavern" ? t.tavern.empty : t.tavern.emptyLetter}</div>}
               {shown.map((m) => (
