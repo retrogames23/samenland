@@ -2572,7 +2572,7 @@ function flatTok(x: number, y: number, st: Structure | null): number {
   const nt = nearTown(x, y);
   if (!st) return nt ? 1 : 0;
   let k = flatKinds.get(st.kind); if (k === undefined) { k = flatKinds.size + 1; flatKinds.set(st.kind, k); }
-  return 2 + k * 4 + (nt ? 1 : 0) + (st.build !== undefined ? 1 << 10 : 0) + (st.kind === "field" ? ["green", "ripe", "stubble", "ploughed", "fallow"].indexOf(fieldLook(acreOf(x, y, st.seed).id, renderNow)) << 13 : 0) + (0 << 11) + ((st.seed.id.charCodeAt(0) * 31 + st.seed.id.charCodeAt(1)) << 12);
+  return 2 + k * 4 + (nt ? 1 : 0) + (st.build !== undefined ? 1 << 10 : 0) + ((st.seed.id.charCodeAt(0) * 31 + st.seed.id.charCodeAt(1)) << 12) ^ (st.kind === "field" ? (1 + ["green", "ripe", "stubble", "ploughed", "fallow"].indexOf(fieldLook(acreOf(x, y, st.seed).id, renderNow))) * 0x9e3779 : 0);
 }
 /** Called from pass 1c for every visible tile: flags the tile's baked chunk (and edge neighbours) when its content changed. */
 function flatCheck(x: number, y: number, st: Structure | null) {
