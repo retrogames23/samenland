@@ -69,7 +69,7 @@ const NATURE = {
   oak: { url: oak, crop: [0, 0, 480, 474], width: 24 },
   fir: { url: fir, crop: [0, 0, 255, 480], width: 13 },
   birch: { url: birch, crop: [0, 0, 318, 480], width: 15 },
-  crag: { url: crag, crop: [0, 0, 791, 669], width: 40 },
+  crag: { url: crag, crop: [0, 0, 480, 258], width: 44 },
   bush: { url: bush, crop: [0, 0, 480, 384], width: 9 },
   boulder: { url: boulder, crop: [0, 0, 480, 347], width: 12 },
   ore: { url: oreRock, crop: [0, 0, 360, 240], width: 11 },
