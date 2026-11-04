@@ -129,3 +129,7 @@ export function adviceIdx(now: number): 0 | 1 {
   const w = seasonAt(now);
   return w.autumn + w.winter > w.spring + w.summer ? 1 : 0;
 }
+
+/** Price of an encounter answer for this village: the bake day is free at the own Gemeindebackhaus (mirrored by DB encounter_guard). */
+export const bakeCost = (s: Pick<Seed, "bought">, event: string, choice: string, cost: number) =>
+  event === "backtag" && choice === "bake" && s.bought?.some((b) => b.item === "backhaus") ? 0 : cost;

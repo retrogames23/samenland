@@ -41,6 +41,8 @@ export type Person = {
   origin?: number;
   /** Sick at home today (derived), or caring for the sick housemate with this id. */
   sick?: boolean; carer?: number;
+  /** A beguine's sick call today: the home she nurses (derived from the Beginenhof and sickness calendar). */
+  nurse?: Tile;
   /** Wedding procession: birth home → church → new home, starting at `at` (world ms); lag = seconds behind the couple. */
   proc?: { at: number; from: Tile; to: Tile; lag: number; role: "bride" | "groom" | "guest" };
   /** Inauguration of a just-finished landmark: walk there at `at` (+lag s) and gather at `spot` facing `face`. */
@@ -243,7 +245,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const weddings = marry(s, people, seeds, now);
   const wealth = civicWealth(s, now);
   for (const p of people) p.estate = estateAt(wealth, p.home[0], p.home[1]);
-  falls(s, people, now);
+  falls(s, people, now, byKind.get("beginenhof")?.[0] ?? null);
   const chT = byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
   const church: Tile | null = chT ? (front(chT) ?? null) : null;
   processions(weddings, people, church ?? meet, now);
@@ -449,7 +451,11 @@ export function sickRate(s: Seed, now: number): number {
 export const sickHome = (s: Seed, hh: number, now: number) => hash(hh, Math.floor(now / (SICK_DAYS * 864e5)), 1301) < sickRate(s, now);
 const hhTile = dwellingTile;
 /** Mark the sick villager of each affected home and the housemate who stays in to care for them. */
-function falls(s: Seed, people: Person[], now: number) {
+function falls(s: Seed, people: Person[], now: number, hof: Tile | null = null) {
+  // beguines of a finished Beginenhof walk out to nurse the sick, so the housemate can go to work
+  const begs = hof && s.bought?.some((b) => b.item === "beginen" && b.at <= now)
+    ? people.filter((q) => q.job === "herbalist" && q.work && Math.abs(q.work[0] - hof[0]) + Math.abs(q.work[1] - hof[1]) <= 3) : [];
+  let bi = 0;
   const homes = new Map<number, Person[]>();
   for (const p of people) {
     if (p.role === "mayor") continue;
@@ -463,7 +469,9 @@ function falls(s: Seed, people: Person[], now: number) {
     const by = ms.filter((q) => q !== ill && q.age >= 16);
     if (!by.length) continue;
     const cr = by.find((q) => q.id === ill.spouse) ?? by.find((q) => q.role === "head" || q.role === "spouse") ?? by[0]!;
-    ill.sick = true; cr.carer = ill.id;
+    ill.sick = true;
+    const b = begs[bi];
+    if (b) { bi++; b.nurse = ill.home; } else cr.carer = ill.id;
   }
 }
 /** Seconds of the wedding service inside the church. */
@@ -742,6 +750,7 @@ export function planOf(p: Person, t: Town): Entry[] {
   const E = (at: number, act: Activity, place: Tile, indoor: boolean): Entry => ({ at, act, place, indoor });
   if (p.sick) return [E(0, "sick", H, true)];
   if (p.carer != null) return [E(0, "sleep", H, true), E(7, "care", H, true), E(22, "sleep", H, true)];
+  if (p.nurse && p.work) return [E(0, "sleep", H, true), E(7.5 + j(1) * 0.3, "work", p.work, p.workIndoor), E(9 + j(2) * 0.3, "care", p.nurse, true), E(12.5 + j(3) * 0.3, "work", p.work, p.workIndoor), E(15 + j(4) * 0.3, "care", p.nurse, true), E(18 + j(5) * 0.3, "home", H, true), E(21.5, "sleep", H, true)];
   if (isSunday(t.now) && !SUNDAY_WORK.has(p.job) && !(p.job === "child" && p.age < 4)) return sundayOf(p, t, E, j);
   if (p.job === "child") {
     if (p.age < 4) return [E(0, "sleep", H, true), E(10 + j(1), "play", add(H, [0.6, 0.6]), false), E(12 + j(2), "home", H, true), E(15.5 + j(3), "play", add(H, [0.6, 0.6]), false), E(18 + j(4), "home", H, true), E(19.5, "sleep", H, true)];

@@ -18,3 +18,15 @@ describe("community buildings", () => {
     expect(sickRate(base, now) - sickRate(b, now)).toBeCloseTo(0.015);
   });
 });
+
+import { bakeCost } from "./commons";
+import { HERBERGE_WALZ } from "./wander";
+describe("community follow-ups", () => {
+  it("bake day is free with the Gemeindebackhaus, 10 Taler otherwise", () => {
+    expect(bakeCost({ bought: [{ item: "backhaus", at: 0 }] } as never, "backtag", "bake", 10)).toBe(0);
+    expect(bakeCost({ bought: [] } as never, "backtag", "bake", 10)).toBe(10);
+  });
+  it("Herberge draws journeymen more often than plain roads", () => {
+    expect(HERBERGE_WALZ).toBeGreaterThan(0.3);
+  });
+});
