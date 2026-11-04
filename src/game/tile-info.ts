@@ -1,7 +1,8 @@
 // Pure hover facts for one tile: what is there, which animals live on it, and its effect on play.
-import { terrain, isWater, riverDistAt, resourceAt, structureAt, type Seed, type Terrain } from "./world";
+import { terrain, isWater, riverDistAt, resourceAt, structureAt, acreOf, specialTile, type Seed, type Terrain } from "./world";
+import { roleOf } from "./rotation";
 import { isDen, denOk, denBeast } from "./wildlife";
-import { worldHour } from "./time";
+import { worldHour, isWorkHour } from "./time";
 
 const WILD_OK = new Set(["forest", "meadow", "grass", "hill", "fertile"]);
 import { townOf } from "./people";
@@ -30,6 +31,9 @@ export function tileFacts(x: number, y: number, seeds: Seed[], now: number, plan
   if (sd && townOf(sd, seeds, now).cows.some(([cx, cy]) => cx === x && cy === y)) animals.add("cow");
   const fx: Effect[] = [];
   if (planted) fx.push("planted");
+  if (st && sd && kind === "field") { const r = roleOf(acreOf(x, y, sd).id, now); fx.push(r === "winter" ? "rye" : r === "summer" ? "oats" : "fallow"); }
+  // bought sites rest from the evening to the morning bell; organic houses keep growing
+  if (st && sd && st.build !== undefined && !isWorkHour(now)) { const t0 = specialTile(sd, st.kind); if (t0 && t0[0] === x && t0[1] === y) fx.push("nightRest"); }
   if (t === "mountain" || t === "deep") fx.push("noBuild");
   else if (t === "water") fx.push("fish", "noBuild");
   else if (t === "hill") fx.push("slope");
