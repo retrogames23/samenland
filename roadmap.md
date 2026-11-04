@@ -1,10 +1,7 @@
-# Schritt 2 – Allmende & Selbstverwaltung
-- [x] A: Allmende-Fragen (Hutewald, Backtag, Steg) mit Kartenfolgen
-- [ ] B: Kräuterfrau/Hebamme als Ratgeberin bei weiteren Bitten (Grundform bei Allmende-Fragen vorhanden)
-- [ ] D: Fürstliche Erlasse im Ton einer Freigemeinde (Schutzbrief, Marktrecht, Getreidebitte)
-- [ ] C: Wandergesellen mit Zunftgrüßen und Handwerkskniffen
-
-# Schritt 3 – Handwerk & Jahreszeiten sichtbar
-- [x] Herbst, Winter, Frühling auf den Kacheln
-- [x] Böttcher und Webstuhl an Werkstätten
-- [x] Innehalten beim Geläut, Jahreszeitensprüche in 8 Sprachen
+# Roadmap – Historische Stimmigkeit (Norddeutschland 1500)
+- [x] Begriffe in 8 Sprachen: Mark statt Taler, Hansestadt statt Metropole, Artushof, Klostergarten, Tanzhaus, Schütting, Budenreihe, Sägekuhle, Löschgerätehaus, Bürgerwache, Küsterschule, Ehrentitel
+- [ ] Neue Bilder: Artushof (Backsteingotik statt Kuppel), Klostergarten (statt Glashaus), Sägekuhle
+- [ ] Schulzen-Tracht: Gerichtsstab + Schaube statt Amtskette/Federbarett (Bild + Text zusammen)
+- [ ] Frauen-Figuren mit Haube/Kopftuch
+- [ ] Ware Bier (Gerste/Hopfen → Brauhaus → Schänke), Salz und Tuch als Waren
+- [ ] Quitte durch regionale Obstsorte ersetzen
