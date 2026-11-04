@@ -283,6 +283,18 @@ export function Game() {
   const [placing, setPlacing] = useState<string | null>(null);
   const [hover, setHover] = useState<[number, number] | null>(null);
   const tileInfoRef = useRef<HTMLDivElement>(null);
+  const tileInfoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // tile facts are written straight into the fixed bottom-left strip, so pointer moves never re-render the HUD
+  const showTileInfo = (nt: [number, number], fade?: number) => {
+    const box = tileInfoRef.current; if (!box) return;
+    const f = tileFacts(nt[0], nt[1], st.current.seeds, clock(), isPlantedRare(st.current.plantings, nt[0], nt[1])), ti = TILEINFO[lang];
+    const head = f.kind ? `${t.kind[f.kind] ?? (t.kinds as Record<string, string>)[f.kind] ?? f.kind}${f.seed ? ` (${f.seed})` : ""}` : t.terrain[f.terrain];
+    const parts = [head, ...(f.kind ? [t.terrain[f.terrain]] : []), ...f.animals.map((a) => ti.animals[a])];
+    box.textContent = parts.join(" · ") + (f.effects.length ? ` — ${f.effects.map((k) => ti.fx[k]).join(", ")}` : "");
+    box.style.display = "";
+    if (tileInfoTimer.current) clearTimeout(tileInfoTimer.current);
+    tileInfoTimer.current = fade ? setTimeout(() => { if (tileInfoRef.current) tileInfoRef.current.style.display = "none"; }, fade) : null;
+  };
   // touch placement: the preview sits on its own tile until the player confirms
   const [ghost, setGhost] = useState<[number, number] | null>(null);
   const hotkey = useRef<(e: KeyboardEvent) => void>(() => {});
@@ -2242,17 +2254,7 @@ export function Game() {
             if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) {
               st.current.hover = e.pointerType === "mouse" || mode === "seed" || placing ? nt : null; if (mode === "seed" || placing) setHover(nt);
               // tile facts are written straight into the info strip, so mouse moves never re-render the HUD
-              const box = tileInfoRef.current;
-              if (box) {
-                if (e.pointerType !== "mouse") box.style.display = "none";
-                else {
-                  const f = tileFacts(nt[0], nt[1], st.current.seeds, clock(), isPlantedRare(st.current.plantings, nt[0], nt[1])), ti = TILEINFO[lang];
-                  const head = f.kind ? `${t.kind[f.kind] ?? (t.kinds as Record<string, string>)[f.kind] ?? f.kind}${f.seed ? ` (${f.seed})` : ""}` : t.terrain[f.terrain];
-                  const parts = [head, ...(f.kind ? [t.terrain[f.terrain]] : []), ...f.animals.map((a) => ti.animals[a])];
-                  box.textContent = parts.join(" · ") + (f.effects.length ? ` — ${f.effects.map((k) => ti.fx[k]).join(", ")}` : "");
-                  box.style.display = "";
-                }
-              }
+              if (e.pointerType === "mouse") showTileInfo(nt);
             }
           }
           if (mode === "seed" || placing) {
