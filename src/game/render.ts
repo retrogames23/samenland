@@ -2012,7 +2012,8 @@ function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number,
   }
   if (!free) return;
   if (turf) wildTurf(g, x, y, cx, cy, tr);
-  if (tr === "mountain" && hash(x, y, 26) > 0.55) drawNature(g, "crag", cx + (hash(x, y, 28) - 0.5) * 6, cy + 4, 0.55 + hash(x, y, 27) * 0.5, 0, hash(x, y, 29) > 0.5);
+  // snow-free rock massif: broad overlapping cliff blocks on most tiles read as one continuous range
+  if (tr === "mountain" && hash(x, y, 26) > 0.18) drawNature(g, "crag", cx + (hash(x, y, 28) - 0.5) * 8, cy + 6, 0.8 + hash(x, y, 27) * 0.35, 0, hash(x, y, 29) > 0.5);
   if (tr === "forest") {
     if (hash(x, y, 19) > 0.35) tree(g, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6);
     tree(g, cx - 5, cy + 3, 0.85 + hash(x, y, 17) * 0.35, t, hash(x, y, 18), x * 13 + y, 0.6);
