@@ -27,7 +27,7 @@ export function banterCats(c: BanterCtx): BanterCat[] {
   if (c.sick) return ["own_sick"];
   if (c.child) return ["own_child"];
   if (c.night) return ["own_night", "own_any"];
-  return [...c.traits.map((t) => `own_t_${t}` as BanterCat), "own_any", "own_any"];
+  return [...c.traits.map((t) => `own_t_${t}` as BanterCat), "own_any", "own_any", "own_craft"];
 }
 
 /** Pick a line (random, avoiding the last RECENT shown) and fill {mayor}, {town}, {name}. */
