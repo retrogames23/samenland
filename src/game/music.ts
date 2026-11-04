@@ -1,6 +1,7 @@
 import { worldHour, clock } from "./time";
 import nightSong from "@/assets/music/night_last_candle_waning.mp3.asset.json";
 import daySong from "@/assets/music/day_builders_dance.mp3.asset.json";
+import daySong2 from "@/assets/music/day_cobblestone_and_crowds.mp3.asset.json";
 import tavernSong from "@/assets/music/tavern_stein_auf_stein.mp3.asset.json";
 
 /**
@@ -9,7 +10,7 @@ import tavernSong from "@/assets/music/tavern_stein_auf_stein.mp3.asset.json";
  */
 export type Mood = "day" | "night" | "tavern" | null;
 const PLAYLISTS: Record<Exclude<Mood, null>, string[]> = {
-  day: [daySong.url],
+  day: [daySong.url, daySong2.url],
   night: [nightSong.url],
   tavern: [tavernSong.url],
 };
@@ -50,7 +51,7 @@ function play(m: Exclude<Mood, null>) {
   void el.play().then(() => ramp(VOL)).catch(() => {});
 }
 function sync() {
-  const want = active && !(typeof document !== "undefined" && document.hidden) ? (inTavern ? "tavern" : moodAt()) : null;
+  const want = active ? (inTavern ? "tavern" : moodAt()) : null;
   if (want === mood) { if (want && el?.paused) void el.play().catch(() => {}); return; }
   mood = want;
   if (el && !el.paused) ramp(0, () => { el!.pause(); if (want) play(want); });
@@ -62,4 +63,4 @@ export function setMusic(on: boolean) {
   if (on && !timer) timer = window.setInterval(sync, 15000);
   if (!on) { clearInterval(timer); timer = 0; }
 }
-if (typeof document !== "undefined") document.addEventListener("visibilitychange", () => { if (el && document.hidden) { el.pause(); mood = null; } else sync(); });
+// Music keeps playing in background tabs (like a radio); only the sound effects suspend there.
