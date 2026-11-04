@@ -53,7 +53,7 @@ import guardU from "@/assets/sprites/court/guard.webp";
 import gardenerU from "@/assets/sprites/court/gardener.webp";
 import courtGroomU from "@/assets/sprites/court/groom.webp";
 import { heraldVisit, HERALD_RIDE_S, type PrincelyRow } from "./princely";
-import { SEAT_KINDS, hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { SEAT_KINDS, onGeoChange, hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -2086,6 +2086,8 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
 // ---------------- wonders in the wild (src/game/wonders.ts) ----------------
 const WONDER_ART: Record<WonderKind, [string, number]> = { wreck: [wreckU, 62], cave: [caveU, 54], oak: [oakU, 74], ruin: [ruinU, 70], caravan: [caravanU, 52], spring: [springU, 46] };
 let wonderM: Map<number, WonderKind> | null = null;
+// realm switch: drop map-specific caches so no wonder or ground from the previous island lingers
+onGeoChange(() => { wonderM = null; overview = null; chunkCache.clear(); geomCache.clear(); flatCache.clear(); });
 const wonderMap = () => wonderM ??= new Map(wonders().map((w) => [w.y * MAP + w.x, w.kind]));
 let wonderFound = new Set<string>();
 // ---------------- supporter decorations (src/game/supporter.ts): purely cosmetic ----------------
