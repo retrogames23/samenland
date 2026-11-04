@@ -12,6 +12,16 @@ describe("three founding routes", () => {
   it("gives coast and river surroundings the gateway route", () => {
     expect(characterFromTerrain(["water", "sand", "grass"]).main).toBe("gateway");
   });
+  it("a beach site with 30 % water and shore is a gateway", () => {
+    const tiles: Terrain[] = [...Array(30).fill("water"), ...Array(70).fill("grass")];
+    expect(characterFromTerrain(tiles).main).toBe("gateway");
+  });
+  it("27 % sea water stays breadbasket", () => {
+    expect(characterFromTerrain([...Array(27).fill("water"), ...Array(73).fill("grass")]).main).toBe("grain");
+  });
+  it("river water counts 1.8 times: 16 % river makes a gateway", () => {
+    expect(characterFromTerrain([...Array(16).fill("water"), ...Array(84).fill("grass")], 16).main).toBe("gateway");
+  });
   it("retains a mixed landscape as a secondary route", () => {
     expect(characterFromTerrain(["grass", "grass", "hill", "hill"])).toEqual({ main: "grain", side: "workshop", mix: { grain: 0.5, workshop: 0.5, gateway: 0 } });
   });
