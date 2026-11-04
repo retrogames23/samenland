@@ -974,7 +974,7 @@ const TOOL_WORK: ReadonlySet<FolkSprite> = new Set(["farmer", "farmerF", "woodcu
 const WORK_FRAMES = 6;
 const legsFor = (q: Pose) => !!HIPS[folkOf(q)];
 /** Painted villager sprite: faces the walking direction, bobs while walking, sways while working. */
-/** Mayor's insignia by honorary title (titleOfSeed): chain, plumed beret, own banner — drawn in the mirrored figure frame. */
+/** Mayor's insignia by honorary title (titleOfSeed): fur collar, judge's staff, own banner — drawn in the mirrored figure frame. */
 function insignia(c: C, q: Pose, hgt: number) {
   if (q.p.estate === "wealthy" && q.p.age >= 16 && q.p.job !== "mayor" && !q.working && !q.carry && !q.festive) {
     const hat = folkImage("beret");
@@ -982,10 +982,11 @@ function insignia(c: C, q: Pose, hgt: number) {
   }
   if (q.p.job !== "mayor") return;
   const n = titleOfSeed(q.p.seed); if (n < 1) return;
-  const ch = folkImage("chain");
-  if (ch) { const h = hgt * 0.24, w = (h * ch.naturalWidth) / ch.naturalHeight; c.drawImage(ch, -w / 2 + hgt * 0.02, -hgt * 0.78, w, h); }
-  const bt = n >= 2 ? folkImage("beret") : null;
-  if (bt) { const h = hgt * 0.2, w = (h * bt.naturalWidth) / bt.naturalHeight; c.drawImage(bt, -w / 2 + hgt * 0.03, -hgt * 1.06, w, h); }
+  // 1500: fur-trimmed Schaube collar (title 1) and judge's staff (title 2) instead of chain and plumed beret
+  const ch = folkImage("collar");
+  if (ch) { const h = hgt * 0.15, w = (h * ch.naturalWidth) / ch.naturalHeight; c.drawImage(ch, -w / 2 + hgt * 0.02, -hgt * 0.84, w, h); }
+  const st = n >= 2 ? folkImage("staff") : null;
+  if (st) { const h = hgt * 0.95, w = (h * st.naturalWidth) / st.naturalHeight; c.drawImage(st, -hgt * 0.3 - w / 2, -h * 0.97, w, h); }
   if (n >= 3) {
     const pole = folkImage("bannerPole"), cloth = bannerCloth(q.p.seed.hue);
     if (pole) { const h = hgt * 1.5, w = (h * pole.naturalWidth) / pole.naturalHeight; c.drawImage(pole, hgt * 0.32 - w / 2, -h, w, h);
