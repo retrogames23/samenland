@@ -57,6 +57,7 @@ import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT } from "@/game/lang/support";
 import { Survey } from "@/components/Survey";
 import { THANKS, OSS } from "@/game/lang/thanks";
+import { RENAME } from "@/game/lang/rename";
 import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
 import { HERALD, edictText } from "@/game/lang/edicts";
@@ -321,6 +322,24 @@ export function Game() {
   const [settings, setSettings] = useState(false);
   const [imprint, setImprint] = useState(false);
   const [thanks, setThanks] = useState(false);
+  const [renameName, setRenameName] = useState("");
+  const [renameErr, setRenameErr] = useState("");
+  const [renameSkip, setRenameSkip] = useState<string | null>(null);
+  useEffect(() => { try { setRenameSkip(localStorage.getItem("samenland:rename-skip")); } catch { setRenameSkip(""); } }, []);
+  const mySeed = seeds.find((s) => s.id === mine);
+  const dupOf = mySeed && renameSkip !== null && renameSkip !== mySeed.id + ":" + mySeed.name
+    ? seeds.find((o) => o.id !== mySeed.id && o.name.trim().toLowerCase() === mySeed.name.trim().toLowerCase() && o.created_at < mySeed.created_at) : undefined;
+  const skipRename = () => { if (!mySeed) return; const k = mySeed.id + ":" + mySeed.name; try { localStorage.setItem("samenland:rename-skip", k); } catch { /* ignore */ } setRenameSkip(k); };
+  const saveRename = async () => {
+    if (!mySeed) return;
+    const n = renameName.trim();
+    if (n.length < 2 || n.length > 32) { setRenameErr(RENAME[lang].bad); return; }
+    if (seeds.some((o) => o.id !== mySeed.id && o.name.trim().toLowerCase() === n.toLowerCase())) { setRenameErr(RENAME[lang].taken); return; }
+    const { error } = await supabase.rpc("rename_seed", { p_seed: mySeed.id, p_name: n });
+    if (error) { setRenameErr(/taken/.test(error.message) ? RENAME[lang].taken : error.message); return; }
+    setSeeds((ss) => ss.map((x) => (x.id === mySeed.id ? { ...x, name: n } : x)));
+    setRenameErr("");
+  };
   const [bugOpen, setBugOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [labOpen, setLabOpen] = useState(false);
@@ -2539,6 +2558,19 @@ export function Game() {
           </ul>
           <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 ps-5 text-sm text-ink/80" dir="ltr">
             {OSS.map(([n, u]) => <a key={n} href={u} target="_blank" rel="noopener noreferrer" className="underline decoration-ink/30 underline-offset-2 hover:text-ink">{n}</a>)}
+          </div>
+        </Parchment>
+      )}
+      {dupOf && mySeed && (
+        <Parchment title={RENAME[lang].title} later={RENAME[lang].later} onLater={skipRename}>
+          <div className="space-y-3 text-center text-ink">
+            <p>{RENAME[lang].body(mySeed.name)}</p>
+            <div className="flex items-center gap-2">
+              <Input maxLength={32} value={renameName} placeholder={t.townName} onChange={(e) => { setRenameName(e.target.value); setRenameErr(""); }} />
+              <button type="button" onClick={() => { setRenameName(suggestTownName(seeds.map((s) => s.name), Math.random, renameName)); setRenameErr(""); }} aria-label={t.townName} title={t.townName} className="hit relative shrink-0 rounded-md border border-border p-2 text-muted-foreground hover:text-foreground"><Dices className="h-4 w-4" /></button>
+            </div>
+            {renameErr && <p className="text-sm text-destructive">{renameErr}</p>}
+            <Button onClick={() => void saveRename()}>{RENAME[lang].save}</Button>
           </div>
         </Parchment>
       )}
