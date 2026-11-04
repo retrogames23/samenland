@@ -2538,13 +2538,16 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
   while (flatCache.size > 64) flatCache.delete(flatCache.keys().next().value!);
   return flatSet;
 }
-/** Planted rare trees keep their tile: fields, gardens and pastures grow around them on the map (display only — household capacity is unchanged). */
+/** Planted rare trees keep their tile: no field, house or workshop is ever drawn over them (display only — household capacity is unchanged). Roads keep their ribbon. */
 let plantedNow: Map<string, Planting> = new Map();
-const SPARE_KINDS = new Set(["field", "garden", "pasture", "hay", "fence"]);
+const KEEP_KINDS = new Set(["road", "bridge", "street"]);
+export function isPlantedRare(p: Map<string, Planting>, x: number, y: number) {
+  const pl = p.get(`${x},${y}`);
+  return !!pl && (pl.kind === "cherry" || pl.kind === "quince");
+}
 function sparePlanted(x: number, y: number, st: Structure | null): Structure | null {
-  if (!st || !SPARE_KINDS.has(st.kind)) return st;
-  const pl = plantedNow.get(`${x},${y}`);
-  return pl && (pl.kind === "cherry" || pl.kind === "quince") ? null : st;
+  if (!st || KEEP_KINDS.has(st.kind)) return st;
+  return isPlantedRare(plantedNow, x, y) ? null : st;
 }
 /** Flat ground dressing of one tile (turf, ore rocks, paths, squares, acres) — drawn live or baked into a flat chunk. */
 function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number) {
