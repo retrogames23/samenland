@@ -7,7 +7,7 @@ export const STONE_FIRE = 0.6;
  * and purchases (fire house, town guard). Nothing is stored: every client sees the same fire at the same moment.
  * Raid losses are mirrored by the database function village_raids, so the treasury stays tamper-proof.
  */
-import { terrain, isWater, waterNearby, riverDistAt, radiusOf, ageHours, MAP, type Seed } from "./world";
+import { terrain, isWater, waterNearby, riverDistAt, radiusOf, reachOf, ageHours, MAP, type Seed } from "./world";
 
 const H = 3.6e6, DAY = 864e5, WEEK = 7 * DAY;
 export const FIRE_CHANCE = 0.3, FIRE_CHANCE_GUARDED = 0.08;
@@ -60,14 +60,15 @@ const FLOOD_MONTHS = new Set([2, 3, 9, 10]);
 const fcache = new Map<string, number[]>();
 /** River water (not sea): only rivers burst their banks. */
 const riverWater = (x: number, y: number) => isWater(terrain(x, y)) && riverDistAt(x, y) < 0;
-/** A river runs within RIVER_REACH tiles of the village core; sea coasts never flood. */
-export const RIVER_REACH = 8;
+/** Cheap precheck: a river runs anywhere within the largest reach the town could ever grow to.
+ *  Whether a given flood actually hits is decided by the town's extent at that hour (shoreTiles). */
+const MAX_REACH = (s: Seed) => Math.ceil(reachOf(s, radiusOf(40000))) + 1;
 const rvCache = new Map<number, boolean>();
 export function nearRiver(s: Seed) {
   const key = s.y * MAP + s.x, hit = rvCache.get(key); if (hit !== undefined) return hit;
-  let ok = false;
-  for (let j = -RIVER_REACH; j <= RIVER_REACH && !ok; j++) for (let i = -RIVER_REACH; i <= RIVER_REACH; i++)
-    if (Math.hypot(i, j) <= RIVER_REACH && riverWater(s.x + i, s.y + j)) { ok = true; break; }
+  const R = MAX_REACH(s); let ok = false;
+  for (let j = -R; j <= R && !ok; j++) for (let i = -R; i <= R; i++)
+    if (Math.hypot(i, j) <= R && riverWater(s.x + i, s.y + j)) { ok = true; break; }
   rvCache.set(key, ok); return ok;
 }
 function shoreTiles(s: Seed, r: number) {
@@ -91,7 +92,7 @@ export function floods(s: Seed, now: number): Flood[] {
     if (!FLOOD_MONTHS.has(new Date(start).getUTCMonth()) || rnd(s.id, k, 21) > 0.4) continue;
     const at = start + rnd(s.id, k, 22) * (P - FLOOD_LEN);
     if (at > now) break;
-    const tiles = shoreTiles(s, radiusOf(ageHours(s, at)));
+    const tiles = shoreTiles(s, reachOf(s, radiusOf(ageHours(s, at))));
     if (!tiles.length) continue;
     const ruined = tiles.filter((t) => rnd(s.id, t, 23 + k) < 0.3);
     out.push({ at, end: at + FLOOD_LEN, tiles, ruined, x: s.x, y: s.y });

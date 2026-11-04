@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { raids, raidLoss, fires, floodFood, floods, nearRiver, RAID_LOSS } from "./disasters";
-import { waterNearby, type Seed } from "./world";
+import { waterNearby, riverDistAt, MAP, type Seed } from "./world";
 
 const DAY = 864e5, c0 = Date.parse("2026-01-01T00:00:00Z");
 const base: Seed = { id: "dis1", name: "T", owner: "o", x: 400, y: 540, hue: 1, created_at: new Date(c0).toISOString() };
@@ -35,13 +35,18 @@ describe("disasters", () => {
       expect(floodFood(s, f.end + DAY)).toBeGreaterThan(0);
     }
   });
-  it("a village within 8 tiles of a river can flood", () => {
+  it("a village founded near a river can flood", () => {
     expect(nearRiver({ ...base, x: 354, y: 150 })).toBe(true);
   });
-  it("a sea-coast village without a river never floods", () => {
+  it("a village founded 24 tiles from a river floods once its outskirts reach the bank", () => {
+    const far = { ...base, id: "a392", x: 392, y: 150 };
+    expect(floods(far, c0 + 700 * DAY).length).toBeGreaterThan(0);
+  });
+  it("a sea-coast village only floods on river banks, never along the sea", () => {
     const coast = { ...base, x: 264, y: 150 };
     expect(waterNearby(coast.x, coast.y)).toBe(true);
-    expect(floods(coast, c0 + 700 * DAY)).toHaveLength(0);
+    const tiles = floods(coast, c0 + 700 * DAY).flatMap((f) => f.tiles);
+    expect(tiles.every((t) => riverDistAt(t % MAP, Math.floor(t / MAP)) < 2)).toBe(true);
   });
   it("a dry inland village never floods", () => {
     expect(floods(base, c0 + 700 * DAY)).toHaveLength(0);
