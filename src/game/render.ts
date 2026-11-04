@@ -709,7 +709,7 @@ function polyAt(P: [number, number][], s: number) {
   const e = P[P.length - 1]!; return { x: e[0], y: e[1], dir: [1, 0] as [number, number] };
 }
 /** Mounted herald: distance-driven trot with cross-faded frames, dust under the hooves while moving;
- * standing he breathes, nods, paws the ground and holds up the sealed dispatch; a lantern at night. */
+ * standing he breathes and shifts his weight, a wax-seal glint above marks the dispatch; a lantern at night. */
 function drawHerald(c: C, x: number, y: number, dx: number, dy: number, gait: number | null, speed: number, t: number, waiting: boolean, night: boolean, sk: number) {
   const away = dy < -0.15 * Math.abs(dx), im = riderImage(away);
   if (!im) return;
@@ -727,27 +727,22 @@ function drawHerald(c: C, x: number, y: number, dx: number, dy: number, gait: nu
   const face = screenFacing(dx, dy); if (away ? face > 0 : face < 0) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   c.fillStyle = "rgba(20,15,10,0.36)"; c.beginPath(); c.ellipse(0, -0.2, W * 0.36, 1, 0, 0, 7); c.fill();
-  if (gait !== null) {
-    const g = ((gait % 4) + 4) % 4, f = Math.floor(g), u = g - f, f2 = (f + 1) & 3, lift = Math.abs(Math.sin(g * Math.PI)) * 0.25 * Math.min(1, speed);
+  if (gait !== null) { // crisp frame steps (no cross-fade ghosting), a small bounce on each stride
+    const g = ((gait % 4) + 4) % 4, f = Math.floor(g), lift = Math.abs(Math.sin(g * Math.PI)) * 0.25 * Math.min(1, speed);
     c.drawImage(im, f * fw, 0, fw, nh, -W / 2, -H - lift, W, H);
-    if (u > 0.55) { c.globalAlpha *= (u - 0.55) / 0.45; c.drawImage(im, f2 * fw, 0, fw, nh, -W / 2, -H - lift, W, H); }
   } else {
-    // standing: slow breath, an occasional nod (pivot at the hooves) and a pawing hoof every few seconds
-    const br = Math.sin(t / 1300 + sk), cyc = (t / 1000 + sk) % 7.3, nod = cyc > 3 && cyc < 3.8 ? Math.sin(((cyc - 3) / 0.8) * Math.PI) : 0;
-    const paw = cyc > 5.6 && cyc < 6.4 ? Math.sin(((cyc - 5.6) / 0.8) * Math.PI) : 0;
-    c.save(); c.rotate(nod * 0.012); c.transform(1 - br * 0.004, 0, 0, 1 + br * 0.012, 0, 0);
+    // standing: slow breath and an occasional weight shift — one clean frame, never doubled
+    const br = Math.sin(t / 1300 + sk), cyc = (t / 1000 + sk) % 7.3, shift = cyc > 5.6 && cyc < 6.4 ? Math.sin(((cyc - 5.6) / 0.8) * Math.PI) : 0;
+    c.save(); c.translate(shift * 0.12, 0); c.transform(1 - br * 0.004, 0, 0, 1 + br * 0.012, 0, 0);
     c.drawImage(im, 0, 0, fw, nh, -W / 2, -H, W, H);
-    if (paw > 0) { const a = c.globalAlpha; c.globalAlpha = a * paw * 0.8; c.drawImage(im, fw, 0, fw, nh, -W / 2, -H, W, H); c.globalAlpha = a; }
     c.restore();
   }
-  if (waiting) { // sealed dispatch held up, the wax glints softly
-    const pulse = 0.5 + 0.5 * Math.sin(t / 600 + sk), sxp = W * 0.12, syp = -H * 0.86 + Math.sin(t / 1300 + sk) * 0.08;
-    const gl = c.createRadialGradient(sxp, syp, 0, sxp, syp, 2.4);
-    gl.addColorStop(0, `rgba(255,215,140,${0.35 + pulse * 0.3})`); gl.addColorStop(1, "rgba(255,215,140,0)");
-    c.fillStyle = gl; c.beginPath(); c.arc(sxp, syp, 2.4, 0, 7); c.fill();
-    c.fillStyle = "#efe2c2"; c.strokeStyle = "rgba(90,60,30,0.7)"; c.lineWidth = 0.12;
-    c.beginPath(); c.rect(sxp - 0.9, syp - 0.6, 1.8, 1.2); c.fill(); c.stroke();
-    c.fillStyle = `rgb(${150 + pulse * 40},28,24)`; c.beginPath(); c.arc(sxp, syp + 0.1, 0.42, 0, 7); c.fill();
+  if (waiting) { // soft golden glint above the rider marks the waiting dispatch
+    const pulse = 0.5 + 0.5 * Math.sin(t / 600 + sk), gy = -H - 1.6 + Math.sin(t / 900 + sk) * 0.2;
+    const gl = c.createRadialGradient(0, gy, 0, 0, gy, 2.2);
+    gl.addColorStop(0, `rgba(255,220,150,${0.3 + pulse * 0.35})`); gl.addColorStop(1, "rgba(255,220,150,0)");
+    c.fillStyle = gl; c.beginPath(); c.arc(0, gy, 2.2, 0, 7); c.fill();
+    c.fillStyle = `rgb(${150 + pulse * 40},30,26)`; c.beginPath(); c.arc(0, gy, 0.45, 0, 7); c.fill();
   }
   if (night) { // lantern on a short pole by the saddle
     const lx = -W * 0.18, ly = -H * 0.62 + (gait !== null ? Math.sin(t / 140) * 0.15 : 0);
@@ -2798,7 +2793,7 @@ export function draw(
     const at = polyAt(P, s), [px, py] = iso(at.x, at.y);
     const dir = v.phase === "wait" ? polyAt(P, len - 0.01).dir : at.dir;
     const [sx, sy] = iso(at.x + dir[0], at.y + dir[1]), ddx = sx - px, ddy = sy - py;
-    const gait = speed > 0.02 ? s / 0.55 : null, night = worldHour(now) >= 19 || worldHour(now) < 7;
+    const gait = speed > 0.02 ? s / 0.24 : null, night = worldHour(now) >= 19 || worldHour(now) < 7;
     const fade = v.phase === "arrive" ? Math.min(1, v.t / 1500) : v.phase === "leave" ? Math.min(1, (ride - v.t) / 1500) : 1;
     if (night) L.push({ x: px, y: py - 7, r: 6 });
     heraldSpots.set(sd.id, { x: px, y: py });

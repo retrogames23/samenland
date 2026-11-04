@@ -2077,6 +2077,7 @@ export function Game() {
     supportOpen || bugOpen || inviteOpen || quitOpen || delOpen ||
     tavernOpen || rollOpen || larderOpen || questOpen ||
     !!plantAsk || !!postTo || anyOpen || chronOpen;
+  const heraldBtn = owner && !!my && my.user_id === userId && claimsReady && !panelOpen && !walk && !herald && heraldDue(my.id);
 
   return (
 
@@ -2809,7 +2810,7 @@ export function Game() {
         </Parchment>
       )}
 
-      {owner && my && my.user_id === userId && claimsReady && !panelOpen && !walk && !herald && heraldDue(my.id) && (
+      {heraldBtn && my && (
         <div className="absolute inset-x-0 z-30 flex justify-center pointer-events-none" style={{ top: barH + 8 }}>
           <WoodButton label={HERALD[lang].button} onClick={() => { const hs = heraldSpots.get(my.id); if (hs) { cam.current.x = hs.x; cam.current.y = hs.y - 6; } openHerald(); }} className="pointer-events-auto h-10 px-3 animate-in fade-in"><span className="text-sm font-semibold">📜 {HERALD[lang].button}</span></WoodButton>
         </div>
@@ -2824,7 +2825,7 @@ export function Game() {
         </Parchment>
       )}
       {owner && quest && claimsReady && !panelOpen && (
-        <div className={`absolute right-16 z-30 ${waitDone && !waitShut && !anyOpen && !decision.open ? "max-md:hidden" : ""} max-w-[calc(100vw-5rem)] md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
+        <div className={`absolute right-16 z-30 ${heraldBtn ? "max-md:mt-12" : ""} ${waitDone && !waitShut && !anyOpen && !decision.open ? "max-md:hidden" : ""} max-w-[calc(100vw-5rem)] md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
           <div className="parchment px-3 py-2 text-sm text-ink shadow">
             <div className="flex w-full items-start gap-1">
               <button type="button" aria-expanded={!questFold} onClick={() => setQuestFold((f) => !f)} className="flex min-w-0 flex-1 items-start justify-between gap-2 text-start">
