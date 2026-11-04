@@ -117,7 +117,11 @@ export function pendingEncounter(seed: Pick<Seed, "id" | "created_at"> & Partial
   if (w && w.grand && !decisions.some((d) => d.event === "wedding" && d.at >= w.at)) return "wedding";
   const last = decisions.reduce((m, d) => d.event === "wedding" ? m : Math.max(m, d.at), -Infinity);
   if ((now - last) / 3.6e6 < encounterGap(ageH)) return null;
-  return eventOf(seed.id, decisions.filter((d) => d.event !== "wedding").length);
+  // context is anchored at the window start, so the open encounter never changes while it waits
+  const past = decisions.filter((d) => d.event !== "wedding").sort((a, b) => a.at - b.at);
+  const c0 = Date.parse(seed.created_at), from = past.length ? last : c0 + ENCOUNTER_FROM * 3.6e6;
+  const ctx = { ageH: (from - c0) / 3.6e6, season: dominantSeason(from), recent: past.slice(-EVENT_COOLDOWN).map((d) => d.event) };
+  return eventOf(seed.id, past.length, ctx);
 }
 
 /** Sum of attribute boons active at `now`. */

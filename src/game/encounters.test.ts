@@ -1,12 +1,13 @@
 import { weddingTimes } from "./weddings";
 import { describe, it, expect } from "vitest";
-import { eventOf, pendingEncounter, activeBoons, boonHours, ENCOUNTERS, encounterGap } from "./encounters";
+import { eventOf, eventWeight, pendingEncounter, activeBoons, boonHours, ENCOUNTERS, encounterGap } from "./encounters";
 import { treasury, START_TALER } from "./economy";
 const t0 = Date.UTC(2026, 9, 1, 12), H = 3.6e6, seed = { id: "s", name: "S", owner: "o", x: 0, y: 0, hue: 0, created_at: new Date(t0).toISOString() };
 describe("encounters", () => {
   it("same village and index always meet the same encounter, never twice in a row", () => {
     expect(eventOf("s", 3)).toBe(eventOf("s", 3));
-    for (let n = 1; n < 120; n++) expect(eventOf("s", n)).not.toBe(eventOf("s", n - 1));
+    const recent: string[] = [];
+    for (let n = 0; n < 120; n++) { const e = eventOf("s", n, { ageH: 1e4, season: "summer", recent: recent.slice(-4) }); expect(recent.slice(-4)).not.toContain(e); recent.push(e); }
   });
   it("first encounter after 3 minutes, then a gap of 2.5 h / 4 h / 6 h by age; never more than one open", () => {
     expect(pendingEncounter(seed, [], t0 + 2 * 60000)).toBeNull();
@@ -32,10 +33,25 @@ describe("encounters", () => {
 });
 
 describe("encounter catalogue", () => {
-  it("has 23 rotating visitors plus the real wedding and the retired flood, each shown once per round", () => {
+  it("has 23 drawable visitors plus the real wedding and the retired flood", () => {
     expect(Object.keys(ENCOUNTERS).length).toBe(25);
-    const seen = new Set(Array.from({ length: 23 }, (_, n) => eventOf("s", 46 + n)));
-    expect(seen.size).toBe(23); expect(seen.has("wedding")).toBe(false); expect(seen.has("flood")).toBe(false);
+    const seen = new Set(Array.from({ length: 2000 }, (_, n) => eventOf("s" + n, 0)));
+    expect(seen.has("wedding")).toBe(false); expect(seen.has("flood")).toBe(false);
+  });
+  it("everyday visitors come more often than rare highlights", () => {
+    const n = (e: string) => Array.from({ length: 4000 }, (_, i) => eventOf("w" + i, 0)).filter((x) => x === e).length;
+    expect(n("journeyman")).toBeGreaterThan(2 * n("painter"));
+  });
+  it("maypole only in spring, harvest never in spring or winter, and wolves mostly in winter", () => {
+    expect(eventWeight("maypole", { ageH: 1e4, season: "summer", recent: [] })).toBe(0);
+    expect(eventWeight("maypole", { ageH: 1e4, season: "spring", recent: [] })).toBeGreaterThan(0);
+    expect(eventWeight("harvest", { ageH: 1e4, season: "winter", recent: [] })).toBe(0);
+    expect(eventWeight("wolf", { ageH: 1e4, season: "winter", recent: [] })).toBeGreaterThan(eventWeight("wolf", { ageH: 1e4, season: "summer", recent: [] }));
+  });
+  it("no fair, surveyor or painter before the village (era 2); no pilgrims before the hamlet", () => {
+    for (const e of ["fair", "surveyor", "painter"] as const) expect(eventWeight(e, { ageH: 100, season: "summer", recent: [] })).toBe(0);
+    expect(eventWeight("pilgrims", { ageH: 10, season: "summer", recent: [] })).toBe(0);
+    expect(eventWeight("fair", { ageH: 200, season: "summer", recent: [] })).toBeGreaterThan(0);
   });
 });
 
