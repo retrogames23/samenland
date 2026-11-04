@@ -1,17 +1,26 @@
 import { worldHour, clock } from "./time";
 import nightSong from "@/assets/music/night_last_candle_waning.mp3.asset.json";
+import daySong from "@/assets/music/day_builders_dance.mp3.asset.json";
 
 /**
  * Background music: situation playlists picked from the shared world clock. Plays only while both
  * sound and music are on; crossfades via a plain <audio> element (streams, no full decode on phones).
  */
-export type Mood = "night" | null;
-const PLAYLISTS: Record<Exclude<Mood, null>, string[]> = { night: [nightSong.url] };
+export type Mood = "day" | "night" | null;
+const PLAYLISTS: Record<Exclude<Mood, null>, string[]> = {
+  day: [daySong.url],
+  night: [nightSong.url],
+};
 
-/** Dark = evening/night on the world clock (matches the sky tint's dusk/dawn ramps). */
+/** Which playlist the world clock calls for: dark = evening/night, light = daytime (dusk/dawn ramps of the sky tint). */
 export function moodAt(now = clock()): Mood {
   const h = worldHour(now);
-  return h >= 19.5 || h < 6.5 ? "night" : null;
+  return h >= 19.5 || h < 6.5 ? "night" : "day";
+}
+
+/** Songs waiting in a mood's loop (first entry plays first). */
+export function songsOf(m: Exclude<Mood, null>): string[] {
+  return PLAYLISTS[m];
 }
 
 const VOL = 0.45;
