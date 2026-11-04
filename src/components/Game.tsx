@@ -131,6 +131,7 @@ import { CHEST } from "@/game/lang/chest";
 import { FOUNDING } from "@/game/lang/founding";
 import { CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
 import { TITLE_PRICE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
+import { bakeCost } from "@/game/commons";
 import { ENCOUNTERS, choiceOf, saplingsOwed, type Decision } from "@/game/encounters";
 import { pendingAll, isCommons, commonsVoices, adviceIdx } from "@/game/commons";
 import { COMMONS_TEXT } from "@/game/lang/commons";
@@ -2767,7 +2768,7 @@ export function Game() {
                     })()}
                     <div className="mt-4 grid gap-2">
                       {Object.keys(ENCOUNTERS[ev]).map((c) => {
-                        const cost = choiceOf(ev, c)!.cost, poor = cost > cash, fx = fxText(ev, c);
+                        const cost = bakeCost(my, ev, c, choiceOf(ev, c)!.cost), poor = cost > cash, fx = fxText(ev, c);
                         return (
                           <button key={c} type="button" disabled={poor} onClick={() => decide(ev, c)} className="rounded-md border-2 border-border p-2 text-left hover:border-brass hover:bg-brass/20 disabled:opacity-50">
                             <div className="flex items-center justify-between gap-2">
