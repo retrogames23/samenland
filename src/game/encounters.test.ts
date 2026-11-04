@@ -33,8 +33,8 @@ describe("encounters", () => {
 });
 
 describe("encounter catalogue", () => {
-  it("has 23 drawable visitors plus the real wedding and the retired flood", () => {
-    expect(Object.keys(ENCOUNTERS).length).toBe(25);
+  it("has 23 drawable visitors plus the real wedding, the retired flood and 3 commons questions", () => {
+    expect(Object.keys(ENCOUNTERS).length).toBe(28);
     const seen = new Set(Array.from({ length: 2000 }, (_, n) => eventOf("s" + n, 0)));
     expect(seen.has("wedding")).toBe(false); expect(seen.has("flood")).toBe(false);
   });
