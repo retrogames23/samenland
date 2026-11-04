@@ -77,6 +77,7 @@ import {
   MIN_SEED_DISTANCE,
   specialSites,
   specialBuild,
+  specialDone,
   monumentProgress,
   MONUMENT_KEYS, MONUMENT_DEFS, monumentSteps, monumentOf,
   structureAt,
