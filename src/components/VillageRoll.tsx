@@ -40,6 +40,9 @@ export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T
     if (sort === "age") all.sort((a, b) => b.age - a.age);
     return all;
   }, [roll, q, job, sort, filtering]);
+  // show a soft fade + chevron while the roll can be scrolled further down
+  const checkMore = () => { const el = listRef.current; if (el) setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 8); };
+  useEffect(checkMore, [roll, filtering, flat, open]);
 
   return (
     <Parchment wide title={t.roll.title} later={t.close} onLater={onClose}>
@@ -63,7 +66,8 @@ export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T
           <option value="age">{t.roll.byAge}</option>
         </select>
       </div>
-      <div className="mt-3 max-h-[50vh] overflow-auto text-sm">
+      <div className="relative mt-3">
+        <div ref={listRef} onScroll={checkMore} className="max-h-[50vh] overflow-auto text-sm">
         {filtering ? (
           flat.length ? <ul>{flat.map(row)}</ul> : <p className="text-center text-muted-foreground">{t.roll.none}</p>
         ) : roll.households.map((h) => {
