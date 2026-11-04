@@ -26,6 +26,7 @@ import { fig, drawLegged, drawRobeWalk, drawMantled, walkBob, gaitFrame, LEG_RAT
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
+import { fieldLook, sheafDays, type Look } from "./rotation";
 import { sheavesOn, woodpileLevel, frost, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
 import { pealPause } from "./time";
 import { isSunday } from "./time";
@@ -69,6 +70,9 @@ type C = CanvasRenderingContext2D;
 type Pt = [number, number];
 
 const INK = "rgba(34,26,18,0.72)";
+/** Base texture of a field tile under the three-field rotation. */
+const LOOK_TEX: Record<Look, Tex> = { green: "crops", ripe: "wheat", stubble: "wheat", ploughed: "fertile", fallow: "grass" };
+const fieldTex = (x: number, y: number, s: Seed, now: number): Tex => LOOK_TEX[fieldLook(acreOf(x, y, s).id, now)];
 const TEX_OF: Record<string, Tex> = { deep: "water", water: "water", sand: "sand", grass: "grass", meadow: "meadow", forest: "forest", hill: "grass", fertile: "fertile", mountain: "rock" };
 const TERRAIN: Record<string, [number, number, number]> = {
   deep: [205, 38, 62], water: [198, 40, 70], sand: [42, 52, 80], grass: [88, 30, 66],
@@ -444,7 +448,7 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
 /** Seasonal and craft traces in front of a finished structure (pure from tile, calendar and clock). */
 function seasonalTrace(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y, now = renderNow, k = s.kind;
-  if (k === "field") { const n = sheavesOn(sd, now); for (let i = 0; i < n; i++) prop(c, "sheaf", cx + (hash(x, y, 90 + i) - 0.5) * 12, cy + (hash(x, y, 95 + i) - 0.5) * 5, 3.2); return; }
+  if (k === "field") { const n = sheafDays(acreOf(x, y, s.seed).id, now) ? sheavesOn(sd, now) || 1 : 0; for (let i = 0; i < n; i++) prop(c, "sheaf", cx + (hash(x, y, 90 + i) - 0.5) * 12, cy + (hash(x, y, 95 + i) - 0.5) * 5, 3.2); return; }
   if (k === "garden" && springWork(now) && hash(x, y, 82) < 0.5) { prop(c, "wattle", cx + 5, cy + 3, 8); return; }
   if (k === "pasture" && frost(now) && hash(x, y, 83) < 0.3) { prop(c, "iceTrough", cx + 2, cy + 1, 6); return; }
   if (k === "well" && frost(now)) { prop(c, "iceTrough", cx + 6, cy + 3, 5); return; }
@@ -1418,7 +1422,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
       const y = s.x + s.y + d - x; if (y < s.y - Ri || y > s.y + Ri) continue;
       const st = structureAt(x, y, seeds, now); if (!st) continue;
       const [cx, cy] = iso(x, y);
-      if (st.kind === "field") { c.fillStyle = texture(c, acreOf(x, y, st.seed).ripe ? "wheat" : "crops") ?? "#c9b46a"; diamond(c, cx, cy, step); c.fill(); }
+      if (st.kind === "field") { c.fillStyle = texture(c, fieldTex(x, y, st.seed, now)) ?? "#c9b46a"; diamond(c, cx, cy, step); c.fill(); }
       else if (PATHLIKE.has(st.kind) || st.kind === "square") { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#bfa47a"; diamond(c, cx, cy, step * 0.8); c.fill(); }
       else if (st.build !== undefined) drawSite(c, st, cx, cy, 0, false);
       else if (!FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
@@ -1911,7 +1915,7 @@ function acrePath(c: C, cx: number, cy: number, hx: number, hy: number, outer: b
   c.closePath();
   return q;
 }
-type AgriSpec = { kind: "field" | "garden" | "pasture"; ripe: boolean; along: boolean; outer: boolean[]; winter: boolean; hx: number; hy: number; k2: number };
+type AgriSpec = { kind: "field" | "garden" | "pasture"; ripe: boolean; look?: Look | undefined; along: boolean; outer: boolean[]; winter: boolean; hx: number; hy: number; k2: number };
 /** Furrows, plants, wattle, bean poles, tufts and troughs — everything except the textured base fill. */
 function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
   const pp = P(cx, cy), { hx: x, hy: y, ripe, along, outer } = a;
@@ -1985,8 +1989,18 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
       }
     }
   } else {
-    const row = fieldRowImage(ripe);
-    if (row && !a.winter) {
+    const row = fieldRowImage(ripe), grows = a.look === undefined || a.look === "green" || a.look === "ripe";
+    if (a.look === "fallow") {
+      c.strokeStyle = "rgba(96,110,52,0.75)"; c.lineWidth = 0.3; c.lineCap = "round"; c.beginPath();
+      for (let n = 0; n < 7; n++) { const [px, py] = pp((hash(x, y, 810 + n) - 0.5) * 0.9, (hash(x, y, 820 + n) - 0.5) * 0.9); for (let b = -1; b <= 1; b++) { c.moveTo(px + b * 0.3, py); c.lineTo(px + b * 0.45, py - 0.7); } }
+      c.stroke();
+      c.fillStyle = "rgba(230,215,120,0.85)"; for (let n = 0; n < 4; n++) { const [px, py] = pp((hash(x, y, 830 + n) - 0.5) * 0.9, (hash(x, y, 840 + n) - 0.5) * 0.9); c.beginPath(); c.arc(px, py - 0.8, 0.35, 0, 7); c.fill(); }
+    } else if (a.look === "stubble") {
+      c.strokeStyle = "rgba(150,118,60,0.7)"; c.lineWidth = 0.25; c.beginPath();
+      for (let k = -2; k <= 2; k++) for (let m = -4; m <= 4; m++) { const f = k / 4, g = m * 0.13, [px, py] = along ? pp(g, f) : pp(f, g); c.moveTo(px, py); c.lineTo(px + 0.15, py - 0.6); }
+      c.stroke();
+    }
+    if (row && !a.winter && grows) {
       const w = ripe ? 4.6 : 4.2, hgt = (w * row.height) / row.width, flipRow = !along;
       for (let k = -2; k <= 2; k++) for (let m = -3; m <= 3; m += 2) {
         const f = k / 4, gg = m * 0.13 + (hash(x * 5 + k, y * 3 + m, 640) - 0.5) * 0.05;
@@ -2034,16 +2048,16 @@ function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Struct
     c.globalAlpha = 0.32; c.fillStyle = "rgb(196,190,110)"; c.fill(); c.globalAlpha = 1;
     a = { kind: "pasture", ripe: false, along: false, outer: [], winter, hx, hy, k2 }; key = `p${k2}|${v}`;
   } else {
-    const ac = acreOf(x, y, st.seed), ripe = st.kind === "field" && ac.ripe;
+    const ac = acreOf(x, y, st.seed), look = st.kind === "field" ? fieldLook(ac.id, now) : undefined, ripe = look === "ripe";
     const sameA = (i: number, j: number) => { const o = structureAt(x + i, y + j, seeds, now); return !!o && o.kind === st.kind && acreOf(x + i, y + j, o.seed).id === ac.id; };
     const outer = NS4.map(([i, j]) => !sameA(i, j));
     acrePath(c, cx, cy, hx, hy, outer);
     if (st.kind === "garden") {
       c.fillStyle = texture(c, "fertile") ?? hsl(25, 35, 30); c.fill();
       c.globalAlpha = 0.5; c.fillStyle = texture(c, "dirt") ?? hsl(30, 35, 55); c.fill(); c.globalAlpha = 1;
-    } else { c.fillStyle = texture(c, ripe ? "wheat" : "crops") ?? hsl(ripe ? 44 : 80, 50, 60); c.fill(); }
-    a = { kind: st.kind as "field" | "garden", ripe, along: ac.along, outer, winter, hx, hy, k2: 0 };
-    key = `${st.kind[0]}${+ripe}${+ac.along}${outer.map((o) => +o).join("")}${+winter}|${v}`;
+    } else { c.fillStyle = texture(c, LOOK_TEX[look!]) ?? hsl(ripe ? 44 : 80, 50, 60); c.fill(); if (look === "stubble") { c.globalAlpha = 0.35; c.fillStyle = texture(c, "dirt") ?? hsl(30, 35, 55); c.fill(); c.globalAlpha = 1; } }
+    a = { kind: st.kind as "field" | "garden", ripe, look, along: ac.along, outer, winter, hx, hy, k2: 0 };
+    key = `${st.kind[0]}${look ?? ""}${+ac.along}${outer.map((o) => +o).join("")}${+winter}|${v}`;
   }
   const sp = agriSprite(a, key + seasonKey(now));
   if (sp) c.drawImage(sp, cx - AGRI_W / 2, cy - AGRI_UP, AGRI_W, AGRI_H);
@@ -2558,7 +2572,7 @@ function flatTok(x: number, y: number, st: Structure | null): number {
   const nt = nearTown(x, y);
   if (!st) return nt ? 1 : 0;
   let k = flatKinds.get(st.kind); if (k === undefined) { k = flatKinds.size + 1; flatKinds.set(st.kind, k); }
-  return 2 + k * 4 + (nt ? 1 : 0) + (st.build !== undefined ? 1 << 10 : 0) + (st.kind === "field" && acreOf(x, y, st.seed).ripe ? 1 << 11 : 0) + ((st.seed.id.charCodeAt(0) * 31 + st.seed.id.charCodeAt(1)) << 12);
+  return 2 + k * 4 + (nt ? 1 : 0) + (st.build !== undefined ? 1 << 10 : 0) + ((st.seed.id.charCodeAt(0) * 31 + st.seed.id.charCodeAt(1)) << 12) ^ (st.kind === "field" ? (1 + ["green", "ripe", "stubble", "ploughed", "fallow"].indexOf(fieldLook(acreOf(x, y, st.seed).id, renderNow))) * 0x9e3779 : 0);
 }
 /** Called from pass 1c for every visible tile: flags the tile's baked chunk (and edge neighbours) when its content changed. */
 function flatCheck(x: number, y: number, st: Structure | null) {
@@ -2773,7 +2787,7 @@ export function draw(
       { const slot = tiles[nTiles] ?? (tiles[nTiles] = { x: 0, y: 0, cx: 0, cy: 0, st: null }); slot.x = x; slot.y = y; slot.cx = cx; slot.cy = cy; slot.st = st; nTiles++; }
       if (!detail) {
         if (st && !FLAT.has(st.kind)) { /* drawn in pass 2 */ }
-        else if (st?.kind === "field") { c.fillStyle = texture(c, acreOf(x, y, st.seed).ripe ? "wheat" : "crops") ?? hsl(44, 45, 66); diamond(c, cx, cy, 1.06); c.fill(); } // slight overlap: no grid seams between acre tiles
+        else if (st?.kind === "field") { c.fillStyle = texture(c, fieldTex(x, y, st.seed, now)) ?? hsl(44, 45, 66); diamond(c, cx, cy, 1.06); c.fill(); } // slight overlap: no grid seams between acre tiles
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square")) { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#cdb084"; diamond(c, cx, cy, 0.85); c.fill(); }
         continue;
       }
