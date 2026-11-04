@@ -35,8 +35,11 @@ export const ENCOUNTERS = {
   maypole: { pole: { cost: 20, fx: { h: 96, health: 10 } }, games: { cost: 0, fx: { h: 48, health: 5 } } },
 } as const satisfies Record<string, Record<string, Choice>>;
 export type EventKey = keyof typeof ENCOUNTERS;
-/** Rotating visitors; "wedding" is not among them — it only appears while a real village wedding takes place. */
-export const EVENT_KEYS = (Object.keys(ENCOUNTERS) as EventKey[]).filter((k) => k !== "wedding");
+/**
+ * Rotating visitors; "wedding" only appears while a real village wedding takes place.
+ * "flood" is retired (kept for old decisions' boons): floods are a visible disaster in disasters.ts, never a text-only encounter.
+ */
+export const EVENT_KEYS = (Object.keys(ENCOUNTERS) as EventKey[]).filter((k) => k !== "wedding" && k !== "flood");
 export type Decision = { event: string; choice: string; at: number; cost: number };
 
 /** Villages meet their first visitor once they are this many hours old (3 minutes). */
