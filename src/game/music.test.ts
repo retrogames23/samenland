@@ -21,5 +21,7 @@ describe("Musik-Playlists", () => {
     expect(songsOf("day")[0]).toBe(daySong.url);
     expect(songsOf("night")[0]).toBe(nightSong.url);
     expect(songsOf("day")[0]).not.toBe(songsOf("night")[0]);
+    expect(songsOf("night")).toContain(nightSong3.url);
+    expect(songsOf("night")[2]).toBe(nightSong3.url);
   });
 });
