@@ -2802,7 +2802,7 @@ export function Game() {
         <TownProfile t={t} lang={lang} town={seeds.find((x) => x.id === profile.id) ?? profile} me={my ?? null} seeds={seeds} now={clock()} onClose={() => setProfile(null)} onLook={() => { focus(profile.x, profile.y); setProfile(null); }} />
       )}
       {rollOpen && my && myTown && (
-        <VillageRoll t={t} town={myTown} hue={my.hue} character={<><CharacterDetails seed={my} lang={lang} /><div className="mt-2"><Outlook t={t} lang={lang} my={my} seeds={seeds} now={slow} rank={myRank} charter={myCharter} way={wayOf(my)} /></div></>} onClose={() => setRollOpen(false)} onPick={(p) => {
+        <VillageRoll t={t} town={myTown} hue={my.hue} character={<><CharacterDetails seed={my} lang={lang} /><div className="mt-2"><Outlook t={t} lang={lang} my={my} seeds={seeds} now={slow} rank={myRank} charter={myCharter} way={wayOf(my)} /></div>{guestbook}</>} onClose={() => setRollOpen(false)} onPick={(p) => {
           const now = clock();
           const z = poseOf(p, townOf(p.seed, seeds, now), seeds, now);
           setRollOpen(false);
