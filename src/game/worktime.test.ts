@@ -24,6 +24,6 @@ describe("builders rest at night (1500 town law: 6–20 h)", () => {
     expect(workClock(at(10) + 24 * H) - workClock(at(10))).toBeCloseTo(24 * H);
   });
   it("a 6 h build ordered at 21:00 is done next morning at 9:30", () => {
-    expect(workDone(at(21), 6 * H)).toBeCloseTo(at(30) - 0.5 * H, -4);
+    expect(workDone(at(21), 6 * H)).toBeCloseTo(at(30) + 3.5 * H, -4);
   });
 });
