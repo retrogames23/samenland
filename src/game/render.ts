@@ -2501,7 +2501,7 @@ function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[]
   let any = false;
   const sts: (Structure | null)[] = [];
   for (let y = Y0; y <= Y1; y++) for (let x = X0; x <= X1; x++) {
-    const st = structureAt(x, y, seeds, now), tk = flatTok(x, y, st);
+    const st = sparePlanted(x, y, structureAt(x, y, seeds, now)), tk = flatTok(x, y, st);
     e.tok[(y - Y0) * FC + (x - X0)] = tk; sts[(y - Y0) * FC + (x - X0)] = st; if (tk) any = true;
   }
   e.empty = !any; e.cv = null;
@@ -2537,6 +2537,14 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
   }
   while (flatCache.size > 64) flatCache.delete(flatCache.keys().next().value!);
   return flatSet;
+}
+/** Planted rare trees keep their tile: fields, gardens and pastures grow around them on the map (display only — household capacity is unchanged). */
+let plantedNow: Map<string, Planting> = new Map();
+const SPARE_KINDS = new Set(["field", "garden", "pasture", "hay", "fence"]);
+function sparePlanted(x: number, y: number, st: Structure | null): Structure | null {
+  if (!st || !SPARE_KINDS.has(st.kind)) return st;
+  const pl = plantedNow.get(`${x},${y}`);
+  return pl && (pl.kind === "cherry" || pl.kind === "quince") ? null : st;
 }
 /** Flat ground dressing of one tile (turf, ore rocks, paths, squares, acres) — drawn live or baked into a flat chunk. */
 function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number) {
@@ -2598,7 +2606,7 @@ export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
 ) {
-  renderNow = now; renderSeeds = seeds; syncMask(seeds); setArtTime(now); setNatureTime(now);
+  renderNow = now; renderSeeds = seeds; syncMask(seeds); setArtTime(now); setNatureTime(now); plantedNow = plantings;
   lastPeople.length = 0; lastTraders.length = 0; lastSources.length = 0;
   signpostMap(seeds);
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
@@ -2656,7 +2664,7 @@ export function draw(
       const [cx, cy] = iso(x, y);
       // diamond culling: the tile rectangle's corners lie off-canvas; tall sprites rise from below, so keep a deep bottom margin
       if (cx < cs0x - 44 || cx > cs1x + 44 || cy < cs0y - 20 || cy > cs1y + 96) continue; // margins: widest sprite half-width / tallest sprite height
-      const st = structureAt(x, y, seeds, now);
+      const st = sparePlanted(x, y, structureAt(x, y, seeds, now));
       { const slot = tiles[nTiles] ?? (tiles[nTiles] = { x: 0, y: 0, cx: 0, cy: 0, st: null }); slot.x = x; slot.y = y; slot.cx = cx; slot.cy = cy; slot.st = st; nTiles++; }
       if (!detail) {
         if (st && !FLAT.has(st.kind)) { /* drawn in pass 2 */ }
