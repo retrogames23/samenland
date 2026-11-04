@@ -53,6 +53,9 @@ export function worldHour(now: number): number {
  */
 export const WORK_START = 6, WORK_END = 20;
 export const WORK_RATE = 24 / (WORK_END - WORK_START);
+/** Morning, midday and evening bell (WORK_START, 12, WORK_END): field and site workers pause PEAL_SECS. */
+export const PEAL_HOURS = [WORK_START, 12, WORK_END], PEAL_SECS = 20;
+export const pealPause = (now: number) => { const h = worldHour(now); return PEAL_HOURS.some((k) => h >= k && h < k + PEAL_SECS / 3600); };
 export const isWorkHour = (now: number) => { const h = worldHour(now); return h >= WORK_START && h < WORK_END; };
 /** Monotonic "work clock" in ms: advances WORK_RATE× during the working day, stands still at night; equals real time over whole days. */
 export function workClock(now: number): number {

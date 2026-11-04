@@ -5,6 +5,9 @@
 import { BANTER, type BanterCat } from "./lang/banter";
 import type { Lang } from "./i18n";
 import type { Trait } from "./traits";
+import { SEASON_BANTER } from "./lang/banter-season";
+import { seasonAt } from "./season";
+import { clock } from "./time";
 
 const recent: string[] = [];
 const RECENT = 40;
@@ -32,8 +35,14 @@ export function banterCats(c: BanterCtx): BanterCat[] {
 
 /** Pick a line (random, avoiding the last RECENT shown) and fill {mayor}, {town}, {name}. */
 export function banter(lang: Lang, c: BanterCtx, vars: { mayor: string; town: string; name?: string }, rnd: () => number = Math.random): string {
-  const L = BANTER[lang] ?? BANTER.en;
+  const L0 = BANTER[lang] ?? BANTER.en;
   const cats = banterCats(c);
+  // own villagers sometimes speak about what the season shows on the map (one pooled line among the others)
+  let L: typeof L0 = L0;
+  if (c.who === "own" && !c.sick && !c.child && !c.night) {
+    const w = seasonAt(clock()), sk = (Object.keys(w) as (keyof typeof w)[]).reduce((a, b) => (w[b] > w[a] ? b : a));
+    L = { ...L0, own_craft: [...(L0.own_craft ?? []), ...SEASON_BANTER[lang][sk]] };
+  }
   // one category drawn at random among those this language has, so trait lines mix with generic ones
   const have = cats.filter((k) => L[k]?.length);
   const cat = have[Math.floor(rnd() * have.length)] ?? cats[cats.length - 1]!;
