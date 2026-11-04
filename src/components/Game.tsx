@@ -2286,6 +2286,7 @@ export function Game() {
           if (d && !d.moved && placing && placeTap(!!d.touch) === "move") { const g = tileAt(e); st.current.ghost = g; setGhost(g); return; }
           if (d && !d.moved && d.touch && d.t0 != null && nowT - d.t0 > 350) { if (placing || mode !== "look") return; const p = personAt(e); if (p) { setPlace(null); return setWho(p); } const [lx, ly] = tileAt(e); const li = inspectAt(lx, ly, seeds, clock()); if (li) { setWho(null); setPlace(li); } return; } // long press opens what lies under the finger
           if (d && !d.moved && d.touch && !placing && mode === "look") {
+            showTileInfo(tileAt(e), 4000);
             const lt = lastTap.current;
             if (nowT - lt.t < 300 && Math.hypot(e.clientX - lt.x, e.clientY - lt.y) < 30) {
               lastTap.current = { t: 0, x: 0, y: 0 };
@@ -3216,7 +3217,7 @@ export function Game() {
             </div>
           );
         })()}
-        <div ref={tileInfoRef} style={{ display: "none" }} className="pointer-events-none max-md:!hidden rounded bg-card/85 px-2 py-1 text-xs text-muted-foreground" />
+
       </div>
     </div>
   );
