@@ -10,7 +10,10 @@ import { dwellingKey, dwellingTile } from "./density";
 export { foodCapacity, FEED_BASE, WILD_MAX, FEED_FIELD, FEED_GARDEN, FEED_PASTURE, FEED_FOOD_ITEM, FEED_HEALTH_ITEM, FEED_WINTER } from "./households";
 import { fires } from "./disasters";
 import { guestNow, maypoleUp, cowsOf } from "./encounters";
+import { mastOn, oakSpot, bakeGathering, stegOf, stegSpot } from "./commons";
+import { WORK_START, WORK_END } from "./time";
 import { worldHour } from "./time";
+const worldHourOf = worldHour;
 import { seasonAt } from "./season";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
@@ -41,7 +44,7 @@ export type Person = {
   /** Wedding procession: birth home → church → new home, starting at `at` (world ms); lag = seconds behind the couple. */
   proc?: { at: number; from: Tile; to: Tile; lag: number; role: "bride" | "groom" | "guest" };
   /** Inauguration of a just-finished landmark: walk there at `at` (+lag s) and gather at `spot` facing `face`. */
-  fete?: { at: number; spot: Tile; face: Tile; lag: number; dur?: number; fire?: boolean };
+  fete?: { at: number; spot: Tile; face: Tile; lag: number; dur?: number; fire?: boolean; work?: boolean };
   /** A travelling visitor of the day's encounter: walks in from the edge at `at`, waits at `spot`, gone after `until`. */
   guest?: { at: number; until: number; from: Tile; spot: Tile; face: Tile; event: string };
 };
@@ -102,6 +105,8 @@ export type Town = {
   weddings: Wedding[]; church: Tile | null;
   /** Encounter props on the square: a raised maypole and the village's cows (derived from decisions). */
   maypole: Tile | null; cows: Tile[];
+  /** Allmende traces: pigs masting under the oaks, the footbridge over the mill stream (both banks, finish time). */
+  pigs: Tile[]; steg: { a: Tile; b: Tile; done: number } | null;
 };
 
 /** Service buildings whose staff grows with the town (radius), so big towns get more bakers, innkeepers, priests. */
@@ -290,6 +295,38 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       q.fete = { at: mp.at, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 50, 720) * 120 };
     }
   }
+  // ---- Allmende: what the village decided is seen on the map ----
+  const pigs: Tile[] = [];
+  const oak = mastOn(decs, now) ? oakSpot(s) : null;
+  if (oak) for (let i = 0; i < 4; i++) pigs.push(nearFree(oak, s.x * 17 + s.y + i * 37));
+  // bake day: neighbours queue with baskets at the common oven for an hour
+  const bake = bakeGathering(decs, now), oven = byKind.get("bakery")?.[0];
+  if (bake != null && oven) {
+    const c = front(oven) ?? oven;
+    for (const q of people) {
+      if (q.fete || q.proc || q.sick || q.carer != null || q.arrive || q.age < 14 || hash(q.id, 51, 720) >= share(0.3)) continue;
+      const a = hash(q.id, 52, 720) * Math.PI * 2, rr = (1 + hash(q.id, 53, 720) * 1.2) * widen(0.3);
+      q.fete = { at: bake, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 54, 720) * 300 };
+    }
+  }
+  // footbridge: the crew works on the bank during working hours until it stands
+  const sg = stegOf(decs), banks = sg ? stegSpot(s) : null;
+  const steg = sg && banks ? { a: banks[0], b: banks[1], done: sg.done } : null;
+  if (sg && banks && now >= sg.at && now < sg.done) {
+    const h = worldHourOf(now), day0 = now - h * 3.6e6;
+    const from = Math.max(sg.at, day0 + WORK_START * 3.6e6), to = Math.min(sg.done, day0 + WORK_END * 3.6e6);
+    if (now >= from && now < to) {
+      let n = 0;
+      for (const q of people) {
+        if (q.fete || q.proc || q.sick || q.carer != null || q.arrive || q.age < 16 || q.age > 62) continue;
+        const crew = sg.together ? hash(q.id, 55, 720) < 0.35 && n < 8 : q.job === "builder" || q.job === "sawyer" || (n < 2 && hash(q.id, 55, 720) < 0.1);
+        if (!crew) continue;
+        n++;
+        const side = n % 2 ? banks[0] : banks[1], a = hash(q.id, 56, 720) * Math.PI * 2, rr = 0.5 + hash(q.id, 57, 720) * 0.7;
+        q.fete = { at: from, spot: [side[0] + Math.cos(a) * rr, side[1] + Math.sin(a) * rr], face: [(banks[0][0] + banks[1][0]) / 2, (banks[0][1] + banks[1][1]) / 2], lag: hash(q.id, 58, 720) * 200, dur: (to - from) / 1000, work: true };
+      }
+    }
+  }
   // fire: the fire wardens and watch run to the blaze, and neighbours join the bucket chain until it is out
   for (const f of fires(s, now)) {
     if (now < f.at || now >= f.end) continue;
@@ -349,7 +386,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   }
   assignHauls(people, byKind, sites, front, well, tradePartners(s, seeds, now).flatMap((q) => q.buy));
   for (const q of people) if (q.guest) q.haul = null;
-  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings, church, maypole, cows };
+  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings, church, maypole, cows, pigs, steg };
 }
 
 /**
