@@ -1,6 +1,9 @@
 // Pure hover facts for one tile: what is there, which animals live on it, and its effect on play.
 import { terrain, isWater, riverDistAt, resourceAt, structureAt, type Seed, type Terrain } from "./world";
-import { isDen, isBoar } from "./wildlife";
+import { isDen, denOk, denBeast } from "./wildlife";
+import { worldHour } from "./time";
+
+const WILD_OK = new Set(["forest", "meadow", "grass", "hill", "fertile"]);
 import { townOf } from "./people";
 import type { Animal, Effect } from "./lang/tileinfo";
 
@@ -10,11 +13,18 @@ export function tileFacts(x: number, y: number, seeds: Seed[], now: number, plan
   const t = terrain(x, y), st = structureAt(x, y, seeds, now);
   const kind = planted ? null : st?.kind ?? null;
   const animals = new Set<Animal>();
-  if (!kind || kind === "field" || kind === "pasture") {
-    // a den's animal roams its own tile and the eight neighbours
-    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (isDen(x + i, y + j) && !isWater(terrain(x + i, y + j))) animals.add(isBoar(x + i, y + j) ? "boar" : "deer");
+  const hr = worldHour(now);
+  if (hr >= 5.5 && hr <= 20.5) {
+    // only animals standing on this very tile right now (same position the map draws)
+    const free = (a: number, b: number) => WILD_OK.has(terrain(a, b)) && !structureAt(a, b, seeds, now);
+    for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) {
+      const dx = x + i, dy = y + j;
+      if (!isDen(dx, dy) || !denOk(dx, dy, free)) continue;
+      const b = denBeast(dx, dy, now, free);
+      if (Math.round(b.x) === x && Math.round(b.y) === y) animals.add(b.boar ? "boar" : "deer");
+    }
   }
-  if (kind === "pasture") animals.add("sheep");
+  if (kind === "pasture" && st && st.build === undefined && st.v > 0.35) animals.add("sheep");
   if (kind === "coop") animals.add("hen");
   const sd = st?.seed ?? null;
   if (sd && townOf(sd, seeds, now).cows.some(([cx, cy]) => cx === x && cy === y)) animals.add("cow");
