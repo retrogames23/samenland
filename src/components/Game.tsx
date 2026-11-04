@@ -1828,7 +1828,10 @@ export function Game() {
                 <div className="mt-1 text-muted-foreground">{fill >= 1 ? ct.full : ct.intro}</div>
                 {blk === "max" ? <div className="mt-1 font-semibold text-primary">{ct.max}</div>
                   : blk ? <div className="mt-1 text-muted-foreground">{ct.levels[lvl]}: {ct.need(t.stages[[2, 3, 4][lvl - 1] ?? 4] ?? "")}</div>
-                  : <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < CHEST_PRICE[step]} onClick={() => void buy(step)}>{ct.expand}: {ct.levels[lvl]} ({CHEST_CAP[step]}) · {t.taler(CHEST_PRICE[step])}</Button>}
+                  : <>
+                    <div className="mt-1.5 flex items-baseline justify-between gap-2"><span className="font-semibold">{ct.levels[lvl]}</span><span className="shrink-0 text-muted-foreground">{t.taler(CHEST_CAP[step])}</span></div>
+                    <Button size="sm" className="mt-1 h-7 w-full" disabled={cash < CHEST_PRICE[step]} onClick={() => void buy(step)}>{ct.expand} · {t.taler(CHEST_PRICE[step])}</Button>
+                  </>}
               </div>
             );
           })()}
