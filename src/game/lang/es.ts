@@ -84,7 +84,7 @@ export const es: Dict = {
     refused: "Este alcalde no acepta cartas tuyas.", slow: "No tan deprisa; toma un respiro.", fail: "No se pudo enviar el mensaje.",
   },
   goods: {
-    ware: { log: ["tronco", "troncos"], planks: ["tablón", "tablones"], stone: ["piedra", "piedras"], grain: ["gavilla", "gavillas"], flour: ["saco de harina", "sacos de harina"], bread: ["hogaza", "hogazas"], fish: ["cesta de pescado", "cestas de pescado"], game: ["pieza de caza", "piezas de caza"], herbs: ["haz de hierbas", "haces de hierbas"], cheese: ["rueda de queso", "ruedas de queso"] },
+    ware: { log: ["tronco", "troncos"], planks: ["tablón", "tablones"], stone: ["piedra", "piedras"], grain: ["gavilla", "gavillas"], flour: ["saco de harina", "sacos de harina"], bread: ["hogaza", "hogazas"], fish: ["cesta de pescado", "cestas de pescado"], game: ["pieza de caza", "piezas de caza"], herbs: ["haz de hierbas", "haces de hierbas"], cheese: ["rueda de queso", "ruedas de queso"], beer: ["barril de cerveza", "barriles de cerveza"], salt: ["saco de sal", "sacos de sal"], cloth: ["pieza de paño", "piezas de paño"] },
     larder: "Despensa",
     larderIntro: "Lo que almacena tu aldea en este momento: fruto del trabajo, la estación y el sustento.",
     stock: "Existencias", made: "producido hoy", used: "consumido hoy",

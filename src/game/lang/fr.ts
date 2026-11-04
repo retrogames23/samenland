@@ -84,7 +84,7 @@ export const fr: Dict = {
     refused: "Ce bourgmestre n'accepte point vos lettres.", slow: "Point de précipitation – reprenez votre souffle.", fail: "Impossible d'envoyer le message.",
   },
   goods: {
-    ware: { log: ["bûche", "bûches"], planks: ["planche", "planches"], stone: ["pierre", "pierres"], grain: ["gerbe", "gerbes"], flour: ["sac de farine", "sacs de farine"], bread: ["miche", "miches"], fish: ["panier de poisson", "paniers de poisson"], game: ["pièce de gibier", "pièces de gibier"], herbs: ["botte de simples", "bottes de simples"], cheese: ["meule de fromage", "meules de fromage"] },
+    ware: { log: ["bûche", "bûches"], planks: ["planche", "planches"], stone: ["pierre", "pierres"], grain: ["gerbe", "gerbes"], flour: ["sac de farine", "sacs de farine"], bread: ["miche", "miches"], fish: ["panier de poisson", "paniers de poisson"], game: ["pièce de gibier", "pièces de gibier"], herbs: ["botte de simples", "bottes de simples"], cheese: ["meule de fromage", "meules de fromage"], beer: ["tonneau de bière", "tonneaux de bière"], salt: ["sac de sel", "sacs de sel"], cloth: ["pièce de drap", "pièces de drap"] },
     larder: "Garde-manger",
     larderIntro: "Ce que recèle votre village à cette heure – fruit du labeur, des saisons et des faims.",
     stock: "Réserves", made: "produit ce jour", used: "consommé ce jour",

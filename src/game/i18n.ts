@@ -99,7 +99,7 @@ const de = {
     refused: "Dieser Dorfschulze nimmt keine Briefe von dir an.", slow: "Nicht so hastig – kurz durchatmen.", fail: "Nachricht konnte nicht gesendet werden.",
   },
   goods: {
-    ware: { log: ["Stamm", "Stämme"], planks: ["Brett", "Bretter"], stone: ["Stein", "Steine"], grain: ["Garbe", "Garben"], flour: ["Sack Mehl", "Säcke Mehl"], bread: ["Brot", "Brote"], fish: ["Korb Fisch", "Körbe Fisch"], game: ["Keule Wild", "Keulen Wild"], herbs: ["Bund Kräuter", "Bund Kräuter"], cheese: ["Laib Käse", "Laibe Käse"] } as Record<string, [string, string]>,
+    ware: { log: ["Stamm", "Stämme"], planks: ["Brett", "Bretter"], stone: ["Stein", "Steine"], grain: ["Garbe", "Garben"], flour: ["Sack Mehl", "Säcke Mehl"], bread: ["Brot", "Brote"], fish: ["Korb Fisch", "Körbe Fisch"], game: ["Keule Wild", "Keulen Wild"], herbs: ["Bund Kräuter", "Bund Kräuter"], cheese: ["Laib Käse", "Laibe Käse"], beer: ["Fass Bier", "Fässer Bier"], salt: ["Sack Salz", "Säcke Salz"], cloth: ["Ballen Tuch", "Ballen Tuch"] } as Record<string, [string, string]>,
     larder: "Vorratskammer",
     larderIntro: "Was dein Dorf gerade lagert – abgeleitet aus Arbeit, Jahreszeit und Hunger.",
     stock: "Lager", made: "heute erzeugt", used: "heute verbraucht",
@@ -475,7 +475,7 @@ const en: typeof de = {
     refused: "This mayor does not accept letters from you.", slow: "Not so hasty – take a breath.", fail: "Message could not be sent.",
   },
   goods: {
-    ware: { log: ["log", "logs"], planks: ["plank", "planks"], stone: ["stone", "stones"], grain: ["sheaf", "sheaves"], flour: ["sack of flour", "sacks of flour"], bread: ["loaf", "loaves"], fish: ["basket of fish", "baskets of fish"], game: ["haunch of game", "haunches of game"], herbs: ["bundle of herbs", "bundles of herbs"], cheese: ["wheel of cheese", "wheels of cheese"] },
+    ware: { log: ["log", "logs"], planks: ["plank", "planks"], stone: ["stone", "stones"], grain: ["sheaf", "sheaves"], flour: ["sack of flour", "sacks of flour"], bread: ["loaf", "loaves"], fish: ["basket of fish", "baskets of fish"], game: ["haunch of game", "haunches of game"], herbs: ["bundle of herbs", "bundles of herbs"], cheese: ["wheel of cheese", "wheels of cheese"], beer: ["cask of ale", "casks of ale"], salt: ["sack of salt", "sacks of salt"], cloth: ["bolt of cloth", "bolts of cloth"] },
     larder: "Larder",
     larderIntro: "What your village holds right now – derived from work, season and hunger.",
     stock: "Stock", made: "made today", used: "used today",
@@ -851,7 +851,7 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
     refused: "这位村长不接受你的来信。", slow: "莫着急，先歇口气。", fail: "消息未能送出。",
   },
   goods: {
-    ware: { log: ["根原木", "根原木"], planks: ["块木板", "块木板"], stone: ["块石料", "块石料"], grain: ["捆谷物", "捆谷物"], flour: ["袋面粉", "袋面粉"], bread: ["条面包", "条面包"], fish: ["篮鱼", "篮鱼"], game: ["块野味", "块野味"], herbs: ["束草药", "束草药"], cheese: ["轮奶酪", "轮奶酪"] },
+    ware: { log: ["根原木", "根原木"], planks: ["块木板", "块木板"], stone: ["块石料", "块石料"], grain: ["捆谷物", "捆谷物"], flour: ["袋面粉", "袋面粉"], bread: ["条面包", "条面包"], fish: ["篮鱼", "篮鱼"], game: ["块野味", "块野味"], herbs: ["束草药", "束草药"], cheese: ["轮奶酪", "轮奶酪"], beer: ["桶啤酒", "桶啤酒"], salt: ["袋盐", "袋盐"], cloth: ["匹布", "匹布"] },
     larder: "储藏室",
     larderIntro: "村庄眼下的储备——随劳作、四季与村民的胃口而变化。",
     stock: "库存", made: "今日产出", used: "今日消耗",
@@ -1228,7 +1228,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
     refused: "この村長は、あなたからの手紙を受け取っていません。", slow: "そう急がず、ひと息つきましょう。", fail: "伝言を送れませんでした。",
   },
   goods: {
-    ware: { log: ["丸太", "丸太"], planks: ["板材", "板材"], stone: ["石材", "石材"], grain: ["穀物の束", "穀物の束"], flour: ["小麦粉の袋", "小麦粉の袋"], bread: ["パン", "パン"], fish: ["魚の籠", "魚の籠"], game: ["獲物のもも肉", "獲物のもも肉"], herbs: ["薬草の束", "薬草の束"], cheese: ["丸いチーズ", "丸いチーズ"] },
+    ware: { log: ["丸太", "丸太"], planks: ["板材", "板材"], stone: ["石材", "石材"], grain: ["穀物の束", "穀物の束"], flour: ["小麦粉の袋", "小麦粉の袋"], bread: ["パン", "パン"], fish: ["魚の籠", "魚の籠"], game: ["獲物のもも肉", "獲物のもも肉"], herbs: ["薬草の束", "薬草の束"], cheese: ["丸いチーズ", "丸いチーズ"], beer: ["樽のビール", "樽のビール"], salt: ["袋の塩", "袋の塩"], cloth: ["反の布", "反の布"] },
     larder: "食料庫",
     larderIntro: "今、村に蓄えられているもの。仕事と季節、空腹によって変わります。",
     stock: "蓄え", made: "今日の生産", used: "今日の消費",
