@@ -26,7 +26,14 @@ describe("banter", () => {
     for (const l of LANGS) for (const s of BANTER[l].own_craft!) expect(BANTER[l].own_any!).not.toContain(s);
   });
   it("keeps everyday-craft lines a minority of what villagers say", () => {
-    for (const l of LANGS) expect(BANTER[l].own_craft!.length).toBeLessThanOrEqual(BANTER[l].own_any!.length);
-    expect(banterCats({ who: "own", traits: ["early"], child: false, sick: false, night: false })).toContain("own_any");
+    const cats = banterCats({ who: "own", traits: ["early", "cheerful"], child: false, sick: false, night: false });
+    const of = (k: string) => cats.filter((x) => x === k).length;
+    // the witty generic pool is offered at least as often as the craft pool, in every trait mix
+    for (const traits of [[], ["early"], ["early", "cheerful"], ["early", "cheerful", "pious", "curious"]] as const) {
+      const c = banterCats({ who: "own", traits: traits as never, child: false, sick: false, night: false });
+      expect(c.filter((x) => x === "own_any").length).toBeGreaterThanOrEqual(c.filter((x) => x === "own_craft").length);
+    }
+    expect(of("own_any")).toBeGreaterThan(0);
+    expect(of("own_craft")).toBe(1);
   });
 });
