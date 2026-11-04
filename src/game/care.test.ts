@@ -28,3 +28,7 @@ test("an untended player town settles as a village of at most 32 households", ()
   expect(homes).toBeLessThanOrEqual(32);
   expect(homes).toBeGreaterThanOrEqual(24);
 });
+test("inland trade and craft towns reach Metropole without a fisher", () => {
+  expect(careStage(mk(["hunter", "granary", "markethall", "herbs", "healer"]), E0 + day)).toBe(5);
+  expect(careStage(mk(["hunter", "granary", "guildhall", "herbs", "healer"]), E0 + day)).toBe(5);
+});
