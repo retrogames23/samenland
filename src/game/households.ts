@@ -19,7 +19,7 @@ export const foodCatchment = (r: number) => Math.ceil(Math.PI * r * r);
 function capacityAt(s: Seed, byKind: Map<Kind, unknown[]>, now: number, r: number, catchment: (r: number) => number) {
   if (!s.user_id) return Infinity;
   const own = new Set((s.bought ?? []).filter(b => b.at <= now).map(b => b.item));
-  const food = ["fisher", "hunter", "granary", "dairy"].filter(i => own.has(i)).length;
+  const food = ["fisher", "hunter", "granary", "dairy", "markethall", "guildhall"].filter(i => own.has(i)).length;
   const health = ["herbs", "healer", "library"].filter(i => own.has(i)).length;
   // Plains store grain: the winter shortfall is a fifth smaller (character strength).
   const w = 1 - FEED_WINTER * (townCharacter(s).main === "grain" ? GRAIN_WINTER : 1) * seasonAt(now).winter;

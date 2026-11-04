@@ -1064,7 +1064,7 @@ export function hubRoutes(s: Seed, seeds: Seed[]): { since: number }[] {
 }
 
 /** Care gate: food/health buildings a player town needs before each later era (Kleinstadt, Handelsstadt, Metropole). */
-export const CARE_FOOD = ["fisher", "hunter", "granary", "dairy"], CARE_HEALTH = ["herbs", "healer", "library"];
+export const CARE_FOOD = ["fisher", "hunter", "granary", "dairy", "markethall", "guildhall"], CARE_HEALTH = ["herbs", "healer", "library"];
 export const CARE_NEED: [number, number][] = [[1, 0], [2, 1], [3, 2]];
 /** Highest growth stage a town may reach with the care bought by `now` (sample towns are never gated). */
 export function careStage(s: Seed, now: number) {
