@@ -1,5 +1,5 @@
 /**
- * Neighbourly gestures: Taler gifts, disaster aid and thank-you letters between villages.
+ * Neighbourly gestures: Mark gifts, disaster aid and thank-you letters between villages.
  * Only the gift rows are stored (DB guard enforces prices, one per day and the treasury);
  * carts, faster rebuilding and treasury effects are derived purely from those rows.
  */
@@ -14,7 +14,7 @@ export const AID_WINDOW = 72 * 3.6e6;
 /** Aid makes rebuilding this many times faster. */
 export const AID_SPEED = 2;
 
-/** Net Taler effect of gifts on a seed's treasury (mirrors village_balance). */
+/** Net Mark effect of gifts on a seed's treasury (mirrors village_balance). */
 export const giftBalance = (seedId: string, gifts: Gift[]) =>
   gifts.reduce((a, g) => a + (g.to_seed === seedId ? g.amount : g.from_seed === seedId ? -g.amount : 0), 0);
 

@@ -14,7 +14,7 @@ export const WED_BASE_DAYS = 9, WED_REF_POP = 40, WED_MIN = 2, WED_MAX = 20;
 export const WED_WEALTH_CUT = 0.25, WED_FOOD_CUT = 0.04;
 /** Residents counted for the rhythm are capped by the care gate: a neglected village stays a village. */
 export const WED_POP_CAP = [84, 84, 84, 150, 260] as const;
-/** Dowry paid into the treasury: 20 Taler plus 0.6 per prosperity point (35 in a plain village, 80 at 100). */
+/** Dowry paid into the treasury: 20 Mark plus 0.6 per prosperity point (35 in a plain village, 80 at 100). */
 export const dowryAt = (wealth: number) => Math.floor(20 + wealth * 0.6);
 /** Legacy constant: dowry of a plain young village (prosperity 25). */
 export const DOWRY = dowryAt(25);

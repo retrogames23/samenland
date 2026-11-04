@@ -7,7 +7,7 @@ export const QUESTS = [
   "gifts5", "fifty", "roads2", "town",
   // Handelsstadt era
   "buy6", "hundred", "merchant",
-  // Metropole
+  // Hansestadt
   "metro",
 ] as const;
 export type Quest = (typeof QUESTS)[number];

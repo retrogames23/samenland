@@ -36,7 +36,7 @@ const de: Book = {
       ["Winter", "Geschlossene Schneedecke, gefrorene Böden, kürzere Arbeitszeiten, mehr Hunger und mehr Kranke."],
     ]],
     ["Dorfentwicklung, Zuzug & Hochzeiten", [
-      ["Vom Weiler zur Metropole", "Die Stufe deines Ortes richtet sich allein danach, was wirklich in ihm steht und wer dort wohnt – nicht nach der Uhr. Zum Weiler wird er mit 15 Bürgern in vier bewohnten Wohnungen, zum Dorf mit 80 Bürgern in 28 bewohnten Wohnungen, zur Kleinstadt mit 280 Bürgern in 100 bewohnten Wohnungen. Die Handelsstadt verlangt 750 Bürger, 260 bewohnte Wohnungen und eine fertige Handelsstraße, die Metropole 1.500 Bürger, 430 bewohnte Wohnungen und zwei Handelsstraßen. In der Titelzeile oben siehst du stets, was zum nächsten Schritt noch fehlt."],
+      ["Vom Weiler zur Hansestadt", "Die Stufe deines Ortes richtet sich allein danach, was wirklich in ihm steht und wer dort wohnt – nicht nach der Uhr. Zum Weiler wird er mit 15 Bürgern in vier bewohnten Wohnungen, zum Dorf mit 80 Bürgern in 28 bewohnten Wohnungen, zur Kleinstadt mit 280 Bürgern in 100 bewohnten Wohnungen. Die Handelsstadt verlangt 750 Bürger, 260 bewohnte Wohnungen und eine fertige Handelsstraße, die Hansestadt 1.500 Bürger, 430 bewohnte Wohnungen und zwei Handelsstraßen. In der Titelzeile oben siehst du stets, was zum nächsten Schritt noch fehlt."],
       ["Wohnraum, Zuzug & Wegzug", "Mit dem Wachstum zimmern die Bauleute neue Häuser. Sobald ein Dach gerichtet ist, ziehen neue Familien ein, bringen frische Arbeitskräfte ins Dorf und zahlen täglich Steuern. Doch die Natur allein ernährt nur eine begrenzte Zahl von Familien: Fehlt es an Nahrung und Gewerbe, wandern Familien ab und Häuser am Ortsrand stehen leer, bis neue Versorgungsbauten sie wieder füllen."],
       ["Hochzeiten", "Wenn junge Leute einen Hausstand gründen, läuten die Hochzeitsglocken. Je größer, satter und wohlhabender dein Ort ist, desto öfter wird geheiratet. Im kleinen Dorf ist jede Hochzeit ein Großereignis: Alle versammeln sich und der Schulze wird um seinen Segen gebeten. In der Stadt feiert man meist im Kreis der Familie – nur seltene Prunkhochzeiten rufen noch den ganzen Ort zusammen. Jede Hochzeit stiftet eine Mitgift in die Gemeindekasse, die mit dem Wohlstand wächst."],
     ]],
@@ -48,7 +48,7 @@ const de: Book = {
       ["Markttage & Fuhrwerke", "Steht die Straße, rollen Fuhrwerke, Wandergesellen kehren ein und samstags findet der gemeinsame Wochenmarkt statt."],
     ]],
     ["Ressourcen, Handwerk & wofür alles dient", [
-      ["", "Du planst und beauftragst Bauten mit Talern aus der Schatzkammer. Rohstoffe musst du nicht selbst ansparen – die Dorfgemeinschaft gewinnt und verarbeitet sie im Alltag."],
+      ["", "Du planst und beauftragst Bauten mit Mark aus der Schatzkammer. Rohstoffe musst du nicht selbst ansparen – die Dorfgemeinschaft gewinnt und verarbeitet sie im Alltag."],
       ["Nahrung", "Bauern ernten Garben, Mühlen mahlen Mehl und der Bäcker backt Brot; dazu kommen Fisch, Wildbret und Käse. Ein reich gedeckter Tisch ist der Schlüssel zum Wachstum: Nur wenn Nahrungsgewerbe den Speisezettel erweitern, reicht das Essen für den Schritt vom Dorf zur Stadt. Satte Bürger bleiben zudem gesünder."],
       ["Kornspeicher", "Getreide kann nicht endlos aufgehäuft werden. Mühlen und Kornspeicher erweitern die Lagerkapazität, damit reiche Herbst-Ernten nicht verderben, sondern das Dorf durch den Winter bringen."],
       ["Holz & Werkstoffe", "Holzfäller schlagen Stämme, Sägewerke schneiden Balken und Steinmetze hauen Quader. Steht ein Holzfällerlager im Ort und später ein eigenes Sägewerk, haben Bauleute stets Bauholz zur Hand – neue Gebäude werden spürbar schneller fertiggestellt."],
@@ -56,14 +56,14 @@ const de: Book = {
       ["Handelsgüter & Wolle", "Was dein Umland im Überfluss hervorbringt, wird zum gefragten Exportgut. Dörfer in der Ebene liefern Wolle, Bergdörfer Stein und Erz, Waldorte Bauholz und Küstenorte Fisch und Salz. Treffen auf Handelsstraßen unterschiedliche Güter aufeinander, entsteht eine dauerhafte Synergie, die beiden Orten zusätzliches Wachstum bringt."],
     ]],
     ["Wohlstand, Bürgerstände & Steuern", [
-      ["Drei Bürgerstände", "Jeder Haushalt gehört einem Stand an: Einfache Bürger zahlen täglich einen Taler Steuer, Facharbeiter zwei und wohlhabende Bürger drei. Ein armes Dorf besteht fast nur aus einfachen Leuten – in einer wohlhabenden Stadt gleicher Größe fließt pro Kopf beinahe doppelt so viel Steuer in die Schatzkammer."],
+      ["Drei Bürgerstände", "Jeder Haushalt gehört einem Stand an: Einfache Bürger zahlen täglich einen Mark Steuer, Facharbeiter zwei und wohlhabende Bürger drei. Ein armes Dorf besteht fast nur aus einfachen Leuten – in einer wohlhabenden Stadt gleicher Größe fließt pro Kopf beinahe doppelt so viel Steuer in die Schatzkammer."],
       ["Wohlstand mehren", "Wohlstand entsteht durch Investitionen, die bleiben: fertige Handelsstraßen, Bildung und Bürgerbauten wie Schule, Zunfthaus, Markthalle und Bibliothek sowie prächtige Prestigebauten. Mit dem Wohlstand steigen nach und nach mehr Haushalte auf. Volle Speicher machen satt und gesund, lassen aber niemanden dauerhaft in einen höheren Stand aufsteigen."],
       ["Sichtbarer Aufstieg", "Den Aufstieg siehst du im Stadtbild: Aus schlichten Katen werden Fachwerk- und Handwerkerhäuser, aus ihnen stattliche Patrizierhäuser. Tippst du einen Bürger oder ein Haus an, zeigt dir das Pergament Stand, Beruf und täglichen Steuerbeitrag."],
-      ["Wofür die Taler dienen", "Mit Steuern, Mitgiften und Geschenken finanzierst du neue Gewerbe, Bürger- und Prestigebauten sowie Schutzbauten – und mehrst damit wiederum den Wohlstand."],
+      ["Wofür die Mark dienen", "Mit Steuern, Mitgiften und Geschenken finanzierst du neue Gewerbe, Bürger- und Prestigebauten sowie Schutzbauten – und mehrst damit wiederum den Wohlstand."],
     ]],
     ["Gesundheit & Schutz vor Unheil", [
       ["Gesundheit", "Kranke Bewohner bleiben im Bett, fallen bei der Arbeit aus, müssen von Angehörigen gepflegt werden und zahlen an diesem Tag keine Steuer. Im frostigen Winter liegen spürbar mehr Bürger danieder. Frisches Brunnenwasser, Kräuterhütten und Arzneihäuser senken die Ausfälle und schützen so auch die Schatzkammer."],
-      ["Schutz vor Unheil", "Brände und Räuberbanden stellen das Dorf auf die Probe. Spritzenhäuser löschen Brände rasch, und eine Stadtgarde schlägt Plünderer in die Flucht. Hochwasser an Flüssen überschwemmt im Frühjahr und Herbst vorübergehend Uferwiesen, hinterlässt danach jedoch besonders fruchtbaren Boden."],
+      ["Schutz vor Unheil", "Brände und Räuberbanden stellen das Dorf auf die Probe. Spritzenhäuser löschen Brände rasch, und eine Bürgerwache schlägt Plünderer in die Flucht. Hochwasser an Flüssen überschwemmt im Frühjahr und Herbst vorübergehend Uferwiesen, hinterlässt danach jedoch besonders fruchtbaren Boden."],
     ]],
     ["Dorf-Charta & Zünfte", [
       ["Die Charta", "Sobald dein Ort zum Weiler herangewachsen ist, siegelt der Schulze einmalig die Charta. Die Wahl gilt für immer. Die Landschaft bestimmt, was eure Natur hergibt; die Charta bestimmt, welche Ordnung ihr euch gebt. Ihr könnt Stärken zuspitzen – etwa eine Hafenstadt mit Marktrecht – oder Schwächen ausgleichen: eine Bauhütte an der flutgefährdeten Küste, eine Hohe Schule gegen eingeschleppte Seuchen, Handel mit Erz und Stein aus den Hügeln. Jeder Weg passt zu jedem Ort."],
@@ -101,7 +101,7 @@ const en: Book = {
       ["Winter", "Closed snow cover, frozen ground, shorter working hours, more hunger and more sickness."],
     ]],
     ["Growth, newcomers & weddings", [
-      ["From hamlet to metropolis", "The rank of your settlement depends solely on what truly stands there and who lives there – never on the clock. It becomes a hamlet with 15 citizens in four occupied dwellings, a village with 80 citizens in 28 occupied dwellings, a small town with 280 citizens in 100 occupied dwellings. A trading town takes 750 citizens, 260 occupied dwellings and one finished trade road; a metropolis 1,500 citizens, 430 occupied dwellings and two trade roads. The title bar above always shows what is still missing for the next step."],
+      ["From hamlet to Hanseatic city", "The rank of your settlement depends solely on what truly stands there and who lives there – never on the clock. It becomes a hamlet with 15 citizens in four occupied dwellings, a village with 80 citizens in 28 occupied dwellings, a small town with 280 citizens in 100 occupied dwellings. A trading town takes 750 citizens, 260 occupied dwellings and one finished trade road; a Hanseatic city 1,500 citizens, 430 occupied dwellings and two trade roads. The title bar above always shows what is still missing for the next step."],
       ["Homes, newcomers & leaving", "As it grows, the builders raise new houses. As soon as a roof is up, new families move in, bring fresh hands and pay taxes every day. But nature alone feeds only so many families: without food and crafts, families move away and houses on the edge stand empty until new supply buildings fill them again."],
       ["Weddings", "When young people start a household, the wedding bells ring. The larger, better fed and wealthier your settlement, the more often people marry. In a small village every wedding is a great event: everyone gathers and the headman is asked for his blessing. In a town most weddings are family affairs – only rare grand weddings still bring the whole place together. Every wedding gives a dowry to the village chest that grows with prosperity."],
     ]],
@@ -113,7 +113,7 @@ const en: Book = {
       ["Market days & carts", "Once the road stands, carts roll, journeymen stop by and on Saturdays the shared weekly market takes place."],
     ]],
     ["Resources, crafts & what they're for", [
-      ["", "You plan and commission buildings with taler from the treasury. You never have to stockpile raw materials – the village community gathers and processes them in daily life."],
+      ["", "You plan and commission buildings with mark from the treasury. You never have to stockpile raw materials – the village community gathers and processes them in daily life."],
       ["Food", "Farmers harvest sheaves, mills grind flour and the baker bakes bread; fish, venison and cheese join them. A rich table is the key to growth: only when food crafts widen the menu is there enough to eat for the step from village to town. Well-fed citizens also stay healthier."],
       ["Granary", "Grain cannot be heaped up endlessly. Mills and granaries add storage so rich autumn harvests don't spoil but carry the village through winter."],
       ["Wood & building materials", "Woodcutters fell trunks, sawmills cut beams and masons hew blocks. With a woodcutters' camp, and later the village's own sawmill, builders always have timber at hand – new buildings are finished noticeably faster."],
@@ -121,10 +121,10 @@ const en: Book = {
       ["Trade goods & wool", "What your land yields in plenty becomes a sought-after export. Lowland villages supply wool, mountain villages stone and ore, forest villages timber and coastal villages fish and salt. Where different goods meet on trade roads, a lasting synergy brings both places extra growth."],
     ]],
     ["Prosperity, estates & taxes", [
-      ["Three estates", "Every household belongs to an estate: ordinary citizens pay one taler of tax a day, skilled workers two and wealthy citizens three. A poor village consists almost only of ordinary folk – a wealthy town of the same size brings in nearly twice as much tax per head."],
+      ["Three estates", "Every household belongs to an estate: ordinary citizens pay one mark of tax a day, skilled workers two and wealthy citizens three. A poor village consists almost only of ordinary folk – a wealthy town of the same size brings in nearly twice as much tax per head."],
       ["Growing prosperity", "Prosperity comes from investments that last: finished trade roads, education and civic buildings such as school, guild hall, market hall and library, and splendid prestige buildings. As prosperity rises, more households gradually move up. Full stores keep people fed and healthy, but promote no one lastingly."],
       ["Visible rise", "You see the rise in the townscape: simple cottages become timber-framed and craftsmen's houses, and those become stately patrician homes. Tap a citizen or a house and the parchment shows estate, trade and daily tax."],
-      ["What taler are for", "With taxes, dowries and gifts you fund new crafts, civic and prestige buildings and protection – which in turn increase prosperity."],
+      ["What mark are for", "With taxes, dowries and gifts you fund new crafts, civic and prestige buildings and protection – which in turn increase prosperity."],
     ]],
     ["Health & protection from harm", [
       ["Health", "Sick villagers stay in bed, miss work, need relatives to nurse them and pay no tax that day. In frosty winter noticeably more citizens are ill. Fresh well water, herb huts and infirmaries reduce sick days and so also protect the treasury."],
@@ -166,7 +166,7 @@ const fr: Book = {
       ["Hiver", "Neige, sol gelé, journées de travail plus courtes, plus de faim et plus de malades."],
     ]],
     ["Croissance, nouveaux venus & mariages", [
-      ["Du hameau à la métropole", "Le rang de ton bourg dépend uniquement de ce qui s'y trouve vraiment et de qui y vit – jamais de l'horloge. Il devient hameau avec 15 habitants dans quatre logements occupés, village avec 80 habitants dans 28 logements occupés, bourg avec 280 habitants dans 100 logements occupés. La cité marchande demande 750 habitants, 260 logements occupés et une route commerciale achevée ; la métropole 1 500 habitants, 430 logements occupés et deux routes. La barre de titre indique toujours ce qui manque pour l'étape suivante."],
+      ["Du hameau à la ville hanséatique", "Le rang de ton bourg dépend uniquement de ce qui s'y trouve vraiment et de qui y vit – jamais de l'horloge. Il devient hameau avec 15 habitants dans quatre logements occupés, village avec 80 habitants dans 28 logements occupés, bourg avec 280 habitants dans 100 logements occupés. La cité marchande demande 750 habitants, 260 logements occupés et une route commerciale achevée ; la ville hanséatique 1 500 habitants, 430 logements occupés et deux routes. La barre de titre indique toujours ce qui manque pour l'étape suivante."],
       ["Logis, arrivées & départs", "Les bâtisseurs élèvent de nouvelles maisons. Dès qu'un toit est posé, des familles emménagent, apportent des bras et paient l'impôt chaque jour. Mais la nature seule ne nourrit qu'un nombre limité de familles : sans nourriture ni métiers, des familles partent et les maisons en bordure restent vides jusqu'à ce que de nouveaux bâtiments les remplissent."],
       ["Mariages", "Quand des jeunes fondent un foyer, les cloches sonnent. Plus ton bourg est grand, bien nourri et prospère, plus on s'y marie. Au village, chaque mariage est un grand événement : tous se rassemblent et l'on demande la bénédiction du bourgmestre. En ville, on fête surtout en famille – seules de rares noces fastueuses réunissent encore toute la cité. Chaque mariage verse une dot au trésor, qui augmente avec la prospérité."],
     ]],
@@ -178,7 +178,7 @@ const fr: Book = {
       ["Jours de marché & charrettes", "Une fois la route prête, les charrettes roulent, les compagnons font halte et le samedi se tient le marché commun."],
     ]],
     ["Ressources, métiers & leur utilité", [
-      ["", "Tu commandes les bâtiments avec les thalers du trésor. Tu n'as jamais à stocker de matières premières – la communauté les récolte et les transforme au quotidien."],
+      ["", "Tu commandes les bâtiments avec les marks du trésor. Tu n'as jamais à stocker de matières premières – la communauté les récolte et les transforme au quotidien."],
       ["Nourriture", "Les paysans moissonnent, les moulins moulent la farine et le boulanger cuit le pain ; s'y ajoutent poisson, gibier et fromage. Une table bien garnie est la clé de la croissance : seuls des métiers de bouche permettent de passer du village à la ville. Les habitants bien nourris restent aussi en meilleure santé."],
       ["Grenier", "Le grain ne s'entasse pas sans fin. Moulins et greniers augmentent le stockage pour que les récoltes d'automne portent le village à travers l'hiver."],
       ["Bois & matériaux", "Bûcherons, scieries et tailleurs de pierre fournissent bois et pierre. Avec un camp de bûcherons, puis la scierie du village, les nouveaux bâtiments sont achevés nettement plus vite."],
@@ -186,10 +186,10 @@ const fr: Book = {
       ["Marchandises & laine", "Ce que ta région produit en abondance devient un bien d'export : laine des plaines, pierre et minerai des montagnes, bois des forêts, poisson et sel des côtes. Quand des biens différents se rencontrent sur les routes, une synergie durable apporte aux deux bourgs une croissance supplémentaire."],
     ]],
     ["Prospérité, conditions & impôts", [
-      ["Trois conditions", "Chaque foyer appartient à une condition : les gens simples paient un thaler d'impôt par jour, les artisans qualifiés deux et les bourgeois aisés trois. Un village pauvre ne compte presque que des gens simples – une ville prospère de même taille rapporte près de deux fois plus d'impôt par tête."],
+      ["Trois conditions", "Chaque foyer appartient à une condition : les gens simples paient un mark d'impôt par jour, les artisans qualifiés deux et les bourgeois aisés trois. Un village pauvre ne compte presque que des gens simples – une ville prospère de même taille rapporte près de deux fois plus d'impôt par tête."],
       ["Accroître la prospérité", "La prospérité naît d'investissements durables : routes achevées, instruction et bâtiments civiques comme l'école, la maison des corporations, la halle et la bibliothèque, ainsi que de splendides monuments. Peu à peu, davantage de foyers s'élèvent. Des greniers pleins nourrissent et soignent, mais n'élèvent personne durablement."],
       ["Une ascension visible", "Tu vois l'ascension dans la ville : les chaumières deviennent maisons à colombages et d'artisans, puis demeures patriciennes. Touche un habitant ou une maison pour voir sa condition, son métier et son impôt du jour."],
-      ["À quoi servent les thalers", "Impôts, dots et cadeaux financent métiers, bâtiments civiques, monuments et protections – qui accroissent à leur tour la prospérité."],
+      ["À quoi servent les marks", "Impôts, dots et cadeaux financent métiers, bâtiments civiques, monuments et protections – qui accroissent à leur tour la prospérité."],
     ]],
     ["Santé & protection", [
       ["Santé", "Les malades restent au lit, manquent au travail, doivent être soignés par leurs proches et ne paient pas d'impôt ce jour-là. En hiver, ils sont nettement plus nombreux. Eau de puits, cabanes d'herboriste et apothicaireries réduisent les absences et protègent ainsi le trésor."],
@@ -243,7 +243,7 @@ const es: Book = {
       ["Días de mercado y carros", "Con el camino listo, ruedan carros, llegan oficiales errantes y los sábados se celebra el mercado común."],
     ]],
     ["Recursos, oficios y su utilidad", [
-      ["", "Encargas edificios con táleros del tesoro. Nunca tienes que acumular materias primas: la comunidad las obtiene y elabora a diario."],
+      ["", "Encargas edificios con marcos del tesoro. Nunca tienes que acumular materias primas: la comunidad las obtiene y elabora a diario."],
       ["Comida", "Los campesinos siegan, los molinos muelen harina y el panadero hornea; además hay pescado, caza y queso. Una mesa bien servida es la clave del crecimiento: solo con oficios de alimentación hay comida suficiente para pasar de aldea a ciudad. Los vecinos bien alimentados también enferman menos."],
       ["Granero", "El grano no se amontona sin fin. Molinos y graneros amplían el almacenaje para que las cosechas de otoño lleven a la aldea a través del invierno."],
       ["Madera y materiales", "Leñadores, aserraderos y canteros aportan madera y piedra. Con un campamento de leñadores y, más tarde, el aserradero del pueblo, los edificios nuevos se terminan mucho más rápido."],
@@ -254,7 +254,7 @@ const es: Book = {
       ["Tres estamentos", "Cada hogar pertenece a un estamento: la gente sencilla paga un tálero de impuesto al día, los artesanos cualificados dos y los ciudadanos acomodados tres. Una aldea pobre es casi solo gente sencilla; una ciudad próspera del mismo tamaño recauda casi el doble por cabeza."],
       ["Aumentar la prosperidad", "La prosperidad nace de inversiones duraderas: caminos terminados, educación y edificios cívicos como escuela, casa gremial, lonja y biblioteca, y espléndidos monumentos. Poco a poco ascienden más hogares. Los graneros llenos alimentan y dan salud, pero no hacen ascender a nadie de forma duradera."],
       ["Ascenso visible", "Ves el ascenso en la ciudad: las chozas se vuelven casas de entramado y de artesanos, y estas, mansiones patricias. Toca a un vecino o una casa para ver su estamento, oficio e impuesto diario."],
-      ["Para qué sirven los táleros", "Con impuestos, dotes y regalos financias oficios, edificios cívicos, monumentos y defensas, que a su vez aumentan la prosperidad."],
+      ["Para qué sirven los marcos", "Con impuestos, dotes y regalos financias oficios, edificios cívicos, monumentos y defensas, que a su vez aumentan la prosperidad."],
     ]],
     ["Salud y protección", [
       ["Salud", "Los enfermos guardan cama, faltan al trabajo, necesitan que sus familiares los cuiden y ese día no pagan impuestos. En el frío invierno hay muchos más. El agua del pozo, las cabañas de hierbas y las boticas reducen las bajas y protegen así el tesoro."],
@@ -308,7 +308,7 @@ const ar: Book = {
       ["أيام السوق والعربات", "حين يكتمل الطريق تسير العربات ويحل الصنّاع الجوّالون، ويقام السوق المشترك كل سبت."],
     ]],
     ["الموارد والحِرف وفائدتها", [
-      ["", "تكلّف بالمباني بالتالرات من الخزينة، ولا تحتاج أبداً إلى ادخار المواد الخام، فالأهالي يجمعونها ويصنعونها في حياتهم اليومية."],
+      ["", "تكلّف بالمباني بالماركات من الخزينة، ولا تحتاج أبداً إلى ادخار المواد الخام، فالأهالي يجمعونها ويصنعونها في حياتهم اليومية."],
       ["الطعام", "يحصد الفلاحون وتطحن المطاحن ويخبز الخبّاز، ويضاف السمك والصيد والجبن. المائدة العامرة مفتاح النمو: لا يكفي الطعام للانتقال من قرية إلى مدينة إلا إذا وسّعت حِرف الطعام الموائد. والأهالي الشبعى أصح أيضاً."],
       ["مخزن الحبوب", "لا تُكدّس الحبوب بلا حد؛ المطاحن والمخازن توسّع السعة لتعبر محاصيل الخريف بالقرية الشتاء."],
       ["الخشب ومواد البناء", "الحطّابون والمناشر والنحّاتون يوفرون الخشب والحجر. مع معسكر حطّابين ثم منشرة البلدة تكتمل المباني الجديدة أسرع بكثير."],
@@ -316,10 +316,10 @@ const ar: Book = {
       ["سلع التجارة والصوف", "ما تنتجه أرضك بوفرة يصير سلعة تصدير: صوف السهول، وحجر الجبال وخامها، وخشب الغابات، وسمك السواحل وملحها. وحين تلتقي سلع مختلفة على الطرق ينشأ تآزر دائم يمنح البلدتين نمواً إضافياً."],
     ]],
     ["الرخاء والطبقات والضرائب", [
-      ["ثلاث طبقات", "ينتمي كل بيت إلى طبقة: العامة يدفعون تالراً واحداً يومياً، والحرفيون المهرة اثنين، والميسورون ثلاثة. القرية الفقيرة تكاد تكون من العامة وحدهم، بينما تجبي مدينة مزدهرة بالحجم نفسه نحو ضعف الضريبة للفرد."],
+      ["ثلاث طبقات", "ينتمي كل بيت إلى طبقة: العامة يدفعون ماركاً واحداً يومياً، والحرفيون المهرة اثنين، والميسورون ثلاثة. القرية الفقيرة تكاد تكون من العامة وحدهم، بينما تجبي مدينة مزدهرة بالحجم نفسه نحو ضعف الضريبة للفرد."],
       ["زيادة الرخاء", "ينشأ الرخاء من استثمارات باقية: طرق مكتملة، وتعليم ومبانٍ مدنية كالمدرسة ودار النقابة والسوق المسقوف والمكتبة، ومعالم فاخرة. ومع الرخاء ترتقي بيوت أكثر شيئاً فشيئاً. المخازن الممتلئة تُشبع وتُصحّ لكنها لا ترفع أحداً إلى طبقة أعلى بشكل دائم."],
       ["ارتقاء مرئي", "ترى الارتقاء في صورة البلدة: الأكواخ البسيطة تصير بيوتاً خشبية وبيوت حرفيين، ثم دوراً أرستقراطية فخمة. المس أحد الأهالي أو بيتاً لترى طبقته وحرفته وضريبته اليومية."],
-      ["فيمَ تُنفق التالرات", "بالضرائب والمهور والهدايا تموّل الحِرف والمباني المدنية والمعالم والتحصينات، فيزداد الرخاء بدوره."],
+      ["فيمَ تُنفق الماركات", "بالضرائب والمهور والهدايا تموّل الحِرف والمباني المدنية والمعالم والتحصينات، فيزداد الرخاء بدوره."],
     ]],
     ["الصحة والحماية", [
       ["الصحة", "المرضى يلزمون الفراش ويغيبون عن العمل ويحتاجون رعاية ذويهم ولا يدفعون ضريبة ذلك اليوم. وفي الشتاء القارس يكثرون بوضوح. ماء البئر وأكواخ الأعشاب ودور الدواء تقلل الغياب وتحمي الخزينة."],
@@ -361,7 +361,7 @@ const hi: Book = {
       ["सर्दी", "बर्फ़, जमी ज़मीन, छोटे काम के घंटे, ज़्यादा भूख और ज़्यादा बीमार।"],
     ]],
     ["विकास, नए लोग और विवाह", [
-      ["पुरवे से महानगर तक", "तुम्हारी बस्ती का दर्जा सिर्फ़ इस पर टिका है कि वहाँ सचमुच क्या खड़ा है और कौन रहता है – घड़ी पर नहीं। 15 नागरिक चार आबाद आवासों में हों तो बस्ती, 80 नागरिक 28 आबाद आवासों में हों तो गाँव, 280 नागरिक 100 आबाद आवासों में हों तो कस्बा बनता है। व्यापारिक नगर के लिए 750 नागरिक, 260 आबाद आवास और एक तैयार व्यापार मार्ग चाहिए; महानगर के लिए 1500 नागरिक, 430 आबाद आवास और दो मार्ग। ऊपर की शीर्षक-पट्टी हमेशा बताती है कि अगले कदम के लिए क्या बाक़ी है।"],
+      ["पुरवे से हंसा नगर तक", "तुम्हारी बस्ती का दर्जा सिर्फ़ इस पर टिका है कि वहाँ सचमुच क्या खड़ा है और कौन रहता है – घड़ी पर नहीं। 15 नागरिक चार आबाद आवासों में हों तो बस्ती, 80 नागरिक 28 आबाद आवासों में हों तो गाँव, 280 नागरिक 100 आबाद आवासों में हों तो कस्बा बनता है। व्यापारिक नगर के लिए 750 नागरिक, 260 आबाद आवास और एक तैयार व्यापार मार्ग चाहिए; हंसा नगर के लिए 1500 नागरिक, 430 आबाद आवास और दो मार्ग। ऊपर की शीर्षक-पट्टी हमेशा बताती है कि अगले कदम के लिए क्या बाक़ी है।"],
       ["घर, आगमन और पलायन", "कारीगर नए घर बनाते हैं; छत पड़ते ही परिवार आते हैं, काम करते हैं और रोज़ कर देते हैं। पर अकेली प्रकृति सीमित परिवारों को ही खिलाती है: भोजन और धंधों के बिना परिवार चले जाते हैं और किनारे के घर ख़ाली रहते हैं, जब तक नई आपूर्ति इमारतें उन्हें फिर न भर दें।"],
       ["विवाह", "जब युवा घर बसाते हैं, तो शादी की घंटियाँ बजती हैं। बस्ती जितनी बड़ी, भरपेट और समृद्ध, उतनी ज़्यादा शादियाँ। छोटे गाँव में हर शादी बड़ा उत्सव है: सब इकट्ठा होते हैं और प्रधान का आशीर्वाद माँगा जाता है। शहर में ज़्यादातर शादियाँ परिवार तक सीमित रहती हैं – केवल दुर्लभ भव्य शादियाँ पूरे नगर को जुटाती हैं। हर शादी ख़ज़ाने में दहेज देती है, जो समृद्धि के साथ बढ़ता है।"],
     ]],
@@ -426,7 +426,7 @@ const zh: Book = {
       ["冬", "积雪覆盖，土地冰封，劳作时间缩短，饥饿与病人增多。"],
     ]],
     ["发展、新居民与婚礼", [
-      ["从小村到大都会", "聚落的等级只取决于那里真实矗立着什么、住着谁，与时间无关。15位居民、四户已入住住宅即成为小村落，80位居民、28户已入住住宅成为村庄，280位居民、100户已入住住宅成为小镇。商贸城镇需要750位居民、260户已入住住宅和一条建成的商路；大都会需要1500位居民、430户已入住住宅和两条商路。上方标题栏会始终显示迈向下一步还缺什么。"],
+      ["从小村到汉萨城市", "聚落的等级只取决于那里真实矗立着什么、住着谁，与时间无关。15位居民、四户已入住住宅即成为小村落，80位居民、28户已入住住宅成为村庄，280位居民、100户已入住住宅成为小镇。商贸城镇需要750位居民、260户已入住住宅和一条建成的商路；汉萨城市需要1500位居民、430户已入住住宅和两条商路。上方标题栏会始终显示迈向下一步还缺什么。"],
       ["住房、迁入与迁出", "工匠们建起新房，屋顶一盖好，新家庭便搬进来，带来人手并每天纳税。但单靠大自然只能养活有限的家庭：缺少食物和行业时，人家会迁走，边缘的房屋空着，直到新的供给建筑把它们重新填满。"],
       ["婚礼", "年轻人成家时，婚礼钟声响起。聚落越大、越富足、越繁荣，婚礼就越频繁。在小村庄里，每场婚礼都是盛事：人人聚集，并请村长祝福。在城镇里，婚礼多在家人间举行——只有罕见的盛大婚礼才会召集全城。每场婚礼都会向公库献上嫁妆，数额随繁荣增长。"],
     ]],
@@ -438,7 +438,7 @@ const zh: Book = {
       ["集市日与马车", "道路建成后，马车往来，游方工匠到访，每逢星期六举行共同的集市。"],
     ]],
     ["资源、手艺及其用途", [
-      ["", "你用公库的塔勒委托建造。你从不需要囤积原料——村民在日常中自行采集和加工。"],
+      ["", "你用公库的马克委托建造。你从不需要囤积原料——村民在日常中自行采集和加工。"],
       ["食物", "农民收割，磨坊磨面，面包师烤面包；还有鱼、野味和奶酪。丰盛的餐桌是成长的关键：只有食物行业丰富了菜单，食物才足以让村庄迈向城镇。吃饱的村民也更健康。"],
       ["粮仓", "谷物不能无限堆积。磨坊和粮仓扩大储量，让秋收带村庄度过冬天。"],
       ["木材与建材", "伐木工、锯木厂和石匠提供木材和石料。有伐木营地、后来又有本镇锯木厂时，新建筑会明显更快完工。"],
@@ -446,10 +446,10 @@ const zh: Book = {
       ["商品与羊毛", "你的土地盛产之物会成为抢手的出口品：平原出羊毛，山地出石料和矿石，林地出木材，海岸出鱼和盐。不同商品在商路上相遇时，会形成持久的协同，为两地带来额外的成长。"],
     ]],
     ["繁荣、阶层与税收", [
-      ["三个阶层", "每户人家属于一个阶层：平民每天缴一塔勒税，熟练工匠两塔勒，富裕市民三塔勒。贫穷的村庄几乎全是平民——同等规模的繁荣城镇，人均税收几乎翻倍。"],
+      ["三个阶层", "每户人家属于一个阶层：平民每天缴一马克税，熟练工匠两马克，富裕市民三马克。贫穷的村庄几乎全是平民——同等规模的繁荣城镇，人均税收几乎翻倍。"],
       ["增进繁荣", "繁荣来自持久的投资：建成的商路、教育以及学校、行会会馆、市场大厅和图书馆等公共建筑，还有壮丽的荣耀建筑。随着繁荣提升，越来越多的人家逐步上升。满仓让人吃饱、健康，但不会让任何人长久地升入更高阶层。"],
       ["看得见的上升", "上升体现在城貌中：简陋的小屋变成木构房与工匠屋，再变成气派的贵族宅邸。点一下村民或房屋，羊皮纸会显示其阶层、职业和每日税额。"],
-      ["塔勒的用处", "用税收、嫁妆和礼物资助新行业、公共与荣耀建筑以及防护设施——它们又反过来提升繁荣。"],
+      ["马克的用处", "用税收、嫁妆和礼物资助新行业、公共与荣耀建筑以及防护设施——它们又反过来提升繁荣。"],
     ]],
     ["健康与防护", [
       ["健康", "病人卧床、缺工，需要亲人照料，当天也不纳税。严冬时病人明显增多。干净的井水、草药屋和药房能减少缺工，也保护了公库。"],
@@ -491,7 +491,7 @@ const ja: Book = {
       ["冬", "雪に覆われ、地面は凍り、働く時間は短くなり、飢えと病人が増えます。"],
     ]],
     ["発展、移住者、婚礼", [
-      ["小村から大都市へ", "集落の格付けは、そこに実際に何が建ち、誰が住んでいるかだけで決まります——時計は関係ありません。15人の住民と4戸の入居済み住戸で小さな集落、80人と28戸の入居済み住戸で村、280人と100戸の入居済み住戸で小さな町になります。交易の町には750人・260戸の入居済み住戸・完成した交易路1本、大都市には1500人・430戸の入居済み住戸・交易路2本が必要です。上のタイトルバーには、次の段階に足りないものがいつも表示されます。"],
+      ["小村からハンザ都市へ", "集落の格付けは、そこに実際に何が建ち、誰が住んでいるかだけで決まります——時計は関係ありません。15人の住民と4戸の入居済み住戸で小さな集落、80人と28戸の入居済み住戸で村、280人と100戸の入居済み住戸で小さな町になります。交易の町には750人・260戸の入居済み住戸・完成した交易路1本、ハンザ都市には1500人・430戸の入居済み住戸・交易路2本が必要です。上のタイトルバーには、次の段階に足りないものがいつも表示されます。"],
       ["住まい、移住と転出", "大工が新しい家を建て、屋根がかかると新しい家族が移り住み、働き手となって毎日税を納めます。けれど自然だけでは養える家族に限りがあります。食べ物や生業が足りないと家族は去り、外れの家は新しい供給の建物が埋めるまで空き家になります。"],
       ["婚礼", "若者が所帯を持つと婚礼の鐘が鳴ります。集落が大きく、満ち足り、豊かなほど婚礼は増えます。小さな村ではどの婚礼も一大行事で、皆が集まり村長に祝福を願います。町では多くが家族内の祝いになり、まれな盛大な婚礼だけが町じゅうを集めます。婚礼ごとに持参金が金庫に納められ、その額は豊かさとともに増えます。"],
     ]],
@@ -503,7 +503,7 @@ const ja: Book = {
       ["市の日と荷車", "道ができれば荷車が行き交い、遍歴職人が立ち寄り、土曜には共同の市が開かれます。"],
     ]],
     ["資源、手仕事とその役割", [
-      ["", "建物は金庫のターラーで依頼します。原料を貯める必要はなく、村人が日々の暮らしで集めて加工します。"],
+      ["", "建物は金庫のマルクで依頼します。原料を貯める必要はなく、村人が日々の暮らしで集めて加工します。"],
       ["食べ物", "農夫が刈り入れ、水車小屋が粉をひき、パン屋がパンを焼きます。魚、獣肉、チーズも加わります。豊かな食卓は成長の鍵です。食の生業が献立を広げてはじめて、村から町へ進むだけの食べ物がそろいます。満腹の村人は健康にもなります。"],
       ["穀物蔵", "穀物は際限なく積めません。水車小屋と蔵が容量を広げ、秋の収穫で冬を越せます。"],
       ["木材と建材", "木こり、製材所、石工が木と石を用意します。木こり小屋や、のちに町の製材所があれば、新しい建物がずっと早く完成します。"],
@@ -511,10 +511,10 @@ const ja: Book = {
       ["交易品と羊毛", "土地が豊かに生むものは人気の輸出品になります。平野は羊毛、山は石と鉱石、森は木材、海辺は魚と塩。異なる品が交易路で出会うと、両方の集落に長く続く追加の成長をもたらします。"],
     ]],
     ["豊かさ、身分、税", [
-      ["三つの身分", "どの世帯もいずれかの身分に属します。庶民は毎日1ターラー、熟練職人は2、裕福な市民は3の税を納めます。貧しい村はほぼ庶民ばかりですが、同じ大きさの豊かな町は一人あたりほぼ倍の税を集めます。"],
+      ["三つの身分", "どの世帯もいずれかの身分に属します。庶民は毎日1マルク、熟練職人は2、裕福な市民は3の税を納めます。貧しい村はほぼ庶民ばかりですが、同じ大きさの豊かな町は一人あたりほぼ倍の税を集めます。"],
       ["豊かさを高める", "豊かさは残る投資から生まれます。完成した交易路、教育、学校・ギルド会館・市場ホール・図書館などの公共建築、そして壮麗な威信建築。豊かさが増すと、少しずつ多くの世帯が上の身分へ上がります。満ちた蔵は腹を満たし健康を保ちますが、誰かを長く上の身分に上げることはありません。"],
       ["目に見える出世", "出世は町並みに表れます。素朴な小屋が木組みの家や職人の家に、さらに堂々たる貴族の館になります。村人や家をタップすると、羊皮紙に身分、職業、日々の税が表示されます。"],
-      ["ターラーの使い道", "税、持参金、贈り物で新しい生業、公共・威信建築、防備をまかない、それがまた豊かさを高めます。"],
+      ["マルクの使い道", "税、持参金、贈り物で新しい生業、公共・威信建築、防備をまかない、それがまた豊かさを高めます。"],
     ]],
     ["健康と災いへの備え", [
       ["健康", "病人は床に伏し、仕事を休み、家族の看病が必要になり、その日は税を納めません。厳しい冬には病人がはっきり増えます。井戸の水、薬草小屋、薬局が休みを減らし、金庫も守ります。"],

@@ -102,7 +102,7 @@ export function floods(s: Seed, now: number): Flood[] {
 
 /** Integer seed hash both client and database can compute: first 8 hex digits of the id. */
 export const raidHash = (id: string) => parseInt(id.replace(/-/g, "").slice(0, 8), 16) || 0;
-/** Irregular raid calendar: gaps of 6–24 days, random hour, loot 12–45 Taler. Mirrored by DB village_raids. */
+/** Irregular raid calendar: gaps of 6–24 days, random hour, loot 12–45 Mark. Mirrored by DB village_raids. */
 export function raidPlan(id: string, k: number) {
   const h = raidHash(id);
   return { gap: 6 + ((h + k * 7919) % 19), hour: (h + k * 31) % 24, loss: 12 + ((h + k * 104729) % 34) };
@@ -119,7 +119,7 @@ export function raids(s: Seed, now: number): Raid[] {
   }
   return out;
 }
-/** Taler stolen so far (mirrors village_raids in the database). */
+/** Mark stolen so far (mirrors village_raids in the database). */
 export const raidLoss = (s: Seed, now: number) => raids(s, now).reduce((a, r) => a + r.loss, 0);
 
 /** Craft charter: the guild masons rebuild after fire and flood twice as fast. */

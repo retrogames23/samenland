@@ -12,7 +12,7 @@ export const SUPPORT: Record<Lang, Text> = {
   de: {
     button: "Samenland unterstützen", title: "Samenland unterstützen",
     intro: "Samenland ist ein privates Hobbyprojekt. Dein Beitrag hilft, Server und KI zu bezahlen. Als Dank darfst du für jeden Beitrag eine Verzierung für dein Dorf wählen.",
-    cosmetic: "Alle Belohnungen sind reiner Schmuck. Sie bringen keine Taler, kein Wachstum und keinen anderen Vorteil im Spiel.",
+    cosmetic: "Alle Belohnungen sind reiner Schmuck. Sie bringen keine Mark, kein Wachstum und keinen anderen Vorteil im Spiel.",
     tier3: "Ab 3 €", tier5: "Ab 5 €", tier10: "Ab 10 €", owned: "Schon verliehen", two: "Mit 10 € darfst du bis zu zwei Verzierungen wählen.", pick: "1. Verzierung wählen", amount: "2. Betrag wählen", pay: (e) => `${e} € beitragen`,
     needVillage: "Gründe zuerst ein Dorf, dann kannst du eine Verzierung wählen.", signIn: "Bitte melde dich an.",
     thanks: "Herzlichen Dank! Deine Verzierung erscheint in wenigen Augenblicken im Dorf.", test: "Testmodus: Hier wird kein echtes Geld abgebucht.", back: "Zurück", taken: "Diese Verzierung hat dein Dorf schon.",
@@ -34,7 +34,7 @@ export const SUPPORT: Record<Lang, Text> = {
   fr: {
     button: "Soutenir Samenland", title: "Soutenir Samenland",
     intro: "Samenland est un projet personnel. Ta contribution aide à payer les serveurs et l'IA. En remerciement, tu choisis une décoration pour ton village à chaque contribution.",
-    cosmetic: "Toutes les récompenses sont purement décoratives. Elles n'apportent ni thalers, ni croissance, ni aucun autre avantage en jeu.",
+    cosmetic: "Toutes les récompenses sont purement décoratives. Elles n'apportent ni marks, ni croissance, ni aucun autre avantage en jeu.",
     tier3: "Dès 3 €", tier5: "Dès 5 €", tier10: "Dès 10 €", owned: "Déjà accordée", two: "Avec 10 € tu peux choisir jusqu'à deux décorations.", pick: "1. Choisis une décoration", amount: "2. Choisis un montant", pay: (e) => `Contribuer ${e} €`,
     needVillage: "Fonde d'abord un village pour choisir une décoration.", signIn: "Connecte-toi, s'il te plaît.",
     thanks: "Merci beaucoup ! Ta décoration apparaîtra dans ton village dans un instant.", test: "Mode test : aucun argent réel n'est débité.", back: "Retour", taken: "Ton village possède déjà cette décoration.",
@@ -45,7 +45,7 @@ export const SUPPORT: Record<Lang, Text> = {
   es: {
     button: "Apoyar Samenland", title: "Apoyar Samenland",
     intro: "Samenland es un proyecto personal. Tu aporte ayuda a pagar servidores e IA. Como agradecimiento, eliges una decoración para tu aldea por cada aporte.",
-    cosmetic: "Todas las recompensas son solo decorativas. No dan táleros, ni crecimiento, ni ninguna otra ventaja en el juego.",
+    cosmetic: "Todas las recompensas son solo decorativas. No dan marcos, ni crecimiento, ni ninguna otra ventaja en el juego.",
     tier3: "Desde 3 €", tier5: "Desde 5 €", tier10: "Desde 10 €", owned: "Ya concedida", two: "Con 10 € puedes elegir hasta dos decoraciones.", pick: "1. Elige una decoración", amount: "2. Elige un importe", pay: (e) => `Aportar ${e} €`,
     needVillage: "Funda primero una aldea para elegir una decoración.", signIn: "Inicia sesión, por favor.",
     thanks: "¡Muchas gracias! Tu decoración aparecerá en tu aldea en un momento.", test: "Modo de prueba: no se cobra dinero real.", back: "Volver", taken: "Tu aldea ya tiene esta decoración.",
@@ -89,7 +89,7 @@ export const SUPPORT: Record<Lang, Text> = {
   ja: {
     button: "Samenlandを応援", title: "Samenlandを応援",
     intro: "Samenlandは個人の趣味のプロジェクトです。ご支援はサーバーとAIの費用に充てられます。お礼として、支援ごとに村の飾りをひとつ選べます。",
-    cosmetic: "すべての特典は見た目だけの飾りです。ターラーや成長など、ゲーム上の利点は一切ありません。",
+    cosmetic: "すべての特典は見た目だけの飾りです。マルクや成長など、ゲーム上の利点は一切ありません。",
     tier3: "3 €から", tier5: "5 €から", tier10: "10 € から", owned: "授与済み", two: "10 €なら飾りを2つまで選べます。", pick: "1. 飾りを選ぶ", amount: "2. 金額を選ぶ", pay: (e) => `${e} €で応援`,
     needVillage: "まず村を作ってから飾りを選んでください。", signIn: "ログインしてください。",
     thanks: "ありがとうございます！飾りはまもなく村に現れます。", test: "テストモード：実際の料金はかかりません。", back: "戻る", taken: "この飾りはすでに村にあります。",

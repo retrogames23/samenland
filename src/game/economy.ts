@@ -7,7 +7,7 @@ import { raidLoss, raids, floodFood } from "./disasters";
 import { dowryEarned, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
 import { speedParts, radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
 
-/** Starting treasury and fixed prices (Taler). Prices mirror the database purchase guard. */
+/** Starting treasury and fixed prices (Mark). Prices mirror the database purchase guard. */
 export const START_TALER = 160;
 export const ITEMS = { herbs: 90, backhaus: 260, herberge: 420, beginen: 900, hunter: 100, fisher: 140, woodcamp: 240, granary: 300, healer: 550, school: 1200, markethall: 450, guildhall: 450, library: 380, dairy: 350, firehouse: 600, guard: 750, bigstore: 380, stonemason: 380, smokehouse: 380, millrow: 700, hammerworks: 700, saltquay: 700 } as const;
 export type Item = keyof typeof ITEMS;
@@ -77,7 +77,7 @@ export function taxOnDay(s: Seed, d: number) {
   const a = estateAssessment(p, civicWealth(s, at));
   return a - sickLoss(a, sickTaxRate(s, at)) + (trade != null && at >= trade ? Math.floor(TRADE_TAX * p) : 0);
 }
-/** Historical estate assessments (1/2/3 Taler), plus the existing +15% base trade-charter bonus — uncapped. */
+/** Historical estate assessments (1/2/3 Mark), plus the existing +15% base trade-charter bonus — uncapped. */
 export function taxEarned(s: Seed, now: number) {
   const days = Math.floor((now - Date.parse(s.created_at)) / 86400000);
   let t = 0;
@@ -96,7 +96,7 @@ export const referralClaims = (rows: Referral[]): QuestClaim[] => rows.flatMap((
   { id: `${r.id}:b`, seed_id: r.referee_seed, quest: `ref:${r.referrer_seed}`, reward: r.reward, created_at: r.created_at },
 ]);
 
-/** Mayor visit welcome gift by the visited town's raw age (mirrors DB visit_reward): 30 → 150 Taler. */
+/** Mayor visit welcome gift by the visited town's raw age (mirrors DB visit_reward): 30 → 150 Mark. */
 export const VISIT_STEPS: [number, number][] = [[8760, 150], [4380, 100], [2160, 75], [168, 50], [24, 40], [0, 30]];
 export const visitReward = (h: number) => VISIT_STEPS.find(([a]) => h >= a)![1];
 export type Visit = { id: string; visitor_seed: string; visited_seed: string; reward: number; created_at: string };
@@ -104,7 +104,7 @@ export const visitClaims = (rows: Visit[]): QuestClaim[] => rows.map((v) => ({ i
 
 // ---------------- treasure chest (Gemeindetruhe) ----------------
 /**
- * The village chest holds only so many Taler: once full, the day's taxes find no room and stay with the burghers.
+ * The village chest holds only so many Mark: once full, the day's taxes find no room and stay with the burghers.
  * Expansions are purchase rows chest2..4 (prices/ages mirror the DB purchase_guard); the cap applies to settlement
  * days from CHEST_SINCE on, so balances earned before the rule are never cut (mirrors DB village_capped_tax).
  */
@@ -289,7 +289,7 @@ export function rankBoons(s: Seed, purchases: { seed_id: string; item: string }[
 export const TITLE_PRICE = { title1: 500, title2: 1200, title3: 2500 } as const;
 export type TitleStep = keyof typeof TITLE_PRICE;
 export const TITLE_STEPS: TitleStep[] = ["title1", "title2", "title3"];
-/** Real age (hours) before each appointment: Kleinstadt, Handelsstadt, Metropole. */
+/** Real age (hours) before each appointment: Kleinstadt, Handelsstadt, Hansestadt. */
 export const TITLE_HOURS = { title1: 2160, title2: 4380, title3: 8760 } as const;
 /** Guild rank required for each appointment (journeyman, master, master). */
 export const TITLE_RANK = { title1: 2, title2: 3, title3: 3 } as const;
