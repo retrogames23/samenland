@@ -1955,7 +1955,10 @@ export function Game() {
         <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); startSeedMode(); }}>
           <label className="block space-y-1">
             <span className="block text-xs font-semibold text-foreground">{t.townName}</span>
-            <Input placeholder={t.townName} maxLength={32} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <span className="flex items-center gap-1.5">
+              <Input placeholder={t.townName} maxLength={32} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <button type="button" onClick={rerollName} aria-label={t.townName} title={t.townName} className="hit relative shrink-0 rounded-md border border-border p-2 text-muted-foreground hover:text-foreground"><Dices className="h-4 w-4" /></button>
+            </span>
             <span className="block text-[11px] leading-snug text-muted-foreground">{t.townHint}</span>
           </label>
           <label className="block space-y-1">
