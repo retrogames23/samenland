@@ -283,6 +283,18 @@ export function Game() {
   const [placing, setPlacing] = useState<string | null>(null);
   const [hover, setHover] = useState<[number, number] | null>(null);
   const tileInfoRef = useRef<HTMLDivElement>(null);
+  const tileInfoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // tile facts are written straight into the fixed bottom-left strip, so pointer moves never re-render the HUD
+  const showTileInfo = (nt: [number, number], fade?: number) => {
+    const box = tileInfoRef.current; if (!box) return;
+    const f = tileFacts(nt[0], nt[1], st.current.seeds, clock(), isPlantedRare(st.current.plantings, nt[0], nt[1])), ti = TILEINFO[lang];
+    const head = f.kind ? `${t.kind[f.kind] ?? (t.kinds as Record<string, string>)[f.kind] ?? f.kind}${f.seed ? ` (${f.seed})` : ""}` : t.terrain[f.terrain];
+    const parts = [head, ...(f.kind ? [t.terrain[f.terrain]] : []), ...f.animals.map((a) => ti.animals[a])];
+    box.textContent = parts.join(" · ") + (f.effects.length ? ` — ${f.effects.map((k) => ti.fx[k]).join(", ")}` : "");
+    box.style.display = "";
+    if (tileInfoTimer.current) clearTimeout(tileInfoTimer.current);
+    tileInfoTimer.current = fade ? setTimeout(() => { if (tileInfoRef.current) tileInfoRef.current.style.display = "none"; }, fade) : null;
+  };
   // touch placement: the preview sits on its own tile until the player confirms
   const [ghost, setGhost] = useState<[number, number] | null>(null);
   const hotkey = useRef<(e: KeyboardEvent) => void>(() => {});
@@ -2242,17 +2254,7 @@ export function Game() {
             if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) {
               st.current.hover = e.pointerType === "mouse" || mode === "seed" || placing ? nt : null; if (mode === "seed" || placing) setHover(nt);
               // tile facts are written straight into the info strip, so mouse moves never re-render the HUD
-              const box = tileInfoRef.current;
-              if (box) {
-                if (e.pointerType !== "mouse") box.style.display = "none";
-                else {
-                  const f = tileFacts(nt[0], nt[1], st.current.seeds, clock(), isPlantedRare(st.current.plantings, nt[0], nt[1])), ti = TILEINFO[lang];
-                  const head = f.kind ? `${t.kind[f.kind] ?? (t.kinds as Record<string, string>)[f.kind] ?? f.kind}${f.seed ? ` (${f.seed})` : ""}` : t.terrain[f.terrain];
-                  const parts = [head, ...(f.kind ? [t.terrain[f.terrain]] : []), ...f.animals.map((a) => ti.animals[a])];
-                  box.textContent = parts.join(" · ") + (f.effects.length ? ` — ${f.effects.map((k) => ti.fx[k]).join(", ")}` : "");
-                  box.style.display = "";
-                }
-              }
+              if (e.pointerType === "mouse") showTileInfo(nt);
             }
           }
           if (mode === "seed" || placing) {
@@ -2284,6 +2286,7 @@ export function Game() {
           if (d && !d.moved && placing && placeTap(!!d.touch) === "move") { const g = tileAt(e); st.current.ghost = g; setGhost(g); return; }
           if (d && !d.moved && d.touch && d.t0 != null && nowT - d.t0 > 350) { if (placing || mode !== "look") return; const p = personAt(e); if (p) { setPlace(null); return setWho(p); } const [lx, ly] = tileAt(e); const li = inspectAt(lx, ly, seeds, clock()); if (li) { setWho(null); setPlace(li); } return; } // long press opens what lies under the finger
           if (d && !d.moved && d.touch && !placing && mode === "look") {
+            showTileInfo(tileAt(e), 4000);
             const lt = lastTap.current;
             if (nowT - lt.t < 300 && Math.hypot(e.clientX - lt.x, e.clientY - lt.y) < 30) {
               lastTap.current = { t: 0, x: 0, y: 0 };
@@ -3214,8 +3217,9 @@ export function Game() {
             </div>
           );
         })()}
-        <div ref={tileInfoRef} style={{ display: "none" }} className="pointer-events-none max-md:!hidden rounded bg-card/85 px-2 py-1 text-xs text-muted-foreground" />
+
       </div>
+      <div ref={tileInfoRef} style={{ display: "none", bottom: "calc(var(--dock-bottom, 0px) + 0.75rem)" }} className="pointer-events-none fixed start-[calc(var(--safe-l,0px)+0.75rem)] z-30 max-w-[min(26rem,80vw)] rounded-md border border-border bg-card/90 px-2.5 py-1 text-xs text-foreground shadow-sm max-md:!bottom-[calc(var(--dock-bottom,0px)+4.5rem)]" />
     </div>
   );
 }
