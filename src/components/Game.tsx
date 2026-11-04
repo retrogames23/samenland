@@ -66,7 +66,9 @@ import { HERALD, edictText } from "@/game/lang/edicts";
 import { princelyClaims, favourOf, openTaskOf, heraldVisit, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { courtPoses, courtCenter, atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
-import { Beer, ChevronDown, MapPin, Dices } from "lucide-react";
+import { Beer, ChevronDown, MapPin, Dices, Music } from "lucide-react";
+import { setMusic } from "@/game/music";
+import { MUSIC } from "@/game/lang/music";
 import { suggestTownName } from "@/game/town-names";
 import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, jingle, disposeAudio } from "@/game/audio";
@@ -425,6 +427,25 @@ export function Game() {
   const toggleSound = () => {
     const on = !sound; setSoundOn(on); setSound(on);
     localStorage.setItem("samenland.sound", on ? "on" : "off");
+    setMusic(on && musicRef.current);
+  };
+  // music remembers its own choice; sound off always silences it, sound on restores the last choice
+  const [music, setMusicOn] = useState(true);
+  const musicRef = useRef(true); musicRef.current = music;
+  useEffect(() => {
+    const m = localStorage.getItem("samenland.music") !== "off";
+    setMusicOn(m); musicRef.current = m;
+    if (!m || localStorage.getItem("samenland.sound") === "off") return;
+    const first = () => setMusic(soundRef.current && musicRef.current);
+    window.addEventListener("pointerdown", first, { once: true });
+    return () => { window.removeEventListener("pointerdown", first); };
+  }, []);
+  useEffect(() => () => setMusic(false), []);
+  const toggleMusic = () => {
+    if (!sound) return;
+    const m = !music; setMusicOn(m); musicRef.current = m;
+    localStorage.setItem("samenland.music", m ? "on" : "off");
+    setMusic(m);
   };
   useEffect(() => { prewarmOverview(); }, []);
   useEffect(() => {
@@ -2396,6 +2417,10 @@ export function Game() {
           <div className="ms-auto flex shrink-0 items-center gap-1 md:ms-0">
             <button type="button" aria-label={sound ? t.soundOff : t.soundOn} title={sound ? t.soundOff : t.soundOn} onClick={toggleSound} className="hit relative grid h-7 w-7 place-items-center rounded-md hover:bg-accent md:h-8 md:w-8">
               {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </button>
+            <button type="button" aria-pressed={sound && music} disabled={!sound} aria-label={!sound ? MUSIC[lang].muted : music ? MUSIC[lang].off : MUSIC[lang].on} title={!sound ? MUSIC[lang].muted : music ? MUSIC[lang].off : MUSIC[lang].on} onClick={toggleMusic} className="hit relative grid h-7 w-7 place-items-center rounded-md hover:bg-accent disabled:opacity-40 disabled:hover:bg-transparent md:h-8 md:w-8">
+              <Music className={`h-4 w-4 ${sound && music ? "" : "opacity-50"}`} />
+              {!(sound && music) && <span aria-hidden className="pointer-events-none absolute h-[1.5px] w-5 rotate-45 rounded bg-current" />}
             </button>
             <button type="button" aria-label={fs ? t.exitFullscreen : t.fullscreen} title={fs ? t.exitFullscreen : t.fullscreen} onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())} className="hidden h-8 w-8 place-items-center rounded-md hover:bg-accent md:grid">
               {fs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
