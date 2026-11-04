@@ -2833,7 +2833,7 @@ export function Game() {
                 <span className="font-display text-base leading-tight">{petition!.header}</span>
                 <ChevronDown className={`mt-0.5 h-4 w-4 shrink-0 opacity-60 transition-transform ${questFold ? "" : "rotate-180"}`} />
               </button>
-              {petition!.person && <button type="button" aria-label={petition!.find} title={petition!.find} className="hit shrink-0 rounded p-0.5 text-wood hover:bg-ink/10" onClick={() => { const nw = clock(), tw = townOf(my!, seeds, nw), p = tw.people.find((q) => q.id === petition!.person!.id); const z = p ? poseOf(p, tw, seeds, nw) : null; if (z) focus(z.x, z.y); if (p) setWho(p); }}><MapPin className="h-4 w-4" /></button>}
+              {petition!.person && <button type="button" aria-label={petition!.find} title={petition!.find} className="hit relative shrink-0 rounded p-0.5 text-wood hover:bg-ink/10" onClick={() => { const nw = clock(), tw = townOf(my!, seeds, nw), p = tw.people.find((q) => q.id === petition!.person!.id); const z = p ? poseOf(p, tw, seeds, nw) : null; if (z) focus(z.x, z.y); if (p) setWho(p); }}><MapPin className="h-4 w-4" /></button>}
             </div>
             {!questFold && (
               <div className="mt-1 space-y-1">
