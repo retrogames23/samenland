@@ -84,6 +84,9 @@ import farmhouseLight from "@/assets/sprites/night/farmhouse.webp";
 import fisheryLight from "@/assets/sprites/night/fishery.webp";
 import lodge from "@/assets/sprites/lodge.webp";
 import herbhut from "@/assets/sprites/herbhut.webp";
+import backhausImg from "@/assets/sprites/cohesive/backhaus.webp";
+import herbergeImg from "@/assets/sprites/cohesive/herberge.webp";
+import beginenhofImg from "@/assets/sprites/cohesive/beginenhof.webp";
 import bigstoreImg from "@/assets/sprites/cohesive/bigstore.webp";
 import bigstoreLight from "@/assets/sprites/cohesive/night/bigstore.webp";
 import millrowImg from "@/assets/sprites/cohesive/millrow.webp";
@@ -206,6 +209,9 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   hay: { url: hay, crop: [0, 0, 966, 827], width: 13, base: 3 },
   fishery: { url: fishery, crop: [0, 0, 480, 436], width: 22, base: 4 },
   lodge: { url: lodge, crop: [0, 0, 480, 407], width: 21, base: 4 },
+  backhaus: { url: backhausImg, crop: [0, 0, 480, 389], width: 18, base: 4 },
+  herberge: { url: herbergeImg, crop: [0, 0, 470, 480], width: 22, base: 4 },
+  beginenhof: { url: beginenhofImg, crop: [0, 0, 480, 374], width: 34, base: 4 },
   bigstore: { url: bigstoreImg, crop: [0, 0, 459, 480], width: 24, base: 4 },
   millrow: { url: millrowImg, crop: [0, 0, 480, 377], width: 27, base: 4 },
   stonemason: { url: stonemasonImg, crop: [0, 0, 480, 456], width: 24, base: 4 },
