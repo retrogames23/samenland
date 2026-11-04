@@ -57,6 +57,8 @@ import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT } from "@/game/lang/support";
 import { Survey } from "@/components/Survey";
 import { THANKS, OSS } from "@/game/lang/thanks";
+import { TILEINFO } from "@/game/lang/tileinfo";
+import { tileFacts } from "@/game/tile-info";
 import { RENAME } from "@/game/lang/rename";
 import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
@@ -280,6 +282,7 @@ export function Game() {
   const [mode, setMode] = useState<Mode>("look");
   const [placing, setPlacing] = useState<string | null>(null);
   const [hover, setHover] = useState<[number, number] | null>(null);
+  const tileInfoRef = useRef<HTMLDivElement>(null);
   // touch placement: the preview sits on its own tile until the player confirms
   const [ghost, setGhost] = useState<[number, number] | null>(null);
   const hotkey = useRef<(e: KeyboardEvent) => void>(() => {});
@@ -2236,7 +2239,21 @@ export function Game() {
           if (!drag.current?.moved) {
             const nt = tileAt(e), ph = st.current.hover;
             // the canvas reads the ref every frame; React state only feeds the seed/placing tooltip, so plain mouse moves never re-render the HUD
-            if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) { st.current.hover = e.pointerType === "mouse" || mode === "seed" || placing ? nt : null; if (mode === "seed" || placing) setHover(nt); }
+            if (!ph || ph[0] !== nt[0] || ph[1] !== nt[1]) {
+              st.current.hover = e.pointerType === "mouse" || mode === "seed" || placing ? nt : null; if (mode === "seed" || placing) setHover(nt);
+              // tile facts are written straight into the info strip, so mouse moves never re-render the HUD
+              const box = tileInfoRef.current;
+              if (box) {
+                if (e.pointerType !== "mouse") box.style.display = "none";
+                else {
+                  const f = tileFacts(nt[0], nt[1], st.current.seeds, clock(), isPlantedRare(st.current.plantings, nt[0], nt[1])), ti = TILEINFO[lang];
+                  const head = f.kind ? `${t.kind[f.kind] ?? (t.kinds as Record<string, string>)[f.kind] ?? f.kind}${f.seed ? ` (${f.seed})` : ""}` : t.terrain[f.terrain];
+                  const parts = [head, ...(f.kind ? [t.terrain[f.terrain]] : []), ...f.animals.map((a) => ti.animals[a])];
+                  box.textContent = parts.join(" · ") + (f.effects.length ? ` — ${f.effects.map((k) => ti.fx[k]).join(", ")}` : "");
+                  box.style.display = "";
+                }
+              }
+            }
           }
           if (mode === "seed" || placing) {
             ptrRef.current = [e.clientX, e.clientY];
@@ -2326,7 +2343,7 @@ export function Game() {
             onClick(x, y);
           }
         }}
-        onPointerLeave={() => { st.current.hover = null; setHover(null); }}
+        onPointerLeave={() => { st.current.hover = null; setHover(null); if (tileInfoRef.current) tileInfoRef.current.style.display = "none"; }}
       />
       {/* top bar */}
       <div ref={barRef} className="pointer-events-none absolute left-[var(--safe-l)] right-[var(--safe-r)] top-[max(0.5rem,env(safe-area-inset-top))] z-30 md:left-[max(0.75rem,env(safe-area-inset-left))] md:right-[max(0.75rem,env(safe-area-inset-right))] md:top-[max(0.75rem,env(safe-area-inset-top))]">
@@ -3197,11 +3214,7 @@ export function Game() {
             </div>
           );
         })()}
-        {hover && (
-          <div className="hidden rounded bg-card/80 px-2 py-1 text-xs text-muted-foreground md:block">
-            {t.terrain[terrain(hover[0], hover[1])]}{resourceAt(hover[0], hover[1]) === "stone" ? ` · ${t.resource["stone"]}` : ""} · {hover[0]}, {hover[1]}
-          </div>
-        )}
+        <div ref={tileInfoRef} style={{ display: "none" }} className="pointer-events-none max-md:!hidden rounded bg-card/85 px-2 py-1 text-xs text-muted-foreground" />
       </div>
     </div>
   );
