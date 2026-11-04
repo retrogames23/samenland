@@ -63,7 +63,8 @@ import { HERALD, edictText } from "@/game/lang/edicts";
 import { princelyClaims, favourOf, openTaskOf, heraldVisit, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { courtPoses, courtCenter, atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
-import { Beer, ChevronDown, MapPin } from "lucide-react";
+import { Beer, ChevronDown, MapPin, Dices } from "lucide-react";
+import { suggestTownName } from "@/game/town-names";
 import { seasonAt } from "@/game/season";
 import { setScene, setSound, unlock, baa, hm, tap, bell, jingle, disposeAudio } from "@/game/audio";
 import {
@@ -298,7 +299,19 @@ export function Game() {
   }, []);
   const [form, setForm] = useState({ name: "", owner: "", gender: "d" });
   // a ready-made cozy name lowers the founding hurdle (set after hydration, so SSR stays stable)
-  useEffect(() => { const n = ["Lindenau","Haselbrunn","Kornwiese","Mühlbach","Eichenhain","Birkental","Wiesengrund","Hopfenau"]; setForm((f) => (f.name ? f : { ...f, name: n[Math.floor(Math.random() * n.length)] ?? "Lindenau" })); }, []);
+  // suggestion skips names already on this map; re-rolls while still untouched if seeds load later
+  const autoName = useRef("");
+  useEffect(() => {
+    setForm((f) => {
+      const taken = seeds.map((s) => s.name);
+      if (f.name && f.name !== autoName.current) return f;
+      if (f.name && !taken.some((n) => n.trim().toLowerCase() === f.name.toLowerCase())) return f;
+      const name = suggestTownName(taken);
+      autoName.current = name;
+      return { ...f, name };
+    });
+  }, [seeds]);
+  const rerollName = () => { const name = suggestTownName(seeds.map((s) => s.name), Math.random, form.name); autoName.current = name; setForm((f) => ({ ...f, name })); };
   const [msg, setMsg] = useState<string | null>(null);
   type Tab = "build" | "rituals" | "signs" | "towns" | "plant";
   const [tab, setTab] = useState<Tab | null>(null);
@@ -1942,7 +1955,10 @@ export function Game() {
         <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); startSeedMode(); }}>
           <label className="block space-y-1">
             <span className="block text-xs font-semibold text-foreground">{t.townName}</span>
-            <Input placeholder={t.townName} maxLength={32} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <span className="flex items-center gap-1.5">
+              <Input placeholder={t.townName} maxLength={32} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <button type="button" onClick={rerollName} aria-label={t.townName} title={t.townName} className="hit relative shrink-0 rounded-md border border-border p-2 text-muted-foreground hover:text-foreground"><Dices className="h-4 w-4" /></button>
+            </span>
             <span className="block text-[11px] leading-snug text-muted-foreground">{t.townHint}</span>
           </label>
           <label className="block space-y-1">
