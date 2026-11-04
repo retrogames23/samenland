@@ -3,6 +3,7 @@ import nightSong from "@/assets/music/night_last_candle_waning.mp3.asset.json";
 import daySong from "@/assets/music/day_builders_dance.mp3.asset.json";
 import daySong2 from "@/assets/music/day_cobblestone_and_crowds.mp3.asset.json";
 import nightSong2 from "@/assets/music/night_embers_of_the_hearth.mp3.asset.json";
+import nightSong3 from "@/assets/music/night_moonlight_on_the_well.mp3.asset.json";
 import daySong0 from "@/assets/music/day_currents_through_the_city_gate.mp3.asset.json";
 import tavernSong from "@/assets/music/tavern_stein_auf_stein.mp3.asset.json";
 
