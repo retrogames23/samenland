@@ -2396,7 +2396,8 @@ function drawMaypole(c: C, x: number, y: number, t: number) {
 /** A village cow from the cow encounter: grazes on a pasture (or the green), slowly turning, lying down at night. */
 function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number) {
   const im = huntIm("cow", cowUrl); if (!im) return;
-  const w = 13, h = (im.naturalHeight / im.naturalWidth) * w;
+  // shoulder just below a villager's head (person 5.2 tall), like a real cow beside a farmer
+  const w = 6, h = (im.naturalHeight / im.naturalWidth) * w;
   const night = animalsSleeping(now);
   // grazes at one spot ~40-55 s, then ambles slowly (7 s) to the next one instead of teleporting
   const CYC = 48000, WALK = 7000, tt = now + hash(sd, i, 1500) * CYC, k = Math.floor(tt / CYC), u = tt - k * CYC;
@@ -2414,7 +2415,7 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
   const breath = 1 + Math.sin(now / 2600 + sd) * 0.012;
   const tilt = walking ? Math.sin(now / 1100 + sd) * 0.02 : Math.sin(now / 5200 + sd) * 0.006;
   c.save();
-  c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.3, 5, 1.4, 0, 0, 7); c.fill();
+  c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.2, 2.8, 0.9, 0, 0, 7); c.fill();
   c.translate(x + dx, y + dy); c.scale(night ? prevDir : scaleX, 1);
   if (night) c.drawImage(im, 0, im.naturalHeight * 0.45, im.naturalWidth, im.naturalHeight * 0.55, -w / 2, -h * 0.55, w, h * 0.55);
   else { c.rotate(tilt); c.scale(1, breath); c.drawImage(im, -w / 2, -h * 0.96, w, h); }
