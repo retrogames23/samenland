@@ -51,3 +51,9 @@ describe("wedding encounter follows the real wedding calendar", () => {
     expect(pendingEncounter(seed, [], second + H)).toBe("wedding");
   });
 });
+
+describe("visible-only encounters", () => {
+  it("never offers the text-only flood encounter", () => {
+    for (let n = 0; n < 200; n++) expect(eventOf("flood-check", n)).not.toBe("flood");
+  });
+});
