@@ -1750,7 +1750,17 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
       c.restore();
     }
     const tx = TEX_OF[LAYER_T[L]!]!;
+    // hills: soft relief — shadow cast down-right onto the lower land, sunlit rim at the upper-left edge
+    let rim: Path2D | null = null;
+    if (L === 5) {
+      rim = new Path2D(); rim.addPath(path); rim.addPath(path, { a: 1, b: 0, c: 0, d: 1, e: 2.5, f: 3.5 });
+      c.save(); c.clip(rim, "evenodd"); c.translate(2.5, 3.5); c.fillStyle = "rgba(40,34,14,0.26)"; c.fill(path); c.restore();
+    }
     c.fillStyle = texture(c, tx) ?? "#7a8a50"; c.fill(path);
+    if (rim) {
+      c.save(); c.clip(path); c.clip(rim, "evenodd"); c.fillStyle = "rgba(250,236,170,0.22)"; c.fill(path); c.restore();
+      c.save(); c.clip(path); c.globalAlpha = 0.18; c.fillStyle = "rgb(214,190,120)"; c.fill(path); c.restore(); // drier upland tint
+    }
     if (L >= 3 && L <= 5) { // grassland: break the tiling with a rotated second layer + soft macro light patches
       c.save(); c.clip(path);
       const alt = textureAlt(c, tx);
@@ -2006,7 +2016,12 @@ function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number,
   if (tr === "forest") {
     if (hash(x, y, 19) > 0.35) tree(g, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6);
     tree(g, cx - 5, cy + 3, 0.85 + hash(x, y, 17) * 0.35, t, hash(x, y, 18), x * 13 + y, 0.6);
-  } else if (tr === "grass" || tr === "meadow" || tr === "hill") {
+  } else if (tr === "hill") { // upland: wind-shaped shrubs and small rock ledges, few trees
+    const h = hash(x, y, 22);
+    if (h > 0.97) tree(g, cx, cy + 1, 0.8, t, hash(x, y, 23), x * 19 + y, 0.2);
+    else if (h > 0.85) drawNature(g, "bush", cx + (hash(x, y, 24) - 0.5) * 12, cy + 2, 0.6 + hash(x, y, 25) * 0.4);
+    else if (h > 0.76) drawNature(g, "boulder", cx + (hash(x, y, 24) - 0.5) * 10, cy + 3, 0.45 + hash(x, y, 25) * 0.35, 0, hash(x, y, 26) > 0.5);
+  } else if (tr === "grass" || tr === "meadow") {
     if (hash(x, y, 22) > 0.95) tree(g, cx, cy + 1, 0.9, t, hash(x, y, 23), x * 19 + y, 0.2);
     else if (hash(x, y, 22) > 0.9) drawNature(g, "bush", cx + (hash(x, y, 24) - 0.5) * 12, cy + 2, 0.8 + hash(x, y, 25) * 0.5);
   }
