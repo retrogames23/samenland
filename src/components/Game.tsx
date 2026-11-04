@@ -1322,6 +1322,8 @@ export function Game() {
   useEffect(() => () => setTavernMusic(false), []);
   const [chatUnread, setChatUnread] = useState(0);
   const [rollOpen, setRollOpen] = useState(false);
+  // any window/drawer that floating banners must not cover
+  const menuOpen = !!tab || settings || guideOpen || tavernOpen || rollOpen;
   // the tutorial parchment greets every visitor on their very first page load,
   // signed in or not, as soon as the loading screen has stepped aside
   const openGuide = () => {
@@ -2888,7 +2890,7 @@ export function Game() {
       )}
       {labOpen && <FigureLab onClose={() => setLabOpen(false)} />}
       <Tavern t={t} open={tavernOpen} onClose={() => { setTavernOpen(false); setDmPeer(null); }} peer={dmPeer} userId={userId} my={my} seeds={seeds} realm={realm} lang={lang} onUnread={setChatUnread} />
-      {waitDone && !waitShut && !anyOpen && !decision.open && (
+      {waitDone && !waitShut && !anyOpen && !decision.open && !menuOpen && (
         <div className="pointer-events-none absolute inset-x-2 z-20 flex justify-center" style={{ top: barH + 56 }}>
           <Panel className="w-full max-w-md" inner="relative p-3 text-center">
             <button type="button" aria-label={t.hud.close} onClick={shutWait} className="pointer-events-auto absolute end-0 top-0 p-2.5 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
@@ -2953,7 +2955,7 @@ export function Game() {
         </Parchment>
       )}
       {owner && quest && claimsReady && !panelOpen && (
-        <div className={`absolute right-16 z-30 ${heraldBtn ? "max-md:mt-12" : ""} ${waitDone && !waitShut && !anyOpen && !decision.open ? "max-md:hidden" : ""} max-w-[calc(100vw-5rem)] md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
+        <div className={`absolute right-16 z-30 ${heraldBtn ? "max-md:mt-12" : ""} ${waitDone && !waitShut && !anyOpen && !decision.open && !menuOpen ? "max-md:hidden" : ""} max-w-[calc(100vw-5rem)] md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
           <div className="parchment px-3 py-2 text-sm text-ink shadow">
             <div className="flex w-full items-start gap-1">
               <button type="button" aria-expanded={!questFold} onClick={() => setQuestFold((f) => !f)} className="flex min-w-0 flex-1 items-start justify-between gap-2 text-start">
@@ -3158,7 +3160,7 @@ export function Game() {
           );
         })()}
         {msg && (
-          <div role="status" className={`pointer-events-auto flex w-full items-start gap-2 rounded-md border-2 border-wood bg-card py-2 ps-3 pe-1.5 text-foreground shadow-[var(--shadow-panel)] md:w-auto ${tab ? "max-md:fixed max-md:inset-x-2 max-md:z-40 max-md:w-auto" : ""}`} style={tab ? { top: barH + 16 } : undefined}>
+          <div role="status" className={`pointer-events-auto flex w-full items-start gap-2 rounded-md border-2 border-wood bg-card py-2 ps-3 pe-1.5 text-foreground shadow-[var(--shadow-panel)] md:w-auto ${tab ? "max-md:fixed max-md:inset-x-2 max-md:z-40 max-md:w-auto" : ""}`} style={tab ? { bottom: "calc(var(--dock-bottom, 0px) + 4.5rem)" } : undefined}>
             <span className="min-w-0 flex-1">{msg}</span>
             <button type="button" aria-label={t.hud.close} onClick={() => setMsg(null)} className="hit relative grid h-6 w-6 shrink-0 place-items-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"><X className="h-4 w-4" /></button>
           </div>
