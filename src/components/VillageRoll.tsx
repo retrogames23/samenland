@@ -81,6 +81,12 @@ export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T
             </section>
           );
         })}
+        </div>
+        {more && (
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-parchment to-transparent">
+            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 animate-bounce text-ink/50">▾</span>
+          </div>
+        )}
       </div>
     </Parchment>
   );
