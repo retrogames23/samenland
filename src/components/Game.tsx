@@ -3219,6 +3219,7 @@ export function Game() {
         })()}
 
       </div>
+      <div ref={tileInfoRef} style={{ display: "none", bottom: "calc(var(--dock-bottom, 0px) + 0.75rem)" }} className="pointer-events-none fixed start-[calc(var(--safe-l,0px)+0.75rem)] z-30 max-w-[min(26rem,80vw)] rounded-md border border-border bg-card/90 px-2.5 py-1 text-xs text-foreground shadow-sm max-md:!bottom-[calc(var(--dock-bottom,0px)+4.5rem)]" />
     </div>
   );
 }
