@@ -2400,6 +2400,17 @@ function drawMaypole(c: C, x: number, y: number, t: number) {
   c.restore();
 }
 /** A village cow from the cow encounter: grazes on a pasture (or the green), slowly turning, lying down at night. */
+/** Village pigs masting under the oaks (Allmende): root for acorns, then trot a few steps; asleep in the sty at night. */
+function drawPig(c: C, x: number, y: number, now: number, sd: number) {
+  const bw = huntIm("bw", boarWalkUrl); if (!bw || animalsSleeping(now)) return;
+  const CYC = 30000, WALK = 5000, tt = now + hash(sd, 1, 1503) * CYC, k = Math.floor(tt / CYC), u = tt - k * CYC;
+  const spot = (j: number): [number, number] => [(hash(sd, j, 1504) - 0.5) * 8, (hash(sd, j, 1505) - 0.5) * 3];
+  const a = spot(k), b = spot(k + 1), into = u - (CYC - WALK), f = into > 0 ? into / WALK : 0, e = f * f * (3 - 2 * f);
+  const X = x + a[0] + (b[0] - a[0]) * e, Y = y + a[1] + (b[1] - a[1]) * e, h = 3.6, flip = (into > 0 ? b[0] - a[0] : a[0] - spot(k - 1)[0]) < 0;
+  shadow(c, X, Y, h * 0.45);
+  if (into > 0) sheetFrame(c, bw, Math.floor((into / 1000) * 3.2), X, Y - Math.abs(Math.sin(into / 160)) * 0.08, h, flip);
+  else sheetFrame(c, bw, 3, X, Y - (Math.floor((now + sd) / 500) & 1) * 0.08, h, flip);
+}
 function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number) {
   const im = huntIm("cow", cowUrl); if (!im) return;
   // shoulder just below a villager's head (person 5.2 tall), like a real cow beside a farmer
@@ -2778,6 +2789,9 @@ export function draw(
     const tw = townOf(sd, seeds, now);
     if (tw.maypole) addProp(tw.maypole[1] * MAP + tw.maypole[0], (cx, cy) => drawMaypole(c, cx, cy, t));
     tw.cows.forEach((cw, i) => addProp(cw[1] * MAP + cw[0], (cx, cy) => drawCow(c, cx, cy, now, cw[0] * 31 + cw[1] + i * 7, i)));
+    tw.pigs.forEach((pg, i) => addProp(pg[1] * MAP + pg[0], (cx, cy) => drawPig(c, cx, cy, now, pg[0] * 31 + pg[1] + i * 7)));
+    // footbridge site: timber stacked on the bank while the crew works
+    if (tw.steg && now < tw.steg.done && (sd.decisions ?? []).some((d) => d.event === "steg" && d.at <= now)) { const a = tw.steg.a; addProp(a[1] * MAP + a[0], (cx, cy) => prop(c, "logs", cx + 4, cy + 1, 7)); }
   }
   // supporter dogs: romp by the mayor's seat, heel when the mayor walks, sleep by the door at night
   dogSpots.clear();
@@ -2808,6 +2822,14 @@ export function draw(
       }
       i = j;
     }
+  }
+  // Allmende footbridge over the mill stream, once the village (or its carpenter) has finished it
+  if (detail) for (const sd of seeds) {
+    if (!sd.decisions?.some((d) => d.event === "steg")) continue;
+    const tw = townOf(sd, seeds, now), sg = tw.steg; if (!sg || now < sg.done) continue;
+    const [ax, ay] = iso(sg.a[0], sg.a[1]), [bx, by] = iso(sg.b[0], sg.b[1]);
+    if (Math.max(ax, bx) > cs0x - 60 && Math.min(ax, bx) < cs1x + 60 && Math.max(ay, by) > cs0y - 60 && Math.min(ay, by) < cs1y + 60)
+      drawBridgeSpan(c, [ax, ay], [bx, by], sg.a[0] * 31 + sg.a[1], t);
   }
 
   // road traffic, messengers and stalls join the tile depth order: houses in front hide them (no object above a front roof)
