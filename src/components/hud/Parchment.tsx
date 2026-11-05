@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 
 /** Short haptic tick on phones that support it; silently ignored elsewhere. */
@@ -10,9 +10,15 @@ export function Parchment({ image, title, later, onLater, wide, children }: {
   image?: string | undefined; title: string; later: string; onLater: () => void; wide?: boolean; children: ReactNode;
 }) {
   const y0 = useRef<number | null>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+  // soft fade + chevron while the parchment can be scrolled further down
+  const checkMore = () => { const el = body.current; if (el) setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 8); };
+  useEffect(() => { checkMore(); const el = body.current; if (!el) return; const ro = new ResizeObserver(checkMore); ro.observe(el); return () => ro.disconnect(); }, [children]);
   return (
     <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/40 p-3 backdrop-blur-[1px] max-md:place-items-end max-md:p-0" onClick={onLater}>
-      <div onClick={(e) => e.stopPropagation()}
+      <div ref={body} onScroll={checkMore}
+        onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => { y0.current = e.currentTarget.scrollTop <= 0 ? e.touches[0]!.clientY : null; }}
         onTouchEnd={(e) => { if (y0.current != null && e.changedTouches[0]!.clientY - y0.current > 80) onLater(); y0.current = null; }}
         className={`parchment relative max-h-full w-full overflow-auto overscroll-contain max-md:max-h-[88dvh] max-md:rounded-b-none max-md:pb-[env(safe-area-inset-bottom)] max-md:animate-in max-md:slide-in-from-bottom ${wide ? "max-w-2xl" : "max-w-xl"} max-md:max-w-none`}>
@@ -32,6 +38,11 @@ export function Parchment({ image, title, later, onLater, wide, children }: {
             <button type="button" onClick={onLater} className="hit relative font-display text-xl text-ink/70 underline decoration-ink/30 underline-offset-4 hover:text-ink">{later}</button>
           </div>
         </div>
+        {more && (
+          <div aria-hidden className="pointer-events-none sticky bottom-0 z-10 -mt-12 h-12 bg-gradient-to-t from-parchment via-parchment/70 to-transparent">
+            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 animate-bounce text-ink/50">▾</span>
+          </div>
+        )}
       </div>
     </div>
   );
