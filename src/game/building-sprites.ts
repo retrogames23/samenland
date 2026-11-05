@@ -266,7 +266,9 @@ export const spriteUrl = (kind: Kind) => sprites[kind]?.url;
 /** Drawn width/height and ground offset of a building sprite (null while unknown). */
 const HOME_SIZE: ReadonlySet<string> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "suburb"]);
 /** Homes vary ±9 % in size, other buildings ±3 %. */
-const scaleOf = (kind: Kind, variant: number) => HOME_SIZE.has(kind) ? 0.91 + variant * 0.18 : 0.97 + variant * 0.06;
+/** Homes are drawn larger so doors and yards read true beside villagers (realistic scale). */
+const HOME_GROW = 1.15;
+const scaleOf = (kind: Kind, variant: number) => HOME_SIZE.has(kind) ? HOME_GROW * (0.91 + variant * 0.18) : 0.97 + variant * 0.06;
 export function spriteBox(kind: Kind, variant: number, style?: HouseStyle): { w: number; h: number; base: number } | null {
   const sprite = sprites[kind]; if (!sprite) return null;
   const [, , sw, sh] = styledOf(kind, style)?.crop ?? sprite.crop, w = sprite.width * scaleOf(kind, variant);
