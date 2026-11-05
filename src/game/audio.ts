@@ -1,4 +1,5 @@
-import { worldHour, clock, isSunday, isWorkHour, WORK_START, WORK_END } from "./time";
+import { worldHour, clock, isWorkHour, WORK_START, WORK_END } from "./time";
+import { isRestDay, feastOn } from "./feasts";
 /**
  * Procedural soundscape (Web Audio, no sample files). The render loop hands in a scene summary a few
  * times per second; this module only mixes — it never touches game state, so worlds stay deterministic.
@@ -241,14 +242,16 @@ function tick() {
   // church bell at the full hour (real clock), when a church is in view
   const wh = worldHour(clock()), key = Math.floor(wh);
   // Sunday morning: festive peal calling everyone to church (shared world clock)
-  if (isSunday(clock()) && wh >= 9.75 && wh < 9.75 + 1 / 60 && lastPeal !== Math.floor(clock() / 864e5)) {
+  // Good Friday: the bells fall silent ("fly to Rome") until Easter morning
+  const mute = feastOn(clock()) === "goodfriday";
+  if (!mute && isRestDay(clock()) && wh >= 9.75 && wh < 9.75 + 1 / 60 && lastPeal !== Math.floor(clock() / 864e5)) {
     lastPeal = Math.floor(clock() / 864e5); bell(0); setTimeout(() => ctx && enabled && bell(0), 2600);
   }
   // town bell (from Kleinstadt on): morning bell at WORK_START wakes the sites, midday bell, evening bell at
   // WORK_END ends the builders' day; in between it strikes the full hour. Silent at night.
   if (wh - key < 1 / 60 && lastBell !== key) {
     const b = s.sources.filter((x) => x.k === "bell").sort((p, q) => q.near - p.near)[0];
-    if (b && key >= WORK_START && key <= WORK_END) {
+    if (b && !mute && key >= WORK_START && key <= WORK_END) {
       lastBell = key;
       const v = Math.max(0.35, b.near);
       if (key === WORK_START || key === 12 || key === WORK_END) { peal(b.pan, v); if (key === WORK_END) setTimeout(() => ctx && enabled && peal(b.pan, v * 0.8), 3600); }

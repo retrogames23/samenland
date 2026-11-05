@@ -29,7 +29,7 @@ import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./cr
 import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
 import { sheavesOn, woodpileLevel, frost, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
 import { pealPause } from "./time";
-import { isSunday } from "./time";
+import { isRestDay, bonfireLit, christmasNight, feastOn, FEASTS } from "./feasts";
 import { activeRaid, RAID_LEN } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
 import { decorMap, seatTile, type RewardKey } from "./supporter";
@@ -461,7 +461,7 @@ function seasonalTrace(c: C, s: Structure, cx: number, cy: number, x: number, y:
     return;
   }
   if (k === "workshop" || k === "guildhall" || k === "manufactory") {
-    if (!workshopOpen(localHour(), isSunday(now))) return;
+    if (!workshopOpen(localHour(), isRestDay(now))) return;
     const ox = cx + 8, oy = cy + 4;
     if (workshopCraft(sd) === "cooper") {
       prop(c, "cooper", ox, oy, 7);
@@ -490,12 +490,12 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
     if (s.fire) drawFire(c, cx, cy, t, sd, L);
-    if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour()) || (isHomeKind(s.kind) && sickLit(x, y)))) {
+    if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour()) || (isHomeKind(s.kind) && (sickLit(x, y) || christmasNight(renderNow))))) {
       L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip, style } });
     }
     if (s.kind === "mill" || s.kind === "watermill") {
       // flour sacks pile up by the door through the workday (stack sprite revealed from the bottom)
-      const n = sacksAt(localHour(), isSunday(renderNow)), im = folkImage("flourSacks");
+      const n = sacksAt(localHour(), isRestDay(renderNow)), im = folkImage("flourSacks");
       if (n > 0 && im) { const hh = 4.2, ww = (hh * im.naturalWidth) / im.naturalHeight, part = n / 4, sx = cx + (flip ? -7 : 7);
         c.drawImage(im, 0, im.naturalHeight * (1 - part), im.naturalWidth, im.naturalHeight * part, sx - ww / 2, cy + 3 - hh * part, ww, hh * part); }
     }
@@ -1025,7 +1025,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
   const bowed = q.working && pealPause(renderNow) && PEAL_JOBS.has(q.p.job);
   const jw = q.working && !bowed && !q.carry && !kid ? JOB_WORK[q.p.job] : undefined;
-  const fishing = q.p.job !== "fisher" || fishingNow(localHour(), isSunday(renderNow), seasonAt(renderNow).winter);
+  const fishing = q.p.job !== "fisher" || fishingNow(localHour(), isRestDay(renderNow), seasonAt(renderNow).winter);
   const reap = q.p.job !== "farmer" || !q.p.work || farmReaps(q.p, renderNow);
   const mow = q.working && !bowed ? ((reap ? workSheet(k) : null) ?? (jw && fishing ? folkImage(q.p.job === "mayor" ? mayorSheet(q.p.sex, q.p.age) : q.p.sex === "f" ? jw.f : jw.m) : null)) : null;
   if (mow) {
@@ -2894,12 +2894,15 @@ export function draw(
       addProp(ty * MAP + tx, () => drawRoadWorks(c, ax, ay, bx - ax, by - ay, t, sn + i));
     }
   }
+  const fz = feastOn(now), fzProps = !!fz && (FEASTS[fz].scene === "fire" || fz === "pentecost");
   if (detail) for (const sd of seeds) {
-    if (!sd.decisions?.length) continue;
+    if (!sd.decisions?.length && !fzProps) continue;
     const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 2;
     if (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1) continue;
     const tw = townOf(sd, seeds, now);
     if (tw.maypole) addProp(tw.maypole[1] * MAP + tw.maypole[0], (cx, cy) => drawMaypole(c, cx, cy, t));
+    // Easter / St John's fire: the stacked pile by day, flames and glow in the evening
+    if (tw.bonfire) { const bf = tw.bonfire, lit = bonfireLit(now); addProp(bf[1] * MAP + bf[0], (cx, cy) => { prop(c, "logs", cx, cy + 1, 9); if (lit) drawFire(c, cx, cy + 9, t, bf[0] * 31 + bf[1], L); }); }
     tw.cows.forEach((cw, i) => addProp(cw[1] * MAP + cw[0], (cx, cy) => drawCow(c, cx, cy, now, cw[0] * 31 + cw[1] + i * 7, i)));
     tw.pigs.forEach((pg, i) => addProp(pg[1] * MAP + pg[0], (cx, cy) => drawPig(c, cx, cy, now, pg[0] * 31 + pg[1] + i * 7)));
     // footbridge site: timber stacked on the bank while the crew works
