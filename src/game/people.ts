@@ -18,6 +18,7 @@ import { WORK_START, WORK_END } from "./time";
 import { worldHour } from "./time";
 const worldHourOf = worldHour;
 import { seasonAt } from "./season";
+import { wetness, shelters } from "./weather";
 import { fieldLook, farmTask } from "./rotation";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
@@ -913,7 +914,9 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   const pl = planOf(p, t);
   let i = pl.length - 1;
   while (i > 0 && pl[i]!.at > hr) i--;
-  const e = pl[i]!, prev = pl[(i - 1 + pl.length) % pl.length]!;
+  // rain (display only): outdoor leisure/lunch/play turn into staying at home
+  const wet = wetness(now), dry = (en: Entry): Entry => shelters(en.act, en.indoor, p.id, wet) ? { ...en, act: "home", place: p.home, indoor: true } : en;
+  const e = dry(pl[i]!), prev = dry(pl[(i - 1 + pl.length) % pl.length]!);
   const base: Pose = { p, x: e.place[0], y: e.place[1], visible: !e.indoor, walking: false, dir: [0, 1], phase: 0, act: e.act, working: false, talk: null, talkTurn: false, carry: null, dest: null };
   const secs = (hr - e.at) * 3600;
   if (p.role === "mayor") { const mp = orderPose(p, t, seeds, now, base); if (mp) return mp; }

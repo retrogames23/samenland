@@ -4,6 +4,7 @@
  */
 import { seasonAt } from "./season";
 import { worldHour, isSunday } from "./time";
+import { wetness } from "./weather";
 
 const DAY = 864e5;
 const h3 = (a: number, b: number, c: number) => { let x = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263) ^ Math.imul(c | 0, 2147483647); x = Math.imul(x ^ (x >>> 13), 1274126177); return ((x ^ (x >>> 16)) >>> 0) / 4294967296; };
@@ -34,7 +35,7 @@ export const springWork = (now: number) => seasonAt(now).spring >= 0.5;
 /** Laundry on the line: spring and summer, dry days only, not on Sundays, taken in at night. */
 export function laundryOut(sd: number, now: number): boolean {
   const w = seasonAt(now); if (w.spring + w.summer < 0.5 || isSunday(now)) return false;
-  const h = worldHour(now); if (h < 8 || h >= 18) return false;
+  const h = worldHour(now); if (h < 8 || h >= 18 || wetness(now) > 0.1) return false;
   return h3(sd, Math.floor(now / DAY), 73) < 0.3;
 }
 
