@@ -19,9 +19,9 @@ import manufactory from "@/assets/sprites/manufactory.webp";
 import steamworks from "@/assets/sprites/cohesive/steamworks.webp";
 import station from "@/assets/sprites/station.webp";
 // suburb homes reuse the Hanseatic gabled house art (the old villa sprite was 19th-century)
-import farmhouse from "@/assets/sprites/farmhouse.webp";
+import farmhouse from "@/assets/sprites/cohesive/grain-farmhouse.webp";
 import cottage from "@/assets/sprites/cottage.webp";
-import barn from "@/assets/sprites/barn.webp";
+import barn from "@/assets/sprites/cohesive/grain-barn.webp";
 import church from "@/assets/sprites/cohesive/church.webp";
 import mill from "@/assets/sprites/mill-body.webp";
 import millSails from "@/assets/sprites/mill-sails.webp";
@@ -74,13 +74,13 @@ import dairy from "@/assets/sprites/dairy.webp";
 import type { Kind } from "./world";
 
 import bakeryLight from "@/assets/sprites/night/bakery.webp";
-import barnLight from "@/assets/sprites/night/barn.webp";
+import barnLight from "@/assets/sprites/cohesive/night/grain-barn.webp";
 import chapelLight from "@/assets/sprites/night/chapel.webp";
 import churchLight from "@/assets/sprites/cohesive/night/church.webp";
 import cottageLight from "@/assets/sprites/night/cottage.webp";
 import dairyLight from "@/assets/sprites/night/dairy.webp";
 import factoryLight from "@/assets/sprites/night/factory.webp";
-import farmhouseLight from "@/assets/sprites/night/farmhouse.webp";
+import farmhouseLight from "@/assets/sprites/cohesive/night/grain-farmhouse.webp";
 import fisheryLight from "@/assets/sprites/night/fishery.webp";
 import lodge from "@/assets/sprites/lodge.webp";
 import herbhut from "@/assets/sprites/herbhut.webp";
@@ -187,9 +187,9 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   steamworks: { url: steamworks, crop: [0, 0, 480, 480], width: 27, base: 4 },
   station: { url: station, crop: [0, 0, 447, 480], width: 27, base: 4 },
   suburb: { url: patrician, crop: [0, 0, 274, 480], width: 20, base: 4 },
-  farmhouse: { url: farmhouse, crop: [0, 0, 933, 799], width: 23, base: 5 },
+  farmhouse: { url: farmhouse, crop: [0, 0, 480, 331], width: 26, base: 5 },
   cottage: { url: cottage, crop: [0, 0, 996, 872], width: 20, base: 5 },
-  barn: { url: barn, crop: [0, 0, 1000, 933], width: 27, base: 5 },
+  barn: { url: barn, crop: [0, 0, 475, 480], width: 15, base: 5 },
   church: { url: church, crop: [0, 0, 428, 480], width: 32, base: 5 },
   mill: { url: mill, crop: [0, 0, 477, 779], width: 16, base: 4 },
   inn: { url: inn, crop: [0, 0, 982, 925], width: 26, base: 5 },
