@@ -1,7 +1,7 @@
 import { seasonalImage } from "./season-art";
 import waterWheelUrl from "@/assets/sprites/water-wheel.webp";
 import campfire from "@/assets/sprites/campfire.webp";
-import hut from "@/assets/sprites/hut.webp";
+import hut from "@/assets/sprites/cohesive/grain-hut.webp";
 import coop from "@/assets/sprites/coop.webp";
 import fence from "@/assets/sprites/fence.webp";
 import chapel from "@/assets/sprites/chapel.webp";
@@ -31,9 +31,9 @@ import townhouse from "@/assets/sprites/cohesive/townhouse.webp";
 import townhouse2 from "@/assets/sprites/cohesive/townhouse2.webp";
 import patrician from "@/assets/sprites/cohesive/grain-patrician.webp";
 import fachwerk from "@/assets/sprites/cohesive/grain-fachwerk.webp";
-import steinhaus from "@/assets/sprites/steinhaus.webp";
+import steinhaus from "@/assets/sprites/cohesive/grain-steinhaus.webp";
 import handwerker from "@/assets/sprites/cohesive/grain-handwerker.webp";
-import villa from "@/assets/sprites/villa.webp";
+import villa from "@/assets/sprites/cohesive/grain-villa.webp";
 import tenement from "@/assets/sprites/cohesive/tenement.webp";
 import workshop from "@/assets/sprites/workshop.webp";
 import smithy from "@/assets/sprites/smithy.webp";
@@ -109,7 +109,7 @@ import woodcampLight from "@/assets/sprites/night/woodcamp.webp";
 import granaryLight from "@/assets/sprites/night/granary.webp";
 import guildhallLight from "@/assets/sprites/night/guildhall.webp";
 import harborLight from "@/assets/sprites/night/harbor.webp";
-import hutLight from "@/assets/sprites/night/hut.webp";
+import hutLight from "@/assets/sprites/cohesive/night/grain-hut.webp";
 import infirmaryLight from "@/assets/sprites/cohesive/night/infirmary.webp";
 import firehouseLight from "@/assets/sprites/cohesive/night/firehouse.webp";
 import guardhouseLight from "@/assets/sprites/cohesive/night/guardhouse.webp";
@@ -127,12 +127,12 @@ import steamworksLight from "@/assets/sprites/cohesive/night/steamworks.webp";
 
 import townhallLight from "@/assets/sprites/night/townhall.webp";
 import fachwerkLight from "@/assets/sprites/cohesive/night/grain-fachwerk.webp";
-import steinhausLight from "@/assets/sprites/night/steinhaus.webp";
+import steinhausLight from "@/assets/sprites/cohesive/night/grain-steinhaus.webp";
 import handwerkerLight from "@/assets/sprites/cohesive/night/grain-handwerker.webp";
 import townhouseLight from "@/assets/sprites/cohesive/night/townhouse.webp";
 import townhouse2Light from "@/assets/sprites/cohesive/night/townhouse2.webp";
 import patricianLight from "@/assets/sprites/cohesive/night/grain-patrician.webp";
-import villaLight from "@/assets/sprites/night/villa.webp";
+import villaLight from "@/assets/sprites/cohesive/night/grain-villa.webp";
 import tenementLight from "@/assets/sprites/cohesive/night/tenement.webp";
 import gatehouseLight from "@/assets/sprites/night/gatehouse.webp";
 import warehouseLight from "@/assets/sprites/night/warehouse.webp";
@@ -176,7 +176,7 @@ type Sprite = { url: string; crop: [number, number, number, number]; width: numb
 // Alpha bounds remove unequal transparent margins. Width is in world pixels, not screen pixels.
 const sprites: Partial<Record<Kind, Sprite>> = {
   campfire: { url: campfire, crop: [0, 0, 480, 346], width: 7, base: 2.4 },
-  hut: { url: hut, crop: [0, 0, 470, 480], width: 16, base: 4 },
+  hut: { url: hut, crop: [0, 0, 480, 379], width: 16, base: 4 },
   coop: { url: coop, crop: [0, 0, 480, 450], width: 10, base: 4 },
   fence: { url: fence, crop: [0, 0, 480, 256], width: 11, base: 3 },
   chapel: { url: chapel, crop: [0, 0, 471, 480], width: 21, base: 4 },
@@ -201,10 +201,10 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   townhouse: { url: townhouse, crop: [0, 0, 252, 480], width: 17, base: 4 },
   townhouse2: { url: townhouse2, crop: [0, 0, 291, 480], width: 17, base: 4 },
   fachwerk: { url: fachwerk, crop: [0, 0, 473, 480], width: 21, base: 4 },
-  steinhaus: { url: steinhaus, crop: [0, 0, 306, 480], width: 19, base: 4 },
+  steinhaus: { url: steinhaus, crop: [0, 0, 334, 480], width: 19, base: 4 },
   handwerker: { url: handwerker, crop: [0, 0, 480, 445], width: 21, base: 4 },
   patrician: { url: patrician, crop: [0, 0, 340, 480], width: 23, base: 4 },
-  villa: { url: villa, crop: [0, 0, 480, 479], width: 26, base: 4 },
+  villa: { url: villa, crop: [0, 0, 480, 406], width: 26, base: 4 },
   tenement: { url: tenement, crop: [0, 0, 480, 461], width: 26, base: 4 },
   workshop: { url: workshop, crop: [0, 0, 994, 857], width: 23, base: 5 },
   smithy: { url: smithy, crop: [0, 0, 1008, 868], width: 23, base: 5 },
