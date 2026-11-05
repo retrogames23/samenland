@@ -9,6 +9,7 @@ export interface DigestItem {
   who: string
   context: string
   shots: string[]
+  email?: string
 }
 
 const KIND: Record<string, string> = { bug: 'Fehler', idea: 'Idee', other: 'Sonstiges' }
@@ -23,6 +24,7 @@ const BugDigest = ({ items = [] }: { items?: DigestItem[] }) => (
         {items.map((it, i) => (
           <Section key={i} style={card}>
             <Text style={meta}>{KIND[it.kind] ?? it.kind} · {it.at} · {it.who}</Text>
+            {it.email && (<Text style={meta}>Antwort an: <Link href={`mailto:${it.email}`} style={link}>{it.email}</Link></Text>)}
             <Text style={text}>{it.body}</Text>
             {it.shots.length > 0 && (
               <Text style={meta}>
