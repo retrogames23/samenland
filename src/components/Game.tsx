@@ -1613,7 +1613,25 @@ export function Game() {
     }, 15000);
     return () => window.clearInterval(id);
   }, [owner, my?.id, seeds]);
+  // test map: the control desk makes the village nearest the camera the "watched" one — its event opens the parchment and the camera glides there
+  const [labTown, setLabTown] = useState<Seed | null>(null);
+  const labTrigger = (code: string) => {
+    const [cx, cy] = toTile(cam.current.x, cam.current.y);
+    const lab = seeds.filter((s) => s.realm === "lab");
+    const s = lab.sort((a, b) => Math.hypot(a.x - cx, a.y - cy) - Math.hypot(b.x - cx, b.y - cy))[0];
+    if (!s) return;
+    const now = clock();
+    liveFrom.current = now + 1;
+    const ev = chronicle(s, seeds, now - 2000, now + 1000).events.filter((e) => e.code === code).pop();
+    const x = ev && "x" in ev ? ev.x : s.x, y = ev && "y" in ev ? ev.y : s.y;
+    const [gx, gy] = iso(x, y);
+    cam.current.zoom = Math.max(cam.current.zoom, 5);
+    camFree.current = true; fling.current = { vx: 0, vy: 0, t: performance.now() }; glide.current = { x: gx, y: gy };
+    setDeskOpen(false);
+    if (ev) { setLabTown(s); setFest((q) => [...q, ev].slice(-6)); }
+  };
   const festNow = !anyOpen && !decision.open && !chronOpen ? fest[0] : undefined;
+  const festSeed = my ?? labTown ?? undefined;
   const festSounded = useRef<ChronEvent | null>(null), giftSounded = useRef<string | null>(null);
   useEffect(() => {
     if (!festNow || festSounded.current === festNow) return;
