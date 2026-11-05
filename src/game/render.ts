@@ -1,4 +1,4 @@
-import { weatherAt } from "./weather";
+import { weatherAt, wetness, snowiness, stormDark } from "./weather";
 import deerWalkUrl from "@/assets/sprites/deer-walk.webp";
 import deerGrazeUrl from "@/assets/sprites/deer-graze.webp";
 import boarWalkUrl from "@/assets/sprites/boar-walk.webp";
@@ -583,7 +583,7 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
     if (s.fire) drawFire(c, cx, cy, t, sd, L);
-    if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour(), sunNow().rise, sunNow().set) || (isHomeKind(s.kind) && (sickLit(x, y) || christmasNight(renderNow))))) {
+    if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour(), sunNow().rise, sunNow().set) || (stormDark(renderNow) > 0.4 && STORM_LIT.has(s.kind) && localHour() >= 7 && localHour() < 20) || (isHomeKind(s.kind) && (sickLit(x, y) || christmasNight(renderNow))))) {
       L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip, style } });
     }
     if (s.kind === "mill" || s.kind === "watermill") {
@@ -1103,6 +1103,13 @@ const legsFor = (q: Pose) => !!HIPS[folkOf(q)];
 /** Painted villager sprite: faces the walking direction, bobs while walking, sways while working. */
 /** Mayor's insignia by honorary title (titleOfSeed): fur collar, judge's staff, own banner — drawn in the mirrored figure frame. */
 function insignia(c: C, q: Pose, hgt: number) {
+  // rain or snow: adults out of doors pull up a wool Gugel (hood with shoulder cape), each by own tolerance
+  const wxs = Math.max(wetness(renderNow), snowiness(renderNow));
+  if (wxs > 0.15 && q.p.age >= 12 && q.p.job !== "mayor" && !q.festive && !q.working && hash(q.p.id, 78, 5) < wxs * 1.4) {
+    const g = folkImage("gugel");
+    if (g) { const h = hgt * 0.42, w = h * g.naturalWidth / g.naturalHeight; c.drawImage(g, -w / 2 + hgt * 0.01, -hgt * 1.04, w, h); }
+    return;
+  }
   if (q.p.estate === "wealthy" && q.p.age >= 16 && q.p.job !== "mayor" && !q.working && !q.carry && !q.festive) {
     const hat = folkImage("beret");
     if (hat) { const h = hgt * 0.17, w = h * hat.naturalWidth / hat.naturalHeight; c.drawImage(hat, -w / 2, -hgt * 1.03, w, h); }
@@ -1138,8 +1145,15 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
   // zero-save placement: one absolute matrix (world × translate × mirror) instead of save/translate/scale/rotate/restore
   const B = c === folkCtx ? folkM! : c.getTransform(), fs = face < 0 ? -1 : 1;
-  c.setTransform(B.a * fs, B.b * fs, B.c, B.d, B.a * X + B.c * (Y - bob) + B.e, B.b * X + B.d * (Y - bob) + B.f);
+  // walkers lean into wind and rain a little (display only)
+  const lean = q.walking ? -0.09 * Math.max(wetness(renderNow), snowiness(renderNow)) * weatherAt(renderNow).wind : 0;
+  c.setTransform(B.a * fs, B.b * fs, B.a * fs * lean + B.c, B.b * fs * lean + B.d, B.a * X + B.c * (Y - bob) + B.e, B.b * X + B.d * (Y - bob) + B.f);
   if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
+  // frost and snow: a faint breath puff rises before the face every few seconds
+  if (snowiness(renderNow) > 0.15 || (frost(renderNow) && !q.walking)) {
+    const u = ((t / 1000 + hash(q.p.id, 79, 5) * 4) % 4) / 4;
+    if (u < 0.45) { const k = u / 0.45; c.fillStyle = `rgba(240,244,250,${0.35 * (1 - k)})`; c.beginPath(); c.ellipse(hgt * 0.16 + k * 0.9, -hgt * 0.86 - k * 0.8, 0.35 + k * 0.5, 0.25 + k * 0.35, 0, 0, 7); c.fill(); }
+  }
   const bowed = q.working && pealPause(renderNow) && PEAL_JOBS.has(q.p.job);
   const jw = q.working && !bowed && !q.carry && !kid ? JOB_WORK[q.p.job] : undefined;
   const fishing = q.p.job !== "fisher" || fishingNow(localHour(), isRestDay(renderNow), seasonAt(renderNow).winter);
@@ -1487,6 +1501,8 @@ export function prewarmOverview() {
   ric ? ric(go) : setTimeout(go, 800);
 }
 
+/** Crafts that need light to work: their windows glow by day under a dark storm sky. */
+const STORM_LIT: ReadonlySet<string> = new Set(["bakery", "smithy", "inn", "workshop", "guildhall", "chapel", "church"]);
 /** Weather veil (weather.ts, display only): gloom, mist banks, scrolling rain/snow tiles, rare lightning. */
 let wxTiles: { rain?: HTMLCanvasElement; snow?: HTMLCanvasElement } = {};
 function wxTile(kind: "rain" | "snow"): HTMLCanvasElement | null {
