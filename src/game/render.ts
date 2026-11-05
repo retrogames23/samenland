@@ -1613,7 +1613,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
   }
   c.setTransform(1, 0, 0, 1, 0, 0);
   // same dusk/night grade as the close view, so zooming out never jumps to daylight
-  drawWeather(c, w, h, dpr, t);
+  drawWeather(c, w, h, dpr, performance.now());
   const night = skyTint(c, w, h);
   if (night > 0.02) {
     c.globalCompositeOperation = "lighter";
@@ -3477,6 +3477,7 @@ export function draw(
   }
   c.fillStyle = vignette.g; c.fillRect(0, 0, w, h);
 
+  drawWeather(c, w, h, dpr, performance.now());
   const night = skyTint(c, w, h);
   if (night > 0.02) {
     c.globalCompositeOperation = "lighter";
