@@ -49,7 +49,7 @@ export type Person = {
   /** A beguine's sick call today: the home she nurses (derived from the Beginenhof and sickness calendar). */
   nurse?: Tile;
   /** Wedding procession: birth home → church → new home, starting at `at` (world ms); lag = seconds behind the couple. */
-  proc?: { at: number; from: Tile; to: Tile; lag: number; role: "bride" | "groom" | "guest" };
+  proc?: { at: number; from: Tile; to: Tile; lag: number; role: "bride" | "groom" | "guest"; via?: Tile; wait?: Tile };
   /** Inauguration of a just-finished landmark: walk there at `at` (+lag s) and gather at `spot` facing `face`. */
   fete?: { at: number; spot: Tile; face: Tile; lag: number; dur?: number; fire?: boolean; work?: boolean };
   /** A travelling visitor of the day's encounter: walks in from the edge at `at`, waits at `spot`, gone after `until`. */
@@ -274,15 +274,18 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   // in a village a wedding is a great day: everyone gathers at church after the service; in a town only the mayor's feast does that
   const wd = (s.decisions ?? []).filter((d) => d.event === "wedding" && d.choice === "feast" && now >= d.at && now - d.at < 3 * 3600e3).pop();
   const live = weddings.filter((w) => now >= w.at && now - w.at < 3 * 3600e3).pop();
-  const gatherAt = wd && weddings.some((w) => w.at <= wd.at && wd.at - w.at < 3 * 3600e3) ? wd.at : live && !live.town ? live.at + SERVICE_SECS * 1000 : null;
+  const gatherAt = wd && weddings.some((w) => w.at <= wd.at && wd.at - w.at < 3 * 3600e3) ? wd.at : live && !live.town ? live.at : null;
   // crowds stay a readable size: in big towns only a share comes, and the ring widens with the number gathered
   const CROWD = 24, share = (base: number) => Math.min(base, CROWD / Math.max(1, people.length));
   const widen = (base: number) => Math.max(1, Math.sqrt(Math.min(CROWD, people.length * base) / 12));
   if (gatherAt != null && now >= gatherAt) {
     const wdAt = gatherAt;
     const c = church ?? meet;
+    // a wedding crowd is the grown-up village: only a few children (siblings, flower children) come along
+    let kids = 0;
     for (const q of people) {
       if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 43, 720) >= share(0.8)) continue;
+      if (q.age < 15 && kids++ >= WED_KIDS) continue;
       const a = hash(q.id, 44, 720) * Math.PI * 2, rr = (1 + hash(q.id, 45, 720) * 1.8) * widen(0.8);
       q.fete = { at: wdAt, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 46, 720) * 180 };
     }
@@ -504,6 +507,8 @@ function falls(s: Seed, people: Person[], now: number, hof: Tile | null = null) 
 }
 /** Seconds of the wedding service inside the church. */
 export const SERVICE_SECS = 20 * 60;
+/** Children who join a village wedding crowd (the rest stay at play). */
+export const WED_KIDS = 3;
 /** The couple walks from their birth homes to church and home together; their parents follow as guests. */
 function processions(ws: Wedding[], people: Person[], church: Tile, now: number) {
   for (const w of ws) {
@@ -511,8 +516,10 @@ function processions(ws: Wedding[], people: Person[], church: Tile, now: number)
     const birth = (p: Person) => p.origin ?? p.hh!;
     const [g, b] = w.a.sex === "m" ? [w.a, w.b] : [w.b, w.a];
     const to = g.home;
-    g.proc = { at: w.at, from: hhTile(birth(g)), to, lag: 0, role: "groom" };
-    b.proc = { at: w.at, from: hhTile(birth(b)), to, lag: 0, role: "bride" };
+    // the groom first fetches his bride at her parents' door, then both walk to church side by side
+    const bt = hhTile(birth(b));
+    g.proc = { at: w.at, from: hhTile(birth(g)), via: bt, to, lag: 0, role: "groom" };
+    b.proc = { at: w.at, from: bt, wait: hhTile(birth(g)), to, lag: 0, role: "bride" };
     let k = 0;
     for (const q of people) if (!q.proc && (q.role === "head" || q.role === "spouse") && (q.hh === birth(g) || q.hh === birth(b)) && q.spouse !== g.id && q.spouse !== b.id && q !== g && q !== b)
       q.proc = { at: w.at, from: q.home, to, lag: 6 + 5 * k++, role: "guest" };
@@ -1186,19 +1193,36 @@ export const PROC_SPEED = 0.12;
 /** Where a procession member is: walking to church, inside for the service, walking to the new home, then guests linger. */
 function procPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): Pose | null {
   const pr = p.proc!, church = t.church ?? t.meet;
-  const leg = (A: Tile, B: Tile) => { const a = doorOf(t, A, seeds), b = t.church ? doorOf(t, B, seeds) : B; return [a, ...route(t, [Math.round(a[0]), Math.round(a[1])], [Math.round(b[0]), Math.round(b[1])], seeds).slice(1, -1), b]; };
-  const p1 = leg(pr.from, church), l1 = lenOf(p1);
+  const leg = (A: Tile, B: Tile, inB: boolean) => { const a = doorOf(t, A, seeds), b = inB ? doorOf(t, B, seeds) : B; return [a, ...route(t, [Math.round(a[0]), Math.round(a[1])], [Math.round(b[0]), Math.round(b[1])], seeds).slice(1, -1), b]; };
+  // groom: own door -> bride's door -> church; bride waits at her door until he arrives, then both walk together
+  const meetPath = pr.via ? leg(pr.from, pr.via, true) : pr.wait ? leg(pr.wait, pr.from, true) : null;
+  const tMeet = meetPath ? lenOf(meetPath) / PROC_SPEED : 0;
+  const start = pr.via ?? pr.from;
+  const toCh = leg(start, church, !!t.church);
+  const p1 = pr.via && meetPath ? [...meetPath, ...toCh.slice(1)] : toCh, l1 = lenOf(p1);
   const ch = p1[p1.length - 1]!;
-  const p2 = [ch, ...route(t, [Math.round(ch[0]), Math.round(ch[1])], [Math.round(pr.to[0]), Math.round(pr.to[1])], seeds).slice(1, -1), doorOf(t, pr.to, seeds)], l2 = lenOf(p2);
-  const secs = (now - pr.at) / 1000 - pr.lag;
+  // in front of the portal: the couple side by side, facing the gathered village
+  const side = pr.role === "groom" ? -0.28 : pr.role === "bride" ? 0.28 : 0;
+  const stand: Tile = [ch[0] + side, ch[1] + 0.45];
+  const p2 = [stand, ...route(t, [Math.round(ch[0]), Math.round(ch[1])], [Math.round(pr.to[0]), Math.round(pr.to[1])], seeds).slice(1, -1), doorOf(t, pr.to, seeds)], l2 = lenOf(p2);
+  let secs = (now - pr.at) / 1000 - pr.lag;
   if (secs < 0) return null;
   const festive = pr.role === "guest" ? undefined : pr.role;
-  const walk = (pts: Tile[], dd: number) => { const q = along(pts, dd); return q ? { ...base, ...q, visible: true, walking: true, act: "wedding" as Activity, phase: dd / STRIDE, festive } : null; };
-  const t1 = l1 / PROC_SPEED;
-  if (secs < t1) return walk(p1, secs * PROC_SPEED);
-  if (secs < t1 + SERVICE_SECS) return { ...base, x: ch[0], y: ch[1], visible: !t.church, act: "wedding", festive };
+  const walk = (pts: Tile[], dd: number, dx = 0) => { const q = along(pts, dd); return q ? { ...base, ...q, x: q.x + dx, visible: true, walking: true, act: "wedding" as Activity, phase: dd / STRIDE, festive } : null; };
+  // the bride, dressed, waits on her doorstep for the groom
+  if (pr.wait) {
+    if (secs < tMeet) { const d = doorOf(t, pr.from, seeds); return { ...base, x: d[0], y: d[1] + 0.3, visible: true, walking: false, act: "wedding", festive, dir: [0, 1] }; }
+    secs -= tMeet;
+  }
+  const t1 = (pr.wait ? lenOf(toCh) : l1) / PROC_SPEED, path1 = pr.wait ? toCh : p1;
+  const off2 = pr.role === "bride" ? 0.3 : 0;
+  if (secs < t1) return walk(path1, secs * PROC_SPEED, (pr.via && secs * PROC_SPEED > tMeet * PROC_SPEED) || pr.wait ? off2 : 0);
+  if (secs < t1 + SERVICE_SECS) {
+    if (pr.role === "guest") { const o = off(p, 11, 0.5); return { ...base, x: ch[0] + o[0], y: ch[1] + 1.1 + Math.abs(o[1]), visible: true, walking: false, act: "wedding", dir: [0, -1] }; }
+    return { ...base, x: stand[0], y: stand[1], visible: true, walking: false, act: "wedding", festive, dir: [0, 1] };
+  }
   const s2 = secs - t1 - SERVICE_SECS, t2 = l2 / PROC_SPEED;
-  if (s2 < t2) return walk(p2, s2 * PROC_SPEED);
+  if (s2 < t2) return walk(p2, s2 * PROC_SPEED, off2);
   // guests stand outside the new home for half an hour, the couple has gone in
   if (pr.role === "guest" && s2 < t2 + 1800) { const d = doorOf(t, pr.to, seeds), o = off(p, 9, 0.6); return { ...base, x: d[0] + o[0], y: d[1] + o[1], visible: freeAt(t, d[0] + o[0], d[1] + o[1], seeds), act: "wedding", dir: [-o[0] || 1, -o[1]] }; }
   return null;

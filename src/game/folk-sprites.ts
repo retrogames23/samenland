@@ -5,6 +5,8 @@ import legsM from "@/assets/sprites/folk/legs-m.webp";
 import woman from "@/assets/sprites/folk/woman.webp";
 import child from "@/assets/sprites/folk/child.webp";
 import childWalk from "@/assets/sprites/folk/child-walk.webp";
+import girl from "@/assets/sprites/folk/girl.webp";
+import girlWalk from "@/assets/sprites/folk/girl-walk.webp";
 import elder from "@/assets/sprites/folk/elder.webp";
 import builder from "@/assets/sprites/folk/builder.webp";
 import builderF from "@/assets/sprites/folk/builder-f.webp";
@@ -69,7 +71,7 @@ import cooper from "@/assets/sprites/folk/cooper.webp";
 import loom from "@/assets/sprites/folk/loom.webp";
 import bannerClothUrl from "@/assets/sprites/folk/banner-cloth.webp";
 
-const URLS = { sheaf, woodpile, iceTrough, strawWrap, laundry, wattle, cooper, loom, man, manWalk, legsM, woman, child, childWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, chain, beret, gugel, collar, staff, flourSacks, breadBasket, fishBasket, sparks, woodcutterWork, woodcutterFWork, masonWork, masonFWork, builderWork, builderFWork, gatherWork, gatherFWork, talkWork, talkFWork, talkWorkYoung, talkWorkMid, talkWorkOld, talkFWorkMid, talkFWorkMature, talkFWorkOld };
+const URLS = { sheaf, woodpile, iceTrough, strawWrap, laundry, wattle, cooper, loom, man, manWalk, legsM, woman, child, childWalk, girl, girlWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, chain, beret, gugel, collar, staff, flourSacks, breadBasket, fishBasket, sparks, woodcutterWork, woodcutterFWork, masonWork, masonFWork, builderWork, builderFWork, gatherWork, gatherFWork, talkWork, talkFWork, talkWorkYoung, talkWorkMid, talkWorkOld, talkFWorkMid, talkFWorkMature, talkFWorkOld };
 export type FolkSprite = keyof typeof URLS;
 /** Mayor age cohorts 20–70: same 6-frame robe sheet layout per cohort, so standing, talking and walking all age together. */
 export type Cohort = "young" | "mid" | "mature" | "old";
@@ -105,7 +107,7 @@ export function bannerCloth(hue: number): HTMLCanvasElement | null {
 
 /** Painted walk cycles: horizontal strips of WALK_FRAMES frames (contact, down, passing, up, …). */
 export const WALK_FRAMES = 6;
-const WALKS: Partial<Record<FolkSprite, FolkSprite>> = { child: "childWalk" }; // men now use the shared legs-m cycle in render.ts
+const WALKS: Partial<Record<FolkSprite, FolkSprite>> = { child: "childWalk", girl: "girlWalk" }; // men now use the shared legs-m cycle in render.ts
 /** Painted 6-frame harvest cycles (scythe for men, sickle and sheaf for women), feet centred in each frame. */
 const WORKS: Partial<Record<FolkSprite, FolkSprite>> = { farmer: "farmerMow" as FolkSprite, farmerF: "farmerFMow" as FolkSprite };
 export const workSheet = (k: FolkSprite) => { const w = WORKS[k]; return w ? folkImage(w) : null; };
