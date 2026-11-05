@@ -109,10 +109,10 @@ export const visitClaims = (rows: Visit[]): QuestClaim[] => rows.map((v) => ({ i
  * days from CHEST_SINCE on, so balances earned before the rule are never cut (mirrors DB village_capped_tax).
  */
 export const CHEST_SINCE = Date.parse("2026-10-31T00:00:00Z");
-export const CHEST_BASE = 800;
+export const CHEST_BASE = 1200;
 export const CHEST_STEPS = ["chest2", "chest3", "chest4"] as const;
 export type ChestStep = (typeof CHEST_STEPS)[number];
-export const CHEST_CAP = { chest2: 2500, chest3: 6000, chest4: 15000 } as const;
+export const CHEST_CAP = { chest2: 4000, chest3: 10000, chest4: 25000 } as const;
 export const CHEST_PRICE = { chest2: 250, chest3: 800, chest4: 2000 } as const;
 /** Real age (hours): Dorf, Handelsstadt, Großstadt. */
 export const CHEST_HOURS = { chest2: 168, chest3: 2160, chest4: 4380 } as const;

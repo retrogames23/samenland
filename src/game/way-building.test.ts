@@ -7,8 +7,8 @@ const sum = (b: { food?: number; health?: number; wealth?: number }) => (b.food 
 describe("way buildings", () => {
   it("each character gets one Dorf building for 380 and one Handelsstadt building for 700", () => {
     for (const [small, big] of [["bigstore", "millrow"], ["stonemason", "hammerworks"], ["smokehouse", "saltquay"]] as const) {
-      expect(ITEMS[small]).toBe(380); expect(ITEM_STAGE[small]).toBe(2);
-      expect(ITEMS[big]).toBe(700); expect(ITEM_STAGE[big]).toBe(4);
+      expect(ITEMS[small]).toBe(380); expect(ITEM_STAGE[small]).toBe(1);
+      expect(ITEMS[big]).toBe(700); expect(ITEM_STAGE[big]).toBe(3);
     }
   });
   it("bonus totals are equal per tier (20 / 30)", () => {

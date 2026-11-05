@@ -7,7 +7,7 @@ const base: Seed = { id: "c1", name: "a", owner: "o", x: 500, y: 500, hue: 0, cr
 describe("community buildings", () => {
   it("prices and unlock eras", () => {
     expect([ITEMS.backhaus, ITEMS.herberge, ITEMS.beginen]).toEqual([260, 420, 900]);
-    expect([ITEM_STAGE["backhaus"], ITEM_STAGE["herberge"], ITEM_STAGE["beginen"]]).toEqual([2, 2, 3]);
+    expect([ITEM_STAGE["backhaus"], ITEM_STAGE["herberge"], ITEM_STAGE["beginen"]]).toEqual([1, 1, 2]);
   });
   it("hostel makes bought builds 15 % faster", () => {
     const h = { ...base, bought: [{ item: "herberge", at: 0 }] } as Seed;
