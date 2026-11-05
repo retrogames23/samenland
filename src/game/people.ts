@@ -1,3 +1,4 @@
+import { NAMES_F, NAMES_M, SURNAMES } from "./names";
 import { setChosenTraits } from "./traits";
 import { cacheTick, isSunday } from "./time";
 import { civicWealth, estateAt, CULTURE_SICK, BEGINEN_SICK, type Estate } from "./prosperity";
@@ -82,9 +83,13 @@ export type Pose = {
   bucket?: boolean | undefined;
 };
 
-const F = ["Greta", "Ida", "Frieda", "Lotte", "Marie", "Anna", "Clara", "Hedwig", "Emma", "Rosa", "Lina", "Mathilda", "Elsa", "Paula", "Wilma", "Martha", "Johanna", "Thea", "Ella", "Luise"];
-const M = ["Otto", "Karl", "Emil", "Fritz", "Hans", "Paul", "Anton", "Jakob", "Franz", "Ludwig", "Willi", "Bruno", "Gustav", "Oskar", "Theo", "Konrad", "Max", "Albert", "Heinrich", "Leo"];
-const S = ["Hollmann", "Brandt", "Weber", "Müller", "Becker", "Lindner", "Kraus", "Vogt", "Seidel", "Hartmann", "Ebert", "Moosbauer", "Winter", "Sommer", "Fink", "Haas", "Kessler", "Roth", "Albers", "Pfeiffer", "Graf", "Kühn"];
+const F = NAMES_F, M = NAMES_M, S = SURNAMES;
+/** First name unique within a town while the pool lasts: hash pick, then step on (linear probe) past names already taken. */
+const pickFree = (a: readonly string[], h: number, used: Set<string>) => {
+  const i0 = Math.floor(h * a.length) % a.length;
+  for (let k = 0; k < a.length; k++) { const n = a[(i0 + k) % a.length]!; if (!used.has(n)) { used.add(n); return n; } }
+  return a[i0]!;
+};
 const pick = <T,>(a: readonly T[], h: number) => a[Math.floor(h * a.length) % a.length]!;
 
 /** Kinds people live in. */
@@ -191,6 +196,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const anvils = new Set<string>();
   const anvilOut = (w: Tile) => { const k = `${w[0]},${w[1]}`; if (anvils.has(k)) return false; anvils.add(k); return true; };
   const created = Date.parse(s.created_at);
+  const taken = new Set<string>();
   for (const { home, size, unit = 0 } of households) {
     const key = dwellingKey(home[0], home[1], unit);
     const hh = (i: number) => hash(home[0], home[1], 400 + i + unit * 40);
@@ -232,7 +238,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       }
       const kid = age < 14, old = age >= 65;
       people.push({
-        id, seed: s, first: pick(sex === "f" ? F : M, h(10)), last, sex, age, job, home, work,
+        id, seed: s, first: pickFree(sex === "f" ? F : M, h(10), taken), last, sex, age, job, home, work,
         // only one smith per forge hammers outside at the anvil; the journeymen work at the indoor hearth
         workIndoor: job === "smith" && work ? !anvilOut(work) : !OUTDOOR_WORK.has(job) && job !== "homemaker",
         speed: (kid ? 0.3 : old ? 0.15 : 0.22) * (0.85 + h(11) * 0.3),
