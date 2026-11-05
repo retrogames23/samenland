@@ -23,10 +23,13 @@ export function Parchment({ image, title, later, onLater, wide, children }: {
         onTouchEnd={(e) => { if (y0.current != null && e.changedTouches[0]!.clientY - y0.current > 80) onLater(); y0.current = null; }}
         className={`parchment relative max-h-full w-full overflow-auto overscroll-contain max-md:max-h-[88dvh] max-md:rounded-b-none max-md:pb-[env(safe-area-inset-bottom)] max-md:animate-in max-md:slide-in-from-bottom ${wide ? "max-w-2xl" : "max-w-xl"} max-md:max-w-none`}>
         <div aria-hidden className="sticky top-0 z-10 mx-auto h-0 md:hidden"><div className="mx-auto mt-1.5 h-1 w-12 rounded-full bg-ink/30" /></div>
-        <button type="button" aria-label={later} onClick={onLater}
-          className="hit absolute end-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-parchment/80 text-ink/60 shadow-sm hover:bg-parchment hover:text-ink md:h-7 md:w-7">
-          <X className="h-4 w-4" />
-        </button>
+        {/* zero-height sticky rail keeps the close cross in reach while the parchment scrolls */}
+        <div className="sticky top-0 z-20 h-0">
+          <button type="button" aria-label={later} onClick={onLater}
+            className="hit absolute end-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-parchment/90 text-ink/60 shadow-sm hover:bg-parchment hover:text-ink md:h-7 md:w-7">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
         {image && (
           <img src={image} alt="" width={768} height={480} className="parchment-art mx-auto block aspect-[16/10] max-h-[22dvh] w-full object-cover sm:max-h-[36vh]" />
         )}
