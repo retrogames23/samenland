@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Parchment } from "@/components/hud/Parchment";
 import { Input } from "@/components/ui/input";
 import { rollOf, matches } from "@/game/roll";
@@ -12,8 +12,6 @@ export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T
   const [job, setJob] = useState("");
   const [sort, setSort] = useState<"house" | "name" | "age">("house");
   const [open, setOpen] = useState<Set<number>>(new Set());
-  const listRef = useRef<HTMLDivElement>(null);
-  const [more, setMore] = useState(false);
   const roll = useMemo(() => rollOf(town.people), [town]);
   const big = roll.total > 300;
   const jobs = useMemo(() => [...new Set(roll.households.flatMap((h) => h.people.map((p) => p.job)))].sort(), [roll]);
@@ -40,9 +38,6 @@ export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T
     if (sort === "age") all.sort((a, b) => b.age - a.age);
     return all;
   }, [roll, q, job, sort, filtering]);
-  // show a soft fade + chevron while the roll can be scrolled further down
-  const checkMore = () => { const el = listRef.current; if (el) setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 8); };
-  useEffect(checkMore, [roll, filtering, flat, open]);
 
   return (
     <Parchment wide title={t.roll.title} later={t.close} onLater={onClose}>
