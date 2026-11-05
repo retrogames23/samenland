@@ -105,3 +105,56 @@ export const FEAST_BANTER: Record<Lang, F> = {
     allsaints: ["今日は墓地に死者のための灯がともる。"],
   },
 };
+
+/** Stage 2 lines about the feast figures on the map (star singers, fools, Whitsun ox, St Martin). */
+const FIGURES: Record<Lang, F> = {
+  de: {
+    epiphany: ["Die Sternsinger waren da! Für ein Stück Brot haben sie ein ganzes Lied gesungen.", "Dree Könige mit en Steern – un keen een kann den Ton holen."],
+    shrovetide: ["Da hüpft schon wieder so ein Narr mit Schellen vorbei. Mein Kopf!", "Wer die Schellenkappe trägt, darf heut alles sagen. Fast alles."],
+    pentecost: ["Habt ihr den Pfingstochsen gesehen? Schöner geschmückt als die Braut letztes Jahr.", "De Pingstoss kriggt mehr Bänner as ik in min ganzes Leben."],
+    martinmas: ["Sünte Martin is to Peerd kamen – mit dem halben Mantel!", "Die Kinder sind ihm bis zur Kirche nachgerannt. Heut Abend gibt's Laternen."],
+  },
+  en: {
+    epiphany: ["The star singers came by! A whole song for a crust of bread.", "Three kings with a star – and not one of them can hold a tune."],
+    shrovetide: ["Another fool jingling past. My head!", "Who wears the bells may say anything today. Nearly anything."],
+    pentecost: ["Did you see the Whitsun ox? Finer dressed than last year's bride.", "That ox has more ribbons than I'll own in my life."],
+    martinmas: ["St Martin rode in – with half his cloak!", "The children ran after him to the church. Lanterns tonight."],
+  },
+  fr: {
+    epiphany: ["Les chanteurs à l'étoile sont passés ! Toute une chanson pour un quignon de pain."],
+    shrovetide: ["Encore un fou à grelots qui gambade. Ma tête !"],
+    pentecost: ["Tu as vu le bœuf de Pentecôte ? Plus paré que la mariée de l'an dernier."],
+    martinmas: ["Saint Martin est arrivé à cheval – avec la moitié de son manteau !", "Ce soir, les enfants sortent les lanternes."],
+  },
+  es: {
+    epiphany: ["¡Han pasado los cantores de la estrella! Una canción entera por un mendrugo."],
+    shrovetide: ["Otro loco con cascabeles dando saltos. ¡Mi cabeza!"],
+    pentecost: ["¿Has visto el buey de Pentecostés? Más adornado que la novia del año pasado."],
+    martinmas: ["¡San Martín llegó a caballo, con medio manto!", "Esta noche los niños sacan los farolillos."],
+  },
+  ar: {
+    epiphany: ["مرّ منشدو النجمة! أنشدوا أغنية كاملة مقابل كسرة خبز."],
+    shrovetide: ["مهرّج آخر بأجراسه يقفز أمامنا. يا لرأسي!"],
+    pentecost: ["هل رأيت ثور العنصرة؟ مزيّن أكثر من عروس العام الماضي."],
+    martinmas: ["جاء القديس مارتن على فرسه – بنصف عباءته!", "الليلة يحمل الأطفال الفوانيس."],
+  },
+  hi: {
+    epiphany: ["तारा-गायक आए थे! रोटी के एक टुकड़े के लिए पूरा गीत गाया।"],
+    shrovetide: ["फिर एक घुँघरू वाला विदूषक उछलता गया। मेरा सिर!"],
+    pentecost: ["पेंटेकोस्ट का बैल देखा? पिछले साल की दुल्हन से भी ज़्यादा सजा है।"],
+    martinmas: ["संत मार्टिन घोड़े पर आए – आधे लबादे के साथ!", "आज शाम बच्चे लालटेन लेकर घूमेंगे।"],
+  },
+  zh: {
+    epiphany: ["唱星歌的孩子们来过了！为一块面包唱了一整首歌。"],
+    shrovetide: ["又一个戴铃铛的小丑蹦过去了。我的头啊！"],
+    pentecost: ["看见圣灵降临节的牛了吗？打扮得比去年的新娘还漂亮。"],
+    martinmas: ["圣马丁骑马来了——只剩半件斗篷！", "今晚孩子们提着灯笼游村。"],
+  },
+  ja: {
+    epiphany: ["星の歌い手が来たよ！パンひとかけらのために一曲まるごと歌っていった。"],
+    shrovetide: ["また鈴の道化が跳ねていった。頭が痛い！"],
+    pentecost: ["聖霊降臨祭の牛を見た？去年の花嫁より飾り立ててる。"],
+    martinmas: ["聖マルティンが馬でやって来た――マントは半分だけ！", "今夜は子どもたちが提灯を持って歩く。"],
+  },
+};
+for (const l of Object.keys(FIGURES) as Lang[]) for (const [k, v] of Object.entries(FIGURES[l]) as [FeastCode, string[]][]) (FEAST_BANTER[l][k] ??= []).push(...v);
