@@ -1,5 +1,6 @@
 import { hi } from "./lang/hi";
 import { COMMONS_TEXT } from "./lang/commons";
+import { HISTORY_TEXT } from "./lang/history";
 import { es } from "./lang/es";
 import { ar } from "./lang/ar";
 import { fr } from "./lang/fr";
@@ -1526,6 +1527,8 @@ export type Dict = typeof de;
 for (const l of Object.keys(DICT) as Lang[]) {
   Object.assign(DICT[l].enc.events, COMMONS_TEXT[l].events);
   Object.assign(DICT[l].enc.choices, COMMONS_TEXT[l].choices);
+  Object.assign(DICT[l].enc.events, HISTORY_TEXT[l].events);
+  Object.assign(DICT[l].enc.choices, HISTORY_TEXT[l].choices);
 }
 
 

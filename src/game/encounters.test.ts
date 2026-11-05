@@ -34,7 +34,7 @@ describe("encounters", () => {
 
 describe("encounter catalogue", () => {
   it("has 23 drawable visitors plus the real wedding, the retired flood and 3 commons questions", () => {
-    expect(Object.keys(ENCOUNTERS).length).toBe(28);
+    expect(Object.keys(ENCOUNTERS).length).toBe(32);
     const seen = new Set(Array.from({ length: 2000 }, (_, n) => eventOf("s" + n, 0)));
     expect(seen.has("wedding")).toBe(false); expect(seen.has("flood")).toBe(false);
   });
@@ -71,5 +71,23 @@ describe("wedding encounter follows the real wedding calendar", () => {
 describe("visible-only encounters", () => {
   it("never offers the text-only flood encounter", () => {
     for (let n = 0; n < 200; n++) expect(eventOf("flood-check", n)).not.toBe("flood");
+  });
+});
+
+import { historyDue, HISTORY } from "./encounters";
+describe("historical news 1500/1501", () => {
+  const seed = { id: "h", created_at: "2026-10-01T00:00:00Z" };
+  it("recruiters come in winter 1500/01, once per village", () => {
+    const t = Date.UTC(2026, 11, 1);
+    expect(historyDue(seed, [], t)).toBe("werber");
+    expect(historyDue(seed, [{ event: "werber", choice: "fodder", at: t - 1, cost: 30 }], t)).toBeNull();
+  });
+  it("nothing outside the windows, nothing for villages younger than a day", () => {
+    expect(historyDue(seed, [], Date.UTC(2027, 3, 1))).toBeNull();
+    expect(historyDue({ created_at: "2027-11-20T00:00:00Z" }, [], Date.UTC(2027, 10, 20, 12))).toBeNull();
+    expect(historyDue(seed, [], Date.UTC(2027, 10, 20))).toBe("ablass");
+  });
+  it("windows follow the real dates of 1501 (game year = real year - 526)", () => {
+    expect(new Date(HISTORY.find((h) => h.key === "weser")!.from).toISOString().slice(0, 10)).toBe("2027-05-25");
   });
 });

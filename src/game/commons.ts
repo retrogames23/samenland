@@ -5,7 +5,7 @@
  * Every answer leaves a visible trace on the map (pigs under the oaks, the bake-day queue, the footbridge).
  */
 import { terrain, buildable, riverDistAt, hash, MAP, type Seed } from "./world";
-import { pendingEncounter, ENCOUNTER_FROM, COMMONS_KEYS, type Decision, type EventKey } from "./encounters";
+import { pendingEncounter, historyDue, ENCOUNTER_FROM, COMMONS_KEYS, type Decision, type EventKey } from "./encounters";
 import { worldHour, workDone } from "./time";
 import { seasonAt } from "./season";
 import type { Person, Job } from "./people";
@@ -88,7 +88,7 @@ export function commonsDue(s: Seed, decisions: Decision[], growthH: number): Com
 export function pendingAll(s: Seed, decisions: Decision[], now: number, growthH: number): EventKey | null {
   const p = pendingEncounter(s, decisions, now);
   if (!p || p === "wedding") return p;
-  return commonsDue(s, decisions, growthH) ?? p;
+  return historyDue(s, decisions, now) ?? commonsDue(s, decisions, growthH) ?? p;
 }
 
 const latest = (decisions: Decision[], event: string, choice: string | null, now: number, ms: number) =>
