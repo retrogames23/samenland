@@ -184,7 +184,7 @@ export const signFocus: { k: number; until: number } = { k: -1, until: 0 };
 function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking: boolean, graze: boolean, sleeping: boolean) {
   const sheet = walking ? sheepWalkImage() : null;
   const im = sheepImage(graze && !walking, sleeping); if (!im) return;
-  const w = 5.2;
+  const w = 4.6;
   // walking: real painted 4-frame leg cycle, cross-faded so steps flow; body dips on each hoof fall
   // unhurried gait (~2.8 frames/s) matched to the slow walk, so hooves don't trip on the spot
   const ph = walking ? t / 360 : 0, f0 = Math.floor(ph) & 3, mix = ph - Math.floor(ph);
@@ -300,7 +300,7 @@ function drawFlood(c: C, cx: number, cy: number, t: number, sd: number) {
 /** Robber: sneaks in from the forest edge, past the houses, and out again. */
 function drawRobber(c: C, X: number, Y: number, flip: boolean, t: number) {
   const im = folkImage("robber"); if (!im) return;
-  const h = 5.2, w = (h * im.naturalWidth) / im.naturalHeight;
+  const h = 4.4, w = (h * im.naturalWidth) / im.naturalHeight;
   c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
   // sneaking: crouched torso on the shared painted leg cycle, slow careful steps
   const ph = t / 260, legs = folkImage("legsM"), crouch = 0.04 + Math.abs(Math.sin(ph * Math.PI)) * 0.05;
@@ -997,7 +997,7 @@ function insignia(c: C, q: Pose, hgt: number) {
 let folkCtx: C | null = null, folkM: DOMMatrix | null = null, folkFrame = -1;
 function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const k = folkOf(q), im = folkImage(k); if (!im) return null;
-  const kid = k === "child", hgt = kid ? 3.2 + q.p.age * 0.08 : 5.2;
+  const kid = k === "child", hgt = kid ? 2.7 + q.p.age * 0.07 : 4.4;
   const w = (hgt * im.naturalWidth) / im.naturalHeight;
   const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + hash(q.p.id, 77, 5) * 6.2832;
   const painted = q.walking && (!!walkSheet(k) || legsFor(q));
@@ -1530,7 +1530,7 @@ function drawRoadWorks(c: C, x: number, y: number, dx: number, dy: number, t: nu
     const wx = x + dx * (2 + w * 3) + nx * (w ? -1.5 : 1.5), wy = y + dy * (2 + w * 3) + ny * (w ? -0.8 : 0.8);
     const jw = JOB_WORK[w ? "builder" : "mason"]!, sheet = folkImage(jw.m), im = folkImage(w ? "builder" : "mason");
     if (!sheet && !im) continue;
-    const h = 5.2;
+    const h = 4.4;
     c.fillStyle = "rgba(20,15,10,0.25)"; c.beginPath(); c.ellipse(wx + 0.5, wy, 1.6, 0.55, 0, 0, 7); c.fill();
     c.save(); c.translate(wx, wy); if ((dx >= 0 ? 1 : -1) * (w ? -1 : 1) < 0) c.scale(-1, 1);
     c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
@@ -2002,9 +2002,9 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
       c.stroke();
     }
     if (row && !a.winter && grows) {
-      const w = ripe ? 4.6 : 4.2, hgt = (w * row.height) / row.width, flipRow = !along;
-      for (let k = -2; k <= 2; k++) for (let m = -3; m <= 3; m += 2) {
-        const f = k / 4, gg = m * 0.13 + (hash(x * 5 + k, y * 3 + m, 640) - 0.5) * 0.05;
+      const w = ripe ? 3.4 : 3.1, hgt = (w * row.height) / row.width, flipRow = !along;
+      for (let k = -3; k <= 3; k++) for (let m = -5; m <= 5; m += 2) {
+        const f = k / 6, gg = m * 0.085 + (hash(x * 5 + k, y * 3 + m, 640) - 0.5) * 0.05;
         const [px, py] = along ? pp(gg, f) : pp(f, gg);
         c.fillStyle = "rgba(30,22,10,0.22)"; c.beginPath(); c.ellipse(px + 0.6, py + 0.3, w * 0.42, 1.2, 0, 0, 7); c.fill();
         c.save(); c.translate(px, py); if (flipRow) c.scale(-1, 1);
@@ -2157,7 +2157,7 @@ let supportOwned = new Map<string, Set<string>>();
 export function setSupportOwned(m: Map<string, Set<string>>) { supportOwned = m; }
 /** Last drawn dog position per village (world tiles), so the UI can react to clicks on it. */
 export const dogSpots = new Map<string, { x: number; y: number }>();
-const DOG_W = 2.4; // small curly dog: knee-high next to a 5.2-unit villager
+const DOG_W = 2.1; // small curly dog: knee-high next to a 5.2-unit villager
 /** Village dog: painted 4-frame trot cycle stepped by distance (no foot sliding), sit and curled-up sleep poses. */
 function drawDog(c: C, d: DogPose, px: number, py: number, t: number, seedK: number) {
   c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
@@ -2333,7 +2333,7 @@ type LabEntry = { label: string; h: number; cfg: FigureConfig | null; draw: (c: 
 function labEntries(): LabEntry[] {
   const out: LabEntry[] = [];
   const folk = (k: FolkSprite, robe = false): LabEntry => ({
-    label: k, h: 5.2, cfg: robe ? fig(0.5, 0.8, { style: "robe" }) : (HIPS[k] ?? DEFAULT_FIG),
+    label: k, h: 4.4, cfg: robe ? fig(0.5, 0.8, { style: "robe" }) : (HIPS[k] ?? DEFAULT_FIG),
     draw: (c, _w, h, ph) => {
       const im = folkImage(k); if (!im) return null;
       const w = (h * im.naturalWidth) / im.naturalHeight, bob = -walkBob(ph, h);
@@ -2472,7 +2472,7 @@ function drawPig(c: C, x: number, y: number, now: number, sd: number) {
 function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number) {
   const im = huntIm("cow", cowUrl); if (!im) return;
   // shoulder just below a villager's head (person 5.2 tall), like a real cow beside a farmer
-  const w = 6, h = (im.naturalHeight / im.naturalWidth) * w;
+  const w = 5.2, h = (im.naturalHeight / im.naturalWidth) * w;
   const night = animalsSleeping(now);
   // grazes at one spot ~40-55 s, then ambles slowly (7 s) to the next one instead of teleporting
   const CYC = 48000, WALK = 7000, tt = now + hash(sd, i, 1500) * CYC, k = Math.floor(tt / CYC), u = tt - k * CYC;
