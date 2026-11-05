@@ -7,6 +7,8 @@ import type { Lang } from "./i18n";
 import type { Trait } from "./traits";
 import { SEASON_BANTER } from "./lang/banter-season";
 import { seasonAt } from "./season";
+import { feastOn } from "./feasts";
+import { FEAST_BANTER } from "./lang/banter-feast";
 import { clock } from "./time";
 
 const recent: string[] = [];
