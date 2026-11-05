@@ -1,3 +1,4 @@
+import { weatherAt } from "./weather";
 import deerWalkUrl from "@/assets/sprites/deer-walk.webp";
 import deerGrazeUrl from "@/assets/sprites/deer-graze.webp";
 import boarWalkUrl from "@/assets/sprites/boar-walk.webp";
@@ -156,11 +157,13 @@ function tree(c: C, x: number, y: number, s: number, t: number, v: number, sd: n
   if (drawNature(c, k, x, y, s, sway, hash(sd, 5, 5) > 0.5)) return;
   blob(c, x, y - 7 * s, 4 * s, hsl(100, 30, 40), sd, false);
 }
+let smokeWind = 0.3;
 /** Soft drifting smoke haze: feathered puffs with no hard edge, fading as they rise. */
 function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
   for (let i = 0; i < 5; i++) {
     const ph = (t / (3600 * big) + hash(sd, 1, 1) + i / 5) % 1;
-    const px = x + ph * 6 * big + Math.sin(ph * 5 + sd) * 1.2, py = y - ph * 16 * big, r = (1.6 + ph * 4.5) * big;
+    const wd = smokeWind;
+    const px = x + ph * (2 + 14 * wd) * big + Math.sin(ph * 5 + sd) * 1.2, py = y - ph * (18 - 10 * wd) * big, r = (1.6 + ph * 4.5) * big;
     const a = 0.22 * Math.sin(Math.PI * Math.min(1, ph * 1.3));
     const g = c.createRadialGradient(px, py, 0, px, py, r);
     g.addColorStop(0, `rgba(214,210,202,${a})`); g.addColorStop(1, "rgba(214,210,202,0)");
@@ -1484,6 +1487,59 @@ export function prewarmOverview() {
   ric ? ric(go) : setTimeout(go, 800);
 }
 
+/** Weather veil (weather.ts, display only): gloom, mist banks, scrolling rain/snow tiles, rare lightning. */
+let wxTiles: { rain?: HTMLCanvasElement; snow?: HTMLCanvasElement } = {};
+function wxTile(kind: "rain" | "snow"): HTMLCanvasElement | null {
+  if (typeof document === "undefined") return null;
+  const have = wxTiles[kind]; if (have) return have;
+  const cv = document.createElement("canvas"); cv.width = cv.height = 256;
+  const g = cv.getContext("2d")!;
+  for (let i = 0; i < (kind === "rain" ? 140 : 90); i++) {
+    const x = hash(i, 1, 41) * 256, y = hash(i, 2, 41) * 256, a = 0.25 + 0.35 * hash(i, 3, 41);
+    if (kind === "rain") {
+      g.strokeStyle = `rgba(200,210,225,${a})`; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 3, y + 14); g.stroke();
+    } else {
+      const r = 0.8 + 1.4 * hash(i, 4, 41); g.fillStyle = `rgba(250,250,255,${a + 0.3})`; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    }
+  }
+  wxTiles[kind] = cv; return cv;
+}
+function drawWeather(c: C, w: number, h: number, dpr: number, t: number, night: number) {
+  const wx = weatherAt(clock());
+  smokeWind = wx.wind;
+  if (wx.amount <= 0.01) return;
+  const dim = 1 - night * 0.6; // drawn above the night grade, so keep it soft after dark
+  if (wx.gloom > 0) { c.fillStyle = `rgba(70,78,90,${wx.gloom * (1 - night)})`; c.fillRect(0, 0, w, h); }
+  const sec = t / 1000;
+  if (wx.kind === "mist" || wx.kind === "drizzle" || wx.kind === "snow") {
+    const banks = wx.kind === "mist" ? 5 : 2, a0 = (wx.kind === "mist" ? 0.32 : 0.14) * wx.amount * (1 - night * 0.75);
+    for (let i = 0; i < banks; i++) {
+      const bx = ((hash(i, 7, 43) * 1.4 + sec * 0.004 * (1 + i * 0.3)) % 1.4 - 0.2) * w, by = (0.2 + 0.7 * hash(i, 8, 43)) * h, r = Math.max(w, h) * (0.35 + 0.2 * hash(i, 9, 43));
+      const g = c.createRadialGradient(bx, by, 0, bx, by, r);
+      g.addColorStop(0, `rgba(225,228,230,${a0})`); g.addColorStop(1, "rgba(225,228,230,0)");
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+    }
+  }
+  if (wx.kind === "drizzle" || wx.kind === "storm" || wx.kind === "snow") {
+    const tile = wxTile(wx.kind === "snow" ? "snow" : "rain"); if (!tile) return;
+    const pat = c.createPattern(tile, "repeat"); if (!pat) return;
+    const snow = wx.kind === "snow", sc = dpr * (snow ? 1 : 1.2);
+    const layers = wx.kind === "storm" ? 2 : 1;
+    for (let k = 0; k < layers; k++) {
+      const sp = snow ? 28 : 520 + k * 160, drift = snow ? Math.sin(sec * 0.4 + k) * 20 + sec * 12 * wx.wind : -sp * 0.2 * (0.5 + wx.wind);
+      const ox = (snow ? drift : drift * sec) % 256, oy = (sec * sp) % 256;
+      c.globalAlpha = Math.min(1, wx.amount * (snow ? 0.9 : 0.55) * (k ? 0.6 : 1) * dim);
+      c.setTransform(sc * (1 + k * 0.4), 0, 0, sc * (1 + k * 0.4), (ox + k * 97) * sc, (oy + k * 53) * sc);
+      c.fillStyle = pat; c.fillRect(-256, -256, w / sc + 512, h / sc + 512);
+    }
+    c.globalAlpha = 1; c.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  if (wx.kind === "storm") {
+    const slot = Math.floor(sec / 9), ph = sec - slot * 9;
+    if (hash(slot, 5, 47) < 0.35 && ph < 0.25) { c.fillStyle = `rgba(235,240,255,${(0.25 - ph) * 1.2 * wx.amount})`; c.fillRect(0, 0, w, h); }
+  }
+}
+
 /** Screen-space dusk + night grade shared by every zoom level; returns the night strength 0..1. */
 function skyTint(c: C, w: number, h: number): number {
   // darkness follows the real sunrise/sunset of the realm (sun.ts, DST via the zone clock)
@@ -1559,6 +1615,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
   c.setTransform(1, 0, 0, 1, 0, 0);
   // same dusk/night grade as the close view, so zooming out never jumps to daylight
   const night = skyTint(c, w, h);
+  drawWeather(c, w, h, dpr, performance.now(), night);
   if (night > 0.02) {
     c.globalCompositeOperation = "lighter";
     for (const s of seeds) {
@@ -3422,6 +3479,7 @@ export function draw(
   c.fillStyle = vignette.g; c.fillRect(0, 0, w, h);
 
   const night = skyTint(c, w, h);
+  drawWeather(c, w, h, dpr, performance.now(), night);
   if (night > 0.02) {
     c.globalCompositeOperation = "lighter";
     for (let i = 0; i < L.length; i++) {
