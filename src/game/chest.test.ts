@@ -6,10 +6,10 @@ const seed = (created: number) => ({ id: "c", name: "T", owner: "o", hue: 0, x: 
 const buy = (item: string, at: number, cost: number): Purchase => ({ id: item, seed_id: "c", item, cost, created_at: new Date(at).toISOString() });
 
 describe("village chest", () => {
-  it("base chest holds 800, expansions 2500/6000/15000", () => {
-    expect(chestCap("c", [])).toBe(800);
-    expect(chestCap("c", [buy("chest2", 0, 250)])).toBe(2500);
-    expect(chestCap("c", [buy("chest2", 0, 250), buy("chest3", 0, 800)])).toBe(6000);
+  it("base chest holds 1200, expansions 4000/10000/25000", () => {
+    expect(chestCap("c", [])).toBe(1200);
+    expect(chestCap("c", [buy("chest2", 0, 250)])).toBe(4000);
+    expect(chestCap("c", [buy("chest2", 0, 250), buy("chest3", 0, 800)])).toBe(10000);
     expect(chestCap("c", [buy("chest2", 0, 250), buy("chest3", 0, 800), buy("chest4", 0, 2000)])).toBe(25000);
   });
   it("first expansion needs a week of age", () => {
