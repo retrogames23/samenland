@@ -1504,14 +1504,15 @@ function wxTile(kind: "rain" | "snow"): HTMLCanvasElement | null {
   }
   wxTiles[kind] = cv; return cv;
 }
-function drawWeather(c: C, w: number, h: number, dpr: number, t: number) {
+function drawWeather(c: C, w: number, h: number, dpr: number, t: number, night: number) {
   const wx = weatherAt(clock());
   smokeWind = wx.wind;
   if (wx.amount <= 0.01) return;
-  if (wx.gloom > 0) { c.fillStyle = `rgba(70,78,90,${wx.gloom})`; c.fillRect(0, 0, w, h); }
+  const dim = 1 - night * 0.6; // drawn above the night grade, so keep it soft after dark
+  if (wx.gloom > 0) { c.fillStyle = `rgba(70,78,90,${wx.gloom * (1 - night)})`; c.fillRect(0, 0, w, h); }
   const sec = t / 1000;
   if (wx.kind === "mist" || wx.kind === "drizzle" || wx.kind === "snow") {
-    const banks = wx.kind === "mist" ? 5 : 2, a0 = (wx.kind === "mist" ? 0.32 : 0.14) * wx.amount;
+    const banks = wx.kind === "mist" ? 5 : 2, a0 = (wx.kind === "mist" ? 0.32 : 0.14) * wx.amount * (1 - night * 0.75);
     for (let i = 0; i < banks; i++) {
       const bx = ((hash(i, 7, 43) * 1.4 + sec * 0.004 * (1 + i * 0.3)) % 1.4 - 0.2) * w, by = (0.2 + 0.7 * hash(i, 8, 43)) * h, r = Math.max(w, h) * (0.35 + 0.2 * hash(i, 9, 43));
       const g = c.createRadialGradient(bx, by, 0, bx, by, r);
@@ -1527,7 +1528,7 @@ function drawWeather(c: C, w: number, h: number, dpr: number, t: number) {
     for (let k = 0; k < layers; k++) {
       const sp = snow ? 28 : 520 + k * 160, drift = snow ? Math.sin(sec * 0.4 + k) * 20 + sec * 12 * wx.wind : -sp * 0.2 * (0.5 + wx.wind);
       const ox = (snow ? drift : drift * sec) % 256, oy = (sec * sp) % 256;
-      c.globalAlpha = Math.min(1, wx.amount * (snow ? 0.9 : 0.55) * (k ? 0.6 : 1));
+      c.globalAlpha = Math.min(1, wx.amount * (snow ? 0.9 : 0.55) * (k ? 0.6 : 1) * dim);
       c.setTransform(sc * (1 + k * 0.4), 0, 0, sc * (1 + k * 0.4), (ox + k * 97) * sc, (oy + k * 53) * sc);
       c.fillStyle = pat; c.fillRect(-256, -256, w / sc + 512, h / sc + 512);
     }
@@ -1613,8 +1614,8 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
   }
   c.setTransform(1, 0, 0, 1, 0, 0);
   // same dusk/night grade as the close view, so zooming out never jumps to daylight
-  drawWeather(c, w, h, dpr, performance.now());
   const night = skyTint(c, w, h);
+  drawWeather(c, w, h, dpr, performance.now(), night);
   if (night > 0.02) {
     c.globalCompositeOperation = "lighter";
     for (const s of seeds) {
@@ -3477,8 +3478,8 @@ export function draw(
   }
   c.fillStyle = vignette.g; c.fillRect(0, 0, w, h);
 
-  drawWeather(c, w, h, dpr, performance.now());
   const night = skyTint(c, w, h);
+  drawWeather(c, w, h, dpr, performance.now(), night);
   if (night > 0.02) {
     c.globalCompositeOperation = "lighter";
     for (let i = 0; i < L.length; i++) {
