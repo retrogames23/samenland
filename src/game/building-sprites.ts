@@ -167,6 +167,14 @@ import barnHill from "@/assets/sprites/cohesive/workshop-barn.webp";
 import barnCoast from "@/assets/sprites/cohesive/gateway-barn.webp";
 import barnHillLight from "@/assets/sprites/cohesive/night/workshop-barn.webp";
 import barnCoastLight from "@/assets/sprites/cohesive/night/gateway-barn.webp";
+import steinHill from "@/assets/sprites/cohesive/workshop-steinhaus.webp";
+import steinCoast from "@/assets/sprites/cohesive/gateway-steinhaus.webp";
+import steinHillLight from "@/assets/sprites/cohesive/night/workshop-steinhaus.webp";
+import steinCoastLight from "@/assets/sprites/cohesive/night/gateway-steinhaus.webp";
+import villaHill from "@/assets/sprites/cohesive/workshop-villa.webp";
+import villaCoast from "@/assets/sprites/cohesive/gateway-villa.webp";
+import villaHillLight from "@/assets/sprites/cohesive/night/workshop-villa.webp";
+import villaCoastLight from "@/assets/sprites/cohesive/night/gateway-villa.webp";
 
 const nightUrls: Partial<Record<Kind, string>> = { bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, lodge: lodgeLight, herbhut: herbhutLight, woodcamp: woodcampLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, firehouse: firehouseLight, guardhouse: guardhouseLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, belfry: belfryLight, theater: theaterLight, opera: operaLight, university: universityLight, exchange: exchangeLight, orangery: orangeryLight, harvesthall: harvesthallLight, guildtower: guildtowerLight, lighthouse: lighthouseLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: patricianLight, townhall: townhallLight, seat1: seat1Light, seat2: seat2Light, seat3: seat3Light, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight, bigstore: bigstoreLight, millrow: millrowLight, stonemason: stonemasonLight, hammerworks: hammerworksLight, smokehouse: smokehouseLight, saltquay: saltquayLight, backhaus: backhausLight, herberge: herbergeLight, beginenhof: beginenhofLight };
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
@@ -251,14 +259,16 @@ const sprites: Partial<Record<Kind, Sprite>> = {
 /** Town-character house styles (stone hill towns, brick harbour towns); same width, base and night framing as the base kind,
  * purely visual: households, taxes and rank use the base kind. Plains (grain) keep the classic art. */
 export type HouseStyle = "workshop" | "gateway";
-type StyleSlot = "cottage" | "fachwerk" | "patrician" | "hut" | "handwerker" | "farmhouse" | "barn";
-const STYLE_OF: Partial<Record<Kind, StyleSlot>> = { cottage: "cottage", fachwerk: "fachwerk", steinhaus: "fachwerk", patrician: "patrician", hut: "hut", handwerker: "handwerker", farmhouse: "farmhouse", barn: "barn" };
+type StyleSlot = "cottage" | "fachwerk" | "patrician" | "hut" | "handwerker" | "farmhouse" | "barn" | "steinhaus" | "villa";
+const STYLE_OF: Partial<Record<Kind, StyleSlot>> = { cottage: "cottage", fachwerk: "fachwerk", steinhaus: "steinhaus", villa: "villa", patrician: "patrician", hut: "hut", handwerker: "handwerker", farmhouse: "farmhouse", barn: "barn" };
 type Styled = { day: string; night: string; crop: [number, number, number, number]; image?: HTMLImageElement; light?: HTMLImageElement };
 const styled: Record<HouseStyle, Record<StyleSlot, Styled>> = {
   workshop: { cottage: { day: cottageHill, night: cottageHillLight, crop: [0, 0, 480, 419] }, fachwerk: { day: fachwerkHill, night: fachwerkHillLight, crop: [0, 0, 344, 480] }, patrician: { day: patricianHill, night: patricianHillLight, crop: [0, 0, 272, 480] },
-    hut: { day: hutHill, night: hutHillLight, crop: [0, 0, 453, 480] }, handwerker: { day: craftHill, night: craftHillLight, crop: [0, 0, 445, 480] }, farmhouse: { day: farmHill, night: farmHillLight, crop: [0, 0, 480, 369] }, barn: { day: barnHill, night: barnHillLight, crop: [0, 0, 480, 440] } },
+    hut: { day: hutHill, night: hutHillLight, crop: [0, 0, 453, 480] }, handwerker: { day: craftHill, night: craftHillLight, crop: [0, 0, 445, 480] }, farmhouse: { day: farmHill, night: farmHillLight, crop: [0, 0, 480, 369] }, barn: { day: barnHill, night: barnHillLight, crop: [0, 0, 480, 440] },
+    steinhaus: { day: steinHill, night: steinHillLight, crop: [0, 0, 343, 480] }, villa: { day: villaHill, night: villaHillLight, crop: [0, 0, 480, 406] } },
   gateway: { cottage: { day: cottageCoast, night: cottageCoastLight, crop: [0, 0, 480, 419] }, fachwerk: { day: fachwerkCoast, night: fachwerkCoastLight, crop: [0, 0, 339, 480] }, patrician: { day: patricianCoast, night: patricianCoastLight, crop: [0, 0, 271, 480] },
-    hut: { day: hutCoast, night: hutCoastLight, crop: [0, 0, 448, 480] }, handwerker: { day: craftCoast, night: craftCoastLight, crop: [0, 0, 280, 480] }, farmhouse: { day: farmCoast, night: farmCoastLight, crop: [0, 0, 480, 331] }, barn: { day: barnCoast, night: barnCoastLight, crop: [0, 0, 480, 334] } },
+    hut: { day: hutCoast, night: hutCoastLight, crop: [0, 0, 448, 480] }, handwerker: { day: craftCoast, night: craftCoastLight, crop: [0, 0, 280, 480] }, farmhouse: { day: farmCoast, night: farmCoastLight, crop: [0, 0, 480, 331] }, barn: { day: barnCoast, night: barnCoastLight, crop: [0, 0, 480, 334] },
+    steinhaus: { day: steinCoast, night: steinCoastLight, crop: [0, 0, 338, 480] }, villa: { day: villaCoast, night: villaCoastLight, crop: [0, 0, 480, 410] } },
 };
 const styledOf = (kind: Kind, style?: HouseStyle) => { const k = style ? STYLE_OF[kind] : undefined; return k && style ? styled[style][k] : undefined; };
 const load = (url: string) => { const im = new Image(); im.decoding = "async"; im.src = url; return im; };
