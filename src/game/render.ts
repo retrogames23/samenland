@@ -2764,6 +2764,7 @@ function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Struct
 }
 
 export const renderStats = { tiles: 0, folk: 0, chunks: 0 };
+let vignette: { w: number; h: number; c: C; g: CanvasGradient } | null = null;
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
@@ -2773,6 +2774,7 @@ export function draw(
   signpostMap(seeds);
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
   const t = performance.now(); setSpriteTime(t);
+  const worldLinks = links(seeds); // one lookup per frame: the cache key itself serialises every seed
   const z = cam.zoom * dpr;
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.fillStyle = hsl(205, 30, 58); c.fillRect(0, 0, w, h);
@@ -2844,7 +2846,7 @@ export function draw(
     }
   }
   // ---- trade roads as one continuous ribbon each (the tile steps stay logic only) ----
-  for (const l of links(seeds)) {
+  for (const l of worldLinks) {
     const bx = roadBox(l); if (bx[2] < cs0x - 60 || bx[0] > cs1x + 60 || bx[3] < cs0y - 60 || bx[1] > cs1y + 60) continue;
     if (roadProgress(l, now) <= 0) continue;
     drawRoadRibbon(c, l, seeds, now);
@@ -2881,7 +2883,7 @@ export function draw(
   const props = framePool.props; props.clear();
   const addProp = (k: number, f: (cx: number, cy: number) => void) => (props.get(k) ?? props.set(k, []).get(k)!).push(f);
   // road crews join the tile depth order, so houses in front hide them instead of the crew floating on roofs
-  if (detail) for (const l of links(seeds)) {
+  if (detail) for (const l of worldLinks) {
     const prog = roadProgress(l, now);
     if (prog <= 0 || prog >= 1) continue;
     const pts = smoothRoad(l), n = pts.length, k = Math.min(n - 2, Math.floor(prog * n / 2));
@@ -2917,7 +2919,7 @@ export function draw(
   }
 
   // ---- bridges: one straight span per water crossing, abutment to abutment ----
-  if (detail) for (const l of links(seeds)) {
+  if (detail) for (const l of worldLinks) {
     const n = l.tiles.length;
     for (let i = 0; i < n; i++) {
       if (!l.water[i]) continue;
@@ -2986,7 +2988,7 @@ export function draw(
     roadProp(px, py, fade, (context) => drawHerald(context, px, py, ddx, ddy, gait, speed, t, v.phase === "wait", night, sd.x * 13 + sd.y), true, `herald:${sd.id}`);
   }
   // ---- life on the trade roads ----
-  if (detail) for (const l of links(seeds)) {
+  if (detail) for (const l of worldLinks) {
     { const bx = roadBox(l); if (bx[2] < cs0x - 60 || bx[0] > cs1x + 60 || bx[3] < cs0y - 60 || bx[1] > cs1y + 60) continue; } // off-screen road: skip its traffic
     const prog = roadProgress(l, now);
     if (prog <= 0) continue;
@@ -3033,7 +3035,7 @@ export function draw(
       lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
     }
     // journeymen and messengers on their way to the neighbour
-    if (n >= 2) for (const w of walkersNow(l, now, links(seeds))) {
+    if (n >= 2) for (const w of walkersNow(l, now, worldLinks)) {
       const end = n - 1, pr = walkProgress(w, now) * end, fwd = w.from.id === l.a.id;
       // roadMotion's second half (phase end..2·end) already runs b→a with a reversed heading
       const m = roadMotion(pts, fwd ? Math.min(pr, end - 1e-6) : end + pr);
@@ -3057,7 +3059,7 @@ export function draw(
   // Saturday market: visiting traders set up painted stalls on the host village's square around the well, 9–17 realm time
   if (marketOpen(now)) {
     const guests = new Map<Seed, Seed[]>();
-    for (const l of links(seeds)) {
+    for (const l of worldLinks) {
       if (l.tiles.length < 7 || roadProgress(l, now) < 1) continue;
       for (const [h, g] of [[l.a, l.b], [l.b, l.a]] as const) { const arr = guests.get(h) ?? []; arr.push(g); guests.set(h, arr); }
     }
@@ -3100,6 +3102,8 @@ export function draw(
   renderStats.tiles = nTiles; { let n = 0; for (const v of folk.values()) n += v.length; renderStats.folk = n; }
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
   const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
+  // supporter decorations: one lookup per frame instead of a fresh cache key per empty tile
+  const decor = supportOwned.size ? decorMap(seeds, supportOwned, now, MAP) : null, decorNight = worldHour(now) >= 19 || worldHour(now) < 7;
   for (let ti = 0; ti < nTiles; ti++) {
     const { x, y, cx, cy, st } = tiles[ti]!;
     ord.set(y * MAP + x, ti);
@@ -3141,7 +3145,7 @@ export function draw(
     }
     if (!st) { const cp = courtPieces().get(y * MAP + x); if (cp) drawCourtPiece(c, cp, cx, cy, L, t); for (const q of courtFigures(t).get(y * MAP + x) ?? []) drawCourtFigure(c, q, t); }
     if (!st) { const wk = wonderMap().get(y * MAP + x); if (wk) drawWonder(c, wk, cx, cy, t, !wonderFound.has(`${wk}:${x}:${y}`), L); }
-    if (!st && supportOwned.size) { const dk = decorMap(seeds, supportOwned, now, MAP).get(y * MAP + x); if (dk) drawSupport(c, dk, cx, cy, L, worldHour(now) >= 19 || worldHour(now) < 7); }
+    if (!st && decor) { const dk = decor.get(y * MAP + x); if (dk) drawSupport(c, dk, cx, cy, L, decorNight); }
     { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
     if (y * MAP + x === goalK) {
       // golden waymark where the player's mayor is heading
@@ -3222,7 +3226,7 @@ export function draw(
 
 
   // border banners in both town colours and the carved border stone at the twin gate
-  for (const l of links(seeds)) {
+  for (const l of worldLinks) {
     if (!isTwin(l, seeds, now)) continue;
     const g = l.tiles[Math.floor(l.tiles.length / 2)]; if (!g) continue;
     const [gx, gy] = iso(g[0], g[1]);
@@ -3245,9 +3249,13 @@ export function draw(
 
   // ---- paper, light, labels (screen space) ----
   c.setTransform(1, 0, 0, 1, 0, 0);
-  const vg = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
-  vg.addColorStop(0, "rgba(20,15,10,0)"); vg.addColorStop(1, "rgba(20,15,10,0.32)");
-  c.fillStyle = vg; c.fillRect(0, 0, w, h);
+  // vignette gradient only rebuilt when the canvas size changes
+  if (!vignette || vignette.w !== w || vignette.h !== h || vignette.c !== c) {
+    const g = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
+    g.addColorStop(0, "rgba(20,15,10,0)"); g.addColorStop(1, "rgba(20,15,10,0.32)");
+    vignette = { w, h, c, g };
+  }
+  c.fillStyle = vignette.g; c.fillRect(0, 0, w, h);
 
   const night = skyTint(c, w, h);
   if (night > 0.02) {
@@ -3299,7 +3307,7 @@ export function draw(
   drawCourtLabel(c, cam, w, h, z, dpr, 110 * z + 8 * dpr, 22);
   // twin towns get a joint ribbon label between them
   c.font = `600 ${Math.round(17 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`;
-  for (const l of links(seeds)) {
+  for (const l of worldLinks) {
     if (!isTwin(l, seeds, now)) continue;
     const [ix, iy] = iso((l.a.x + l.b.x) / 2, (l.a.y + l.b.y) / 2);
     const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2;
