@@ -663,7 +663,7 @@ export function Game() {
         loadErrands();
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: { seed_id: string }[] | null }> } }).from("knighthoods").select("seed_id").then(({ data }) => { knights.current = new Set((data ?? []).map((k) => k.seed_id)); });
         // only this player's own visits mark a town as seen — other players' visits must not block the welcome gift
-        { const me = ss.find((s) => uid && s.user_id === uid); for (const v of vv.data ?? []) if (me && v.visitor_seed === me.id) visitSeen.current.add(v.visited_seed); }
+        // (repeat visits are still reported once per session: they count for the prince's "visit" decree, never a second gift)
         wonderRows.current = (wf.data ?? []) as unknown as WonderFind[];
         syncWonders();
         setClaims([...(q.data ?? []), ...visitClaims(vv.data ?? []), ...wonderClaims(wonderRows.current), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? []), ...princelyClaims(princelyRows.current)]);
@@ -1302,7 +1302,7 @@ export function Game() {
     charter: owner && !myCharter && charterReady(my!.created_at, now),
     pact: owner && !!pactPartner,
     // visitors only come while someone watches: the tab must have been open and visible for a few minutes
-    encounter: owner && watching && !!pendingAll(my!, my!.decisions ?? [], now, effAge(my!, seeds, now)),
+    encounter: owner && (watching || encOpen) && !!pendingAll(my!, my!.decisions ?? [], now, effAge(my!, seeds, now)),
   }, (k) => (snooze[k] ?? 0) > now);
   const anyOpen = roadOpen || charterOpen || encOpen || pactOpen;
   const sealShown = !anyOpen && !decision.open && decision.due.length > 0;
@@ -1468,7 +1468,12 @@ export function Game() {
   visitFn.current = (o, my) => {
     if (!owner || my.user_id !== userId) { visitSeen.current.delete(o.id); return; }
     supabase.rpc("claim_visit", { _seed: my.id, _visited: o.id }).then(({ data, error }) => {
-      if (error || !data) return;
+      if (error) return;
+      if (!data) {
+        const op = openTaskOf(princelyRows.current, my.id);
+        if (op && op.task === "visit" && Date.parse(op.accepted_at) < Date.now()) { jingle("fanfare"); setVisitNote(PRINCELY[lang].visited(o.name)); }
+        return;
+      }
       const now0 = new Date().toISOString();
       setClaims((c) => [...c, ...visitClaims([{ id: `local-v-${o.id}`, visitor_seed: my.id, visited_seed: o.id, reward: data, created_at: now0 }])]);
       jingle("fanfare"); setTimeout(() => jingle("coins"), 700);
