@@ -281,8 +281,11 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   if (gatherAt != null && now >= gatherAt) {
     const wdAt = gatherAt;
     const c = church ?? meet;
+    // a wedding crowd is the grown-up village: only a few children (siblings, flower children) come along
+    let kids = 0;
     for (const q of people) {
       if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 43, 720) >= share(0.8)) continue;
+      if (q.age < 15 && kids++ >= WED_KIDS) continue;
       const a = hash(q.id, 44, 720) * Math.PI * 2, rr = (1 + hash(q.id, 45, 720) * 1.8) * widen(0.8);
       q.fete = { at: wdAt, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 46, 720) * 180 };
     }
@@ -511,8 +514,10 @@ function processions(ws: Wedding[], people: Person[], church: Tile, now: number)
     const birth = (p: Person) => p.origin ?? p.hh!;
     const [g, b] = w.a.sex === "m" ? [w.a, w.b] : [w.b, w.a];
     const to = g.home;
-    g.proc = { at: w.at, from: hhTile(birth(g)), to, lag: 0, role: "groom" };
-    b.proc = { at: w.at, from: hhTile(birth(b)), to, lag: 0, role: "bride" };
+    // the groom first fetches his bride at her parents' door, then both walk to church side by side
+    const bt = hhTile(birth(b));
+    g.proc = { at: w.at, from: hhTile(birth(g)), via: bt, to, lag: 0, role: "groom" };
+    b.proc = { at: w.at, from: bt, wait: hhTile(birth(g)), to, lag: 0, role: "bride" };
     let k = 0;
     for (const q of people) if (!q.proc && (q.role === "head" || q.role === "spouse") && (q.hh === birth(g) || q.hh === birth(b)) && q.spouse !== g.id && q.spouse !== b.id && q !== g && q !== b)
       q.proc = { at: w.at, from: q.home, to, lag: 6 + 5 * k++, role: "guest" };
