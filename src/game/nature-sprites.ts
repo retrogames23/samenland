@@ -73,7 +73,7 @@ const NATURE = {
   bush: { url: bush, crop: [0, 0, 480, 384], width: 9 },
   boulder: { url: boulder, crop: [0, 0, 480, 347], width: 12 },
   ore: { url: oreRock, crop: [0, 0, 360, 240], width: 11 },
-  coal: { url: coalRock, crop: [0, 0, 360, 239], width: 11 },
+  bog: { url: coalRock, crop: [0, 0, 360, 239], width: 11 },
 } satisfies Record<string, Sprite>;
 export type NatureKind = keyof typeof NATURE;
 /** True once every tree/rock sprite has loaded (used before caching baked ground). */
@@ -85,7 +85,7 @@ export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: num
   const i = img(s.url); if (!i) return true; // loading: draw nothing rather than old art
   const [, , sw, sh] = s.crop;
   const w = s.width * scale, h = (w * sh) / sw;
-  const rock = k === "crag" || k === "boulder" || k === "ore" || k === "coal";
+  const rock = k === "crag" || k === "boulder" || k === "ore" || k === "bog";
   // rocks rest on their own painted ground footprint: no detached tree shadow, sprite sunk onto the tile
   if (!rock) { // shadow in plain world space (the ellipse is symmetric, so mirroring never mattered)
     c.fillStyle = "rgba(25,30,15,0.28)";

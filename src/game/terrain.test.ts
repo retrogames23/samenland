@@ -3,7 +3,7 @@ import { MAP, terrain, resourceAt, canPlant, isWater, buildable } from "./world"
 
 describe("world geography", () => {
   it("map is 1024 tiles wide", () => expect(MAP).toBe(1024));
-  it("ore and coal only appear on hills or mountains", () => {
+  it("ore and bog iron only appear on hills or mountains", () => {
     for (let y = 0; y < MAP; y += 7) for (let x = 0; x < MAP; x += 7)
       if (resourceAt(x, y)) expect(["hill", "mountain"]).toContain(terrain(x, y));
   });

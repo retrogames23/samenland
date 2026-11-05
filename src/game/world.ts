@@ -253,13 +253,13 @@ export function terrain(x: number, y: number): Terrain {
 export const buildable = (t: Terrain) => t === "grass" || t === "meadow" || t === "fertile" || t === "forest" || t === "sand" || t === "hill";
 export const isWater = (t: Terrain) => t === "water" || t === "deep";
 
-export type Resource = "ore" | "coal" | "stone";
+export type Resource = "ore" | "bog" | "stone";
 /** Mineral deposits in the uplands (future industry bonus). Deterministic per tile. */
 export function resourceAt(x: number, y: number): Resource | null {
   const t = terrain(x, y);
   if (t !== "hill" && t !== "mountain") return null;
   if (fbm(x / 14, y / 14, 41) > 0.66) return "ore";
-  if (fbm(x / 16, y / 16, 43) > 0.67) return "coal";
+  if (fbm(x / 16, y / 16, 43) > 0.67) return "bog";
   if (hash(x, y, 45) > 0.93) return "stone";
   return null;
 }

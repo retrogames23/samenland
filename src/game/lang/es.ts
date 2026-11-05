@@ -52,7 +52,7 @@ export const es: Dict = {
     mountain: "Montañas",
     fertile: "Vega fértil",
   },
-  resource: { ore: "mineral de hierro", coal: "carbón", stone: "piedra de cantera" },
+  resource: { ore: "mineral de hierro", bog: "hierro de pantano", stone: "piedra de cantera" },
   job: { firewarden: ["Vigilante del fuego", "Vigilante del fuego"], watchman: ["Serena", "Sereno"], farmer: ["Campesina", "Campesino"], baker: ["Panadera", "Panadero"], smith: ["Herrera", "Herrero"], innkeeper: ["Posadera", "Posadero"], miller: ["Molinera", "Molinero"], crafter: ["Artesana", "Artesano"], worker: ["Constructora de catedrales", "Constructor de catedrales"], sawyer: ["Aserradora", "Aserrador"], builder: ["Carpintera", "Carpintero"], woodcutter: ["Leñadora", "Leñador"], mason: ["Cantera", "Cantero"], merchant: ["Mercader", "Mercader"], priest: ["Sacerdotisa", "Sacerdote"], carter: ["Carretera", "Carretero"], homemaker: ["Cuida casa y huerto", "Cuida casa y huerto"], retired: ["Jubilada", "Jubilado"], child: ["Niña", "Niño"], mayor: ["Alcaldesa", "Alcalde"], fisher: ["Pescadora", "Pescador"], healer: ["Curandera", "Curandero"], teacher: ["Maestra", "Maestro"], hunter: ["Cazadora", "Cazador"], herbalist: ["Herbolaria", "Herbolario"] },
   act: { guest: "viajero que espera al alcalde", fire: "apagando el fuego con cubos", sleep: "durmiendo", work: "en la labor", lunch: "almorzando junto al pozo", leisure: "charlando con amigos en la aldea", home: "en casa", school: "en la escuela", play: "jugando afuera", walking: "de camino", sick: "enfermo en cama", care: "cuidando a un pariente enfermo", church: "en la misa dominical", visit: "visitando a la familia", stroll: "de paseo dominical", wedding: "celebrando unas nupcias", fete: "celebra la inauguración" },
   person: {

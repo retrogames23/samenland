@@ -2090,7 +2090,7 @@ function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Struct
 function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean, turf = true) {
   if (inCourt(x, y)) return; // the estate keeps open lawns
   const tr = terrain(x, y);
-  // lone boulders only; ore/coal deposits stay invisible (they have no in-game use, loose heaps looked wrong)
+  // lone boulders only; ore/bog-iron deposits stay invisible (they have no in-game use, loose heaps looked wrong)
   if ((tr === "hill" || tr === "mountain") && resourceAt(x, y) === "stone") {
     drawNature(g, "boulder", cx + (hash(x, y, 90) - 0.5) * 8, cy + 3, 0.75 + hash(x, y, 99) * 0.4, 0, hash(x, y, 95) > 0.5);
   }
