@@ -1587,7 +1587,7 @@ export function Game() {
     if (e.code === "stage") return [t.fest.stage[0], t.fest.stage[1](t.stages[e.stage] ?? "")];
     if (e.code === "built" && SEAT_KINDS.includes(e.kind)) { const p = t.fest.seat[SEAT_KINDS.indexOf(e.kind)]; if (p) return p; }
     // moves, brides, journeymen: plain news, never a "finished – everyone gathers" inauguration
-    if (e.code !== "built" && e.code !== "bought") return [e.code === "moved" && !e.away ? t.fest.newcomers[0] : t.chron.title, chronLine(e)];
+    if (e.code !== "built" && e.code !== "bought") return [e.code === "moved" ? (e.away ? t.chron.farewell : t.fest.newcomers[0]) : t.chron.title, chronLine(e)];
     const name = e.code === "built" ? (t.kind[e.kind] ?? e.kind) : itemName(e.item);
     // only promise a gathering while the inauguration is actually running
     const live = (e.code === "built" || e.code === "bought") && clock() - e.at < FETE_SECS * 1000;
