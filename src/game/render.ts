@@ -2838,7 +2838,7 @@ export function draw(
       if (!flatDone.has(((y / FC) | 0) * 4096 + ((x / FC) | 0))) {
         // chunk not baked yet: on touch draw only a cheap base fill for the frame or two until the bake lands
         if (!TOUCH) flatTile(c, x, y, cx, cy, st, seeds, now, t);
-        else if (st?.kind === "field" || st?.kind === "garden" || st?.kind === "pasture") { c.fillStyle = texture(c, st.kind === "field" ? fieldTex(x, y, st.seed, now) : "dirt") ?? hsl(44, 45, 66); diamond(c, cx, cy, 1.0); c.fill(); }
+        else if (st?.kind === "field" || st?.kind === "garden") { c.fillStyle = texture(c, st.kind === "field" ? fieldTex(x, y, st.seed, now) : "dirt") ?? hsl(44, 45, 66); diamond(c, cx, cy, 1.0); c.fill(); }
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square" || st.kind === "market" || st.kind === "well")) { c.fillStyle = texture(c, st.kind === "path" ? "dirt" : "cobble") ?? "#cdb084"; diamond(c, cx, cy, 0.7); c.fill(); }
       }
     }
