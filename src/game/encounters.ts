@@ -38,6 +38,11 @@ export const ENCOUNTERS = {
   hutewald: { mast: { cost: 0, fx: { h: 168, food: 10 } }, wild: { cost: 0, fx: { h: 168, food: 4, health: 4 } } },
   backtag: { bake: { cost: 10, fx: { h: 168, health: 10, food: 4 } }, home: { cost: 0, fx: {} } },
   steg: { together: { cost: 0, fx: { h: 96, health: 8 } }, carpenter: { cost: 40, fx: { h: 96, wealth: 8 } } },
+  // historical news 1500/1501 (HISTORY below): dated, once per village, mirrored by DB encounter_guard
+  werber: { fodder: { cost: 30, fx: { h: 120, health: 8 } }, quarter: { cost: 0, fx: { h: 72, wealth: 5 } } },
+  weser: { carts: { cost: 0, fx: { h: 96, wealth: 5 } }, ransom: { cost: 40, fx: { h: 168, health: 10 } } },
+  sund: { buy: { cost: 45, fx: { h: 168, wealth: 12 } }, shelter: { cost: 15, fx: { h: 96, health: 6, wealth: 4 } }, pass: { cost: 0, fx: {} } },
+  ablass: { give: { cost: 25, fx: { h: 168, health: 12 } }, sermon: { cost: 0, fx: { h: 48, health: 4 } } },
 } as const satisfies Record<string, Record<string, Choice>>;
 export type EventKey = keyof typeof ENCOUNTERS;
 /**
@@ -46,7 +51,27 @@ export type EventKey = keyof typeof ENCOUNTERS;
  */
 /** Commons questions (commons.ts) share the encounter slot but are never drawn as visitors. */
 export const COMMONS_KEYS = ["hutewald", "backtag", "steg"] as const;
-const NOT_DRAWN: ReadonlySet<string> = new Set(["wedding", "flood", ...COMMONS_KEYS]);
+/**
+ * Historical news that reached a north German village 1500/1501, as real-calendar UTC windows
+ * (game year = real year - YEAR_SHIFT, so 2026-11 is November 1500). Each comes once per village,
+ * from HISTORY_FROM_H on, inside the visitor rhythm; mirrored by DB encounter_guard — change both together.
+ */
+export const HISTORY = [
+  { key: "werber", from: Date.UTC(2026, 10, 6), to: Date.UTC(2027, 2, 1) },   // winter 1500/01: muster after Hemmingstedt
+  { key: "weser", from: Date.UTC(2027, 4, 25), to: Date.UTC(2027, 9, 1) },    // 25 May–Sept 1501: league against Butjadingen/Stadland
+  { key: "sund", from: Date.UTC(2027, 7, 1), to: Date.UTC(2027, 10, 1) },     // Aug–Oct 1501: Swedish revolt, Stockholm besieged
+  { key: "ablass", from: Date.UTC(2027, 10, 15), to: Date.UTC(2028, 1, 1) },  // late 1501: Peraudi's indulgence preached
+] as const;
+export const HISTORY_KEYS = HISTORY.map((h) => h.key);
+export const HISTORY_FROM_H = 24;
+export const isHistory = (e: string) => (HISTORY_KEYS as readonly string[]).includes(e);
+/** The dated news due now (not yet answered by this village), or null. */
+export function historyDue(seed: Pick<Seed, "created_at">, decisions: Decision[], now: number): EventKey | null {
+  if ((now - Date.parse(seed.created_at)) / 3.6e6 < HISTORY_FROM_H) return null;
+  const h = HISTORY.find((w) => now >= w.from && now < w.to && !decisions.some((d) => d.event === w.key));
+  return h ? h.key : null;
+}
+const NOT_DRAWN: ReadonlySet<string> = new Set(["wedding", "flood", ...COMMONS_KEYS, ...HISTORY.map((h) => h.key)]);
 export const EVENT_KEYS = (Object.keys(ENCOUNTERS) as EventKey[]).filter((k) => !NOT_DRAWN.has(k));
 export type Decision = { event: string; choice: string; at: number; cost: number };
 
@@ -126,7 +151,7 @@ export function pendingEncounter(seed: Pick<Seed, "id" | "created_at"> & Partial
   if ((now - last) / 3.6e6 < encounterGap(ageH)) return null;
   // context is anchored at the window start, so the open encounter never changes while it waits
   // commons answers keep the visitor rhythm (gap) but not the visitor lottery, so visitor draws stay stable
-  const past = decisions.filter((d) => d.event !== "wedding" && !(COMMONS_KEYS as readonly string[]).includes(d.event)).sort((a, b) => a.at - b.at);
+  const past = decisions.filter((d) => d.event !== "wedding" && !(COMMONS_KEYS as readonly string[]).includes(d.event) && !isHistory(d.event)).sort((a, b) => a.at - b.at);
   const c0 = Date.parse(seed.created_at), from = past.length ? last : c0 + ENCOUNTER_FROM * 3.6e6;
   const ctx = { ageH: (from - c0) / 3.6e6, season: dominantSeason(from), recent: past.slice(-EVENT_COOLDOWN).map((d) => d.event) };
   return eventOf(seed.id, past.length, ctx);
@@ -167,11 +192,12 @@ export function saplingsOwed(decisions: { event: string; choice: string }[], pla
 }
 
 /** Visitors who stand at the village square: while their encounter waits for the mayor, and GUEST_H hours after a welcoming answer. */
-export const GUEST_EVENTS: ReadonlySet<string> = new Set(["journeyman", "merchant", "healer", "minstrel", "widow", "monk", "surveyor", "pilgrims", "orphan", "tinker", "painter", "nursery"]);
+export const GUEST_EVENTS: ReadonlySet<string> = new Set(["journeyman", "merchant", "healer", "minstrel", "widow", "monk", "surveyor", "pilgrims", "orphan", "tinker", "painter", "nursery", "werber", "weser", "sund", "ablass"]);
 export const GUEST_H = 4;
 /** The visitor currently in the village (pure in decisions + clock): arrival time, departure, and whether they were welcomed. */
 export function guestNow(seed: Pick<Seed, "id" | "created_at"> & Partial<Seed>, decisions: Decision[], now: number): { event: EventKey; at: number; until: number } | null {
-  const p = pendingEncounter(seed, decisions, now);
+  const p0 = pendingEncounter(seed, decisions, now);
+  const p = p0 && p0 !== "wedding" ? historyDue(seed, decisions, now) ?? p0 : p0;
   const vis = decisions.filter((d) => d.event !== "wedding" && d.at <= now);
   const last = vis.reduce<Decision | null>((m, d) => (!m || d.at > m.at ? d : m), null);
   if (p && p !== "wedding" && GUEST_EVENTS.has(p)) {

@@ -63,6 +63,8 @@ const GUESTS: Record<string, [Job, Sex, number, number, number][]> = {
   minstrel: [["innkeeper", "m", 30, 0, 0]], widow: [["homemaker", "f", 34, 0, 0], ["child", "m", 9, 0.5, 0.3], ["child", "f", 7, -0.3, 0.5], ["child", "m", 5, 0.6, -0.4]],
   monk: [["priest", "m", 58, 0, 0]], surveyor: [["mason", "m", 41, 0, 0]], pilgrims: [["retired", "m", 60, 0, 0], ["homemaker", "f", 44, 0.6, 0.2], ["worker", "m", 36, -0.4, 0.6]],
   orphan: [["child", "m", 11, 0, 0]], tinker: [["smith", "m", 50, 0, 0]], painter: [["crafter", "m", 35, 0, 0]], nursery: [["herbalist", "m", 47, 0, 0]],
+  werber: [["watchman", "m", 38, 0, 0], ["watchman", "m", 24, 0.6, 0.3]], weser: [["carter", "m", 42, 0, 0]],
+  sund: [["merchant", "m", 51, 0, 0], ["fisher", "m", 33, 0.5, 0.4]], ablass: [["priest", "m", 55, 0, 0], ["priest", "m", 28, 0.5, 0.3], ["child", "m", 12, -0.4, 0.5]],
 };
 export type Wedding = { at: number; a: Person; b: Person; alliance: boolean; dowry: number; grand: boolean; town: boolean };
 /** Families whose trades form an alliance when their children marry. */
