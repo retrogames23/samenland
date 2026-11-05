@@ -575,6 +575,13 @@
       "when": 1793871689472,
       "tag": "0081_repeat_visits_for_decree",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1793881335455,
+      "tag": "0082_historical_encounters_1500",
+      "breakpoints": true
     }
   ]
 }
