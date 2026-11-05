@@ -1,3 +1,4 @@
+import { worldDayStart } from "./time";
 import { nearCourt, resetCourt } from "./court";
 import { resetWonders } from "./wonders";
 import { townCharacter, resetCharacters, type TownWay } from "./character";
@@ -1326,7 +1327,8 @@ export function isBlessed(s: Seed, now: number) { return (s.blessed ?? []).some(
 /** Ms until the owner may bless again (0 = now). */
 export function blessCooldown(s: Seed, now: number) {
   const last = Math.max(-Infinity, ...(s.blessed ?? []));
-  return Math.max(0, last + BLESS_MS - now);
+  const day = worldDayStart(now);
+  return last >= day ? day + 24 * 3.6e6 - now : 0;
 }
 
 // ---------------- signposts on trade roads ----------------

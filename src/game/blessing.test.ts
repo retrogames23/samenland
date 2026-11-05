@@ -12,9 +12,10 @@ describe("daily blessing", () => {
     expect(isBlessed(s, t0 + 23 * 3.6e6)).toBe(true);
     expect(isBlessed(s, t0 + 25 * 3.6e6)).toBe(false);
   });
-  it("can be repeated once per day", () => {
-    const s = seed([t0]);
-    expect(blessCooldown(s, t0 + 20 * 3.6e6)).toBeCloseTo(4 * 3.6e6);
-    expect(blessCooldown(s, t0 + 24 * 3.6e6)).toBe(0);
+  it("can be repeated after the realm's midnight", () => {
+    // 2026-10-01 20:00 UTC = 22:00 Berlin; midnight Berlin is 2 h later
+    const ev = Date.parse("2026-10-01T20:00:00Z"), s = seed([ev]);
+    expect(blessCooldown(s, ev + 3.6e6)).toBeCloseTo(3.6e6, -3);
+    expect(blessCooldown(s, ev + 2.1 * 3.6e6)).toBe(0);
   });
 });
