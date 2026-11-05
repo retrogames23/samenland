@@ -45,3 +45,13 @@ export function weatherAt(now: number): Weather {
   cache = { key, v };
   return v;
 }
+
+/** Rain strength 0..1 (drizzle/storm only) — drives display-only reactions: folk go indoors, laundry comes in, hoods. */
+export const wetness = (now: number) => { const w = weatherAt(now); return w.kind === "drizzle" || w.kind === "storm" ? w.amount : 0; };
+/** Snow strength 0..1 — hoods and breath puffs. */
+export const snowiness = (now: number) => { const w = weatherAt(now); return w.kind === "snow" ? w.amount : 0; };
+/** Storm darkness 0..1: workshops light their windows by day. */
+export const stormDark = (now: number) => { const w = weatherAt(now); return w.kind === "storm" ? w.amount : 0; };
+/** Shelter rule: outdoor leisure, lunch and play move indoors when it rains — each person has their own tolerance. */
+export const shelters = (act: string, indoor: boolean, id: number, wet: number) =>
+  !indoor && (act === "leisure" || act === "lunch" || act === "play" || act === "stroll") && wet > 0.15 && hash(id, 77) < wet * 1.3;

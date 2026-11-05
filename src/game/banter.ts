@@ -36,6 +36,8 @@ export function banterCats(c: BanterCtx): BanterCat[] {
 }
 
 /** Pick a line (random, avoiding the last RECENT shown) and fill {mayor}, {town}, {name}. */
+import { WEATHER_BANTER } from "./lang/banter-weather";
+import { weatherAt } from "./weather";
 export function banter(lang: Lang, c: BanterCtx, vars: { mayor: string; town: string; name?: string }, rnd: () => number = Math.random): string {
   const L0 = BANTER[lang] ?? BANTER.en;
   const cats = banterCats(c);
@@ -47,6 +49,10 @@ export function banter(lang: Lang, c: BanterCtx, vars: { mayor: string; town: st
     // on a feast day its lines dominate the everyday chatter (all generic categories get them)
     const fz = feastOn(clock()), fl = fz ? (FEAST_BANTER[lang]?.[fz] ?? FEAST_BANTER.en[fz] ?? []) : [];
     if (fl.length) L = { ...L, own_any: [...fl, ...fl], own_craft: [...(L.own_craft ?? []), ...fl] };
+    // the weather on the map gets talked about, weather-sensitive folk most of all
+    const wx = weatherAt(clock()), wk = wx.amount < 0.2 ? null : wx.kind === "drizzle" ? "rain" : wx.kind === "snow" ? "snow" : wx.kind === "storm" ? "storm" : null;
+    const wl = wk ? (WEATHER_BANTER[lang] ?? WEATHER_BANTER.en)[wk] : [];
+    if (wl.length) L = { ...L, own_craft: [...(L.own_craft ?? []), ...wl], own_t_weather: [...wl, ...(L.own_t_weather ?? [])] };
   }
   // one category drawn at random among those this language has, so trait lines mix with generic ones
   const have = cats.filter((k) => L[k]?.length);
