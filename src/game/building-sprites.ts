@@ -4,17 +4,17 @@ import campfire from "@/assets/sprites/campfire.webp";
 import hut from "@/assets/sprites/cohesive/grain-hut.webp";
 import coop from "@/assets/sprites/coop.webp";
 import fence from "@/assets/sprites/fence.webp";
-import chapel from "@/assets/sprites/chapel.webp";
+import chapel from "@/assets/sprites/cohesive/chapel.webp";
 import watermill from "@/assets/sprites/cohesive/watermill.webp";
 import harbor from "@/assets/sprites/harbor.webp";
 import stall from "@/assets/sprites/stall.webp";
-import townhall from "@/assets/sprites/townhall.webp";
-import seat1 from "@/assets/sprites/seat1.webp";
-import seat2 from "@/assets/sprites/seat2.webp";
-import seat3 from "@/assets/sprites/seat3.webp";
-import seat1Light from "@/assets/sprites/night/seat1.webp";
-import seat2Light from "@/assets/sprites/night/seat2.webp";
-import seat3Light from "@/assets/sprites/night/seat3.webp";
+import townhall from "@/assets/sprites/cohesive/townhall.webp";
+import seat1 from "@/assets/sprites/cohesive/seat1.webp";
+import seat2 from "@/assets/sprites/cohesive/seat2.webp";
+import seat3 from "@/assets/sprites/cohesive/seat3.webp";
+import seat1Light from "@/assets/sprites/cohesive/night/seat1.webp";
+import seat2Light from "@/assets/sprites/cohesive/night/seat2.webp";
+import seat3Light from "@/assets/sprites/cohesive/night/seat3.webp";
 import manufactory from "@/assets/sprites/cohesive/manufactory.webp";
 import steamworks from "@/assets/sprites/cohesive/steamworks.webp";
 import station from "@/assets/sprites/cohesive/station.webp";
@@ -66,16 +66,16 @@ import guildtowerLight from "@/assets/sprites/cohesive/night/guildtower.webp";
 import lighthouseLight from "@/assets/sprites/cohesive/night/lighthouse.webp";
 import orangery from "@/assets/sprites/cohesive/orangery.webp";
 import orangeryLight from "@/assets/sprites/cohesive/night/orangery.webp";
-import markethall from "@/assets/sprites/markethall.webp";
-import gatehouse from "@/assets/sprites/gatehouse.webp";
-import guildhall from "@/assets/sprites/guildhall.webp";
+import markethall from "@/assets/sprites/cohesive/markethall.webp";
+import gatehouse from "@/assets/sprites/cohesive/gatehouse.webp";
+import guildhall from "@/assets/sprites/cohesive/guildhall.webp";
 import library from "@/assets/sprites/cohesive/library.webp";
 import dairy from "@/assets/sprites/cohesive/dairy.webp";
 import type { Kind } from "./world";
 
 import bakeryLight from "@/assets/sprites/cohesive/night/bakery.webp";
 import barnLight from "@/assets/sprites/cohesive/night/grain-barn.webp";
-import chapelLight from "@/assets/sprites/night/chapel.webp";
+import chapelLight from "@/assets/sprites/cohesive/night/chapel.webp";
 import churchLight from "@/assets/sprites/cohesive/night/church.webp";
 import cottageLight from "@/assets/sprites/cohesive/night/grain-cottage.webp";
 import dairyLight from "@/assets/sprites/cohesive/night/dairy.webp";
@@ -107,7 +107,7 @@ import lodgeLight from "@/assets/sprites/night/lodge.webp";
 import herbhutLight from "@/assets/sprites/night/herbhut.webp";
 import woodcampLight from "@/assets/sprites/night/woodcamp.webp";
 import granaryLight from "@/assets/sprites/cohesive/night/granary.webp";
-import guildhallLight from "@/assets/sprites/night/guildhall.webp";
+import guildhallLight from "@/assets/sprites/cohesive/night/guildhall.webp";
 import harborLight from "@/assets/sprites/night/harbor.webp";
 import hutLight from "@/assets/sprites/cohesive/night/grain-hut.webp";
 import infirmaryLight from "@/assets/sprites/cohesive/night/infirmary.webp";
@@ -116,7 +116,7 @@ import guardhouseLight from "@/assets/sprites/cohesive/night/guardhouse.webp";
 import innLight from "@/assets/sprites/cohesive/night/inn.webp";
 import libraryLight from "@/assets/sprites/cohesive/night/library.webp";
 import manufactoryLight from "@/assets/sprites/cohesive/night/manufactory.webp";
-import markethallLight from "@/assets/sprites/night/markethall.webp";
+import markethallLight from "@/assets/sprites/cohesive/night/markethall.webp";
 import millLight from "@/assets/sprites/night/mill.webp";
 import sawmillLight from "@/assets/sprites/cohesive/night/sawmill.webp";
 import schoolLight from "@/assets/sprites/cohesive/night/school.webp";
@@ -125,7 +125,7 @@ import smithyLight from "@/assets/sprites/cohesive/night/smithy.webp";
 import stationLight from "@/assets/sprites/cohesive/night/station.webp";
 import steamworksLight from "@/assets/sprites/cohesive/night/steamworks.webp";
 
-import townhallLight from "@/assets/sprites/night/townhall.webp";
+import townhallLight from "@/assets/sprites/cohesive/night/townhall.webp";
 import fachwerkLight from "@/assets/sprites/cohesive/night/grain-fachwerk.webp";
 import steinhausLight from "@/assets/sprites/cohesive/night/grain-steinhaus.webp";
 import handwerkerLight from "@/assets/sprites/cohesive/night/grain-handwerker.webp";
@@ -134,7 +134,7 @@ import townhouse2Light from "@/assets/sprites/cohesive/night/townhouse2.webp";
 import patricianLight from "@/assets/sprites/cohesive/night/grain-patrician.webp";
 import villaLight from "@/assets/sprites/cohesive/night/grain-villa.webp";
 import tenementLight from "@/assets/sprites/cohesive/night/tenement.webp";
-import gatehouseLight from "@/assets/sprites/night/gatehouse.webp";
+import gatehouseLight from "@/assets/sprites/cohesive/night/gatehouse.webp";
 import warehouseLight from "@/assets/sprites/night/warehouse.webp";
 import watermillLight from "@/assets/sprites/cohesive/night/watermill.webp";
 import workshopLight from "@/assets/sprites/cohesive/night/workshop.webp";
@@ -179,14 +179,14 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   hut: { url: hut, crop: [0, 0, 480, 379], width: 16, base: 4 },
   coop: { url: coop, crop: [0, 0, 480, 450], width: 10, base: 4 },
   fence: { url: fence, crop: [0, 0, 480, 256], width: 11, base: 3 },
-  chapel: { url: chapel, crop: [0, 0, 471, 480], width: 21, base: 4 },
+  chapel: { url: chapel, crop: [0, 0, 474, 480], width: 21, base: 4 },
   watermill: { url: watermill, crop: [0, 0, 480, 460], width: 28, base: 4 },
   harbor: { url: harbor, crop: [0, 0, 480, 415], width: 26, base: 4 },
   stall: { url: stall, crop: [0, 0, 480, 395], width: 10, base: 4 },
-  townhall: { url: townhall, crop: [0, 0, 391, 480], width: 31, base: 4 },
-  seat1: { url: seat1, crop: [0, 0, 498, 480], width: 22, base: 4 },
-  seat2: { url: seat2, crop: [0, 0, 482, 480], width: 26, base: 4 },
-  seat3: { url: seat3, crop: [0, 0, 434, 480], width: 30, base: 4 },
+  townhall: { url: townhall, crop: [0, 0, 423, 480], width: 31, base: 4 },
+  seat1: { url: seat1, crop: [0, 0, 480, 439], width: 22, base: 4 },
+  seat2: { url: seat2, crop: [0, 0, 480, 446], width: 26, base: 4 },
+  seat3: { url: seat3, crop: [0, 0, 372, 480], width: 30, base: 4 },
   manufactory: { url: manufactory, crop: [0, 0, 480, 479], width: 31, base: 4 },
   steamworks: { url: steamworks, crop: [0, 0, 480, 480], width: 27, base: 4 },
   station: { url: station, crop: [0, 0, 418, 480], width: 27, base: 4 },
@@ -241,9 +241,9 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   harvesthall: { url: harvesthall, crop: [0, 0, 480, 419], width: 28, base: 4 },
   guildtower: { url: guildtower, crop: [0, 0, 293, 480], width: 17, base: 3 },
   lighthouse: { url: lighthouse, crop: [0, 0, 352, 480], width: 20, base: 4 },
-  gatehouse: { url: gatehouse, crop: [0, 0, 323, 480], width: 26, base: 4 },
-  markethall: { url: markethall, crop: [0, 0, 480, 425], width: 30, base: 4 },
-  guildhall: { url: guildhall, crop: [0, 0, 450, 480], width: 27, base: 4 },
+  gatehouse: { url: gatehouse, crop: [0, 0, 295, 480], width: 26, base: 4 },
+  markethall: { url: markethall, crop: [0, 0, 480, 429], width: 30, base: 4 },
+  guildhall: { url: guildhall, crop: [0, 0, 339, 480], width: 27, base: 4 },
   library: { url: library, crop: [0, 0, 429, 480], width: 26, base: 4 },
   dairy: { url: dairy, crop: [0, 0, 480, 391], width: 24, base: 4 },
 };
