@@ -1,6 +1,7 @@
 import { NAMES_F, NAMES_M, SURNAMES } from "./names";
 import { setChosenTraits } from "./traits";
-import { cacheTick, isSunday } from "./time";
+import { cacheTick } from "./time";
+import { feastOn, isRestDay, realmDate, FEASTS, type FeastCode } from "./feasts";
 import { civicWealth, estateAt, CULTURE_SICK, BEGINEN_SICK, type Estate } from "./prosperity";
 import { weddingDates, weddingJoy } from "./weddings";
 import { hasTrait } from "./traits";
@@ -116,6 +117,8 @@ export type Town = {
   weddings: Wedding[]; church: Tile | null;
   /** Encounter props on the square: a raised maypole and the village's cows (derived from decisions). */
   maypole: Tile | null; cows: Tile[];
+  /** Feast kept today (feasts.ts) and the bonfire spot of a fire feast (Easter / St John's), both derived from the realm clock. */
+  feast: FeastCode | null; bonfire: Tile | null;
   /** Allmende traces: pigs masting under the oaks, the footbridge over the mill stream (both banks, finish time). */
   pigs: Tile[]; steg: { a: Tile; b: Tile; done: number } | null;
 };
@@ -293,7 +296,11 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     for (let i = 0; i < 12; i++) { const a = hash(k, i, 1401) * Math.PI * 2, d = 1 + hash(k, i, 1402) * 1.6, x = Math.round(c[0] + Math.cos(a) * d), y = Math.round(c[1] + Math.sin(a) * d); if (open(x, y)) return [x, y]; }
     return c;
   };
-  const maypole: Tile | null = maypoleUp(decs, now) ? nearFree(meet, s.x * 7 + s.y) : null;
+  const feast = feastOn(now);
+  // Whitsun: the birch "Pfingstbaum" stands on the green just like the encounter maypole
+  const maypole: Tile | null = maypoleUp(decs, now) || feast === "pentecost" ? nearFree(meet, s.x * 7 + s.y) : null;
+  // Easter / St John's fire: on the meadow at the edge of the village, else beside the square
+  const bonfire: Tile | null = feast && FEASTS[feast].scene === "fire" ? nearFree(plays.length ? plays[Math.floor(hash(s.x, s.y, 1411) * plays.length)]! : meet, s.x * 11 + s.y * 3) : null;
   const cows: Tile[] = [];
   for (let i = 0, n = cowsOf(decs, now); i < n && i < 3; i++) {
     // pastures belong to the sheep: the cow grazes on free ground beside one, never inside the fence
@@ -401,7 +408,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   }
   assignHauls(people, byKind, sites, front, well, tradePartners(s, seeds, now).flatMap((q) => q.buy));
   for (const q of people) if (q.guest) q.haul = null;
-  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings, church, maypole, cows, pigs, steg };
+  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings, church, maypole, cows, feast, bonfire, pigs, steg };
 }
 
 /**
@@ -763,7 +770,12 @@ export function planOf(p: Person, t: Town): Entry[] {
   if (p.sick) return [E(0, "sick", H, true)];
   if (p.carer != null) return [E(0, "sleep", H, true), E(7, "care", H, true), E(22, "sleep", H, true)];
   if (p.nurse && p.work) return [E(0, "sleep", H, true), E(7.5 + j(1) * 0.3, "work", p.work, p.workIndoor), E(9 + j(2) * 0.3, "care", p.nurse, true), E(12.5 + j(3) * 0.3, "work", p.work, p.workIndoor), E(15 + j(4) * 0.3, "care", p.nurse, true), E(18 + j(5) * 0.3, "home", H, true), E(21.5, "sleep", H, true)];
-  if (isSunday(t.now) && !SUNDAY_WORK.has(p.job) && !(p.job === "child" && p.age < 4)) return sundayOf(p, t, E, j);
+  if (isRestDay(t.now) && !SUNDAY_WORK.has(p.job) && !(p.job === "child" && p.age < 4)) return sundayOf(p, t, E, j);
+  // Shrovetide: work until mid-afternoon, then masks, fat cakes and noise on the square until late
+  if (t.feast === "shrovetide" && p.job !== "child" && hash(p.id, 41, 710) < 0.75) {
+    const H = p.home;
+    return [E(0, "sleep", H, true), E(6.8 + j(1), "work", p.work ?? H, p.workIndoor), E(15.6 + j(2) * 0.4, "leisure", spot(p, t, 41), false), E(22.2 + j(3) * 0.3, "home", H, true), E(23.2, "sleep", H, true)];
+  }
   if (p.job === "child") {
     if (p.age < 4) return [E(0, "sleep", H, true), E(10 + j(1), "play", add(H, [0.6, 0.6]), false), E(12 + j(2), "home", H, true), E(15.5 + j(3), "play", add(H, [0.6, 0.6]), false), E(18 + j(4), "home", H, true), E(19.5, "sleep", H, true)];
     const school = p.age >= 6 && t.school;
@@ -812,8 +824,26 @@ function sundayOf(p: Person, t: Town, E: (at: number, act: Activity, place: Tile
     : p.origin != null && hash(p.id, 22, 710) < 0.6 ? E(14.5 + j(3), "visit", hhTile(p.origin), true)
     : hasTrait(p.id, "homebody") ? E(14.5, "home", H, true)
     : E(14 + j(3), nature ? "stroll" : "leisure", nature ? add(t.plays[Math.floor(hash(p.id, 23, 710) * t.plays.length)]!, off(p, 4, 0.6)) : spot(p, t, 6), false);
+  const f = t.feast, sc = f ? FEASTS[f].scene : null, at = (c: Tile, k: number, d = 0.9): Tile => add(c, off(p, k, d));
+  const nightOut = (p.job === "child" ? 20 : 21.8) + j(6);
+  if (sc === "quiet") return [E(0, "sleep", H, true), E(wake + j(2) * 0.3, "home", H, true), service, E(11.6 + j(4) * 0.4, "home", H, true), E(21 + j(6), "sleep", H, true)];
+  if (f === "christmas") {
+    // midnight mass: the whole village walks to church by torchlight on the eve, then the quiet day
+    const eve = realmDate(t.now)[2] === 24;
+    return eve
+      ? [E(0, "sleep", H, true), E(20, "home", H, true), E(22.7 + j(1) * 0.15, "church", ch ?? ring(p, 21, t.meet), false)]
+      : [E(0, "church", ch ?? ring(p, 21, t.meet), false), E(1.2 + j(2) * 0.1, "sleep", H, true), E(wake + 1 + j(2) * 0.3, "home", H, true), service, E(11.2 + j(4) * 0.4, "home", H, true), E(20.5 + j(6), "sleep", H, true)];
+  }
+  const early = f === "candlemas" ? E(8 + j(1) * 0.2, "church", ch ?? ring(p, 21, t.meet), false) : service;
+  const after: Entry[] = sc === "procession"
+    // procession / beating the bounds: from the church across the green and back
+    ? [E(10.9 + j(4) * 0.1, "stroll", at(t.plays[Math.floor(hash(p.id, 24, 710) * t.plays.length)] ?? t.meet, 5, 0.6), false), E(12.4 + j(4) * 0.3, "home", H, true), pm, E(17.4 + j(5), "home", H, true), E(nightOut, "sleep", H, true)]
+    : sc === "fire" ? [E(11.2 + j(4) * 0.4, "home", H, true), pm, E(17.4 + j(5), "home", H, true), E(19.4 + j(5) * 0.4, "leisure", at(t.bonfire ?? t.meet, 42, 1.5), false), E(23 + j(6) * 0.3, "home", H, true), E(23.4, "sleep", H, true)]
+    : sc === "green" || sc === "fete" ? [E(11.2 + j(4) * 0.4, "home", H, true), E(14 + j(3), "leisure", hash(p.id, 25, 710) < 0.8 ? at(t.maypole ?? t.meet, 43, 1.4) : spot(p, t, 6), false), E(19.5 + j(5), "home", H, true), E(nightOut, "sleep", H, true)]
+    : [];
+  if (after.length) return [E(0, "sleep", H, true), E(wake + j(2) * 0.3, "home", H, true), early, ...after];
   return [
-    E(0, "sleep", H, true), E(wake + j(2) * 0.3, "home", H, true), service,
+    E(0, "sleep", H, true), E(wake + j(2) * 0.3, "home", H, true), early,
     E(11.2 + j(4) * 0.4, "home", H, true), pm,
     E((nature ? 18.6 : 17.4) + j(5), "home", H, true),
     E((p.job === "child" ? 20 : 21.8) + j(6), "sleep", H, true),
