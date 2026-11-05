@@ -1281,7 +1281,8 @@ export function Game() {
   };
   const decide = async (event: string, choice: string) => {
     if (!my || !userId) return;
-    if (!await prepareSpend()) return;
+    // book outstanding tax first, but let the server guard judge the price — free choices must never be blocked here
+    await refreshTreasury().catch(() => false);
     const { data, error } = await supabase.from("encounters").insert({ seed_id: my.id, user_id: userId, event, choice }).select("id, seed_id, event, choice, cost, created_at").single();
     if (error || !data) {
       // already answered elsewhere: reload instead of leaving a stale question open

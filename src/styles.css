@@ -214,6 +214,8 @@ html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
 }
 
 /* Invisible touch target: the visible icon stays small, the hit area grows to at least 44x44 px on touch screens. */
+/* hit areas anchor to their own element unless it already positions itself (zero specificity) */
+:where(.hit) { position: relative; }
 @utility hit {
   &::after { content: ""; position: absolute; inset: 0; }
   @media (pointer: coarse) {
