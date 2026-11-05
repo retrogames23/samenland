@@ -1,3 +1,4 @@
+import { labEvent } from "./lab-ctl";
 /**
  * Weddings: a pure calendar per village. The first comes on day 2; afterwards the gap shrinks with
  * the number of residents and shortens further with prosperity and food crafts ("good times to marry").
@@ -73,7 +74,10 @@ export function weddingDates(s: Seed, now: number): WedDate[] {
   }
   let n = c.list.length;
   while (n > 0 && c.list[n - 1]!.at > now) n--;
-  return n === c.list.length ? c.list : c.list.slice(0, n);
+  const out = n === c.list.length ? c.list : c.list.slice(0, n);
+  const lw = labEvent("wedding");
+  if (lw && lw <= now && s.user_id && (!out.length || out[out.length - 1]!.at < lw)) return [...out, { at: lw, k: out.length, dowry: 0, town: false, grand: true }];
+  return out;
 }
 /** Times of all weddings up to `now` (real ms), oldest first. */
 export const weddingTimes = (s: Seed, now: number): number[] => weddingDates(s, now).map((w) => w.at);

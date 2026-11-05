@@ -126,6 +126,7 @@ import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
 import { TOWN_CHARACTER } from "@/game/i18n";
 import { onIsland } from "@/game/islands";
 import { townCharacter, type TownWay } from "@/game/character";
+import { LabDesk } from "@/components/hud/LabDesk";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { CHEST } from "@/game/lang/chest";
 import { FOUNDING } from "@/game/lang/founding";
@@ -394,6 +395,7 @@ export function Game() {
     setRenameErr("");
   };
   const [bugOpen, setBugOpen] = useState(false);
+  const [deskOpen, setDeskOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [labOpen, setLabOpen] = useState(false);
   // supporter decorations: only granted rows are stored, placement is derived (src/game/supporter.ts)
@@ -2518,6 +2520,7 @@ export function Game() {
             </button>
           </div>
         </Panel>
+        {deskOpen && isAdmin && realm === "lab" && <LabDesk lang={lang} onChange={() => tick((n) => n + 1)} onClose={() => setDeskOpen(false)} />}
         {settings && <div className="fixed inset-0 -z-10" aria-hidden onClick={() => setSettings(false)} />}
         {settings && (
           <Panel className="absolute end-0 top-full mt-2 w-64" inner="space-y-2 p-3 text-sm">
@@ -2543,6 +2546,7 @@ export function Game() {
                   ))}
                 </div>
                 <div className="text-[10px] text-muted-foreground">{t.lab.note}</div>
+                <Button size="sm" variant="secondary" className="w-full" onClick={() => { setDeskOpen(true); setSettings(false); }}>🎛 {lang === "de" ? "Steuerungspult" : "Control desk"}</Button>
               </>)}
             </>)}
             {userId && home && (
