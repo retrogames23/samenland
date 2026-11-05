@@ -1,5 +1,6 @@
 import { seasonAt } from "./season";
 import { worldTz, worldHour } from "./time";
+import { labWeather } from "./lab-ctl";
 
 /** Weather is display only: pure from realm zone + clock, never stored, never touches economy. */
 export type WeatherKind = "clear" | "drizzle" | "mist" | "snow" | "storm";
@@ -31,6 +32,8 @@ function kindFor(slot: number, now: number): WeatherKind {
 let cache: { key: number; v: Weather } | null = null;
 export function weatherAt(now: number): Weather {
   const key = Math.floor(now / 60_000);
+  const lw = labWeather();
+  if (lw) { const amount = lw === "clear" ? 0 : 0.9; return { kind: lw, amount, wind: lw === "storm" ? 1 : lw === "mist" ? 0.08 : 0.5, gloom: amount * (lw === "storm" ? 0.45 : lw === "drizzle" ? 0.22 : lw === "snow" ? 0.15 : lw === "mist" ? 0.12 : 0) }; }
   if (cache?.key === key && !override) return cache.v;
   const slot = Math.floor(now / SLOT), f = (now % SLOT) / SLOT;
   const kind = override ?? kindFor(slot, now);

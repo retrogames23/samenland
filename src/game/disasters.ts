@@ -1,3 +1,4 @@
+import { labEvent } from "./lab-ctl";
 import { aidFactor } from "./gifts";
 import { townCharacter } from "./character";
 /** Stone-built hill towns: fires start less often and spread to fewer roofs. */
@@ -53,6 +54,12 @@ export function fires(s: Seed, now: number): Fire[] {
     const burn = guarded ? 0.5 * H : water ? 1.5 * H : 4 * H;
     out.push({ at, end: at + burn, tiles, x, y, guarded, water, dead: !guarded && !water && rnd(s.id, w, 16) < 0.35 });
   }
+  const lf = labEvent("fire");
+  if (lf && lf <= now && s.user_id) {
+    const x = s.x + 2, y = s.y + 1;
+    const tiles = [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1]].map(([i, j]) => (y + j!) * MAP + x + i!);
+    out.push({ at: lf, end: lf + 2 * H, tiles, x, y, guarded: false, water: false, dead: false });
+  }
   return out;
 }
 
@@ -85,6 +92,16 @@ function shoreTiles(s: Seed, r: number) {
   fcache.set(key, out); return out;
 }
 export function floods(s: Seed, now: number): Flood[] {
+  const lf = labEvent("flood");
+  if (lf && lf <= now && s.user_id) {
+    let tiles = nearRiver(s) ? shoreTiles(s, reachOf(s, radiusOf(ageHours(s, lf)))) : [];
+    if (!tiles.length) { tiles = []; for (let j = 2; j <= 4; j++) for (let i = -3; i <= 3; i++) if (!isWater(terrain(s.x + i, s.y + j))) tiles.push((s.y + j) * MAP + s.x + i); }
+    const base = nearRiver(s) ? floodsReal(s, now) : [];
+    return [...base, { at: lf, end: lf + 2 * H, tiles, ruined: tiles.filter((t) => rnd(s.id, t, 99) < 0.3), x: s.x, y: s.y }];
+  }
+  return floodsReal(s, now);
+}
+function floodsReal(s: Seed, now: number): Flood[] {
   if (!nearRiver(s)) return [];
   const c0 = Date.parse(s.created_at), out: Flood[] = [], P = 14 * DAY;
   for (let k = 1; c0 + k * P <= now; k++) {
@@ -117,6 +134,8 @@ export function raids(s: Seed, now: number): Raid[] {
     const caught = owns(s, "guard", at);
     out.push({ at, end: at + RAID_LEN, caught, loss: caught ? 0 : p.loss });
   }
+  const lr = labEvent("raid");
+  if (lr && lr <= now && s.user_id) out.push({ at: lr, end: lr + RAID_LEN, caught: false, loss: 0 });
   return out;
 }
 /** Mark stolen so far (mirrors village_raids in the database). */
@@ -128,7 +147,7 @@ export type TileHit = { fire?: true; build?: number; flood?: true };
 const tcache = new Map<string, Map<number, TileHit>>();
 /** What disasters do to each tile right now: burning, rebuilding after fire/flood, or under water. */
 export function tileHits(s: Seed, now: number): Map<number, TileHit> {
-  const key = `${s.id}:${s.created_at}:${(s.bought ?? []).map((b) => b.item + b.at).join(",")}:${(s.aid ?? []).join(",")}:${s.charter?.path ?? ""}${s.charter?.at ?? ""}:${Math.floor(now / 6e4)}`;
+  const key = `${labEvent("fire") ?? 0}:${labEvent("flood") ?? 0}:${s.id}:${s.created_at}:${(s.bought ?? []).map((b) => b.item + b.at).join(",")}:${(s.aid ?? []).join(",")}:${s.charter?.path ?? ""}${s.charter?.at ?? ""}:${Math.floor(now / 6e4)}`;
   const hit = tcache.get(key); if (hit) return hit;
   const m = new Map<number, TileHit>();
   for (const f of fires(s, now)) {

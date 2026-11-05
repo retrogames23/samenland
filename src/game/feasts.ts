@@ -1,3 +1,4 @@
+import { labFeast } from "./lab-ctl";
 import { worldTz, worldHour, isSunday, YEAR_SHIFT } from "./time";
 
 /**
@@ -55,6 +56,7 @@ const MOVABLE: [number, FeastCode][] = [[-47, "shrovetide"], [-46, "ashwed"], [-
 
 /** The feast kept on the realm day of `now`, or null. Christmas begins with the midnight mass on the eve (from 20:00). */
 export function feastOn(now: number): FeastCode | null {
+  const lf = labFeast(); if (lf) return lf;
   const [y, m, d] = realmDate(now);
   if (m === 12 && d === 24 && worldHour(now) >= 20) return "christmas";
   const off = utcDay(y, m, d) - easterDay(y);
