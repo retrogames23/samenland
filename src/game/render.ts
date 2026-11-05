@@ -21,7 +21,7 @@ import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
 import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
-import { townOf, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, type Pose } from "./people";
+import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, type Pose } from "./people";
 import { fig, drawLegged, drawRobeWalk, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
@@ -30,7 +30,7 @@ import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
 import { sheavesOn, woodpileLevel, frost, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
 import { pealPause } from "./time";
 import { isRestDay, bonfireLit, christmasNight, feastOn, FEASTS, type FeastCode } from "./feasts";
-import { oxWalk, martinWalk, type Walk } from "./feast-walkers";
+import { oxWalk, martinWalk, herdsmanWalk, type Walk } from "./feast-walkers";
 import { activeRaid, RAID_LEN } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
 import { decorMap, seatTile, type RewardKey } from "./supporter";
@@ -3018,11 +3018,23 @@ export function draw(
     if (tw.maypole) addProp(tw.maypole[1] * MAP + tw.maypole[0], (cx, cy) => drawMaypole(c, cx, cy, t));
     tw.stars.forEach((id, i) => fzStars.set(id, i));
     // Whitsun ox led in to the birch tree; St Martin rides to the church (feast-walkers.ts)
-    const edge: [number, number] = [tw.meet[0] - 6, tw.meet[1] + 2];
-    const ox = fz === "pentecost" && tw.maypole ? oxWalk(edge, tw.maypole, fzHour) : null;
+    const oxPath = fz === "pentecost" && tw.maypole ? feastRoute(tw, [tw.maypole[0] + 1, tw.maypole[1] + 1], hash(sd.x, sd.y, 1811), seeds) : null;
+    const ox = oxPath ? oxWalk(oxPath, fzHour) : null, hd = oxPath ? herdsmanWalk(oxPath, fzHour) : null;
+    const herd = hd ? tw.people.find((p) => p.job === "farmer" && p.sex === "m" && p.age >= 18) ?? tw.people.find((p) => p.sex === "m" && p.age >= 16) : undefined;
     if (ox) { const [px, py] = iso(ox.x, ox.y); addProp(Math.round(ox.y) * MAP + Math.round(ox.x), () => drawOx(c, px, py, ox, now)); }
-    const mt = fz === "martinmas" && tw.church ? martinWalk([tw.meet[0] + 7, tw.meet[1] - 3], tw.church, fzHour) : null;
-    if (mt) { const [px, py] = iso(mt.x, mt.y); addProp(Math.round(mt.y) * MAP + Math.round(mt.x), () => drawMartin(c, px, py, mt, t)); }
+    if (hd && herd && ox) {
+      const [hx, hy] = iso(hd.x, hd.y), [ox2, oy2] = iso(ox.x, ox.y);
+      const q = { p: herd, x: hd.x, y: hd.y, visible: true, walking: hd.walking, dir: [hd.dx, hd.dy], phase: t / 170, act: "stroll", working: false, talk: null, talkTurn: false, carry: null, dest: null } as unknown as Pose;
+      addProp(Math.round(hd.y) * MAP + Math.round(hd.x), () => {
+        // halter rope from his hand to the ox's head, sagging a little
+        c.strokeStyle = "rgba(92,66,40,0.9)"; c.lineWidth = 0.22; c.beginPath(); c.moveTo(hx, hy - 2.2);
+        c.quadraticCurveTo((hx + ox2) / 2, Math.max(hy, oy2) - 1.2, ox2 + (hx > ox2 ? 1.8 : -1.8), oy2 - 2.6); c.stroke();
+        drawFolk(c, hx, hy, q, t);
+      });
+    }
+    const mtPath = fz === "martinmas" && tw.church ? feastRoute(tw, [tw.church[0] + 1, tw.church[1] + 1], hash(sd.x, sd.y, 1812), seeds) : null;
+    const mt = mtPath ? martinWalk(mtPath, fzHour) : null;
+    if (mt) { const [px, py] = iso(mt.x, mt.y), f = (context: C) => drawMartin(context, px, py, mt, t); addProp(Math.round(mt.y) * MAP + Math.round(mt.x), () => f(c)); }
     // Easter / St John's fire: the stacked pile by day, flames and glow in the evening
     if (tw.bonfire) { const bf = tw.bonfire, lit = bonfireLit(now); addProp(bf[1] * MAP + bf[0], (cx, cy) => { prop(c, "logs", cx, cy + 1, 9); if (lit) drawFire(c, cx, cy + 9, t, bf[0] * 31 + bf[1], L); }); }
     // door greenery (fir at Christmas/Epiphany, birch Maien at Whitsun) beside each lived-in house
