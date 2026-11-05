@@ -624,6 +624,10 @@ export function Game() {
       if (document.visibilityState === "visible") {
         supabase.auth.startAutoRefresh();
         supabase.auth.getSession().then(({ data }) => { if (data.session) setUserId(data.session.user.id); });
+        // decisions made on another device while this tab slept
+        supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").then(({ data }) => { if (data) setEncounters(data); });
+        supabase.from("charters").select("id, seed_id, path, created_at").then(({ data }) => { if (data) setCharters(data); });
+        supabase.from("first_roads").select("id, seed_id, target_id, created_at").then(({ data }) => { if (data) setFirstRoads(data); });
       } else supabase.auth.stopAutoRefresh();
     };
     document.addEventListener("visibilitychange", onVis);
@@ -1279,7 +1283,12 @@ export function Game() {
     if (!my || !userId) return;
     if (!await prepareSpend()) return;
     const { data, error } = await supabase.from("encounters").insert({ seed_id: my.id, user_id: userId, event, choice }).select("id, seed_id, event, choice, cost, created_at").single();
-    if (error || !data) return setMsg(error?.message?.includes("not enough money") ? t.poor : t.enc.fail);
+    if (error || !data) {
+      // already answered elsewhere: reload instead of leaving a stale question open
+      supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").then(({ data: rows }) => { if (rows) setEncounters(rows); });
+      if (!error?.message?.includes("not enough money")) setEncOpen(false);
+      return setMsg(error?.message?.includes("not enough money") ? t.poor : t.enc.fail);
+    }
     setEncounters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
     bell(0); setEncOpen(false);
     if (event === "nursery" && choice !== "pass") { setMode("sapling"); setMsg(t.sapling.hint); } else setMsg(t.enc.done);
@@ -2848,7 +2857,7 @@ export function Game() {
                           const jobOf = (p: Person) => t.job[p.job]?.[p.sex === "f" ? 0 : 1] ?? p.job;
                           const show = (p: Person) => { const tw2 = townOf(my, seeds, clock()), q = tw2.people.find((x) => x.id === p.id); const z = q ? poseOf(q, tw2, seeds, clock()) : null; later("encounter", 6e4); if (z) focus(z.x, z.y); if (q) setWho(q); };
                           return <>
-                            {v.asker && <p className="mt-2 text-center text-xs text-muted-foreground">{ct.asks(`${v.asker.first} ${v.asker.last}`, jobOf(v.asker))} <button type="button" className="hit underline decoration-dotted" onClick={() => show(v.asker!)}>{ct.find}</button></p>}
+                            {v.asker && <p className="mt-2 text-center text-xs text-muted-foreground">{ct.asks(`${v.asker.first} ${v.asker.last}`, jobOf(v.asker))} <button type="button" className="hit relative underline decoration-dotted" onClick={() => show(v.asker!)}>{ct.find}</button></p>}
                             {v.advisor && <div className="mt-3 rounded-md border border-brass/50 bg-brass/10 p-2 text-sm">
                               <div className="text-xs font-semibold text-wood">{ct.counsel(`${v.advisor.first} ${v.advisor.last}`, v.herb ? ct.roles.herb : ct.roles.elder)}</div>
                               <div className="italic">{ct.advice[ev][adviceIdx(nw)]}</div>
