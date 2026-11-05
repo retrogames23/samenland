@@ -2773,6 +2773,7 @@ export function draw(
   signpostMap(seeds);
   if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
   const t = performance.now(); setSpriteTime(t);
+  const worldLinks = links(seeds); // one lookup per frame: the cache key itself serialises every seed
   const z = cam.zoom * dpr;
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.fillStyle = hsl(205, 30, 58); c.fillRect(0, 0, w, h);
@@ -2844,7 +2845,7 @@ export function draw(
     }
   }
   // ---- trade roads as one continuous ribbon each (the tile steps stay logic only) ----
-  for (const l of links(seeds)) {
+  for (const l of worldLinks) {
     const bx = roadBox(l); if (bx[2] < cs0x - 60 || bx[0] > cs1x + 60 || bx[3] < cs0y - 60 || bx[1] > cs1y + 60) continue;
     if (roadProgress(l, now) <= 0) continue;
     drawRoadRibbon(c, l, seeds, now);
@@ -2881,7 +2882,7 @@ export function draw(
   const props = framePool.props; props.clear();
   const addProp = (k: number, f: (cx: number, cy: number) => void) => (props.get(k) ?? props.set(k, []).get(k)!).push(f);
   // road crews join the tile depth order, so houses in front hide them instead of the crew floating on roofs
-  if (detail) for (const l of links(seeds)) {
+  if (detail) for (const l of worldLinks) {
     const prog = roadProgress(l, now);
     if (prog <= 0 || prog >= 1) continue;
     const pts = smoothRoad(l), n = pts.length, k = Math.min(n - 2, Math.floor(prog * n / 2));
@@ -2917,7 +2918,7 @@ export function draw(
   }
 
   // ---- bridges: one straight span per water crossing, abutment to abutment ----
-  if (detail) for (const l of links(seeds)) {
+  if (detail) for (const l of worldLinks) {
     const n = l.tiles.length;
     for (let i = 0; i < n; i++) {
       if (!l.water[i]) continue;
@@ -2986,7 +2987,7 @@ export function draw(
     roadProp(px, py, fade, (context) => drawHerald(context, px, py, ddx, ddy, gait, speed, t, v.phase === "wait", night, sd.x * 13 + sd.y), true, `herald:${sd.id}`);
   }
   // ---- life on the trade roads ----
-  if (detail) for (const l of links(seeds)) {
+  if (detail) for (const l of worldLinks) {
     { const bx = roadBox(l); if (bx[2] < cs0x - 60 || bx[0] > cs1x + 60 || bx[3] < cs0y - 60 || bx[1] > cs1y + 60) continue; } // off-screen road: skip its traffic
     const prog = roadProgress(l, now);
     if (prog <= 0) continue;
@@ -3033,7 +3034,7 @@ export function draw(
       lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
     }
     // journeymen and messengers on their way to the neighbour
-    if (n >= 2) for (const w of walkersNow(l, now, links(seeds))) {
+    if (n >= 2) for (const w of walkersNow(l, now, worldLinks)) {
       const end = n - 1, pr = walkProgress(w, now) * end, fwd = w.from.id === l.a.id;
       // roadMotion's second half (phase end..2·end) already runs b→a with a reversed heading
       const m = roadMotion(pts, fwd ? Math.min(pr, end - 1e-6) : end + pr);
@@ -3057,7 +3058,7 @@ export function draw(
   // Saturday market: visiting traders set up painted stalls on the host village's square around the well, 9–17 realm time
   if (marketOpen(now)) {
     const guests = new Map<Seed, Seed[]>();
-    for (const l of links(seeds)) {
+    for (const l of worldLinks) {
       if (l.tiles.length < 7 || roadProgress(l, now) < 1) continue;
       for (const [h, g] of [[l.a, l.b], [l.b, l.a]] as const) { const arr = guests.get(h) ?? []; arr.push(g); guests.set(h, arr); }
     }
@@ -3222,7 +3223,7 @@ export function draw(
 
 
   // border banners in both town colours and the carved border stone at the twin gate
-  for (const l of links(seeds)) {
+  for (const l of worldLinks) {
     if (!isTwin(l, seeds, now)) continue;
     const g = l.tiles[Math.floor(l.tiles.length / 2)]; if (!g) continue;
     const [gx, gy] = iso(g[0], g[1]);
@@ -3299,7 +3300,7 @@ export function draw(
   drawCourtLabel(c, cam, w, h, z, dpr, 110 * z + 8 * dpr, 22);
   // twin towns get a joint ribbon label between them
   c.font = `600 ${Math.round(17 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`;
-  for (const l of links(seeds)) {
+  for (const l of worldLinks) {
     if (!isTwin(l, seeds, now)) continue;
     const [ix, iy] = iso((l.a.x + l.b.x) / 2, (l.a.y + l.b.y) / 2);
     const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2;
