@@ -499,6 +499,30 @@ function keptPaths(s: Seed, age: number, r: number): Set<number> {
   return paths;
 }
 
+/** Raw lot choice of a roadside village tile (stage ≤ 2), before the farmyard rule; null if the tile is no lot. */
+function yardKind(x: number, y: number, s: Seed, age: number, r: number, stage: number): Kind | null {
+  const h = hash(x, y, 4);
+  return stage <= 1 ? weighted(h, [["farmhouse",50],["barn",25],["garden",15],["coop",10]]) : weighted(h, [["cottage",40],["handwerker",20],["farmhouse",15],["barn",10],["garden",15]]);
+}
+function roadsideLot(x: number, y: number, s: Seed, age: number, r: number): boolean {
+  if (!buildable(terrain(x, y)) || hash(x, y, 2) > 0.82 || pathAt(x, y, s, age, r)) return false;
+  const d = townDist(x, y, s);
+  if (d > r + 0.5 || d < 1.6) return false;
+  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if ((i || j) && pathAt(x + i, y + j, s, age, r)) return true;
+  return false;
+}
+/** A barn is kept only as the yard of a neighbouring farmhouse, and the first barn of a cluster wins. */
+function barnOfYard(x: number, y: number, s: Seed, age: number, r: number, stage: number): boolean {
+  let farm = false;
+  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+    if (!i && !j) continue;
+    if (!roadsideLot(x + i, y + j, s, age, r)) continue;
+    const k = yardKind(x + i, y + j, s, age, r, stage);
+    if (k === "barn" && (j < 0 || (j === 0 && i < 0))) return false;
+    if (k === "farmhouse") farm = true;
+  }
+  return farm;
+}
 function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: number, raw = false): Kind | null {
   const dx = x - s.x, dy = y - s.y, stage = stageOf(age);
   if (dx === 0 && dy === 0) return age < 0.15 ? "campfire" : "well";
@@ -540,8 +564,12 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
     return weighted(a.h, [["field",72],["pasture",22],["garden",6]]);
   }
   if (hash(x,y,2)>0.82) return h<0.5?"garden":null;
-  if (stage <= 1) return weighted(h,[["farmhouse",50],["barn",25],["garden",15],["coop",10]]);
-  if (stage === 2) return weighted(h,[["cottage",40],["handwerker",20],["farmhouse",15],["barn",10],["garden",15]]);
+  if (stage <= 2) {
+    const k = yardKind(x, y, s, age, r, stage);
+    // Hofstelle: a barn only stands beside a farmhouse it belongs to, never two barns side by side
+    if (k === "barn" && !barnOfYard(x, y, s, age, r, stage)) return stage <= 1 ? "farmhouse" : "cottage";
+    return k;
+  }
   // Stable sectors form residential, craft and market districts.
   const sector = ((Math.atan2(dy,dx) + Math.PI + hash(seedNum(s),1,81)*2) % (2*Math.PI))/(2*Math.PI);
   if (stage === 3) return weighted(h,[["townhouse",20],["townhouse2",16],["fachwerk",16],["handwerker",10],["workshop",18],["cottage",10],["stall",10]]);

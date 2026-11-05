@@ -46,6 +46,12 @@ export function townTiles(s: Seed, seeds: Seed[], now: number) {
   return { r, x0, x1, y0, y1, byKind, sites };
 }
 
+/** A farmhouse with its own barn beside it keeps a farmhand or maid (Gesinde). */
+export const YARD_HAND = 1;
+const hasYardBarn = (h: HomeTile, barns: Set<string>) => {
+  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if ((i || j) && barns.has(`${h[0] + i},${h[1] + j}`)) return true;
+  return false;
+};
 export type Household = { home: HomeTile; kind: Kind; size: number; unit?: number };
 export function occupiedHomes(s: Seed, seeds: Seed[], now: number, byKind: Map<Kind, HomeTile[]>): Household[] {
   const r = radiusOf(effAge(s, seeds, now));
@@ -59,9 +65,10 @@ export function occupiedHomes(s: Seed, seeds: Seed[], now: number, byKind: Map<K
   const cap = foodCapacity(s, byKind, now, r);
   const legacyCap = capacityAt(s, byKind, now, r, farmFloor);
   const roster = homes.filter(h => !vacant.has(h.home.join(",")));
+  const barns = new Set((byKind.get("barn") ?? []).map(t => t.join(",")));
   const family = ({ home, kind }: { home: HomeTile; kind: Kind }): Household => {
     const range = HOME_SIZES[kind];
-    const size = range ? range[0] + Math.floor(hash(home[0], home[1], 400) * (range[1] - range[0] + 1)) : 0;
+    const size = (range ? range[0] + Math.floor(hash(home[0], home[1], 400) * (range[1] - range[0] + 1)) : 0) + (kind === "farmhouse" && hasYardBarn(home, barns) ? YARD_HAND : 0);
     return { home, kind, size };
   };
   const occupied = homes.slice(0, legacyCap).filter(h => !vacant.has(h.home.join(","))).map(family);
