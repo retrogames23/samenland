@@ -27,3 +27,4 @@
 - Villager names: pools in src/game/names.ts (≥750 per sex, sized to a full Hansestadt); people.ts picks first names by hash with linear probing per town so none repeats while the pool lasts — derived, never stored.
 - Feast props (door greenery, egg baskets, masks, torches, Corpus Christi canopy) and feast banter (lang/banter-feast.ts) derive from feastOn + realm hour in render.ts/banter.ts; only the per-account overlay receipt (feast_reads, merged with localStorage) is stored.
 - Hofstellen (world.ts barnOfYard): a roadside barn stays only beside a farmhouse and never next to another barn, otherwise it becomes a dwelling; a farmhouse with a yard barn gets YARD_HAND extra resident in households.ts — only ever adds homes, so no town loses residents.
+- Organic house sites use the fixed HOUSE_BUILD phase (world.ts), never age-scaled buildTime: big towns slow by building less often, not by slower sites; landmarks keep buildTime.

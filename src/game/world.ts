@@ -332,6 +332,9 @@ export type Kind =
 export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; doneAt?: number | undefined; fire?: boolean; flood?: boolean; homeKind?: Kind };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
 export const buildTime = (at: number) => Math.min(96, Math.max(1.5, at * 0.06));
+/** Ordinary homes, barns and workshops take a fixed short site phase (growth hours, ≈1.7 real h at base pace):
+ * big towns grow slower because houses appear less often, never because each house takes longer. Finish time (birth) is unchanged. */
+export const HOUSE_BUILD = 0.6;
 let buildP = 1;
 /** Homes that may be mirrored so their front turns toward the street (pure, all clients agree). */
 export const MIRROR_KINDS: ReadonlySet<Kind> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "suburb", "barn", "workshop", "stall", "coop"]);
@@ -550,8 +553,8 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   }
   if (stage >= 2 && d < 1.6) return "square";
   const birth = tileBirth(d) * (0.75 + 0.5 * hash(x,y,3));
-  if (age < birth - buildTime(birth)) return null;
-  if (age < birth) buildP = 1 - (birth - age) / buildTime(birth);
+  if (age < birth - HOUSE_BUILD) return null;
+  if (age < birth) buildP = 1 - (birth - age) / HOUSE_BUILD;
   let near = false;
   for (let j=-1;j<=1 && !near;j++) for (let i=-1;i<=1;i++) if ((i||j) && pathAt(x+i,y+j,s,age,r)) { near=true; break; }
   const h = hash(x,y,4);
