@@ -2,6 +2,7 @@ import { NAMES_F, NAMES_M, SURNAMES } from "./names";
 import { setChosenTraits } from "./traits";
 import { cacheTick } from "./time";
 import { feastOn, isRestDay, realmDate, FEASTS, type FeastCode } from "./feasts";
+import { pickStarSingers, starRound, STAR_FROM, STAR_STOP } from "./feast-walkers";
 import { civicWealth, estateAt, CULTURE_SICK, BEGINEN_SICK, type Estate } from "./prosperity";
 import { weddingDates, weddingJoy } from "./weddings";
 import { hasTrait } from "./traits";
@@ -121,6 +122,8 @@ export type Town = {
   feast: FeastCode | null; bonfire: Tile | null;
   /** Allmende traces: pigs masting under the oaks, the footbridge over the mill stream (both banks, finish time). */
   pigs: Tile[]; steg: { a: Tile; b: Tile; done: number } | null;
+  /** Epiphany star singers (child ids) and their door round — derived from feastOn, never stored. */
+  stars: number[]; starDoors: Tile[];
 };
 
 /** Service buildings whose staff grows with the town (radius), so big towns get more bakers, innkeepers, priests. */
@@ -410,7 +413,10 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   }
   assignHauls(people, byKind, sites, front, well, tradePartners(s, seeds, now).flatMap((q) => q.buy));
   for (const q of people) if (q.guest) q.haul = null;
-  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings, church, maypole, cows, feast, bonfire, pigs, steg };
+  const sk = s.x * 7 + s.y * 13;
+  const stars = feast === "epiphany" ? pickStarSingers(people.filter((q) => q.job === "child" && !q.guest), sk) : [];
+  const starDoors = stars.length ? starRound([...new Map(people.filter((q) => q.job !== "mayor").map((q) => [Math.round(q.home[0]) * 4096 + Math.round(q.home[1]), [Math.round(q.home[0]), Math.round(q.home[1]) + 0.55] as Tile])).values()], sk) : [];
+  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings, church, maypole, cows, feast, bonfire, pigs, steg, stars, starDoors };
 }
 
 /**
@@ -761,6 +767,7 @@ const kidSpot = (p: Person, t: Town, i: number): Tile => {
   const out = hash(p.home[0], p.home[1], 606 + i) < 0.12 + (p.age >= 8 ? 0.08 : 0);
   return out ? add(t.plays[Math.floor(hash(p.home[0], p.home[1], 608 + i) * t.plays.length)]!, off(p, i, 0.9)) : p.home; // resolves to the free tile in front of the door
 };
+const at0 = (c: Tile, p: Person, k: number): Tile => add(c, off(p, k, 0.8));
 const spot = (p: Person, t: Town, i: number): Tile => add(t.meets[Math.floor(hash(p.id, i, 605) * t.meets.length)]!, off(p, i, t.meets.length < 3 ? 0.42 : 0.7));
 
 /** Jobs that carry on on Sundays (bread, inn, herds, the sick, the service itself). */
@@ -776,7 +783,9 @@ export function planOf(p: Person, t: Town): Entry[] {
   // Shrovetide: work until mid-afternoon, then masks, fat cakes and noise on the square until late
   if (t.feast === "shrovetide" && p.job !== "child" && hash(p.id, 41, 710) < 0.75) {
     const H = p.home;
-    return [E(0, "sleep", H, true), E(6.8 + j(1), "work", p.work ?? H, p.workIndoor), E(15.6 + j(2) * 0.4, "leisure", spot(p, t, 41), false), E(22.2 + j(3) * 0.3, "home", H, true), E(23.2, "sleep", H, true)];
+    // fools run between the squares and lanes all evening instead of standing in one place
+    const run: Entry[] = []; for (let i = 0; i < 9; i++) run.push(E(15.6 + j(2) * 0.4 + i * 0.7, "leisure", i % 2 ? spot(p, t, 41 + i) : at0(t.plays.length ? t.plays[Math.floor(hash(p.id, 44 + i, 710) * t.plays.length)]! : t.meet, p, 44 + i), false));
+    return [E(0, "sleep", H, true), E(6.8 + j(1), "work", p.work ?? H, p.workIndoor), ...run, E(22.2 + j(3) * 0.3, "home", H, true), E(23.2, "sleep", H, true)];
   }
   if (p.job === "child") {
     if (p.age < 4) return [E(0, "sleep", H, true), E(10 + j(1), "play", add(H, [0.6, 0.6]), false), E(12 + j(2), "home", H, true), E(15.5 + j(3), "play", add(H, [0.6, 0.6]), false), E(18 + j(4), "home", H, true), E(19.5, "sleep", H, true)];
@@ -828,6 +837,17 @@ function sundayOf(p: Person, t: Town, E: (at: number, act: Activity, place: Tile
     : E(14 + j(3), nature ? "stroll" : "leisure", nature ? add(t.plays[Math.floor(hash(p.id, 23, 710) * t.plays.length)]!, off(p, 4, 0.6)) : spot(p, t, 6), false);
   const f = t.feast, sc = f ? FEASTS[f].scene : null, at = (c: Tile, k: number, d = 0.9): Tile => add(c, off(p, k, d));
   const nightOut = (p.job === "child" ? 20 : 21.8) + j(6);
+  // Epiphany: the three star singers go from door to door with their star, a short stop at each house
+  const si = f === "epiphany" ? t.stars.indexOf(p.id) : -1;
+  if (si >= 0 && t.starDoors.length) {
+    const tour = t.starDoors.map((d, i) => E(STAR_FROM + i * STAR_STOP, "stroll", add(d, [si * 0.32 - 0.32, si === 1 ? 0.25 : 0]), false));
+    return [E(0, "sleep", H, true), E(wake, "home", H, true), service, ...tour, E(STAR_FROM + tour.length * STAR_STOP + 0.2, "home", H, true), E(20, "sleep", H, true)];
+  }
+  // Martinmas: the children run after St Martin to the church, at dusk the lantern walk round the green
+  if (f === "martinmas" && p.job === "child" && p.age >= 4) {
+    const lw = t.plays.length ? t.plays[Math.floor(hash(t.seed.x, t.seed.y, 1803) * t.plays.length)]! : t.meet;
+    return [E(0, "sleep", H, true), E(wake + j(2) * 0.3, "home", H, true), service, E(11.6 + j(4) * 0.3, "leisure", at(ch ?? t.meet, 46, 1.6), false), E(13.4 + j(4) * 0.3, "home", H, true), E(16.8 + j(5) * 0.1, "stroll", at(t.meet, 47, 1.2), false), E(17.6 + j(5) * 0.1, "stroll", at(lw, 48, 1.2), false), E(18.4 + j(5) * 0.1, "stroll", at(t.meet, 49, 1.2), false), E(19.2 + j(5) * 0.2, "home", H, true), E(20.2, "sleep", H, true)];
+  }
   if (sc === "quiet") return [E(0, "sleep", H, true), E(wake + j(2) * 0.3, "home", H, true), service, E(11.6 + j(4) * 0.4, "home", H, true), E(21 + j(6), "sleep", H, true)];
   if (f === "christmas") {
     // midnight mass: the whole village walks to church by torchlight on the eve, then the quiet day
