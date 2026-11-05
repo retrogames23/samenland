@@ -40,3 +40,13 @@ describe("construction sites", () => {
     expect(structureAt(tile![0], tile![1], [bought], done + 1)?.doneAt).toBeUndefined();
   });
 });
+
+describe("multi-stage landmark sites", () => {
+  it("the headman's cottage reports its own finish, not the later town hall's", () => {
+    // seat1 finishes at growth hour 3; at hour 2.2 under two growth hours remain
+    const now = 2.2 / GROWTH_PACE * 3.6e6;
+    const st = structureAt(513, 510, [seed], now);
+    expect(st?.kind).toBe("seat1");
+    expect(st!.doneAt! - now).toBeLessThan(3 / GROWTH_PACE * 3.6e6);
+  });
+});
