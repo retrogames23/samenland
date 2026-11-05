@@ -564,7 +564,7 @@ const sharedPasture = new Set<number>();
 const LAYER: Record<string, number> = { deep: 0, water: 0, sand: 1, fertile: 2, meadow: 3, grass: 4, hill: 5, forest: 6, mountain: 7 };
 const LAYER_T = ["water", "sand", "fertile", "meadow", "grass", "hill", "forest", "mountain"];
 const NB8: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
-const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge", "avenue", "rail"]);
+const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well", "market", "road", "bridge", "avenue"]);
 
 /** Whole map fits ~1000px wide at this zoom. */
 export const MIN_ZOOM = 0.025;
@@ -2714,7 +2714,7 @@ function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Struct
       /* drawn as one continuous span per crossing (see drawBridgeSpan) */
     } else if (st.kind === "road") {
       /* drawn as one continuous ribbon per trade road (see drawRoadRibbon) */
-    } else if (st.kind === "path" || st.kind === "street" || st.kind === "avenue" || st.kind === "rail") {
+    } else if (st.kind === "path" || st.kind === "street" || st.kind === "avenue") {
       const street = st.kind === "street" || st.kind === "avenue";
       const col = texture(c, street ? "cobble" : "dirt") ?? (street ? "#b3aa98" : "#c49e6c");
       const wBase = street ? 7 : 4.6;

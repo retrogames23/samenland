@@ -323,7 +323,7 @@ export type Kind =
   | "townhouse" | "workshop" | "smithy" | "warehouse" | "market"
   | "factory" | "sawmill" | "road" | "bridge"
   | "campfire" | "hut" | "coop" | "fence" | "chapel" | "watermill" | "harbor"
-  | "stall" | "townhall" | "gatehouse" | "manufactory" | "steamworks" | "station" | "suburb" | "rail" | "avenue"
+  | "stall" | "townhall" | "gatehouse" | "manufactory" | "steamworks" | "station" | "suburb" | "avenue"
   | "patrician" | "villa" | "tenement" | "townhouse2" | "fachwerk" | "steinhaus" | "handwerker"
   | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "belfry"
   | "backhaus" | "herberge" | "beginenhof" | "bigstore" | "millrow" | "stonemason" | "hammerworks" | "smokehouse" | "saltquay"
@@ -345,7 +345,7 @@ export function faceFlip(kind: Kind, x: number, y: number, isRoad: (x: number, y
   if (px !== py) return px;
   return hash(x, y, 91) < 0.5;
 }
-export const FLAT: ReadonlySet<Kind> = new Set(["path", "street", "square", "field", "pasture", "garden", "market", "road", "bridge", "rail", "avenue"]);
+export const FLAT: ReadonlySet<Kind> = new Set(["path", "street", "square", "field", "pasture", "garden", "market", "road", "bridge", "avenue"]);
 const CORE: Record<string, Kind> = { "1,0": "hut", "0,1": "hut", "1,1": "campfire", "-1,0": "garden", "-1,1": "field", "0,-1": "garden" };
 /** Kinds of the growing mayor's seat, in era order. */
 export const SEAT_KINDS: readonly Kind[] = ["seat1", "seat2", "seat3", "townhall"];

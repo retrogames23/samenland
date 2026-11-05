@@ -35,7 +35,7 @@ export const ar: Dict = {
   lantern: "فانوس",
   hint: "التمرير: تكبير/تصغير · السحب: تحريك",
   seasons: { winter: "الشتاء", spring: "الربيع", summer: "الصيف", autumn: "الخريف" },
-  kinds: { seat1: "كوخ شيخ القرية", seat2: "دار الشيخ", seat3: "دار الحكم في السوق", hut: "كوخ", campfire: "نار المخيم", coop: "قن دجاج", chapel: "مُصلّى", watermill: "طاحونة مائية", harbor: "مرفأ صيد", stall: "أكشاك السوق", townhall: "دار البلدة", manufactory: "دار النسيج", steamworks: "مطرقة مائية", station: "وكالة هانزية", suburb: "بيت الأعيان", avenue: "شارع عريض", fence: "سياج", path: "درب", street: "زقاق", square: "ساحة القرية", pasture: "مرعى", road: "طريق تجاري", bridge: "جسر", rail: "سكة" },
+  kinds: { seat1: "كوخ شيخ القرية", seat2: "دار الشيخ", seat3: "دار الحكم في السوق", hut: "كوخ", campfire: "نار المخيم", coop: "قن دجاج", chapel: "مُصلّى", watermill: "طاحونة مائية", harbor: "مرفأ صيد", stall: "أكشاك السوق", townhall: "دار البلدة", manufactory: "دار النسيج", steamworks: "مطرقة مائية", station: "وكالة هانزية", suburb: "بيت الأعيان", avenue: "شارع عريض", fence: "سياج", path: "درب", street: "زقاق", square: "ساحة القرية", pasture: "مرعى", road: "طريق تجاري", bridge: "جسر" },
   stages: ["المبتدأ", "نجع", "قرية", "بلدة صغيرة", "بلدة تجارية", "مدينة هانزية"],
   nextRank: (stage: string, parts: string[]) => `ما ينقص للوصول إلى ${stage}: ${parts.join("، ")}`,
   needCitizens: (n: number) => `${n} مواطناً`,

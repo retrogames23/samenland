@@ -105,7 +105,7 @@ const SLOTS: Partial<Record<Kind, [Job, number]>> = {
 };
 // healers tend the sick inside the infirmary, so big towns don't crowd its doorstep
 const OUTDOOR_WORK: ReadonlySet<Job> = new Set(["mayor", "farmer", "merchant", "carter", "builder", "woodcutter", "mason", "fisher", "smith", "watchman", "hunter", "herbalist"]);
-const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "market", "road", "bridge", "rail", "avenue"]);
+const WALK: ReadonlySet<Kind> = new Set(["path", "street", "square", "market", "road", "bridge", "avenue"]);
 
 export type Town = {
   seed: Seed; people: Person[]; well: Tile; meet: Tile; meets: Tile[]; plays: Tile[]; school: Tile | null; play: Tile;
