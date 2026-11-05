@@ -67,7 +67,7 @@ const de = {
     mountain: "Gebirge",
     fertile: "Fruchtbare Aue",
   } as Record<string, string>,
-  resource: { ore: "Eisenerz", coal: "Kohle", stone: "Bruchstein" } as Record<string, string>,
+  resource: { ore: "Eisenerz", bog: "Raseneisenerz", stone: "Bruchstein" } as Record<string, string>,
   job: { firewarden: ["Brandwächterin", "Brandwächter"], watchman: ["Stadtwächterin", "Stadtwächter"], farmer: ["Bäuerin", "Bauer"], baker: ["Bäckerin", "Bäcker"], smith: ["Schmiedin", "Schmied"], innkeeper: ["Wirtin", "Wirt"], miller: ["Müllerin", "Müller"], crafter: ["Handwerkerin", "Handwerker"], worker: ["Dombauhelferin", "Dombauhelfer"], sawyer: ["Sägerin", "Säger"], builder: ["Zimmerin", "Zimmermann"], woodcutter: ["Holzfällerin", "Holzfäller"], mason: ["Steinmetzin", "Steinmetz"], merchant: ["Händlerin", "Händler"], priest: ["Pfarrerin", "Pfarrer"], carter: ["Fuhrfrau", "Fuhrmann"], homemaker: ["kümmert sich um Haus und Garten", "kümmert sich um Haus und Garten"], retired: ["im Ruhestand", "im Ruhestand"], child: ["Mädchen", "Junge"], mayor: ["Dorfschulzin", "Dorfschulze"], fisher: ["Fischerin", "Fischer"], healer: ["Heilerin", "Heiler"], teacher: ["Lehrerin", "Lehrer"], hunter: ["Jägerin", "Jäger"], herbalist: ["Kräuterfrau", "Kräutermann"] } as Record<string, [string, string]>,
   act: { guest: "ist auf der Durchreise und wartet auf den Schulzen", fire: "löscht mit Eimern das Feuer", sleep: "schläft gerade", work: "gerade bei der Arbeit", lunch: "macht Mittagspause am Brunnen", leisure: "trifft sich mit anderen im Dorf", home: "gerade zu Hause", school: "gerade in der Schule", play: "spielt draußen", walking: "ist gerade unterwegs", sick: "liegt krank im Bett", care: "pflegt einen kranken Angehörigen", church: "ist beim Sonntagsgottesdienst", visit: "besucht die Familie", stroll: "macht einen Sonntagsspaziergang", wedding: "feiert Hochzeit", fete: "feiert die Einweihung" } as Record<string, string>,
   person: {
@@ -443,7 +443,7 @@ const en: typeof de = {
     mountain: "Mountains",
     fertile: "Fertile floodplain",
   },
-  resource: { ore: "iron ore", coal: "coal", stone: "quarry stone" },
+  resource: { ore: "iron ore", bog: "bog iron ore", stone: "quarry stone" },
   job: { firewarden: ["Fire warden", "Fire warden"], watchman: ["Watchwoman", "Watchman"], farmer: ["Farmer", "Farmer"], baker: ["Baker", "Baker"], smith: ["Blacksmith", "Blacksmith"], innkeeper: ["Innkeeper", "Innkeeper"], miller: ["Miller", "Miller"], crafter: ["Craftswoman", "Craftsman"], worker: ["Cathedral builder", "Cathedral builder"], sawyer: ["Sawyer", "Sawyer"], builder: ["Carpenter", "Carpenter"], woodcutter: ["Woodcutter", "Woodcutter"], mason: ["Stonemason", "Stonemason"], merchant: ["Merchant", "Merchant"], priest: ["Priest", "Priest"], carter: ["Carter", "Carter"], homemaker: ["Keeps house and garden", "Keeps house and garden"], retired: ["Retired", "Retired"], child: ["Girl", "Boy"], mayor: ["Mayor", "Mayor"], fisher: ["Fisher", "Fisher"], healer: ["Healer", "Healer"], teacher: ["Teacher", "Teacher"], hunter: ["Huntress", "Hunter"], herbalist: ["Herb woman", "Herb man"] },
   act: { guest: "a traveller waiting for the mayor", fire: "fighting the fire with buckets", sleep: "asleep", work: "at work", lunch: "having lunch by the well", leisure: "meeting friends in the village", home: "at home", school: "at school", play: "playing outside", walking: "on the way", sick: "sick in bed", care: "caring for a sick relative", church: "at Sunday service", visit: "visiting family", stroll: "on a Sunday stroll", wedding: "celebrating a wedding", fete: "celebrating the inauguration" },
   person: {
@@ -819,7 +819,7 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
     mountain: "群山",
     fertile: "肥沃河滩",
   },
-  resource: { ore: "铁矿石", coal: "煤炭", stone: "采石场石料" },
+  resource: { ore: "铁矿石", bog: "沼铁矿", stone: "采石场石料" },
   job: { firewarden: ["消防员", "消防员"], watchman: ["守夜人", "守夜人"], farmer: ["农夫", "农夫"], baker: ["面包师", "面包师"], smith: ["铁匠", "铁匠"], innkeeper: ["旅店掌柜", "旅店掌柜"], miller: ["磨坊主", "磨坊主"], crafter: ["手艺人", "手艺人"], worker: ["大教堂建造工", "大教堂建造工"], sawyer: ["锯木工", "锯木工"], builder: ["木匠", "木匠"], woodcutter: ["伐木工", "伐木工"], mason: ["石匠", "石匠"], merchant: ["商人", "商人"], priest: ["教士", "教士"], carter: ["车夫", "车夫"], homemaker: ["料理家务与花园", "料理家务与花园"], retired: ["已退休", "已退休"], child: ["女孩", "男孩"], mayor: ["村长", "村长"], fisher: ["渔民", "渔民"], healer: ["医者", "医者"], teacher: ["教师", "教师"], hunter: ["女猎人", "猎人"], herbalist: ["草药女师", "草药师"] },
   act: { guest: "过路旅人，正在等候村长", fire: "正提桶救火", sleep: "正在熟睡", work: "正在劳作", lunch: "在井边用午餐", leisure: "在村中会友", home: "在家中", school: "在学堂", play: "在外玩耍", walking: "正在路上", sick: "卧病在床", care: "照料生病的亲人", church: "参加主日礼拜", visit: "探望家人", stroll: "主日闲步", wedding: "欢庆婚礼", fete: "在庆祝落成" },
   person: {
@@ -1196,7 +1196,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
     mountain: "山地",
     fertile: "肥沃な氾濫原",
   },
-  resource: { ore: "鉄鉱石", coal: "石炭", stone: "切り出した石" },
+  resource: { ore: "鉄鉱石", bog: "沼鉄鉱", stone: "切り出した石" },
   job: { firewarden: ["火の番", "火の番"], watchman: ["見張り番", "見張り番"], farmer: ["農夫", "農夫"], baker: ["パン職人", "パン職人"], smith: ["鍛冶職人", "鍛冶職人"], innkeeper: ["宿屋の主人", "宿屋の主人"], miller: ["粉ひき職人", "粉ひき職人"], crafter: ["手工芸職人", "手工芸職人"], worker: ["大聖堂の建築職人", "大聖堂の建築職人"], sawyer: ["製材職人", "製材職人"], builder: ["大工", "大工"], woodcutter: ["木こり", "木こり"], mason: ["石工", "石工"], merchant: ["商人", "商人"], priest: ["聖職者", "聖職者"], carter: ["荷車引き", "荷車引き"], homemaker: ["家と庭の世話役", "家と庭の世話役"], retired: ["隠居", "隠居"], child: ["女の子", "男の子"], mayor: ["村長", "村長"], fisher: ["漁師", "漁師"], healer: ["治療師", "治療師"], teacher: ["教師", "教師"], hunter: ["狩人", "狩人"], herbalist: ["薬草師", "薬草師"] },
   act: { guest: "旅の者で、村長を待っている", fire: "バケツで消火中", sleep: "就寝中", work: "仕事中", lunch: "井戸端で昼食中", leisure: "村で友人と歓談中", home: "在宅中", school: "学校で勉強中", play: "外遊び中", walking: "移動中", sick: "病床で療養中", care: "身内を看病中", church: "日曜礼拝に参列中", visit: "家族を訪問中", stroll: "日曜の散歩中", wedding: "婚礼のお祝い中", fete: "落成式を祝っている" },
   person: {
