@@ -2407,7 +2407,14 @@ export function Game() {
               <div className="flex shrink-0 items-center gap-1.5 text-xs font-semibold tabular-nums md:gap-2 md:text-sm">
                 {(() => { const cap = chestCap(my.id, purchases), full = cash >= cap; return (
                 <span className={`flex items-center gap-1 md:gap-1.5 ${full ? "text-destructive" : ""}`} title={`${CHEST[lang].title} · ${CHEST[lang].levels[chestLevel(my.id, purchases) - 1]}: ${Math.max(0, cash)} / ${t.taler(cap)}${full ? ` – ${CHEST[lang].full}` : ""}`}>
-                  <span aria-hidden className="hidden h-4 w-4 place-items-center rounded-full border border-wood bg-[radial-gradient(circle_at_35%_30%,var(--color-coin-shine),var(--color-brass)_55%,var(--color-coin-edge))] text-[9px] font-bold leading-none text-wood shadow-[inset_0_-1px_0_var(--color-coin-edge)] md:grid md:h-5 md:w-5 md:text-[10px]">T</span>
+                  <span aria-hidden className="hidden h-4 w-4 place-items-center rounded-full border border-wood bg-[radial-gradient(circle_at_35%_30%,var(--color-coin-shine),var(--color-brass)_55%,var(--color-coin-edge))] text-wood shadow-[inset_0_-1px_0_var(--color-coin-edge)] md:grid md:h-5 md:w-5">
+                    {/* stylised Lübeck mark: the double-headed eagle */}
+                    <svg viewBox="0 0 20 20" className="h-[78%] w-[78%]" fill="currentColor">
+                      <circle cx="6.6" cy="4.6" r="1.6" /><circle cx="13.4" cy="4.6" r="1.6" />
+                      <path d="M5.2 5.6 3.4 4.4M14.8 5.6l1.8-1.2" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" />
+                      <path d="M8 6.2h4l.6 2.4 5.6-1.8-1.2 2.6 1 .4-2.2 1.6.6.6-3.2.8-.8 2.4 1.6 2.6h-1.6L10 15.8l-1.4 2H7l1.6-2.6-.8-2.4-3.2-.8.6-.6-2.2-1.6 1-.4-1.2-2.6 5.6 1.8z" />
+                    </svg>
+                  </span>
                   {Math.max(0, cash).toLocaleString(LOCALE[lang])}<span className="font-normal text-muted-foreground"><span className="md:hidden"> {t.talerShort}</span><span className="hidden md:inline">/</span><span className="hidden md:inline"> {t.taler(cap)}</span></span>
                 </span>); })()}
                 <span className="hidden text-xs font-normal text-primary sm:inline">{t.perDay(pop)}</span>
