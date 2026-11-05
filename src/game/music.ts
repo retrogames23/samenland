@@ -52,12 +52,17 @@ function ramp(to: number, then?: () => void) {
 }
 function play(m: Exclude<Mood, null>) {
   const list = PLAYLISTS[m];
-  if (!el) { el = new Audio(); el.preload = "auto"; el.addEventListener("ended", () => { if (!mood) return; idx = (idx + 1) % PLAYLISTS[mood].length; el!.src = PLAYLISTS[mood][idx]!; void el!.play().catch(() => {}); }); }
+  if (!el) { el = new Audio(); el.preload = "auto"; el.addEventListener("ended", () => { if (!mood) return; idx = (idx + 1) % PLAYLISTS[mood].length; el!.src = PLAYLISTS[mood][idx]!; if (active) void el!.play().catch(() => {}); }); }
   idx = idx % list.length; el.src = list[idx]!; el.loop = list.length === 1; el.volume = 0;
-  void el.play().then(() => ramp(VOL)).catch(() => {});
+  void el.play().then(() => { if (mood === m && active) ramp(VOL); else hardStop(); }).catch(() => {});
+}
+function hardStop() {
+  clearInterval(fade);
+  if (el) { el.pause(); el.volume = 0; }
 }
 function sync() {
   const want = active ? (inTavern ? "tavern" : moodAt()) : null;
+  if (!want) { mood = null; hardStop(); return; }
   if (want === mood) { if (want && el?.paused) void el.play().catch(() => {}); return; }
   mood = want;
   if (el && !el.paused) ramp(0, () => { el!.pause(); if (want) play(want); });
@@ -70,3 +75,5 @@ export function setMusic(on: boolean) {
   if (!on) { clearInterval(timer); timer = 0; }
 }
 // Music keeps playing in background tabs (like a radio); only the sound effects suspend there.
+
+if (import.meta.hot) import.meta.hot.dispose(() => { active = false; clearInterval(timer); hardStop(); if (el) el.src = ""; });
