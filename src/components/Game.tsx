@@ -1965,7 +1965,15 @@ export function Game() {
         return (
           <div className="space-y-2">
             <div className="text-xs text-muted-foreground">{t.ritual}</div>
-            {live && <div className="text-xs text-primary">{t.festive(Math.ceil((last + BLESS_MS - now) / 3.6e6))}</div>}
+            {live && (() => { const pct = Math.round(speedParts(my, seeds, now).bless * 100); return (
+              <div className="flex items-center gap-3 rounded-md border border-primary/30 bg-primary/10 p-3">
+                <Sprout aria-hidden className="h-8 w-8 shrink-0 text-primary" />
+                <div className="text-xs">
+                  <div className="font-display text-base text-primary">{t.festive(Math.ceil((last + BLESS_MS - now) / 3.6e6))}</div>
+                  {pct > 0 && <div className="text-foreground">{t.blessBonus(pct)}</div>}
+                  <div className="mt-1 h-1.5 overflow-hidden rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${Math.max(0, Math.min(100, ((last + BLESS_MS - now) / BLESS_MS) * 100))}%` }} /></div>
+                </div>
+              </div>); })()}
             {cd > 0 ? <div className="text-xs text-muted-foreground">{t.blessAgain(Math.ceil(cd / 3.6e6))}</div> : (
               <div className="grid gap-2">
                 <Button size="sm" variant="secondary" onClick={() => ring("bell")}>{t.ringBell}</Button>
@@ -1979,9 +1987,9 @@ export function Game() {
         const mine = (o: Seed) => signs.find((x) => x.seed_id === my.id && x.target_id === o.id);
         const placed = nbs.filter((o) => mine(o)), open = nbs.filter((o) => !mine(o));
         const form = (o: Seed) => (
-          <form className="flex gap-1" onSubmit={(e) => { e.preventDefault(); saveSign(o); setSignEdit(null); }}>
-            <Input className="h-8 text-xs" maxLength={80} placeholder={t.signPlaceholder} value={signDraft[o.id] ?? mine(o)?.message ?? ""} onChange={(e) => setSignDraft({ ...signDraft, [o.id]: e.target.value })} />
-            <Button type="submit" size="sm" variant="secondary">{t.signSave}</Button>
+          <form className="flex flex-col gap-1.5 sm:flex-row" onSubmit={(e) => { e.preventDefault(); saveSign(o); setSignEdit(null); }}>
+            <Input className="h-9 min-w-0 flex-1 text-sm sm:h-8 sm:text-xs" maxLength={80} placeholder={t.signPlaceholder} value={signDraft[o.id] ?? mine(o)?.message ?? ""} onChange={(e) => setSignDraft({ ...signDraft, [o.id]: e.target.value })} />
+            <Button type="submit" size="sm" variant="secondary" className="shrink-0">{t.signSave}</Button>
           </form>
         );
         const theirs = (o: Seed) => signs.find((x) => x.seed_id === o.id && x.target_id === my.id);
@@ -1997,9 +2005,9 @@ export function Game() {
                     {signEdit === o.id ? form(o) : <div className="italic text-foreground">„{mine(o)!.message}“</div>}
                     {th && <div className="text-muted-foreground">{t.signUi.theirs(o.name)}: <span className="italic">„{th.message}“</span></div>}
                     <div className="flex flex-wrap gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setSignEdit(signEdit === o.id ? null : o.id)}>{signEdit === o.id ? t.signUi.cancel : t.signUi.edit}</Button>
-                      <Button size="sm" variant="ghost" onClick={() => { focus(o.x, o.y); setTab(null); }}>{t.signUi.town}</Button>
-                      {tl && <Button size="sm" variant="ghost" onClick={() => { const cv = canvasRef.current; const [ix, iy] = iso(tl[0], tl[1]); cam.current.zoom = 6; cam.current.x = ix + 5; cam.current.y = iy + 18; target.current = { zoom: 6, ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; signFocus.k = tl[1] * MAP + tl[0]; signFocus.until = Date.now() + 10000; setMsg(`${t.signTo(o.name)}: „${mine(o)!.message}“`); setTab(null); }}>{t.signUi.look}</Button>}
+                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setSignEdit(signEdit === o.id ? null : o.id)}>{signEdit === o.id ? t.signUi.cancel : t.signUi.edit}</Button>
+                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { focus(o.x, o.y); setTab(null); }}>{t.signUi.town}</Button>
+                      {tl && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { const cv = canvasRef.current; const [ix, iy] = iso(tl[0], tl[1]); cam.current.zoom = 6; cam.current.x = ix + 5; cam.current.y = iy + 18; target.current = { zoom: 6, ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; signFocus.k = tl[1] * MAP + tl[0]; signFocus.until = Date.now() + 10000; setMsg(`${t.signTo(o.name)}: „${mine(o)!.message}“`); setTab(null); }}>{t.signUi.look}</Button>}
                     </div>
                   </div>
                 ); })}
@@ -2009,8 +2017,8 @@ export function Game() {
               <div className="space-y-2">
                 <div className="font-display text-sm">{t.signUi.open}</div>
                 {open.map((o) => { const th = theirs(o); return (
-                  <div key={o.id} className="space-y-1 text-xs">
-                    <div className="text-foreground">{t.signTo(o.name)}</div>
+                  <div key={o.id} className="space-y-1.5 rounded border border-dashed border-border p-2 text-xs">
+                    <div className="font-medium text-foreground">{t.signTo(o.name)}</div>
                     {th && <div className="text-muted-foreground">{t.signUi.theirs(o.name)}: <span className="italic">„{th.message}“</span></div>}
                     {form(o)}
                   </div>
