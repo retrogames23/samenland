@@ -30,6 +30,7 @@ import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
 import { sheavesOn, woodpileLevel, frost, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
 import { pealPause } from "./time";
 import { isRestDay, bonfireLit, christmasNight, feastOn, FEASTS, type FeastCode } from "./feasts";
+import { oxWalk, martinWalk, type Walk } from "./feast-walkers";
 import { activeRaid, RAID_LEN } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
 import { decorMap, seatTile, type RewardKey } from "./supporter";
@@ -282,6 +283,8 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
 /** Burning roof: flickering glow tongues, sparks and a thick smoke column; lights the night. */
 // ---- feast props: derived from feastOn + realm hour each frame, never stored ----
 let fzNow: FeastCode | null = null, fzHour = 12;
+/** Epiphany star singers this frame: person id -> place in the trio (0 carries the star). */
+const fzStars = new Map<number, number>();
 /** Door greenery: fir boughs at Christmas/Epiphany, birch "Maien" at Whitsun. */
 function drawDoorGreen(c: C, x: number, y: number, birch: boolean, sd: number) {
   if (birch) {
@@ -325,6 +328,34 @@ function drawFeastKit(c: C, X: number, Y: number, q: Pose, t: number) {
     c.fillStyle = "rgba(255,190,90,0.18)"; c.beginPath(); c.arc(hx + 0.4, hy - 5, 4.5 * fl, 0, 7); c.fill();
     c.fillStyle = "#f2a63a"; c.beginPath(); c.ellipse(hx + 0.4, hy - 5, 0.8, 1.4 * fl, 0, 0, 7); c.fill();
     c.fillStyle = "#ffe7a8"; c.beginPath(); c.ellipse(hx + 0.4, hy - 4.8, 0.35, 0.7, 0, 0, 7); c.fill();
+  }
+  // Epiphany: paper crowns for the trio, the first one carries the star on a pole (it turns slowly)
+  const si = f === "epiphany" ? fzStars.get(p.id) : undefined;
+  if (si != null && h >= 10 && h < 17) {
+    const hy = top + 0.6;
+    c.fillStyle = "#d9b25a"; c.beginPath(); c.moveTo(X - 1.1, hy); c.lineTo(X - 1.1, hy - 1.3); c.lineTo(X - 0.55, hy - 0.7); c.lineTo(X, hy - 1.5); c.lineTo(X + 0.55, hy - 0.7); c.lineTo(X + 1.1, hy - 1.3); c.lineTo(X + 1.1, hy); c.closePath(); c.fill();
+    if (si === 0) {
+      const sx = X + 2, sy = top - 4.5, rot = t / 900;
+      c.strokeStyle = "#5e4229"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(X + 1.6, Y - 4.5); c.lineTo(sx, sy); c.stroke();
+      c.fillStyle = "#e8c860"; c.strokeStyle = "#8a6a2a"; c.lineWidth = 0.25; c.beginPath();
+      for (let i = 0; i < 16; i++) { const a = rot + (i * Math.PI) / 8, r = i % 2 ? 1.1 : 2.6; c.lineTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r * 0.9); }
+      c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = "#a8392c"; c.beginPath(); c.arc(sx, sy, 0.6, 0, 7); c.fill();
+    }
+  }
+  // Shrovetide fools: a two-horned cap with jingling bells on top of the mask
+  if (f === "shrovetide" && adult && h >= 15.5 && q.act === "leisure" && hash(p.id, 51, 3) < 0.7 && hash(p.id, 55, 3) < 0.6) {
+    const hy = top + 0.4, bob = q.walking ? Math.sin(t / 120 + p.id) * 0.3 : 0;
+    c.fillStyle = hash(p.id, 56, 3) < 0.5 ? "#a8392c" : "#3f5f3a"; c.beginPath(); c.moveTo(X - 1.2, hy); c.quadraticCurveTo(X - 2.2, hy - 1.6, X - 2.6, hy - 2.4 + bob); c.lineTo(X, hy - 1); c.lineTo(X + 2.6, hy - 2.4 - bob); c.quadraticCurveTo(X + 2.2, hy - 1.6, X + 1.2, hy); c.closePath(); c.fill();
+    c.fillStyle = "#e3c04a"; c.beginPath(); c.arc(X - 2.6, hy - 2.4 + bob, 0.45, 0, 7); c.arc(X + 2.6, hy - 2.4 - bob, 0.45, 0, 7); c.fill();
+  }
+  // Martinmas lantern walk: the children carry little lanterns on sticks at dusk
+  if (f === "martinmas" && !adult && h >= 16.7 && h < 19.4 && q.act === "stroll") {
+    const lx = X + 2.2, ly = Y - 5.5, sw = Math.sin(t / 260 + p.id) * 0.35;
+    c.strokeStyle = "#5e4229"; c.lineWidth = 0.4; c.beginPath(); c.moveTo(X + 1.2, Y - 3.5); c.lineTo(lx, ly - 1.6); c.stroke();
+    c.fillStyle = "rgba(255,190,90,0.2)"; c.beginPath(); c.arc(lx + sw, ly, 3.2, 0, 7); c.fill();
+    c.fillStyle = "#f2b04a"; c.beginPath(); c.ellipse(lx + sw, ly, 0.9, 1.1, 0, 0, 7); c.fill();
+    c.fillStyle = "#6b4a2a"; c.fillRect(lx + sw - 0.9, ly - 1.4, 1.8, 0.35);
   }
   if (f === "corpus" && p.job === "priest" && h >= 10.8 && h < 12.6 && q.act === "stroll") {
     const w = 5, cy = top - 2.2;
@@ -776,6 +807,12 @@ function drawLoad(c: C, x: number, y: number, dx: number, dy: number, g: TradeGo
 }
 
 /** Mounted messenger: 4-frame painted trot, front sheet faces right, rear sheet faces left; hooves on the ground line. */
+/** St Martin: the shared rider sprite with his red cloak (half of it cut off for the beggar) over the shoulders. */
+function drawMartin(c: C, x: number, y: number, w: Walk, t: number) {
+  drawRider(c, x, y, w.dx, w.dy, 5, w.walking ? t : 0);
+  const sw = w.walking ? Math.sin(t / 160) * 0.3 : 0, d = screenFacing(w.dx, w.dy) < 0 ? 1 : -1;
+  c.fillStyle = "#a12f25"; c.beginPath(); c.moveTo(x - 0.8, y - 9.6); c.lineTo(x + 0.9, y - 9.6); c.lineTo(x + 0.6 + d * 1.8 + sw, y - 6.6); c.lineTo(x - 0.4 + d * 0.6, y - 6.9); c.closePath(); c.fill();
+}
 function drawRider(c: C, x: number, y: number, dx: number, dy: number, sd: number, t: number) {
   const away = dy < -0.15 * Math.abs(dx), im = riderImage(away);
   if (!im) return;
@@ -2550,6 +2587,24 @@ function drawPig(c: C, x: number, y: number, now: number, sd: number) {
   if (into > 0) sheetFrame(c, bw, Math.floor((into / 1000) * 3.2), X, Y - Math.abs(Math.sin(into / 160)) * 0.08, h, flip);
   else sheetFrame(c, bw, 3, X, Y - (Math.floor((now + sd) / 500) & 1) * 0.08, h, flip);
 }
+/** Whitsun ox: the cow sprite led along, garlanded with birch and bright ribbons. */
+function drawOx(c: C, x: number, y: number, w: Walk, now: number) {
+  const im = huntIm("cow", cowUrl); if (!im) return;
+  const W = 5.6, H = (im.naturalHeight / im.naturalWidth) * W, dir = screenFacing(w.dx, w.dy) < 0 ? -1 : 1;
+  const sway = w.walking ? Math.sin(now / 420) * 0.04 : Math.sin(now / 5200) * 0.006, lift = w.walking ? Math.abs(Math.sin(now / 420)) * 0.15 : 0;
+  c.save();
+  c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x, y + 0.2, 3, 0.95, 0, 0, 7); c.fill();
+  c.translate(x, y); c.scale(dir, 1); c.rotate(sway);
+  c.drawImage(im, -W / 2, -H - lift, W, H);
+  // birch wreath over the shoulders, ribbons fluttering from the horns
+  c.fillStyle = "rgba(128,170,72,0.95)";
+  for (let i = 0; i < 7; i++) { c.beginPath(); c.ellipse(-0.4 + i * 0.45 - 1.2, -H * 0.72 - lift + Math.sin(i) * 0.25, 0.6, 0.42, 0, 0, 7); c.fill(); }
+  const fl = Math.sin(now / 180) * 0.5;
+  for (const [k, col] of [[0, "#a8392c"], [1, "#d9b25a"], [2, "#3d5f8a"]] as const) {
+    c.strokeStyle = col; c.lineWidth = 0.3; c.beginPath(); c.moveTo(W * 0.32, -H * 0.86 - lift); c.quadraticCurveTo(W * 0.15, -H * 0.6 + k * 0.3, W * 0.05 - fl - k * 0.3, -H * 0.45 + k * 0.4); c.stroke();
+  }
+  c.restore();
+}
 function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number) {
   const im = huntIm("cow", cowUrl); if (!im) return;
   // shoulder just below a villager's head (person 5.2 tall), like a real cow beside a farmer
@@ -2953,14 +3008,21 @@ export function draw(
       addProp(ty * MAP + tx, () => drawRoadWorks(c, ax, ay, bx - ax, by - ay, t, sn + i));
     }
   }
-  const fz = feastOn(now), fzProps = !!fz && (FEASTS[fz].scene === "fire" || fz === "pentecost" || fz === "christmas" || fz === "epiphany");
-  fzNow = fz; fzHour = worldHour(now);
+  const fz = feastOn(now), fzProps = !!fz && (FEASTS[fz].scene === "fire" || fz === "pentecost" || fz === "christmas" || fz === "epiphany" || fz === "martinmas");
+  fzNow = fz; fzHour = worldHour(now); fzStars.clear();
   if (detail) for (const sd of seeds) {
     if (!sd.decisions?.length && !fzProps) continue;
     const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 2;
     if (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1) continue;
     const tw = townOf(sd, seeds, now);
     if (tw.maypole) addProp(tw.maypole[1] * MAP + tw.maypole[0], (cx, cy) => drawMaypole(c, cx, cy, t));
+    tw.stars.forEach((id, i) => fzStars.set(id, i));
+    // Whitsun ox led in to the birch tree; St Martin rides to the church (feast-walkers.ts)
+    const edge: [number, number] = [tw.meet[0] - 6, tw.meet[1] + 2];
+    const ox = fz === "pentecost" && tw.maypole ? oxWalk(edge, tw.maypole, fzHour) : null;
+    if (ox) { const [px, py] = iso(ox.x, ox.y); addProp(Math.round(ox.y) * MAP + Math.round(ox.x), () => drawOx(c, px, py, ox, now)); }
+    const mt = fz === "martinmas" && tw.church ? martinWalk([tw.meet[0] + 7, tw.meet[1] - 3], tw.church, fzHour) : null;
+    if (mt) { const [px, py] = iso(mt.x, mt.y); addProp(Math.round(mt.y) * MAP + Math.round(mt.x), () => drawMartin(c, px, py, mt, t)); }
     // Easter / St John's fire: the stacked pile by day, flames and glow in the evening
     if (tw.bonfire) { const bf = tw.bonfire, lit = bonfireLit(now); addProp(bf[1] * MAP + bf[0], (cx, cy) => { prop(c, "logs", cx, cy + 1, 9); if (lit) drawFire(c, cx, cy + 9, t, bf[0] * 31 + bf[1], L); }); }
     // door greenery (fir at Christmas/Epiphany, birch Maien at Whitsun) beside each lived-in house
