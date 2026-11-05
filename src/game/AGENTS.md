@@ -11,6 +11,7 @@
 - Mentor bonus (mentorHours in world.ts) is derived from links + creation dates and added to effAge outside TRADE_CAP; never stored — late joiners catch up identically on every client.
 - Journeymen and messengers between towns (src/game/wander.ts) are a pure calendar from road + UTC day; never stored — all clients see the same walkers.
 - Family moves (wander.ts "family") empty a source house for VACANT_DAYS; derived, not stored.
+- Daily limits (blessing, gifts, wonders 3/day, decree rest and swap) reset at the realm midnight: worldDayStart in time.ts mirrors DB realm_day_start — never rolling 24 h, so "come back tomorrow" is literal.
 - Neighbour gifts/aid/thanks: only gift rows are stored (DB gift_guard: prices, 1/day, treasury); carts (wander.giftWalkers), faster rebuild (Seed.aid → aidFactor) and balances are derived.
 - Map zoom has one render path (no detail threshold): wild nature is placed by natureAt() in render.ts, baked into ground chunks only outside possible town reach — so trees, house facing and pastures never pop while zooming.
 - Inaugurations (inauguration() in people.ts): villagers gather before a landmark for FETE_SECS after effAge passes its `at`; derived from clock, never stored.

@@ -102,3 +102,5 @@ export function gameDate(now: number, locale: string, month: "long" | "short" = 
 export function gameYear(now: number): number {
   return Number(new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric" }).format(new Date(now))) - YEAR_SHIFT;
 }
+/** Start (ms) of the current realm calendar day; daily limits (blessing, gifts, wonders, decrees) reset at this midnight, mirrored by DB realm_day_start. */
+export const worldDayStart = (now: number) => now - Math.floor(worldHour(now) * 3.6e6);

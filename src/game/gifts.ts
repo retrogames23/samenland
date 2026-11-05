@@ -1,3 +1,4 @@
+import { worldDayStart } from "./time";
 /**
  * Neighbourly gestures: Mark gifts, disaster aid and thank-you letters between villages.
  * Only the gift rows are stored (DB guard enforces prices, one per day and the treasury);
@@ -18,9 +19,9 @@ export const AID_SPEED = 2;
 export const giftBalance = (seedId: string, gifts: Gift[]) =>
   gifts.reduce((a, g) => a + (g.to_seed === seedId ? g.amount : g.from_seed === seedId ? -g.amount : 0), 0);
 
-/** Whether this seed already sent a paid gift within the last 24 hours. */
+/** Whether this seed already sent a paid gift since the realm's midnight. */
 export const sentToday = (seedId: string, gifts: Gift[], now: number) =>
-  gifts.some((g) => g.from_seed === seedId && g.kind !== "thanks" && now - Date.parse(g.created_at) < 864e5);
+  gifts.some((g) => g.from_seed === seedId && g.kind !== "thanks" && Date.parse(g.created_at) >= worldDayStart(now));
 
 /** Received gifts the owner may still thank for (newest per sender, not yet thanked). */
 export function thankable(seedId: string, gifts: Gift[], now: number): Gift[] {
