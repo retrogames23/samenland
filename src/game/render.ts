@@ -56,7 +56,7 @@ import guardU from "@/assets/sprites/court/guard.webp";
 import gardenerU from "@/assets/sprites/court/gardener.webp";
 import courtGroomU from "@/assets/sprites/court/groom.webp";
 import { heraldVisit, HERALD_RIDE_S, type PrincelyRow } from "./princely";
-import { SEAT_KINDS, onGeoChange, hash, vnoise, structureAt, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { SEAT_KINDS, onGeoChange, hash, vnoise, structureAt, soloSeeds, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -73,7 +73,7 @@ const INK = "rgba(34,26,18,0.72)";
 /** Base texture of a field tile under the three-field rotation. */
 const LOOK_TEX: Record<Look, Tex> = { green: "crops", ripe: "wheat", stubble: "wheat", ploughed: "fertile", fallow: "grass" };
 /** Scythe only on ripe grain; gardens and pastures keep their usual work cycle. */
-const farmReaps = (p: { work: [number, number] | null; seed: Seed }, now: number) => { const w = p.work!, st = structureAt(w[0], w[1], [p.seed], now); return st?.kind !== "field" || farmTask(fieldLook(acreOf(w[0], w[1], p.seed).id, now)) === "reap"; };
+const farmReaps = (p: { work: [number, number] | null; seed: Seed }, now: number) => { const w = p.work!, st = structureAt(w[0], w[1], soloSeeds(p.seed), now); return st?.kind !== "field" || farmTask(fieldLook(acreOf(w[0], w[1], p.seed).id, now)) === "reap"; };
 const fieldTex = (x: number, y: number, s: Seed, now: number): Tex => LOOK_TEX[fieldLook(acreOf(x, y, s).id, now)];
 const TEX_OF: Record<string, Tex> = { deep: "water", water: "water", sand: "sand", grass: "grass", meadow: "meadow", forest: "forest", hill: "grass", fertile: "fertile", mountain: "rock" };
 const TERRAIN: Record<string, [number, number, number]> = {
@@ -626,21 +626,29 @@ export function sortDepth<T extends { x: number; y: number }>(items: T[], id: (t
   if (depthWas.size > 4000) depthWas.clear();
   return items;
 }
+const runMemo = new WeakMap<object, { seeds: Seed[]; tick: number; runs: [number, number][]; key: string }>();
 const ribbonCache = new WeakMap<object, Map<string, Ribbon>>();
 /** Built, dry stretches of a trade road drawn as one smooth band with frayed verges, instead of per-tile strokes. */
 function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], now: number) {
   const pts = smoothRoad(l), n = l.tiles.length;
   const on = (i: number) => { const st = structureAt(l.tiles[i]![0], l.tiles[i]![1], seeds, now); return st?.kind === "road"; };
   const joins = (i: number) => { if (i < 0 || i >= n) return false; const st = structureAt(l.tiles[i]![0], l.tiles[i]![1], seeds, now); return !!st && PATHLIKE.has(st.kind); };
-  const runs: [number, number][] = [];
-  for (let i = 0; i < n; i++) {
-    if (!on(i)) continue;
-    let j = i; while (j + 1 < n && on(j + 1)) j++;
-    // reach half into the joining street / bridge so the band meets it without a gap
-    runs.push([joins(i - 1) ? i - 1 : i, joins(j + 1) ? j + 1 : j]); i = j;
+  // the built runs only change with the cache tick: sample the tiles once per minute, not every frame
+  const rk = Math.floor(now / 60000), rm = runMemo.get(l);
+  let runs: [number, number][], key: string;
+  if (rm && rm.seeds === seeds && rm.tick === rk) { runs = rm.runs; key = rm.key; }
+  else {
+    runs = [];
+    for (let i = 0; i < n; i++) {
+      if (!on(i)) continue;
+      let j = i; while (j + 1 < n && on(j + 1)) j++;
+      // reach half into the joining street / bridge so the band meets it without a gap
+      runs.push([joins(i - 1) ? i - 1 : i, joins(j + 1) ? j + 1 : j]); i = j;
+    }
+    key = runs.map((r) => r.join("-")).join(",");
+    runMemo.set(l, { seeds, tick: rk, runs, key });
   }
   if (!runs.length) return;
-  const key = runs.map((r) => r.join("-")).join(",");
   let byKey = ribbonCache.get(l); if (!byKey) ribbonCache.set(l, (byKey = new Map()));
   let rb = byKey.get(key);
   if (!rb) {

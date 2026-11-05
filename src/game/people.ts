@@ -18,7 +18,7 @@ import { seasonAt } from "./season";
 import { fieldLook, farmTask } from "./rotation";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { geoKey, MAP, hash, structureAt, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, type TradeGood, type Seed, type Kind } from "./world";
+import { geoKey, MAP, hash, structureAt, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -772,7 +772,7 @@ export function planOf(p: Person, t: Town): Entry[] {
   let W = p.work ?? H, indoor = p.workIndoor;
   // three-field rhythm: on stubble or fallow there is nothing to do out on the acre — the farmer threshes,
   // slaughters and splits wood at home; only ripe or tilled acres call him out
-  if (p.job === "farmer" && p.work) { const st = structureAt(p.work[0], p.work[1], [p.seed], t.now); if (st?.kind === "field" && farmTask(fieldLook(acreOf(p.work[0], p.work[1], p.seed).id, t.now)) === "yard") { W = H; indoor = true; } }
+  if (p.job === "farmer" && p.work) { const st = structureAt(p.work[0], p.work[1], soloSeeds(p.seed), t.now); if (st?.kind === "field" && farmTask(fieldLook(acreOf(p.work[0], p.work[1], p.seed).id, t.now)) === "yard") { W = H; indoor = true; } }
   const wp: Tile = indoor ? W : add(W, off(p, 3, 0.3));
   const early = hasTrait(p.id, "early") ? -0.8 : hasTrait(p.id, "owl") ? 0.5 : 0;
   const late = hasTrait(p.id, "owl") ? 1.1 : hasTrait(p.id, "early") ? -0.6 : 0;

@@ -54,7 +54,7 @@ function syncGeo() {
   geo = b;
   tcache = new Uint8Array(MAP * MAP); riverField = null; oceanMask = null;
   shapeCache.clear(); lmCache.clear(); waterNearCache.clear(); birthCache.clear(); keptCache.clear();
-  siteCache.clear(); scache.clear(); cacheKey = ""; charCache.clear(); linkCache = []; linkKey = ""; pathCache.clear(); linkSets.clear();
+  siteCache.clear(); scaches.clear(); lastCache = null; lastSeeds = null; charCache.clear(); linkCache = []; linkKey = ""; pathCache.clear(); linkSets.clear();
   resetCourt(); resetWonders(); resetCharacters();
   for (const f of geoHooks) f();
 }
@@ -676,11 +676,22 @@ export function bornAt(x: number, y: number, s: Seed): number {
   return tileBirth(Math.hypot(dx, dy)) * (0.75 + 0.5 * hash(x, y, 3));
 }
 
-let cacheKey = "";
-const scache = new Map<number, Structure | null>();
+// several seed sets (whole realm, single village) are queried per frame: keep one cache each instead of thrashing one
+const scaches = new Map<string, Map<number, Structure | null>>();
+let lastSeeds: Seed[] | null = null, lastTick = -1, lastCache: Map<number, Structure | null> | null = null;
+const soloMemo = new WeakMap<Seed, Seed[]>();
+/** Stable one-element seed list, so per-village queries hit the same cache every frame. */
+export const soloSeeds = (s: Seed): Seed[] => { let a = soloMemo.get(s); if (!a) { a = [s]; soloMemo.set(s, a); } return a; };
 export function structureAt(x: number, y: number, seeds: Seed[], now: number): Structure | null {
-  const key = `${cacheTick(now)}|${seedsKey(seeds)}`;
-  if (key !== cacheKey) { cacheKey = key; scache.clear(); }
+  const tick = cacheTick(now);
+  let scache: Map<number, Structure | null>;
+  if (seeds === lastSeeds && tick === lastTick && lastCache) scache = lastCache;
+  else {
+    const key = `${tick}|${seedsKey(seeds)}`;
+    let m = scaches.get(key);
+    if (!m) { m = new Map(); scaches.set(key, m); if (scaches.size > 24) scaches.delete(scaches.keys().next().value!); }
+    scache = m; lastSeeds = seeds; lastTick = tick; lastCache = m;
+  }
   const ck = y * MAP + x;
   const c = scache.get(ck);
   if (c !== undefined) return c;
