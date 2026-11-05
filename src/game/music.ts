@@ -62,8 +62,12 @@ function hardStop() {
 }
 function sync() {
   const want = active ? (inTavern ? "tavern" : moodAt()) : null;
-  if (!want) { mood = null; hardStop(); return; }
-  if (want === mood) { if (want && el?.paused) void el.play().catch(() => {}); return; }
+  // Off: pause but keep mood + src so switching back on resumes at the same second.
+  if (!want) { hardStop(); return; }
+  if (want === mood && el?.src) {
+    if (el.paused) { el.volume = 0; const m = want; void el.play().then(() => { if (mood === m && active) ramp(VOL); else hardStop(); }).catch(() => {}); }
+    return;
+  }
   mood = want;
   if (el && !el.paused) ramp(0, () => { el!.pause(); if (want) play(want); });
   else if (want) play(want);
