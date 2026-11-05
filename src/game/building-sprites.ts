@@ -15,9 +15,9 @@ import seat3 from "@/assets/sprites/seat3.webp";
 import seat1Light from "@/assets/sprites/night/seat1.webp";
 import seat2Light from "@/assets/sprites/night/seat2.webp";
 import seat3Light from "@/assets/sprites/night/seat3.webp";
-import manufactory from "@/assets/sprites/manufactory.webp";
+import manufactory from "@/assets/sprites/cohesive/manufactory.webp";
 import steamworks from "@/assets/sprites/cohesive/steamworks.webp";
-import station from "@/assets/sprites/station.webp";
+import station from "@/assets/sprites/cohesive/station.webp";
 // suburb homes reuse the Hanseatic gabled house art (the old villa sprite was 19th-century)
 import farmhouse from "@/assets/sprites/cohesive/grain-farmhouse.webp";
 import cottage from "@/assets/sprites/cohesive/grain-cottage.webp";
@@ -38,7 +38,7 @@ import tenement from "@/assets/sprites/cohesive/tenement.webp";
 import workshop from "@/assets/sprites/workshop.webp";
 import smithy from "@/assets/sprites/smithy.webp";
 import warehouse from "@/assets/sprites/warehouse.webp";
-import factory from "@/assets/sprites/factory.webp";
+import factory from "@/assets/sprites/cohesive/cathedral.webp";
 import sawmill from "@/assets/sprites/cohesive/sawmill.webp";
 import well from "@/assets/sprites/cohesive/well.webp";
 import market from "@/assets/sprites/market.webp";
@@ -50,8 +50,8 @@ import firehouse from "@/assets/sprites/firehouse.webp";
 import guardhouse from "@/assets/sprites/guardhouse.webp";
 import school from "@/assets/sprites/school.webp";
 import belfry from "@/assets/sprites/belfry.webp";
-import theater from "@/assets/sprites/theater.webp";
-import theaterLight from "@/assets/sprites/night/theater.webp";
+import theater from "@/assets/sprites/cohesive/theater.webp";
+import theaterLight from "@/assets/sprites/cohesive/night/theater.webp";
 import opera from "@/assets/sprites/cohesive/opera.webp";
 import operaLight from "@/assets/sprites/cohesive/night/opera.webp";
 import university from "@/assets/sprites/cohesive/university.webp";
@@ -64,8 +64,8 @@ import lighthouse from "@/assets/sprites/cohesive/lighthouse.webp";
 import harvesthallLight from "@/assets/sprites/cohesive/night/harvesthall.webp";
 import guildtowerLight from "@/assets/sprites/cohesive/night/guildtower.webp";
 import lighthouseLight from "@/assets/sprites/cohesive/night/lighthouse.webp";
-import orangery from "@/assets/sprites/orangery.webp";
-import orangeryLight from "@/assets/sprites/night/orangery.webp";
+import orangery from "@/assets/sprites/cohesive/orangery.webp";
+import orangeryLight from "@/assets/sprites/cohesive/night/orangery.webp";
 import markethall from "@/assets/sprites/markethall.webp";
 import gatehouse from "@/assets/sprites/gatehouse.webp";
 import guildhall from "@/assets/sprites/guildhall.webp";
@@ -79,7 +79,7 @@ import chapelLight from "@/assets/sprites/night/chapel.webp";
 import churchLight from "@/assets/sprites/cohesive/night/church.webp";
 import cottageLight from "@/assets/sprites/cohesive/night/grain-cottage.webp";
 import dairyLight from "@/assets/sprites/night/dairy.webp";
-import factoryLight from "@/assets/sprites/night/factory.webp";
+import factoryLight from "@/assets/sprites/cohesive/night/cathedral.webp";
 import farmhouseLight from "@/assets/sprites/cohesive/night/grain-farmhouse.webp";
 import fisheryLight from "@/assets/sprites/night/fishery.webp";
 import lodge from "@/assets/sprites/lodge.webp";
@@ -115,14 +115,14 @@ import firehouseLight from "@/assets/sprites/night/firehouse.webp";
 import guardhouseLight from "@/assets/sprites/night/guardhouse.webp";
 import innLight from "@/assets/sprites/night/inn.webp";
 import libraryLight from "@/assets/sprites/night/library.webp";
-import manufactoryLight from "@/assets/sprites/night/manufactory.webp";
+import manufactoryLight from "@/assets/sprites/cohesive/night/manufactory.webp";
 import markethallLight from "@/assets/sprites/night/markethall.webp";
 import millLight from "@/assets/sprites/night/mill.webp";
 import sawmillLight from "@/assets/sprites/cohesive/night/sawmill.webp";
 import schoolLight from "@/assets/sprites/night/school.webp";
 import belfryLight from "@/assets/sprites/night/belfry.webp";
 import smithyLight from "@/assets/sprites/night/smithy.webp";
-import stationLight from "@/assets/sprites/night/station.webp";
+import stationLight from "@/assets/sprites/cohesive/night/station.webp";
 import steamworksLight from "@/assets/sprites/cohesive/night/steamworks.webp";
 
 import townhallLight from "@/assets/sprites/night/townhall.webp";
@@ -187,9 +187,9 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   seat1: { url: seat1, crop: [0, 0, 498, 480], width: 22, base: 4 },
   seat2: { url: seat2, crop: [0, 0, 482, 480], width: 26, base: 4 },
   seat3: { url: seat3, crop: [0, 0, 434, 480], width: 30, base: 4 },
-  manufactory: { url: manufactory, crop: [0, 0, 480, 451], width: 31, base: 4 },
+  manufactory: { url: manufactory, crop: [0, 0, 480, 479], width: 31, base: 4 },
   steamworks: { url: steamworks, crop: [0, 0, 480, 480], width: 27, base: 4 },
-  station: { url: station, crop: [0, 0, 447, 480], width: 27, base: 4 },
+  station: { url: station, crop: [0, 0, 418, 480], width: 27, base: 4 },
   suburb: { url: patrician, crop: [0, 0, 340, 480], width: 20, base: 4 },
   farmhouse: { url: farmhouse, crop: [0, 0, 480, 326], width: 22, base: 6.5 },
   cottage: { url: cottage, crop: [0, 0, 480, 441], width: 20, base: 5 },
@@ -209,7 +209,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   workshop: { url: workshop, crop: [0, 0, 994, 857], width: 23, base: 5 },
   smithy: { url: smithy, crop: [0, 0, 1008, 868], width: 23, base: 5 },
   warehouse: { url: warehouse, crop: [0, 0, 480, 344], width: 29, base: 5 },
-  factory: { url: factory, crop: [0, 0, 464, 480], width: 34, base: 4 },
+  factory: { url: factory, crop: [0, 0, 480, 474], width: 34, base: 4 },
   sawmill: { url: sawmill, crop: [0, 0, 480, 382], width: 28, base: 5 },
   well: { url: well, crop: [0, 0, 349, 480], width: 6, base: 1.5 },
   market: { url: market, crop: [0, 0, 990, 665], width: 26, base: 5 },
@@ -233,11 +233,11 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   guardhouse: { url: guardhouse, crop: [0, 0, 369, 480], width: 21, base: 4 },
   school: { url: school, crop: [0, 0, 480, 478], width: 25, base: 4 },
   belfry: { url: belfry, crop: [0, 0, 157, 480], width: 13, base: 3 },
-  theater: { url: theater, crop: [0, 0, 480, 477], width: 31, base: 4 },
+  theater: { url: theater, crop: [0, 0, 466, 480], width: 31, base: 4 },
   opera: { url: opera, crop: [0, 0, 463, 480], width: 35, base: 4 },
   university: { url: university, crop: [0, 0, 480, 454], width: 35, base: 4 },
   exchange: { url: exchange, crop: [0, 0, 472, 480], width: 33, base: 4 },
-  orangery: { url: orangery, crop: [0, 0, 480, 383], width: 28, base: 4 },
+  orangery: { url: orangery, crop: [0, 0, 480, 468], width: 28, base: 4 },
   harvesthall: { url: harvesthall, crop: [0, 0, 480, 419], width: 28, base: 4 },
   guildtower: { url: guildtower, crop: [0, 0, 293, 480], width: 17, base: 3 },
   lighthouse: { url: lighthouse, crop: [0, 0, 352, 480], width: 20, base: 4 },
