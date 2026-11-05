@@ -29,7 +29,7 @@ import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./cr
 import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
 import { sheavesOn, woodpileLevel, frost, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
 import { pealPause } from "./time";
-import { isRestDay, bonfireLit, christmasNight, feastOn, FEASTS } from "./feasts";
+import { isRestDay, bonfireLit, christmasNight, feastOn, FEASTS, type FeastCode } from "./feasts";
 import { activeRaid, RAID_LEN } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
 import { decorMap, seatTile, type RewardKey } from "./supporter";
@@ -2962,7 +2962,7 @@ export function draw(
     // door greenery (fir at Christmas/Epiphany, birch Maien at Whitsun) beside each lived-in house
     if (fz === "christmas" || fz === "epiphany" || fz === "pentecost") {
       const seen = new Set<number>(), birch = fz === "pentecost";
-      for (const pp of tw.people) { const [hx, hy] = pp.home, k = hy * MAP + hx; if (seen.has(k) || hx < x0 || hx > x1 || hy < y0 || hy > y1) continue; seen.add(k); addProp(k, (cx, cy) => drawDoorGreen(c, cx + 6, cy + 3, birch, k)); }
+      for (const pp of tw.people) { const hx = Math.round(pp.home[0]), hy = Math.round(pp.home[1]), k = hy * MAP + hx; if (seen.has(k) || hx < x0 || hx > x1 || hy < y0 || hy > y1) continue; seen.add(k); addProp(k, (cx, cy) => drawDoorGreen(c, cx + 6, cy + 3, birch, k)); }
     }
     // Easter: egg baskets set out on the green and by the well
     if (fz === "easter") for (const [i, sp0] of [tw.meet, tw.well].entries()) { const k = sp0[1] * MAP + sp0[0]; addProp(k, (cx, cy) => { drawEggBasket(c, cx - 5 + i * 9, cy + 3, k); drawEggBasket(c, cx + 3 - i * 7, cy + 5, k + 1); }); }
