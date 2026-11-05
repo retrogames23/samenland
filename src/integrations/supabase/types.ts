@@ -1254,6 +1254,7 @@ export type Database = {
         Returns: boolean
       }
       purge_user_data: { Args: { _uid: string }; Returns: undefined }
+      realm_day_start: { Args: { _seed: string }; Returns: string }
       rename_seed: {
         Args: { p_name: string; p_seed: string }
         Returns: undefined
