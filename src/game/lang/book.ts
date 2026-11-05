@@ -48,7 +48,7 @@ const de: Book = {
       ["Markttage & Fuhrwerke", "Steht die Straße, rollen Fuhrwerke, Wandergesellen kehren ein und samstags findet der gemeinsame Wochenmarkt statt."],
     ]],
     ["Ressourcen, Handwerk & wofür alles dient", [
-      ["", "Du planst und beauftragst Bauten mit Mark aus der Schatzkammer. Rohstoffe musst du nicht selbst ansparen – die Dorfgemeinschaft gewinnt und verarbeitet sie im Alltag."],
+      ["", "Du planst und beauftragst Bauten mit Lübischer Mark aus der Schatzkammer. Rohstoffe musst du nicht selbst ansparen – die Dorfgemeinschaft gewinnt und verarbeitet sie im Alltag."],
       ["Nahrung", "Bauern ernten Garben, Mühlen mahlen Mehl und der Bäcker backt Brot; dazu kommen Fisch, Wildbret und Käse. Ein reich gedeckter Tisch ist der Schlüssel zum Wachstum: Nur wenn Nahrungsgewerbe den Speisezettel erweitern, reicht das Essen für den Schritt vom Dorf zur Stadt. Satte Bürger bleiben zudem gesünder."],
       ["Kornspeicher", "Getreide kann nicht endlos aufgehäuft werden. Mühlen und Kornspeicher erweitern die Lagerkapazität, damit reiche Herbst-Ernten nicht verderben, sondern das Dorf durch den Winter bringen."],
       ["Holz & Werkstoffe", "Holzfäller schlagen Stämme, Sägewerke schneiden Balken und Steinmetze hauen Quader. Steht ein Holzfällerlager im Ort und später ein eigenes Sägewerk, haben Bauleute stets Bauholz zur Hand – neue Gebäude werden spürbar schneller fertiggestellt."],
@@ -56,10 +56,10 @@ const de: Book = {
       ["Handelsgüter & Wolle", "Was dein Umland im Überfluss hervorbringt, wird zum gefragten Exportgut. Dörfer in der Ebene liefern Wolle, Bergdörfer Stein und Erz, Waldorte Bauholz und Küstenorte Fisch und Salz. Treffen auf Handelsstraßen unterschiedliche Güter aufeinander, entsteht eine dauerhafte Synergie, die beiden Orten zusätzliches Wachstum bringt."],
     ]],
     ["Wohlstand, Bürgerstände & Steuern", [
-      ["Drei Bürgerstände", "Jeder Haushalt gehört einem Stand an: Einfache Bürger zahlen täglich einen Mark Steuer, Facharbeiter zwei und wohlhabende Bürger drei. Ein armes Dorf besteht fast nur aus einfachen Leuten – in einer wohlhabenden Stadt gleicher Größe fließt pro Kopf beinahe doppelt so viel Steuer in die Schatzkammer."],
+      ["Drei Bürgerstände", "Jeder Haushalt gehört einem Stand an: Einfache Bürger zahlen täglich eine Lübische Mark Steuer, Facharbeiter zwei und wohlhabende Bürger drei. Ein armes Dorf besteht fast nur aus einfachen Leuten – in einer wohlhabenden Stadt gleicher Größe fließt pro Kopf beinahe doppelt so viel Steuer in die Schatzkammer."],
       ["Wohlstand mehren", "Wohlstand entsteht durch Investitionen, die bleiben: fertige Handelsstraßen, Bildung und Bürgerbauten wie Schule, Zunfthaus, Markthalle und Bibliothek sowie prächtige Prestigebauten. Mit dem Wohlstand steigen nach und nach mehr Haushalte auf. Volle Speicher machen satt und gesund, lassen aber niemanden dauerhaft in einen höheren Stand aufsteigen."],
       ["Sichtbarer Aufstieg", "Den Aufstieg siehst du im Stadtbild: Aus schlichten Katen werden Fachwerk- und Handwerkerhäuser, aus ihnen stattliche Patrizierhäuser. Tippst du einen Bürger oder ein Haus an, zeigt dir das Pergament Stand, Beruf und täglichen Steuerbeitrag."],
-      ["Wofür die Mark dienen", "Mit Steuern, Mitgiften und Geschenken finanzierst du neue Gewerbe, Bürger- und Prestigebauten sowie Schutzbauten – und mehrst damit wiederum den Wohlstand."],
+      ["Wofür die Lübische Mark dient", "Mit Steuern, Mitgiften und Geschenken finanzierst du neue Gewerbe, Bürger- und Prestigebauten sowie Schutzbauten – und mehrst damit wiederum den Wohlstand."],
     ]],
     ["Gesundheit & Schutz vor Unheil", [
       ["Gesundheit", "Kranke Bewohner bleiben im Bett, fallen bei der Arbeit aus, müssen von Angehörigen gepflegt werden und zahlen an diesem Tag keine Steuer. Im frostigen Winter liegen spürbar mehr Bürger danieder. Frisches Brunnenwasser, Kräuterhütten und Arzneihäuser senken die Ausfälle und schützen so auch die Schatzkammer."],
