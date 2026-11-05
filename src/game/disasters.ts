@@ -8,7 +8,7 @@ export const STONE_FIRE = 0.6;
  * and purchases (fire house, town guard). Nothing is stored: every client sees the same fire at the same moment.
  * Raid losses are mirrored by the database function village_raids, so the treasury stays tamper-proof.
  */
-import { terrain, isWater, waterNearby, riverDistAt, radiusOf, reachOf, ageHours, MAP, type Seed } from "./world";
+import { structureAt, terrain, isWater, waterNearby, riverDistAt, radiusOf, reachOf, ageHours, MAP, type Seed } from "./world";
 
 const H = 3.6e6, DAY = 864e5, WEEK = 7 * DAY;
 export const FIRE_CHANCE = 0.3, FIRE_CHANCE_GUARDED = 0.08;
@@ -55,12 +55,30 @@ export function fires(s: Seed, now: number): Fire[] {
     out.push({ at, end: at + burn, tiles, x, y, guarded, water, dead: !guarded && !water && rnd(s.id, w, 16) < 0.35 });
   }
   const lf = labEvent("fire");
-  if (lf && lf <= now && s.user_id) {
-    const x = s.x + 2, y = s.y + 1;
+  if (lf && lf <= now && (s.user_id || s.realm === "lab") && !scanning) {
+    const [x, y] = labFireSpot(s, lf);
     const tiles = [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1]].map(([i, j]) => (y + j!) * MAP + x + i!);
     out.push({ at: lf, end: lf + 2 * H, tiles, x, y, guarded: false, water: false, dead: false });
   }
   return out;
+}
+
+/** Test fire: the burnable building nearest the town centre (found once per trigger, without fire hits). */
+let scanning = false;
+const spotCache = new Map<string, [number, number]>();
+function labFireSpot(s: Seed, at: number): [number, number] {
+  const key = `${s.id}:${at}`, hit = spotCache.get(key); if (hit) return hit;
+  let spot: [number, number] = [s.x + 2, s.y + 1];
+  scanning = true;
+  try {
+    let bd = Infinity;
+    for (let j = -6; j <= 6; j++) for (let i = -6; i <= 6; i++) {
+      const d = Math.hypot(i, j); if (d < 1 || d >= bd) continue;
+      const st = structureAt(s.x + i, s.y + j, [s], at);
+      if (st && st.build === undefined && canBurn(st.kind)) { bd = d; spot = [s.x + i, s.y + j]; }
+    }
+  } finally { scanning = false; }
+  spotCache.set(key, spot); return spot;
 }
 
 const FLOOD_MONTHS = new Set([2, 3, 9, 10]);
@@ -93,7 +111,7 @@ function shoreTiles(s: Seed, r: number) {
 }
 export function floods(s: Seed, now: number): Flood[] {
   const lf = labEvent("flood");
-  if (lf && lf <= now && s.user_id) {
+  if (lf && lf <= now && (s.user_id || s.realm === "lab")) {
     let tiles = nearRiver(s) ? shoreTiles(s, reachOf(s, radiusOf(ageHours(s, lf)))) : [];
     if (!tiles.length) { tiles = []; for (let j = 2; j <= 4; j++) for (let i = -3; i <= 3; i++) if (!isWater(terrain(s.x + i, s.y + j))) tiles.push((s.y + j) * MAP + s.x + i); }
     const base = nearRiver(s) ? floodsReal(s, now) : [];
@@ -135,7 +153,7 @@ export function raids(s: Seed, now: number): Raid[] {
     out.push({ at, end: at + RAID_LEN, caught, loss: caught ? 0 : p.loss });
   }
   const lr = labEvent("raid");
-  if (lr && lr <= now && s.user_id) out.push({ at: lr, end: lr + RAID_LEN, caught: false, loss: 0 });
+  if (lr && lr <= now && (s.user_id || s.realm === "lab")) out.push({ at: lr, end: lr + RAID_LEN, caught: false, loss: 0 });
   return out;
 }
 /** Mark stolen so far (mirrors village_raids in the database). */

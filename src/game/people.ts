@@ -1,3 +1,4 @@
+import { labEvent } from "./lab-ctl";
 import { NAMES_F, NAMES_M, SURNAMES } from "./names";
 import { setChosenTraits } from "./traits";
 import { cacheTick } from "./time";
@@ -369,7 +370,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       n++;
       let spot: Tile = [f.x + 2, f.y];
       for (let i = 0; i < 8; i++) { const a = hash(q.id, i, 1411) * Math.PI * 2, d = 1.8 + hash(q.id, i, 1412) * 0.9, x = f.x + Math.cos(a) * d, y = f.y + Math.sin(a) * d; if (open(Math.round(x), Math.round(y))) { spot = [x, y]; break; } }
-      q.fete = { at: f.at, spot, face: [f.x, f.y], lag: crew ? 20 : 60 + hash(q.id, 1, 1413) * 240, dur: (f.end - f.at) / 1000, fire: true };
+      q.fete = { at: f.at, spot, face: [f.x, f.y], lag: crew ? 20 : labEvent("fire") === f.at ? 5 + hash(q.id, 1, 1413) * 15 : 60 + hash(q.id, 1, 1413) * 240, dur: (f.end - f.at) / 1000, fire: true };
     }
   }
   // the day's travelling visitor stands at the well/square while the mayor decides, and a while after a welcome
