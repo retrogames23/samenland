@@ -1110,6 +1110,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_at: string | null
           reward: number
           visited_seed: string
           visitor_seed: string
@@ -1117,6 +1118,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          last_at?: string | null
           reward?: number
           visited_seed: string
           visitor_seed: string
@@ -1124,6 +1126,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          last_at?: string | null
           reward?: number
           visited_seed?: string
           visitor_seed?: string
