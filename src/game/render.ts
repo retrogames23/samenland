@@ -33,7 +33,7 @@ import { isSunday } from "./time";
 import { activeRaid, RAID_LEN } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
 import { decorMap, seatTile, type RewardKey } from "./supporter";
-import { dogStep, type DogPose } from "./dog";
+import { dogStep, dogTile, type DogPose } from "./dog";
 import dogTrotU from "@/assets/sprites/support/dog-trot.webp";
 import dogSitU from "@/assets/sprites/support/dog-sit.webp";
 import dogSleepU from "@/assets/sprites/support/dog-sleep.webp";
