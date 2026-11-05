@@ -15,6 +15,8 @@ type Cat = Partial<Record<BanterCat, string[]>>;
 const de: Cat = {
   own_any: [
     "Guten Tag, {mayor}! Schön, dass Ihr mal vorbeischaut.",
+    "Goden Dag, Schulte! Wat gifft dat Nees?",
+    "Dat Broot rökt goot ut'm Backhus – riecht Ihr das?",
     "Ah, der Herr Schulze persönlich! Soll ich mich verbeugen?",
     "{town} wird jeden Tag schöner, findet Ihr nicht?",
     "Habt Ihr schon gehört? Beim Bäcker gibt's heute Mohnzopf.",
@@ -96,7 +98,8 @@ const de: Cat = {
   own_t_curious: ["Was steht denn als Nächstes an, {mayor}? Erzählt!", "Wohin führt eigentlich die neue Straße?", "Was ist eigentlich hinter den Bergen?"],
 
   foreign_any: [
-    "Sie habe ich ja noch nie hier gesehen, Fremder.",
+    "Euch habe ich ja noch nie hier gesehen, Fremder.",
+    "Gode Tied, Fremder. Wo kümmt Ji her?",
     "Ihr seid nicht von hier, oder?",
     "Ein Schulze aus {town}? Na, dann benehmt Euch.",
     "Bei uns ist es schöner als bei Euch. Nur so.",
