@@ -2764,6 +2764,7 @@ function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Struct
 }
 
 export const renderStats = { tiles: 0, folk: 0, chunks: 0 };
+let vignette: { w: number; h: number; c: C; g: CanvasGradient } | null = null;
 export function draw(
   c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], plantings: Map<string, Planting>,
   now: number, hover: [number, number] | null, ghostOk: boolean | null,
@@ -3101,6 +3102,8 @@ export function draw(
   renderStats.tiles = nTiles; { let n = 0; for (const v of folk.values()) n += v.length; renderStats.folk = n; }
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
   const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
+  // supporter decorations: one lookup per frame instead of a fresh cache key per empty tile
+  const decor = supportOwned.size ? decorMap(seeds, supportOwned, now, MAP) : null, decorNight = worldHour(now) >= 19 || worldHour(now) < 7;
   for (let ti = 0; ti < nTiles; ti++) {
     const { x, y, cx, cy, st } = tiles[ti]!;
     ord.set(y * MAP + x, ti);
@@ -3142,7 +3145,7 @@ export function draw(
     }
     if (!st) { const cp = courtPieces().get(y * MAP + x); if (cp) drawCourtPiece(c, cp, cx, cy, L, t); for (const q of courtFigures(t).get(y * MAP + x) ?? []) drawCourtFigure(c, q, t); }
     if (!st) { const wk = wonderMap().get(y * MAP + x); if (wk) drawWonder(c, wk, cx, cy, t, !wonderFound.has(`${wk}:${x}:${y}`), L); }
-    if (!st && supportOwned.size) { const dk = decorMap(seeds, supportOwned, now, MAP).get(y * MAP + x); if (dk) drawSupport(c, dk, cx, cy, L, worldHour(now) >= 19 || worldHour(now) < 7); }
+    if (!st && decor) { const dk = decor.get(y * MAP + x); if (dk) drawSupport(c, dk, cx, cy, L, decorNight); }
     { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
     if (y * MAP + x === goalK) {
       // golden waymark where the player's mayor is heading
@@ -3246,9 +3249,13 @@ export function draw(
 
   // ---- paper, light, labels (screen space) ----
   c.setTransform(1, 0, 0, 1, 0, 0);
-  const vg = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
-  vg.addColorStop(0, "rgba(20,15,10,0)"); vg.addColorStop(1, "rgba(20,15,10,0.32)");
-  c.fillStyle = vg; c.fillRect(0, 0, w, h);
+  // vignette gradient only rebuilt when the canvas size changes
+  if (!vignette || vignette.w !== w || vignette.h !== h || vignette.c !== c) {
+    const g = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
+    g.addColorStop(0, "rgba(20,15,10,0)"); g.addColorStop(1, "rgba(20,15,10,0.32)");
+    vignette = { w, h, c, g };
+  }
+  c.fillStyle = vignette.g; c.fillRect(0, 0, w, h);
 
   const night = skyTint(c, w, h);
   if (night > 0.02) {
