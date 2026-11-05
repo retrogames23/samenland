@@ -837,11 +837,11 @@ function sundayOf(p: Person, t: Town, E: (at: number, act: Activity, place: Tile
   const early = f === "candlemas" ? E(8 + j(1) * 0.2, "church", ch ?? ring(p, 21, t.meet), false) : service;
   const after: Entry[] = sc === "procession"
     // procession / beating the bounds: from the church across the green and back
-    ? [E(10.9 + j(4) * 0.1, "stroll", at(t.plays[Math.floor(hash(p.id, 24, 710) * t.plays.length)] ?? t.meet, 5, 0.6), false), E(12.4 + j(4) * 0.3, "home", H, true), pm]
+    ? [E(10.9 + j(4) * 0.1, "stroll", at(t.plays[Math.floor(hash(p.id, 24, 710) * t.plays.length)] ?? t.meet, 5, 0.6), false), E(12.4 + j(4) * 0.3, "home", H, true), pm, E(17.4 + j(5), "home", H, true), E(nightOut, "sleep", H, true)]
     : sc === "fire" ? [E(11.2 + j(4) * 0.4, "home", H, true), pm, E(17.4 + j(5), "home", H, true), E(19.4 + j(5) * 0.4, "leisure", at(t.bonfire ?? t.meet, 42, 1.5), false), E(23 + j(6) * 0.3, "home", H, true), E(23.4, "sleep", H, true)]
     : sc === "green" || sc === "fete" ? [E(11.2 + j(4) * 0.4, "home", H, true), E(14 + j(3), "leisure", hash(p.id, 25, 710) < 0.8 ? at(t.maypole ?? t.meet, 43, 1.4) : spot(p, t, 6), false), E(19.5 + j(5), "home", H, true), E(nightOut, "sleep", H, true)]
     : [];
-  if (after.length) return sc === "fire" ? [E(0, "sleep", H, true), E(wake + j(2) * 0.3, "home", H, true), early, ...after] : [E(0, "sleep", H, true), E(wake + j(2) * 0.3, "home", H, true), early, ...after.slice(0, sc === "procession" ? 3 : 4)];
+  if (after.length) return [E(0, "sleep", H, true), E(wake + j(2) * 0.3, "home", H, true), early, ...after];
   return [
     E(0, "sleep", H, true), E(wake + j(2) * 0.3, "home", H, true), early,
     E(11.2 + j(4) * 0.4, "home", H, true), pm,
