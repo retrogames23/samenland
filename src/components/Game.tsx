@@ -1613,7 +1613,25 @@ export function Game() {
     }, 15000);
     return () => window.clearInterval(id);
   }, [owner, my?.id, seeds]);
+  // test map: the control desk makes the village nearest the camera the "watched" one — its event opens the parchment and the camera glides there
+  const [labTown, setLabTown] = useState<Seed | null>(null);
+  const labTrigger = (code: string) => {
+    const [cx, cy] = toTile(cam.current.x, cam.current.y);
+    const lab = seeds.filter((s) => s.realm === "lab");
+    const s = lab.sort((a, b) => Math.hypot(a.x - cx, a.y - cy) - Math.hypot(b.x - cx, b.y - cy))[0];
+    if (!s) return;
+    const now = clock();
+    liveFrom.current = now + 1;
+    const ev = chronicle(s, seeds, now - 2000, now + 1000).events.filter((e) => e.code === code).pop();
+    const x = ev && "x" in ev ? ev.x : s.x, y = ev && "y" in ev ? ev.y : s.y;
+    const [gx, gy] = iso(x, y);
+    cam.current.zoom = Math.max(cam.current.zoom, 5);
+    camFree.current = true; fling.current = { vx: 0, vy: 0, t: performance.now() }; glide.current = { x: gx, y: gy };
+    setDeskOpen(false);
+    if (ev) { setLabTown(s); setFest((q) => [...q, ev].slice(-6)); }
+  };
   const festNow = !anyOpen && !decision.open && !chronOpen ? fest[0] : undefined;
+  const festSeed = my ?? labTown ?? undefined;
   const festSounded = useRef<ChronEvent | null>(null), giftSounded = useRef<string | null>(null);
   useEffect(() => {
     if (!festNow || festSounded.current === festNow) return;
@@ -1623,7 +1641,7 @@ export function Game() {
   }, [festNow]);
   const festArt = (e: ChronEvent) => e.code === "fire" ? ART["fire"] : e.code === "flood" ? ART["flood"] : e.code === "raid" ? ART["robber"] : e.code === "wedding" ? ART["wedding"] : e.code === "house" ? ART["topping"] : e.code === "family" ? ART["newcomers"] : e.code === "road" ? ART["roadopen"] : e.code === "twin" || (e.code === "bought" && /^title[1-3]$/.test(e.item)) ? ART["charter"] : ART["fair"];
   const festText = (e: ChronEvent): [string, string] => {
-    const n = my?.name ?? "";
+    const n = festSeed?.name ?? "";
     if (e.code === "fire") return e.guarded ? [t.woe.fireGuarded[0], t.woe.fireGuarded[1](n)] : [t.woe.fire[0], t.woe.fire[1](n, e.water, e.dead)];
     if (e.code === "flood") return [t.woe.flood[0], t.woe.flood[1](n)];
     if (e.code === "raid") return e.caught ? [t.woe.caught[0], t.woe.caught[1](n)] : [t.woe.raid[0], t.woe.raid[1](n, e.loss)];
@@ -2520,7 +2538,7 @@ export function Game() {
             </button>
           </div>
         </Panel>
-        {deskOpen && isAdmin && realm === "lab" && <LabDesk lang={lang} onChange={() => tick((n) => n + 1)} onClose={() => setDeskOpen(false)} />}
+        {deskOpen && isAdmin && realm === "lab" && <LabDesk lang={lang} onChange={() => tick((n) => n + 1)} onClose={() => setDeskOpen(false)} onTrigger={labTrigger} />}
         {settings && <div className="fixed inset-0 -z-10" aria-hidden onClick={() => setSettings(false)} />}
         {settings && (
           <Panel className="absolute end-0 top-full mt-2 w-64" inner="space-y-2 p-3 text-sm">
@@ -3124,7 +3142,7 @@ export function Game() {
           </Parchment>
         );
       })()}
-      {festNow && my && (() => { const [h, body] = festText(festNow); const go = () => { const e = festNow as { x?: number; y?: number }; if (e.x != null && e.y != null) focus(e.x, e.y); else focus(my.x, my.y); setFest((q) => q.slice(1)); }; return (
+      {festNow && festSeed && (() => { const [h, body] = festText(festNow); const go = () => { const e = festNow as { x?: number; y?: number }; if (e.x != null && e.y != null) focus(e.x, e.y); else focus(festSeed.x, festSeed.y); setFest((q) => q.slice(1)); }; return (
         <Parchment image={festArt(festNow)} title={h} later={t.fest.close} onLater={() => setFest((q) => q.slice(1))}>
           <p className="text-center font-display text-xl leading-snug text-ink">{body}</p>
           <div className="mt-4 flex justify-center gap-2">

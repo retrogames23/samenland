@@ -28,7 +28,7 @@ const TXT = {
 
 const chip = (on: boolean) => `rounded px-1.5 py-1 text-[11px] ${on ? "bg-accent text-foreground" : "bg-background/40 hover:bg-accent/50"}`;
 
-export function LabDesk({ lang, onChange, onClose }: { lang: Lang; onChange: () => void; onClose: () => void }) {
+export function LabDesk({ lang, onChange, onClose, onTrigger }: { lang: Lang; onChange: () => void; onClose: () => void; onTrigger?: (e: LabEvent) => void }) {
   const t = lang === "de" ? TXT.de : TXT.en;
   const [, re] = useState(0);
   const st = labState();
@@ -52,7 +52,7 @@ export function LabDesk({ lang, onChange, onClose }: { lang: Lang; onChange: () 
       <div className="mb-2 grid grid-cols-2 gap-1">
         {(["wedding", "fire", "flood", "raid"] as LabEvent[]).map((e) => (
           <div key={e} className="flex gap-1">
-            <button className={`${chip(!!st.ev[e])} flex-1`} onClick={() => { triggerLab(e, clock()); done(); }}>{t.ev[e]}</button>
+            <button className={`${chip(!!st.ev[e])} flex-1`} onClick={() => { triggerLab(e, clock()); done(); onTrigger?.(e); }}>{t.ev[e]}</button>
             {st.ev[e] && <button className={chip(false)} onClick={() => { clearLabEvent(e); done(); }} aria-label={`${t.ev[e]} ${t.end}`}>✕</button>}
           </div>
         ))}
