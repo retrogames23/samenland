@@ -1641,7 +1641,7 @@ export function Game() {
   }, [festNow]);
   const festArt = (e: ChronEvent) => e.code === "fire" ? ART["fire"] : e.code === "flood" ? ART["flood"] : e.code === "raid" ? ART["robber"] : e.code === "wedding" ? ART["wedding"] : e.code === "house" ? ART["topping"] : e.code === "family" ? ART["newcomers"] : e.code === "road" ? ART["roadopen"] : e.code === "twin" || (e.code === "bought" && /^title[1-3]$/.test(e.item)) ? ART["charter"] : ART["fair"];
   const festText = (e: ChronEvent): [string, string] => {
-    const n = my?.name ?? "";
+    const n = festSeed?.name ?? "";
     if (e.code === "fire") return e.guarded ? [t.woe.fireGuarded[0], t.woe.fireGuarded[1](n)] : [t.woe.fire[0], t.woe.fire[1](n, e.water, e.dead)];
     if (e.code === "flood") return [t.woe.flood[0], t.woe.flood[1](n)];
     if (e.code === "raid") return e.caught ? [t.woe.caught[0], t.woe.caught[1](n)] : [t.woe.raid[0], t.woe.raid[1](n, e.loss)];
@@ -3142,7 +3142,7 @@ export function Game() {
           </Parchment>
         );
       })()}
-      {festNow && my && (() => { const [h, body] = festText(festNow); const go = () => { const e = festNow as { x?: number; y?: number }; if (e.x != null && e.y != null) focus(e.x, e.y); else focus(my.x, my.y); setFest((q) => q.slice(1)); }; return (
+      {festNow && festSeed && (() => { const [h, body] = festText(festNow); const go = () => { const e = festNow as { x?: number; y?: number }; if (e.x != null && e.y != null) focus(e.x, e.y); else focus(festSeed.x, festSeed.y); setFest((q) => q.slice(1)); }; return (
         <Parchment image={festArt(festNow)} title={h} later={t.fest.close} onLater={() => setFest((q) => q.slice(1))}>
           <p className="text-center font-display text-xl leading-snug text-ink">{body}</p>
           <div className="mt-4 flex justify-center gap-2">
