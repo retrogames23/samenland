@@ -1,4 +1,4 @@
-import { worldTz, worldHour, YEAR_SHIFT } from "./time";
+import { worldTz, worldHour, isSunday, YEAR_SHIFT } from "./time";
 
 /**
  * Church year around 1500 (north Germany): which feast the realm's calendar day is. Pure and derived
@@ -69,3 +69,5 @@ export const feastKey = (code: FeastCode, now: number) => `${code}:${realmDate(n
 export const bonfireLit = (now: number) => { const f = feastOn(now); if (!f || FEASTS[f].scene !== "fire") return false; const h = worldHour(now); return h >= 19.5 && h < 23.5; };
 /** Christmas night: every household keeps a light burning for the midnight mass. */
 export const christmasNight = (now: number) => { const f = feastOn(now); if (f !== "christmas") return false; const h = worldHour(now); return h >= 20 || h < 2; };
+/** Sunday or a commanded feast: the shared "no work" test for villagers, workshops and crafts. */
+export const isRestDay = (now: number) => isSunday(now) || isFeastRest(now);
