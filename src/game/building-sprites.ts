@@ -6,7 +6,7 @@ import coop from "@/assets/sprites/coop.webp";
 import fence from "@/assets/sprites/fence.webp";
 import chapel from "@/assets/sprites/cohesive/chapel.webp";
 import watermill from "@/assets/sprites/cohesive/watermill.webp";
-import harbor from "@/assets/sprites/harbor.webp";
+import harbor from "@/assets/sprites/cohesive/harbor.webp";
 import stall from "@/assets/sprites/stall.webp";
 import townhall from "@/assets/sprites/cohesive/townhall.webp";
 import seat1 from "@/assets/sprites/cohesive/seat1.webp";
@@ -23,7 +23,7 @@ import farmhouse from "@/assets/sprites/cohesive/grain-farmhouse.webp";
 import cottage from "@/assets/sprites/cohesive/grain-cottage.webp";
 import barn from "@/assets/sprites/cohesive/grain-barn.webp";
 import church from "@/assets/sprites/cohesive/church.webp";
-import mill from "@/assets/sprites/mill-body.webp";
+import mill from "@/assets/sprites/cohesive/mill.webp";
 import millSails from "@/assets/sprites/mill-sails.webp";
 import inn from "@/assets/sprites/cohesive/inn.webp";
 import bakery from "@/assets/sprites/cohesive/bakery.webp";
@@ -37,7 +37,7 @@ import villa from "@/assets/sprites/cohesive/grain-villa.webp";
 import tenement from "@/assets/sprites/cohesive/tenement.webp";
 import workshop from "@/assets/sprites/cohesive/workshop.webp";
 import smithy from "@/assets/sprites/cohesive/smithy.webp";
-import warehouse from "@/assets/sprites/warehouse.webp";
+import warehouse from "@/assets/sprites/cohesive/warehouse.webp";
 import factory from "@/assets/sprites/cohesive/cathedral.webp";
 import sawmill from "@/assets/sprites/cohesive/sawmill.webp";
 import well from "@/assets/sprites/cohesive/well.webp";
@@ -82,8 +82,8 @@ import dairyLight from "@/assets/sprites/cohesive/night/dairy.webp";
 import factoryLight from "@/assets/sprites/cohesive/night/cathedral.webp";
 import farmhouseLight from "@/assets/sprites/cohesive/night/grain-farmhouse.webp";
 import fisheryLight from "@/assets/sprites/cohesive/night/fishery.webp";
-import lodge from "@/assets/sprites/lodge.webp";
-import herbhut from "@/assets/sprites/herbhut.webp";
+import lodge from "@/assets/sprites/cohesive/lodge.webp";
+import herbhut from "@/assets/sprites/cohesive/herbhut.webp";
 import backhausLight from "@/assets/sprites/cohesive/night/backhaus.webp";
 import herbergeLight from "@/assets/sprites/cohesive/night/herberge.webp";
 import beginenhofLight from "@/assets/sprites/cohesive/night/beginenhof.webp";
@@ -102,13 +102,13 @@ import smokehouseImg from "@/assets/sprites/cohesive/smokehouse.webp";
 import smokehouseLight from "@/assets/sprites/cohesive/night/smokehouse.webp";
 import saltquayImg from "@/assets/sprites/cohesive/saltquay.webp";
 import saltquayLight from "@/assets/sprites/cohesive/night/saltquay.webp";
-import woodcamp from "@/assets/sprites/woodcamp.webp";
-import lodgeLight from "@/assets/sprites/night/lodge.webp";
-import herbhutLight from "@/assets/sprites/night/herbhut.webp";
-import woodcampLight from "@/assets/sprites/night/woodcamp.webp";
+import woodcamp from "@/assets/sprites/cohesive/woodcamp.webp";
+import lodgeLight from "@/assets/sprites/cohesive/night/lodge.webp";
+import herbhutLight from "@/assets/sprites/cohesive/night/herbhut.webp";
+import woodcampLight from "@/assets/sprites/cohesive/night/woodcamp.webp";
 import granaryLight from "@/assets/sprites/cohesive/night/granary.webp";
 import guildhallLight from "@/assets/sprites/cohesive/night/guildhall.webp";
-import harborLight from "@/assets/sprites/night/harbor.webp";
+import harborLight from "@/assets/sprites/cohesive/night/harbor.webp";
 import hutLight from "@/assets/sprites/cohesive/night/grain-hut.webp";
 import infirmaryLight from "@/assets/sprites/cohesive/night/infirmary.webp";
 import firehouseLight from "@/assets/sprites/cohesive/night/firehouse.webp";
@@ -117,7 +117,7 @@ import innLight from "@/assets/sprites/cohesive/night/inn.webp";
 import libraryLight from "@/assets/sprites/cohesive/night/library.webp";
 import manufactoryLight from "@/assets/sprites/cohesive/night/manufactory.webp";
 import markethallLight from "@/assets/sprites/cohesive/night/markethall.webp";
-import millLight from "@/assets/sprites/night/mill.webp";
+import millLight from "@/assets/sprites/cohesive/night/mill.webp";
 import sawmillLight from "@/assets/sprites/cohesive/night/sawmill.webp";
 import schoolLight from "@/assets/sprites/cohesive/night/school.webp";
 import belfryLight from "@/assets/sprites/cohesive/night/belfry.webp";
@@ -135,7 +135,7 @@ import patricianLight from "@/assets/sprites/cohesive/night/grain-patrician.webp
 import villaLight from "@/assets/sprites/cohesive/night/grain-villa.webp";
 import tenementLight from "@/assets/sprites/cohesive/night/tenement.webp";
 import gatehouseLight from "@/assets/sprites/cohesive/night/gatehouse.webp";
-import warehouseLight from "@/assets/sprites/night/warehouse.webp";
+import warehouseLight from "@/assets/sprites/cohesive/night/warehouse.webp";
 import watermillLight from "@/assets/sprites/cohesive/night/watermill.webp";
 import workshopLight from "@/assets/sprites/cohesive/night/workshop.webp";
 
@@ -181,7 +181,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   fence: { url: fence, crop: [0, 0, 480, 256], width: 11, base: 3 },
   chapel: { url: chapel, crop: [0, 0, 474, 480], width: 21, base: 4 },
   watermill: { url: watermill, crop: [0, 0, 480, 460], width: 28, base: 4 },
-  harbor: { url: harbor, crop: [0, 0, 480, 415], width: 26, base: 4 },
+  harbor: { url: harbor, crop: [0, 0, 480, 427], width: 26, base: 4 },
   stall: { url: stall, crop: [0, 0, 480, 395], width: 10, base: 4 },
   townhall: { url: townhall, crop: [0, 0, 423, 480], width: 31, base: 4 },
   seat1: { url: seat1, crop: [0, 0, 480, 439], width: 22, base: 4 },
@@ -208,14 +208,14 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   tenement: { url: tenement, crop: [0, 0, 480, 461], width: 26, base: 4 },
   workshop: { url: workshop, crop: [0, 0, 480, 433], width: 23, base: 5 },
   smithy: { url: smithy, crop: [0, 0, 480, 379], width: 23, base: 5 },
-  warehouse: { url: warehouse, crop: [0, 0, 480, 344], width: 29, base: 5 },
+  warehouse: { url: warehouse, crop: [0, 0, 480, 343], width: 29, base: 5 },
   factory: { url: factory, crop: [0, 0, 480, 474], width: 34, base: 4 },
   sawmill: { url: sawmill, crop: [0, 0, 480, 382], width: 28, base: 5 },
   well: { url: well, crop: [0, 0, 349, 480], width: 6, base: 1.5 },
   market: { url: market, crop: [0, 0, 990, 665], width: 26, base: 5 },
   hay: { url: hay, crop: [0, 0, 966, 827], width: 13, base: 3 },
   fishery: { url: fishery, crop: [0, 0, 480, 391], width: 22, base: 4 },
-  lodge: { url: lodge, crop: [0, 0, 480, 407], width: 21, base: 4 },
+  lodge: { url: lodge, crop: [0, 0, 480, 400], width: 21, base: 4 },
   backhaus: { url: backhausImg, crop: [0, 0, 480, 389], width: 18, base: 4 },
   herberge: { url: herbergeImg, crop: [0, 0, 470, 480], width: 22, base: 4 },
   beginenhof: { url: beginenhofImg, crop: [0, 0, 480, 374], width: 34, base: 4 },
@@ -226,7 +226,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   smokehouse: { url: smokehouseImg, crop: [0, 0, 480, 418], width: 25, base: 4 },
   saltquay: { url: saltquayImg, crop: [0, 0, 472, 480], width: 26, base: 4 },
   herbhut: { url: herbhut, crop: [0, 0, 480, 463], width: 19, base: 4 },
-  woodcamp: { url: woodcamp, crop: [0, 0, 480, 462], width: 24, base: 4 },
+  woodcamp: { url: woodcamp, crop: [0, 0, 480, 427], width: 24, base: 4 },
   granary: { url: granary, crop: [0, 0, 408, 480], width: 25, base: 4 },
   infirmary: { url: infirmary, crop: [0, 0, 442, 480], width: 25, base: 4 },
   firehouse: { url: firehouse, crop: [0, 0, 446, 480], width: 22, base: 4 },
@@ -352,7 +352,7 @@ if (typeof Image !== "undefined") { wheelImg = new Image(); wheelImg.decoding = 
 
 function animate(c: CanvasRenderingContext2D, kind: Kind, left: number, top: number, k: number, sd: number) {
   const t = animT, P = (u: number, v: number): [number, number] => [left + u * k, top + v * k];
-  if (kind === "mill") millSailsAt(c, ...P(38, 157), 480 * k * 1.45, t, sd);
+  if (kind === "mill") millSailsAt(c, ...P(33, 149), 480 * k * 1.45, t, sd);
   else if (kind === "watermill") waterWheel(c, ...P(372, 305), 70 * k, t, sd);
   else if (kind === "campfire") flames(c, ...P(168, 200), 150 * k, t, sd);
 }
