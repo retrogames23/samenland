@@ -35,7 +35,7 @@ export const hi: Dict = {
   lantern: "लालटेन",
   hint: "स्क्रॉल: ज़ूम · ड्रैग: खिसकाएँ",
   seasons: { winter: "शीत ऋतु", spring: "बसंत ऋतु", summer: "ग्रीष्म ऋतु", autumn: "शरद ऋतु" },
-  kinds: { seat1: "मुखिया की कुटिया", seat2: "मुखिया का आँगन", seat3: "बाज़ार का कार्यालय", hut: "झोपड़ी", campfire: "अलाव", coop: "मुर्गीघर", chapel: "छोटा प्रार्थनालय", watermill: "पनचक्की", harbor: "मत्स्य बंदरगाह", stall: "बाज़ार की दुकानें", townhall: "ग्राम चौपाल", manufactory: "वस्त्र निर्माणशाला", steamworks: "लोहार की हथौड़ा-चक्की", station: "व्यापारिक कोठी", suburb: "कुलीन हवेली", avenue: "छायादार मार्ग", fence: "बाड़", path: "पगडंडी", street: "गली", square: "गाँव का चौक", pasture: "चरागाह", road: "व्यापार सड़क", bridge: "पुल", rail: "रेल पटरी" },
+  kinds: { seat1: "मुखिया की कुटिया", seat2: "मुखिया का आँगन", seat3: "बाज़ार का कार्यालय", hut: "झोपड़ी", campfire: "अलाव", coop: "मुर्गीघर", chapel: "छोटा प्रार्थनालय", watermill: "पनचक्की", harbor: "मत्स्य बंदरगाह", stall: "बाज़ार की दुकानें", townhall: "ग्राम चौपाल", manufactory: "वस्त्र निर्माणशाला", steamworks: "लोहार की हथौड़ा-चक्की", station: "व्यापारिक कोठी", suburb: "कुलीन हवेली", avenue: "छायादार मार्ग", fence: "बाड़", path: "पगडंडी", street: "गली", square: "गाँव का चौक", pasture: "चरागाह", road: "व्यापार सड़क", bridge: "पुल" },
   stages: ["आरंभ", "बस्ती", "गाँव", "कस्बा", "व्यापारिक नगर", "हंसा नगर"],
   nextRank: (stage: string, parts: string[]) => `${stage} के लिए अभी चाहिए: ${parts.join(", ")}`,
   needCitizens: (n: number) => `${n} नागरिक`,
