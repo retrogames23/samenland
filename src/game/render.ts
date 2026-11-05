@@ -2198,8 +2198,7 @@ function drawDog(c: C, d: DogPose, px: number, py: number, t: number, seedK: num
     const im = huntIm("dog-sit", dogSitU); if (im) {
       const w = DOG_W * 0.72, h = (w * im.naturalHeight) / im.naturalWidth;
       // panting / looking around: a tiny head-bob and occasional turn
-      const turn = hash(Math.floor(t / 3500), seedK, 775) < 0.4;
-      c.translate(px, py); if (turn) c.scale(-1, 1);
+      c.translate(px, py); if (d.flip) c.scale(-1, 1); // keep facing where it came from
       const pant = 1 + Math.sin(t / 240) * 0.012; // breathing compresses toward the ground, never lifts the paws
       c.scale(1, pant); c.drawImage(im, -w / 2, -h * 0.93, w, h);
     }
@@ -2915,7 +2914,7 @@ export function draw(
     const d = dogStep(sd.id, [hx, hy + 1], mq ? { x: mq.x, y: mq.y, walking: mq.walking } : null, worldHour(now), Date.now(), freeGround);
     dogSpots.set(sd.id, { x: d.x, y: d.y });
     const [px, py] = iso(d.x, d.y), sk = sd.x * 7 + sd.y;
-    addProp(Math.round(d.y) * MAP + Math.round(d.x), () => drawDog(c, d, px, py, t, sk));
+    addProp(dogTile(sd.id, d.x, d.y, MAP), () => drawDog(c, d, px, py, t, sk));
   }
 
   // ---- bridges: one straight span per water crossing, abutment to abutment ----
