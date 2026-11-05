@@ -206,7 +206,8 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     const key = dwellingKey(home[0], home[1], unit);
     const hh = (i: number) => hash(home[0], home[1], 400 + i + unit * 40);
     const last = pick(S, hh(1));
-    const pa = 24 + Math.floor(hh(2) * 30);
+    // household founders cluster young (median ~30), older heads are the exception
+    const pa = 22 + Math.floor(hh(2) ** 1.8 * 30);
     const yrs = (now - created) / 3.15576e10;
     const since = age - bornAt(home[0], home[1], s);
     let arrive: Person["arrive"] = null;
@@ -223,9 +224,10 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       let age: number, sex: Sex, role: Role;
       if (m === 0) { age = pa; sex = h(1) < 0.5 ? "f" : "m"; role = "head"; }
       else if (m === 1 && h(9) < 0.85) { age = Math.max(20, pa + Math.floor((h(2) - 0.5) * 8)); sex = people[people.length - 1]!.sex === "f" ? "m" : "f"; role = "spouse"; }
-      else if (m === size - 1 && size >= 4 && h(3) < 0.4) { age = Math.max(pa + 22, 64 + Math.floor(h(2) * 20)); sex = h(1) < 0.55 ? "f" : "m"; role = "elder"; }
-      else if (m >= 3 && h(4) < 0.5) { age = 17 + Math.floor(h(2) * 30); sex = h(1) < 0.5 ? "f" : "m"; role = "lodger"; } // lodger, journeyman, maid
-      else { age = Math.max(1, Math.min(pa - 19, 1 + Math.floor(h(2) * 14))); sex = h(1) < 0.5 ? "f" : "m"; role = "child"; }
+      // c. 1500: few reach 70 — elders sit mostly at 56–65, the very old are rare
+      else if (m === size - 1 && size >= 4 && h(3) < 0.15) { age = Math.min(82, Math.max(pa + 20, 56 + Math.floor(h(2) ** 2 * 24))); sex = h(1) < 0.55 ? "f" : "m"; role = "elder"; }
+      else if (m >= 3 && h(4) < 0.5) { age = 16 + Math.floor(h(2) ** 1.5 * 20); sex = h(1) < 0.5 ? "f" : "m"; role = "lodger"; } // farmhand, journeyman, maid
+      else { age = Math.max(1, Math.min(pa - 18, 1 + Math.floor(h(2) * 17))); sex = h(1) < 0.5 ? "f" : "m"; role = "child"; }
       age += Math.floor(yrs);
       let job: Job = "child", work: Tile | null = null;
       if (age >= 66) job = "retired";
