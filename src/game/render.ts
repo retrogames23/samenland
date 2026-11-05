@@ -15,6 +15,8 @@ import { huntScene, lodgeDens, denOk, denBeast, denFate, startle, DEN_R, type De
 import { roadMotion, screenFacing } from "./motion";
 import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
 import { houseLit, candleFlicker } from "./night";
+import { sunTimes, nightLevel, duskGlow } from "./sun";
+const sunNow = () => sunTimes(clock());
 import { setArtTime } from "./season-art";
 import { seasonKey, seasonAt } from "./season";
 import { treeKind } from "./biome";
@@ -578,7 +580,7 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
     if (s.fire) drawFire(c, cx, cy, t, sd, L);
-    if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour()) || (isHomeKind(s.kind) && (sickLit(x, y) || christmasNight(renderNow))))) {
+    if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour(), sunNow().rise, sunNow().set) || (isHomeKind(s.kind) && (sickLit(x, y) || christmasNight(renderNow))))) {
       L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip, style } });
     }
     if (s.kind === "mill" || s.kind === "watermill") {
@@ -1484,11 +1486,8 @@ export function prewarmOverview() {
 
 /** Screen-space dusk + night grade shared by every zoom level; returns the night strength 0..1. */
 function skyTint(c: C, w: number, h: number): number {
-  const hr = worldHour(clock());
-  // darkness: 0 by day, ramps through dusk (18–21:30) and dawn (5–7:30), full at night
-  const sm = (a: number, b: number, x: number) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
-  const night = hr >= 12 ? sm(18, 21.5, hr) : 1 - sm(5, 7.5, hr);
-  const dusk = Math.max(0, 1 - Math.abs(hr - 19) / 1.8) + Math.max(0, 1 - Math.abs(hr - 6.5) / 1.3);
+  // darkness follows the real sunrise/sunset of the realm (sun.ts, DST via the zone clock)
+  const nowC = clock(), night = nightLevel(nowC), dusk = duskGlow(nowC);
   if (dusk > 0) { c.fillStyle = `rgba(240,140,80,${dusk * 0.14})`; c.fillRect(0, 0, w, h); }
   if (night > 0.02) {
     // deep indigo multiply keeps the painting legible but truly dark
