@@ -826,7 +826,7 @@ export function Game() {
       const ok = h && s.mode === "seed" ? canPlant(h[0], h[1], s.seeds) === null : null;
       const t0 = performance.now();
       draw(ctx, cv.width, cv.height, dpr.current, c, s.seeds, s.plantings, clock(), h, ok);
-      if (import.meta.env.DEV) {
+      if (import.meta.env.DEV || isLab()) {
         const ms = performance.now() - t0, p = perf.current;
         p.sum += ms; p.n++; p.max = Math.max(p.max, ms);
         if (t0 - p.t >= 500) {
@@ -2285,7 +2285,7 @@ export function Game() {
         </div>
       )}
       <LoadingScreen title="Samenland" lines={t.loading} onDone={openGuide} />
-      {import.meta.env.DEV && <div ref={perfRef} className="pointer-events-none absolute left-1 top-1 z-50 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] leading-tight" />}
+      {(import.meta.env.DEV || realm === "lab") && <div ref={perfRef} className="pointer-events-none absolute left-1 top-1 z-50 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[10px] leading-tight" />}
       <canvas
         ref={canvasRef}
         dir="ltr"
