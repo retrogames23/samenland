@@ -126,7 +126,7 @@ export const ar: Dict = {
   treasury: "خزينة القرية",
   taxInfo: (n) => `يدفع ${n} من المواطنين ضرائب يومية بحسب طبقتهم`,
   taler: (n) => `${n.toLocaleString("en-US")} مارك`,
-  talerShort: "ت",
+  talerShort: "م",
 
   attrs: { food: "طعام", health: "صحة", wealth: "ازدهار" },
   shop: "عمارة واستئجار",
