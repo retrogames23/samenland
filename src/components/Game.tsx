@@ -1033,7 +1033,8 @@ export function Game() {
     const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
     const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
     let best: Person | null = null, bd = Math.max(3, (coarse ? 34 : 16) / c.zoom);
-    for (const f of lastPeople) { const dd = Math.hypot(f.x - wx, f.y - 2.5 - wy); if (dd < bd) { bd = dd; best = f.q.p; } }
+    // distance to the figure's whole height (feet to just above head/tools), not just its belly
+    for (const f of lastPeople) { const vy = Math.min(f.y, Math.max(f.y - 11, wy)); const dd = Math.hypot(f.x - wx, vy - wy); if (dd < bd) { bd = dd; best = f.q.p; } }
     return best;
   };
   useEffect(() => { peopleFocus.sel = who ? pkey(who) : null; }, [who]);
