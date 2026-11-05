@@ -2633,7 +2633,7 @@ function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[]
 }
 // touch devices: cap bake resolution and cache size (4x chunks at DPR 2-3 exceed mobile canvas memory)
 const TOUCH = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
-const FLAT_QMAX = TOUCH ? 2 : 4, FLAT_KEEP = TOUCH ? 40 : 64;
+const FLAT_QMAX = TOUCH ? 2 : 4, FLAT_KEEP = TOUCH ? 80 : 96;
 function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
   flatSet.clear();
   // near zoom: bake farmland/paths at screen resolution so acres stay as crisp as the buildings
@@ -2651,6 +2651,20 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     if (e.empty && e.q === q) { flatSet.add(key); continue; }
     // soft fallback: while a re-bake is pending, keep showing the previous bake scaled (never live-draw the whole chunk)
     if (e.cv && (e.q === q && e.sk === sk || e.q !== q && e.sk === sk)) { c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
+  }
+  // lookahead: in frames with no bake yet, prepare one chunk just off-screen so panning finds it ready
+  if (frameBakes < 1) {
+    const ax0 = cx0 - 1, ax1 = cx1 + 1, ay0 = cy0 - 1, ay1 = cy1 + 1;
+    outer: for (let iy = ay0; iy <= ay1; iy++) for (let ix = ax0; ix <= ax1; ix++) {
+      if (ix >= cx0 && ix <= cx1 && iy >= cy0 && iy <= cy1) continue;
+      if (ix < 0 || iy < 0 || ix * FC >= MAP || iy * FC >= MAP) continue;
+      const key = iy * 4096 + ix;
+      let e = flatCache.get(key);
+      if (e && !e.dirty && e.q === q && e.sk === sk) continue;
+      if (!e) { e = { cv: null, q: 0, sk: "", tok: new Int32Array(FC * FC), dirty: true, full: false, baked: -1e9, empty: false }; flatCache.set(key, e); }
+      frameBakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; e.dirty = false;
+      break outer;
+    }
   }
   while (flatCache.size > FLAT_KEEP) flatCache.delete(flatCache.keys().next().value!);
   return flatSet;
@@ -2821,7 +2835,12 @@ export function draw(
         continue;
       }
       flatCheck(x, y, st);
-      if (!flatDone.has(((y / FC) | 0) * 4096 + ((x / FC) | 0))) flatTile(c, x, y, cx, cy, st, seeds, now, t);
+      if (!flatDone.has(((y / FC) | 0) * 4096 + ((x / FC) | 0))) {
+        // chunk not baked yet: on touch draw only a cheap base fill for the frame or two until the bake lands
+        if (!TOUCH) flatTile(c, x, y, cx, cy, st, seeds, now, t);
+        else if (st?.kind === "field" || st?.kind === "garden") { c.fillStyle = texture(c, st.kind === "field" ? fieldTex(x, y, st.seed, now) : "dirt") ?? hsl(44, 45, 66); diamond(c, cx, cy, 1.0); c.fill(); }
+        else if (st && (PATHLIKE.has(st.kind) || st.kind === "square" || st.kind === "market" || st.kind === "well")) { c.fillStyle = texture(c, st.kind === "path" ? "dirt" : "cobble") ?? "#cdb084"; diamond(c, cx, cy, 0.7); c.fill(); }
+      }
     }
   }
   // ---- trade roads as one continuous ribbon each (the tile steps stay logic only) ----
