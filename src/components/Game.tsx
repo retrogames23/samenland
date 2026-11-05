@@ -2411,7 +2411,7 @@ export function Game() {
                     {/* stylised Lübeck mark: the double-headed eagle */}
                     <svg viewBox="0 0 20 20" className="h-[78%] w-[78%]" fill="currentColor">
                       <circle cx="6.6" cy="4.6" r="1.6" /><circle cx="13.4" cy="4.6" r="1.6" />
-                      <path d="M5.2 5.6 3.4 4.4M14.8 5.6l1.8-1.2" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" />
+                      <path d="M5.2 5.6 3.4 4.4M14.8 5.6l1.8-1.2M6.6 4.6 8.8 7M13.4 4.6 11.2 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
                       <path d="M8 6.2h4l.6 2.4 5.6-1.8-1.2 2.6 1 .4-2.2 1.6.6.6-3.2.8-.8 2.4 1.6 2.6h-1.6L10 15.8l-1.4 2H7l1.6-2.6-.8-2.4-3.2-.8.6-.6-2.2-1.6 1-.4-1.2-2.6 5.6 1.8z" />
                     </svg>
                   </span>
