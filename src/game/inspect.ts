@@ -1,6 +1,8 @@
 import { structureAt, FLAT, type Kind, type Seed } from "./world";
 import { townOf, type Person } from "./people";
 
+const LOW: ReadonlySet<string> = new Set(["coop", "hut", "well", "hay", "fence", "campfire", "stall", "garden", "field", "market", "pasture", "herbhut"]);
+
 export type Inspect = { x: number; y: number; kind: Kind; seed: Seed; build: number | null; doneAt: number | null; residents: Person[]; workers: Person[] };
 
 /** Building or site under a click. Sprites rise above their tile, so tiles in front (+x/+y) are tried too. */
@@ -9,6 +11,8 @@ export function inspectAt(x: number, y: number, seeds: Seed[], now: number): Ins
     const tx = x + dx, ty = y + dy;
     const st = structureAt(tx, ty, seeds, now);
     if (!st || (FLAT.has(st.kind) && st.kind !== "market" && st.kind !== "field")) continue;
+    // low things have no roof rising over tiles in front: only a click on their own tile counts
+    if ((dx || dy) && LOW.has(st.kind)) continue;
     const people = townOf(st.seed, seeds, now).people;
     const near = (t: [number, number] | null, r: number) => !!t && Math.abs(t[0] - tx) <= r && Math.abs(t[1] - ty) <= r;
     const build = st.build === undefined ? null : st.build;
