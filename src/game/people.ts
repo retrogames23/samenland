@@ -936,6 +936,7 @@ export function steeredMayor(): { sid: string; x: number; y: number } | null {
 let order: Order | null = null;
 /** Max tiles searched around start/goal for the mayor's tap route. */
 const MAYOR_PAD = 24, MAYOR_SPAN = 220;
+const FARMLAND: ReadonlySet<Kind> = new Set(["field", "garden", "pasture"] as Kind[]);
 /**
  * Tap route for the player's mayor: A* over a box spanning start and goal, with buildings,
  * mountains, water and court walls strictly blocked (same rule as joystick steering). Returns the
@@ -968,7 +969,8 @@ export function mayorRoute(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
       // diagonal steps between free tiles are allowed: dense villages place houses corner to corner,
       // and a strict corner rule walled the mayor into a handful of tiles
       const st = structureAt(nx, ny, seeds, t.now);
-      const c = (st && WALK.has(st.kind) ? 1 : 1.6) * (dx && dy ? Math.SQRT2 : 1);
+      // roads are the network; open grass is a detour, and a mayor spares his farmers' acres
+      const c = (st && WALK.has(st.kind) ? 1 : st && FARMLAND.has(st.kind) ? 7 : 3.5) * (dx && dy ? Math.SQRT2 : 1);
       const ni = idx(nx, ny), nd = dist[i]! + c;
       if (nd < dist[ni]!) { dist[ni] = nd; prev[ni] = i; push(nd + hh(nx, ny), ni); }
     }
