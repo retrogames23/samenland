@@ -60,7 +60,7 @@ export const PRINCELY: Record<Lang, Text> = {
     errand: { gardener: ['Speak to the gardener', 'The gardener cuts you a bunch of fragrant roses for the Princess.'], groom: ['Speak to the groom', 'The groom takes your order and saddles the horses for the hunt.'] }, errandTitle: 'Court service', errandDone: 'Done', errandWho: { gardener: 'Gardener in the rose garden (6am–5pm)', groom: 'Groom at the stables (6am–7pm)' }, errandReady: 'Your court service is complete – ask for an audience at the castle.', errandHint: 'Walk close to the figure and a button to speak to them appears.',
   },
   fr: {
-    task: { wonder: "Trouvez une merveille naturelle ou un site dans la nature.", letter: "Envoyez une lettre à un autre village.", visit: "Rendez visite en personne à un autre maire.", build: "Faites construire un bâtiment dans votre village.", gift: "Envoyez un cadeau à un voisin.", road: "Décidez une nouvelle route commerciale.", court: 'Servez à la cour : sur le domaine, parlez au jardinier dans la roseraie et au palefrenier aux écuries.' },
+    task: { wonder: "Trouvez une merveille naturelle ou un site dans la nature.", letter: "Envoyez une lettre à un autre village.", visit: "Rendez visite en personne à un autre maire : marchez en mode promenade jusqu'à un village voisin – même un village que vous connaissez déjà.", build: "Faites construire un bâtiment dans votre village.", gift: "Envoyez un cadeau à un voisin.", road: "Décidez une nouvelle route commerciale.", court: 'Servez à la cour : sur le domaine, parlez au jardinier dans la roseraie et au palefrenier aux écuries.' },
     newTask: (t, r) => `« Nous vous confions un décret : ${t} Notre messager reviendra dans votre village recueillir votre rapport – récompense : ${r} marks. »`,
     open: (t) => `« Votre décret n'est pas encore accompli : ${t} »`,
     done: (r) => `« Bien joué ! Prenez ${r} marks de Notre cassette, et Notre faveur. »`,
@@ -74,7 +74,7 @@ export const PRINCELY: Record<Lang, Text> = {
     errand: { gardener: ['Parler au jardinier', 'Le jardinier vous coupe un bouquet de roses parfumées pour la princesse.'], groom: ['Parler au palefrenier', 'Le palefrenier prend votre ordre et selle les chevaux pour la chasse.'] }, errandTitle: 'Service à la cour', errandDone: 'Fait', errandWho: { gardener: 'Jardinier dans la roseraie (6h–17h)', groom: 'Palefrenier aux écuries (6h–19h)' }, errandReady: 'Votre service est accompli – demandez audience au château.', errandHint: 'Approchez-vous de la figure : un bouton pour lui parler apparaît.',
   },
   es: {
-    task: { wonder: "Buscad una maravilla natural o un hito en la naturaleza.", letter: "Enviad una carta a otra aldea.", visit: "Visitad en persona a otro alcalde.", build: "Haced levantar un edificio en vuestra aldea.", gift: "Enviad un regalo a un vecino.", road: "Decidid un nuevo camino comercial.", court: 'Servid en la corte: en la finca, hablad con el jardinero del rosal y con el mozo de cuadra en las caballerizas.' },
+    task: { wonder: "Buscad una maravilla natural o un hito en la naturaleza.", letter: "Enviad una carta a otra aldea.", visit: "Visitad en persona a otro alcalde: caminad en modo paseo hasta una aldea vecina, incluso una que ya conozcáis.", build: "Haced levantar un edificio en vuestra aldea.", gift: "Enviad un regalo a un vecino.", road: "Decidid un nuevo camino comercial.", court: 'Servid en la corte: en la finca, hablad con el jardinero del rosal y con el mozo de cuadra en las caballerizas.' },
     newTask: (t, r) => `«Os otorgamos un decreto: ${t} Nuestro mensajero volverá a vuestra aldea por vuestro informe; recompensa: ${r} marcos.»`,
     open: (t) => `«Vuestro decreto aún no está cumplido: ${t}»`,
     done: (r) => `«¡Bien hecho! Tomad ${r} marcos de Nuestro cofre y Nuestro favor.»`,
@@ -88,7 +88,7 @@ export const PRINCELY: Record<Lang, Text> = {
     errand: { gardener: ['Hablar con el jardinero', 'El jardinero os corta un ramo de rosas fragantes para la princesa.'], groom: ['Hablar con el mozo de cuadra', 'El mozo recibe vuestra orden y ensilla los caballos para la caza.'] }, errandTitle: 'Servicio en la corte', errandDone: 'Hecho', errandWho: { gardener: 'Jardinero en el rosal (6–17 h)', groom: 'Mozo en las caballerizas (6–19 h)' }, errandReady: 'Vuestro servicio está cumplido: pedid audiencia en el castillo.', errandHint: 'Acercaos a la figura y aparecerá un botón para hablarle.',
   },
   ar: {
-    task: { wonder: "ابحث عن أعجوبة طبيعية أو معلم في البرية.", letter: "أرسل رسالة إلى قرية أخرى.", visit: "زُر عمدة آخر بنفسك.", build: "شيّد مبنى في قريتك.", gift: "أرسل هدية إلى جار.", road: "قرّر طريقًا تجاريًا جديدًا.", court: 'اخدم في البلاط: في أرض القصر تحدّث مع البستاني في حديقة الورد ومع السائس عند الإسطبل.' },
+    task: { wonder: "ابحث عن أعجوبة طبيعية أو معلم في البرية.", letter: "أرسل رسالة إلى قرية أخرى.", visit: "زُر عمدة آخر بنفسك: سِر في وضع التجوّل إلى قرية مجاورة – حتى وإن كنت تعرفها من قبل.", build: "شيّد مبنى في قريتك.", gift: "أرسل هدية إلى جار.", road: "قرّر طريقًا تجاريًا جديدًا.", court: 'اخدم في البلاط: في أرض القصر تحدّث مع البستاني في حديقة الورد ومع السائس عند الإسطبل.' },
     newTask: (t, r) => `«نمنحك مرسومًا: ${t} وسيعود رسولنا إلى قريتك ليتسلّم تقريرك – المكافأة: ${r} مارك.»`,
     open: (t) => `«لم يُنجَز مرسومك بعد: ${t}»`,
     done: (r) => `«أحسنت! خذ ${r} مارك من خزانتنا، ولك رضانا.»`,
@@ -102,7 +102,7 @@ export const PRINCELY: Record<Lang, Text> = {
     errand: { gardener: ['تحدّث مع البستاني', 'يقطف لك البستاني باقة من الورد العطر للأميرة.'], groom: ['تحدّث مع السائس', 'يتسلّم السائس أمرك ويسرج الخيل للصيد.'] }, errandTitle: 'خدمة البلاط', errandDone: 'تمّ', errandWho: { gardener: 'البستاني في حديقة الورد (6–17)', groom: 'السائس عند الإسطبل (6–19)' }, errandReady: 'اكتملت خدمتك في البلاط – اطلب المثول عند القصر.', errandHint: 'اقترب من الشخصية فيظهر زر للتحدث معها.',
   },
   hi: {
-    task: { wonder: "जंगल में कोई प्राकृतिक अजूबा या स्थल खोजें।", letter: "किसी दूसरे गाँव को पत्र भेजें।", visit: "किसी दूसरे मुखिया से स्वयं मिलें।", build: "अपने गाँव में कोई इमारत बनवाएँ।", gift: "किसी पड़ोसी को उपहार भेजें।", road: "एक नई व्यापार सड़क तय करें।", court: 'दरबार में सेवा करें: महल के बाग़ में माली से और अस्तबल पर साईस से बात करें।' },
+    task: { wonder: "जंगल में कोई प्राकृतिक अजूबा या स्थल खोजें।", letter: "किसी दूसरे गाँव को पत्र भेजें।", visit: "किसी दूसरे मुखिया से स्वयं मिलें: टहलने के मोड में किसी पड़ोसी गाँव जाएँ – पहले से जाना-पहचाना गाँव भी चलेगा।", build: "अपने गाँव में कोई इमारत बनवाएँ।", gift: "किसी पड़ोसी को उपहार भेजें।", road: "एक नई व्यापार सड़क तय करें।", court: 'दरबार में सेवा करें: महल के बाग़ में माली से और अस्तबल पर साईस से बात करें।' },
     newTask: (t, r) => `"हम आपको एक फ़रमान देते हैं: ${t} हमारा दूत आपकी रिपोर्ट लेने आपके गाँव लौटेगा – इनाम: ${r} मार्क।"`,
     open: (t) => `"आपका फ़रमान अभी पूरा नहीं हुआ: ${t}"`,
     done: (r) => `"शाबाश! हमारे ख़ज़ाने से ${r} मार्क और हमारी कृपा लें।"`,
@@ -116,7 +116,7 @@ export const PRINCELY: Record<Lang, Text> = {
     errand: { gardener: ['माली से बात करें', 'माली राजकुमारी के लिए सुगंधित गुलाबों का गुच्छा काटकर देता है।'], groom: ['साईस से बात करें', 'साईस आपका आदेश लेता है और शिकार के लिए घोड़े कसता है।'] }, errandTitle: 'दरबार सेवा', errandDone: 'पूरा', errandWho: { gardener: 'गुलाब-बाग़ में माली (6–17 बजे)', groom: 'अस्तबल पर साईस (6–19 बजे)' }, errandReady: 'आपकी दरबार सेवा पूरी हुई – महल में दरबार की विनती करें।', errandHint: 'आकृति के पास जाएँ, बात करने का बटन दिखेगा।',
   },
   zh: {
-    task: { wonder: "前往野外寻找一处自然奇观或地标。", letter: "给另一个村庄寄一封信。", visit: "亲自拜访另一位村长。", build: "在你的村庄建造一座建筑。", gift: "给邻居送一份礼物。", road: "决定修建一条新的商路。", court: '在宫廷效力：在城堡庄园里与玫瑰园的园丁和马厩的马夫交谈。' },
+    task: { wonder: "前往野外寻找一处自然奇观或地标。", letter: "给另一个村庄寄一封信。", visit: "亲自拜访另一位村长：在漫步模式下步行前往邻近村庄——去过的村庄也算。", build: "在你的村庄建造一座建筑。", gift: "给邻居送一份礼物。", road: "决定修建一条新的商路。", court: '在宫廷效力：在城堡庄园里与玫瑰园的园丁和马厩的马夫交谈。' },
     newTask: (t, r) => `"本王颁你一道谕令：${t}本王的信使会再到你村中听取回报——赏金 ${r} 马克。"`,
     open: (t) => `"你的谕令尚未完成：${t}"`,
     done: (r) => `"干得好！从本王金库领取 ${r} 马克，并受本王恩宠。"`,
@@ -130,7 +130,7 @@ export const PRINCELY: Record<Lang, Text> = {
     errand: { gardener: ['与园丁交谈', '园丁为王妃剪下一束芬芳的玫瑰交给你。'], groom: ['与马夫交谈', '马夫接过你的命令，为狩猎备好马鞍。'] }, errandTitle: '宫廷差事', errandDone: '已完成', errandWho: { gardener: '玫瑰园的园丁（6–17点）', groom: '马厩的马夫（6–19点）' }, errandReady: '宫廷差事已完成——请在城堡请求觐见。', errandHint: '走近人物，就会出现交谈按钮。',
   },
   ja: {
-    task: { wonder: "荒野の自然の驚異か名所を訪ねよ。", letter: "別の村へ手紙を送れ。", visit: "別の村長を自ら訪ねよ。", build: "村に建物を建てさせよ。", gift: "隣人に贈り物を送れ。", road: "新しい交易路を決めよ。", court: '宮廷に仕えよ：城の庭園でバラ園の庭師と、厩舎の馬丁に話しかけること。' },
+    task: { wonder: "荒野の自然の驚異か名所を訪ねよ。", letter: "別の村へ手紙を送れ。", visit: "別の村長を自ら訪ねよ：散策モードで隣の村へ歩いて行け――すでに知る村でも構わぬ。", build: "村に建物を建てさせよ。", gift: "隣人に贈り物を送れ。", road: "新しい交易路を決めよ。", court: '宮廷に仕えよ：城の庭園でバラ園の庭師と、厩舎の馬丁に話しかけること。' },
     newTask: (t, r) => `「そなたに勅令を授ける：${t}使者が再びそなたの村へ報告を受けに参る――褒美は${r}マルク。」`,
     open: (t) => `「勅令はまだ果たされておらぬ：${t}」`,
     done: (r) => `「見事であった！我が金庫より${r}マルクと我が寵愛を授ける。」`,
