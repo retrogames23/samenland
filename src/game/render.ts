@@ -1997,9 +1997,21 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
       c.stroke();
       c.fillStyle = "rgba(230,215,120,0.85)"; for (let n = 0; n < 4; n++) { const [px, py] = pp((hash(x, y, 830 + n) - 0.5) * 0.9, (hash(x, y, 840 + n) - 0.5) * 0.9); c.beginPath(); c.arc(px, py - 0.8, 0.35, 0, 7); c.fill(); }
     } else if (a.look === "stubble") {
-      c.strokeStyle = "rgba(150,118,60,0.7)"; c.lineWidth = 0.25; c.beginPath();
-      for (let k = -2; k <= 2; k++) for (let m = -4; m <= 4; m++) { const f = k / 4, g = m * 0.13, [px, py] = along ? pp(g, f) : pp(f, g); c.moveTo(px, py); c.lineTo(px + 0.15, py - 0.6); }
-      c.stroke();
+      // reaped rows: pale straw stubble with a dark foot, plus a few loose straw wisps
+      for (let k = -3; k <= 3; k++) for (let m = -6; m <= 6; m++) {
+        const f = k / 6, g = m * 0.09 + (hash(x * 3 + k, y + m, 850) - 0.5) * 0.04, [px, py] = along ? pp(g, f) : pp(f, g), hh = 0.7 + hash(x + k, y * 3 + m, 851) * 0.5;
+        c.strokeStyle = "rgba(70,50,24,0.45)"; c.lineWidth = 0.4; c.beginPath(); c.moveTo(px, py + 0.15); c.lineTo(px + 0.1, py - hh * 0.4); c.stroke();
+        c.strokeStyle = "rgba(222,192,120,0.9)"; c.lineWidth = 0.3; c.beginPath(); c.moveTo(px + 0.05, py - hh * 0.3); c.lineTo(px + 0.2, py - hh); c.stroke();
+      }
+      c.strokeStyle = "rgba(236,210,140,0.8)"; c.lineWidth = 0.25;
+      for (let n = 0; n < 6; n++) { const [px, py] = pp((hash(x, y, 860 + n) - 0.5) * 0.9, (hash(x, y, 870 + n) - 0.5) * 0.9), a = hash(x, y, 880 + n) * 3; c.beginPath(); c.moveTo(px, py); c.lineTo(px + Math.cos(a) * 1.4, py + Math.sin(a) * 0.5); c.stroke(); }
+    } else if (a.look === "ploughed") {
+      // turned clods along the furrows: dark shadow side, lit top
+      for (let k = -3; k <= 3; k++) for (let m = -5; m <= 5; m++) {
+        const f = k / 6 + 0.04, g = m * 0.1 + (hash(x + k, y * 7 + m, 890) - 0.5) * 0.06, [px, py] = along ? pp(g, f) : pp(f, g), r = 0.45 + hash(x * 7 + k, y + m, 891) * 0.35;
+        c.fillStyle = "rgba(40,26,14,0.55)"; c.beginPath(); c.ellipse(px + 0.2, py + 0.15, r, r * 0.5, 0, 0, 7); c.fill();
+        c.fillStyle = "rgba(150,110,70,0.6)"; c.beginPath(); c.ellipse(px - 0.1, py - 0.1, r * 0.7, r * 0.32, 0, 0, 7); c.fill();
+      }
     }
     if (row && !a.winter && grows) {
       const w = ripe ? 3.4 : 3.1, hgt = (w * row.height) / row.width, flipRow = !along;
@@ -2610,7 +2622,8 @@ function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[]
 }
 function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
   flatSet.clear();
-  const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(now), ready = allTexturesReady() && natureReady();
+  // near zoom: bake farmland/paths at screen resolution so acres stay as crisp as the buildings
+  const q = z > 3.2 ? 4 : z > 1.6 ? 2.5 : z > 0.6 ? 1 : 0.5, sk = seasonKey(now), ready = allTexturesReady() && natureReady();
   let bakes = 0;
   const cx0 = Math.floor(x0 / FC), cx1 = Math.floor(x1 / FC), cy0 = Math.floor(y0 / FC), cy1 = Math.floor(y1 / FC);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
