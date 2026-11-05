@@ -2342,6 +2342,7 @@ export function Game() {
             const lt = lastTap.current;
             if (nowT - lt.t < 300 && Math.hypot(e.clientX - lt.x, e.clientY - lt.y) < 30) {
               lastTap.current = { t: 0, x: 0, y: 0 };
+              setWho(null); setPlace(null); // a zooming double tap never leaves a card open from its first tap
               const r = canvasRef.current!.getBoundingClientRect();
               target.current = { zoom: Math.min(st.current.walk ? 20 : 12, target.current.zoom * 1.6), ax: (e.clientX - r.left) * dpr.current, ay: (e.clientY - r.top) * dpr.current };
               return;
@@ -2571,10 +2572,17 @@ export function Game() {
       </div>
       {tab && (
         <div className="pointer-events-none absolute left-[var(--safe-l)] right-[var(--safe-r)] bottom-[calc(var(--dock-bottom)+4.5rem)] z-30 md:bottom-auto ltr:md:right-auto ltr:md:left-24 rtl:md:left-auto rtl:md:right-24 md:top-24 md:w-72">
+          <div className="pointer-events-auto fixed inset-0 -z-10 md:hidden" aria-hidden onClick={() => pick(tab)} />
           <div {...sheetSwipe(() => pick(tab))}><Panel className="max-h-[min(72dvh,calc(100dvh-11rem))] overflow-y-auto overscroll-contain max-md:rounded-t-2xl">{drawer}</Panel></div>
         </div>
       )}
 
+      {!tab && (
+        <div className="pointer-events-auto absolute end-[calc(var(--safe-r)+0.5rem)] bottom-[calc(var(--dock-bottom)+5.5rem)] z-20 flex flex-col gap-1.5 md:hidden">
+          <Button size="sm" variant="secondary" className="hit h-9 w-9 rounded-full p-0 opacity-85 shadow" aria-label={t.hud.zoomIn} onClick={() => zoomBy(1.6)}><Plus className="h-4 w-4" /></Button>
+          <Button size="sm" variant="secondary" className="hit h-9 w-9 rounded-full p-0 opacity-85 shadow" aria-label={t.hud.zoomOut} onClick={() => zoomBy(1 / 1.6)}><Minus className="h-4 w-4" /></Button>
+        </div>
+      )}
       {/* minimap + zoom */}
       <div className="pointer-events-none absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] end-[max(0.75rem,env(safe-area-inset-right))] z-20 hidden md:block">
         <Panel inner="p-1.5">
