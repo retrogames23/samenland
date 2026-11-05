@@ -238,7 +238,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       }
       const kid = age < 14, old = age >= 65;
       people.push({
-        id, seed: s, first: pickFree(sex === "f" ? F : M, h(10), taken), last, sex, age, job, home, work,
+        id, seed: s, first: "", last, sex, age, job, home, work,
         // only one smith per forge hammers outside at the anvil; the journeymen work at the indoor hearth
         workIndoor: job === "smith" && work ? !anvilOut(work) : !OUTDOOR_WORK.has(job) && job !== "homemaker",
         speed: (kid ? 0.3 : old ? 0.15 : 0.22) * (0.85 + h(11) * 0.3),
@@ -249,6 +249,9 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       });
     }
   }
+  // first names go out in founding order (oldest house first, then id), so a newly built house never shifts an existing resident's name
+  const order = people.map((p) => ({ p, b: bornAt(p.home[0], p.home[1], s) })).sort((a, b) => a.b - b.b || a.p.id - b.p.id);
+  for (const { p } of order) p.first = pickFree(p.sex === "f" ? F : M, hash(p.id, 77, 10), taken);
   const weddings = marry(s, people, seeds, now);
   const wealth = civicWealth(s, now);
   for (const p of people) p.estate = estateAt(wealth, p.home[0], p.home[1]);
