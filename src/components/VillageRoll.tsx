@@ -54,7 +54,7 @@ export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T
         </button>
       )}
       {character && <div className="mt-3 border-y border-border py-3">{character}</div>}
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="sticky top-0 z-10 -mx-2 mt-3 flex flex-wrap gap-2 bg-parchment px-2 py-2 pe-12 shadow-[0_6px_6px_-6px_hsl(0_0%_0%/0.25)]">
         <Input className="h-8 min-w-0 flex-1" placeholder={t.roll.search} value={q} onChange={(e) => setQ(e.target.value)} />
         <select aria-label={t.roll.job} className="h-8 rounded-md border border-border bg-card px-2 text-sm" value={job} onChange={(e) => setJob(e.target.value)}>
           <option value="">{t.roll.allJobs}</option>
@@ -66,8 +66,7 @@ export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T
           <option value="age">{t.roll.byAge}</option>
         </select>
       </div>
-      <div className="relative mt-3">
-        <div ref={listRef} onScroll={checkMore} className="max-h-[50vh] overflow-auto text-sm">
+      <div className="mt-1 text-sm">
         {filtering ? (
           flat.length ? <ul>{flat.map(row)}</ul> : <p className="text-center text-muted-foreground">{t.roll.none}</p>
         ) : roll.households.map((h) => {
@@ -81,12 +80,6 @@ export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T
             </section>
           );
         })}
-        </div>
-        {more && (
-          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-parchment to-transparent">
-            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 animate-bounce text-ink/50">▾</span>
-          </div>
-        )}
       </div>
     </Parchment>
   );
