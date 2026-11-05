@@ -2520,7 +2520,7 @@ export function Game() {
             </button>
           </div>
         </Panel>
-        {deskOpen && isAdmin && realm === "lab" && <LabDesk lang={lang} onChange={() => tick((n) => n + 1)} onClose={() => setDeskOpen(false)} />}
+        {deskOpen && isAdmin && realm === "lab" && <LabDesk lang={lang} onChange={() => tick((n) => n + 1)} onClose={() => setDeskOpen(false)} onTrigger={labTrigger} />}
         {settings && <div className="fixed inset-0 -z-10" aria-hidden onClick={() => setSettings(false)} />}
         {settings && (
           <Panel className="absolute end-0 top-full mt-2 w-64" inner="space-y-2 p-3 text-sm">

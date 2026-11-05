@@ -76,7 +76,7 @@ export function weddingDates(s: Seed, now: number): WedDate[] {
   while (n > 0 && c.list[n - 1]!.at > now) n--;
   const out = n === c.list.length ? c.list : c.list.slice(0, n);
   const lw = labEvent("wedding");
-  if (lw && lw <= now && s.user_id && (!out.length || out[out.length - 1]!.at < lw)) return [...out, { at: lw, k: out.length, dowry: 0, town: false, grand: true }];
+  if (lw && lw <= now && (s.user_id || s.realm === "lab") && (!out.length || out[out.length - 1]!.at < lw)) return [...out, { at: lw, k: out.length, dowry: 0, town: false, grand: true }];
   return out;
 }
 /** Times of all weddings up to `now` (real ms), oldest first. */
