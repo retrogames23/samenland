@@ -66,7 +66,7 @@ import { HERALD, edictText } from "@/game/lang/edicts";
 import { princelyClaims, favourOf, openTaskOf, heraldVisit, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { courtPoses, courtCenter, atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
-import { Beer, ChevronDown, MapPin, Dices, Music } from "lucide-react";
+import { Beer, ChevronDown, MapPin, Dices, Music, Wheat, Heart, Coins } from "lucide-react";
 import { setMusic, setTavernMusic } from "@/game/music";
 import { MUSIC } from "@/game/lang/music";
 import { suggestTownName } from "@/game/town-names";
@@ -2385,7 +2385,8 @@ export function Game() {
         <Panel inner="flex items-center gap-1.5 px-1.5 py-1 md:gap-5 md:px-3 md:py-1.5">
           {my && <CharacterBadge seed={my} lang={lang} />}
           <div className="min-w-0 shrink">
-            <div title={my ? TOWN_CHARACTER[lang].land[wayOf(my)] : undefined} className="-my-[0.34em] truncate py-[0.34em] ps-0.5 pe-1 font-display text-lg leading-none text-wood md:pe-3 md:text-2xl">{my ? my.name : "Samenland"}{my && <span className="ms-1.5 text-sm text-muted-foreground md:text-base">{onIsland(lang, realm)}</span>}</div>
+            <div title={my ? TOWN_CHARACTER[lang].land[wayOf(my)] : undefined} className="-my-[0.34em] truncate py-[0.34em] ps-0.5 pe-1 font-display text-lg leading-none text-wood md:pe-3 md:text-2xl">{my ? my.name : "Samenland"}{my && <span className="ms-1.5 hidden text-sm text-muted-foreground sm:inline md:text-base">{onIsland(lang, realm)}</span>}</div>
+            {my && <div className="truncate ps-0.5 text-[10px] leading-tight text-muted-foreground sm:hidden">{onIsland(lang, realm)}</div>}
             <div className="hidden truncate text-xs text-muted-foreground sm:block">
               {my && myStats ? `${CHAR_ICON[wayOf(my)]} ${TOWN_CHARACTER[lang].names[wayOf(my)]}${myCharter ? ` · ${PATH_ICON[myCharter]} ${t.charter.paths[myCharter]![0]}` : ""} · ${t.stages[myRank]}${rankHint ? ` · ${rankHint}` : ""} · ${myStats.buildings} ${t.buildings}` : t.taglineShort}
             </div>
@@ -2396,15 +2397,21 @@ export function Game() {
                 {(() => { const cap = chestCap(my.id, purchases), full = cash >= cap; return (
                 <span className={`flex items-center gap-1 md:gap-1.5 ${full ? "text-destructive" : ""}`} title={`${CHEST[lang].title} · ${CHEST[lang].levels[chestLevel(my.id, purchases) - 1]}: ${Math.max(0, cash)} / ${t.taler(cap)}${full ? ` – ${CHEST[lang].full}` : ""}`}>
                   <span aria-hidden className="hidden h-4 w-4 place-items-center rounded-full border border-wood bg-[radial-gradient(circle_at_35%_30%,var(--color-coin-shine),var(--color-brass)_55%,var(--color-coin-edge))] text-[9px] font-bold leading-none text-wood shadow-[inset_0_-1px_0_var(--color-coin-edge)] md:grid md:h-5 md:w-5 md:text-[10px]">T</span>
-                  {Math.max(0, cash).toLocaleString(LOCALE[lang])}<span className="font-normal text-muted-foreground">/<span className="md:hidden"> {cap.toLocaleString(LOCALE[lang])} {t.talerShort}</span><span className="hidden md:inline"> {t.taler(cap)}</span></span>
+                  {Math.max(0, cash).toLocaleString(LOCALE[lang])}<span className="font-normal text-muted-foreground"><span className="md:hidden"> {t.talerShort}</span><span className="hidden md:inline">/</span><span className="hidden md:inline"> {t.taler(cap)}</span></span>
                 </span>); })()}
                 <span className="hidden text-xs font-normal text-primary sm:inline">{t.perDay(pop)}</span>
               </div>
               <div className="hidden text-sm sm:block">{t.people(residents)}</div>
               <button type="button" title={t.goods.larder} aria-label={`${t.attrs.food} ${at.food} · ${t.attrs.health} ${at.health} · ${t.attrs.wealth} ${at.wealth}`} onClick={() => setLarderOpen(true)} className="pointer-events-auto flex shrink-0 items-end gap-1 rounded px-0.5 py-1 hover:bg-muted lg:hidden md:px-1">
-                {(["food", "health", "wealth"] as const).map((k) => (
-                  <span key={k} className="relative h-6 w-1 overflow-hidden rounded bg-muted md:w-1.5"><span className="absolute inset-x-0 bottom-0 rounded bg-primary" style={{ height: `${at[k]}%` }} /></span>
-                ))}
+                {(["food", "health", "wealth"] as const).map((k) => {
+                  const Icon = k === "food" ? Wheat : k === "health" ? Heart : Coins;
+                  return (
+                    <span key={k} className="flex flex-col items-center gap-0.5">
+                      <span className="relative h-4 w-1.5 overflow-hidden rounded bg-muted"><span className={`absolute inset-x-0 bottom-0 rounded ${at[k] < 30 ? "bg-destructive" : "bg-primary"}`} style={{ height: `${at[k]}%` }} /></span>
+                      <Icon aria-hidden className="h-2.5 w-2.5 text-muted-foreground" />
+                    </span>
+                  );
+                })}
               </button>
               <div className="hidden gap-3 lg:flex">
                 {(["food", "health", "wealth"] as const).map((k) => (
