@@ -16,7 +16,7 @@ export function Parchment({ image, title, later, onLater, wide, children }: {
   const checkMore = () => { const el = body.current; if (el) setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 8); };
   useEffect(() => { checkMore(); const el = body.current; if (!el) return; const ro = new ResizeObserver(checkMore); ro.observe(el); return () => ro.disconnect(); }, [children]);
   return (
-    <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/40 p-3 backdrop-blur-[1px] max-md:place-items-end max-md:p-0" onClick={onLater}>
+    <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/40 p-3 backdrop-blur-[1px] max-md:place-items-end max-md:p-0">
       <div ref={body} onScroll={checkMore}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => { y0.current = e.currentTarget.scrollTop <= 0 && e.target === e.currentTarget.querySelector("img") ? e.touches[0]!.clientY : null; }}

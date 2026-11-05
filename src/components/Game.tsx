@@ -229,6 +229,7 @@ export function Game() {
     document.addEventListener("visibilitychange", arm);
     return () => { clearTimeout(id); document.removeEventListener("visibilitychange", arm); };
   }, []);
+  const instantOpen = useRef(false);
   const [snooze, setSnooze] = useState<Partial<Record<DecisionKind, number>>>({});
   const [roadPick, setRoadPick] = useState<string | null>(null);
   const [charterPick, setCharterPick] = useState<CharterPath | null>(null);
@@ -1306,11 +1307,12 @@ export function Game() {
   }, (k) => (snooze[k] ?? 0) > now);
   const anyOpen = roadOpen || charterOpen || encOpen || pactOpen;
   const sealShown = !anyOpen && !decision.open && decision.due.length > 0;
-  function later(k: DecisionKind) {
-    setSnooze((m) => ({ ...m, [k]: Date.now() + 3.6e6 }));
+  // "show on map" only steps aside briefly; the wax seal stays and reopens at once
+  function later(k: DecisionKind, ms = 3.6e6) {
+    setSnooze((m) => ({ ...m, [k]: Date.now() + ms }));
     if (k === "road") setRoadOpen(false); else if (k === "charter") setCharterOpen(false); else if (k === "pact") setPactOpen(false); else setEncOpen(false);
   }
-  function reopen() { setSnooze({}); }
+  function reopen() { instantOpen.current = true; setSnooze({}); }
   // Village chronicle: derived from time since the last visit (per village, per device)
   const [chron, setChron] = useState<Chronicle | null>(null);
   const [chronOpen, setChronOpen] = useState(false);
@@ -2167,7 +2169,8 @@ export function Game() {
       else if (k === "charter") { setCharterPick(null); setCharterOpen(true); }
       else if (k === "pact") { setPactPick(null); setPactOpen(true); }
       else setEncOpen(true);
-    }, 2500);
+    }, instantOpen.current ? 0 : 2500);
+    instantOpen.current = false;
     return () => clearTimeout(id);
   }, [decision.open, anyOpen]);
 
@@ -2789,7 +2792,7 @@ export function Game() {
                           const n = (my.decisions ?? []).filter((d) => isCommons(d.event)).length;
                           const v = commonsVoices(ev, tw.people, n);
                           const jobOf = (p: Person) => t.job[p.job]?.[p.sex === "f" ? 0 : 1] ?? p.job;
-                          const show = (p: Person) => { const tw2 = townOf(my, seeds, clock()), q = tw2.people.find((x) => x.id === p.id); const z = q ? poseOf(q, tw2, seeds, clock()) : null; later("encounter"); if (z) focus(z.x, z.y); if (q) setWho(q); };
+                          const show = (p: Person) => { const tw2 = townOf(my, seeds, clock()), q = tw2.people.find((x) => x.id === p.id); const z = q ? poseOf(q, tw2, seeds, clock()) : null; later("encounter", 6e4); if (z) focus(z.x, z.y); if (q) setWho(q); };
                           return <>
                             {v.asker && <p className="mt-2 text-center text-xs text-muted-foreground">{ct.asks(`${v.asker.first} ${v.asker.last}`, jobOf(v.asker))} <button type="button" className="hit underline decoration-dotted" onClick={() => show(v.asker!)}>{ct.find}</button></p>}
                             {v.advisor && <div className="mt-3 rounded-md border border-brass/50 bg-brass/10 p-2 text-sm">
@@ -2798,7 +2801,7 @@ export function Game() {
                             </div>}
                           </>;
                         })()}
-                        {live && <div className="mt-2 text-center"><button type="button" className="rounded-md border-2 border-brass px-3 py-1 text-sm font-semibold text-wood hover:bg-brass/20" onClick={() => { const nw = clock(), tw = townOf(my, seeds, nw), p = tw.people.find((q) => q.id === w.a.id); const z = p ? poseOf(p, tw, seeds, nw) : null; later("encounter"); if (z) focus(z.x, z.y); if (p) setWho(p); }}>{t.enc.look}</button></div>}
+                        {live && <div className="mt-2 text-center"><button type="button" className="rounded-md border-2 border-brass px-3 py-1 text-sm font-semibold text-wood hover:bg-brass/20" onClick={() => { const nw = clock(), tw = townOf(my, seeds, nw), p = tw.people.find((q) => q.id === w.a.id); const z = p ? poseOf(p, tw, seeds, nw) : null; later("encounter", 6e4); if (z) focus(z.x, z.y); if (p) setWho(p); }}>{t.enc.look}</button></div>}
                       </>;
                     })()}
                     <div className="mt-4 grid gap-2">
