@@ -26,7 +26,7 @@ import { fig, drawLegged, drawRobeWalk, drawMantled, walkBob, gaitFrame, LEG_RAT
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
-import { fieldLook, sheafDays, type Look } from "./rotation";
+import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
 import { sheavesOn, woodpileLevel, frost, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
 import { pealPause } from "./time";
 import { isSunday } from "./time";
@@ -72,6 +72,8 @@ type Pt = [number, number];
 const INK = "rgba(34,26,18,0.72)";
 /** Base texture of a field tile under the three-field rotation. */
 const LOOK_TEX: Record<Look, Tex> = { green: "crops", ripe: "wheat", stubble: "wheat", ploughed: "fertile", fallow: "grass" };
+/** Scythe only on ripe grain; gardens and pastures keep their usual work cycle. */
+const farmReaps = (p: { work: [number, number] | null; seed: Seed }, now: number) => { const w = p.work!, st = structureAt(w[0], w[1], [p.seed], now); return st?.kind !== "field" || farmTask(fieldLook(acreOf(w[0], w[1], p.seed).id, now)) === "reap"; };
 const fieldTex = (x: number, y: number, s: Seed, now: number): Tex => LOOK_TEX[fieldLook(acreOf(x, y, s).id, now)];
 const TEX_OF: Record<string, Tex> = { deep: "water", water: "water", sand: "sand", grass: "grass", meadow: "meadow", forest: "forest", hill: "grass", fertile: "fertile", mountain: "rock" };
 const TERRAIN: Record<string, [number, number, number]> = {
@@ -1016,7 +1018,8 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const bowed = q.working && pealPause(renderNow) && PEAL_JOBS.has(q.p.job);
   const jw = q.working && !bowed && !q.carry && !kid ? JOB_WORK[q.p.job] : undefined;
   const fishing = q.p.job !== "fisher" || fishingNow(localHour(), isSunday(renderNow), seasonAt(renderNow).winter);
-  const mow = q.working && !bowed ? (workSheet(k) ?? (jw && fishing ? folkImage(q.p.job === "mayor" ? mayorSheet(q.p.sex, q.p.age) : q.p.sex === "f" ? jw.f : jw.m) : null)) : null;
+  const reap = q.p.job !== "farmer" || !q.p.work || farmReaps(q.p, renderNow);
+  const mow = q.working && !bowed ? ((reap ? workSheet(k) : null) ?? (jw && fishing ? folkImage(q.p.job === "mayor" ? mayorSheet(q.p.sex, q.p.age) : q.p.sex === "f" ? jw.f : jw.m) : null)) : null;
   if (mow) {
     // painted work cycle; neighbouring frames cross-fade so the motion flows instead of flipping
     const per = jw?.per ?? 2400, u = (((t + hash(q.p.id, 31, 9) * per) % per) / per) * WORK_FRAMES, f = Math.floor(u) % WORK_FRAMES, mix = u - Math.floor(u);

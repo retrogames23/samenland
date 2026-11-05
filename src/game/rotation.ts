@@ -26,3 +26,8 @@ export function sheafDays(acreId: number, now: number): boolean {
   const d = doy(now), r = roleOf(acreId, now);
   return r === "winter" ? d >= 212 && d < 240 : r === "summer" ? d >= 240 && d < 268 : false;
 }
+
+/** What a farmer does on an acre with this look: reap ripe grain, till/sow/weed open or growing
+ *  ground, or stay at the farmstead (threshing, slaughtering, wood) while it lies as stubble or fallow. */
+export type FarmTask = "reap" | "till" | "yard";
+export const farmTask = (look: Look): FarmTask => look === "ripe" ? "reap" : look === "stubble" || look === "fallow" ? "yard" : "till";
