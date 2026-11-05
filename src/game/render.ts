@@ -690,6 +690,24 @@ function smoothRoad(l: { tiles: [number, number][] }): Pt[] {
   smoothCache.set(l, out); return out;
 }
 const boxCache = new WeakMap<object, [number, number, number, number]>();
+const spanCache = new WeakMap<object, [Pt, Pt][]>();
+/** Deck height above the road at screen point (x, y) if it lies on one of the link's bridges (same arch as drawBridgeSpan), else null. */
+function deckLift(l: { tiles: [number, number][] }, x: number, y: number): number | null {
+  let spans = spanCache.get(l);
+  if (!spans) {
+    spans = []; const n = l.tiles.length, wet = (i: number) => isWater(terrain(l.tiles[i]![0], l.tiles[i]![1]));
+    for (let i = 0; i < n; i++) { if (!wet(i)) continue; let j = i; while (j + 1 < n && wet(j + 1)) j++; const A = l.tiles[Math.max(0, i - 1)]!, B = l.tiles[Math.min(n - 1, j + 1)]!; spans.push([iso(A[0], A[1]) as unknown as Pt, iso(B[0], B[1]) as unknown as Pt]); i = j; }
+    spanCache.set(l, spans);
+  }
+  for (const [A, B] of spans) {
+    const dx = B[0] - A[0], dy = B[1] - A[1], len2 = dx * dx + dy * dy || 1, f = ((x - A[0]) * dx + (y - A[1]) * dy) / len2;
+    if (f < -0.02 || f > 1.02) continue;
+    if (Math.hypot(A[0] + dx * f - x, A[1] + dy * f - y) > 6) continue;
+    const rise = Math.min(1.8, 0.4 + Math.sqrt(len2) * 0.012), ff = Math.max(0, Math.min(1, f));
+    return Math.min(1, ff * 12, (1 - ff) * 12) * (1 + rise * Math.sin(Math.PI * ff));
+  }
+  return null;
+}
 /** Chaikin corner cutting (endpoints kept): turns the averaged road polyline into a soft curve. */
 export function chaikin(p: Pt[], rounds = 2): Pt[] {
   let a = p;
@@ -3172,7 +3190,9 @@ export function draw(
       const from = fwd ? l.a : l.b, to = fwd ? l.b : l.a, ex = tradeProfile(from, now).exports;
       const good = ex[Math.floor(hash(sn, k, 5) * ex.length)] ?? null, cart = !twin && hash(sn, k, 3) < 0.55; // twins: porters walk straight from workshop to workshop
       // oncoming traffic passes on the right: carts keep a wide lane, walkers the verge
-      const [ox, oy] = keepRight(dx, dy, cart ? 3.2 : 4.2);
+      const lift = deckLift(l, x, y); // on a bridge: keep to the deck centre and ride on the planks
+      let [ox, oy] = keepRight(dx, dy, lift === null ? (cart ? 3.2 : 4.2) : cart ? 0.4 : 1.2);
+      if (lift !== null) oy -= lift;
       if (cart) roadProp(x + ox, y + oy, fade, () => drawCart(c, x + ox, y + oy, dx, dy, bob, sn + k, "", t, `t${l.a.id}:${l.b.id}:${k}`), false, `t${l.a.id}:${l.b.id}:${k}`, x, y);
       else roadProp(x + ox, y + oy, fade, () => drawWanderer(c, x + ox, y + oy, dx, dy, t, sn + k, good ? CARRY_OF[good] : null), false, `p${sn}:${k}`);
       lastTraders.push({ x, y, from: from.name, to: to.name, good, cart });
@@ -3184,7 +3204,9 @@ export function draw(
       const m = roadMotion(pts, fwd ? Math.min(pr, end - 1e-6) : end + pr);
       const fade = roadFade(l, m.index, false);
       if (fade <= 0) continue;
-      const cartW = w.kind === "family" || w.kind === "gift" || w.kind === "aid", [ox2, oy2] = keepRight(m.direction[0], m.direction[1], cartW ? 3.2 : 4.2);
+      const cartW = w.kind === "family" || w.kind === "gift" || w.kind === "aid" || w.kind === "transit", lift2 = deckLift(l, m.position[0], m.position[1]);
+      let [ox2, oy2] = keepRight(m.direction[0], m.direction[1], lift2 === null ? (cartW ? 3.2 : 4.2) : cartW ? 0.4 : 1.2);
+      if (lift2 !== null) oy2 -= lift2;
       const x = m.position[0] + ox2, y = m.position[1] + oy2;
       if (x < cs0x - 40 || x > cs1x + 40 || y < cs0y - 40 || y > cs1y + 40) continue;
       if (w.kind === "family" || w.kind === "gift" || w.kind === "aid") { roadProp(x, y, fade, () => drawCart(c, x, y, m.direction[0], m.direction[1], Math.sin(t / 220) * 0.3, w.sd, "", t * 0.8, `w${w.kind}:${w.sd}:${w.from.id}:${w.to.id}`), false, `w${w.kind}:${w.sd}:${w.from.id}:${w.to.id}`, m.position[0], m.position[1]); lastTraders.push({ x, y, from: w.from.name, to: w.to.name, good: null, cart: true, walker: w }); continue; }
