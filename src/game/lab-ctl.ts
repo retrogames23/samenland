@@ -8,7 +8,7 @@ import type { FeastCode } from "./feasts";
  * nothing outside the lab realm, so public maps are never affected.
  */
 export type LabEvent = "wedding" | "fire" | "flood" | "raid";
-type State = { weather?: WeatherKind; feast?: FeastCode; ev: Partial<Record<LabEvent, number>> };
+type State = { weather?: WeatherKind | undefined; feast?: FeastCode | undefined; ev: Partial<Record<LabEvent, number>> };
 const KEY = "samenland-lab-ctl";
 let st: State = { ev: {} };
 if (typeof localStorage !== "undefined") {
