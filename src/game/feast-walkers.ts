@@ -39,14 +39,20 @@ export const STAR_FROM = 10.6, STAR_STOP = 0.45;
 
 /** Whitsun ox: led in from the edge 9.5–11 h, then stands garlanded by the birch tree until 18 h. */
 export const OX_IN = 9.5, OX_AT = 11, OX_OUT = 18;
-export function oxWalk(from: Tile, tree: Tile, h: number): Walk | null {
-  if (h < OX_IN || h >= OX_OUT) return null;
-  return alongPath([from, [tree[0] + 1, tree[1] + 0.6]], h, OX_IN, OX_AT);
+export function oxWalk(path: Tile[], h: number): Walk | null {
+  if (h < OX_IN || h >= OX_OUT || !path.length) return null;
+  return alongPath(path, h, OX_IN, OX_AT);
+}
+/** The herdsman leads the ox by the halter: one tile ahead on the same lane, beside its head once standing. */
+export function herdsmanWalk(path: Tile[], h: number): Walk | null {
+  const ox = oxWalk(path, h); if (!ox) return null;
+  const d = Math.hypot(ox.dx, ox.dy) || 1, ux = ox.dx / d, uy = ox.dy / d;
+  return ox.walking ? { ...ox, x: ox.x + ux * 0.9, y: ox.y + uy * 0.9 } : { ...ox, x: ox.x + ux * 0.7 - uy * 0.6, y: ox.y + uy * 0.7 + ux * 0.6 };
 }
 
 /** St Martin rides to the church 11.4–12.4 h and stays there until the lantern walk at 17 h. */
 export const MARTIN_IN = 11.4, MARTIN_AT = 12.4, MARTIN_OUT = 17;
-export function martinWalk(from: Tile, church: Tile, h: number): Walk | null {
-  if (h < MARTIN_IN || h >= MARTIN_OUT) return null;
-  return alongPath([from, [church[0] + 0.8, church[1] + 1]], h, MARTIN_IN, MARTIN_AT);
+export function martinWalk(path: Tile[], h: number): Walk | null {
+  if (h < MARTIN_IN || h >= MARTIN_OUT || !path.length) return null;
+  return alongPath(path, h, MARTIN_IN, MARTIN_AT);
 }

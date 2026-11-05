@@ -757,6 +757,24 @@ function route(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
   return sm;
 }
 
+/** Feast procession route (Whitsun ox, St Martin): from the walkable lane tile at the town edge farthest from the
+ * meeting place on the hashed side `side`, along lanes and squares to the goal — pure, cached in Town.routes. */
+export function feastRoute(t: Town, goal: Tile, side: number, seeds: Seed[]): Tile[] {
+  const g = doorOf(t, [Math.round(goal[0]), Math.round(goal[1])], seeds);
+  const ck = `feast:${side}>${g[0]},${g[1]}`, hit = t.routes.get(ck); if (hit) return hit;
+  const [mx, my] = t.meet, ang = side * Math.PI * 2, ux = Math.cos(ang), uy = Math.sin(ang);
+  let best: Tile | null = null, bs = -Infinity;
+  for (let x = t.x0; x <= t.x1; x++) for (let y = t.y0; y <= t.y1; y++) {
+    const st = structureAt(x, y, seeds, t.now);
+    if (!st || !WALK.has(st.kind) || !free(t, x, y, seeds)) continue;
+    const s = (x - mx) * ux + (y - my) * uy + Math.hypot(x - mx, y - my) * 0.3;
+    if (s > bs) { bs = s; best = [x, y]; }
+  }
+  const out = best ? route(t, best, g, seeds) : [g];
+  t.routes.set(ck, out);
+  return out;
+}
+
 // ---------------- daily schedule ----------------
 type Entry = { at: number; act: Activity; place: Tile; indoor: boolean };
 const off = (p: Person, i: number, amt = 0.38): Tile => [(hash(p.id, i, 601) - 0.5) * amt * 2, (hash(p.id, i, 602) - 0.5) * amt * 2];
