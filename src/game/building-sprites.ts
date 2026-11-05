@@ -191,7 +191,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   steamworks: { url: steamworks, crop: [0, 0, 480, 480], width: 27, base: 4 },
   station: { url: station, crop: [0, 0, 447, 480], width: 27, base: 4 },
   suburb: { url: patrician, crop: [0, 0, 274, 480], width: 20, base: 4 },
-  farmhouse: { url: farmhouse, crop: [0, 0, 480, 331], width: 26, base: 5 },
+  farmhouse: { url: farmhouse, crop: [0, 0, 480, 326], width: 26, base: 5 },
   cottage: { url: cottage, crop: [0, 0, 996, 872], width: 20, base: 5 },
   barn: { url: barn, crop: [0, 0, 475, 480], width: 15, base: 5 },
   church: { url: church, crop: [0, 0, 428, 480], width: 32, base: 5 },
