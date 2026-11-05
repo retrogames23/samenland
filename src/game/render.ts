@@ -2623,10 +2623,13 @@ function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[]
   // snapshot into an immutable bitmap: blitting it is a plain texture copy, not a replay of the recorded sprite draws
   if (typeof createImageBitmap === "function") void createImageBitmap(cv).then((bm) => { if (e.cv === cv) e.bm = bm; else bm.close(); }, () => {});
 }
+// touch devices: cap bake resolution and cache size (4x chunks at DPR 2-3 exceed mobile canvas memory)
+const TOUCH = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+const FLAT_QMAX = TOUCH ? 2 : 4, FLAT_KEEP = TOUCH ? 40 : 64;
 function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
   flatSet.clear();
   // near zoom: bake farmland/paths at screen resolution so acres stay as crisp as the buildings
-  const q = z > 3.2 ? 4 : z > 1.6 ? 2.5 : z > 0.6 ? 1 : 0.5, sk = seasonKey(now), ready = allTexturesReady() && natureReady();
+  const q = Math.min(FLAT_QMAX, z > 3.2 ? 4 : z > 1.6 ? 2.5 : z > 0.6 ? 1 : 0.5), sk = seasonKey(now), ready = allTexturesReady() && natureReady();
   let bakes = 0;
   const cx0 = Math.floor(x0 / FC), cx1 = Math.floor(x1 / FC), cy0 = Math.floor(y0 / FC), cy1 = Math.floor(y1 / FC);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
@@ -2638,9 +2641,10 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     const stale = e.dirty || e.q !== q || e.sk !== sk || (!e.full && t - e.baked > 2000);
     if (stale && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; e.dirty = false; }
     if (e.empty && e.q === q) { flatSet.add(key); continue; }
-    if (e.cv && e.q === q && e.sk === sk) { c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
+    // soft fallback: while a re-bake is pending, keep showing the previous bake scaled (never live-draw the whole chunk)
+    if (e.cv && (e.q === q && e.sk === sk || e.q !== q && e.sk === sk)) { c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
   }
-  while (flatCache.size > 64) flatCache.delete(flatCache.keys().next().value!);
+  while (flatCache.size > FLAT_KEEP) flatCache.delete(flatCache.keys().next().value!);
   return flatSet;
 }
 /** Planted rare trees keep their tile: no field, house or workshop is ever drawn over them (display only — household capacity is unchanged). Roads keep their ribbon. */

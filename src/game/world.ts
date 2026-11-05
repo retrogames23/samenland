@@ -623,7 +623,10 @@ const siteCache = new Map<string, Map<number, { kind: Kind; at: number }>>();
  * Where each bought building stands: a pure function of the seed and its purchases. The fishery
  * looks for the shore, the healer for the forest edge, the school for the village core, the granary for the fields.
  */
+const siteQuick = new WeakMap<object, { id: string; x: number; y: number; m: Map<number, { kind: Kind; at: number }> }>();
 export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
+  const quick = s.bought ? siteQuick.get(s.bought) : undefined;
+  if (quick && quick.id === s.id && quick.x === s.x && quick.y === s.y) return quick.m;
   const items = (s.bought ?? []).filter((b) => SPECIAL_KIND[b.item]);
   const key = `${s.id}:${s.x}:${s.y}:${items.map((b) => `${b.item}${b.at}@${b.x ?? ""},${b.y ?? ""}`).join(",")}`;
   const hit = siteCache.get(key); if (hit) return hit;
