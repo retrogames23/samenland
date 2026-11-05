@@ -271,6 +271,24 @@ export type Database = {
           },
         ]
       }
+      feast_reads: {
+        Row: {
+          feast: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          feast: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          feast?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       first_roads: {
         Row: {
           created_at: string

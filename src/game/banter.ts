@@ -7,6 +7,8 @@ import type { Lang } from "./i18n";
 import type { Trait } from "./traits";
 import { SEASON_BANTER } from "./lang/banter-season";
 import { seasonAt } from "./season";
+import { feastOn } from "./feasts";
+import { FEAST_BANTER } from "./lang/banter-feast";
 import { clock } from "./time";
 
 const recent: string[] = [];
@@ -42,6 +44,9 @@ export function banter(lang: Lang, c: BanterCtx, vars: { mayor: string; town: st
   if (c.who === "own" && !c.sick && !c.child && !c.night) {
     const w = seasonAt(clock()), sk = (Object.keys(w) as (keyof typeof w)[]).reduce((a, b) => (w[b] > w[a] ? b : a));
     L = { ...L0, own_craft: [...(L0.own_craft ?? []), ...SEASON_BANTER[lang][sk]] };
+    // on a feast day its lines dominate the everyday chatter (all generic categories get them)
+    const fz = feastOn(clock()), fl = fz ? (FEAST_BANTER[lang]?.[fz] ?? FEAST_BANTER.en[fz] ?? []) : [];
+    if (fl.length) L = { ...L, own_any: [...fl, ...fl], own_craft: [...(L.own_craft ?? []), ...fl] };
   }
   // one category drawn at random among those this language has, so trait lines mix with generic ones
   const have = cats.filter((k) => L[k]?.length);

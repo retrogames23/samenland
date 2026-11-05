@@ -29,7 +29,7 @@ import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./cr
 import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
 import { sheavesOn, woodpileLevel, frost, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
 import { pealPause } from "./time";
-import { isRestDay, bonfireLit, christmasNight, feastOn, FEASTS } from "./feasts";
+import { isRestDay, bonfireLit, christmasNight, feastOn, FEASTS, type FeastCode } from "./feasts";
 import { activeRaid, RAID_LEN } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
 import { decorMap, seatTile, type RewardKey } from "./supporter";
@@ -280,6 +280,63 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
   }
 }
 /** Burning roof: flickering glow tongues, sparks and a thick smoke column; lights the night. */
+// ---- feast props: derived from feastOn + realm hour each frame, never stored ----
+let fzNow: FeastCode | null = null, fzHour = 12;
+/** Door greenery: fir boughs at Christmas/Epiphany, birch "Maien" at Whitsun. */
+function drawDoorGreen(c: C, x: number, y: number, birch: boolean, sd: number) {
+  if (birch) {
+    c.strokeStyle = "#e8e2d4"; c.lineWidth = 0.7; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 0.6, y - 8); c.stroke();
+    c.strokeStyle = "#3a3026"; c.lineWidth = 0.3; for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(x + 0.1 * i, y - 2 - i * 2); c.lineTo(x + 0.5 + 0.1 * i, y - 2 - i * 2); c.stroke(); }
+    c.fillStyle = "rgba(128,170,72,0.9)";
+    for (let i = 0; i < 6; i++) { c.beginPath(); c.ellipse(x + 0.6 + (hash(sd, i, 81) - 0.5) * 4, y - 8 + hash(sd, i, 82) * 3, 1.3, 0.9, 0, 0, 7); c.fill(); }
+  } else {
+    c.fillStyle = "#2f4a2c";
+    for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(x - 2.2 + i * 0.4, y - 1 - i * 1.6); c.lineTo(x, y - 4.2 - i * 1.6); c.lineTo(x + 2.2 - i * 0.4, y - 1 - i * 1.6); c.closePath(); c.fill(); }
+    c.fillStyle = "#9a3328"; c.fillRect(x - 0.6, y - 1.4, 1.2, 0.9); // red woollen band
+  }
+}
+/** Easter: a willow basket of red-dyed eggs set out on the square. */
+function drawEggBasket(c: C, x: number, y: number, sd: number) {
+  c.fillStyle = "rgba(30,20,10,0.25)"; c.beginPath(); c.ellipse(x, y + 0.5, 3.4, 1.2, 0, 0, 7); c.fill();
+  c.fillStyle = "#8a6438"; c.beginPath(); c.ellipse(x, y - 0.6, 3, 1.4, 0, 0, Math.PI); c.lineTo(x - 3, y - 0.6); c.fill();
+  const tint = ["#a8392c", "#c9a45a", "#a8392c", "#e8dcc0", "#7a4a8a"];
+  for (let i = 0; i < 5; i++) { c.fillStyle = tint[Math.floor(hash(sd, i, 91) * tint.length)]!; c.beginPath(); c.ellipse(x - 2 + i, y - 1.2 - (i % 2) * 0.4, 0.6, 0.8, 0, 0, 7); c.fill(); }
+  c.strokeStyle = "#5e4229"; c.lineWidth = 0.4; c.beginPath(); c.ellipse(x, y - 1, 3, 1.1, 0, 0, 7); c.stroke();
+  c.beginPath(); c.arc(x, y - 1, 2.6, Math.PI, 0); c.stroke();
+}
+/** Masks, torches and the Corpus Christi canopy, drawn over the walking figure. */
+function drawFeastKit(c: C, X: number, Y: number, q: Pose, t: number) {
+  const f = fzNow; if (!f || !q.visible) return;
+  const p = q.p, adult = p.job !== "child", h = fzHour;
+  // designed for a ~10-unit figure; the sprite figure is 4.4 units tall
+  const K = 0.45, top = Y - 4.4 / K;
+  c.save(); c.translate(X, Y); c.scale(K, K); c.translate(-X, -Y);
+  if (f === "shrovetide" && adult && h >= 15.5 && q.act === "leisure" && hash(p.id, 51, 3) < 0.7) {
+    const hy = top + 1.6, tone = ["#e9dcc0", "#2a2420", "#a8392c", "#c9a45a"][Math.floor(hash(p.id, 52, 3) * 4)]!;
+    c.fillStyle = tone; c.beginPath(); c.ellipse(X, hy, 1.15, 0.85, 0, 0, 7); c.fill();
+    if (hash(p.id, 53, 3) < 0.5) { c.beginPath(); c.moveTo(X - 1, hy - 0.5); c.lineTo(X - 1.3, hy - 2); c.lineTo(X - 0.3, hy - 0.8); c.moveTo(X + 1, hy - 0.5); c.lineTo(X + 1.3, hy - 2); c.lineTo(X + 0.3, hy - 0.8); c.fill(); }
+    c.fillStyle = "#14100c"; c.fillRect(X - 0.7, hy - 0.2, 0.4, 0.3); c.fillRect(X + 0.3, hy - 0.2, 0.4, 0.3);
+  }
+  const torchTime = ((f === "martinmas" || f === "candlemas") && h >= 16.8 && h < 21) || (f === "christmas" && (h >= 22 || h < 1.5));
+  if (torchTime && adult && q.walking && hash(p.id, 54, 3) < 0.45) {
+    const hx = X + 1.8, hy = Y - 4.6;
+    c.strokeStyle = "#5e4229"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(hx, hy); c.lineTo(hx + 0.4, hy - 4); c.stroke();
+    const fl = 1 + Math.sin(t / 90 + p.id) * 0.2;
+    c.fillStyle = "rgba(255,190,90,0.18)"; c.beginPath(); c.arc(hx + 0.4, hy - 5, 4.5 * fl, 0, 7); c.fill();
+    c.fillStyle = "#f2a63a"; c.beginPath(); c.ellipse(hx + 0.4, hy - 5, 0.8, 1.4 * fl, 0, 0, 7); c.fill();
+    c.fillStyle = "#ffe7a8"; c.beginPath(); c.ellipse(hx + 0.4, hy - 4.8, 0.35, 0.7, 0, 0, 7); c.fill();
+  }
+  if (f === "corpus" && p.job === "priest" && h >= 10.8 && h < 12.6 && q.act === "stroll") {
+    const w = 5, cy = top - 2.2;
+    c.strokeStyle = "#6f533b"; c.lineWidth = 0.4;
+    for (const dx of [-w, w]) { c.beginPath(); c.moveTo(X + dx, Y - 1); c.lineTo(X + dx, cy); c.stroke(); }
+    const sw = Math.sin(t / 400 + p.id) * 0.3;
+    c.fillStyle = "#c9a45a"; c.beginPath(); c.moveTo(X - w - 0.5, cy); c.lineTo(X + w + 0.5, cy); c.lineTo(X + w + 0.5, cy + 1.6 + sw); c.lineTo(X - w - 0.5, cy + 1.6 - sw); c.closePath(); c.fill();
+    c.fillStyle = "#e9dcc0"; c.fillRect(X - w - 0.5, cy - 0.8, 2 * w + 1, 0.9);
+    c.strokeStyle = "#8a2a20"; c.lineWidth = 0.3; c.beginPath(); c.moveTo(X - w, cy + 0.8); c.lineTo(X + w, cy + 0.8); c.stroke();
+  }
+  c.restore();
+}
 function drawFire(c: C, cx: number, cy: number, t: number, sd: number, L: Light[]) {
   smoke(c, cx + 2, cy - 22, t * 2.5, sd, 1.6); smoke(c, cx - 3, cy - 18, t * 2, sd + 7, 1.2);
   for (let i = 0; i < 7; i++) {
@@ -1137,6 +1194,7 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
     X += (-sy / l) * lane; Y += (sx / l) * lane * 0.5;
   }
   const sp = drawFolk(c, X, Y, q, t);
+  if (fzNow) drawFeastKit(c, X, Y, q, t);
   if (sp) { if (q.talk !== null && q.talkTurn) bubble(c, sp[0] + 1.8, sp[1] + 0.6, q.talk); return; }
   c.save(); c.translate(X, Y); c.scale(PERSON_SCALE, PERSON_SCALE); c.translate(-X, -Y);
   const head = personBody(c, X, Y, q, t, simple);
@@ -2894,7 +2952,8 @@ export function draw(
       addProp(ty * MAP + tx, () => drawRoadWorks(c, ax, ay, bx - ax, by - ay, t, sn + i));
     }
   }
-  const fz = feastOn(now), fzProps = !!fz && (FEASTS[fz].scene === "fire" || fz === "pentecost");
+  const fz = feastOn(now), fzProps = !!fz && (FEASTS[fz].scene === "fire" || fz === "pentecost" || fz === "christmas" || fz === "epiphany");
+  fzNow = fz; fzHour = worldHour(now);
   if (detail) for (const sd of seeds) {
     if (!sd.decisions?.length && !fzProps) continue;
     const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 2;
@@ -2903,6 +2962,13 @@ export function draw(
     if (tw.maypole) addProp(tw.maypole[1] * MAP + tw.maypole[0], (cx, cy) => drawMaypole(c, cx, cy, t));
     // Easter / St John's fire: the stacked pile by day, flames and glow in the evening
     if (tw.bonfire) { const bf = tw.bonfire, lit = bonfireLit(now); addProp(bf[1] * MAP + bf[0], (cx, cy) => { prop(c, "logs", cx, cy + 1, 9); if (lit) drawFire(c, cx, cy + 9, t, bf[0] * 31 + bf[1], L); }); }
+    // door greenery (fir at Christmas/Epiphany, birch Maien at Whitsun) beside each lived-in house
+    if (fz === "christmas" || fz === "epiphany" || fz === "pentecost") {
+      const seen = new Set<number>(), birch = fz === "pentecost";
+      for (const pp of tw.people) { const hx = Math.round(pp.home[0]), hy = Math.round(pp.home[1]), k = hy * MAP + hx; if (seen.has(k) || hx < x0 || hx > x1 || hy < y0 || hy > y1) continue; seen.add(k); addProp(k, (cx, cy) => drawDoorGreen(c, cx + 6, cy + 3, birch, k)); }
+    }
+    // Easter: egg baskets set out on the green and by the well
+    if (fz === "easter") for (const [i, sp0] of [tw.meet, tw.well].entries()) { const k = sp0[1] * MAP + sp0[0]; addProp(k, (cx, cy) => { drawEggBasket(c, cx - 5 + i * 9, cy + 3, k); drawEggBasket(c, cx + 3 - i * 7, cy + 5, k + 1); }); }
     tw.cows.forEach((cw, i) => addProp(cw[1] * MAP + cw[0], (cx, cy) => drawCow(c, cx, cy, now, cw[0] * 31 + cw[1] + i * 7, i)));
     tw.pigs.forEach((pg, i) => addProp(pg[1] * MAP + pg[0], (cx, cy) => drawPig(c, cx, cy, now, pg[0] * 31 + pg[1] + i * 7)));
     // footbridge site: timber stacked on the bank while the crew works
