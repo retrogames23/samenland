@@ -54,7 +54,7 @@ function syncGeo() {
   geo = b;
   tcache = new Uint8Array(MAP * MAP); riverField = null; oceanMask = null;
   shapeCache.clear(); lmCache.clear(); waterNearCache.clear(); birthCache.clear(); keptCache.clear();
-  siteCache.clear(); scache.clear(); cacheKey = ""; charCache.clear(); linkCache = []; linkKey = ""; pathCache.clear(); linkSets.clear();
+  siteCache.clear(); scaches.clear(); lastCache = null; lastSeeds = null; charCache.clear(); linkCache = []; linkKey = ""; pathCache.clear(); linkSets.clear();
   resetCourt(); resetWonders(); resetCharacters();
   for (const f of geoHooks) f();
 }
