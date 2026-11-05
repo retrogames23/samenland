@@ -308,16 +308,18 @@ function drawEggBasket(c: C, x: number, y: number, sd: number) {
 function drawFeastKit(c: C, X: number, Y: number, q: Pose, t: number) {
   const f = fzNow; if (!f || !q.visible) return;
   const p = q.p, adult = p.job !== "child", h = fzHour;
-  const top = Y - 4.4 * PERSON_SCALE;
+  // designed for a ~10-unit figure; the sprite figure is 4.4 units tall
+  const K = 0.45, top = Y - 4.4 / K;
+  c.save(); c.translate(X, Y); c.scale(K, K); c.translate(-X, -Y);
   if (f === "shrovetide" && adult && h >= 15.5 && q.act === "leisure" && hash(p.id, 51, 3) < 0.7) {
-    const hy = top + 1.1 * PERSON_SCALE, tone = ["#e9dcc0", "#2a2420", "#a8392c", "#c9a45a"][Math.floor(hash(p.id, 52, 3) * 4)]!;
+    const hy = top + 1.6, tone = ["#e9dcc0", "#2a2420", "#a8392c", "#c9a45a"][Math.floor(hash(p.id, 52, 3) * 4)]!;
     c.fillStyle = tone; c.beginPath(); c.ellipse(X, hy, 1.15, 0.85, 0, 0, 7); c.fill();
     if (hash(p.id, 53, 3) < 0.5) { c.beginPath(); c.moveTo(X - 1, hy - 0.5); c.lineTo(X - 1.3, hy - 2); c.lineTo(X - 0.3, hy - 0.8); c.moveTo(X + 1, hy - 0.5); c.lineTo(X + 1.3, hy - 2); c.lineTo(X + 0.3, hy - 0.8); c.fill(); }
     c.fillStyle = "#14100c"; c.fillRect(X - 0.7, hy - 0.2, 0.4, 0.3); c.fillRect(X + 0.3, hy - 0.2, 0.4, 0.3);
   }
   const torchTime = ((f === "martinmas" || f === "candlemas") && h >= 16.8 && h < 21) || (f === "christmas" && (h >= 22 || h < 1.5));
   if (torchTime && adult && q.walking && hash(p.id, 54, 3) < 0.45) {
-    const hx = X + 1.2, hy = Y - 2.2 * PERSON_SCALE;
+    const hx = X + 1.8, hy = Y - 4.6;
     c.strokeStyle = "#5e4229"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(hx, hy); c.lineTo(hx + 0.4, hy - 4); c.stroke();
     const fl = 1 + Math.sin(t / 90 + p.id) * 0.2;
     c.fillStyle = "rgba(255,190,90,0.18)"; c.beginPath(); c.arc(hx + 0.4, hy - 5, 4.5 * fl, 0, 7); c.fill();
@@ -333,6 +335,7 @@ function drawFeastKit(c: C, X: number, Y: number, q: Pose, t: number) {
     c.fillStyle = "#e9dcc0"; c.fillRect(X - w - 0.5, cy - 0.8, 2 * w + 1, 0.9);
     c.strokeStyle = "#8a2a20"; c.lineWidth = 0.3; c.beginPath(); c.moveTo(X - w, cy + 0.8); c.lineTo(X + w, cy + 0.8); c.stroke();
   }
+  c.restore();
 }
 function drawFire(c: C, cx: number, cy: number, t: number, sd: number, L: Light[]) {
   smoke(c, cx + 2, cy - 22, t * 2.5, sd, 1.6); smoke(c, cx - 3, cy - 18, t * 2, sd + 7, 1.2);
