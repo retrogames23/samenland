@@ -54,7 +54,7 @@ function syncGeo() {
   geo = b;
   tcache = new Uint8Array(MAP * MAP); riverField = null; oceanMask = null;
   shapeCache.clear(); lmCache.clear(); waterNearCache.clear(); birthCache.clear(); keptCache.clear();
-  siteCache.clear(); scache.clear(); cacheKey = ""; charCache.clear(); linkCache = [];
+  siteCache.clear(); scache.clear(); cacheKey = ""; charCache.clear(); linkCache = []; linkKey = ""; pathCache.clear(); linkSets.clear();
   resetCourt(); resetWonders(); resetCharacters();
   for (const f of geoHooks) f();
 }
@@ -784,23 +784,45 @@ export type Link = { a: Seed; b: Seed; d: number; since: number; build?: number;
 
 let linkKey = "";
 let linkCache: Link[] = [];
-const roadIdx = new Map<number, { link: Link; i: number }>();
+let roadIdx = new Map<number, { link: Link; i: number }>();
+/** A* road geometry per seed pair (positions included): terrain never changes within a map, so a path is computed once. */
+const pathCache = new Map<string, { tiles: [number, number][]; water: boolean[]; since: number } | null>();
+/** Recent link sets per seed-list key, so alternating callers with different lists never re-derive. */
+const linkSets = new Map<string, { links: Link[]; idx: Map<number, { link: Link; i: number }> }>();
+
+function cachedLink(a: Seed, b: Seed, d: number): Link | null {
+  const k = `${a.id}:${a.x}:${a.y}:${a.created_at}|${b.id}:${b.x}:${b.y}:${b.created_at}`;
+  let p = pathCache.get(k);
+  if (p === undefined) {
+    const l = buildLink(a, b, d);
+    p = l ? { tiles: l.tiles, water: l.water, since: l.since } : null;
+    pathCache.set(k, p);
+  }
+  return p ? { a, b, d, since: p.since, tiles: p.tiles, water: p.water } : null;
+}
 
 export function links(seeds: Seed[]): Link[] {
+  syncGeo();
   const key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.roads ?? []).map((r) => `${r.target}@${r.at}`).join("+")}`).join("|");
   if (key === linkKey) return linkCache;
-  linkKey = key; linkCache = []; roadIdx.clear();
+  const hit = linkSets.get(key);
+  if (hit) { linkKey = key; linkCache = hit.links; roadIdx = hit.idx; return linkCache; }
+  const out: Link[] = [];
   for (let i = 0; i < seeds.length; i++) for (let j = i + 1; j < seeds.length; j++) {
     const a = seeds[i]!, b = seeds[j]!;
     const d = Math.hypot(a.x - b.x, a.y - b.y);
     if (d > TRADE_DIST) continue;
     const gate = roadGate(a, b);
     if (gate === null) continue;
-    const l = buildLink(a, b, d);
+    const l = cachedLink(a, b, d);
     // player-decided roads start at the decision itself; only sample pairs wait for ROAD_AT
-    if (l) { if (gate !== -Infinity) { l.since = gate; l.build = roadDone(a, b)! - gate; } linkCache.push(l); }
+    if (l) { if (gate !== -Infinity) { l.since = gate; l.build = roadDone(a, b)! - gate; } out.push(l); }
   }
-  for (const l of linkCache) l.tiles.forEach(([x, y], i) => { const k = y * MAP + x; if (!roadIdx.has(k)) roadIdx.set(k, { link: l, i }); });
+  const idx = new Map<number, { link: Link; i: number }>();
+  for (const l of out) l.tiles.forEach(([x, y], i) => { const k = y * MAP + x; if (!idx.has(k)) idx.set(k, { link: l, i }); });
+  if (linkSets.size >= 8) linkSets.delete(linkSets.keys().next().value!);
+  linkSets.set(key, { links: out, idx });
+  linkKey = key; linkCache = out; roadIdx = idx;
   return linkCache;
 }
 
