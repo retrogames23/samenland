@@ -629,7 +629,7 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
   if (quick && quick.id === s.id && quick.x === s.x && quick.y === s.y) return quick.m;
   const items = (s.bought ?? []).filter((b) => SPECIAL_KIND[b.item]);
   const key = `${s.id}:${s.x}:${s.y}:${items.map((b) => `${b.item}${b.at}@${b.x ?? ""},${b.y ?? ""}`).join(",")}`;
-  const hit = siteCache.get(key); if (hit) return hit;
+  const hit = siteCache.get(key); if (hit) { if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, m: hit }); return hit; }
   const out = new Map<number, { kind: Kind; at: number }>();
   const seen = new Set<string>();
   for (const b of [...items].sort((a, c) => a.at - c.at)) {
@@ -659,6 +659,7 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
   }
   if (siteCache.size > 200) siteCache.clear();
   siteCache.set(key, out);
+  if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, m: out });
   return out;
 }
 /** Cache key that changes whenever seed positions, ages or purchases change. */
