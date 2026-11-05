@@ -20,7 +20,7 @@ import steamworks from "@/assets/sprites/cohesive/steamworks.webp";
 import station from "@/assets/sprites/station.webp";
 // suburb homes reuse the Hanseatic gabled house art (the old villa sprite was 19th-century)
 import farmhouse from "@/assets/sprites/cohesive/grain-farmhouse.webp";
-import cottage from "@/assets/sprites/cottage.webp";
+import cottage from "@/assets/sprites/cohesive/grain-cottage.webp";
 import barn from "@/assets/sprites/cohesive/grain-barn.webp";
 import church from "@/assets/sprites/cohesive/church.webp";
 import mill from "@/assets/sprites/mill-body.webp";
@@ -29,10 +29,10 @@ import inn from "@/assets/sprites/inn.webp";
 import bakery from "@/assets/sprites/bakery.webp";
 import townhouse from "@/assets/sprites/cohesive/townhouse.webp";
 import townhouse2 from "@/assets/sprites/cohesive/townhouse2.webp";
-import patrician from "@/assets/sprites/patrician.webp";
-import fachwerk from "@/assets/sprites/fachwerk.webp";
+import patrician from "@/assets/sprites/cohesive/grain-patrician.webp";
+import fachwerk from "@/assets/sprites/cohesive/grain-fachwerk.webp";
 import steinhaus from "@/assets/sprites/steinhaus.webp";
-import handwerker from "@/assets/sprites/handwerker.webp";
+import handwerker from "@/assets/sprites/cohesive/grain-handwerker.webp";
 import villa from "@/assets/sprites/villa.webp";
 import tenement from "@/assets/sprites/cohesive/tenement.webp";
 import workshop from "@/assets/sprites/workshop.webp";
@@ -77,7 +77,7 @@ import bakeryLight from "@/assets/sprites/night/bakery.webp";
 import barnLight from "@/assets/sprites/cohesive/night/grain-barn.webp";
 import chapelLight from "@/assets/sprites/night/chapel.webp";
 import churchLight from "@/assets/sprites/cohesive/night/church.webp";
-import cottageLight from "@/assets/sprites/night/cottage.webp";
+import cottageLight from "@/assets/sprites/cohesive/night/grain-cottage.webp";
 import dairyLight from "@/assets/sprites/night/dairy.webp";
 import factoryLight from "@/assets/sprites/night/factory.webp";
 import farmhouseLight from "@/assets/sprites/cohesive/night/grain-farmhouse.webp";
@@ -126,12 +126,12 @@ import stationLight from "@/assets/sprites/night/station.webp";
 import steamworksLight from "@/assets/sprites/cohesive/night/steamworks.webp";
 
 import townhallLight from "@/assets/sprites/night/townhall.webp";
-import fachwerkLight from "@/assets/sprites/night/fachwerk.webp";
+import fachwerkLight from "@/assets/sprites/cohesive/night/grain-fachwerk.webp";
 import steinhausLight from "@/assets/sprites/night/steinhaus.webp";
-import handwerkerLight from "@/assets/sprites/night/handwerker.webp";
+import handwerkerLight from "@/assets/sprites/cohesive/night/grain-handwerker.webp";
 import townhouseLight from "@/assets/sprites/cohesive/night/townhouse.webp";
 import townhouse2Light from "@/assets/sprites/cohesive/night/townhouse2.webp";
-import patricianLight from "@/assets/sprites/night/patrician.webp";
+import patricianLight from "@/assets/sprites/cohesive/night/grain-patrician.webp";
 import villaLight from "@/assets/sprites/night/villa.webp";
 import tenementLight from "@/assets/sprites/cohesive/night/tenement.webp";
 import gatehouseLight from "@/assets/sprites/night/gatehouse.webp";
@@ -190,9 +190,9 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   manufactory: { url: manufactory, crop: [0, 0, 480, 451], width: 31, base: 4 },
   steamworks: { url: steamworks, crop: [0, 0, 480, 480], width: 27, base: 4 },
   station: { url: station, crop: [0, 0, 447, 480], width: 27, base: 4 },
-  suburb: { url: patrician, crop: [0, 0, 274, 480], width: 20, base: 4 },
+  suburb: { url: patrician, crop: [0, 0, 340, 480], width: 20, base: 4 },
   farmhouse: { url: farmhouse, crop: [0, 0, 480, 326], width: 22, base: 6.5 },
-  cottage: { url: cottage, crop: [0, 0, 996, 872], width: 20, base: 5 },
+  cottage: { url: cottage, crop: [0, 0, 480, 441], width: 20, base: 5 },
   barn: { url: barn, crop: [0, 0, 475, 480], width: 15, base: 5 },
   church: { url: church, crop: [0, 0, 428, 480], width: 32, base: 5 },
   mill: { url: mill, crop: [0, 0, 477, 779], width: 16, base: 4 },
@@ -200,10 +200,10 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   bakery: { url: bakery, crop: [0, 0, 480, 476], width: 23, base: 5 },
   townhouse: { url: townhouse, crop: [0, 0, 252, 480], width: 17, base: 4 },
   townhouse2: { url: townhouse2, crop: [0, 0, 291, 480], width: 17, base: 4 },
-  fachwerk: { url: fachwerk, crop: [0, 0, 344, 480], width: 18, base: 4 },
+  fachwerk: { url: fachwerk, crop: [0, 0, 473, 480], width: 18, base: 4 },
   steinhaus: { url: steinhaus, crop: [0, 0, 306, 480], width: 19, base: 4 },
-  handwerker: { url: handwerker, crop: [0, 0, 480, 452], width: 21, base: 4 },
-  patrician: { url: patrician, crop: [0, 0, 274, 480], width: 20, base: 4 },
+  handwerker: { url: handwerker, crop: [0, 0, 480, 445], width: 21, base: 4 },
+  patrician: { url: patrician, crop: [0, 0, 340, 480], width: 20, base: 4 },
   villa: { url: villa, crop: [0, 0, 480, 479], width: 26, base: 4 },
   tenement: { url: tenement, crop: [0, 0, 480, 461], width: 26, base: 4 },
   workshop: { url: workshop, crop: [0, 0, 994, 857], width: 23, base: 5 },
