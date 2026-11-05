@@ -1218,7 +1218,7 @@ function procPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): P
   const off2 = pr.role === "bride" ? 0.3 : 0;
   if (secs < t1) return walk(path1, secs * PROC_SPEED, (pr.via && secs * PROC_SPEED > tMeet * PROC_SPEED) || pr.wait ? off2 : 0);
   if (secs < t1 + SERVICE_SECS) {
-    if (pr.role === "guest") return { ...base, x: ch[0], y: ch[1], visible: !t.church, act: "wedding" };
+    if (pr.role === "guest") { const o = off(p, 11, 0.5); return { ...base, x: ch[0] + o[0], y: ch[1] + 1.1 + Math.abs(o[1]), visible: true, walking: false, act: "wedding", dir: [0, -1] }; }
     return { ...base, x: stand[0], y: stand[1], visible: true, walking: false, act: "wedding", festive, dir: [0, 1] };
   }
   const s2 = secs - t1 - SERVICE_SECS, t2 = l2 / PROC_SPEED;
