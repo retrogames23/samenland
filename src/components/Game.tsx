@@ -141,6 +141,11 @@ import { toast } from "sonner";
 import { firstFreeSite, placeTap } from "@/game/placement";
 import { saplingSpots } from "@/game/saplings";
 import FigureLab from "@/components/FigureLab";
+import { feastOn, feastKey, type FeastCode } from "@/game/feasts";
+import { FEAST_TEXT } from "@/game/lang/feasts";
+
+/** Painted scene per feast; feasts without their own picture borrow a fitting encounter scene. */
+const FEAST_ART: Record<FeastCode, string> = { christmas: "feast-christmas", easter: "feast-easter", midsummer: "feast-midsummer", pentecost: "maypole", michaelmas: "harvest", martinmas: "tithe", shrovetide: "minstrel", palm: "pilgrims", ascension: "pilgrims", corpus: "pilgrims", epiphany: "monk", candlemas: "monk", ashwed: "monk", goodfriday: "monk", allsaints: "monk" };
 
 type Mode = "look" | "seed" | "tree" | "flower" | "lantern" | "sapling";
 
@@ -345,6 +350,14 @@ export function Game() {
   const [settings, setSettings] = useState(false);
   const [imprint, setImprint] = useState(false);
   const [thanks, setThanks] = useState(false);
+  // feast-day parchment: once per feast and game year (receipt in this browser), derived from the realm clock
+  const [feast, setFeast] = useState<FeastCode | null>(null);
+  useEffect(() => {
+    if (!mine) return;
+    const check = () => { const f = feastOn(clock()); if (!f) return; const k = `samenland:feast:${feastKey(f, clock())}`; try { if (localStorage.getItem(k)) return; } catch { /* private mode */ } setFeast(f); };
+    check(); const id = setInterval(check, 60000); return () => clearInterval(id);
+  }, [mine]);
+  const closeFeast = () => { if (feast) { try { localStorage.setItem(`samenland:feast:${feastKey(feast, clock())}`, "1"); } catch { /* private mode */ } } setFeast(null); };
   const [renameName, setRenameName] = useState("");
   const [renameErr, setRenameErr] = useState("");
   const [renameSkip, setRenameSkip] = useState<string | null>(null);
@@ -2655,6 +2668,21 @@ export function Game() {
           </div>
         </Parchment>
       )}
+      {feast && (() => {
+        const ft = FEAST_TEXT[lang], [title, text] = ft.days[feast];
+        const show = () => {
+          const my = seeds.find((x) => x.id === mine); closeFeast(); if (!my) return;
+          const tw = townOf(my, seeds, clock()), at = tw.bonfire ?? tw.maypole ?? tw.church ?? tw.meet, [gx, gy] = iso(at[0], at[1]);
+          camFree.current = true; glide.current = { x: gx, y: gy };
+        };
+        return (
+          <Parchment image={ART[FEAST_ART[feast]]} title={title} later={ft.later} onLater={closeFeast}>
+            <p className="text-center font-display text-lg text-ink/70">{ft.today}</p>
+            <p className="mt-2 text-ink">{text}</p>
+            <div className="mt-4 flex justify-center"><Button variant="outline" onClick={show}>{ft.show}</Button></div>
+          </Parchment>
+        );
+      })()}
       {thanks && (
         <Parchment wide title={THANKS[lang].title} later={t.close} onLater={() => setThanks(false)}>
           <ul className="list-disc space-y-2 ps-5 text-ink">
