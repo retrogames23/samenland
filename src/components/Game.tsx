@@ -353,11 +353,28 @@ export function Game() {
   // feast-day parchment: once per feast and game year (receipt in this browser), derived from the realm clock
   const [feast, setFeast] = useState<FeastCode | null>(null);
   useEffect(() => {
-    if (!mine) return;
-    const check = () => { const f = feastOn(clock()); if (!f) return; const k = `samenland:feast:${feastKey(f, clock())}`; try { if (localStorage.getItem(k)) return; } catch { /* private mode */ } setFeast(f); };
-    check(); const id = setInterval(check, 60000); return () => clearInterval(id);
-  }, [mine]);
-  const closeFeast = () => { if (feast) { try { localStorage.setItem(`samenland:feast:${feastKey(feast, clock())}`, "1"); } catch { /* private mode */ } } setFeast(null); };
+    if (!mine || !userId) return;
+    let alive = true;
+    // receipt per account (feast_reads) merged with this browser's key, so other devices don't replay the parchment
+    const check = async () => {
+      const f = feastOn(clock()); if (!f) return;
+      const fk = feastKey(f, clock()), k = `samenland:feast:${userId}:${fk}`;
+      try { if (localStorage.getItem(k)) return; } catch { /* private mode */ }
+      const { data } = await supabase.from("feast_reads").select("feast").eq("user_id", userId).eq("feast", fk).maybeSingle();
+      if (!alive) return;
+      if (data) { try { localStorage.setItem(k, "1"); } catch { /* private mode */ } return; }
+      setFeast(f);
+    };
+    void check(); const id = setInterval(() => void check(), 60000); return () => { alive = false; clearInterval(id); };
+  }, [mine, userId]);
+  const closeFeast = () => {
+    if (feast && userId) {
+      const fk = feastKey(feast, clock());
+      try { localStorage.setItem(`samenland:feast:${userId}:${fk}`, "1"); } catch { /* private mode */ }
+      void supabase.from("feast_reads").upsert({ user_id: userId, feast: fk }, { onConflict: "user_id,feast", ignoreDuplicates: true }).then(({ error }) => { if (error) console.warn("Feast read receipt could not sync", error.code); });
+    }
+    setFeast(null);
+  };
   const [renameName, setRenameName] = useState("");
   const [renameErr, setRenameErr] = useState("");
   const [renameSkip, setRenameSkip] = useState<string | null>(null);
