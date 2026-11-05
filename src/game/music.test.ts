@@ -3,6 +3,8 @@ import { moodAt, songsOf } from "./music";
 import daySong from "@/assets/music/day_currents_through_the_city_gate.mp3.asset.json";
 import nightSong from "@/assets/music/night_last_candle_waning.mp3.asset.json";
 import nightSong3 from "@/assets/music/night_moonlight_on_the_well.mp3.asset.json";
+import daySong3 from "@/assets/music/day_before_the_kingdom_crumbles.mp3.asset.json";
+import daySong4 from "@/assets/music/day_upon_the_withered_heath.mp3.asset.json";
 
 // Berlin is UTC+1 in November (winter time), so these UTC instants have known world hours.
 const at = (utc: string) => Date.parse(utc);
@@ -23,5 +25,11 @@ describe("Musik-Playlists", () => {
     expect(songsOf("day")[0]).not.toBe(songsOf("night")[0]);
     expect(songsOf("night")).toContain(nightSong3.url);
     expect(songsOf("night")[2]).toBe(nightSong3.url);
+  });
+  it("the day loop carries both new songs", () => {
+    expect(songsOf("day")).toContain(daySong3.url);
+    expect(songsOf("day")).toContain(daySong4.url);
+    expect(songsOf("day")).not.toContain(nightSong3.url);
+    expect(new Set(songsOf("day")).size).toBe(songsOf("day").length);
   });
 });

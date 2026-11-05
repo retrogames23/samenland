@@ -6,6 +6,8 @@ import nightSong2 from "@/assets/music/night_embers_of_the_hearth.mp3.asset.json
 import nightSong3 from "@/assets/music/night_moonlight_on_the_well.mp3.asset.json";
 import nightSong4 from "@/assets/music/night_a_winter_vigil_in_the_keep.mp3.asset.json";
 import daySong0 from "@/assets/music/day_currents_through_the_city_gate.mp3.asset.json";
+import daySong3 from "@/assets/music/day_before_the_kingdom_crumbles.mp3.asset.json";
+import daySong4 from "@/assets/music/day_upon_the_withered_heath.mp3.asset.json";
 import tavernSong from "@/assets/music/tavern_stein_auf_stein.mp3.asset.json";
 
 /**
@@ -14,7 +16,7 @@ import tavernSong from "@/assets/music/tavern_stein_auf_stein.mp3.asset.json";
  */
 export type Mood = "day" | "night" | "tavern" | null;
 const PLAYLISTS: Record<Exclude<Mood, null>, string[]> = {
-  day: [daySong0.url, daySong.url, daySong2.url],
+  day: [daySong0.url, daySong.url, daySong2.url, daySong3.url, daySong4.url],
   night: [nightSong.url, nightSong2.url, nightSong3.url, nightSong4.url],
   tavern: [tavernSong.url],
 };
