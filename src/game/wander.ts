@@ -1,3 +1,4 @@
+import { NAMES_F, NAMES_M, SURNAMES } from "./names";
 /**
  * People between villages: journeymen (Wandergesellen) and messengers walking the trade roads.
  * A pure calendar from the road (seed pair) and the clock – nothing is stored, every client sees the same walkers.
@@ -8,13 +9,12 @@ import { clock, worldHour, worldWeekday } from "./time";
 export type WalkerKind = "journeyman" | "messenger" | "bridal" | "family" | "gift" | "aid" | "letter" | "rider" | "trader" | "transit";
 export type Walker = { kind: WalkerKind; from: Seed; to: Seed; t0: number; t1: number; name: string; sex: "f" | "m"; craft: string; sd: number; /** road share covered: from p0 to p1 (default 0→1) */ p0?: number; p1?: number; /** through-traffic: true start and final goal beyond this road */ origin?: Seed; dest?: Seed };
 
-const F = ["Greta", "Ida", "Frieda", "Lotte", "Marie", "Anna", "Clara", "Hedwig", "Rosa", "Lina"];
-const M = ["Otto", "Karl", "Emil", "Fritz", "Hans", "Jakob", "Franz", "Ludwig", "Konrad", "Heinrich"];
+const F = NAMES_F, M = NAMES_M;
 /** Crafts a journeyman can learn (job codes from people.ts). */
 export const CRAFTS = ["smith", "baker", "mason", "builder", "miller", "crafter", "sawyer"];
 /** Walking speed in road tiles per real second. */
 export const SPEED: Record<WalkerKind, number> = { journeyman: 0.12, messenger: 0.3, bridal: 0.1, family: 0.07, gift: 0.15, aid: 0.2, letter: 0.3, rider: 0.6, trader: 0.1, transit: 0.16 };
-const SUR = ["Müller", "Becker", "Wagner", "Krämer", "Vogt", "Hofmann", "Brandt", "Lindner", "Kessler", "Roth"];
+const SUR = SURNAMES;
 /** Days a house stands empty after its family moved away, before newcomers fill it again. */
 export const VACANT_DAYS = 12;
 const DAY = 864e5;
