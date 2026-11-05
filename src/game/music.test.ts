@@ -26,4 +26,10 @@ describe("Musik-Playlists", () => {
     expect(songsOf("night")).toContain(nightSong3.url);
     expect(songsOf("night")[2]).toBe(nightSong3.url);
   });
+  it("the day loop carries both new songs", () => {
+    expect(songsOf("day")).toContain(daySong3.url);
+    expect(songsOf("day")).toContain(daySong4.url);
+    expect(songsOf("day")).not.toContain(nightSong3.url);
+    expect(new Set(songsOf("day")).size).toBe(songsOf("day").length);
+  });
 });
