@@ -2290,7 +2290,7 @@ const COURT_GAIT: Record<CourtRole, FigureConfig> = {
   herald: fig(0.465, 0.66), guard: fig(0.48, 0.72, { lift: 0.05, stride: GUARD_STRIDE }),
   gardener: fig(0.47, 0.69), groom: fig(0.48, 0.63, { legWidthScale: 1.05 }),
 };
-const courtHeight = (r: CourtRole) => (r === "prince" ? 5.8 : 5.4);
+const courtHeight = (r: CourtRole) => (r === "prince" ? 4.9 : 4.6);
 function drawCourtFigure(c: C, q: CourtPose, t: number) {
   const im = huntIm(`courtfig-${q.role}`, COURT_FIG[q.role]); if (!im) return;
   // same human scale as villagers/mayors (5.2); the prince stands a touch taller
