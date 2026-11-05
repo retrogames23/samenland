@@ -2111,12 +2111,14 @@ export function Game() {
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
                   {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{t.roll.role["mayor"]![f ? 0 : 1]}: {s.owner}{support.get(s.id)?.has("seal") && <span title={SUPPORT[lang].seal} className="ms-1 text-primary">⚜️</span>}</>; })()} · {t.age(ageHours(s, now))}
-                  {(() => { const p = speedParts(s, seeds, now); return (<>
-                    {p.bless > 0.005 && <span className="block">{t.blessBonus(Math.round(p.bless * 100))}</span>}
-                    {p.trade > 0.005 && <span className="block">{t.tradeBonus(Math.round(p.trade * 100))}{p.raw - p.trade > 0.005 && <> ({t.tradeCap(Math.round(p.raw * 100), Math.round(p.cap * 100))})</>}</span>}
-                    {p.toll > 0 && <span className="block">{t.tollBonus(p.toll)}</span>}
-                    {p.farm > 0.005 && <span className="block">{t.farmBonus(Math.round(p.farm * 100))}</span>}
-                  </>); })()}
+                  {(() => { const p = speedParts(s, seeds, now); const chips = [
+                    p.bless > 0.005 && t.blessBonus(Math.round(p.bless * 100)),
+                    p.trade > 0.005 && t.tradeBonus(Math.round(p.trade * 100)) + (p.raw - p.trade > 0.005 ? ` (${t.tradeCap(Math.round(p.raw * 100), Math.round(p.cap * 100))})` : ""),
+                    p.toll > 0 && t.tollBonus(p.toll),
+                    p.farm > 0.005 && t.farmBonus(Math.round(p.farm * 100)),
+                  ].filter(Boolean) as string[]; return chips.length > 0 && (
+                    <span className="mt-1 flex flex-wrap gap-1">{chips.map((c) => <span key={c} className="rounded-full border border-primary/30 bg-primary/10 px-1.5 py-px text-[11px] text-primary">{c}</span>)}</span>
+                  ); })()}
                   {mentoring(s, seeds, now) && mentorOf(s, seeds, now) && <span className="block">{t.mentorBy(mentorOf(s, seeds, now)!.name)}</span>}
                   {my && s.id !== my.id && links(seeds).some((l) => now >= l.since && ((l.a.id === my.id && l.b.id === s.id) || (l.b.id === my.id && l.a.id === s.id))) && <span className="block">{marketHours(now) ? t.market.open : t.market.next(s.name)}</span>}
                 </span>
@@ -2125,6 +2127,7 @@ export function Game() {
               {owner && my && nbs.some((o) => o.id === s.id) && (() => { const used = sentToday(my.id, gifts, now), hurt = tileHits(s, now).size > 0; return (<>
                 <Button size="sm" variant="secondary" className="ml-2 mb-1" disabled={used || cash < GIFT_TALER} onClick={() => sendGift(s, "gift")}>{t.gifts.give(GIFT_TALER)}</Button>
                 {hurt && <Button size="sm" className="ml-2 mb-1" disabled={used || cash < AID_TALER} onClick={() => sendGift(s, "aid")}>{t.gifts.aid(AID_TALER)}</Button>}
+                {(used || cash < GIFT_TALER) && <span className="mb-1 ml-2 block text-[11px] italic text-muted-foreground">{used ? t.gifts.once : t.gifts.poor}</span>}
               </>); })()}
             </li>
           ))}
