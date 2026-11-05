@@ -2473,7 +2473,8 @@ const signMap = new Map<number, Signpost>();
 export function setSignposts(list: Signpost[]) { signSrc = list; }
 /** Tile key → signpost, rebuilt when the posts or the seed set (incl. their roads) change. */
 export function signpostMap(seeds: Seed[]) {
-  const k = signSrc.map((p) => p.id + p.message).join("|");
+  // hourly bucket: posts follow the growing town edge
+  const k = signSrc.map((p) => p.id + p.message).join("|") + "@" + Math.floor(clock() / 3.6e6);
   if (k !== signKey || seeds !== signSeeds) {
     signKey = k; signSeeds = seeds; signMap.clear();
     for (const p of signSrc) { const tl = signTile(seeds, p.seed_id, p.target_id); if (tl) signMap.set(tl[1] * MAP + tl[0], p); }

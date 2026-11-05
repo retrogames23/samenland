@@ -3,7 +3,7 @@ import { nearCourt, resetCourt } from "./court";
 import { resetWonders } from "./wonders";
 import { townCharacter, resetCharacters, type TownWay } from "./character";
 import { biomeKey, type Biome } from "./biome";
-import { cacheTick, worldHour, worldWeekday, workClock, workDone, type Realm } from "./time";
+import { clock, cacheTick, worldHour, worldWeekday, workClock, workDone, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
 import { civicWealth, estateAt, estateHouse, RESIDENTIAL } from "./prosperity";
@@ -1365,13 +1365,16 @@ export function blessCooldown(s: Seed, now: number) {
 // ---------------- signposts on trade roads ----------------
 export type Signpost = { id: string; seed_id: string; target_id: string; user_id: string; message: string };
 /** Road tile where a town's signpost towards a neighbour stands: a few steps out of town along the road. */
-export function signTile(seeds: Seed[], fromId: string, toId: string): [number, number] | null {
+export function signTile(seeds: Seed[], fromId: string, toId: string, now = clock()): [number, number] | null {
   const l = links(seeds).find((k) => (k.a.id === fromId && k.b.id === toId) || (k.b.id === fromId && k.a.id === toId));
   if (!l || l.tiles.length < 4) return null;
   const from = l.a.id === fromId ? l.a : l.b;
-  // first road tile outside the town's core, so the post stands at the village edge
+  // the post moves out with the town edge: just beyond the current reach, at most 40 % of the way
   const order = l.a.id === fromId ? l.tiles : [...l.tiles].reverse();
-  const i = order.findIndex(([x, y]) => Math.hypot(x - from.x, y - from.y) >= 7);
+  const edge = Math.ceil(reachOf(from, radiusOf(effAge(from, seeds, now)))) + 2;
+  const span = Math.hypot(l.a.x - l.b.x, l.a.y - l.b.y);
+  const dist = Math.max(6, Math.min(edge, span * 0.4));
+  const i = order.findIndex(([x, y]) => Math.hypot(x - from.x, y - from.y) >= dist);
   return order[i < 0 ? Math.min(3, order.length - 1) : i]!;
 }
 
