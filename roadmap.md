@@ -5,3 +5,5 @@
 - [x] Frauen-Figuren mit Haube/Kopftuch (waren bereits so gemalt)
 - [x] Waren Bier, Salz, Tuch (nur Anzeige, Balancing unverändert)
 - [x] Quitte durch Birnbaum ersetzt (Text)
+- [x] Begegnungsbilder + Fürstensitz historisch korrigiert
+- [x] Hochzeitspaar, Glaslaternen, Hafen, Spritzenhaus, Lagerhaus, Bockwindmühle, Leuchtfeuer, Markthalle, Villa→Stadthof, Theater→Tanzhaus (Tag + Nacht)
