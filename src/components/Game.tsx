@@ -1202,8 +1202,9 @@ export function Game() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [my, userId, purchases, gifts, claims, encounters, works]);
   const prepareSpend = async () => {
-    if (!accounting?.active) return true;
+    // always book outstanding daily tax first — right after load `accounting` is still unknown
     if (await refreshTreasury()) return true;
+    if (!accounting?.active) return true;
     setMsg(t.buyFail); return false;
   };
   const startWalk = () => { if (!my) return; setTab(null); setWho(null); setPlace(null); setPlacing(null); const cv = canvasRef.current; target.current = { zoom: 16, ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; setWalk(true); };
@@ -1246,7 +1247,7 @@ export function Game() {
     if (!my || !userId) return;
     if (!await prepareSpend()) return;
     const { data, error } = await supabase.from("encounters").insert({ seed_id: my.id, user_id: userId, event, choice }).select("id, seed_id, event, choice, cost, created_at").single();
-    if (error || !data) return setMsg(t.enc.fail);
+    if (error || !data) return setMsg(error?.message?.includes("not enough money") ? t.poor : t.enc.fail);
     setEncounters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
     bell(0); setEncOpen(false);
     if (event === "nursery" && choice !== "pass") { setMode("sapling"); setMsg(t.sapling.hint); } else setMsg(t.enc.done);
