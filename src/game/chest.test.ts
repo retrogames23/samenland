@@ -6,21 +6,21 @@ const seed = (created: number) => ({ id: "c", name: "T", owner: "o", hue: 0, x: 
 const buy = (item: string, at: number, cost: number): Purchase => ({ id: item, seed_id: "c", item, cost, created_at: new Date(at).toISOString() });
 
 describe("village chest", () => {
-  it("base chest holds 800, expansions 2500/6000/15000", () => {
-    expect(chestCap("c", [])).toBe(800);
-    expect(chestCap("c", [buy("chest2", 0, 250)])).toBe(2500);
-    expect(chestCap("c", [buy("chest2", 0, 250), buy("chest3", 0, 800)])).toBe(6000);
-    expect(chestCap("c", [buy("chest2", 0, 250), buy("chest3", 0, 800), buy("chest4", 0, 2000)])).toBe(15000);
+  it("base chest holds 1200, expansions 4000/10000/25000", () => {
+    expect(chestCap("c", [])).toBe(1200);
+    expect(chestCap("c", [buy("chest2", 0, 250)])).toBe(4000);
+    expect(chestCap("c", [buy("chest2", 0, 250), buy("chest3", 0, 800)])).toBe(10000);
+    expect(chestCap("c", [buy("chest2", 0, 250), buy("chest3", 0, 800), buy("chest4", 0, 2000)])).toBe(25000);
   });
   it("first expansion needs a week of age", () => {
     const s = seed(CHEST_SINCE);
     expect(chestBlock(s, [], CHEST_SINCE + 100 * 3.6e6)).toBe("age");
     expect(chestBlock(s, [], CHEST_SINCE + 170 * 3.6e6)).toBe(null);
   });
-  it("an untended village founded after the rule never holds more than 800 from taxes", () => {
+  it("an untended village founded after the rule never holds more than 1200 from taxes", () => {
     const s = seed(CHEST_SINCE), now = CHEST_SINCE + 365 * 864e5;
-    expect(treasury(s, [], now)).toBeLessThanOrEqual(800 + 400);
-    expect(cappedTax(s, [], now)).toBe(800 - 160 + raidLoss(s, now));
+    expect(treasury(s, [], now)).toBeLessThanOrEqual(1200 + 400);
+    expect(cappedTax(s, [], now)).toBe(1200 - 160 + raidLoss(s, now));
   });
   it("robbers never push an untended chest below zero, and taxes refill it", () => {
     const s = seed(CHEST_SINCE);
@@ -36,7 +36,7 @@ describe("village chest", () => {
   });
   it("spending makes room again", () => {
     const s = seed(CHEST_SINCE), now = CHEST_SINCE + 60 * 864e5;
-    expect(cappedTax(s, [buy("hunter", CHEST_SINCE + 30 * 864e5, 100)], now)).toBe(800 - 160 + 100 + raidLoss(s, now));
+    expect(cappedTax(s, [buy("hunter", CHEST_SINCE + 30 * 864e5, 100)], now)).toBe(1200 - 160 + 100 + raidLoss(s, now));
   });
   it("balances earned before the rule are not cut", () => {
     const c0 = CHEST_SINCE - 200 * 864e5, s = seed(c0);
