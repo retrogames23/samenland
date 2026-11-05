@@ -19,7 +19,7 @@ export function Parchment({ image, title, later, onLater, wide, children }: {
     <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/40 p-3 backdrop-blur-[1px] max-md:place-items-end max-md:p-0" onClick={onLater}>
       <div ref={body} onScroll={checkMore}
         onClick={(e) => e.stopPropagation()}
-        onTouchStart={(e) => { y0.current = e.currentTarget.scrollTop <= 0 ? e.touches[0]!.clientY : null; }}
+        onTouchStart={(e) => { y0.current = e.currentTarget.scrollTop <= 0 && e.target === e.currentTarget.querySelector("img") ? e.touches[0]!.clientY : null; }}
         onTouchEnd={(e) => { if (y0.current != null && e.changedTouches[0]!.clientY - y0.current > 80) onLater(); y0.current = null; }}
         className={`parchment relative max-h-full w-full overflow-auto overscroll-contain max-md:max-h-[88dvh] max-md:rounded-b-none max-md:pb-[env(safe-area-inset-bottom)] max-md:animate-in max-md:slide-in-from-bottom ${wide ? "max-w-2xl" : "max-w-xl"} max-md:max-w-none`}>
         <div aria-hidden className="sticky top-0 z-10 mx-auto h-0 md:hidden"><div className="mx-auto mt-1.5 h-1 w-12 rounded-full bg-ink/30" /></div>
