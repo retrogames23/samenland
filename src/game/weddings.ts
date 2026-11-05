@@ -25,7 +25,7 @@ export const ALLIANCE_WEALTH = 3, ALLIANCE_MAX = 15;
 /** In towns only every WED_NOTABLE-th wedding is a council wedding the whole town hears about. */
 export const WED_NOTABLE = 5;
 
-const FOOD = ["fisher", "hunter", "granary", "dairy", "markethall", "guildhall"], HEALTH = ["herbs", "healer"];
+const FOOD = ["fisher", "hunter", "granary", "dairy"], HEALTH = ["herbs", "healer"];
 const NEED: [number, number][] = [[1, 0], [2, 1], [3, 2]];
 
 /** Raw era from real hours, capped by the care gate (mirrors careStage without world.ts). */
