@@ -2226,7 +2226,7 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
 }
 
 // ---------------- wonders in the wild (src/game/wonders.ts) ----------------
-const WONDER_ART: Record<WonderKind, [string, number]> = { wreck: [wreckU, 62], cave: [caveU, 54], oak: [oakU, 74], ruin: [ruinU, 70], caravan: [caravanU, 52], spring: [springU, 46] };
+const WONDER_ART: Record<WonderKind, [string, number]> = { wreck: [wreckU, 36], cave: [caveU, 54], oak: [oakU, 74], ruin: [ruinU, 70], caravan: [caravanU, 24], spring: [springU, 46] };
 let wonderM: Map<number, WonderKind> | null = null;
 // realm switch: drop map-specific caches so no wonder or ground from the previous island lingers
 onGeoChange(() => { wonderM = null; overview = null; chunkCache.clear(); geomCache.clear(); flatCache.clear(); });
