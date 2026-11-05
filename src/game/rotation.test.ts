@@ -17,3 +17,9 @@ describe("three-field rotation", () => {
     expect(fieldLook(of("fallow"), at(2026, 5, 10))).toBe("fallow");
   });
 });
+
+import { farmTask } from "./rotation";
+describe("farmTask", () => {
+  it("reaps only ripe grain", () => { expect(farmTask("ripe")).toBe("reap"); expect(farmTask("green")).toBe("till"); expect(farmTask("ploughed")).toBe("till"); });
+  it("keeps farmers at the farmstead on stubble and fallow", () => { expect(farmTask("stubble")).toBe("yard"); expect(farmTask("fallow")).toBe("yard"); });
+});

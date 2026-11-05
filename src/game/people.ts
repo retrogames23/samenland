@@ -15,9 +15,10 @@ import { WORK_START, WORK_END } from "./time";
 import { worldHour } from "./time";
 const worldHourOf = worldHour;
 import { seasonAt } from "./season";
+import { fieldLook, farmTask } from "./rotation";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { geoKey, MAP, hash, structureAt, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, type TradeGood, type Seed, type Kind } from "./world";
+import { geoKey, MAP, hash, structureAt, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -768,16 +769,19 @@ export function planOf(p: Person, t: Town): Entry[] {
     E(0, "sleep", H, true), E(8, "home", H, true), E(10 + j(1), "leisure", ring(p, 1, t.well), false),
     E(12, "home", H, true), E(15 + j(2), "leisure", spot(p, t, 2), false), E(18 + j(3), "home", H, true), E(21, "sleep", H, true),
   ];
-  const W = p.work ?? H;
-  const wp: Tile = p.workIndoor ? W : add(W, off(p, 3, 0.3));
+  let W = p.work ?? H, indoor = p.workIndoor;
+  // three-field rhythm: on stubble or fallow there is nothing to do out on the acre — the farmer threshes,
+  // slaughters and splits wood at home; only ripe or tilled acres call him out
+  if (p.job === "farmer" && p.work) { const st = structureAt(p.work[0], p.work[1], [p.seed], t.now); if (st?.kind === "field" && farmTask(fieldLook(acreOf(p.work[0], p.work[1], p.seed).id, t.now)) === "yard") { W = H; indoor = true; } }
+  const wp: Tile = indoor ? W : add(W, off(p, 3, 0.3));
   const early = hasTrait(p.id, "early") ? -0.8 : hasTrait(p.id, "owl") ? 0.5 : 0;
   const late = hasTrait(p.id, "owl") ? 1.1 : hasTrait(p.id, "early") ? -0.6 : 0;
   const out = hasTrait(p.id, "sociable") ? 0.75 : hasTrait(p.id, "homebody") ? 0.15 : 0.4;
   return [
     E(0, "sleep", H, true),
-    E(6.5 + early + j(1), "work", wp, p.workIndoor),
-    hash(p.id, 4, 607) < 0.4 ? E(12 + j(2) * 0.3, "lunch", hash(p.id, 4, 606) < 0.5 ? ring(p, 4, t.well) : spot(p, t, 4), false) : E(12 + j(2) * 0.3, "work", wp, p.workIndoor),
-    E(13 + j(3) * 0.3, "work", wp, p.workIndoor),
+    E(6.5 + early + j(1), "work", wp, indoor),
+    hash(p.id, 4, 607) < 0.4 ? E(12 + j(2) * 0.3, "lunch", hash(p.id, 4, 606) < 0.5 ? ring(p, 4, t.well) : spot(p, t, 4), false) : E(12 + j(2) * 0.3, "work", wp, indoor),
+    E(13 + j(3) * 0.3, "work", wp, indoor),
     hash(p.id, 5, 607) < out ? E(17.2 + j(4), "leisure", spot(p, t, 5), false) : E(17.2 + j(4), "home", H, true),
     E(19.6 + j(5) + Math.max(0, late * 0.5), "home", H, true),
     E(21.8 + late + j(6), "sleep", H, true),
