@@ -158,3 +158,15 @@ const FIGURES: Record<Lang, F> = {
   },
 };
 for (const l of Object.keys(FIGURES) as Lang[]) for (const [k, v] of Object.entries(FIGURES[l]) as [FeastCode, string[]][]) (FEAST_BANTER[l][k] ??= []).push(...v);
+
+/** Guests' lines at a wedding (procession, portal, gathering) — local speech bubbles only. */
+export const WEDDING_BANTER: Record<Lang, string[]> = {
+  de: ["Glück un Segen för dat junge Paar!", "Hast du die Brautkrone gesehen? Ganz aus Rauschgold.", "Vor der Kirchentür gegeben – nun gilt's vor Gott und dem Dorf.", "Heut Abend wird getanzt, bis die Fiedel reißt.", "Der Brautvater hat ein ganzes Fass Bier gestiftet!", "Viele Kinder und volle Scheunen wünsch ich euch."],
+  en: ["Luck and blessing on the young couple!", "Did you see the bridal crown? All tinsel gold.", "Wed at the church door – now it holds before God and the village.", "Tonight we dance till the fiddle string snaps.", "The bride's father gave a whole barrel of ale!", "Many children and full barns to you both."],
+  fr: ["Bonheur et bénédiction aux jeunes mariés !", "As-tu vu la couronne de la mariée ? Tout en clinquant d'or.", "Unis à la porte de l'église – devant Dieu et le village.", "Ce soir on danse jusqu'à ce que la corde du violon casse.", "Le père de la mariée a offert un tonneau entier de bière !"],
+  es: ["¡Suerte y bendición a los recién casados!", "¿Viste la corona de la novia? Toda de oropel.", "Casados a la puerta de la iglesia: ante Dios y el pueblo.", "Esta noche se baila hasta que salte la cuerda del violín.", "¡El padre de la novia ha regalado un barril entero de cerveza!"],
+  ar: ["البركة والسعادة للعروسين!", "هل رأيت تاج العروس؟ كله من الذهب اللامع.", "تزوّجا عند باب الكنيسة – أمام الله وأهل القرية.", "الليلة نرقص حتى ينقطع وتر الكمان.", "والد العروس قدّم برميلًا كاملًا من الجعة!"],
+  hi: ["नवविवाहित जोड़े को सुख और आशीर्वाद!", "दुल्हन का मुकुट देखा? पूरा सुनहरी पन्नी का।", "गिरजे के द्वार पर ब्याह हुआ – ईश्वर और गाँव के सामने।", "आज रात तब तक नाचेंगे जब तक सारंगी का तार न टूटे।", "दुल्हन के पिता ने पूरा पीपा भर बियर दी है!"],
+  zh: ["祝新人幸福，蒙福满满！", "你看见新娘的花冠了吗？全是金箔。", "在教堂门前成婚——当着上帝和全村。", "今晚要跳舞，跳到提琴弦断为止。", "新娘的父亲送了一整桶啤酒！"],
+  ja: ["若いふたりに幸せと祝福を！", "花嫁の冠を見た？金ぴかの箔だらけ。", "教会の扉の前で結ばれた――神と村の前で。", "今夜はフィドルの弦が切れるまで踊るぞ。", "花嫁の父がビールをひと樽まるごと出してくれた！"],
+};

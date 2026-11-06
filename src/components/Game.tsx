@@ -18,7 +18,7 @@ import { townOf, poseOf, weddingFocus, kinOf, FETE_SECS, commandMayor, driveMayo
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { banter } from "@/game/banter";
-import { weddingJoy } from "@/game/weddings";
+import { weddingJoy, weddingLive } from "@/game/weddings";
 import { inspectAt, type Inspect } from "@/game/inspect";
 import { larderOf, storedAt, chainOf, boonsOf, type Ware } from "@/game/goods";
 import { WareIcon } from "@/components/hud/WareIcon";

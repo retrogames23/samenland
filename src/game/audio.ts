@@ -162,10 +162,11 @@ export function jingle(k: Jingle) {
     case "fanfare": // little herald call: G-C-E-G
       [[0, 7, 0.16], [0.17, 12, 0.16], [0.34, 16, 0.16], [0.51, 19, 0.6]].forEach(([at, s, d]) => horn(at!, N(s! - 12), d!, 0.07));
       break;
-    case "wedding": { // opening of Mendelssohn's wedding march: "ta-ta-ta-taaa" ×2, then rising chord
-      const seq: [number, number, number][] = [[0, 7, 0.12], [0.14, 7, 0.12], [0.28, 7, 0.12], [0.42, 7, 0.55], [1.05, 7, 0.12], [1.19, 7, 0.12], [1.33, 7, 0.12], [1.47, 7, 0.55]];
-      seq.forEach(([at, s, d]) => horn(at, N(s), d, 0.06));
-      [[2.1, 12], [2.1, 16], [2.1, 19]].forEach(([at, s]) => horn(at!, N(s!), 0.9, 0.04));
+    case "wedding": { // a plain dance tune on shawm-like horns over a drone (Dorian, c. 1500), then the church bell
+      const seq: [number, number, number][] = [[0, 2, 0.22], [0.24, 5, 0.22], [0.48, 9, 0.44], [0.96, 7, 0.22], [1.2, 5, 0.22], [1.44, 7, 0.44], [1.92, 5, 0.22], [2.16, 4, 0.22], [2.4, 2, 0.8]];
+      seq.forEach(([at, st, d]) => horn(at, N(st), d, 0.06));
+      horn(0, N(-10), 3.2, 0.025);
+      setTimeout(() => ok() && bell(0), 3300); setTimeout(() => ok() && bell(0), 5600);
       break;
     }
     case "stage": // longer fanfare plus bell
