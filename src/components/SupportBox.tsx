@@ -34,7 +34,7 @@ export function SupportBox({ lang, seedId, owned, signedIn, hasDog, dogName, onD
         <form className="flex items-end gap-2 rounded border border-primary/30 p-2" onSubmit={async (e) => { e.preventDefault(); const n = dn.trim().slice(0, 20); if (n) setDnOk(await onDogName(n)); }}>
           <img src={dogSit} alt="" className="h-10 w-10 object-contain" />
           <label className="flex-1 text-xs">{dt.label}
-            <input value={dn} maxLength={20} onChange={(e) => { setDn(e.target.value); setDnOk(false); }} placeholder={dt.placeholder} className="mt-1 w-full rounded border border-input bg-background px-2 py-1 text-sm" />
+            <input value={dn} maxLength={20} onChange={(e) => { setDn(e.target.value); setDnOk(false); }} placeholder={dt.placeholder} className="mt-1 w-full rounded border border-input bg-card px-2 py-1 text-sm text-ink" />
           </label>
           <Button size="sm" type="submit">{dnOk ? dt.saved : dt.save}</Button>
         </form>
@@ -78,7 +78,7 @@ export function SupportBox({ lang, seedId, owned, signedIn, hasDog, dogName, onD
           ))}
           {picked.includes("dog") && (
             <label className="block rounded border border-primary/30 p-2 text-xs">{dt.label}
-              <input value={newDog} maxLength={20} onChange={(e) => setNewDog(e.target.value)} placeholder={dt.placeholder} className="mt-1 w-full rounded border border-input bg-background px-2 py-1 text-sm" />
+              <input value={newDog} maxLength={20} onChange={(e) => setNewDog(e.target.value)} placeholder={dt.placeholder} className="mt-1 w-full rounded border border-input bg-card px-2 py-1 text-sm text-ink" />
             </label>
           )}
           {reward && (
