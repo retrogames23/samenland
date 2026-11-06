@@ -1903,7 +1903,7 @@ function drawBridgeSpan(c: C, A: Pt, B: Pt, sd: number, t: number) {
       c.fillStyle = "rgba(190,160,120,0.35)"; c.fillRect(p[0] - 0.3, p[1] - 2.9, 0.22, 2.9);
     }
     for (const [hgt, w, col] of [[2.8, 0.5, "#6a4e34"], [1.5, 0.3, "#4d3824"]] as const) {
-      c.strokeStyle = col; c.lineWidth = w; c.beginPath();
+      c.strokeStyle = pat ?? col; c.lineWidth = w * 1.2; c.beginPath();
       fs.forEach((f, i) => { const p = at(f, sgn); i ? c.lineTo(p[0], p[1] - hgt) : c.moveTo(p[0], p[1] - hgt); }); c.stroke();
     }
   }
