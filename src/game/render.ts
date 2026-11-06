@@ -1878,10 +1878,13 @@ function drawBridgeSpan(c: C, A: Pt, B: Pt, sd: number, t: number) {
   for (let k = 1; k <= piles; k++) {
     const f = k / (piles + 1);
     const a = ground(f, -0.85), b = ground(f, 0.85), at0 = at(f, -0.85), at1 = at(f, 0.85);
+    const pileIm = folkImage("bridgePile");
     for (const [g, top] of [[a, at0], [b, at1]] as [Pt, Pt][]) {
-      const gr = c.createLinearGradient(g[0] - 0.6, 0, g[0] + 0.6, 0); gr.addColorStop(0, "#4a3624"); gr.addColorStop(1, "#24190f");
-      c.fillStyle = gr; c.fillRect(g[0] - 0.55, top[1], 1.1, g[1] - top[1] + 1.6);
-      c.fillStyle = "rgba(20,40,38,0.5)"; c.fillRect(g[0] - 0.55, g[1] + 0.6, 1.1, 1); // wet waterline
+      // painted oak pile: iron band under the deck, mossy wet foot in the river
+      const ph = g[1] - top[1] + 1.6;
+      if (pileIm) c.drawImage(pileIm, g[0] - 0.65, top[1], 1.3, ph);
+      else { c.fillStyle = "#3a2a1b"; c.fillRect(g[0] - 0.55, top[1], 1.1, ph); }
+      c.fillStyle = "rgba(20,40,38,0.35)"; c.fillRect(g[0] - 0.65, g[1] + 0.9, 1.3, 0.7); // wet waterline
       c.strokeStyle = `rgba(200,215,205,${0.14 + 0.06 * Math.sin(t / 800 + k)})`; c.lineWidth = 0.25;
       c.beginPath(); c.ellipse(g[0], g[1] + 1.6, 1.3, 0.35, 0, 0, 7); c.stroke();
     }
