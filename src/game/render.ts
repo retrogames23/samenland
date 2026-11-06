@@ -402,11 +402,6 @@ function drawFlood(c: C, cx: number, cy: number, t: number, sd: number, wet: num
     c.fillStyle = "rgba(196,170,96,0.8)"; c.beginPath(); c.ellipse(dx + 2.2, dy + 0.4, 1, 0.45, 0.2, 0, 7); c.fill(); c.globalAlpha = 1; }
   c.fillStyle = `rgba(232,236,225,${0.14 + wet * 0.1})`; c.fillRect(cx - 4 + Math.sin(t / 900 + sd) * 2, cy - 0.5, 6, 0.5);
 }
-/** Waterline left on walls and the rim of a house standing in the water. */
-function drawWade(c: C, cx: number, cy: number, t: number, sd: number, wet: number) {
-  c.strokeStyle = `rgba(214,222,206,${0.18 + wet * 0.25})`; c.lineWidth = 0.5;
-  c.beginPath(); c.ellipse(cx, cy + 1, 7.5 + Math.sin(t / 600 + sd) * 0.4, 3.4, 0, 0.1, Math.PI - 0.1); c.stroke();
-}
 /** Silt the flood leaves on fields: grey-brown mud patches that fade over a few days. */
 function drawSilt(c: C, cx: number, cy: number, sd: number, silt: number) {
   for (let i = 0; i < 3; i++) { c.fillStyle = `rgba(108,96,72,${0.3 * silt})`; c.beginPath(); c.ellipse(cx + (hash(sd, i, 41) - 0.5) * 12, cy + (hash(sd, i, 42) - 0.5) * 5, 3 + hash(sd, i, 43) * 3, 1.2 + hash(sd, i, 44), 0.1, 0, 7); c.fill(); }
