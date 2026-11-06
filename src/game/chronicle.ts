@@ -109,7 +109,7 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
     // the place of the ceremony: the church portal (the couple's new home when the village has no church)
     ev.push({ at: w.at, code: "wedding", a: `${w.a.first} ${w.a.last}`, b: `${w.b.first} ${w.b.maiden ?? w.b.last}`, alliance: w.alliance, dowry: w.dowry, grand: w.grand, x: (tw.church ?? w.a.home)[0], y: (tw.church ?? w.a.home)[1] });
   for (const f of fires(s, to)) if (f.at > from) ev.push({ at: f.at, code: "fire", guarded: f.guarded, water: f.water, dead: f.dead, x: f.x, y: f.y });
-  for (const f of floods(s, to)) if (f.at > from) ev.push({ at: f.at, code: "flood", x: f.x, y: f.y });
+  for (const f of floods(s, to)) if (f.at > from) { const fr = floodFront(f); ev.push({ at: f.at, code: "flood", x: Math.round(fr.x), y: Math.round(fr.y) }); }
   for (const r of raids(s, to)) if (r.at > from) ev.push({ at: r.at, code: "raid", loss: r.loss, caught: r.caught, x: s.x, y: s.y });
   const jm = journeymenTo(s, seeds, from, to);
   if (jm.length > CHRON_DETAIL) ev.push({ at: to, code: "journeymen", n: jm.length });

@@ -161,7 +161,30 @@ export const raidLoss = (s: Seed, now: number) => raids(s, now).reduce((a, r) =>
 
 /** Craft charter: the guild masons rebuild after fire and flood twice as fast. */
 export const craftRepair = (s: Seed, at: number) => (s.charter?.path === "craft" && s.charter.at <= at ? 2 : 1);
-export type TileHit = { fire?: true; build?: number; flood?: true };
+export type TileHit = { fire?: true; build?: number; flood?: true; wet?: number; silt?: number };
+/** Silt lies on the fields for a few days after the water has gone. */
+export const SILT_LEN = 4 * DAY;
+/** How deep the water stands on a tile (0..1): rises from the river bank inland, then drains in reverse. */
+export function floodLevel(f: Flood, tile: number, now: number) {
+  if (now < f.at || now >= f.end) return 0;
+  const len = f.end - f.at, rise = Math.min(H, len / 6), fall = Math.min(3 * H, len / 4);
+  const tx = tile % MAP, ty = Math.floor(tile / MAP);
+  // tiles touching the river itself fill first, the rest follow a little later
+  let bank = false; for (let b = -1; b <= 1 && !bank; b++) for (let a = -1; a <= 1; a++) if (riverWater(tx + a, ty + b)) { bank = true; break; }
+  const delay = bank ? 0 : 0.35 + rnd(tile, 3, 77) * 0.3;
+  const up = Math.max(0, Math.min(1, ((now - f.at) / rise - delay) / (1 - delay * 0.5)));
+  const down = Math.max(0, Math.min(1, ((f.end - now) / fall - delay * 0.6) / (1 - delay * 0.3)));
+  return Math.min(up, down);
+}
+/** Dry tiles on the landward edge of the water, where villagers pile fascines, and a camera point there. */
+export function floodFront(f: Flood): { levee: number[]; x: number; y: number } {
+  const wet = new Set(f.tiles), levee: number[] = [];
+  for (const t of f.tiles) { const x = t % MAP, y = Math.floor(t / MAP);
+    for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) { const k = (y + b) * MAP + x + a; if (!wet.has(k) && !levee.includes(k) && !isWater(terrain(x + a, y + b)) && !riverWater(x + a, y + b)) levee.push(k); } }
+  const pool = f.tiles.length ? f.tiles : [f.y * MAP + f.x];
+  let sx = 0, sy = 0; for (const t of pool) { sx += t % MAP; sy += Math.floor(t / MAP); }
+  return { levee, x: sx / pool.length, y: sy / pool.length };
+}
 const tcache = new Map<string, Map<number, TileHit>>();
 /** What disasters do to each tile right now: burning, rebuilding after fire/flood, or under water. */
 export function tileHits(s: Seed, now: number): Map<number, TileHit> {
@@ -178,9 +201,13 @@ export function tileHits(s: Seed, now: number): Map<number, TileHit> {
   }
   for (const f of floods(s, now)) {
     const k = aidFactor(s.aid, f.end) * craftRepair(s, f.end);
-    if (now >= f.end + FLOOD_REBUILD / k) continue;
-    if (now < f.end) for (const t of f.tiles) m.set(t, { ...m.get(t), flood: true });
-    else for (const t of f.ruined) m.set(t, { build: ((now - f.end) * k) / FLOOD_REBUILD });
+    if (now >= f.end + Math.max(SILT_LEN, FLOOD_REBUILD / k)) continue;
+    if (now < f.end) { for (const t of f.tiles) { const w = floodLevel(f, t, now); if (w > 0.02) m.set(t, { ...m.get(t), flood: true, wet: w }); } }
+    else {
+      const sl = 1 - (now - f.end) / SILT_LEN;
+      if (sl > 0) for (const t of f.tiles) m.set(t, { ...m.get(t), silt: sl });
+      if (now < f.end + FLOOD_REBUILD / k) for (const t of f.ruined) m.set(t, { ...m.get(t), build: ((now - f.end) * k) / FLOOD_REBUILD });
+    }
   }
   if (tcache.size > 200) tcache.clear();
   tcache.set(key, m); return m;
