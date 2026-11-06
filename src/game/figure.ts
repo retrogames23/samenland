@@ -111,11 +111,14 @@ export function legFrame(ph: number) {
 }
 /** Per-frame horizontal offset (fraction of a cell) that registers every frame's waistband on the cell centre. */
 const WAIST = new WeakMap<object, number[]>();
-function waistShift(legs: HTMLImageElement): number[] {
+const waistShift = (legs: HTMLImageElement) => frameShift(legs, 0.12);
+/** Per-frame horizontal offset (fraction of a frame) that registers the top `frac` of every frame on its centre;
+ * full-body walk sheets use it so a painted frame drawn off-centre never makes the walker hop sideways. */
+export function frameShift(legs: HTMLImageElement, frac = 0.4): number[] {
   const hit = WAIST.get(legs); if (hit) return hit;
   const out = new Array(WALK_FRAMES).fill(0);
   try {
-    const W = legs.naturalWidth, H = legs.naturalHeight, fw = W / WALK_FRAMES, rows = Math.max(2, Math.round(H * 0.12));
+    const W = legs.naturalWidth, H = legs.naturalHeight, fw = W / WALK_FRAMES, rows = Math.max(2, Math.round(H * frac));
     const cv = document.createElement("canvas"); cv.width = W; cv.height = rows;
     const g = cv.getContext("2d")!; g.drawImage(legs, 0, 0, W, rows, 0, 0, W, rows);
     const d = g.getImageData(0, 0, W, rows).data;
@@ -152,6 +155,7 @@ export function drawRobeWalk(
   c: C, im: CanvasImageSource, sx: number, sw: number, sh: number, foot: HTMLImageElement | null,
   w: number, h: number, ph: number, top = 0.8, end = 0.93, dy = 0, swing = 0.035,
 ) {
+  end = hemEnd(im, sx, sw, sh, end); top = Math.min(top, end - 0.04);
   const sway = Math.sin(ph), fs = h * 0.11, fw2 = foot ? (fs * foot.naturalWidth) / foot.naturalHeight : 0;
   if (foot) for (const sd of [-1, 1]) {
     const lift = Math.max(0, Math.cos(ph) * sd) * h * 0.025;
@@ -163,4 +167,25 @@ export function drawRobeWalk(
     const a = top + ((end - top) * i) / N, b = top + ((end - top) * (i + 1)) / N, dx = sway * w * swing * ((i + 1) / N);
     c.drawImage(im, sx, sh * a, sw, sh * (b - a) + 0.5, -w / 2 + dx, -h + h * a + dy, w, h * (b - a) + 0.05);
   }
+}
+
+/** Painted hem line (fraction of height) of a skirted sprite, measured once from its alpha: the lowest row still
+ * at least 55 % as wide as the skirt. Cutting there drops the painted ankles, so shoes never appear twice. */
+const HEM = new WeakMap<object, Map<string, number>>();
+export function hemEnd(im: CanvasImageSource, sx: number, sw: number, sh: number, fallback = 0.93): number {
+  const key = `${sx}:${sw}:${sh}`; let m = HEM.get(im as object);
+  if (m?.has(key)) return m.get(key)!;
+  if (!m) { m = new Map(); HEM.set(im as object, m); }
+  let out = fallback;
+  try {
+    const W = Math.max(1, Math.round(sw)), H = Math.max(1, Math.round(sh)), y0 = Math.floor(H * 0.7);
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H - y0;
+    const g = cv.getContext("2d")!; g.drawImage(im, sx, y0, sw, H - y0, 0, 0, W, H - y0);
+    const d = g.getImageData(0, 0, W, H - y0).data, wid: number[] = [];
+    for (let y = 0; y < H - y0; y++) { let a = -1, b = -1; for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3]! > 60) { if (a < 0) a = x; b = x; } wid.push(a < 0 ? 0 : b - a + 1); }
+    const mx = Math.max(...wid.slice(0, Math.ceil(wid.length * 0.6)));
+    let last = -1; for (let y = 0; y < wid.length; y++) if (wid[y]! >= mx * 0.55) last = y;
+    if (mx > 0 && last >= 0) out = Math.min(0.985, Math.max(0.8, (y0 + last + 1) / H));
+  } catch { /* keep fallback */ }
+  m.set(key, out); return out;
 }
