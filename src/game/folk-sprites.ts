@@ -60,6 +60,11 @@ import signpost from "@/assets/sprites/folk/signpost.webp";
 import scaffold from "@/assets/sprites/folk/scaffold.webp";
 import logs from "@/assets/sprites/folk/logs.webp";
 import blocks from "@/assets/sprites/folk/blocks.webp";
+import loadSack from "@/assets/sprites/folk/load-sack.webp";
+import loadBarrel from "@/assets/sprites/folk/load-barrel.webp";
+import loadBale from "@/assets/sprites/folk/load-bale.webp";
+import loadCrate from "@/assets/sprites/folk/load-crate.webp";
+import loadBucket from "@/assets/sprites/folk/load-bucket.webp";
 import stake from "@/assets/sprites/folk/stake.webp";
 import bannerPole from "@/assets/sprites/folk/banner-pole.webp";
 import fisherCast from "@/assets/sprites/folk/fisher-cast.webp";
@@ -85,7 +90,7 @@ import cooper from "@/assets/sprites/folk/cooper.webp";
 import loom from "@/assets/sprites/folk/loom.webp";
 import bannerClothUrl from "@/assets/sprites/folk/banner-cloth.webp";
 
-const URLS = { fascine, floodDrift, treeCherry, treeCherryBloom, treeQuince, treeFruitBare, sheaf, woodpile, iceTrough, strawWrap, laundry, wattle, cooper, loom, man, manWalk, legsM, legsStand, woman, child, childWalk, toddler, toddlerWalk, girl, girlWalk, youth, youthWalk, youthF, youthFWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, stake, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, chain, beret, gugel, collar, staff, flourSacks, breadBasket, fishBasket, sparks, woodcutterWork, woodcutterFWork, masonWork, masonFWork, builderWork, builderFWork, gatherWork, gatherFWork, talkWork, talkFWork, talkWorkYoung, talkWorkMid, talkWorkOld, talkFWorkMid, talkFWorkMature, talkFWorkOld };
+const URLS = { fascine, floodDrift, treeCherry, treeCherryBloom, treeQuince, treeFruitBare, sheaf, woodpile, iceTrough, strawWrap, laundry, wattle, cooper, loom, man, manWalk, legsM, legsStand, woman, child, childWalk, toddler, toddlerWalk, girl, girlWalk, youth, youthWalk, youthF, youthFWalk, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, stake, loadSack, loadBarrel, loadBale, loadCrate, loadBucket, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, chain, beret, gugel, collar, staff, flourSacks, breadBasket, fishBasket, sparks, woodcutterWork, woodcutterFWork, masonWork, masonFWork, builderWork, builderFWork, gatherWork, gatherFWork, talkWork, talkFWork, talkWorkYoung, talkWorkMid, talkWorkOld, talkFWorkMid, talkFWorkMature, talkFWorkOld };
 export type FolkSprite = keyof typeof URLS;
 /** Mayor age cohorts 20–70: same 6-frame robe sheet layout per cohort, so standing, talking and walking all age together. */
 export type Cohort = "young" | "mid" | "mature" | "old";
