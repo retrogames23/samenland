@@ -191,6 +191,9 @@ function drawBubble(ctx: CanvasRenderingContext2D, cv: HTMLCanvasElement, cam: C
   ctx.restore();
 }
 
+/** Closest the camera may come. The test map doubles it: the control desk wants to inspect single pixels. */
+const maxZoom = (walk: boolean) => (walk ? 20 : 12) * (isLab() ? 2 : 1);
+
 export function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // dev diagnostics HUD: written straight to the DOM, never through React state
@@ -949,7 +952,7 @@ export function Game() {
       // deltas are capped per tick so one fast spin never slams the zoom
       const dy = Math.max(-80, Math.min(80, e.deltaY * unit)) * (e.ctrlKey ? 4 : 1);
       target.current = {
-        zoom: Math.min(st.current.walk ? 20 : 12, Math.max(MIN_ZOOM, target.current.zoom * Math.exp(-dy * 0.0012))),
+        zoom: Math.min(maxZoom(st.current.walk), Math.max(MIN_ZOOM, target.current.zoom * Math.exp(-dy * 0.0012))),
         ax: (e.clientX - r.left) * dpr.current,
         ay: (e.clientY - r.top) * dpr.current,
       };
@@ -1248,7 +1251,7 @@ export function Game() {
   const startWalk = () => { if (!my) return; setTab(null); setWho(null); setPlace(null); setPlacing(null); const cv = canvasRef.current; target.current = { zoom: 16, ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; setWalk(true); };
   const wasWalk = useRef(false);
   useEffect(() => { setOwnMayor(my?.id ?? null); }, [my?.id]);
-  useEffect(() => { setStrollHold(walk); if (wasWalk.current && !walk) { if (my) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (me) parkMayor(me, tw, seeds, nw); } target.current = { ...target.current, zoom: Math.min(12, target.current.zoom) }; } wasWalk.current = walk; }, [walk]);
+  useEffect(() => { setStrollHold(walk); if (wasWalk.current && !walk) { if (my) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (me) parkMayor(me, tw, seeds, nw); } target.current = { ...target.current, zoom: Math.min(maxZoom(false), target.current.zoom) }; } wasWalk.current = walk; }, [walk]);
   const findMayor = () => {
     if (!my) return; const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (!me) return focus(my.x, my.y);
     const z = poseOf(me, tw, seeds, nw);
@@ -1810,7 +1813,7 @@ export function Game() {
   }, [placing, coarse]);
   const zoomBy = (f: number) => {
     const cv = canvasRef.current!;
-    target.current = { zoom: Math.min(st.current.walk ? 20 : 12, Math.max(MIN_ZOOM, target.current.zoom * f)), ax: cv.width / 2, ay: cv.height / 2 };
+    target.current = { zoom: Math.min(maxZoom(st.current.walk), Math.max(MIN_ZOOM, target.current.zoom * f)), ax: cv.width / 2, ay: cv.height / 2 };
   };
   const [moreOpen, setMoreOpen] = useState(false);
   const pick = (k: Tab) => setTab(tab === k ? null : k);
@@ -2331,7 +2334,7 @@ export function Game() {
             const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
             const p = pinch.current;
             if (p && p.dist > 0) {
-              const nz = Math.min(st.current.walk ? 20 : 12, Math.max(MIN_ZOOM, c.zoom * (dist / p.dist)));
+              const nz = Math.min(maxZoom(st.current.walk), Math.max(MIN_ZOOM, c.zoom * (dist / p.dist)));
               const ox = p.mx - r.left - r.width / 2, oy = p.my - r.top - r.height / 2;
               const wx = ox / c.zoom + c.x, wy = oy / c.zoom + c.y;
               const nx = mx - r.left - r.width / 2, ny = my - r.top - r.height / 2;
