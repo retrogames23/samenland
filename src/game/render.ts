@@ -3419,7 +3419,9 @@ export function draw(
     };
     if (fk) {
       // personal space: people step aside for each other and for sheep; standing folk yield less than walkers
-      items = fk.map((q) => { const [px, py] = iso(q.x, q.y); return { x: px, y: py, r: q.p.age < 15 ? FOOT.child : FOOT.adult, give: q.walking ? 1 : 0.5, q }; });
+      // stable order by id: the push result no longer depends on schedule order, so crowds don't swap places each frame
+      const fs = [...fk].sort((a, b) => (a.p.id < b.p.id ? -1 : a.p.id > b.p.id ? 1 : 0));
+      items = fs.map((q) => { const [px, py] = iso(q.x, q.y); return { x: px, y: py, r: q.p.age < 15 ? FOOT.child : FOOT.adult, give: q.walking ? 1 : 0.25, q }; });
       for (const sh of flock) items.push({ x: cx + sh.m.dx, y: cy + sh.m.dy, r: FOOT.sheep, give: 0.15, sh });
       separate(items);
       sortDepth(items, (it) => (it.q ? `p${it.q.p.id}` : `s${it.sh!.k}`));
