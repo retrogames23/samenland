@@ -3015,6 +3015,18 @@ function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Struct
         c.lineWidth = wBase * (0.92 + hash(x + i, y + j, 300) * 0.16);
         c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke();
       }
+      if (!street && !frost(now)) {
+        // cart track: two worn wheel ruts with a grassy crown between them
+        for (const [i, j] of con) {
+          const m = pp(i * 0.5, j * 0.5), dx = m[0] - cx, dy = m[1] - cy, d = Math.hypot(dx, dy) || 1;
+          const nx = -dy / d, ny = dx / d, o = wBase * 0.24;
+          c.strokeStyle = "rgba(92,112,58,0.38)"; c.lineWidth = wBase * 0.16;
+          c.beginPath(); c.moveTo(cx, cy); c.lineTo(m[0], m[1]); c.stroke();
+          c.strokeStyle = "rgba(70,50,30,0.2)"; c.lineWidth = wBase * 0.14;
+          for (const s of [-1, 1]) { c.beginPath(); c.moveTo(cx + nx * o * s, cy + ny * o * s); c.lineTo(m[0] + nx * o * s, m[1] + ny * o * s); c.stroke(); }
+        }
+        c.strokeStyle = col;
+      }
       if (con.length === 1) {
         // dead end: the track tapers out into the grass instead of stopping abruptly
         const [i, j] = con[0]!; const e = pp(-i * 0.3, -j * 0.3);
@@ -3032,6 +3044,14 @@ function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Struct
       c.fillStyle = cob;
       c.globalAlpha = 0.45; c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, 7); c.fill();
       c.globalAlpha = 1; c.beginPath(); c.ellipse(cx, cy, rx * 0.84, ry * 0.84, 0, 0, 7); c.fill();
+      // gutter: a shallow damp channel of darker setts just inside the rim, irregular per tile
+      c.strokeStyle = "rgba(58,48,36,0.22)"; c.lineWidth = 0.7;
+      c.beginPath(); c.ellipse(cx, cy, rx * 0.78, ry * 0.78, 0, hash(x, y, 73) * 6.283, hash(x, y, 73) * 6.283 + 3.6 + hash(x, y, 74) * 2); c.stroke();
+      for (let n = 0; n < 4; n++) { // a few worn, darker stones in the core
+        c.fillStyle = "rgba(70,60,48,0.16)";
+        c.beginPath(); c.ellipse(cx + (hash(x, y, 120 + n) - 0.5) * rx, cy + (hash(x, y, 130 + n) - 0.5) * ry, 1.1, 0.6, 0, 0, 7); c.fill();
+      }
+      c.fillStyle = cob;
       for (let n = 0; n < 5; n++) {
         const a = hash(x, y, 80 + n) * 6.283, d = 0.95 + hash(x, y, 90 + n) * 0.25;
         c.globalAlpha = 0.7; c.beginPath(); c.ellipse(cx + Math.cos(a) * rx * d, cy + Math.sin(a) * ry * d, 0.9, 0.5, 0, 0, 7); c.fill();
