@@ -2780,6 +2780,7 @@ function drawRareTree(c: C, x: number, y: number, kind: "cherry" | "quince", age
 }
 
 const framePool = {
+  behind: new Set<object>(),
   tiles: [] as { x: number; y: number; cx: number; cy: number; st: Structure | null }[],
   folk: new Map<number, Pose[]>(),
   robbers: new Map<number, [number, number, boolean]>(),
