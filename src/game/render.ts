@@ -24,7 +24,7 @@ import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
 import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
-import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, type Pose } from "./people";
+import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose } from "./people";
 import { fig, drawLegged, drawRobeWalk, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
@@ -3428,7 +3428,7 @@ export function draw(
         }
         const fig = (context: C) => q.mounted ? drawRider(context, px, py, q.dir[0], q.dir[1], 0, q.walking ? t * 0.8 : 0) : drawPerson(context, px, py, q, t, simpleFolk);
         fig(c); pushPerson(px, py, q);
-        if (hov || sel || (steer && q.p.role === "mayor" && q.act === "stroll" && q.p.seed.id === steer.sid)) vip.push({ f: fig, x: px, y: py, k: y * MAP + x });
+        if (hov || sel || (q.p.role === "mayor" && q.p.seed.id === ownMayorSid())) vip.push({ f: fig, x: px, y: py, k: y * MAP + x });
         if (q.bucket) drawBucket(c, px, py, q, t);
         if (hov && !sel) {
           c.font = "600 4px system-ui, sans-serif"; c.textAlign = "center";
