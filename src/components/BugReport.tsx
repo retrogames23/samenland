@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { BUGS, type BugKind } from "@/game/lang/bugs";
@@ -14,6 +14,9 @@ export function BugReport({ lang, userId, context, onClose }: { lang: Lang; user
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+  // one preview URL per picked file, revoked when the file is removed or the form closes
+  const urls = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
+  useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
 
   const add = (list: FileList | null) => {
     const picked = Array.from(list ?? []).filter((f) => f.type.startsWith("image/"));
@@ -57,7 +60,7 @@ export function BugReport({ lang, userId, context, onClose }: { lang: Lang; user
       <div className="flex flex-wrap gap-1.5">
         {files.map((f, i) => (
           <div key={i} className="relative h-14 w-14 overflow-hidden rounded border border-border">
-            <img src={URL.createObjectURL(f)} alt="" className="h-full w-full object-cover" />
+            <img src={urls[i]} alt="" className="h-full w-full object-cover" />
             <button type="button" aria-label="×" onClick={() => setFiles((c) => c.filter((_, j) => j !== i))} className="absolute end-0 top-0 rounded-bl bg-background/80 p-0.5"><X className="h-3 w-3" /></button>
           </div>
         ))}

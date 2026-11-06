@@ -21,16 +21,20 @@ export function Survey({ userId, lang }: { userId: string | null; lang: Lang }) 
 
   useEffect(() => {
     if (!userId) { setOpen(false); return; }
-    const id = setTimeout(() => { db.rpc("survey_open").then(({ data }) => { if (data === true) setOpen(true); }); }, 4000);
-    return () => clearTimeout(id);
+    // `live` drops a late answer that arrives after an account switch or unmount
+    let live = true;
+    const id = setTimeout(() => { db.rpc("survey_open").then(({ data }) => { if (live && data === true) setOpen(true); }, () => {}); }, 4000);
+    return () => { live = false; clearTimeout(id); };
   }, [userId]);
   if (!open) return null;
 
   const submit = async (status: "answered" | "never") => {
     setBusy(true); setErr(false);
     const answers = Object.fromEntries(Object.entries(ans).map(([k, v]) => [k, v]));
-    const { error } = await db.rpc("survey_submit", { _status: status, _answers: answers, _wish: wish.trim(), _lang: lang });
-    setBusy(false);
+    let error: unknown = null;
+    try { ({ error } = await db.rpc("survey_submit", { _status: status, _answers: answers, _wish: wish.trim(), _lang: lang })); }
+    catch (e) { error = e; }
+    finally { setBusy(false); }
     if (error) { setErr(true); return; }
     if (status === "never") setOpen(false); else setStep(5);
   };
