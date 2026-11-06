@@ -931,11 +931,13 @@ export function Game() {
         }
         const zn = Math.min(1, Math.max(0, (Math.log(c.zoom) - Math.log(MIN_ZOOM)) / (Math.log(5) - Math.log(MIN_ZOOM))));
         const talkers = lastPeople.filter((p) => p.q.talk !== null && p.q.talkTurn).length;
-        const sources = lastSources.slice(0, 40).map((q) => {
+        let flood = 0, floodPan = 0;
+        for (const q of lastSources) if (q.k === "flood") { const dx = (q.x - c.x) / hw, dy = (q.y - c.y) / hh, nr = Math.max(0, 1 - Math.hypot(dx, dy) * 0.7); if (nr > flood) { flood = nr; floodPan = Math.max(-1, Math.min(1, dx)); } }
+        const sources = lastSources.filter((q) => q.k !== "flood").slice(0, 40).map((q) => {
           const dx = (q.x - c.x) / hw, dy = (q.y - c.y) / hh;
           return { k: q.k, pan: dx, near: Math.max(0, 1 - Math.hypot(dx, dy) * 0.8) };
         }).filter((q) => q.near > 0);
-        setScene({ zoom: zn, forest: forest / n, water: water / n, sea: sea / n, people: lastPeople.length, talkers, sources });
+        setScene({ zoom: zn, forest: forest / n, water: water / n, sea: sea / n, people: lastPeople.length, talkers, sources, flood, floodPan });
       }
       raf = document.hidden ? 0 : requestAnimationFrame(loop);
     };

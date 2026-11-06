@@ -385,6 +385,9 @@ function drawFire(c: C, cx: number, cy: number, t: number, sd: number, L: Light[
   for (let i = 0; i < 4; i++) { const ph = (t / 900 + i / 4 + hash(sd, i, 8)) % 1; c.fillStyle = `rgba(255,190,90,${1 - ph})`; c.fillRect(cx + Math.sin(ph * 6 + i) * 6, cy - 16 - ph * 22, 0.6, 0.6); }
   L.push({ x: cx, y: cy - 10, r: 26 });
 }
+const floodMap = new Map<number, TileHit>();
+/** Water depth 0..1 under a world point this frame (flooded tiles only). */
+function floodDepth(x: number, y: number) { const h = floodMap.get(Math.round(y) * MAP + Math.round(x)); return h?.flood ? h.wet ?? 1 : 0; }
 /** Flood water: brown sheet that rises and drains, current streaks, drifting brushwood and a soft edge. */
 function drawFlood(c: C, cx: number, cy: number, t: number, sd: number, wet: number) {
   const p = P(cx, cy), e = 0.5 + wet * 0.12, a = (0.28 + wet * 0.4) + Math.sin(t / 1800 + sd) * 0.04;
@@ -593,6 +596,21 @@ function seasonalTrace(c: C, s: Structure, cx: number, cy: number, x: number, y:
     }
   }
 }
+/** Murky mirror image of a house standing in flood water: flipped at its base, squashed, rippling, clipped to the tile. */
+function drawReflection(c: C, s: Structure, cx: number, cy: number, t: number, flip: boolean, style: HouseStyle | undefined) {
+  const b = spriteBox(s.kind, s.v, style); if (!b) return;
+  const wet = s.wet ?? 1, by = cy + b.base, h = Math.min(b.h, 34) * 0.42;
+  c.save();
+  c.beginPath(); c.ellipse(cx, by + h * 0.45, b.w * 0.55, h * 0.6, 0, 0, 7); c.clip();
+  c.globalAlpha = 0.22 * wet;
+  const sw = Math.sin(t / 650 + cx * 0.3) * 0.04;
+  c.transform(1, 0, sw, -0.42, -sw * by, by * 1.42 + 0.6);
+  drawBuildingSprite(c, s.kind, cx, cy, s.v, 1, flip, style);
+  c.restore();
+  // ripple bands breaking up the mirror
+  c.strokeStyle = `rgba(225,228,212,${0.18 * wet})`; c.lineWidth = 0.3;
+  for (let i = 0; i < 3; i++) { const yy = by + 1 + i * 1.6, o = Math.sin(t / 900 + i * 2 + cx) * 1.5; c.beginPath(); c.moveTo(cx - b.w * 0.35 + o, yy); c.lineTo(cx + b.w * 0.3 + o, yy); c.stroke(); }
+}
 const GROUNDED = new Set<string>(["well"]);
 function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
@@ -605,6 +623,7 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
   const style = houseStyle(s);
   // free-standing objects without a plinth get a soft ground-contact shadow so they never look like floating
   if (GROUNDED.has(s.kind)) { c.fillStyle = "rgba(30,22,12,0.28)"; c.beginPath(); c.ellipse(cx + 0.5, cy + 3.2, 3.6, 1.5, 0, 0, 7); c.fill(); c.fillStyle = "rgba(30,22,12,0.14)"; c.beginPath(); c.ellipse(cx + 1.4, cy + 3.6, 4.6, 2, 0, 0, 7); c.fill(); }
+  if (s.flood && !FLAT.has(s.kind)) drawReflection(c, s, cx, cy, t, flip, style);
   if (drawBuildingSprite(c, s.kind, cx, cy, s.v, 1, flip, style)) {
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
@@ -3030,7 +3049,7 @@ export function draw(
   // pooled per-frame buffers: slots and maps are reused across frames to keep GC pauses out of the loop
   const tiles = framePool.tiles; let nTiles = 0;
   // flood water, fascines and silt also reach open meadow and the wild river bank (no structure there)
-  const floodWild = new Map<number, TileHit>();
+  const floodWild = floodMap; floodWild.clear();
   for (const sd of seeds) { if (Math.abs(sd.x - (x0 + x1) / 2) > (x1 - x0) / 2 + 40 || Math.abs(sd.y - (y0 + y1) / 2) > (y1 - y0) / 2 + 40) continue;
     for (const [k, v] of tileHits(sd, now)) if ((v.flood || v.silt || v.levee) && !floodWild.has(k)) floodWild.set(k, v); }
 
@@ -3408,10 +3427,10 @@ export function draw(
     if (st?.kind === "field" && hash(x, y, 503) < 0.02) birds.push([cx, cy, 0, x * 7 + y]);
     const wh = st ?? floodWild.get(y * MAP + x);
     if (wh?.silt && !wh.flood) drawSilt(c, cx, cy, x * 7 + y, wh.silt);
-    if (wh?.flood) drawFlood(c, cx, cy, t, x * 7 + y, wh.wet ?? 1);
+    if (wh?.flood) { drawFlood(c, cx, cy, t, x * 7 + y, wh.wet ?? 1); if ((x + y) % 3 === 0 && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: "flood" }); }
     if (wh?.levee && !wh.flood) drawLevee(c, cx, cy + 4, x * 7 + y, wh.levee);
     const fk = folk.get(y * MAP + x);
-    const sdT = x * 1000 + y, flock = fk && st?.kind === "pasture" && st.build === undefined ? sheepSpots(sdT, st.v, now) : [];
+    const sdT = x * 1000 + y, flock = fk && st?.kind === "pasture" && st.build === undefined && !st.flood ? sheepSpots(sdT, st.v, now) : [];
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
     // figures on the north half of a building tile stand behind its wall: draw them before the building
     const behindSet = framePool.behind; behindSet.clear();
@@ -3437,7 +3456,20 @@ export function draw(
           c.strokeStyle = sel ? "rgba(255,226,160,0.95)" : "rgba(255,236,190,0.7)"; c.lineWidth = sel ? 0.8 : 0.6; c.stroke();
         }
         const fig = (context: C) => q.mounted ? drawRider(context, px, py, q.dir[0], q.dir[1], 0, q.walking ? t * 0.8 : 0) : drawPerson(context, px, py, q, t, simpleFolk);
-        fig(c); pushPerson(px, py, q);
+        // rescued sheep trots alongside, on the side away from the viewer
+        if (q.lead) { const sx = px - q.dir[0] * 2.2 + 2.4, sy = py - q.dir[1] * 1.1 - 0.6; drawSheep(c, sx, sy, q.dir[0] < 0, t + q.p.id * 997, q.walking, false, false); }
+        // wading: feet vanish below the water line, a ripple ring rings the shins
+        const wd = floodDepth(q.x, q.y);
+        if (wd > 0.12) {
+          const cut = py - 0.4 - wd * 1.4;
+          c.save(); c.beginPath(); c.rect(px - 12, py - 30, 24, cut - (py - 30)); c.clip(); fig(c); c.restore();
+          const rp = (t / 700 + q.p.id * 0.37) % 1;
+          c.strokeStyle = `rgba(230,232,218,${0.45 * (1 - rp) * wd})`; c.lineWidth = 0.35;
+          c.beginPath(); c.ellipse(px, cut + 0.2, 1.6 + rp * 2.2, 0.55 + rp * 0.7, 0, 0, 7); c.stroke();
+          c.fillStyle = `rgba(110,100,76,${0.35 * wd})`; c.beginPath(); c.ellipse(px, cut + 0.2, 1.5, 0.5, 0, 0, 7); c.fill();
+          if (q.walking) { c.fillStyle = `rgba(240,240,228,${0.5 * wd})`; c.fillRect(px + q.dir[0] * 1.4 - 0.5, cut - 0.1, 1, 0.3); }
+        } else fig(c);
+        pushPerson(px, py, q);
         if (q === ownPose) ownDrawn = true;
         if (hov || sel || (q.p.role === "mayor" && q.p.seed.id === ownMayorSid())) vip.push({ f: fig, x: px, y: py, k: y * MAP + x });
         if (q.bucket) drawBucket(c, px, py, q, t);
