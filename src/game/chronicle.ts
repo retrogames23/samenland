@@ -104,8 +104,10 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   if (homes.length > CHRON_DETAIL) {
     ev.push({ at: to, code: "houses", n: homes.length }, { at: to, code: "families", n: homes.length });
   } else for (const h of homes) ev.push({ at: h.at, code: "house", kind: h.kind, x: h.x, y: h.y }, { at: Math.min(to, h.at + 6e5), code: "family", x: h.x, y: h.y });
-  for (const w of townOf(s, seeds, to).weddings) if (w.at > from && w.at <= to)
-    ev.push({ at: w.at, code: "wedding", a: `${w.a.first} ${w.a.last}`, b: `${w.b.first} ${w.b.maiden ?? w.b.last}`, alliance: w.alliance, dowry: w.dowry, grand: w.grand, x: w.a.home[0], y: w.a.home[1] });
+  const tw = townOf(s, seeds, to);
+  for (const w of tw.weddings) if (w.at > from && w.at <= to)
+    // the place of the ceremony: the church portal (the couple's new home when the village has no church)
+    ev.push({ at: w.at, code: "wedding", a: `${w.a.first} ${w.a.last}`, b: `${w.b.first} ${w.b.maiden ?? w.b.last}`, alliance: w.alliance, dowry: w.dowry, grand: w.grand, x: (tw.church ?? w.a.home)[0], y: (tw.church ?? w.a.home)[1] });
   for (const f of fires(s, to)) if (f.at > from) ev.push({ at: f.at, code: "fire", guarded: f.guarded, water: f.water, dead: f.dead, x: f.x, y: f.y });
   for (const f of floods(s, to)) if (f.at > from) ev.push({ at: f.at, code: "flood", x: f.x, y: f.y });
   for (const r of raids(s, to)) if (r.at > from) ev.push({ at: r.at, code: "raid", loss: r.loss, caught: r.caught, x: s.x, y: s.y });
