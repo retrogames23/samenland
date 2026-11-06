@@ -23,6 +23,17 @@ npm run lint
 - Keep pull requests focused; describe what changes for players.
 - Add or update a test when you change a game rule (prices, limits, timing).
 
+## Pull requests
+
+This project is developed with [Lovable](https://lovable.dev), which keeps `main` in two-way sync with this repository.
+
+- **Target `main`** with a normal pull request from a fork or feature branch. Never force-push, rebase or rewrite the history of `main`.
+- **No large files.** Keep every file under 10 MB; compress images (WebP) and audio (MP3) before committing.
+- **Database migrations** in `supabase/migrations/` are not applied automatically on merge. Mention them clearly in the PR description so the maintainer can apply them.
+- **No secrets.** Never commit keys, tokens or `.env` values.
+- **Tests must pass** (`npm test`) and the PR should explain what players will notice.
+- Maintainers review every PR for determinism (no stored game state), DB mirrors of money logic, historical fit and performance before merging.
+
 ## License
 
 By contributing, you agree that your contributions (code and assets) are licensed under the [MIT License](LICENSE).
