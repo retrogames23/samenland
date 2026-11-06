@@ -30,10 +30,11 @@ export const Route = createFileRoute("/api/public/idle-sweep")({
         const { data: due } = (await db.from("user_activity").select("*").not("warning_sent_at", "is", null).lt("warning_sent_at", graceBefore).limit(100)) as { data: Row[] | null };
         for (const r of due ?? []) {
           if (safe.has(r.user_id) || Date.parse(r.last_active_at) > now - IDLE_DAYS * DAY) continue;
-          const { error } = await db.rpc("purge_user_data", { _uid: r.user_id });
-          if (error) { console.error("idle purge", error); continue; }
+          // login first, data second: the user_activity row survives a failed step, so tomorrow's sweep retries
           const { error: e2 } = await supabaseAdmin.auth.admin.deleteUser(r.user_id);
-          if (e2) console.error("idle deleteUser", e2); else deleted++;
+          if (e2 && !/not.?found/i.test(e2.message)) { console.error("idle deleteUser", e2); continue; }
+          const { error } = await db.rpc("purge_user_data", { _uid: r.user_id });
+          if (error) console.error("idle purge", error); else deleted++;
         }
         // 2) warn: idle for IDLE_DAYS, not yet warned
         const { data: idle } = (await db.from("user_activity").select("*").is("warning_sent_at", null).lt("last_active_at", idleBefore).limit(100)) as { data: Row[] | null };
