@@ -968,7 +968,9 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
         if (dd <= seg[k]! || k === seg.length - 1) {
           const a = pts[k]!, b = pts[k + 1]!, u = seg[k]! ? dd / seg[k]! : 0;
           const x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
-          return { ...base, x, y, visible: freeAt(t, x, y, seeds), walking: true, dir: pathHeading(pts, k + u, true, 0.5), phase: ph };
+          // corner cuts round onto a neighbouring roof for a step: stay visible while either segment end is open ground
+          const vis = freeAt(t, x, y, seeds) || freeAt(t, a[0], a[1], seeds) || freeAt(t, b[0], b[1], seeds);
+          return { ...base, x, y, visible: vis, walking: true, dir: pathHeading(pts, k + u, true, 0.5), phase: ph };
         }
         dd -= seg[k]!;
       }
@@ -1010,7 +1012,11 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
 export const ORDER_SPEED = 0.34;
 /** Seconds the mayor waits at the goal before returning to the daily routine. */
 export const ORDER_IDLE = 50;
-type Order = { id: number; sid: string; from: Tile; to: Tile; at: number; v: number; pts: Tile[] };
+type Order = { id: number; sid: string; from: Tile; to: Tile; at: number; v: number; pts: Tile[]; back?: { at: number; pts: Tile[] } };
+/** Seed id of the player's own village: its mayor always shows a parchment silhouette behind roofs (local-only). */
+let ownSid: string | null = null;
+export const setOwnMayor = (sid: string | null) => { ownSid = sid; };
+export const ownMayorSid = () => ownSid;
 /** Stroll mode: tap orders don't expire and use the brisk stroll pace. Local-only. */
 let hold = false;
 export const setStrollHold = (on: boolean) => { hold = on; };
@@ -1177,7 +1183,15 @@ function orderPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): 
   const secs = (now - o.at) / 1000, dd = secs * o.v, len = lenOf(pts);
   const q = along(pts, dd);
   if (q && dd < len) return { ...base, ...q, visible: true, walking: true, act: "stroll", phase: dd / STRIDE, working: false };
-  if (hold || secs - len / o.v < ORDER_IDLE) return { ...base, x: o.to[0], y: o.to[1], visible: true, walking: false, act: "stroll", dir: [1, 0.3], working: false };
+  if (hold || secs - len / o.v < ORDER_IDLE) { o.back = undefined; return { ...base, x: o.to[0], y: o.to[1], visible: true, walking: false, act: "stroll", dir: [1, 0.3], working: false }; }
+  // order done: walk visibly back into the routine instead of vanishing on the spot
+  if (!o.back) {
+    const goal = !base.visible || !freeAt(t, base.x, base.y, seeds) ? doorOf(t, [base.x, base.y], seeds) : [base.x, base.y] as Tile;
+    const tiles = mayorRoute(t, [Math.round(o.to[0]), Math.round(o.to[1])], [Math.round(goal[0]), Math.round(goal[1])], seeds);
+    o.back = { at: o.at + (len / o.v + ORDER_IDLE) * 1000, pts: [o.to, ...tiles.slice(1, -1), goal] };
+  }
+  const bd = ((now - o.back.at) / 1000) * ORDER_SPEED, bq = along(o.back.pts, bd);
+  if (bq && bd < lenOf(o.back.pts)) return { ...base, ...bq, visible: true, walking: true, act: "stroll", phase: bd / STRIDE, working: false };
   order = null;
   return null;
 }
