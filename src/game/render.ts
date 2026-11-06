@@ -1154,8 +1154,6 @@ function insignia(c: C, q: Pose, hgt: number) {
   // rain or snow: adults out of doors pull up a wool Gugel (hood with shoulder cape), each by own tolerance
   const wxs = Math.max(wetness(renderNow), snowiness(renderNow));
   if (wxs > 0.15 && q.p.age >= 12 && q.p.job !== "mayor" && !q.festive && !q.working && hash(q.p.id, 78, 5) < wxs * 1.4) {
-    const g = folkImage("gugel");
-    if (g) { const h = hgt * 0.42, w = h * g.naturalWidth / g.naturalHeight; c.drawImage(g, -w / 2 + hgt * 0.01, -hgt * 1.04, w, h); }
     return;
   }
   if (q.p.estate === "wealthy" && q.p.age >= 16 && q.p.job !== "mayor" && !q.working && !q.carry && !q.festive) {
@@ -3462,7 +3460,9 @@ export function draw(
         const wd = floodDepth(q.x, q.y);
         if (wd > 0.12) {
           const cut = py - 0.4 - wd * 1.4;
-          c.save(); c.beginPath(); c.rect(px - 12, py - 30, 24, cut - (py - 30)); c.clip(); fig(c); c.restore();
+          fig(c);
+          // muddy water laps over the shoes instead of clipping the sprite
+          c.fillStyle = `rgba(104,92,68,${0.55 + 0.3 * wd})`; c.beginPath(); c.ellipse(px, py - 0.2, 2.2, 0.6 + wd * 0.5, 0, 0, 7); c.fill();
           const rp = (t / 700 + q.p.id * 0.37) % 1;
           c.strokeStyle = `rgba(230,232,218,${0.45 * (1 - rp) * wd})`; c.lineWidth = 0.35;
           c.beginPath(); c.ellipse(px, cut + 0.2, 1.6 + rp * 2.2, 0.55 + rp * 0.7, 0, 0, 7); c.stroke();
