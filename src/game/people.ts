@@ -376,6 +376,8 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       q.fete = { at: f.at, spot, face: [f.x, f.y], lag: crew ? 20 : labEvent("fire") === f.at ? 5 + hash(q.id, 1, 1413) * 15 : 60 + hash(q.id, 1, 1413) * 240, dur: (f.end - f.at) / 1000, fire: true };
     }
   }
+  // babies never join a gathering on their own feet
+  for (const q of people) if (q.fete && q.age < BABY_AGE && q.job === "child") q.fete = undefined;
   // the day's travelling visitor stands at the well/square while the mayor decides, and a while after a welcome
   const gn = guestNow(s, decs, now);
   if (gn) {
