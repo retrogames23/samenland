@@ -1,5 +1,7 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "samenland",
+  "version": "0.1.0",
+  "description": "A cozy, historically grounded real-time medieval settlement simulation set in Northern Germany around 1500.",
   "private": true,
   "license": "MIT",
   "sideEffects": false,

@@ -18,7 +18,7 @@ Live: **https://samenland.app**
 
 ## Tech stack
 
-- [TanStack Start](https://tanstack.com/start) (React 19, SSR, server functions) on Vite 7
+- [TanStack Start](https://tanstack.com/start) (React 19, SSR, server functions) on Vite 8
 - TypeScript, Tailwind CSS v4
 - HTML5 Canvas renderer (no game engine)
 - Supabase-compatible backend (Postgres, auth, realtime) via Lovable Cloud
