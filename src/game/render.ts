@@ -2208,9 +2208,24 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
   if (a.kind === "pasture") {
     const k2 = a.k2, d0 = pp(-k2, -k2), d1 = pp(k2, -k2), d2 = pp(k2, k2), d3 = pp(-k2, k2);
     c.save(); c.beginPath(); c.moveTo(d0[0], d0[1]); c.lineTo(d1[0], d1[1]); c.lineTo(d2[0], d2[1]); c.lineTo(d3[0], d3[1]); c.closePath(); c.clip(); c.lineCap = "round";
-    const ta = pp(-0.6, (hash(x, y, 703) - 0.5) * 0.6), tb = pp(0.6, (hash(x, y, 704) - 0.5) * 0.6), tm = pp(0, (hash(x, y, 705) - 0.5) * 0.8);
-    c.strokeStyle = "rgba(140,112,70,0.35)"; c.lineWidth = 1.1; c.beginPath(); c.moveTo(ta[0], ta[1]); c.quadraticCurveTo(tm[0], tm[1], tb[0], tb[1]); c.stroke();
+    // trodden earth: soft, blurred patches where the herd stands and walks (no hard strokes)
+    for (let n = 0; n < 2; n++) {
+      if (hash(x, y, 703 + n) < 0.35) continue;
+      const [tx, ty] = pp((hash(x, y, 706 + n) - 0.5) * 0.7, (hash(x, y, 708 + n) - 0.5) * 0.7), rr = 3 + hash(x, y, 710 + n) * 3;
+      const gr = c.createRadialGradient(tx, ty, 0, tx, ty, rr);
+      gr.addColorStop(0, "rgba(118,92,58,0.42)"); gr.addColorStop(0.6, "rgba(130,104,66,0.18)"); gr.addColorStop(1, "rgba(130,104,66,0)");
+      c.save(); c.translate(tx, ty); c.scale(1, 0.5); c.translate(-tx, -ty); c.fillStyle = gr; c.beginPath(); c.arc(tx, ty, rr, 0, 7); c.fill(); c.restore();
+    }
     c.restore();
+    // painted standing plants: clover patches and coarse tussocks the cattle avoid
+    const stamp = (im: HTMLImageElement | null, u: number, v: number, wd: number, sd: number) => {
+      if (!im) return; const [px, py] = pp(u, v), h = wd * im.height / im.width;
+      c.fillStyle = "rgba(30,24,10,0.16)"; c.beginPath(); c.ellipse(px + 0.4, py, wd * 0.42, 0.5, 0, 0, 7); c.fill();
+      if (hash(x, y, sd) < 0.5) c.drawImage(im, px - wd / 2, py - h * 0.95, wd, h);
+      else { c.save(); c.translate(px, 0); c.scale(-1, 1); c.drawImage(im, -wd / 2, py - h * 0.95, wd, h); c.restore(); }
+    };
+    if (!a.winter) for (let n = 0; n < 2; n++) if (hash(x, y, 750 + n) < 0.6) stamp(pastureClover, (hash(x, y, 752 + n) - 0.5) * 0.8, (hash(x, y, 754 + n) - 0.5) * 0.8, 3.6 + hash(x, y, 756 + n) * 1.4, 758 + n);
+    if (hash(x, y, 760) < 0.45) stamp(pastureTussock, (hash(x, y, 761) - 0.5) * 0.7, (hash(x, y, 762) - 0.5) * 0.7, 2.6 + hash(x, y, 763) * 1.2, 764);
     c.lineCap = "round"; c.strokeStyle = "rgba(96,110,52,0.8)"; c.lineWidth = 0.28; c.beginPath();
     for (let n = 0; n < 6; n++) {
       const u = hash(x, y, 710 + n) - 0.5, v = hash(x, y, 720 + n) - 0.5, [px, py] = pp(u * 0.85, v * 0.85);
