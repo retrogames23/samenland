@@ -1307,6 +1307,21 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   c.setTransform(B);
   return [X, Y - hgt - bob];
 }
+/** People carrying a hand lantern this frame (night walkers on far paths, the strolling mayor). */
+const lanternFolk = new Set<number>();
+/** Horn lantern swinging from the hand: iron frame, pale horn panes, a candle point; the frame's light is pushed by the caller. */
+function drawHandLantern(c: C, X: number, Y: number, q: Pose, t: number) {
+  const lx = X + 1.6, sw = Math.sin(q.phase * 2 + q.p.id) * 0.25, ly = Y - 2.2;
+  c.strokeStyle = "#3a2c1e"; c.lineWidth = 0.18;
+  c.beginPath(); c.moveTo(lx - 0.1, Y - 2.9); c.lineTo(lx + sw, ly - 0.75); c.stroke();
+  const x = lx + sw, fl = 0.85 + Math.sin(t / 90 + q.p.id) * 0.15;
+  c.fillStyle = "rgba(255,190,100,0.22)"; c.beginPath(); c.arc(x, ly, 1.6, 0, 7); c.fill();
+  c.fillStyle = `rgba(242,196,120,${fl})`; c.fillRect(x - 0.38, ly - 0.55, 0.76, 1.05);
+  c.fillStyle = "#fff0c0"; c.beginPath(); c.arc(x, ly, 0.16, 0, 7); c.fill();
+  c.strokeStyle = "#2e241a"; c.lineWidth = 0.14; c.strokeRect(x - 0.38, ly - 0.55, 0.76, 1.05);
+  c.fillStyle = "#2e241a"; c.beginPath(); c.moveTo(x - 0.48, ly - 0.55); c.lineTo(x, ly - 0.85); c.lineTo(x + 0.48, ly - 0.55); c.closePath(); c.fill();
+  c.fillRect(x - 0.45, ly + 0.5, 0.9, 0.14);
+}
 function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
   if (q.p.job === "hunter" && q.working) return; // shown by the hunt scene at the lodge
   // workers sharing one site door stand apart instead of stacking (stable per person)
@@ -1319,6 +1334,7 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   }
   const sp = drawFolk(c, X, Y, q, t);
   if (fzNow) drawFeastKit(c, X, Y, q, t);
+  if (sp && lanternFolk.has(q.p.id * 7919 + q.p.seed.id.length)) drawHandLantern(c, X, Y, q, t);
   if (sp) { if (q.talk !== null && q.talkTurn) bubble(c, sp[0] + 1.8, sp[1] + 0.6, q.talk); return; }
   c.save(); c.translate(X, Y); c.scale(PERSON_SCALE, PERSON_SCALE); c.translate(-X, -Y);
   const head = personBody(c, X, Y, q, t, simple);
@@ -3095,10 +3111,15 @@ export function draw(
     const live = !!rm && rm.x >= x0 - 2 && rm.x <= x1 + 2 && rm.y >= y0 - 2 && rm.y <= y1 + 2;
     if (!mine && !live && (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1)) continue;
     const r0 = reachOf(sd, radiusOf(effAge(sd, seeds, now)));
+    const darkOut = nightLevel(now) > 0.35;
     for (const q of townPosesSmooth(sd, seeds, now)) {
       const k = Math.round(q.y) * MAP + Math.round(q.x);
       // out in the open at dusk: a small lantern glow keeps the figure readable on dark fields
-      if (Math.hypot(q.x - sd.x, q.y - sd.y) > r0 * 0.8 || (steer && q.p.role === "mayor" && q.act === "stroll")) { const [lx, ly] = iso(q.x, q.y); L.push({ x: lx, y: ly - 2, r: 7 }); }
+      // only night walkers on far paths (and the strolling mayor) carry a visible hand lantern; the light comes from it
+      if (darkOut && q.walking && !q.mounted && q.p.age >= 14 && (Math.hypot(q.x - sd.x, q.y - sd.y) > r0 * 0.8 || (steer && q.p.role === "mayor" && q.act === "stroll"))) {
+        lanternFolk.add(q.p.id * 7919 + sd.id.length);
+        const [lx, ly] = iso(q.x, q.y); L.push({ x: lx + 1.6, y: ly - 2.2, r: 7 });
+      }
       if (!folk.has(k)) folk.set(k, []);
       folk.get(k)!.push(q);
       if (q.p.role === "mayor" && sd.id === ownMayorSid()) ownPose = q;
@@ -3106,7 +3127,7 @@ export function draw(
     }
   }
   const robbers = framePool.robbers; robbers.clear();
-  if (detail) for (const sd of seeds) { const r = robberAt(sd, now); if (r) { robbers.set(Math.round(r[1]) * MAP + Math.round(r[0]), r); const [lx, ly] = iso(r[0], r[1]); L.push({ x: lx, y: ly - 2, r: 4 }); } }
+  if (detail) for (const sd of seeds) { const r = robberAt(sd, now); if (r) robbers.set(Math.round(r[1]) * MAP + Math.round(r[0]), r); }
   const simpleFolk = cam.zoom < 2.2;
   const goal = mayorGoal(now), goalK = goal ? goal[1] * MAP + goal[0] : -1;
   // encounter props: the raised maypole on the square and the village's cows (derived in townOf)
