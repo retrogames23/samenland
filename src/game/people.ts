@@ -377,7 +377,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     }
   }
   // babies never join a gathering on their own feet
-  for (const q of people) if (q.fete && q.age < BABY_AGE && q.job === "child") q.fete = undefined;
+  for (const q of people) if (q.fete && q.age < BABY_AGE && q.job === "child") delete q.fete;
   // the day's travelling visitor stands at the well/square while the mayor decides, and a while after a welcome
   const gn = guestNow(s, decs, now);
   if (gn) {
