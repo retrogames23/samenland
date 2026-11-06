@@ -1006,6 +1006,7 @@ function drawStall(c: C, x: number, y: number, flip: boolean) {
 // layout measured in sprite pixels: wagon bottom-left origin, ox bottom-centre offset, ox scale, combo centre
 // ox y = hoof line (sprite pixels below the wheel line); feet sit at FOOT·frame height inside the sheet
 const CART_LAYOUT = { front: { k: 0.04, cx: 200, ox: [315, 18], os: 1.35, foot: 139 / 140 }, back: { k: 0.042, cx: 150, ox: [235, -34], os: 1.45, foot: 156 / 160 } } as const;
+const WAGON_RES = 2;
 /** Vertical shear that tilts the painted team (drawn for the 2:1 diagonal) onto the real road slope, so ox and wagon follow steep roads. */
 export function cartShear(dx: number, dy: number, away: boolean): number {
   const slope = Math.max(-1.6, Math.min(1.6, dy / Math.max(Math.abs(dx), 0.05)));
@@ -1075,7 +1076,8 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
     c.restore(); return;
   }
   const L = away ? CART_LAYOUT.back : CART_LAYOUT.front, k = L.k;
-  const ww = wag.naturalWidth * k, wh = wag.naturalHeight * k, wx = -L.cx * k;
+  // wagon art is painted at WAGON_RES× the layout's sprite-pixel grid (sharper texture, same size on screen)
+  const ww = (wag.naturalWidth / WAGON_RES) * k, wh = (wag.naturalHeight / WAGON_RES) * k, wx = -L.cx * k;
   const fw = ox.naturalWidth / 4, ow = fw * k * L.os, oh = ox.naturalHeight * k * L.os;
   const oxX = wx + L.ox[0] * k, oxY = L.ox[1] * k;
   // continuous gait clock (~150 ms per pose, 0.6 s per full stride) so legs don't freeze between poses
