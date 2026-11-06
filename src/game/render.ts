@@ -10,6 +10,7 @@ import { animalsSleeping } from "./animals";
 import { drawParchment } from "./parchment";
 import cowUrl from "@/assets/sprites/cow.webp";
 import pondUrl from "@/assets/sprites/pond.webp";
+import flowerTuftUrl from "@/assets/sprites/flower-tuft.webp";
 import maypoleUrl from "@/assets/sprites/maypole.webp";
 import { worldHour, clock } from "./time";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
@@ -2144,10 +2145,17 @@ function wildTurfPaths(g: C, x: number, y: number, cx: number, cy: number, tr: s
     for (let b = -1; b <= 1; b++) { g.moveTo(px + b * 0.35, py); g.lineTo(px + b * 0.6, py - tall * (b ? 0.8 : 1)); }
     g.stroke();
     g.strokeStyle = "rgba(190,200,120,0.5)"; g.lineWidth = 0.14; g.beginPath(); g.moveTo(px - 0.4, py - 0.1); g.lineTo(px - 0.65, py - tall * 0.75); g.stroke();
-    if (tr === "meadow" && h > 0.55) {
-      const col = ["#f2ead2", "#e8c547", "#c8463a", "#9b84c4"][Math.floor(hash(x, y, 850 + i) * 4)]!;
-      g.strokeStyle = "rgba(70,96,40,0.9)"; g.lineWidth = 0.18; g.beginPath(); g.moveTo(px + 0.9, py); g.lineTo(px + 0.9, py - tall - 0.6); g.stroke();
-      g.fillStyle = col; g.beginPath(); g.ellipse(px + 0.9, py - tall - 0.7, 0.5, 0.32, 0, 0, 7); g.fill();
+  }
+  // flower meadow: painted wildflower clumps standing upright on the turf (season-thinned), never baked into the ground texture
+  const fl = tr === "meadow" ? huntIm("flowerTuft", flowerTuftUrl) : null, w = seasonAt(renderNow);
+  if (fl) {
+    const bloom = Math.max(0, 1 - w.winter * 1.2 - w.autumn * 0.7);
+    for (let i = 0; i < 2; i++) {
+      if (hash(x, y, 860 + i) > bloom * 0.85) continue;
+      const u = hash(x, y, 870 + i) - 0.5, v = hash(x, y, 880 + i) - 0.5;
+      const px = cx + (u - v) * TW * 0.36, py = cy + (u + v) * TH * 0.36, fh = 3.2 + hash(x, y, 890 + i) * 1.4, fw = fh * fl.width / fl.height;
+      g.fillStyle = "rgba(30,24,10,0.16)"; g.beginPath(); g.ellipse(px + 0.4, py, fw * 0.45, 0.4, 0, 0, 7); g.fill();
+      g.drawImage(fl, px - fw / 2, py - fh, fw, fh);
     }
   }
 }
@@ -2155,12 +2163,12 @@ function wildTurfPaths(g: C, x: number, y: number, cx: number, cy: number, tr: s
 const TURF_VARIANTS = 12, TURF_S = 3, TURF_W = TW + 4, TURF_UP = 6, TURF_H = TH + TURF_UP + 2;
 const turfSprites = new Map<string, HTMLCanvasElement>();
 function turfSprite(tr: string, v: number): HTMLCanvasElement {
-  const key = tr + v; let cv = turfSprites.get(key);
+  const key = tr + v + seasonKey(renderNow); let cv = turfSprites.get(key);
   if (!cv) {
     cv = document.createElement("canvas"); cv.width = TURF_W * TURF_S; cv.height = TURF_H * TURF_S;
     const g = cv.getContext("2d")!; g.setTransform(TURF_S, 0, 0, TURF_S, 0, 0);
     wildTurfPaths(g, 9001 + v, 4243, TURF_W / 2, TURF_UP + TH / 2, tr);
-    turfSprites.set(key, cv);
+    if (tr !== "meadow" || huntIm("flowerTuft", flowerTuftUrl)) { if (turfSprites.size > 200) turfSprites.clear(); turfSprites.set(key, cv); }
   }
   return cv;
 }
