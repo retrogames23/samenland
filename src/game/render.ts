@@ -267,11 +267,14 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
   }
   // stakes and string while the plot is still being marked out
   if (p < 0.3) {
-    for (const [px, py] of [[cx - hw, cy], [cx, cy + hh], [cx + hw, cy], [cx, cy - hh]] as Pt[]) {
-      c.strokeStyle = "#6a4a2a"; c.lineWidth = 0.75; c.beginPath(); c.moveTo(px, py); c.lineTo(px, py - 3.6); c.stroke();
-    }
-    c.strokeStyle = "rgba(240,230,205,0.9)"; c.lineWidth = 0.28; c.beginPath();
-    c.moveTo(cx - hw, cy - 3.1); c.lineTo(cx, cy + hh - 3.1); c.lineTo(cx + hw, cy - 3.1); c.lineTo(cx, cy - hh - 3.1); c.closePath(); c.stroke();
+    const corners: Pt[] = [[cx, cy - hh], [cx - hw, cy], [cx + hw, cy], [cx, cy + hh]];
+    // hemp twine sags softly between the pegs (drawn first, the pegs stand over its knots)
+    c.strokeStyle = "rgba(196,178,138,0.85)"; c.lineWidth = 0.5; c.lineCap = "round"; c.beginPath();
+    const ring: Pt[] = [corners[1]!, corners[3]!, corners[2]!, corners[0]!];
+    for (let i = 0; i < 4; i++) { const [ax, ay] = ring[i]!, [bx, by] = ring[(i + 1) % 4]!;
+      c.moveTo(ax, ay - 3); c.quadraticCurveTo((ax + bx) / 2, (ay + by) / 2 - 2.3, bx, by - 3); }
+    c.stroke();
+    for (const [px, py] of corners) prop(c, "stake", px, py + 0.4, 1.5);
   }
   // the town's pennant on a pole marks the plot until the house is finished
   if (p < 0.97) {
@@ -1801,8 +1804,7 @@ function drawRoadWorks(c: C, x: number, y: number, dx: number, dy: number, t: nu
     const px = x + dx * s * 9, py = y + dy * s * 9;
     for (const side of [-1, 1]) {
       const sx = px + nx * 3.4 * side, sy = py + ny * 1.7 * side;
-      c.strokeStyle = "#5a4330"; c.lineWidth = 0.35; c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx, sy - 2.2); c.stroke();
-      c.fillStyle = "#c9b48a"; c.fillRect(sx - 0.25, sy - 2.3, 0.5, 0.45);
+      prop(c, "stake", sx, sy + 0.3, 0.95);
     }
   }
   // freshly dug earth and gravel heap
