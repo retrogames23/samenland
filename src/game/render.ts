@@ -1075,6 +1075,7 @@ function bubble(c: C, x: number, y: number, icon: number) {
 function folkOf(q: Pose): FolkSprite {
   const p = q.p;
   if (q.festive) return q.festive;
+  if (p.age < 6) return "toddler"; // 1500: boys and girls alike wear the linen smock until about six
   if (p.age < 15) return p.sex === "f" ? "girl" : "child";
   const f = p.sex === "f";
   if (q.carry) return f ? "porterF" : "porter";
@@ -1131,7 +1132,7 @@ function insignia(c: C, q: Pose, hgt: number) {
 let folkCtx: C | null = null, folkM: DOMMatrix | null = null, folkFrame = -1;
 function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const k = folkOf(q), im = folkImage(k); if (!im) return null;
-  const kid = k === "child" || k === "girl", hgt = kid ? 2.7 + q.p.age * 0.07 : 4.4;
+  const kid = k === "child" || k === "girl" || k === "toddler", hgt = kid ? 2.7 + q.p.age * 0.07 : 4.4;
   const w = (hgt * im.naturalWidth) / im.naturalHeight;
   const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + hash(q.p.id, 77, 5) * 6.2832;
   const painted = q.walking && (!!walkSheet(k) || legsFor(q));

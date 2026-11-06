@@ -71,6 +71,8 @@ const GUESTS: Record<string, [Job, Sex, number, number, number][]> = {
   sund: [["merchant", "m", 51, 0, 0], ["fisher", "m", 33, 0.5, 0.4]], ablass: [["priest", "m", 55, 0, 0], ["priest", "m", 28, 0.5, 0.3], ["child", "m", 12, -0.4, 0.5]],
 };
 export type Wedding = { at: number; a: Person; b: Person; alliance: boolean; dowry: number; grand: boolean; town: boolean };
+/** Below this age a child stays indoors all day (carried, never walks the lanes). */
+export const BABY_AGE = 3;
 /** Families whose trades form an alliance when their children marry. */
 const CRAFT: ReadonlySet<Job> = new Set(["baker", "miller", "smith", "crafter", "sawyer", "innkeeper", "fisher", "mason", "merchant", "farmer"] as Job[]);
 /** Goods carried along the supply chains (wood → sawmill → site, grain → mill → bakery → inn). */
@@ -286,6 +288,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     let kids = 0;
     for (const q of people) {
       if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 43, 720) >= share(0.8)) continue;
+      if (q.age < BABY_AGE) continue;
       if (q.age < 15 && kids++ >= WED_KIDS) continue;
       const a = hash(q.id, 44, 720) * Math.PI * 2, rr = (1 + hash(q.id, 45, 720) * 1.8) * widen(0.8);
       q.fete = { at: wdAt, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 46, 720) * 180 };
@@ -806,7 +809,9 @@ export function planOf(p: Person, t: Town): Entry[] {
   if (p.sick) return [E(0, "sick", H, true)];
   if (p.carer != null) return [E(0, "sleep", H, true), E(7, "care", H, true), E(22, "sleep", H, true)];
   if (p.nurse && p.work) return [E(0, "sleep", H, true), E(7.5 + j(1) * 0.3, "work", p.work, p.workIndoor), E(9 + j(2) * 0.3, "care", p.nurse, true), E(12.5 + j(3) * 0.3, "work", p.work, p.workIndoor), E(15 + j(4) * 0.3, "care", p.nurse, true), E(18 + j(5) * 0.3, "home", H, true), E(21.5, "sleep", H, true)];
-  if (isRestDay(t.now) && !SUNDAY_WORK.has(p.job) && !(p.job === "child" && p.age < 4)) return sundayOf(p, t, E, j);
+  // babies and little ones under three are carried and kept indoors – never out walking on their own
+  if (p.job === "child" && p.age < BABY_AGE) return [E(0, "sleep", H, true), E(7, "home", H, true), E(19, "sleep", H, true)];
+  if (isRestDay(t.now) && !SUNDAY_WORK.has(p.job) && !(p.job === "child" && p.age < 6)) return sundayOf(p, t, E, j);
   // Shrovetide: work until mid-afternoon, then masks, fat cakes and noise on the square until late
   if (t.feast === "shrovetide" && p.job !== "child" && hash(p.id, 41, 710) < 0.75) {
     const H = p.home;
@@ -815,7 +820,8 @@ export function planOf(p: Person, t: Town): Entry[] {
     return [E(0, "sleep", H, true), E(6.8 + j(1), "work", p.work ?? H, p.workIndoor), ...run, E(22.2 + j(3) * 0.3, "home", H, true), E(23.2, "sleep", H, true)];
   }
   if (p.job === "child") {
-    if (p.age < 4) return [E(0, "sleep", H, true), E(10 + j(1), "play", add(H, [0.6, 0.6]), false), E(12 + j(2), "home", H, true), E(15.5 + j(3), "play", add(H, [0.6, 0.6]), false), E(18 + j(4), "home", H, true), E(19.5, "sleep", H, true)];
+    // toddlers (3–5) only potter right at their own door
+    if (p.age < 6) return [E(0, "sleep", H, true), E(10 + j(1), "play", add(H, [0.6, 0.6]), false), E(12 + j(2), "home", H, true), E(15.5 + j(3), "play", add(H, [0.6, 0.6]), false), E(18 + j(4), "home", H, true), E(19.5, "sleep", H, true)];
     const school = p.age >= 6 && t.school;
     return [
       E(0, "sleep", H, true),
