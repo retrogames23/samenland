@@ -612,6 +612,18 @@ function drawReflection(c: C, s: Structure, cx: number, cy: number, t: number, f
   for (let i = 0; i < 3; i++) { const yy = by + 1 + i * 1.6, o = Math.sin(t / 900 + i * 2 + cx) * 1.5; c.beginPath(); c.moveTo(cx - b.w * 0.35 + o, yy); c.lineTo(cx + b.w * 0.3 + o, yy); c.stroke(); }
 }
 const GROUNDED = new Set<string>(["well"]);
+/** Depth-correct night window layer for the current frame (null by day). */
+let lit: { cv: HTMLCanvasElement; c: CanvasRenderingContext2D } | null = null;
+let litStore: { cv: HTMLCanvasElement; c: CanvasRenderingContext2D } | null = null;
+function beginLit(w: number, h: number, on: boolean) {
+  lit = null;
+  if (!on || typeof document === "undefined") return;
+  if (!litStore) { const cv = document.createElement("canvas"); const cc = cv.getContext("2d"); if (!cc) return; litStore = { cv, c: cc }; }
+  const L = litStore;
+  if (L.cv.width !== w || L.cv.height !== h) { L.cv.width = w; L.cv.height = h; }
+  L.c.setTransform(1, 0, 0, 1, 0, 0); L.c.globalCompositeOperation = "source-over"; L.c.clearRect(0, 0, w, h);
+  lit = L;
+}
 function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
   if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
@@ -625,12 +637,14 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
   if (GROUNDED.has(s.kind)) { c.fillStyle = "rgba(30,22,12,0.28)"; c.beginPath(); c.ellipse(cx + 0.5, cy + 3.2, 3.6, 1.5, 0, 0, 7); c.fill(); c.fillStyle = "rgba(30,22,12,0.14)"; c.beginPath(); c.ellipse(cx + 1.4, cy + 3.6, 4.6, 2, 0, 0, 7); c.fill(); }
   if (s.flood && !FLAT.has(s.kind)) drawReflection(c, s, cx, cy, t, flip, style);
   if (drawBuildingSprite(c, s.kind, cx, cy, s.v, 1, flip, style)) {
+    // window light lives on its own layer: every building drawn later (in front) erases the lights behind it
+    if (lit) { lit.c.setTransform(c.getTransform()); lit.c.globalCompositeOperation = "destination-out"; drawBuildingSprite(lit.c, s.kind, cx, cy, s.v, 1, flip, style); }
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
     if (s.fire) drawFire(c, cx, cy, t, sd, L);
     if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour(), sunNow().rise, sunNow().set) || (stormDark(renderNow) > 0.4 && STORM_LIT.has(s.kind) && localHour() >= 7 && localHour() < 20) || (isHomeKind(s.kind) && (sickLit(x, y) || christmasNight(renderNow))))) {
-      L.push({ x: cx, y: cy, r: 32, building: { kind: s.kind, variant: s.v, seed: sd, flip, style } });
+      if (lit) { lit.c.globalCompositeOperation = "source-over"; drawBuildingNight(lit.c, s.kind, cx, cy, s.v, candleFlicker(t, sd), flip, style); }
     }
     if (s.kind === "mill" || s.kind === "watermill") {
       // flour sacks pile up by the door through the workday (stack sprite revealed from the bottom)
@@ -3031,6 +3045,7 @@ export function draw(
   const detail = true, sharp = false;
   const cs0x = cam.x - w / 2 / z, cs1x = cam.x + w / 2 / z, cs0y = cam.y - h / 2 / z, cs1y = cam.y + h / 2 / z;
   const L = framePool.lights; L.length = 0;
+  beginLit(w, h, nightLevel(clock()) > 0.02);
   // pooled per-frame buffers: slots and maps are reused across frames to keep GC pauses out of the loop
   const tiles = framePool.tiles; let nTiles = 0;
   // flood water, fascines and silt also reach open meadow and the wild river bank (no structure there)
@@ -3596,6 +3611,7 @@ export function draw(
   drawWeather(c, w, h, dpr, performance.now(), night);
   if (night > 0.02) {
     c.globalCompositeOperation = "lighter";
+    if (lit) { c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = night; c.drawImage(lit.cv, 0, 0); c.restore(); }
     for (let i = 0; i < L.length; i++) {
       const l = L[i];
       if (!l) continue;
