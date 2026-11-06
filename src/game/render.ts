@@ -1257,7 +1257,10 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     const shift = Math.sin(t / (6500 + hash(id, 42, 3) * 3000) + id * 1.7);
     const sy = 1 + br * 0.012, sx = 1 - br * 0.004, lean = shift > 0.85 ? (shift - 0.85) * 0.12 : shift < -0.85 ? (shift + 0.85) * 0.12 : 0;
     c.transform(sx, 0, lean, sy, 0, 0);
-    c.drawImage(im, -w / 2, -hgt, w, hgt);
+    // real standing pose: both boots planted side by side under the trade torso (no frozen mid-stride)
+    const stand = !q.working && legsFor(q) ? folkImage("legsStand") : null;
+    if (stand) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, stand, 0, w, hgt, HIPS[k] ?? DEFAULT_FIG);
+    else c.drawImage(im, -w / 2, -hgt, w, hgt);
   }
   insignia(c, q, hgt);
   c.setTransform(B);
