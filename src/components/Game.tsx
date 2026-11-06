@@ -2409,7 +2409,7 @@ export function Game() {
               lastTap.current = { t: 0, x: 0, y: 0 };
               setWho(null); setPlace(null); // a zooming double tap never leaves a card open from its first tap
               const r = canvasRef.current!.getBoundingClientRect();
-              target.current = { zoom: Math.min(st.current.walk ? 20 : 12, target.current.zoom * 1.6), ax: (e.clientX - r.left) * dpr.current, ay: (e.clientY - r.top) * dpr.current };
+              target.current = { zoom: Math.min(maxZoom(st.current.walk), target.current.zoom * 1.6), ax: (e.clientX - r.left) * dpr.current, ay: (e.clientY - r.top) * dpr.current };
               return;
             }
             lastTap.current = { t: nowT, x: e.clientX, y: e.clientY };
