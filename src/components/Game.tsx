@@ -14,7 +14,7 @@ import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type Wonde
 import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, signpostMap, type Camera } from "@/game/render";
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townRank, rankInput, nextRankNeed } from "@/game/rank";
-import { townOf, poseOf, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, parkMayor, mayorAway, setMounted, setStrollHold, setOwnMayor, citizensOf, isHomeKind, setRemoteMayor, clearRemoteMayors, type Person } from "@/game/people";
+import { townOf, poseOf, weddingFocus, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, parkMayor, mayorAway, setMounted, setStrollHold, setOwnMayor, citizensOf, isHomeKind, setRemoteMayor, clearRemoteMayors, type Person } from "@/game/people";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { banter } from "@/game/banter";
