@@ -1334,7 +1334,7 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   }
   const sp = drawFolk(c, X, Y, q, t);
   if (fzNow) drawFeastKit(c, X, Y, q, t);
-  if (sp && lanternFolk.has(q.p.id * 7919 + q.p.seed.id.length)) drawHandLantern(c, X, Y, q, t);
+  if (sp && q.p.seed && lanternFolk.has(q.p.id * 7919 + q.p.seed.id.length)) drawHandLantern(c, X, Y, q, t);
   if (sp) { if (q.talk !== null && q.talkTurn) bubble(c, sp[0] + 1.8, sp[1] + 0.6, q.talk); return; }
   c.save(); c.translate(X, Y); c.scale(PERSON_SCALE, PERSON_SCALE); c.translate(-X, -Y);
   const head = personBody(c, X, Y, q, t, simple);
