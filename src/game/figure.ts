@@ -102,11 +102,38 @@ export function footLifts(ph: number, lh: number, lift = 0.15): [number, number]
   return [s > 0 ? -s * k : 0, s < 0 ? s * k : 0];
 }
 /** Paints the leg pair as two halves; the swinging leg rises (its top tucks behind the torso hem). */
+/** Clean two-step cycle from the painted sheet: stride, passing, stride, passing (frames 5/6 repeat
+ * strides and made the legs flick back and forth like dancing on the spot). */
+export const LEG_CYCLE = [0, 1, 2, 3] as const;
+export function legFrame(ph: number) {
+  const u = (((ph / 6.2832) % 1) + 1) % 1;
+  return LEG_CYCLE[Math.floor(u * LEG_CYCLE.length) % LEG_CYCLE.length]!;
+}
+/** Per-frame horizontal offset (fraction of a cell) that registers every frame's waistband on the cell centre. */
+const WAIST = new WeakMap<object, number[]>();
+function waistShift(legs: HTMLImageElement): number[] {
+  const hit = WAIST.get(legs); if (hit) return hit;
+  const out = new Array(WALK_FRAMES).fill(0);
+  try {
+    const W = legs.naturalWidth, H = legs.naturalHeight, fw = W / WALK_FRAMES, rows = Math.max(2, Math.round(H * 0.12));
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = rows;
+    const g = cv.getContext("2d")!; g.drawImage(legs, 0, 0, W, rows, 0, 0, W, rows);
+    const d = g.getImageData(0, 0, W, rows).data;
+    for (let f = 0; f < WALK_FRAMES; f++) {
+      let s = 0, n = 0;
+      for (let y = 0; y < rows; y++) for (let x = Math.floor(f * fw); x < Math.floor((f + 1) * fw); x++) if (d[(y * W + x) * 4 + 3]! > 60) { s += x - f * fw; n++; }
+      if (n) out[f] = (s / n - fw / 2) / fw;
+    }
+  } catch { /* keep zero offsets */ }
+  WAIST.set(legs, out); return out;
+}
 export function drawLegPair(c: C, legs: HTMLImageElement, frame: number, lw: number, lh: number, dy: number, ph: number | undefined, spread = 0, lift = 0.15) {
   // the painted frames already carry the foot lift: draw each frame whole, never split at the crotch
-  void ph; void lift;
+  void lift;
+  const f = ph === undefined ? frame : legFrame(ph);
   const fw = legs.naturalWidth / WALK_FRAMES, lnh = legs.naturalHeight, sw = lw + spread * 2;
-  c.drawImage(legs, frame * fw, 0, fw, lnh, -sw / 2, -lh + dy, sw, lh);
+  const dx = -(waistShift(legs)[f] ?? 0) * sw;
+  c.drawImage(legs, f * fw, 0, fw, lnh, -sw / 2 + dx, -lh + dy, sw, lh);
 }
 
 /** Draws legs (frame of the shared cycle) then the torso cut at its hem, in the figure's local frame (feet at 0,0). */
