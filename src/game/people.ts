@@ -1012,7 +1012,7 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
 export const ORDER_SPEED = 0.34;
 /** Seconds the mayor waits at the goal before returning to the daily routine. */
 export const ORDER_IDLE = 50;
-type Order = { id: number; sid: string; from: Tile; to: Tile; at: number; v: number; pts: Tile[]; back?: { at: number; pts: Tile[] } };
+type Order = { id: number; sid: string; from: Tile; to: Tile; at: number; v: number; pts: Tile[]; back?: { at: number; pts: Tile[] } | undefined };
 /** Seed id of the player's own village: its mayor always shows a parchment silhouette behind roofs (local-only). */
 let ownSid: string | null = null;
 export const setOwnMayor = (sid: string | null) => { ownSid = sid; };
