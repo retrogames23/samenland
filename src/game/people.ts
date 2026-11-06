@@ -12,7 +12,7 @@ import { courtSolid } from "./court";
 import { HOME_SIZES, townTiles, occupiedHomes } from "./households";
 import { dwellingKey, dwellingTile } from "./density";
 export { foodCapacity, FEED_BASE, WILD_MAX, FEED_FIELD, FEED_GARDEN, FEED_PASTURE, FEED_FOOD_ITEM, FEED_HEALTH_ITEM, FEED_WINTER } from "./households";
-import { fires } from "./disasters";
+import { fires, floods, floodFront } from "./disasters";
 import { guestNow, maypoleUp, cowsOf } from "./encounters";
 import { mastOn, oakSpot, bakeGathering, stegOf, stegSpot } from "./commons";
 import { WORK_START, WORK_END } from "./time";
@@ -371,6 +371,20 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       let spot: Tile = [f.x + 2, f.y];
       for (let i = 0; i < 8; i++) { const a = hash(q.id, i, 1411) * Math.PI * 2, d = 1.8 + hash(q.id, i, 1412) * 0.9, x = f.x + Math.cos(a) * d, y = f.y + Math.sin(a) * d; if (open(Math.round(x), Math.round(y))) { spot = [x, y]; break; } }
       q.fete = { at: f.at, spot, face: [f.x, f.y], lag: crew ? 20 : labEvent("fire") === f.at ? 5 + hash(q.id, 1, 1413) * 15 : 60 + hash(q.id, 1, 1413) * 240, dur: (f.end - f.at) / 1000, fire: true };
+    }
+  }
+  // flood: able-bodied neighbours pile fascines and earth along the dry edge of the water
+  for (const f of floods(s, now)) {
+    if (now < f.at || now >= f.end) continue;
+    const fr = floodFront(f); if (!fr.levee.length) continue;
+    let n = 0;
+    for (const q of people) {
+      if (q.fete || q.proc || q.sick || q.arrive || q.age < 16 || q.age > 60) continue;
+      if (n >= 12 || hash(q.id, f.at % 9973, 1420) > 0.55 || Math.hypot(q.home[0] - fr.x, q.home[1] - fr.y) > 10) continue;
+      const k = fr.levee[Math.floor(hash(q.id, 2, 1421) * fr.levee.length)]!, lx = k % MAP, ly = Math.floor(k / MAP);
+      n++;
+      const lab = labEvent("flood") === f.at;
+      q.fete = { at: f.at, spot: [lx + (hash(q.id, 3, 1422) - 0.5) * 0.6, ly + (hash(q.id, 4, 1422) - 0.5) * 0.6], face: [fr.x, fr.y], lag: lab ? 5 + hash(q.id, 5, 1423) * 20 : 120 + hash(q.id, 5, 1423) * 900, dur: Math.min((f.end - f.at) / 1000, lab ? 7200 : 4 * 3600), work: true };
     }
   }
   // babies never join a gathering on their own feet
