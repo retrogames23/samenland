@@ -284,12 +284,9 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   if (gatherAt != null && now >= gatherAt) {
     const wdAt = gatherAt;
     const c = church ?? meet;
-    // a wedding crowd is the grown-up village: only a few children (siblings, flower children) come along
-    let kids = 0;
     for (const q of people) {
       if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 43, 720) >= share(0.8)) continue;
       if (q.age < BABY_AGE) continue;
-      if (q.age < 15 && kids++ >= WED_KIDS) continue;
       const a = hash(q.id, 44, 720) * Math.PI * 2, rr = (1 + hash(q.id, 45, 720) * 1.8) * widen(0.8);
       q.fete = { at: wdAt, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 46, 720) * 180 };
     }
@@ -513,8 +510,6 @@ function falls(s: Seed, people: Person[], now: number, hof: Tile | null = null) 
 }
 /** Seconds of the wedding service inside the church. */
 export const SERVICE_SECS = 20 * 60;
-/** Children who join a village wedding crowd (the rest stay at play). */
-export const WED_KIDS = 3;
 /** The couple walks from their birth homes to church and home together; their parents follow as guests. */
 function processions(ws: Wedding[], people: Person[], church: Tile, now: number) {
   for (const w of ws) {
