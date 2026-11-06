@@ -34,7 +34,7 @@ type LetterRow = { id: string; from_seed: string; to_seed: string; created_at: s
 import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
 import { deleteAccount } from "@/lib/account.functions";
-import { settleTreasury } from "@/lib/treasury.functions";
+import { settleTreasury, certifyMyRank } from "@/lib/treasury.functions";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText, MoreHorizontal } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
@@ -97,7 +97,7 @@ import {
   buildable,
   resourceAt,
   MAP,
-  stageOf,
+
   links,
   isBlessed,
   blessCooldown,
@@ -1220,6 +1220,7 @@ export function Game() {
 
   const my = seeds.find((s) => s.id === mine);
   const treasuryFn = useServerFn(settleTreasury);
+  const certifyFn = useServerFn(certifyMyRank);
   const [accounting, setAccounting] = useState<Awaited<ReturnType<typeof settleTreasury>> | null>(null);
   const accountingSeed = useRef<string | null>(null);
   accountingSeed.current = my?.id ?? null;
@@ -1680,8 +1681,8 @@ export function Game() {
   const { cash, myRank, myStage, myTown, at, pop, residents, season, nbs, larder, boons, rankHint } = useMemo(() => {
     const cash = my ? (accounting?.seed === my.id && accounting.active ? accounting.balance : treasury(my, purchases, slow, gifts, claims)) : 0;
     const myRank = my ? townRank(my, seeds, slow) : 0;
-    // shop/monuments: the earned rank, never beyond what the server's guard allows
-    const myStage = my ? Math.min(myRank, stageOf(effAge(my, seeds, slow))) : 0;
+    // shop/monuments: the earned rank alone — the server re-counts it before every rank-gated purchase
+    const myStage = myRank;
     const myTown = my ? townOf(my, seeds, slow) : null;
     const larder = my ? larderOf(my, seeds, slow) : null;
     const boons = larder ? boonsOf(larder) : null;
@@ -1801,6 +1802,9 @@ export function Game() {
     }
     if (!await prepareSpend()) return;
     setPlacing(null);
+    // rank-gated items: the server counts citizens, homes and roads itself before the guard accepts the row
+    const needRank = monumentOf(item) && /1$/.test(item) ? MONUMENTS[monumentOf(item)!].stage : (ITEM_STAGE[item] ?? 0);
+    if (needRank > 0) { try { await certifyFn({ data: { seed: my.id } }); } catch { return setMsg(t.buyFail); } }
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) return setMsg(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
     setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
