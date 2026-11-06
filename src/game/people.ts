@@ -283,8 +283,9 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   // crowds stay a readable size: in big towns only a share comes, and the ring widens with the number gathered
   const CROWD = 24, share = (base: number) => Math.min(base, CROWD / Math.max(1, people.length));
   // ordered stands (golden-angle spiral): every guest gets its own spot with a minimum gap, no two land on one point
-  const fan = (c: Tile, n: number, r0: number, w: number): Tile => { const a = n * 2.39996 + 0.3, rr = (r0 + Math.sqrt(n + 0.5) * 0.42) * w; return [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr]; };
-  const widen = (base: number) => Math.max(1, Math.sqrt(Math.min(CROWD, people.length * base) / 12));
+  // a close cluster (≈1 tile across for a full crowd); the per-frame personal-space pass keeps feet apart
+  const fan = (c: Tile, n: number, r0: number, w: number): Tile => { const a = n * 2.39996 + 0.3, rr = Math.min(1.25, (r0 + Math.sqrt(n + 0.5) * 0.2) * w); return [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr]; };
+  const widen = (base: number) => Math.min(1.15, Math.max(1, Math.sqrt(Math.min(CROWD, people.length * base) / 18)));
   if (gatherAt != null && now >= gatherAt) {
     const wdAt = gatherAt;
     const c = church ?? meet; let n = 0;
