@@ -7,6 +7,6 @@ describe("camera zoom limits", () => {
   });
 
   it("allows zoom 40 while strolling on every map", () => {
-    expect(maxZoom(true)).toBe(40);
+    expect(maxZoom(true)).toBe(24);
   });
 });

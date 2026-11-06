@@ -1246,7 +1246,7 @@ export function Game() {
     if (!accounting?.active) return true;
     setMsg(t.buyFail); return false;
   };
-  const startWalk = () => { if (!my) return; setTab(null); setWho(null); setPlace(null); setPlacing(null); const cv = canvasRef.current; target.current = { zoom: 16, ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; setWalk(true); };
+  const startWalk = () => { if (!my) return; setTab(null); setWho(null); setPlace(null); setPlacing(null); setWalk(true); };
   const wasWalk = useRef(false);
   useEffect(() => { setOwnMayor(my?.id ?? null); }, [my?.id]);
   useEffect(() => { setStrollHold(walk); if (wasWalk.current && !walk) { if (my) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (me) parkMayor(me, tw, seeds, nw); } target.current = { ...target.current, zoom: Math.min(maxZoom(false), target.current.zoom) }; } wasWalk.current = walk; }, [walk]);

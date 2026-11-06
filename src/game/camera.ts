@@ -1,2 +1,2 @@
-/** Closest the camera may come on every realm, in screen-space zoom units. */
-export const maxZoom = (walk: boolean) => walk ? 40 : 24;
+/** Closest the camera may come on every realm and in stroll mode, in screen-space zoom units. */
+export const maxZoom = (_walk?: boolean) => 24;
