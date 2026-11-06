@@ -52,7 +52,7 @@ export type Person = {
   /** Wedding procession: birth home → church → new home, starting at `at` (world ms); lag = seconds behind the couple. */
   proc?: { at: number; from: Tile; to: Tile; lag: number; role: "bride" | "groom" | "guest" | "priest"; via?: Tile; wait?: Tile };
   /** Inauguration of a just-finished landmark: walk there at `at` (+lag s) and gather at `spot` facing `face`. */
-  fete?: { at: number; spot: Tile; face: Tile; lag: number; dur?: number; fire?: boolean; work?: boolean };
+  fete?: { at: number; spot: Tile; face: Tile; lag: number; dur?: number; fire?: boolean; work?: boolean; rescue?: "goods" | "herd" };
   /** A travelling visitor of the day's encounter: walks in from the edge at `at`, waits at `spot`, gone after `until`. */
   guest?: { at: number; until: number; from: Tile; spot: Tile; face: Tile; event: string };
 };
@@ -89,6 +89,8 @@ export type Pose = {
   mounted?: boolean;
   /** Fighting a fire: carries a sloshing water bucket. */
   bucket?: boolean | undefined;
+  /** Flood rescue: leads a sheep from the drowning pasture up to dry ground. */
+  lead?: boolean | undefined;
 };
 
 const F = NAMES_F, M = NAMES_M, S = SURNAMES;
@@ -386,6 +388,20 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       const lab = labEvent("flood") === f.at;
       q.fete = { at: f.at, spot: [lx + (hash(q.id, 3, 1422) - 0.5) * 0.6, ly + (hash(q.id, 4, 1422) - 0.5) * 0.6], face: [fr.x, fr.y], lag: lab ? 5 + hash(q.id, 5, 1423) * 20 : 120 + hash(q.id, 5, 1423) * 900, dur: Math.min((f.end - f.at) / 1000, lab ? 7200 : 4 * 3600), work: true };
     }
+    // households near the water carry chests and bundles uphill; farmers drive the sheep off the drowning pastures
+    const wet = new Set(f.tiles), lab = labEvent("flood") === f.at;
+    const nearWet = (h: Tile) => { for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) if (wet.has((Math.round(h[1]) + j) * MAP + Math.round(h[0]) + i)) return true; return false; };
+    let m = 0;
+    for (const q of people) {
+      if (m >= 14 || q.fete || q.proc || q.sick || q.arrive || q.age < 11 || q.age > 72 || !nearWet(q.home)) continue;
+      const dx = q.home[0] - fr.x, dy = q.home[1] - fr.y, d = Math.hypot(dx, dy) || 1;
+      let spot: Tile | null = null;
+      for (let i = 0; i < 10 && !spot; i++) { const a = Math.atan2(dy, dx) + (hash(q.id, i, 1431) - 0.5) * 1.6, r = 3 + hash(q.id, i, 1432) * 2.5, x = q.home[0] + Math.cos(a) * r, y = q.home[1] + Math.sin(a) * r;
+        if (!wet.has(Math.round(y) * MAP + Math.round(x)) && open(Math.round(x), Math.round(y))) spot = [x, y]; }
+      if (!spot) continue;
+      m++;
+      q.fete = { at: f.at, spot, face: [q.home[0] + dx / d, q.home[1] + dy / d], lag: lab ? 3 + hash(q.id, 6, 1433) * 25 : 60 + hash(q.id, 6, 1433) * 1200, dur: Math.min((f.end - f.at) / 1000, lab ? 7200 : 3 * 3600), rescue: (q.job === "farmer" || q.job === "shepherd") && q.age >= 14 ? "herd" : "goods" };
+    }
   }
   // babies never join a gathering on their own feet
   for (const q of people) if (q.fete && q.age < BABY_AGE && q.job === "child") delete q.fete;
@@ -581,7 +597,8 @@ function fetePose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): P
   const pts = [a, ...route(t, [Math.round(a[0]), Math.round(a[1])], b, seeds).slice(1, -1), f.spot];
   const len = lenOf(pts), sp = Math.max(0.15, p.speed) * (f.fire ? 2.4 : 1), tw = len / sp;
   const act: Activity = f.fire ? "fire" : "fete", bucket = f.fire || undefined;
-  if (secs < tw) { const q = along(pts, secs * sp); if (q) return { ...base, ...q, visible: freeAt(t, q.x, q.y, seeds), walking: true, act, bucket, phase: (secs * sp) / STRIDE }; }
+  const carry: Good | null = f.rescue === "goods" ? "bundle" : base.carry, lead = f.rescue === "herd" || undefined;
+  if (secs < tw) { const q = along(pts, secs * sp); if (q) return { ...base, ...q, visible: freeAt(t, q.x, q.y, seeds), walking: true, act, bucket, lead, carry: f.rescue ? carry : base.carry, phase: (secs * sp) / STRIDE }; }
   if (secs < tw + (f.dur ?? FETE_SECS)) {
     const dx = f.face[0] - f.spot[0], dy = f.face[1] - f.spot[1], m = Math.hypot(dx, dy) || 1;
     // bucket chain: helpers swing their pails toward the flames in a steady rhythm
