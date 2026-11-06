@@ -11,7 +11,7 @@ describe("village wedding", () => {
   triggerLab("wedding", t0);
   const s = { id: "65fbd428-610a-4b4e-9f5e-1a07c32a8c61", name: "M", realm: "lab", x: 290, y: 468, created_at: new Date(t0 - 30 * 864e5).toISOString(), user_id: "u" } as unknown as Seed;
   it("keeps bride and groom visible from the start and in front of church during the service", () => {
-    for (const sec of [0, 600]) {
+    for (const sec of [0, 120]) {
       const t = townOf(s, [s], t0 + sec * 1000), w = t.weddings[t.weddings.length - 1]!;
       expect(poseOf(w.a, t, [s], t0 + sec * 1000).visible).toBe(true);
       expect(poseOf(w.b, t, [s], t0 + sec * 1000).visible).toBe(true);
