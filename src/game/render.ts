@@ -1279,7 +1279,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       const legs = folkImage("legsM");
       if (legs) {
         const f = gaitFrame(ph);
-        drawLegged(c, robe, 0, fw, fh, legs, f, ww, hh, MAYOR_LEGS, bob, 0, ph);
+        drawLegged(c, robe, 0, fw, fh, legs, f, ww, hh, MAYOR_LEGS, bob, bob, ph);
       } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
     insignia(c, q, hgt);
