@@ -33,7 +33,7 @@ import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSp
 import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose } from "./people";
-import { fig, drawLegged, drawRobeWalk, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
+import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
@@ -440,8 +440,8 @@ function drawRobber(c: C, X: number, Y: number, flip: boolean, t: number) {
   c.save(); c.translate(X, Y); if (flip) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   if (legs) {
-    const f = Math.floor(ph) % WALK_FRAMES;
-    drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, h, HIPS.robber!, 0, crouch);
+    // one 2π leg cycle = four painted frames at the old 260 ms per frame; crouch moves legs and torso together
+    drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, 0, w, h, HIPS.robber!, crouch, crouch, ph * Math.PI / 2);
   } else c.drawImage(im, -w / 2, -h, w, h);
   c.restore();
 }
@@ -1258,22 +1258,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   if (robe) {
     const fw = robe.naturalWidth / WORK_FRAMES, fh = robe.naturalHeight, hh = hgt * 1.01, ww = (hh * fw) / fh;
     if (q.walking && q.p.sex === "f") {
-      // long gown: same treatment as other skirted villagers — shoes step out, hem sways in strips, torso bobs
-      const foot = folkImage("footF"), top = 0.8, end = 0.93, sway = Math.sin(ph), fs = hh * 0.11;
-      const fw2 = foot ? (fs * foot.naturalWidth) / foot.naturalHeight : 0;
-      const drawFoot = (s: number) => {
-        if (!foot) return;
-        const fx = s * sway * ww * 0.16, lift = Math.max(0, Math.cos(ph) * s) * hh * 0.025;
-        c.drawImage(foot, fx - fw2 * 0.45, bob - fs - lift + hh * 0.02, fw2, fs);
-      };
-      drawFoot(-1); drawFoot(1);
-      c.drawImage(robe, 0, 0, fw, fh * top, -ww / 2, -hh, ww, hh * top);
-      const N = 4;
-      for (let i = 0; i < N; i++) {
-        const a = top + ((end - top) * i) / N, b = top + ((end - top) * (i + 1)) / N;
-        const dx = sway * ww * 0.035 * ((i + 1) / N);
-        c.drawImage(robe, 0, fh * a, fw, fh * (b - a) + 0.5, -ww / 2 + dx, -hh + hh * a, ww, hh * (b - a) + 0.05);
-      }
+      drawRobeWalk(c, robe, 0, fw, fh, folkImage("footF"), ww, hh, ph, 0.8, 0.93, bob);
     } else if (q.walking) {
       // vest + breeches, not a robe: cut the torso at the belt and step full-length painted legs from the hip
       const legs = folkImage("legsM");
@@ -1292,8 +1277,8 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   if (sheet) {
     // real painted walk cycle: frame follows the stride phase (one 2π = two steps)
     const fw = sheet.naturalWidth / WALK_FRAMES, f = frameOf(fw);
-    const ww = (hgt * fw) / sheet.naturalHeight;
-    c.drawImage(sheet, f * fw, 0, fw, sheet.naturalHeight, -ww / 2, -hgt, ww, hgt);
+    const ww = (hgt * fw) / sheet.naturalHeight, dx = -(frameShift(sheet)[f] ?? 0) * ww;
+    c.drawImage(sheet, f * fw, 0, fw, sheet.naturalHeight, -ww / 2 + dx, -hgt, ww, hgt);
   } else if (legs) {
     // modular figure: one hip-registered painted leg cycle shared by all trades, trade torso on top
     // each trade sprite: measured hip x (fraction of width) and tunic hem (fraction of height)
@@ -1301,23 +1286,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     const yb = walkBob(ph, hgt);
     drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, hgt, g, yb, yb, ph);
   } else if (skirt) {
-    // long skirt: two painted shoes step out under the hem, the hem sways in strips with the stride
-    const foot = folkImage("footF"), sw = im.naturalWidth, sh = im.naturalHeight, top = 0.8;
-    const sway = Math.sin(ph), fs = hgt * 0.11, fw2 = foot ? (fs * foot.naturalWidth) / foot.naturalHeight : 0;
-    const drawFoot = (s: number) => {
-      if (!foot) return;
-      const fx = s * sway * w * 0.16, lift = Math.max(0, Math.cos(ph) * s) * hgt * 0.025;
-      c.drawImage(foot, fx - fw2 * 0.45, bob - fs - lift + hgt * 0.02, fw2, fs);
-    };
-    drawFoot(-1); drawFoot(1);
-    c.drawImage(im, 0, 0, sw, sh * top, -w / 2, -hgt, w, hgt * top);
-    // the sprite's own painted feet (bottom ~7%) are cut off so only the stepping shoes show
-    const N = 4, end = 0.93;
-    for (let i = 0; i < N; i++) {
-      const a = top + ((end - top) * i) / N, b = top + ((end - top) * (i + 1)) / N;
-      const dx = sway * w * 0.035 * ((i + 1) / N);
-      c.drawImage(im, 0, sh * a, sw, sh * (b - a) + 0.5, -w / 2 + dx, -hgt + hgt * a, w, hgt * (b - a) + 0.05);
-    }
+    drawRobeWalk(c, im, 0, im.naturalWidth, im.naturalHeight, folkImage("footF"), w, hgt, ph, 0.8, 0.93, bob);
   } else {
     // standing still: slow breathing (chest rises, feet stay planted) and a rare weight shift
     const id = q.p.id, br = Math.sin(t / (1900 + hash(id, 41, 3) * 900) + id);
