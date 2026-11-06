@@ -735,7 +735,7 @@ const DEPTH_HYST = 0.75;
 const depthWas = new Map<string, number>();
 export function sortDepth<T extends { x: number; y: number }>(items: T[], id: (t: T) => string): T[] {
   const keyed = items.map((it) => { const k = id(it), was = depthWas.get(k); const y = was !== undefined && Math.abs(was - it.y) < DEPTH_HYST ? was : it.y; depthWas.set(k, y); return { it, k, y }; });
-  keyed.sort((a, b) => a.y - b.y || a.it.x - b.it.x || (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
+  keyed.sort((a, b) => a.y - b.y || (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
   for (let i = 0; i < keyed.length; i++) items[i] = keyed[i]!.it;
   if (depthWas.size > 4000) depthWas.clear();
   return items;
@@ -2780,6 +2780,7 @@ function drawRareTree(c: C, x: number, y: number, kind: "cherry" | "quince", age
 }
 
 const framePool = {
+  behind: new Set<object>(),
   tiles: [] as { x: number; y: number; cx: number; cy: number; st: Structure | null }[],
   folk: new Map<number, Pose[]>(),
   robbers: new Map<number, [number, number, boolean]>(),
@@ -3363,6 +3364,7 @@ export function draw(
   const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
   // supporter decorations: one lookup per frame instead of a fresh cache key per empty tile
   const decor = supportOwned.size ? decorMap(seeds, supportOwned, now, MAP) : null, decorNight = worldHour(now) >= 19 || worldHour(now) < 7;
+  type Item = Body & { q?: Pose; sh?: { k: number; m: ReturnType<typeof sheepSpots>[number]["m"] } };
   for (let ti = 0; ti < nTiles; ti++) {
     const { x, y, cx, cy, st } = tiles[ti]!;
     ord.set(y * MAP + x, ti);
@@ -3380,6 +3382,51 @@ export function draw(
     const fk = folk.get(y * MAP + x);
     const sdT = x * 1000 + y, flock = fk && st?.kind === "pasture" && st.build === undefined ? sheepSpots(sdT, st.v, now) : [];
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
+    // figures on the north half of a building tile stand behind its wall: draw them before the building
+    const behindSet = framePool.behind; behindSet.clear();
+    let items: Item[] = [];
+    const drawItem = (it: Item) => {
+        if (it.sh) { const m = it.sh.m; drawSheep(c, it.x, it.y, m.flip, t + it.sh.k * 1700, m.walking, m.graze, m.sleeping); return; }
+        const q = it.q!, px = it.x, py = it.y;
+        // golden glow under the player's own strolling mayor so he is easy to spot anywhere
+        if (steer && q.p.role === "mayor" && q.act === "stroll" && q.p.seed.id === steer.sid) {
+          const pu = 1 + Math.sin(t / 420) * 0.1;
+          c.save();
+          const g = c.createRadialGradient(px, py, 0.5, px, py, 9 * pu);
+          g.addColorStop(0, "rgba(255,214,120,0.55)"); g.addColorStop(0.55, "rgba(243,210,122,0.28)"); g.addColorStop(1, "rgba(243,210,122,0)");
+          c.fillStyle = g; c.beginPath(); c.ellipse(px, py, 9 * pu, 4.5 * pu, 0, 0, 7); c.fill();
+          c.strokeStyle = "rgba(217,165,32,0.8)"; c.lineWidth = 0.7;
+          c.beginPath(); c.ellipse(px, py, 6.5 * pu, 3.2 * pu, 0, 0, 7); c.stroke();
+          c.restore();
+        }
+        const pk = `${q.p.seed.id}:${q.p.id}`, sel = peopleFocus.sel === pk, hov = peopleFocus.hover === pk;
+        if (sel || hov) {
+          const pulse = 0.5 + Math.sin(t / 300) * 0.15;
+          c.fillStyle = `rgba(255,214,140,${sel ? 0.35 : pulse * 0.4})`; c.beginPath(); c.ellipse(px, py, 4, 2, 0, 0, 7); c.fill();
+          c.strokeStyle = sel ? "rgba(255,226,160,0.95)" : "rgba(255,236,190,0.7)"; c.lineWidth = sel ? 0.8 : 0.6; c.stroke();
+        }
+        const fig = (context: C) => q.mounted ? drawRider(context, px, py, q.dir[0], q.dir[1], 0, q.walking ? t * 0.8 : 0) : drawPerson(context, px, py, q, t, simpleFolk);
+        fig(c); pushPerson(px, py, q);
+        if (q === ownPose) ownDrawn = true;
+        if (hov || sel || (q.p.role === "mayor" && q.p.seed.id === ownMayorSid())) vip.push({ f: fig, x: px, y: py, k: y * MAP + x });
+        if (q.bucket) drawBucket(c, px, py, q, t);
+        if (hov && !sel) {
+          c.font = "600 4px system-ui, sans-serif"; c.textAlign = "center";
+          const w = c.measureText(q.p.first).width + 3;
+          c.fillStyle = "rgba(40,32,24,0.75)"; c.fillRect(px - w / 2, py - 11, w, 5);
+          c.fillStyle = "#f6ecd6"; c.fillText(q.p.first, px, py - 7.3);
+        }
+    };
+    if (fk) {
+      // personal space: people step aside for each other and for sheep; standing folk yield less than walkers
+      items = fk.map((q) => { const [px, py] = iso(q.x, q.y); return { x: px, y: py, r: q.p.age < 15 ? FOOT.child : FOOT.adult, give: q.walking ? 1 : 0.5, q }; });
+      for (const sh of flock) items.push({ x: cx + sh.m.dx, y: cy + sh.m.dy, r: FOOT.sheep, give: 0.15, sh });
+      separate(items);
+      sortDepth(items, (it) => (it.q ? `p${it.q.p.id}` : `s${it.sh!.k}`));
+      if (folkFrame !== t || !folkM) { folkM = c.getTransform(); folkFrame = t; }
+      folkCtx = c;
+      if (st && st.build === undefined && !FLAT.has(st.kind)) for (const it of items) if (it.y < cy - 1.5) { behindSet.add(it); drawItem(it); }
+    }
     if (st) {
       drawStructure(c, st, cx, cy, x, y, t, L);
       if (st.build === undefined && SEAT_KINDS.includes(st.kind) && supportOwned.get(st.seed.id)?.has("vane")) { const b = spriteBox(st.kind, st.v, houseStyle(st)); if (b) drawVane(c, cx, cy + b.base - b.h); }
@@ -3414,46 +3461,7 @@ export function draw(
       c.globalAlpha = 0.35; c.fillStyle = "#f3d27a"; c.beginPath(); c.ellipse(cx, cy, 5, 2.5, 0, 0, Math.PI * 2); c.fill(); c.restore();
     }
     if (fk) {
-      // personal space: people step aside for each other and for sheep; standing folk yield less than walkers
-      type Item = Body & { q?: Pose; sh?: (typeof flock)[number] };
-      const items: Item[] = fk.map((q) => { const [px, py] = iso(q.x, q.y); return { x: px, y: py, r: q.p.age < 15 ? FOOT.child : FOOT.adult, give: q.walking ? 1 : 0.5, q }; });
-      for (const sh of flock) items.push({ x: cx + sh.m.dx, y: cy + sh.m.dy, r: FOOT.sheep, give: 0.15, sh });
-      separate(items);
-      sortDepth(items, (it) => (it.q ? `p${it.q.p.id}` : `s${it.sh!.k}`));
-      if (folkFrame !== t || !folkM) { folkM = c.getTransform(); folkFrame = t; }
-      folkCtx = c;
-      for (const it of items) {
-        if (it.sh) { const m = it.sh.m; drawSheep(c, it.x, it.y, m.flip, t + it.sh.k * 1700, m.walking, m.graze, m.sleeping); continue; }
-        const q = it.q!, px = it.x, py = it.y;
-        // golden glow under the player's own strolling mayor so he is easy to spot anywhere
-        if (steer && q.p.role === "mayor" && q.act === "stroll" && q.p.seed.id === steer.sid) {
-          const pu = 1 + Math.sin(t / 420) * 0.1;
-          c.save();
-          const g = c.createRadialGradient(px, py, 0.5, px, py, 9 * pu);
-          g.addColorStop(0, "rgba(255,214,120,0.55)"); g.addColorStop(0.55, "rgba(243,210,122,0.28)"); g.addColorStop(1, "rgba(243,210,122,0)");
-          c.fillStyle = g; c.beginPath(); c.ellipse(px, py, 9 * pu, 4.5 * pu, 0, 0, 7); c.fill();
-          c.strokeStyle = "rgba(217,165,32,0.8)"; c.lineWidth = 0.7;
-          c.beginPath(); c.ellipse(px, py, 6.5 * pu, 3.2 * pu, 0, 0, 7); c.stroke();
-          c.restore();
-        }
-        const pk = `${q.p.seed.id}:${q.p.id}`, sel = peopleFocus.sel === pk, hov = peopleFocus.hover === pk;
-        if (sel || hov) {
-          const pulse = 0.5 + Math.sin(t / 300) * 0.15;
-          c.fillStyle = `rgba(255,214,140,${sel ? 0.35 : pulse * 0.4})`; c.beginPath(); c.ellipse(px, py, 4, 2, 0, 0, 7); c.fill();
-          c.strokeStyle = sel ? "rgba(255,226,160,0.95)" : "rgba(255,236,190,0.7)"; c.lineWidth = sel ? 0.8 : 0.6; c.stroke();
-        }
-        const fig = (context: C) => q.mounted ? drawRider(context, px, py, q.dir[0], q.dir[1], 0, q.walking ? t * 0.8 : 0) : drawPerson(context, px, py, q, t, simpleFolk);
-        fig(c); pushPerson(px, py, q);
-        if (q === ownPose) ownDrawn = true;
-        if (hov || sel || (q.p.role === "mayor" && q.p.seed.id === ownMayorSid())) vip.push({ f: fig, x: px, y: py, k: y * MAP + x });
-        if (q.bucket) drawBucket(c, px, py, q, t);
-        if (hov && !sel) {
-          c.font = "600 4px system-ui, sans-serif"; c.textAlign = "center";
-          const w = c.measureText(q.p.first).width + 3;
-          c.fillStyle = "rgba(40,32,24,0.75)"; c.fillRect(px - w / 2, py - 11, w, 5);
-          c.fillStyle = "#f6ecd6"; c.fillText(q.p.first, px, py - 7.3);
-        }
-      }
+      for (const it of items) if (!behindSet.has(it)) drawItem(it);
       folkCtx = null;
     }
     if (hover && hover[0] === x && hover[1] === y) {
