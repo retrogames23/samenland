@@ -50,7 +50,7 @@ export type Person = {
   /** A beguine's sick call today: the home she nurses (derived from the Beginenhof and sickness calendar). */
   nurse?: Tile;
   /** Wedding procession: birth home → church → new home, starting at `at` (world ms); lag = seconds behind the couple. */
-  proc?: { at: number; from: Tile; to: Tile; lag: number; role: "bride" | "groom" | "guest"; via?: Tile; wait?: Tile };
+  proc?: { at: number; from: Tile; to: Tile; lag: number; role: "bride" | "groom" | "guest" | "priest"; via?: Tile; wait?: Tile };
   /** Inauguration of a just-finished landmark: walk there at `at` (+lag s) and gather at `spot` facing `face`. */
   fete?: { at: number; spot: Tile; face: Tile; lag: number; dur?: number; fire?: boolean; work?: boolean };
   /** A travelling visitor of the day's encounter: walks in from the edge at `at`, waits at `spot`, gone after `until`. */
@@ -136,7 +136,7 @@ const SERVICE: ReadonlySet<Kind> = new Set(["bakery", "inn", "mill", "watermill"
 export const farmShare = (r: number) => (r < 15 ? 0.8 : r < 30 ? 0.45 : 0.25);
 const towns = new Map<string, Town>();
 export function townOf(s: Seed, seeds: Seed[], now: number): Town {
-  const key = `${s.id}|${cacheTick(now)}|${seedsKey(seeds)}`;
+  const key = `${s.id}|${cacheTick(now)}|${labEvent("wedding") ?? 0}|${seedsKey(seeds)}`;
   const hit = towns.get(key);
   if (hit) return hit;
   for (const k of towns.keys()) if (k.startsWith(s.id + "|")) towns.delete(k);
@@ -289,7 +289,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     for (const q of people) {
       if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 43, 720) >= share(0.8)) continue;
       if (q.age < BABY_AGE) continue;
-      q.fete = { at: wdAt, spot: fan(c, n++, 0.9, widen(0.8)), face: c, lag: hash(q.id, 46, 720) * 180 };
+      q.fete = { at: wdAt, spot: fan(c, n++, 0.9, widen(0.8)), face: c, lag: hash(q.id, 46, 720) * 180, dur: WED_FETE_SECS };
     }
   }
   const ina = inauguration(s, seeds, now);
@@ -509,11 +509,15 @@ function falls(s: Seed, people: Person[], now: number, hof: Tile | null = null) 
   }
 }
 /** Seconds of the wedding service inside the church. */
-export const SERVICE_SECS = 20 * 60;
+export const SERVICE_SECS = 4 * 60;
+/** Hours the newly-weds stay at home after the feast before their daily round resumes. */
+export const HONEY_H = 8;
+/** Seconds the village gathering at church lasts: long enough for the service and the couple leaving. */
+export const WED_FETE_SECS = 20 * 60;
 /** The couple walks from their birth homes to church and home together; their parents follow as guests. */
 function processions(ws: Wedding[], people: Person[], church: Tile, now: number) {
   for (const w of ws) {
-    if (now < w.at || now - w.at > 3 * 3600e3) continue;
+    if (now < w.at || now - w.at > HONEY_H * 3600e3) continue;
     const birth = (p: Person) => p.origin ?? p.hh!;
     const [g, b] = w.a.sex === "m" ? [w.a, w.b] : [w.b, w.a];
     const to = g.home;
@@ -523,7 +527,10 @@ function processions(ws: Wedding[], people: Person[], church: Tile, now: number)
     b.proc = { at: w.at, from: bt, wait: hhTile(birth(g)), to, lag: 0, role: "bride" };
     let k = 0;
     for (const q of people) if (!q.proc && (q.role === "head" || q.role === "spouse") && (q.hh === birth(g) || q.hh === birth(b)) && q.spouse !== g.id && q.spouse !== b.id && q !== g && q !== b)
-      q.proc = { at: w.at, from: q.home, to, lag: 6 + 5 * k++, role: "guest" };
+      if (now - w.at <= 3 * 3600e3) q.proc = { at: w.at, from: q.home, to, lag: 6 + 5 * k++, role: "guest" };
+    // a priest of the village steps out before the portal to marry them (fixed per wedding by hash)
+    const pr = people.filter((q) => q.job === "priest" && !q.proc && !q.sick && q.age >= 16);
+    if (pr.length && now - w.at <= 3 * 3600e3) pr[Math.floor(hash(w.at % 1e9, 7, 1531) * pr.length)]!.proc = { ...g.proc, role: "priest" };
     void church;
   }
 }
@@ -1206,6 +1213,15 @@ function along(pts: Tile[], dd: number): { x: number; y: number; dir: [number, n
   return null;
 }
 const lenOf = (pts: Tile[]) => pts.reduce((a, q, i) => i ? a + Math.hypot(q[0] - pts[i - 1]![0], q[1] - pts[i - 1]![1]) : 0, 0);
+/** Offset beside the walking direction (perpendicular, in tile space): +side = right of the heading. */
+export function besideOf(dir: [number, number], side: number): [number, number] { const m = Math.hypot(dir[0], dir[1]) || 1; return [(-dir[1] / m) * side, (dir[0] / m) * side]; }
+/** Where a wedding is happening now (pure): the groom's position — bride's door, church portal or new home. */
+export function weddingFocus(t: Town, at: number, seeds: Seed[], now: number): Tile | null {
+  const g = t.people.find((p) => p.proc?.role === "groom" && p.proc.at === at);
+  if (!g) return null;
+  const q = poseOf(g, t, seeds, now);
+  return [q.x, q.y];
+}
 /** Wedding procession speed (tiles/s): a slow, festive pace. */
 export const PROC_SPEED = 0.12;
 /** Where a procession member is: walking to church, inside for the service, walking to the new home, then guests linger. */
@@ -1225,8 +1241,14 @@ function procPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): P
   const p2 = [stand, ...route(t, [Math.round(ch[0]), Math.round(ch[1])], [Math.round(pr.to[0]), Math.round(pr.to[1])], seeds).slice(1, -1), doorOf(t, pr.to, seeds)], l2 = lenOf(p2);
   let secs = (now - pr.at) / 1000 - pr.lag;
   if (secs < 0) return null;
-  const festive = pr.role === "guest" ? undefined : pr.role;
-  const walk = (pts: Tile[], dd: number, dx = 0) => { const q = along(pts, dd); return q ? { ...base, ...q, x: q.x + dx, visible: true, walking: true, act: "wedding" as Activity, phase: dd / STRIDE, festive } : null; };
+  const festive = pr.role === "bride" || pr.role === "groom" ? pr.role : undefined;
+  if (pr.role === "priest") {
+    // waits inside, steps before the portal a minute before the couple arrives, faces them, goes back in after
+    const t1 = l1 / PROC_SPEED;
+    if (secs < t1 - 60 || secs >= t1 + SERVICE_SECS + 30) return null;
+    return { ...base, x: ch[0], y: ch[1] + 0.05, visible: true, walking: false, act: "wedding", dir: [0, 1] };
+  }
+  const walk = (pts: Tile[], dd: number, side = 0) => { const q = along(pts, dd); if (!q) return null; const o = besideOf(q.dir, side), ok = side && freeAt(t, q.x + o[0], q.y + o[1], seeds); return { ...base, ...q, x: q.x + (ok ? o[0] : 0), y: q.y + (ok ? o[1] : 0), visible: true, walking: true, act: "wedding" as Activity, phase: dd / STRIDE, festive }; };
   // the bride, dressed, waits on her doorstep for the groom
   if (pr.wait) {
     if (secs < tMeet) { const d = doorOf(t, pr.from, seeds); return { ...base, x: d[0], y: d[1] + 0.3, visible: true, walking: false, act: "wedding", festive, dir: [0, 1] }; }
@@ -1237,12 +1259,16 @@ function procPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): P
   if (secs < t1) return walk(path1, secs * PROC_SPEED, (pr.via && secs * PROC_SPEED > tMeet * PROC_SPEED) || pr.wait ? off2 : 0);
   if (secs < t1 + SERVICE_SECS) {
     if (pr.role === "guest") { const o = off(p, 11, 0.5); return { ...base, x: ch[0] + o[0], y: ch[1] + 1.1 + Math.abs(o[1]), visible: true, walking: false, act: "wedding", dir: [0, -1] }; }
-    return { ...base, x: stand[0], y: stand[1], visible: true, walking: false, act: "wedding", festive, dir: [0, 1] };
+    // facing the priest at the portal; in the middle of the service they turn to each other for the vow
+    const u = (secs - t1) / SERVICE_SECS, vow = u > 0.4 && u < 0.7;
+    return { ...base, x: stand[0], y: stand[1], visible: true, walking: false, act: "wedding", festive, dir: vow ? [pr.role === "groom" ? 1 : -1, 0] : [0, -1] };
   }
   const s2 = secs - t1 - SERVICE_SECS, t2 = l2 / PROC_SPEED;
   if (s2 < t2) return walk(p2, s2 * PROC_SPEED, off2);
   // guests stand outside the new home for half an hour, the couple has gone in
-  if (pr.role === "guest" && s2 < t2 + 1800) { const d = doorOf(t, pr.to, seeds), o = off(p, 9, 0.6); return { ...base, x: d[0] + o[0], y: d[1] + o[1], visible: freeAt(t, d[0] + o[0], d[1] + o[1], seeds), act: "wedding", dir: [-o[0] || 1, -o[1]] }; }
+  // the newly-weds stay at home for the rest of the day instead of rushing to work
+  if (pr.role !== "guest") { if (now - pr.at < HONEY_H * 3600e3) { const d = doorOf(t, pr.to, seeds); return { ...base, x: d[0], y: d[1], visible: false, walking: false, act: "home" }; } return null; }
+  if (s2 < t2 + 600) { const d = doorOf(t, pr.to, seeds), o = off(p, 9, 0.6); return { ...base, x: d[0] + o[0], y: d[1] + o[1], visible: freeAt(t, d[0] + o[0], d[1] + o[1], seeds), act: "wedding", dir: [-o[0] || 1, -o[1]] }; }
   return null;
 }
 
