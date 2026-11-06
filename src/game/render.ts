@@ -3045,7 +3045,7 @@ export function draw(
   const detail = true, sharp = false;
   const cs0x = cam.x - w / 2 / z, cs1x = cam.x + w / 2 / z, cs0y = cam.y - h / 2 / z, cs1y = cam.y + h / 2 / z;
   const L = framePool.lights; L.length = 0;
-  beginLit(w, h, nightLevel(now) > 0.02);
+  beginLit(w, h, nightLevel(clock()) > 0.02);
   // pooled per-frame buffers: slots and maps are reused across frames to keep GC pauses out of the loop
   const tiles = framePool.tiles; let nTiles = 0;
   // flood water, fascines and silt also reach open meadow and the wild river bank (no structure there)
