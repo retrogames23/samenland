@@ -18,7 +18,7 @@ import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
 import { houseLit, candleFlicker } from "./night";
 import { sunTimes, nightLevel, duskGlow } from "./sun";
 const sunNow = () => sunTimes(clock());
-import { setArtTime } from "./season-art";
+import { setArtTime, seasonalImage } from "./season-art";
 import { seasonKey, seasonAt } from "./season";
 import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
