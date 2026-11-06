@@ -11,6 +11,9 @@ import { drawParchment } from "./parchment";
 import cowUrl from "@/assets/sprites/cow.webp";
 import pondUrl from "@/assets/sprites/pond.webp";
 import flowerTuftUrl from "@/assets/sprites/flower-tuft.webp";
+import pastureCloverUrl from "@/assets/sprites/pasture-clover.webp";
+import pastureTussockUrl from "@/assets/sprites/pasture-tussock.webp";
+import pastureTroughUrl from "@/assets/sprites/pasture-trough.webp";
 import maypoleUrl from "@/assets/sprites/maypole.webp";
 import { worldHour, clock } from "./time";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
@@ -2203,30 +2206,34 @@ function acrePath(c: C, cx: number, cy: number, hx: number, hy: number, outer: b
 }
 type AgriSpec = { kind: "field" | "garden" | "pasture"; ripe: boolean; look?: Look | undefined; along: boolean; outer: boolean[]; winter: boolean; hx: number; hy: number; k2: number };
 /** Furrows, plants, wattle, bean poles, tufts and troughs — everything except the textured base fill. */
+let pastureClover: HTMLImageElement | null = null, pastureTussock: HTMLImageElement | null = null, pastureTrough: HTMLImageElement | null = null;
 function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
   const pp = P(cx, cy), { hx: x, hy: y, ripe, along, outer } = a;
   if (a.kind === "pasture") {
     const k2 = a.k2, d0 = pp(-k2, -k2), d1 = pp(k2, -k2), d2 = pp(k2, k2), d3 = pp(-k2, k2);
     c.save(); c.beginPath(); c.moveTo(d0[0], d0[1]); c.lineTo(d1[0], d1[1]); c.lineTo(d2[0], d2[1]); c.lineTo(d3[0], d3[1]); c.closePath(); c.clip(); c.lineCap = "round";
-    const ta = pp(-0.6, (hash(x, y, 703) - 0.5) * 0.6), tb = pp(0.6, (hash(x, y, 704) - 0.5) * 0.6), tm = pp(0, (hash(x, y, 705) - 0.5) * 0.8);
-    c.strokeStyle = "rgba(140,112,70,0.35)"; c.lineWidth = 1.1; c.beginPath(); c.moveTo(ta[0], ta[1]); c.quadraticCurveTo(tm[0], tm[1], tb[0], tb[1]); c.stroke();
-    c.restore();
-    c.lineCap = "round"; c.strokeStyle = "rgba(96,110,52,0.8)"; c.lineWidth = 0.28; c.beginPath();
-    for (let n = 0; n < 6; n++) {
-      const u = hash(x, y, 710 + n) - 0.5, v = hash(x, y, 720 + n) - 0.5, [px, py] = pp(u * 0.85, v * 0.85);
-      for (let b = -1; b <= 1; b++) { c.moveTo(px + b * 0.3, py); c.lineTo(px + b * 0.45, py - 0.6 - hash(x, y, 730 + n) * 0.3); }
+    // trodden earth: soft, blurred patches where the herd stands and walks (no hard strokes)
+    for (let n = 0; n < 2; n++) {
+      if (hash(x, y, 703 + n) < 0.35) continue;
+      const [tx, ty] = pp((hash(x, y, 706 + n) - 0.5) * 0.7, (hash(x, y, 708 + n) - 0.5) * 0.7), rr = 3 + hash(x, y, 710 + n) * 3;
+      const gr = c.createRadialGradient(tx, ty, 0, tx, ty, rr);
+      gr.addColorStop(0, "rgba(118,92,58,0.42)"); gr.addColorStop(0.6, "rgba(130,104,66,0.18)"); gr.addColorStop(1, "rgba(130,104,66,0)");
+      c.save(); c.translate(tx, ty); c.scale(1, 0.5); c.translate(-tx, -ty); c.fillStyle = gr; c.beginPath(); c.arc(tx, ty, rr, 0, 7); c.fill(); c.restore();
     }
-    c.stroke();
-    if (hash(x, y, 740) > 0.8) {
-      const o = pp(0.15, -0.15), L = 0.32, Wd = 0.12, H = 1.1;
-      const A = pp(0.15 - L, -0.15 - Wd), B = pp(0.15 + L, -0.15 - Wd), Cc = pp(0.15 + L, -0.15 + Wd), D = pp(0.15 - L, -0.15 + Wd);
-      c.fillStyle = "rgba(25,18,10,0.3)"; c.beginPath(); c.ellipse(o[0] + 1, o[1] + 0.6, 4, 1.2, 0, 0, 7); c.fill();
-      const face = (p: Pt2[], col: string) => { c.beginPath(); c.moveTo(p[0]![0], p[0]![1]); for (const q of p.slice(1)) c.lineTo(q[0], q[1]); c.closePath(); c.fillStyle = col; c.fill(); };
-      face([D, Cc, [Cc[0], Cc[1] - H], [D[0], D[1] - H]], "#6b4a2c");
-      face([Cc, B, [B[0], B[1] - H], [Cc[0], Cc[1] - H]], "#4a3220");
-      face([[A[0], A[1] - H], [B[0], B[1] - H], [Cc[0], Cc[1] - H], [D[0], D[1] - H]], "#7a5634");
-      const s = 0.75, m = (p: Pt2): Pt2 => [o[0] + (p[0] - o[0]) * s, o[1] - H + (p[1] - o[1]) * s];
-      face([m(A), m(B), m(Cc), m(D)], "rgba(90,130,140,0.9)");
+    c.restore();
+    // painted standing plants: clover patches and coarse tussocks the cattle avoid
+    const stamp = (im: HTMLImageElement | null, u: number, v: number, wd: number, sd: number) => {
+      if (!im) return; const [px, py] = pp(u, v), h = wd * im.height / im.width;
+      c.fillStyle = "rgba(30,24,10,0.16)"; c.beginPath(); c.ellipse(px + 0.4, py, wd * 0.42, 0.5, 0, 0, 7); c.fill();
+      if (hash(x, y, sd) < 0.5) c.drawImage(im, px - wd / 2, py - h * 0.95, wd, h);
+      else { c.save(); c.translate(px, 0); c.scale(-1, 1); c.drawImage(im, -wd / 2, py - h * 0.95, wd, h); c.restore(); }
+    };
+    if (!a.winter) for (let n = 0; n < 2; n++) if (hash(x, y, 750 + n) < 0.6) stamp(pastureClover, (hash(x, y, 752 + n) - 0.5) * 0.8, (hash(x, y, 754 + n) - 0.5) * 0.8, 3.6 + hash(x, y, 756 + n) * 1.4, 758 + n);
+    if (hash(x, y, 760) < 0.45) stamp(pastureTussock, (hash(x, y, 761) - 0.5) * 0.7, (hash(x, y, 762) - 0.5) * 0.7, 2.6 + hash(x, y, 763) * 1.2, 764);
+    if (hash(x, y, 740) > 0.8 && pastureTrough) { // hollowed log trough
+      const im = pastureTrough, wd = 7, h = wd * im.height / im.width, [ox, oy] = pp(0.15, -0.15);
+      c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(ox + 0.8, oy + 0.3, wd * 0.45, 1, 0, 0, 7); c.fill();
+      c.drawImage(im, ox - wd / 2, oy - h * 0.8, wd, h);
     }
     return;
   }
@@ -2321,10 +2328,12 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
 const AGRI_VARIANTS = 6, AGRI_S = 3, AGRI_W = 48, AGRI_UP = 20, AGRI_H = 34;
 const agriSprites = new Map<string, HTMLCanvasElement>();
 function agriSprite(a: AgriSpec, key: string): HTMLCanvasElement | null {
+  pastureClover = huntIm("pClover", pastureCloverUrl); pastureTussock = huntIm("pTussock", pastureTussockUrl); pastureTrough = huntIm("pTrough", pastureTroughUrl);
   let cv = agriSprites.get(key);
   if (cv) return cv;
   // plant art not loaded yet: draw nothing cached (the fill is still shown) and retry next frame
   if (a.kind !== "pasture" && !a.winter && !fieldRowImage(a.kind === "field" && a.ripe)) return null;
+  if (a.kind === "pasture" && !(pastureClover && pastureTussock && pastureTrough)) return null;
   cv = document.createElement("canvas"); cv.width = AGRI_W * AGRI_S; cv.height = AGRI_H * AGRI_S;
   const g = cv.getContext("2d")!; g.setTransform(AGRI_S, 0, 0, AGRI_S, 0, 0);
   agriDetail(g, AGRI_W / 2, AGRI_UP, a);
@@ -2343,7 +2352,7 @@ function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Struct
     const pp = P(cx, cy), d0 = pp(-k2, -k2), d1 = pp(k2, -k2), d2 = pp(k2, k2), d3 = pp(-k2, k2);
     c.beginPath(); c.moveTo(d0[0], d0[1]); c.lineTo(d1[0], d1[1]); c.lineTo(d2[0], d2[1]); c.lineTo(d3[0], d3[1]); c.closePath();
     c.fillStyle = texture(c, "grass") ?? hsl(80, 30, 60); c.fill();
-    c.globalAlpha = 0.32; c.fillStyle = "rgb(196,190,110)"; c.fill(); c.globalAlpha = 1;
+    c.globalAlpha = 0.18; c.fillStyle = "rgb(150,160,90)"; c.fill(); c.globalAlpha = 1;
     a = { kind: "pasture", ripe: false, along: false, outer: [], winter, hx, hy, k2 }; key = `p${k2}|${v}`;
   } else {
     const ac = acreOf(x, y, st.seed), look = st.kind === "field" ? fieldLook(ac.id, now) : undefined, ripe = look === "ripe";
