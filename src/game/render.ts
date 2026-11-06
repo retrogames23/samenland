@@ -385,12 +385,40 @@ function drawFire(c: C, cx: number, cy: number, t: number, sd: number, L: Light[
   for (let i = 0; i < 4; i++) { const ph = (t / 900 + i / 4 + hash(sd, i, 8)) % 1; c.fillStyle = `rgba(255,190,90,${1 - ph})`; c.fillRect(cx + Math.sin(ph * 6 + i) * 6, cy - 16 - ph * 22, 0.6, 0.6); }
   L.push({ x: cx, y: cy - 10, r: 26 });
 }
-/** Flood water over a tile: muddy translucent sheet with a slow shimmer. */
-function drawFlood(c: C, cx: number, cy: number, t: number, sd: number) {
-  const p = P(cx, cy), a = 0.5 + Math.sin(t / 1800 + sd) * 0.05;
-  c.fillStyle = `rgba(92,112,104,${a})`; c.beginPath();
-  const q = [p(-0.55, -0.55), p(0.55, -0.55), p(0.55, 0.55), p(-0.55, 0.55)]; c.moveTo(q[0]![0], q[0]![1]); for (const v of q) c.lineTo(v[0], v[1]); c.closePath(); c.fill();
-  c.fillStyle = "rgba(220,230,225,0.18)"; c.fillRect(cx - 4 + Math.sin(t / 900 + sd) * 2, cy - 0.5, 6, 0.5);
+/** Flood water: brown sheet that rises and drains, current streaks, drifting brushwood and a soft edge. */
+function drawFlood(c: C, cx: number, cy: number, t: number, sd: number, wet: number) {
+  const p = P(cx, cy), e = 0.5 + wet * 0.12, a = (0.28 + wet * 0.4) + Math.sin(t / 1800 + sd) * 0.04;
+  const q = [p(-e, -e), p(e, -e), p(e, e), p(-e, e)];
+  const g = c.createRadialGradient(cx, cy, 1, cx, cy, 16);
+  g.addColorStop(0, `rgba(104,96,70,${a})`); g.addColorStop(0.75, `rgba(96,104,88,${a * 0.85})`); g.addColorStop(1, "rgba(96,104,88,0)");
+  c.fillStyle = g; c.beginPath(); c.moveTo(q[0]![0], q[0]![1]); for (const v of q) c.lineTo(v[0], v[1]); c.closePath(); c.fill();
+  // current streaks drifting downstream
+  c.strokeStyle = `rgba(225,228,210,${0.12 + wet * 0.14})`; c.lineWidth = 0.4;
+  for (let i = 0; i < 3; i++) { const ph = (t / 5200 + hash(sd, i, 31)) % 1, x0 = cx - 9 + ph * 18, y0 = cy - 3 + hash(sd, i, 32) * 6 + ph * 2; c.globalAlpha = Math.sin(ph * Math.PI); c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo(x0 + 2, y0 - 0.6, x0 + 4.5, y0 + 0.2); c.stroke(); }
+  c.globalAlpha = 1;
+  // drifting brushwood and straw tufts
+  if (wet > 0.4 && hash(sd, 1, 33) < 0.35) { const ph = (t / 14000 + hash(sd, 2, 33)) % 1, dx = cx - 7 + ph * 14, dy = cy + (hash(sd, 3, 33) - 0.5) * 4 + Math.sin(t / 700 + sd) * 0.3;
+    c.globalAlpha = Math.sin(ph * Math.PI); c.strokeStyle = "rgba(78,58,36,0.85)"; c.lineWidth = 0.6; c.beginPath(); c.moveTo(dx - 1.8, dy); c.lineTo(dx + 1.8, dy - 0.4); c.moveTo(dx - 0.4, dy - 0.2); c.lineTo(dx + 0.6, dy - 1.1); c.stroke();
+    c.fillStyle = "rgba(196,170,96,0.8)"; c.beginPath(); c.ellipse(dx + 2.2, dy + 0.4, 1, 0.45, 0.2, 0, 7); c.fill(); c.globalAlpha = 1; }
+  c.fillStyle = `rgba(232,236,225,${0.14 + wet * 0.1})`; c.fillRect(cx - 4 + Math.sin(t / 900 + sd) * 2, cy - 0.5, 6, 0.5);
+}
+/** Waterline left on walls and the rim of a house standing in the water. */
+function drawWade(c: C, cx: number, cy: number, t: number, sd: number, wet: number) {
+  c.strokeStyle = `rgba(214,222,206,${0.18 + wet * 0.25})`; c.lineWidth = 0.5;
+  c.beginPath(); c.ellipse(cx, cy + 1, 7.5 + Math.sin(t / 600 + sd) * 0.4, 3.4, 0, 0.1, Math.PI - 0.1); c.stroke();
+}
+/** Silt the flood leaves on fields: grey-brown mud patches that fade over a few days. */
+function drawSilt(c: C, cx: number, cy: number, sd: number, silt: number) {
+  for (let i = 0; i < 3; i++) { c.fillStyle = `rgba(108,96,72,${0.3 * silt})`; c.beginPath(); c.ellipse(cx + (hash(sd, i, 41) - 0.5) * 12, cy + (hash(sd, i, 42) - 0.5) * 5, 3 + hash(sd, i, 43) * 3, 1.2 + hash(sd, i, 44), 0.1, 0, 7); c.fill(); }
+}
+/** Fascine wall: brushwood bundles and earth piled along the dry edge of the water. */
+function drawLevee(c: C, cx: number, cy: number, sd: number, lv: number) {
+  const n = Math.max(1, Math.round(lv * 4));
+  c.fillStyle = "rgba(25,20,10,0.2)"; c.beginPath(); c.ellipse(cx, cy + 1.2, 8, 2, 0, 0, 7); c.fill();
+  c.fillStyle = "rgb(112,88,58)"; c.beginPath(); c.ellipse(cx, cy + 0.6, 7 * Math.min(1, lv + 0.3), 1.6 + lv, 0, Math.PI, 0); c.fill();
+  for (let i = 0; i < n; i++) { const bx = cx - 5 + i * 3.3 + hash(sd, i, 51) * 0.8, by = cy - 0.4 - (i % 2) * 0.8;
+    c.fillStyle = "rgb(118,92,52)"; c.beginPath(); c.ellipse(bx, by, 2, 0.95, -0.15, 0, 7); c.fill();
+    c.strokeStyle = "rgba(70,52,30,0.9)"; c.lineWidth = 0.3; c.beginPath(); for (let k = -1; k <= 1; k++) { c.moveTo(bx - 1.9, by + k * 0.4); c.lineTo(bx + 1.9, by + k * 0.35); } c.moveTo(bx - 0.3, by - 1); c.lineTo(bx - 0.3, by + 1); c.moveTo(bx + 0.8, by - 1); c.lineTo(bx + 0.8, by + 1); c.stroke(); }
 }
 /** Robber: sneaks in from the forest edge, past the houses, and out again. */
 function drawRobber(c: C, X: number, Y: number, flip: boolean, t: number) {
@@ -3378,7 +3406,9 @@ export function draw(
     if (st?.kind === "coop" && st.build === undefined) drawHens(c, cx, cy, x * 31 + y);
     if (hash(x, y, 501) < 0.006) { const tr = st ? null : terrain(x, y); if (tr === "water" || (tr === "sand" && hash(x, y, 502) < 0.5)) birds.push([cx, cy, 1, x * 7 + y]); }
     if (st?.kind === "field" && hash(x, y, 503) < 0.02) birds.push([cx, cy, 0, x * 7 + y]);
-    if (st?.flood) drawFlood(c, cx, cy, t, x * 7 + y);
+    if (st?.silt && !st.flood) drawSilt(c, cx, cy, x * 7 + y, st.silt);
+    if (st?.flood) drawFlood(c, cx, cy, t, x * 7 + y, st.wet ?? 1);
+    if (st?.levee && !st.flood) drawLevee(c, cx, cy + 4, x * 7 + y, st.levee);
     const fk = folk.get(y * MAP + x);
     const sdT = x * 1000 + y, flock = fk && st?.kind === "pasture" && st.build === undefined ? sheepSpots(sdT, st.v, now) : [];
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);

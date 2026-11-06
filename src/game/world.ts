@@ -329,7 +329,7 @@ export type Kind =
   | "backhaus" | "herberge" | "beginenhof" | "bigstore" | "millrow" | "stonemason" | "hammerworks" | "smokehouse" | "saltquay"
   | "theater" | "opera" | "university" | "exchange" | "orangery" | "harvesthall" | "guildtower" | "lighthouse" | "seat1" | "seat2" | "seat3";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). doneAt: real ms when it stands (estimate for organic growth). */
-export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; doneAt?: number | undefined; fire?: boolean; flood?: boolean; wet?: number; silt?: number; homeKind?: Kind };
+export type Structure = { kind: Kind; seed: Seed; v: number; build?: number; doneAt?: number | undefined; fire?: boolean; flood?: boolean; wet?: number; silt?: number; levee?: number; homeKind?: Kind };
 /** Construction time (in growth hours) before a building at birth age `at` is finished. */
 export const buildTime = (at: number) => Math.min(96, Math.max(1.5, at * 0.06));
 /** Ordinary homes, barns and workshops take a fixed short site phase (growth hours, ≈1.7 real h at base pace):
@@ -773,6 +773,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     const hit = tileHits(best.seed, now).get(ck);
     if (hit?.flood) best = { ...best, flood: true, wet: hit.wet ?? 1 };
     if (hit?.silt) best = { ...best, silt: hit.silt };
+    if (hit?.levee) best = { ...best, levee: hit.levee };
     if (hit && canBurn(best.kind)) {
       if (hit.fire) best = { ...best, fire: true };
       else if (hit.build !== undefined) best = { ...best, build: hit.build };

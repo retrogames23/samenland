@@ -161,7 +161,7 @@ export const raidLoss = (s: Seed, now: number) => raids(s, now).reduce((a, r) =>
 
 /** Craft charter: the guild masons rebuild after fire and flood twice as fast. */
 export const craftRepair = (s: Seed, at: number) => (s.charter?.path === "craft" && s.charter.at <= at ? 2 : 1);
-export type TileHit = { fire?: true; build?: number; flood?: true; wet?: number; silt?: number };
+export type TileHit = { fire?: true; build?: number; flood?: true; wet?: number; silt?: number; levee?: number };
 /** Silt lies on the fields for a few days after the water has gone. */
 export const SILT_LEN = 4 * DAY;
 /** How deep the water stands on a tile (0..1): rises from the river bank inland, then drains in reverse. */
@@ -202,6 +202,8 @@ export function tileHits(s: Seed, now: number): Map<number, TileHit> {
   for (const f of floods(s, now)) {
     const k = aidFactor(s.aid, f.end) * craftRepair(s, f.end);
     if (now >= f.end + Math.max(SILT_LEN, FLOOD_REBUILD / k)) continue;
+    // the fascine wall grows during the flood and is cleared away a day after the water drains
+    if (now < f.end + DAY) { const lv = now < f.end ? Math.min(1, (now - f.at) / ((f.end - f.at) / 3)) : 1 - (now - f.end) / DAY; if (lv > 0.05) for (const t of floodFront(f).levee) m.set(t, { ...m.get(t), levee: lv }); }
     if (now < f.end) { for (const t of f.tiles) { const w = floodLevel(f, t, now); if (w > 0.02) m.set(t, { ...m.get(t), flood: true, wet: w }); } }
     else {
       const sl = 1 - (now - f.end) / SILT_LEN;
