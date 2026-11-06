@@ -280,24 +280,24 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const gatherAt = wd && weddings.some((w) => w.at <= wd.at && wd.at - w.at < 3 * 3600e3) ? wd.at : live && !live.town ? live.at : null;
   // crowds stay a readable size: in big towns only a share comes, and the ring widens with the number gathered
   const CROWD = 24, share = (base: number) => Math.min(base, CROWD / Math.max(1, people.length));
+  // ordered stands (golden-angle spiral): every guest gets its own spot with a minimum gap, no two land on one point
+  const fan = (c: Tile, n: number, r0: number, w: number): Tile => { const a = n * 2.39996 + 0.3, rr = (r0 + Math.sqrt(n + 0.5) * 0.42) * w; return [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr]; };
   const widen = (base: number) => Math.max(1, Math.sqrt(Math.min(CROWD, people.length * base) / 12));
   if (gatherAt != null && now >= gatherAt) {
     const wdAt = gatherAt;
-    const c = church ?? meet;
+    const c = church ?? meet; let n = 0;
     for (const q of people) {
       if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 43, 720) >= share(0.8)) continue;
       if (q.age < BABY_AGE) continue;
-      const a = hash(q.id, 44, 720) * Math.PI * 2, rr = (1 + hash(q.id, 45, 720) * 1.8) * widen(0.8);
-      q.fete = { at: wdAt, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 46, 720) * 180 };
+      q.fete = { at: wdAt, spot: fan(c, n++, 0.9, widen(0.8)), face: c, lag: hash(q.id, 46, 720) * 180 };
     }
   }
   const ina = inauguration(s, seeds, now);
   if (ina) {
-    const fr = front(ina.tile) ?? ina.tile;
+    const fr = front(ina.tile) ?? ina.tile; let n = 0;
     for (const q of people) {
       if (q.proc || q.sick || q.carer != null || q.arrive || hash(q.id, 31, 720) >= share(0.88)) continue;
-      const a = hash(q.id, 32, 720) * Math.PI * 2, rr = (0.6 + hash(q.id, 33, 720) * 1.6) * widen(0.88);
-      q.fete = { at: ina.at, spot: [fr[0] + Math.cos(a) * rr, fr[1] + Math.sin(a) * rr], face: ina.tile, lag: hash(q.id, 34, 720) * 240 };
+      q.fete = { at: ina.at, spot: fan(fr, n++, 0.5, widen(0.88)), face: ina.tile, lag: hash(q.id, 34, 720) * 240 };
     }
   }
   // ---- encounter scenes: what the parchment tells is also seen on the square ----
