@@ -575,9 +575,13 @@ export function Game() {
   useEffect(() => {
     if (!userId) { setMailOn(false); return; }
     // every visit restarts the 3-month inactivity countdown (see api/public/idle-sweep)
-    (supabase as unknown as import("@supabase/supabase-js").SupabaseClient).rpc("touch_activity", { _lang: lang }).then(() => {});
     (supabase as unknown as import("@supabase/supabase-js").SupabaseClient).from("build_mail").select("enabled").eq("user_id", userId).maybeSingle().then(({ data }) => setMailOn(!!data?.enabled));
   }, [userId]);
+  // re-touch on language change too, so mails go out in the language the player last chose
+  useEffect(() => {
+    if (!userId) return;
+    (supabase as unknown as import("@supabase/supabase-js").SupabaseClient).rpc("touch_activity", { _lang: lang }).then(() => {});
+  }, [userId, lang]);
   const toggleMail = async (on: boolean) => {
     if (!userId) return;
     setMailOn(on);

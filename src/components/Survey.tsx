@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Parchment } from "@/components/hud/Parchment";
@@ -19,8 +19,12 @@ export function Survey({ userId, lang }: { userId: string | null; lang: Lang }) 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(false);
 
+  const who = useRef(userId);
   useEffect(() => {
-    if (!userId) { setOpen(false); return; }
+    who.current = userId;
+    // a new account starts with a fresh, closed survey
+    setOpen(false); setStep(-1); setAns({}); setWish(""); setErr(false); setBusy(false);
+    if (!userId) return;
     // `live` drops a late answer that arrives after an account switch or unmount
     let live = true;
     const id = setTimeout(() => { db.rpc("survey_open").then(({ data }) => { if (live && data === true) setOpen(true); }, () => {}); }, 4000);
@@ -29,12 +33,14 @@ export function Survey({ userId, lang }: { userId: string | null; lang: Lang }) 
   if (!open) return null;
 
   const submit = async (status: "answered" | "never") => {
+    const asker = userId;
     setBusy(true); setErr(false);
     const answers = Object.fromEntries(Object.entries(ans).map(([k, v]) => [k, v]));
     let error: unknown = null;
     try { ({ error } = await db.rpc("survey_submit", { _status: status, _answers: answers, _wish: wish.trim(), _lang: lang })); }
     catch (e) { error = e; }
-    finally { setBusy(false); }
+    finally { if (who.current === asker) setBusy(false); }
+    if (who.current !== asker) return; // account switched mid-request: never touch the new player's dialog
     if (error) { setErr(true); return; }
     if (status === "never") setOpen(false); else setStep(5);
   };
