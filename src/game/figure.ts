@@ -103,11 +103,10 @@ export function footLifts(ph: number, lh: number, lift = 0.15): [number, number]
 }
 /** Paints the leg pair as two halves; the swinging leg rises (its top tucks behind the torso hem). */
 export function drawLegPair(c: C, legs: HTMLImageElement, frame: number, lw: number, lh: number, dy: number, ph: number | undefined, spread = 0, lift = 0.15) {
-  const fw = legs.naturalWidth / WALK_FRAMES, lnh = legs.naturalHeight;
-  if (ph === undefined && spread <= 0.001) { c.drawImage(legs, frame * fw, 0, fw, lnh, -lw / 2, -lh + dy, lw, lh); return; }
-  const [la, lb] = ph === undefined ? [0, 0] : footLifts(ph, lh, lift), hf = fw / 2;
-  c.drawImage(legs, frame * fw, 0, hf, lnh, -lw / 2 - spread, -lh + dy + la, lw / 2, lh);
-  c.drawImage(legs, frame * fw + hf, 0, hf, lnh, spread, -lh + dy + lb, lw / 2, lh);
+  // the painted frames already carry the foot lift: draw each frame whole, never split at the crotch
+  void ph; void lift;
+  const fw = legs.naturalWidth / WALK_FRAMES, lnh = legs.naturalHeight, sw = lw + spread * 2;
+  c.drawImage(legs, frame * fw, 0, fw, lnh, -sw / 2, -lh + dy, sw, lh);
 }
 
 /** Draws legs (frame of the shared cycle) then the torso cut at its hem, in the figure's local frame (feet at 0,0). */
