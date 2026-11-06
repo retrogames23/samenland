@@ -26,7 +26,7 @@ const TEX: Record<Tex, string> = { grass, meadow, forest, sand, water, fertile, 
 /** World pixels covered by one texture repeat (before iso projection). */
 // scaled to the 5-px villager: clover, flowers and cobbles stay smaller than a window or a sheep
 // grass/meadow repeat wide enough that the eye never catches the wallpaper grid
-const SPAN: Record<Tex, number> = { grass: 150, meadow: 140, forest: 120, sand: 110, water: 170, fertile: 70, rock: 130, dirt: 56, cobble: 26, wheat: 38, crops: 38 };
+const SPAN: Record<Tex, number> = { grass: 150, meadow: 140, forest: 120, sand: 110, water: 170, fertile: 70, rock: 130, dirt: 56, cobble: 34, wheat: 38, crops: 38 };
 
 const imgs = new Map<string, HTMLImageElement>();
 function img(url: string) {
