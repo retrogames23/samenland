@@ -569,6 +569,7 @@ function seasonalTrace(c: C, s: Structure, cx: number, cy: number, x: number, y:
     }
   }
 }
+const GROUNDED = new Set<string>(["well"]);
 function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
   if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
@@ -578,6 +579,8 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
   if (s.build !== undefined) { drawSite(c, s, cx, cy, t, true); return; }
   const flip = faceFlip(s.kind, x, y, (i, j) => { const k = structureAt(i, j, renderSeeds, renderNow)?.kind; return !!k && PATHLIKE.has(k); });
   const style = houseStyle(s);
+  // free-standing objects without a plinth get a soft ground-contact shadow so they never look like floating
+  if (GROUNDED.has(s.kind)) { c.fillStyle = "rgba(30,22,12,0.28)"; c.beginPath(); c.ellipse(cx + 0.5, cy + 3.2, 3.6, 1.5, 0, 0, 7); c.fill(); c.fillStyle = "rgba(30,22,12,0.14)"; c.beginPath(); c.ellipse(cx + 1.4, cy + 3.6, 4.6, 2, 0, 0, 7); c.fill(); }
   if (drawBuildingSprite(c, s.kind, cx, cy, s.v, 1, flip, style)) {
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
@@ -1145,7 +1148,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   // only trades with a visible tool stroke move while working; everyone else stands still
   // whole-sprite rocking looked like see-sawing; only painted frame cycles animate work now
   void TOOL_WORK; void tilt;
-  c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * 0.55, 0.6, 0.1, 0, 7); c.fill();
+  c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(X + 0.6, Y + 0.1, w * (q.working ? 0.75 : 0.55), q.working ? 0.75 : 0.6, 0.1, 0, 7); c.fill();
   // zero-save placement: one absolute matrix (world × translate × mirror) instead of save/translate/scale/rotate/restore
   const B = c === folkCtx ? folkM! : c.getTransform(), fs = face < 0 ? -1 : 1;
   // walkers lean into wind and rain a little (display only)
