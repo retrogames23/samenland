@@ -539,7 +539,8 @@ export function Game() {
       if (data?.[0]) { setHome(data[0] as Seed); return; }
       // signed in without a village: guide straight into founding instead of leaving them on the map
       setAuthOpen(false);
-      setTab("plant");
+      // admins visiting the test map are not pushed into founding there
+      if (realm !== "lab") setTab("plant");
       const { data: u } = await supabase.auth.getUser();
       const meta = u.user?.user_metadata ?? {};
       const full = String(meta["full_name"] ?? meta["name"] ?? "").split(" ")[0]?.slice(0, 32) ?? "";
@@ -1083,7 +1084,7 @@ export function Game() {
     const nw = clock(), tw = townOf(p.seed, seeds, nw), q = poseOf(p, tw, seeds, nw);
     const own = p.seed.id === mine, child = p.role === "child" || p.age < 14, night = isNight() || q.act === "sleep";
     const myT = seeds.find((x) => x.id === mine)?.name ?? "";
-    const text = own ? banter(lang, { who: "own", traits: traitsOf(p.id), child, sick: !!p.sick, night }, bVars(p.seed.name))
+    const text = own ? banter(lang, { who: "own", traits: traitsOf(p.id), child, sick: !!p.sick, night, wedding: q.act === "wedding" || (q.act === "fete" && weddingLive(p.seed, nw) != null) }, bVars(p.seed.name))
       : banter(lang, { who: "foreign", child, night }, bVars(myT));
     const f = lastPeople.find((o) => o.q.p === p);
     sayAt(text, f?.x ?? 0, f?.y ?? 0, 9, p.id, p.seed.id);
@@ -1375,7 +1376,7 @@ export function Game() {
   // the tutorial parchment greets every visitor on their very first page load,
   // signed in or not, as soon as the loading screen has stepped aside
   const openGuide = () => {
-    if (localStorage.getItem("samenland-guide-seen")) return;
+    if (localStorage.getItem("samenland-guide-seen") || isLab()) return;
     localStorage.setItem("samenland-guide-seen", "1");
     setWelcome(true);
   };
@@ -1625,11 +1626,13 @@ export function Game() {
     const now = clock();
     liveFrom.current = now + 1;
     const ev = chronicle(s, seeds, now - 2000, now + 1000).events.filter((e) => e.code === code).pop();
-    const x = ev && "x" in ev ? ev.x : s.x, y = ev && "y" in ev ? ev.y : s.y;
+    // a wedding is followed where it happens right now (bride's door, portal, new home)
+    const wf = ev?.code === "wedding" ? weddingFocus(townOf(s, seeds, now), ev.at, seeds, now) : null;
+    const x = wf ? wf[0] : ev && "x" in ev ? ev.x : s.x, y = wf ? wf[1] : ev && "y" in ev ? ev.y : s.y;
     const [gx, gy] = iso(x, y);
     cam.current.zoom = Math.max(cam.current.zoom, 5);
     camFree.current = true; fling.current = { vx: 0, vy: 0, t: performance.now() }; glide.current = { x: gx, y: gy };
-    setDeskOpen(false);
+    setDeskOpen(false); setSettings(false); setWelcome(false); setTab(null);
     if (ev) { setLabTown(s); setFest((q) => [...q, ev].slice(-6)); }
   };
   const festNow = !anyOpen && !decision.open && !chronOpen ? fest[0] : undefined;

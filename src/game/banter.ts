@@ -8,14 +8,14 @@ import type { Trait } from "./traits";
 import { SEASON_BANTER } from "./lang/banter-season";
 import { seasonAt } from "./season";
 import { feastOn } from "./feasts";
-import { FEAST_BANTER } from "./lang/banter-feast";
+import { FEAST_BANTER, WEDDING_BANTER } from "./lang/banter-feast";
 import { clock } from "./time";
 
 const recent: string[] = [];
 const RECENT = 40;
 
 export type BanterCtx =
-  | { who: "own"; traits: Trait[]; child: boolean; sick: boolean; night: boolean }
+  | { who: "own"; traits: Trait[]; child: boolean; sick: boolean; night: boolean; wedding?: boolean }
   | { who: "foreign"; child: boolean; night: boolean }
   | { who: "court"; role: string; night: boolean }
   | { who: "house"; own: boolean; home: boolean; night: boolean };
@@ -54,6 +54,8 @@ export function banter(lang: Lang, c: BanterCtx, vars: { mayor: string; town: st
     const wl = wk ? (WEATHER_BANTER[lang] ?? WEATHER_BANTER.en)[wk] : [];
     if (wl.length) L = { ...L, own_craft: [...(L.own_craft ?? []), ...wl], own_t_weather: [...wl, ...(L.own_t_weather ?? [])] };
   }
+  // at a wedding the guests talk of nothing else
+  if (c.who === "own" && c.wedding && !c.night) { const wl = WEDDING_BANTER[lang] ?? WEDDING_BANTER.en; L = { ...L, own_any: wl, own_craft: wl, ...Object.fromEntries(c.traits.map((tr) => [`own_t_${tr}`, wl])) }; }
   // one category drawn at random among those this language has, so trait lines mix with generic ones
   const have = cats.filter((k) => L[k]?.length);
   const cat = have[Math.floor(rnd() * have.length)] ?? cats[cats.length - 1]!;
