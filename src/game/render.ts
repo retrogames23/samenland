@@ -3067,6 +3067,7 @@ export function draw(
   const folkOn = cam.zoom >= 0.9; // villagers are sub-pixel below this; skipping them changes nothing visible
   const steer = steeredMayor();
   const dogMayors = new Map<string, Pose>();
+  let ownPose: Pose | null = null, ownDrawn = false;
   if (folkOn) for (const sd of seeds) {
     // generous margin: strollers and the steered mayor wander well beyond the built-up edge — never cull them at the border
     const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 14;
@@ -3081,6 +3082,7 @@ export function draw(
       if (Math.hypot(q.x - sd.x, q.y - sd.y) > r0 * 0.8 || (steer && q.p.role === "mayor" && q.act === "stroll")) { const [lx, ly] = iso(q.x, q.y); L.push({ x: lx, y: ly - 2, r: 7 }); }
       if (!folk.has(k)) folk.set(k, []);
       folk.get(k)!.push(q);
+      if (q.p.role === "mayor" && sd.id === ownMayorSid()) ownPose = q;
       if (q.p.role === "mayor" && supportOwned.get(sd.id)?.has("dog")) dogMayors.set(sd.id, q);
     }
   }
@@ -3428,6 +3430,7 @@ export function draw(
         }
         const fig = (context: C) => q.mounted ? drawRider(context, px, py, q.dir[0], q.dir[1], 0, q.walking ? t * 0.8 : 0) : drawPerson(context, px, py, q, t, simpleFolk);
         fig(c); pushPerson(px, py, q);
+        if (q === ownPose) ownDrawn = true;
         if (hov || sel || (q.p.role === "mayor" && q.p.seed.id === ownMayorSid())) vip.push({ f: fig, x: px, y: py, k: y * MAP + x });
         if (q.bucket) drawBucket(c, px, py, q, t);
         if (hov && !sel) {
@@ -3442,6 +3445,15 @@ export function draw(
     if (hover && hover[0] === x && hover[1] === y) {
       c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
       c.fillStyle = ghostOk === false ? "rgba(180,80,60,0.18)" : "rgba(255,240,200,0.14)"; c.fill();
+    }
+  }
+  // safety net: the own mayor must never vanish — if the tile pass missed him (culling at a zoom edge,
+  // rounding onto an unlisted tile), draw him now at his true spot
+  if (ownPose && !ownDrawn) {
+    const [px, py] = iso(ownPose.x, ownPose.y);
+    if (px > cs0x - 20 && px < cs1x + 20 && py > cs0y - 20 && py < cs1y + 30) {
+      const q = ownPose;
+      q.mounted ? drawRider(c, px, py, q.dir[0], q.dir[1], 0, q.walking ? t * 0.8 : 0) : drawPerson(c, px, py, q, t, simpleFolk);
     }
   }
   for (const [bx, by, gull, sd] of birds) drawBird(c, bx, by, gull === 1, sd);
