@@ -171,7 +171,7 @@ export function floodLevel(f: Flood, tile: number, now: number) {
   const tx = tile % MAP, ty = Math.floor(tile / MAP);
   // tiles touching the river itself fill first, the rest follow a little later
   let bank = false; for (let b = -1; b <= 1 && !bank; b++) for (let a = -1; a <= 1; a++) if (riverWater(tx + a, ty + b)) { bank = true; break; }
-  const delay = bank ? 0 : 0.35 + rnd(tile, 3, 77) * 0.3;
+  const delay = bank ? 0 : 0.35 + rnd(String(tile), 3, 77) * 0.3;
   const up = Math.max(0, Math.min(1, ((now - f.at) / rise - delay) / (1 - delay * 0.5)));
   const down = Math.max(0, Math.min(1, ((f.end - now) / fall - delay * 0.6) / (1 - delay * 0.3)));
   return Math.min(up, down);
