@@ -886,18 +886,17 @@ const LOAD: Record<TradeGood, [string, "sack" | "log" | "barrel" | "block"]> = {
   wood: ["#7a5232", "log"], timber: ["#c09a66", "log"], ore: ["#5a5450", "block"], stone: ["#a39d92", "block"], hides: ["#8a5a3a", "sack"], cloth: ["#8a3a3a", "sack"], ironware: ["#4b4e55", "block"],
 };
 function drawLoad(c: C, x: number, y: number, dx: number, dy: number, g: TradeGood) {
-  const [col, shape] = LOAD[g]; const f = -screenFacing(dx, dy);
-  c.save(); c.translate(x + f * 1.6, y - 6.2); c.fillStyle = col; c.strokeStyle = "rgba(30,20,12,0.7)"; c.lineWidth = 0.35;
-  for (let i = 0; i < 3; i++) {
-    const ox = (i - 1) * 1.7, oy = i === 1 ? -0.6 : 0;
-    c.beginPath();
-    if (shape === "sack") c.ellipse(ox, oy, 1.1, 0.8, 0, 0, 7);
-    else if (shape === "barrel") c.ellipse(ox, oy, 0.75, 1.0, 0, 0, 7);
-    else if (shape === "log") c.ellipse(ox, oy, 0.55, 0.55, 0, 0, 7);
-    else c.rect(ox - 0.8, oy - 0.6, 1.6, 1.2);
-    c.fill(); c.stroke();
+  const shape = LOAD[g][1], f = -screenFacing(dx, dy);
+  // painted cargo: sacks, cloth bales, barrels, timber, stone, ore crates
+  const k: FolkSprite = g === "cloth" ? "loadBale" : shape === "sack" ? "loadSack" : shape === "barrel" ? "loadBarrel"
+    : shape === "log" ? "logs" : g === "stone" ? "blocks" : "loadCrate";
+  const im = folkImage(k); if (!im) return;
+  const n = k === "logs" || k === "blocks" || k === "loadCrate" ? 2 : 3, W = n === 3 ? 1.9 : 2.6;
+  const bx = x + f * 1.6, by = y - 5.4;
+  for (let i = 0; i < n; i++) {
+    const ox = (i - (n - 1) / 2) * W * 0.8, oy = n === 3 && i === 1 ? -0.7 : 0, h = (W * im.naturalHeight) / im.naturalWidth;
+    c.drawImage(im, bx + ox - W / 2, by + oy - h, W, h);
   }
-  c.restore();
 }
 
 /** Mounted messenger: 4-frame painted trot, front sheet faces right, rear sheet faces left; hooves on the ground line. */
@@ -2755,9 +2754,8 @@ function drawSignpost(c: C, cx: number, cy: number, sd: number) {
 function drawBucket(c: C, x: number, y: number, q: Pose, t: number) {
   const sx = q.dir[0] - q.dir[1], f = sx >= 0 ? 1 : -1, bx = x + f * 2.3, by = y - 2.6;
   c.save();
-  c.fillStyle = "#7a5634"; c.beginPath(); c.moveTo(bx - 1.1, by - 1.3); c.lineTo(bx + 1.1, by - 1.3); c.lineTo(bx + 0.8, by + 0.6); c.lineTo(bx - 0.8, by + 0.6); c.closePath(); c.fill();
-  c.strokeStyle = "#3d2b1a"; c.lineWidth = 0.25; c.stroke();
-  c.fillStyle = "#9cc3d6"; c.beginPath(); c.ellipse(bx, by - 1.3, 1.05, 0.35, 0, 0, 7); c.fill();
+  const im = folkImage("loadBucket");
+  if (im) { const bw = 2.3, bh = (bw * im.naturalHeight) / im.naturalWidth; c.drawImage(im, bx - bw / 2, by + 0.7 - bh, bw, bh); }
   if (!q.walking) {
     const u = ((t / 840 + q.p.id * 0.37) % 1);
     if (u < 0.35) {
