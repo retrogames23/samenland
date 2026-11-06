@@ -1278,7 +1278,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     // real painted walk cycle: frame follows the stride phase (one 2π = two steps)
     const fw = sheet.naturalWidth / WALK_FRAMES, f = frameOf(fw);
     const ww = (hgt * fw) / sheet.naturalHeight, dx = -(frameShift(sheet)[f] ?? 0) * ww;
-    c.drawImage(sheet, f * fw, 0, fw, sheet.naturalHeight, -ww / 2 + dx, -hgt, ww, hgt);
+    drawSheetFrame(c, sheet, f, fw, ww, hgt, dx);
   } else if (legs) {
     // modular figure: one hip-registered painted leg cycle shared by all trades, trade torso on top
     // each trade sprite: measured hip x (fraction of width) and tunic hem (fraction of height)
@@ -2640,6 +2640,13 @@ function drawCourtWalk(c: C, im: HTMLImageElement, role: CourtRole, w: number, h
   else c.drawImage(im, -w / 2, -h - bob, w, h);
 }
 
+/** One walk-sheet cell, inset by SHEET_INSET source px so neighbour frames' toes never bleed in. */
+const SHEET_INSET = 3;
+function drawSheetFrame(c: C, sheet: HTMLImageElement, f: number, fw: number, ww: number, hgt: number, dx: number) {
+  const k = SHEET_INSET, sw = fw - 2 * k, dw = (ww * sw) / fw;
+  c.drawImage(sheet, f * fw + k, 0, sw, sheet.naturalHeight, -dw / 2 + dx, -hgt, dw, hgt);
+}
+
 /** Dev sprite lab: every figure class side by side in its walk cycle with anatomy guides. */
 export type LabOpts = { boxes: boolean; lines: boolean; scale: number };
 type LabEntry = { label: string; h: number; cfg: FigureConfig | null; draw: (c: C, w: number, h: number, ph: number) => number | null };
@@ -2673,7 +2680,13 @@ function labEntries(): LabEntry[] {
       const w = (h * im.naturalWidth) / im.naturalHeight; drawCourtWalk(c, im, r, w, h, ph); return w; },
   });
   for (const k of ["man", "farmer", "porter", "builder", "woodcutter", "mason", "elder", "groom", "robber"] as FolkSprite[]) out.push(folk(k));
-  for (const k of ["woman", "farmerF", "elderF", "priest", "bride"] as FolkSprite[]) out.push(folk(k, true));
+  for (const k of ["woman", "farmerF", "elderF", "priest", "bride", "builderF", "woodcutterF", "masonF", "porterF"] as FolkSprite[]) out.push(folk(k, true));
+  for (const k of ["child", "girl", "toddler", "youth", "youthF"] as FolkSprite[]) out.push({
+    label: k, h: k === "toddler" ? 2.4 : k === "child" || k === "girl" ? 3 : 3.9, cfg: null,
+    draw: (c, _w, h, ph) => { const sh = walkSheet(k); if (!sh) return null;
+      const fw = sh.naturalWidth / WALK_FRAMES, f = gaitFrame(ph), ww = (h * fw) / sh.naturalHeight;
+      drawSheetFrame(c, sh, f, fw, ww, h, -(frameShift(sh)[f] ?? 0) * ww); return ww; },
+  });
   return out;
 }
 let labCache: LabEntry[] | null = null;
