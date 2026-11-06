@@ -6,6 +6,39 @@ import type { Realm } from "@/game/time";
 
 const DAY = 86400000;
 /** One bounded batch per request; old earnings remain handled by the legacy database function. */
+/** Every simulation input of one realm, read with service rights; the caller supplies nothing. */
+export async function loadEconomyInput(realm: string): Promise<EconomyWorld> {
+  const ss = await supabaseAdmin.from("seeds").select("*").eq("realm", realm).order("created_at").order("id");
+  if (ss.error) throw new Error("Seeds unavailable");
+  const raw = (ss.data ?? []) as Seed[], ids = raw.map(s => s.id);
+  const [p, b, c, e, r, v, w, g] = await Promise.all([
+    supabaseAdmin.from("purchases").select("seed_id,item,created_at,x,y").in("seed_id", ids).order("created_at"),
+    supabaseAdmin.from("blessings").select("seed_id,created_at").in("seed_id", ids),
+    supabaseAdmin.from("charters").select("seed_id,path,created_at").in("seed_id", ids),
+    supabaseAdmin.from("encounters").select("seed_id,event,choice,cost,created_at").in("seed_id", ids).order("created_at"),
+    supabaseAdmin.from("first_roads").select("seed_id,target_id,created_at").in("seed_id", ids).order("created_at"),
+    supabaseAdmin.from("twin_votes").select("seed_id,partner_id,pact,created_at").in("seed_id", ids),
+    supabaseAdmin.from("twin_works").select("seed_id,partner_id,work,cost,created_at").in("seed_id", ids),
+    supabaseAdmin.from("gifts").select("id,from_seed,to_seed,kind,created_at").in("to_seed", ids),
+  ]);
+  if ([p,b,c,e,r,v,w,g].some(q => q.error)) throw new Error("Simulation inputs unavailable");
+  return { seeds: raw, purchases: p.data ?? [], blessings: b.data ?? [], charters: c.data ?? [], encounters: e.data ?? [], roads: r.data ?? [], votes: v.data ?? [], works: w.data ?? [], gifts: g.data ?? [] };
+}
+
+/** Settlement rank judged on the server from real citizens, homes and roads; stored briefly for the purchase guard. */
+export async function certifyRank(id: string, realm: string) {
+  const input = await loadEconomyInput(realm);
+  const { setRealm } = await import("@/game/time");
+  const { townRank } = await import("@/game/rank");
+  setRealm(realm as Realm);
+  const now = Date.now(), seeds = economyWorldAt(input, now), seed = seeds.find(s => s.id === id);
+  if (!seed) throw new Error("Missing village");
+  const rank = townRank(seed, seeds, now);
+  const { error } = await supabaseAdmin.from("rank_certificates").upsert({ seed_id: id, rank, certified_at: new Date(now).toISOString() }, { onConflict: "seed_id" });
+  if (error) throw new Error("Rank certificate failed");
+  return { rank };
+}
+
 export async function calculateTreasury(id: string, realm: string) {
   const now = Date.now();
   const [ss, cut, receipts] = await Promise.all([
