@@ -2798,10 +2798,11 @@ function drawRareTree(c: C, x: number, y: number, kind: "cherry" | "quince", age
   c.save();
   c.fillStyle = "rgba(40,50,25,0.22)"; c.beginPath(); c.ellipse(x, y + 0.4, 5.5 * g, 2.2 * g, 0, 0, 7); c.fill();
   c.translate(x, y + 0.6); if (flip) c.scale(-1, 1); c.transform(1, 0, sway, 1, 0, 0);
-  const put = (im: HTMLImageElement, a: number) => { if (a <= 0.02) return; c.globalAlpha = Math.min(1, a); const ww = (h * im.naturalWidth) / im.naturalHeight; c.drawImage(im, -ww / 2, -h, ww, h); };
+  const put = (im: HTMLImageElement | HTMLCanvasElement, a: number) => { if (a <= 0.02) return; c.globalAlpha = Math.min(1, a); const ww = (h * im.width) / im.height; c.drawImage(im, -ww / 2, -h, ww, h); };
   const bl = kind === "cherry" && bloom ? w.spring : 0;
   put(bare, 1);
-  put(leaf, (1 - w.winter) * (1 - bl));
+  // autumn: same cached leaf recolour as wild trees (gold/rust), crown thins as leaves fall
+  put(seasonalImage(leaf, "leaf"), (1 - w.winter) * (1 - bl) * (1 - w.autumn * 0.25));
   if (bloom) put(bloom, bl * (1 - w.winter));
   c.restore();
 }
