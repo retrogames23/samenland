@@ -1728,7 +1728,7 @@ export function Game() {
     signposts: signs.filter((s) => s.seed_id === my.id).length,
     encounters: encounters.filter((e) => e.seed_id === my.id).length,
     giftsSent: gifts.filter((g) => g.from_seed === my.id).length,
-    residents, stage: myStage, roads: firstRoads.filter((f) => f.seed_id === my.id).length,
+    residents, stage: myRank, roads: firstRoads.filter((f) => f.seed_id === my.id).length,
     waySmall: purchases.some((p) => p.seed_id === my.id && WAY_SMALL.includes(p.item)),
     wayBig: purchases.some((p) => p.seed_id === my.id && WAY_BIG.includes(p.item)),
   }) : null;
