@@ -2776,47 +2776,17 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
 /** Rare orchard trees from the nurseryman: grow from staked sapling to full crown over ~3 weeks and follow the shared seasons. */
 function drawRareTree(c: C, x: number, y: number, kind: "cherry" | "quince", ageH: number, now: number, t: number, sd: number) {
   const g = Math.min(1, 0.35 + Math.max(0, ageH) / 500), w = seasonAt(now);
-  const sway = Math.sin(t / 1400 + sd) * 0.5 * g;
+  const leaf = folkImage(kind === "cherry" ? "treeCherry" : "treeQuince"), bare = folkImage("treeFruitBare"), bloom = folkImage("treeCherryBloom");
+  if (!leaf || !bare) return;
+  const h = 15 * g, sway = Math.sin(t / 1400 + sd) * 0.012 * g, flip = hash(sd, 3, 61) < 0.5;
   c.save();
-  c.fillStyle = "rgba(40,50,25,0.22)"; c.beginPath(); c.ellipse(x, y + 0.5, 6 * g, 2.6 * g, 0, 0, 7); c.fill();
-  const th = 9 * g;
-  c.strokeStyle = "#5e4630"; c.lineCap = "round"; c.lineWidth = 1.4 * g + 0.4;
-  c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x - 0.6, y - th * 0.6, x + sway * 0.4, y - th); c.stroke();
-  if (g < 0.6) { c.strokeStyle = "#a88a5f"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(x + 1.6, y + 0.3); c.lineTo(x + 1.6, y - th * 0.9); c.stroke(); }
-  const leaf = kind === "cherry" ? [104, 34, 38] : [92, 36, 40];
-  const mix = (a: number[], b: number[], k: number) => a.map((v, i) => v + (b[i]! - v) * k);
-  let col = leaf;
-  col = mix(col, kind === "cherry" ? [345, 62, 82] : [40, 30, 90], w.spring * 0.85);
-  col = mix(col, kind === "cherry" ? [12, 62, 46] : [44, 66, 50], w.autumn);
-  const bare = w.winter;
-  const cx = x + sway, cy = y - th - 3.2 * g, R = 5.2 * g;
-  if (bare < 0.95) {
-    c.globalAlpha = 1 - bare * 0.9;
-    for (let i = 0; i < 7; i++) {
-      const a = (i / 7) * 6.28 + sd, r = R * (0.5 + hash(sd, i, 3) * 0.35);
-      const px = cx + Math.cos(a) * R * 0.55, py = cy + Math.sin(a) * R * 0.38;
-      const gr = c.createRadialGradient(px - r * 0.3, py - r * 0.4, 0.2, px, py, r);
-      gr.addColorStop(0, hsl(col[0]!, col[1]!, Math.min(92, col[2]! + 14))); gr.addColorStop(1, hsl(col[0]!, col[1]!, col[2]! - 8));
-      c.fillStyle = gr; c.beginPath(); c.arc(px, py, r, 0, 7); c.fill();
-    }
-    // fruit in late summer/autumn
-    const fruit = Math.max(w.autumn, w.summer * 0.4) * (g > 0.6 ? 1 : 0);
-    if (fruit > 0.1) for (let i = 0; i < 6; i++) {
-      c.fillStyle = kind === "cherry" ? "#a3172a" : "#e2b628"; c.globalAlpha = fruit * (1 - bare);
-      c.beginPath(); c.arc(cx + (hash(sd, i, 7) - 0.5) * R * 1.4, cy + (hash(sd, i, 8) - 0.3) * R * 0.8, kind === "cherry" ? 0.55 : 0.9, 0, 7); c.fill();
-    }
-    // drifting cherry petals in spring
-    if (kind === "cherry" && w.spring > 0.3) for (let i = 0; i < 3; i++) {
-      const ph = (t / 5000 + hash(sd, i, 9)) % 1;
-      c.globalAlpha = w.spring * (1 - ph) * 0.8; c.fillStyle = "#f6c6d4";
-      c.fillRect(cx + (hash(sd, i, 10) - 0.5) * R * 2 + ph * 3, cy + ph * (th + 3), 0.6, 0.6);
-    }
-  }
-  if (bare > 0.05) {
-    c.globalAlpha = bare; c.strokeStyle = "#5e4630"; c.lineWidth = 0.5;
-    for (let i = 0; i < 5; i++) { const a = -2.6 + i * 0.55; c.beginPath(); c.moveTo(x + sway * 0.4, y - th); c.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R * 0.8); c.stroke(); }
-    c.fillStyle = "#f4f6f8"; c.beginPath(); c.ellipse(cx, cy - R * 0.5, R * 0.8, R * 0.25, 0, 0, 7); c.fill();
-  }
+  c.fillStyle = "rgba(40,50,25,0.22)"; c.beginPath(); c.ellipse(x, y + 0.4, 5.5 * g, 2.2 * g, 0, 0, 7); c.fill();
+  c.translate(x, y + 0.6); if (flip) c.scale(-1, 1); c.transform(1, 0, sway, 1, 0, 0);
+  const put = (im: HTMLImageElement, a: number) => { if (a <= 0.02) return; c.globalAlpha = Math.min(1, a); const ww = (h * im.naturalWidth) / im.naturalHeight; c.drawImage(im, -ww / 2, -h, ww, h); };
+  const bl = kind === "cherry" && bloom ? w.spring : 0;
+  put(bare, 1);
+  put(leaf, (1 - w.winter) * (1 - bl));
+  if (bloom) put(bloom, bl * (1 - w.winter));
   c.restore();
 }
 
