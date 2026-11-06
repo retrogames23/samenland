@@ -60,4 +60,4 @@ Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Samenland — the source code **and all assets** (sprites, illustrations, music, sounds, texts) — is released under the [MIT License](LICENSE).
 
-Built with [Lovable](https://lovable.dev).
+Built with [Lovable](https://lovable.dev/invite/LN0I260).
