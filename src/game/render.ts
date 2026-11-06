@@ -604,7 +604,7 @@ function drawReflection(c: C, s: Structure, cx: number, cy: number, t: number, f
   c.beginPath(); c.ellipse(cx, by + h * 0.45, b.w * 0.55, h * 0.6, 0, 0, 7); c.clip();
   c.globalAlpha = 0.22 * wet;
   const sw = Math.sin(t / 650 + cx * 0.3) * 0.04;
-  c.transform(1, 0, sw, -0.42, 0, by * 1.42 + 0.6);
+  c.transform(1, 0, sw, -0.42, -sw * by, by * 1.42 + 0.6);
   drawBuildingSprite(c, s.kind, cx, cy, s.v, 1, flip, style);
   c.restore();
   // ripple bands breaking up the mirror

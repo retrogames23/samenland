@@ -9,9 +9,12 @@ export type Scene = {
   forest: number; water: number; sea: number; // 0..1 share of the visible area
   people: number; talkers: number; // visible villagers / currently speaking
   sources: { k: string; pan: number; near: number }[]; // pan -1..1, near 0..1
+  flood?: number; floodPan?: number; // nearness of flood water 0..1 and its side
 };
 
 let ctx: AudioContext | null = null;
+// flood: deep brown roar + churning mid band + bright surface hiss, all from brown noise, panned to the water
+let fRoar: GainNode, fChurn: GainNode, fChurnF: BiquadFilterNode, fHiss: GainNode, fPan: StereoPannerNode | null = null;
 let master: GainNode, wind: GainNode, windF: BiquadFilterNode, leaves: GainNode, water: GainNode, sea: GainNode;
 let enabled = false;
 let scene: Scene | null = null;
@@ -45,6 +48,22 @@ function init() {
   ({ g: water } = loop(ctx, nb, "bandpass", 1100, 1.4));
   ({ g: sea } = loop(ctx, nb, "lowpass", 520, 0.7));
   noise = nb;
+  {
+    const a = ctx, bus = a.createGain(); bus.gain.value = 1;
+    fPan = a.createStereoPanner ? a.createStereoPanner() : null;
+    if (fPan) bus.connect(fPan).connect(master); else bus.connect(master);
+    const chain = (type: BiquadFilterType, f: number, q: number, f2?: number) => {
+      const src = a.createBufferSource(); src.buffer = nb; src.loop = true;
+      const fl = a.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+      let n: AudioNode = src.connect(fl);
+      if (f2) { const l2 = a.createBiquadFilter(); l2.type = "lowpass"; l2.frequency.value = f2; n = n.connect(l2); }
+      const g = a.createGain(); g.gain.value = 0; n.connect(g).connect(bus); src.start(0, Math.random() * 2.5);
+      return { g, fl };
+    };
+    ({ g: fRoar } = chain("lowpass", 240, 0.5, 180));
+    ({ g: fChurn, fl: fChurnF } = chain("bandpass", 520, 0.9));
+    ({ g: fHiss } = chain("highpass", 2400, 0.4, 5200));
+  }
   timer = window.setInterval(tick, 120);
   // real sheep "Mäh!" (public-domain recording), played when a sheep is clicked
   fetch("/sounds/sheep.mp3").then((r) => r.arrayBuffer()).then((b) => ctx!.decodeAudioData(b)).then((b) => { sheepBuf = b; }).catch(() => {});
@@ -216,6 +235,14 @@ function tick() {
   lerp(water.gain, Math.min(1, s.water * 3) * 0.1 * land, 0.8);
   lerp(sea.gain, Math.min(1, s.sea * 1.5) * (0.06 + 0.1 * (0.5 + 0.5 * Math.sin(ctx.currentTime / 4.5))), 0.9);
   const rnd = Math.random, P = (pan = 0) => pan + (rnd() - 0.5) * 0.3;
+  // flood water: steady roar, slowly surging churn, and occasional gurgles where the current hits walls
+  const fl = s.flood ?? 0, surge = 0.7 + 0.3 * Math.sin(ctx.currentTime / 2.3) * Math.sin(ctx.currentTime / 5.7 + 1);
+  lerp(fRoar.gain, fl * 0.32 * surge, 1.4);
+  lerp(fChurn.gain, fl * 0.11 * (0.6 + 0.4 * surge), 0.9);
+  lerp(fChurnF.frequency, 420 + 260 * surge, 1.1);
+  lerp(fHiss.gain, fl * 0.035 * surge * (0.4 + 0.6 * close), 1);
+  if (fPan) lerp(fPan.pan, (s.floodPan ?? 0) * 0.6, 1);
+  if (fl > 0.1 && rnd() < fl * 1.6 * dt) { const f0 = 180 + rnd() * 320; burst(P(s.floodPan), 0.05 * fl, f0, 0.12 + rnd() * 0.25, "bandpass"); if (rnd() < 0.35) burst(P(s.floodPan), 0.03 * fl, f0 * 1.9, 0.08, "bandpass"); }
   // birdsong: gentle two-note warble, soft and not too high (water "plinks" removed: sounded like beeping)
   if ((s.forest > 0.05 || close > 0) && rnd() < 0.25 * dt * land) {
     const f = 1400 + rnd() * 900;
