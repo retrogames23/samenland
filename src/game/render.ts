@@ -12,6 +12,9 @@ import cowUrl from "@/assets/sprites/cow.webp";
 import pondUrl from "@/assets/sprites/pond.webp";
 import flowerTuftUrl from "@/assets/sprites/flower-tuft.webp";
 import pastureCloverUrl from "@/assets/sprites/pasture-clover.webp";
+import gardenCabbageUrl from "@/assets/sprites/garden-cabbage.webp";
+import gardenLeekUrl from "@/assets/sprites/garden-leek.webp";
+import gardenBeansUrl from "@/assets/sprites/garden-beans.webp";
 import pastureTussockUrl from "@/assets/sprites/pasture-tussock.webp";
 import pastureTroughUrl from "@/assets/sprites/pasture-trough.webp";
 import maypoleUrl from "@/assets/sprites/maypole.webp";
@@ -2206,6 +2209,7 @@ function acrePath(c: C, cx: number, cy: number, hx: number, hy: number, outer: b
 }
 type AgriSpec = { kind: "field" | "garden" | "pasture"; ripe: boolean; look?: Look | undefined; along: boolean; outer: boolean[]; winter: boolean; hx: number; hy: number; k2: number };
 /** Furrows, plants, wattle, bean poles, tufts and troughs — everything except the textured base fill. */
+let gCabbage: HTMLImageElement | null = null, gLeek: HTMLImageElement | null = null, gBeans: HTMLImageElement | null = null;
 let pastureClover: HTMLImageElement | null = null, pastureTussock: HTMLImageElement | null = null, pastureTrough: HTMLImageElement | null = null;
 function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
   const pp = P(cx, cy), { hx: x, hy: y, ripe, along, outer } = a;
@@ -2239,10 +2243,12 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
   }
   c.save(); const q = acrePath(c, cx, cy, x, y, outer); c.clip(); c.lineCap = "round";
   if (a.kind === "garden") {
-    for (let k = -3; k <= 3; k++) {
-      const f = k / 6, [a0, a1] = along ? [pp(-0.6, f), pp(0.6, f)] : [pp(f, -0.6), pp(f, 0.6)];
-      c.strokeStyle = "rgba(20,12,6,0.4)"; c.lineWidth = 1.1; c.beginPath(); c.moveTo(a0[0], a0[1] + 0.7); c.lineTo(a1[0], a1[1] + 0.7); c.stroke();
-      c.strokeStyle = "rgba(160,120,80,0.28)"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(a0[0], a0[1] - 0.3); c.lineTo(a1[0], a1[1] - 0.3); c.stroke();
+    // raised beds: soft shadowed paths between mounded, lit earth ridges
+    for (let k = -2; k <= 2; k++) {
+      const f = k / 4, [a0, a1] = along ? [pp(-0.6, f), pp(0.6, f)] : [pp(f, -0.6), pp(f, 0.6)];
+      c.strokeStyle = "rgba(22,14,6,0.32)"; c.lineWidth = 2.2; c.beginPath(); c.moveTo(a0[0], a0[1] + 1.2); c.lineTo(a1[0], a1[1] + 1.2); c.stroke();
+      c.strokeStyle = "rgba(92,62,36,0.55)"; c.lineWidth = 2.4; c.beginPath(); c.moveTo(a0[0], a0[1]); c.lineTo(a1[0], a1[1]); c.stroke();
+      c.strokeStyle = "rgba(168,128,84,0.35)"; c.lineWidth = 0.9; c.beginPath(); c.moveTo(a0[0] - 0.2, a0[1] - 0.7); c.lineTo(a1[0] - 0.2, a1[1] - 0.7); c.stroke();
     }
   } else {
     for (let k = -2; k <= 2; k++) {
@@ -2253,15 +2259,14 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
   }
   c.restore();
   if (a.kind === "garden") {
-    const crow = fieldRowImage(false);
-    if (crow && !a.winter) {
-      const w = 2.6, hgt = (w * crow.height) / crow.width;
-      for (let k = -3; k <= 3; k++) for (let m = -2; m <= 2; m++) {
-        const h = hash(x * 7 + k, y * 5 + m, 660); if (h < 0.15) continue;
-        const f = k / 6, gg = m * 0.2 + (h - 0.5) * 0.08, [px, py] = along ? pp(gg, f) : pp(f, gg);
-        c.fillStyle = "rgba(20,14,6,0.25)"; c.beginPath(); c.ellipse(px + 0.4, py + 0.2, w * 0.4, 0.7, 0, 0, 7); c.fill();
-        c.save(); c.translate(px, py); if (h > 0.6) c.scale(-1, 1);
-        const s2 = 0.8 + h * 0.35; c.drawImage(crow, -w * s2 / 2, -hgt * s2 * 0.92, w * s2, hgt * s2); c.restore();
+    if (!a.winter && gCabbage && gLeek) for (let k = -2; k <= 2; k++) {
+      const bed = hash(x * 3 + k, y, 659) < 0.55 ? gCabbage : gLeek, cab = bed === gCabbage;
+      for (let m = -2; m <= 2; m++) {
+        const h = hash(x * 7 + k, y * 5 + m, 660); if (h < 0.18) continue;
+        const f = k / 4, gg = m * 0.22 + (h - 0.5) * 0.06, [px, py] = along ? pp(gg, f) : pp(f, gg);
+        const w = (cab ? 2.6 : 1.7) * (0.8 + h * 0.35), hgt = w * bed.height / bed.width;
+        c.fillStyle = "rgba(20,14,6,0.25)"; c.beginPath(); c.ellipse(px + 0.4, py + 0.2, w * 0.45, 0.6, 0, 0, 7); c.fill();
+        c.save(); c.translate(px, py); if (h > 0.6) c.scale(-1, 1); c.drawImage(bed, -w / 2, -hgt * (cab ? 0.8 : 0.95), w, hgt); c.restore();
       }
     }
     c.lineCap = "round";
@@ -2271,15 +2276,10 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
       c.strokeStyle = "#7a5a36"; c.lineWidth = 0.7; c.beginPath(); c.moveTo(A[0], A[1] - 0.45); c.lineTo(Bq[0], Bq[1] - 0.45); c.stroke();
       c.strokeStyle = "rgba(200,165,110,0.6)"; c.lineWidth = 0.22; c.beginPath(); c.moveTo(A[0], A[1] - 0.7); c.lineTo(Bq[0], Bq[1] - 0.7); c.stroke();
     }
-    if (hash(x, y, 670) > 0.62 && !a.winter) {
-      const [bx, by] = pp((hash(x, y, 671) - 0.5) * 0.4, (hash(x, y, 672) - 0.5) * 0.4), Hh = 6;
+    if (hash(x, y, 670) > 0.62 && !a.winter && gBeans) {
+      const [bx, by] = pp((hash(x, y, 671) - 0.5) * 0.4, (hash(x, y, 672) - 0.5) * 0.4), w = 3.4, hgt = w * gBeans.height / gBeans.width;
       c.fillStyle = "rgba(25,18,10,0.22)"; c.beginPath(); c.ellipse(bx + 1.2, by + 0.3, 2.2, 0.6, 0, 0, 7); c.fill();
-      const feet: Pt2[] = [[bx - 1.2, by + 0.2], [bx + 1.2, by + 0.2], [bx, by - 0.5]];
-      for (const [i, f] of feet.entries()) {
-        c.strokeStyle = i === 1 ? "#5a3f24" : "#7d5b38"; c.lineWidth = 0.35; c.beginPath(); c.moveTo(f[0], f[1]); c.lineTo(bx, by - Hh); c.stroke();
-        c.fillStyle = "rgba(78,118,48,0.9)";
-        for (let n = 1; n < 5; n++) { const fr = n / 5, lx = f[0] + (bx - f[0]) * fr, ly = f[1] + (by - Hh - f[1]) * fr; c.beginPath(); c.ellipse(lx + (n & 1 ? 0.4 : -0.4), ly, 0.55, 0.4, 0, 0, 7); c.fill(); }
-      }
+      c.drawImage(gBeans, bx - w / 2, by - hgt * 0.97, w, hgt);
     }
   } else {
     const row = fieldRowImage(ripe), grows = a.look === undefined || a.look === "green" || a.look === "ripe";
@@ -2298,6 +2298,13 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
       c.strokeStyle = "rgba(236,210,140,0.8)"; c.lineWidth = 0.25;
       for (let n = 0; n < 6; n++) { const [px, py] = pp((hash(x, y, 860 + n) - 0.5) * 0.9, (hash(x, y, 870 + n) - 0.5) * 0.9), a = hash(x, y, 880 + n) * 3; c.beginPath(); c.moveTo(px, py); c.lineTo(px + Math.cos(a) * 1.4, py + Math.sin(a) * 0.5); c.stroke(); }
     } else if (a.look === "ploughed") {
+      // mounded furrow ridges: shadowed trough below, sunlit crest from the upper left
+      for (let k = -3; k <= 3; k++) {
+        const f = k / 6, wob = (hash(x, y, 895 + k) - 0.5) * 0.04, [a0, a1] = along ? [pp(-0.6, f + wob), pp(0.6, f - wob)] : [pp(f + wob, -0.6), pp(f - wob, 0.6)];
+        const mx = (a0[0] + a1[0]) / 2, my = (a0[1] + a1[1]) / 2 + (hash(x, y, 897 + k) - 0.5) * 0.6;
+        c.strokeStyle = "rgba(30,18,8,0.4)"; c.lineWidth = 1.6; c.beginPath(); c.moveTo(a0[0], a0[1] + 1); c.quadraticCurveTo(mx, my + 1, a1[0], a1[1] + 1); c.stroke();
+        c.strokeStyle = "rgba(160,118,74,0.45)"; c.lineWidth = 0.8; c.beginPath(); c.moveTo(a0[0] - 0.2, a0[1] - 0.4); c.quadraticCurveTo(mx - 0.2, my - 0.4, a1[0] - 0.2, a1[1] - 0.4); c.stroke();
+      }
       // turned clods along the furrows: dark shadow side, lit top
       for (let k = -3; k <= 3; k++) for (let m = -5; m <= 5; m++) {
         const f = k / 6 + 0.04, g = m * 0.1 + (hash(x + k, y * 7 + m, 890) - 0.5) * 0.06, [px, py] = along ? pp(g, f) : pp(f, g), r = 0.45 + hash(x * 7 + k, y + m, 891) * 0.35;
@@ -2328,11 +2335,13 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
 const AGRI_VARIANTS = 6, AGRI_S = 3, AGRI_W = 48, AGRI_UP = 20, AGRI_H = 34;
 const agriSprites = new Map<string, HTMLCanvasElement>();
 function agriSprite(a: AgriSpec, key: string): HTMLCanvasElement | null {
+  gCabbage = huntIm("gCab", gardenCabbageUrl); gLeek = huntIm("gLeek", gardenLeekUrl); gBeans = huntIm("gBeans", gardenBeansUrl);
   pastureClover = huntIm("pClover", pastureCloverUrl); pastureTussock = huntIm("pTussock", pastureTussockUrl); pastureTrough = huntIm("pTrough", pastureTroughUrl);
   let cv = agriSprites.get(key);
   if (cv) return cv;
   // plant art not loaded yet: draw nothing cached (the fill is still shown) and retry next frame
   if (a.kind !== "pasture" && !a.winter && !fieldRowImage(a.kind === "field" && a.ripe)) return null;
+  if (a.kind === "garden" && !a.winter && !(gCabbage && gLeek && gBeans)) return null;
   if (a.kind === "pasture" && !(pastureClover && pastureTussock && pastureTrough)) return null;
   cv = document.createElement("canvas"); cv.width = AGRI_W * AGRI_S; cv.height = AGRI_H * AGRI_S;
   const g = cv.getContext("2d")!; g.setTransform(AGRI_S, 0, 0, AGRI_S, 0, 0);
