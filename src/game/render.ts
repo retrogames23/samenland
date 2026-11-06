@@ -1593,7 +1593,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
     const inv = (sx: number, sy: number) => toTile((sx - w / 2) / z + cam.x, (sy - h / 2) / z + cam.y);
     const cs = [inv(0, 0), inv(w, 0), inv(0, h), inv(w, h)];
     const x0 = Math.max(0, Math.min(...cs.map((p) => p[0])) - 2), x1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[0])) + 2);
-    const y0 = Math.max(0, Math.min(...cs.map((p) => p[1])) - 2), y1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[1])) + 5);
+    const y0 = Math.max(0, Math.min(...cs.map((p) => p[1])) - 2), y1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[1])) + 8);
     c.drawImage(overviewMap(), -(MAP * TW) / 2, 0, MAP * TW, MAP * TH); // under not-yet-baked chunks
     drawGroundChunks(c, x0, x1, y0, y1, z, cam.x - w / 2 / z, cam.x + w / 2 / z, cam.y - h / 2 / z, cam.y + h / 2 / z, true);
   } else c.drawImage(overviewMap(), -(MAP * TW) / 2, 0, MAP * TW, MAP * TH);
@@ -2992,7 +2992,7 @@ export function draw(
   const inv = (sx: number, sy: number) => toTile((sx - w / 2) / z + cam.x, (sy - h / 2) / z + cam.y);
   const cs = [inv(0, 0), inv(w, 0), inv(0, h), inv(w, h)];
   const x0 = Math.max(0, Math.min(...cs.map((p) => p[0])) - 2), x1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[0])) + 2);
-  const y0 = Math.max(0, Math.min(...cs.map((p) => p[1])) - 2), y1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[1])) + 5);
+  const y0 = Math.max(0, Math.min(...cs.map((p) => p[1])) - 2), y1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[1])) + 8);
   // One rendering path at every map zoom: no threshold where trees, house facing or pastures switch.
   // Ground always comes from baked chunks (2x supersampled at close zoom): repainting textures,
   // gradients and clips per tile every frame blew the 16 ms budget while panning.
@@ -3036,7 +3036,7 @@ export function draw(
       const y = s - x;
       const [cx, cy] = iso(x, y);
       // diamond culling: the tile rectangle's corners lie off-canvas; tall sprites rise from below, so keep a deep bottom margin
-      if (cx < cs0x - 44 || cx > cs1x + 44 || cy < cs0y - 20 || cy > cs1y + 96) continue; // margins: widest sprite half-width / tallest sprite height
+      if (cx < cs0x - 56 || cx > cs1x + 56 || cy < cs0y - 28 || cy > cs1y + 96) continue; // margins: widest sprite half-width / tallest sprite height
       const st = sparePlanted(x, y, structureAt(x, y, seeds, now));
       { const slot = tiles[nTiles] ?? (tiles[nTiles] = { x: 0, y: 0, cx: 0, cy: 0, st: null }); slot.x = x; slot.y = y; slot.cx = cx; slot.cy = cy; slot.st = st; nTiles++; }
       if (!detail) {
@@ -3070,7 +3070,7 @@ export function draw(
   let ownPose: Pose | null = null, ownDrawn = false;
   if (folkOn) for (const sd of seeds) {
     // generous margin: strollers and the steered mayor wander well beyond the built-up edge — never cull them at the border
-    const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 14;
+    const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 24;
     const mine = steer && steer.sid === sd.id && steer.x >= x0 - 2 && steer.x <= x1 + 2 && steer.y >= y0 - 2 && steer.y <= y1 + 2;
     const rm = mine ? null : remoteMayor(sd.id);
     const live = !!rm && rm.x >= x0 - 2 && rm.x <= x1 + 2 && rm.y >= y0 - 2 && rm.y <= y1 + 2;
@@ -3470,8 +3470,8 @@ export function draw(
       const l = occ[i + 1]!, tp = occ[i + 2]!, rr = occ[i + 3]!, bt = occ[i + 4]!;
       if (v.x > l + m && v.x < rr - m && v.y - 6 < bt - m && v.y > tp + m) { c.rect(l, tp, rr - l, bt - tp); hit = true; }
     }
+    // no rectangular clip: sprite boxes include transparent gable corners, so a hard clip sliced heads/feet with straight edges
     if (hit) {
-      c.clip();
       drawParchment(c, v.x, v.y, z, v.f);
       ghostWas.add(v.k);
     } else ghostWas.delete(v.k);
