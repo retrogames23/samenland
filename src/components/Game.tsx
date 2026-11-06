@@ -192,9 +192,6 @@ function drawBubble(ctx: CanvasRenderingContext2D, cv: HTMLCanvasElement, cam: C
   ctx.restore();
 }
 
-/** Closest the camera may come on every map. */
-const maxZoom = (walk: boolean) => walk ? 40 : 24;
-
 export function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // dev diagnostics HUD: written straight to the DOM, never through React state
