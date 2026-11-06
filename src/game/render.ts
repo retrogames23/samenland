@@ -34,7 +34,7 @@ import { sheavesOn, woodpileLevel, frost, strawOn, springWork, laundryOut, dryin
 import { pealPause } from "./time";
 import { isRestDay, bonfireLit, christmasNight, feastOn, FEASTS, type FeastCode } from "./feasts";
 import { oxWalk, martinWalk, herdsmanWalk, type Walk } from "./feast-walkers";
-import { activeRaid, RAID_LEN } from "./disasters";
+import { activeRaid, RAID_LEN, tileHits, type TileHit } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
 import { decorMap, seatTile, type RewardKey } from "./supporter";
 import { dogStep, dogTile, type DogPose } from "./dog";
@@ -398,8 +398,9 @@ function drawFlood(c: C, cx: number, cy: number, t: number, sd: number, wet: num
   c.globalAlpha = 1;
   // drifting brushwood and straw tufts
   if (wet > 0.4 && hash(sd, 1, 33) < 0.35) { const ph = (t / 14000 + hash(sd, 2, 33)) % 1, dx = cx - 7 + ph * 14, dy = cy + (hash(sd, 3, 33) - 0.5) * 4 + Math.sin(t / 700 + sd) * 0.3;
-    c.globalAlpha = Math.sin(ph * Math.PI); c.strokeStyle = "rgba(78,58,36,0.85)"; c.lineWidth = 0.6; c.beginPath(); c.moveTo(dx - 1.8, dy); c.lineTo(dx + 1.8, dy - 0.4); c.moveTo(dx - 0.4, dy - 0.2); c.lineTo(dx + 0.6, dy - 1.1); c.stroke();
-    c.fillStyle = "rgba(196,170,96,0.8)"; c.beginPath(); c.ellipse(dx + 2.2, dy + 0.4, 1, 0.45, 0.2, 0, 7); c.fill(); c.globalAlpha = 1; }
+    c.globalAlpha = Math.sin(ph * Math.PI); const im = folkImage("floodDrift");
+    if (im) { const w = 5.2, h = (w * im.naturalHeight) / im.naturalWidth; c.drawImage(im, dx - w / 2, dy - h * 0.6, w, h); }
+    c.globalAlpha = 1; }
   c.fillStyle = `rgba(232,236,225,${0.14 + wet * 0.1})`; c.fillRect(cx - 4 + Math.sin(t / 900 + sd) * 2, cy - 0.5, 6, 0.5);
 }
 /** Silt the flood leaves on fields: grey-brown mud patches that fade over a few days. */
@@ -408,12 +409,12 @@ function drawSilt(c: C, cx: number, cy: number, sd: number, silt: number) {
 }
 /** Fascine wall: brushwood bundles and earth piled along the dry edge of the water. */
 function drawLevee(c: C, cx: number, cy: number, sd: number, lv: number) {
-  const n = Math.max(1, Math.round(lv * 4));
-  c.fillStyle = "rgba(25,20,10,0.2)"; c.beginPath(); c.ellipse(cx, cy + 1.2, 8, 2, 0, 0, 7); c.fill();
-  c.fillStyle = "rgb(112,88,58)"; c.beginPath(); c.ellipse(cx, cy + 0.6, 7 * Math.min(1, lv + 0.3), 1.6 + lv, 0, Math.PI, 0); c.fill();
-  for (let i = 0; i < n; i++) { const bx = cx - 5 + i * 3.3 + hash(sd, i, 51) * 0.8, by = cy - 0.4 - (i % 2) * 0.8;
-    c.fillStyle = "rgb(118,92,52)"; c.beginPath(); c.ellipse(bx, by, 2, 0.95, -0.15, 0, 7); c.fill();
-    c.strokeStyle = "rgba(70,52,30,0.9)"; c.lineWidth = 0.3; c.beginPath(); for (let k = -1; k <= 1; k++) { c.moveTo(bx - 1.9, by + k * 0.4); c.lineTo(bx + 1.9, by + k * 0.35); } c.moveTo(bx - 0.3, by - 1); c.lineTo(bx - 0.3, by + 1); c.moveTo(bx + 0.8, by - 1); c.lineTo(bx + 0.8, by + 1); c.stroke(); }
+  const im = folkImage("fascine"); if (!im) return;
+  c.fillStyle = "rgba(25,20,10,0.22)"; c.beginPath(); c.ellipse(cx, cy + 0.8, 8.5 * Math.min(1, lv + 0.3), 1.8, 0, 0, 7); c.fill();
+  // the wall grows bundle by bundle: reveal the painted segment from left to right
+  const w = 17, h = (w * im.naturalHeight) / im.naturalWidth, f = Math.min(1, 0.25 + lv * 0.75), flip = hash(sd, 7, 52) < 0.5;
+  c.save(); c.translate(cx, cy); if (flip) c.scale(-1, 1);
+  c.drawImage(im, 0, 0, im.naturalWidth * f, im.naturalHeight, -w / 2, -h + 1.5, w * f, h); c.restore();
 }
 /** Robber: sneaks in from the forest edge, past the houses, and out again. */
 function drawRobber(c: C, X: number, Y: number, flip: boolean, t: number) {
@@ -3028,6 +3029,10 @@ export function draw(
   const L = framePool.lights; L.length = 0;
   // pooled per-frame buffers: slots and maps are reused across frames to keep GC pauses out of the loop
   const tiles = framePool.tiles; let nTiles = 0;
+  // flood water, fascines and silt also reach open meadow and the wild river bank (no structure there)
+  const floodWild = new Map<number, TileHit>();
+  for (const sd of seeds) { if (Math.abs(sd.x - (x0 + x1) / 2) > (x1 - x0) / 2 + 40 || Math.abs(sd.y - (y0 + y1) / 2) > (y1 - y0) / 2 + 40) continue;
+    for (const [k, v] of tileHits(sd, now)) if ((v.flood || v.silt || v.levee) && !floodWild.has(k)) floodWild.set(k, v); }
 
   const edges: GroundEdge[] = [];
   frameBakes = 0;
@@ -3401,9 +3406,10 @@ export function draw(
     if (st?.kind === "coop" && st.build === undefined) drawHens(c, cx, cy, x * 31 + y);
     if (hash(x, y, 501) < 0.006) { const tr = st ? null : terrain(x, y); if (tr === "water" || (tr === "sand" && hash(x, y, 502) < 0.5)) birds.push([cx, cy, 1, x * 7 + y]); }
     if (st?.kind === "field" && hash(x, y, 503) < 0.02) birds.push([cx, cy, 0, x * 7 + y]);
-    if (st?.silt && !st.flood) drawSilt(c, cx, cy, x * 7 + y, st.silt);
-    if (st?.flood) drawFlood(c, cx, cy, t, x * 7 + y, st.wet ?? 1);
-    if (st?.levee && !st.flood) drawLevee(c, cx, cy + 4, x * 7 + y, st.levee);
+    const wh = st ?? floodWild.get(y * MAP + x);
+    if (wh?.silt && !wh.flood) drawSilt(c, cx, cy, x * 7 + y, wh.silt);
+    if (wh?.flood) drawFlood(c, cx, cy, t, x * 7 + y, wh.wet ?? 1);
+    if (wh?.levee && !wh.flood) drawLevee(c, cx, cy + 4, x * 7 + y, wh.levee);
     const fk = folk.get(y * MAP + x);
     const sdT = x * 1000 + y, flock = fk && st?.kind === "pasture" && st.build === undefined ? sheepSpots(sdT, st.v, now) : [];
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
