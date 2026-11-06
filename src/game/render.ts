@@ -3437,7 +3437,20 @@ export function draw(
           c.strokeStyle = sel ? "rgba(255,226,160,0.95)" : "rgba(255,236,190,0.7)"; c.lineWidth = sel ? 0.8 : 0.6; c.stroke();
         }
         const fig = (context: C) => q.mounted ? drawRider(context, px, py, q.dir[0], q.dir[1], 0, q.walking ? t * 0.8 : 0) : drawPerson(context, px, py, q, t, simpleFolk);
-        fig(c); pushPerson(px, py, q);
+        // rescued sheep trots alongside, on the side away from the viewer
+        if (q.lead) { const sx = px - q.dir[0] * 2.2 + 2.4, sy = py - q.dir[1] * 1.1 - 0.6; drawSheep(c, sx, sy, q.dir[0] < 0, t + q.p.id * 997, q.walking, false, false); }
+        // wading: feet vanish below the water line, a ripple ring rings the shins
+        const wd = floodDepth(q.x, q.y);
+        if (wd > 0.12) {
+          const cut = py - 0.4 - wd * 1.4;
+          c.save(); c.beginPath(); c.rect(px - 12, py - 30, 24, cut - (py - 30)); c.clip(); fig(c); c.restore();
+          const rp = (t / 700 + q.p.id * 0.37) % 1;
+          c.strokeStyle = `rgba(230,232,218,${0.45 * (1 - rp) * wd})`; c.lineWidth = 0.35;
+          c.beginPath(); c.ellipse(px, cut + 0.2, 1.6 + rp * 2.2, 0.55 + rp * 0.7, 0, 0, 7); c.stroke();
+          c.fillStyle = `rgba(110,100,76,${0.35 * wd})`; c.beginPath(); c.ellipse(px, cut + 0.2, 1.5, 0.5, 0, 0, 7); c.fill();
+          if (q.walking) { c.fillStyle = `rgba(240,240,228,${0.5 * wd})`; c.fillRect(px + q.dir[0] * 1.4 - 0.5, cut - 0.1, 1, 0.3); }
+        } else fig(c);
+        pushPerson(px, py, q);
         if (q === ownPose) ownDrawn = true;
         if (hov || sel || (q.p.role === "mayor" && q.p.seed.id === ownMayorSid())) vip.push({ f: fig, x: px, y: py, k: y * MAP + x });
         if (q.bucket) drawBucket(c, px, py, q, t);

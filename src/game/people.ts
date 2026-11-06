@@ -400,7 +400,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
         if (!wet.has(Math.round(y) * MAP + Math.round(x)) && open(Math.round(x), Math.round(y))) spot = [x, y]; }
       if (!spot) continue;
       m++;
-      q.fete = { at: f.at, spot, face: [q.home[0] + dx / d, q.home[1] + dy / d], lag: lab ? 3 + hash(q.id, 6, 1433) * 25 : 60 + hash(q.id, 6, 1433) * 1200, dur: Math.min((f.end - f.at) / 1000, lab ? 7200 : 3 * 3600), rescue: (q.job === "farmer" || q.job === "shepherd") && q.age >= 14 ? "herd" : "goods" };
+      q.fete = { at: f.at, spot, face: [q.home[0] + dx / d, q.home[1] + dy / d], lag: lab ? 3 + hash(q.id, 6, 1433) * 25 : 60 + hash(q.id, 6, 1433) * 1200, dur: Math.min((f.end - f.at) / 1000, lab ? 7200 : 3 * 3600), rescue: q.job === "farmer" && q.age >= 14 ? "herd" : "goods" };
     }
   }
   // babies never join a gathering on their own feet
