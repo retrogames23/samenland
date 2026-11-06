@@ -75,7 +75,7 @@ export function Survey({ userId, lang }: { userId: string | null; lang: Lang }) 
         <>
           <p className="mt-3 text-center font-display text-xl leading-snug">{t.wish}</p>
           <textarea dir="auto" value={wish} maxLength={2000} rows={5} onChange={(e) => setWish(e.target.value)} placeholder={t.wishHint}
-            className="mt-3 w-full rounded-md border border-ink/20 bg-background/60 p-2 text-base md:text-sm" />
+            className="mt-3 w-full rounded-md border border-ink/20 bg-card text-ink p-2 text-base md:text-sm" />
           {err && <p className="mt-2 text-center text-sm text-destructive">{t.failed}</p>}
         </>
       )}

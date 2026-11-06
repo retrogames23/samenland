@@ -2552,7 +2552,7 @@ export function Game() {
             <label className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
               {t.hud.language}
               <select value={lang} aria-label={t.hud.language} onChange={(e) => switchLang(e.target.value as Lang)}
-                className="h-8 flex-1 rounded-md border border-border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                className="h-8 flex-1 rounded-md border border-border bg-card px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
                 {LANGS.map((l) => <option key={l} value={l} lang={l}>{LANG_LABEL[l]} · {LANG_NAME[l]}</option>)}
               </select>
             </label>
@@ -3160,7 +3160,7 @@ export function Game() {
       {postTo && my && (
         <Parchment title={t.post.title(postTo.name)} later={t.fest.close} onLater={() => setPostTo(null)}>
           <p className="text-center text-sm text-ink/70">{t.post.hint}</p>
-          <textarea className="mt-3 w-full rounded border border-border bg-background/80 p-2 text-ink" rows={3} maxLength={140} value={postText} placeholder={t.post.place} onChange={(e) => setPostText(e.target.value)} />
+          <textarea className="mt-3 w-full rounded border border-border bg-card p-2 text-ink placeholder:text-ink/40" rows={3} maxLength={140} value={postText} placeholder={t.post.place} onChange={(e) => setPostText(e.target.value)} />
           <div className="mt-1 text-right text-xs text-ink/60">{postText.length}/140</div>
           <div className="mt-3 flex justify-center"><Button disabled={!postText.trim()} onClick={sendLetter}>{t.post.go}</Button></div>
         </Parchment>

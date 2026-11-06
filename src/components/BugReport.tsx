@@ -52,7 +52,7 @@ export function BugReport({ lang, userId, context, onClose }: { lang: Lang; user
         ))}
       </div>
       <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={4000} rows={5} placeholder={t.placeholder}
-        className="w-full rounded border border-border bg-background/60 p-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+        className="w-full rounded border border-border bg-card p-2 text-sm text-ink placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
       <div className="text-xs text-muted-foreground">{t.shots(files.length)}</div>
       <div className="flex flex-wrap gap-1.5">
         {files.map((f, i) => (
