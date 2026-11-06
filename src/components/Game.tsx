@@ -191,8 +191,8 @@ function drawBubble(ctx: CanvasRenderingContext2D, cv: HTMLCanvasElement, cam: C
   ctx.restore();
 }
 
-/** Closest the camera may come. The test map doubles it: the control desk wants to inspect single pixels. */
-const maxZoom = (walk: boolean) => (walk ? 20 : 12) * (isLab() ? 2 : 1);
+/** Closest the camera may come on every map. */
+const maxZoom = (walk: boolean) => walk ? 40 : 24;
 
 export function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
