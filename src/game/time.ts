@@ -107,4 +107,13 @@ export function gameYear(now: number): number {
   return Number(new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric" }).format(new Date(now))) - YEAR_SHIFT;
 }
 /** Start (ms) of the current realm calendar day; daily limits (blessing, gifts, wonders, decrees) reset at this midnight, mirrored by DB realm_day_start. */
-export const worldDayStart = (now: number) => now - Math.floor(worldHour(now) * 3.6e6);
+export function worldDayStart(now: number): number {
+  // same as SQL date_trunc('day', now AT TIME ZONE z) AT TIME ZONE z: the real local midnight, DST-safe
+  const f = new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric", hourCycle: "h23" });
+  const wall = (t: number) => { const p = f.formatToParts(new Date(t)); const g = (k: string) => Number(p.find((x) => x.type === k)?.value ?? 0); return Date.UTC(g("year"), g("month") - 1, g("day"), g("hour") % 24, g("minute"), g("second")); };
+  const sec = Math.floor(now / 1000) * 1000, w = wall(sec);
+  const mid = Math.floor(w / 864e5) * 864e5; // local midnight as wall-clock ms
+  let t = mid - (w - sec); // first guess with today's offset
+  t = mid - (wall(t) - t); // correct with the offset valid at midnight
+  return t;
+}

@@ -1544,53 +1544,77 @@ let overview: HTMLCanvasElement | null = null;
 let renderNow = 0;
 let renderSeeds: Seed[] = [];
 let overviewSeason = "";
-/** Cached map picture at 1/16 iso scale, coloured from the real ground textures (terrain is static). */
-function overviewMap() {
-  const sk = seasonKey(renderNow);
-  if (overview && overviewSeason === sk) return overview;
-  const ready = allTexturesReady();
-  // never rebuild every frame while textures load: keep the last picture (or a cheap one) until ready
-  if (!ready && overview) return overview;
-  overviewSeason = sk;
-  const S = 16, W = (MAP * TW) / S, H = (MAP * TH) / S;
+/** Cached map picture at 1/16 iso scale, coloured from the real ground textures (terrain is static).
+ * Built in row slices within a per-call time budget so zooming out never stalls a frame; until the fine
+ * picture is done, the previous one (or a cheap 1/64 preview built at once) is shown. */
+type OvJob = { sk: string; ready: boolean; S: number; W: number; H: number; cv: HTMLCanvasElement; g: CanvasRenderingContext2D; img: ImageData; py: number; rgb: Map<string, [number, number, number]> };
+let ovJob: OvJob | null = null;
+function ovStart(sk: string, ready: boolean, S: number): OvJob {
+  const W = Math.round((MAP * TW) / S), H = Math.round((MAP * TH) / S);
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const g = cv.getContext("2d")!; const img = g.createImageData(W, H);
   const rgb = new Map<string, [number, number, number]>();
   const tmp = document.createElement("canvas").getContext("2d")!;
   for (const [k, [h, s, l]] of Object.entries(TERRAIN)) { tmp.fillStyle = hsl(h, s, l); tmp.fillRect(0, 0, 1, 1); const d = tmp.getImageData(0, 0, 1, 1).data; rgb.set(k, [d[0]!, d[1]!, d[2]!]); }
-  for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
-    const ix = px * S - (MAP * TW) / 2, iy = py * S;
-    // jitter the lookup so terrain borders read as soft, organic lines instead of stair steps
-    const jx = (hash(px, py, 7) - 0.5) * TW * 0.9, jy = (hash(px, py, 8) - 0.5) * TH * 0.9;
-    const fx = (ix + jx) / TW + (iy + jy) / TH, fy = (iy + jy) / TH - (ix + jx) / TW;
-    const tx = Math.floor(fx), ty = Math.floor(fy);
-    const o = (py * W + px) * 4;
-    if (tx < 0 || ty < 0 || tx >= MAP || ty >= MAP) continue;
-    const tr = terrain(tx, ty);
-    let r: number, gg: number, b: number;
-    const sm = ready ? texSample(TEX_OF[tr]!) : null;
-    if (sm) { const q = ((py % sm.n) * sm.n + (px % sm.n)) * 4; r = sm.d[q]!; gg = sm.d[q + 1]!; b = sm.d[q + 2]!; }
-    else { const c0 = rgb.get(tr)!; r = c0[0]; gg = c0[1]; b = c0[2]; }
-    if (tr === "deep") { r *= 0.6; gg *= 0.7; b *= 0.8; }
-    if (tr === "forest") { r = r * 0.8 + 18; gg = gg * 0.85 + 34; b = b * 0.8 + 12; }
-    if (tr === "mountain") { const m = 0.9 + hash(tx, ty, 3) * 0.2; r *= m; gg *= m; b *= m; }
-    img.data[o] = r; img.data[o + 1] = gg; img.data[o + 2] = b; img.data[o + 3] = 255;
+  return { sk, ready, S, W, H, cv, g, img, py: 0, rgb };
+}
+/** Fill rows until `budget` ms are used; returns the finished, softened picture or null. */
+function ovStep(j: OvJob, budget: number): HTMLCanvasElement | null {
+  const { S, W, H, img, rgb, ready } = j, t0 = performance.now();
+  for (; j.py < H; j.py++) {
+    const py = j.py;
+    for (let px = 0; px < W; px++) {
+      const ix = px * S - (MAP * TW) / 2, iy = py * S;
+      // jitter the lookup so terrain borders read as soft, organic lines instead of stair steps
+      const jx = (hash(px, py, 7) - 0.5) * TW * 0.9, jy = (hash(px, py, 8) - 0.5) * TH * 0.9;
+      const fx = (ix + jx) / TW + (iy + jy) / TH, fy = (iy + jy) / TH - (ix + jx) / TW;
+      const tx = Math.floor(fx), ty = Math.floor(fy);
+      const o = (py * W + px) * 4;
+      if (tx < 0 || ty < 0 || tx >= MAP || ty >= MAP) continue;
+      const tr = terrain(tx, ty);
+      let r: number, gg: number, b: number;
+      const sm = ready ? texSample(TEX_OF[tr]!) : null;
+      if (sm) { const q = ((py % sm.n) * sm.n + (px % sm.n)) * 4; r = sm.d[q]!; gg = sm.d[q + 1]!; b = sm.d[q + 2]!; }
+      else { const c0 = rgb.get(tr)!; r = c0[0]; gg = c0[1]; b = c0[2]; }
+      if (tr === "deep") { r *= 0.6; gg *= 0.7; b *= 0.8; }
+      if (tr === "forest") { r = r * 0.8 + 18; gg = gg * 0.85 + 34; b = b * 0.8 + 12; }
+      if (tr === "mountain") { const m = 0.9 + hash(tx, ty, 3) * 0.2; r *= m; gg *= m; b *= m; }
+      img.data[o] = r; img.data[o + 1] = gg; img.data[o + 2] = b; img.data[o + 3] = 255;
+    }
+    if ((py & 7) === 7 && performance.now() - t0 > budget) { j.py++; return null; }
   }
-  g.putImageData(img, 0, 0);
+  j.g.putImageData(img, 0, 0);
   // soften once more so coasts and rivers look painted, not pixelated
   const out = document.createElement("canvas"); out.width = W; out.height = H;
-  const og = out.getContext("2d")!; og.filter = "blur(0.8px)"; og.drawImage(cv, 0, 0);
-  overview = out;
-  if (!ready) overviewSeason = "";
+  const og = out.getContext("2d")!; og.filter = `blur(${(0.8 * 16) / S}px)`; og.drawImage(j.cv, 0, 0);
   return out;
+}
+/** Advance the fine overview by up to `budget` ms; always returns something drawable. */
+function overviewMap(budget = 6) {
+  const sk = seasonKey(renderNow);
+  if (overview && overviewSeason === sk) return overview;
+  const ready = allTexturesReady();
+  // never restart every frame while textures load: keep the last picture until they are ready
+  if (!ready && overview) return overview;
+  if (!overview) { const q = ovStep(ovStart(sk, false, 64), Infinity)!; overview = q; overviewSeason = ""; }
+  if (!ovJob || ovJob.sk !== sk || ovJob.ready !== ready) ovJob = ovStart(sk, ready, 16);
+  const done = ovStep(ovJob, budget);
+  if (done) { overview = done; overviewSeason = ovJob.ready ? sk : ""; ovJob = null; }
+  return overview!;
 }
 
 /** Builds the overview picture in idle time so zooming out never stalls. */
 export function prewarmOverview() {
   if (typeof window === "undefined") return;
-  const go = () => { renderNow = renderNow || clock(); if (!allTexturesReady()) return void setTimeout(go, 400); overviewMap(); };
   const ric = (window as Window & { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback;
-  ric ? ric(go) : setTimeout(go, 800);
+  const later = (f: () => void) => (ric ? ric(f) : setTimeout(f, 50));
+  const go = () => {
+    renderNow = renderNow || clock();
+    if (!allTexturesReady()) return void setTimeout(go, 400);
+    overviewMap(8);
+    if (overviewSeason !== seasonKey(renderNow)) later(go);
+  };
+  later(go);
 }
 
 /** Crafts that need light to work: their windows glow by day under a dark storm sky. */
@@ -3276,7 +3300,7 @@ export function draw(
     if (!supportOwned.get(sd.id)?.has("dog")) continue;
     const [hx, hy] = seatTile(sd), mq = dogMayors.get(sd.id);
     const near = mq || (hx >= x0 - 4 && hx <= x1 + 4 && hy >= y0 - 4 && hy <= y1 + 4); if (!near) continue;
-    const d = dogStep(sd.id, [hx, hy + 1], mq ? { x: mq.x, y: mq.y, walking: mq.walking } : null, worldHour(now), Date.now(), freeGround);
+    const d = dogStep(sd.id, [hx, hy + 1], mq ? { x: mq.x, y: mq.y, walking: mq.walking } : null, worldHour(now), now, freeGround);
     dogSpots.set(sd.id, { x: d.x, y: d.y });
     const [px, py] = iso(d.x, d.y), sk = sd.x * 7 + sd.y;
     addProp(dogTile(sd.id, d.x, d.y, MAP), () => drawDog(c, d, px, py, t, sk));
