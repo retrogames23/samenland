@@ -9,6 +9,7 @@ import crowUrl from "@/assets/sprites/crow.webp";
 import { animalsSleeping } from "./animals";
 import { drawParchment } from "./parchment";
 import cowUrl from "@/assets/sprites/cow.webp";
+import pondUrl from "@/assets/sprites/pond.webp";
 import maypoleUrl from "@/assets/sprites/maypole.webp";
 import { worldHour, clock } from "./time";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
@@ -2939,6 +2940,12 @@ function sparePlanted(x: number, y: number, st: Structure | null): Structure | n
 }
 /** Dug carp pond beside a dry-land fishery: earthen rim, still water, lily pads and reeds. */
 function drawPond(c: C, x: number, y: number, cx: number, cy: number) {
+  const im = huntIm("pond", pondUrl);
+  if (im) { // painted pond, mirrored per tile so neighbouring ponds differ
+    const w = TW * 0.98, h = (w * im.naturalHeight) / im.naturalWidth, fl = hash(x, y, 91) < 0.5;
+    if (!fl) { c.drawImage(im, cx - w / 2, cy - h * 0.55, w, h); return; }
+    const B = c.getTransform(); c.translate(cx, 0); c.scale(-1, 1); c.drawImage(im, -w / 2, cy - h * 0.55, w, h); c.setTransform(B); return;
+  }
   const rx = TW * 0.4, ry = TH * 0.4;
   c.fillStyle = "rgba(92,72,44,0.55)"; c.beginPath(); c.ellipse(cx, cy + 0.6, rx + 1.6, ry + 1.1, 0, 0, 7); c.fill();
   const g = c.createLinearGradient(cx - rx, cy - ry, cx + rx, cy + ry);

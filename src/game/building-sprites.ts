@@ -190,7 +190,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   chapel: { url: chapel, crop: [0, 0, 474, 480], width: 21, base: 4 },
   watermill: { url: watermill, crop: [0, 0, 480, 460], width: 28, base: 4 },
   harbor: { url: harbor, crop: [0, 0, 480, 427], width: 26, base: 4 },
-  stall: { url: stall, crop: [0, 0, 480, 395], width: 10, base: 4 },
+  stall: { url: stall, crop: [0, 0, 480, 480], width: 10, base: 4 },
   townhall: { url: townhall, crop: [0, 0, 423, 480], width: 31, base: 4 },
   seat1: { url: seat1, crop: [0, 0, 480, 439], width: 22, base: 4 },
   seat2: { url: seat2, crop: [0, 0, 480, 446], width: 26, base: 4 },
