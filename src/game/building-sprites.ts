@@ -219,7 +219,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   warehouse: { url: warehouse, crop: [0, 0, 480, 343], width: 29, base: 5 },
   factory: { url: factory, crop: [0, 0, 480, 474], width: 34, base: 4 },
   sawmill: { url: sawmill, crop: [0, 0, 480, 382], width: 28, base: 5 },
-  well: { url: well, crop: [0, 0, 349, 480], width: 6, base: 1.5 },
+  well: { url: well, crop: [0, 0, 349, 480], width: 6, base: 3.8 },
   market: { url: market, crop: [0, 0, 990, 665], width: 26, base: 5 },
   hay: { url: hay, crop: [0, 0, 966, 827], width: 13, base: 3 },
   fishery: { url: fishery, crop: [0, 0, 480, 391], width: 22, base: 4 },
