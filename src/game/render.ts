@@ -2469,7 +2469,7 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
 const WONDER_ART: Record<WonderKind, [string, number]> = { wreck: [wreckU, 36], cave: [caveU, 54], oak: [oakU, 74], ruin: [ruinU, 70], caravan: [caravanU, 24], spring: [springU, 46] };
 let wonderM: Map<number, WonderKind> | null = null;
 // realm switch: drop map-specific caches so no wonder or ground from the previous island lingers
-onGeoChange(() => { wonderM = null; overview = null; chunkCache.clear(); geomCache.clear(); flatCache.clear(); });
+onGeoChange(() => { wonderM = null; overview = null; chunkCache.clear(); geomCache.clear(); clearFlat(); });
 const wonderMap = () => wonderM ??= new Map(wonders().map((w) => [w.y * MAP + w.x, w.kind]));
 let wonderFound = new Set<string>();
 // ---------------- supporter decorations (src/game/supporter.ts): purely cosmetic ----------------
@@ -2880,6 +2880,9 @@ const framePool = {
 const FC = 16;
 type FlatChunk = { bm?: ImageBitmap | null; cv: (HTMLCanvasElement & { ox: number; oy: number }) | null; q: number; sk: string; tok: Int32Array; dirty: boolean; full: boolean; baked: number; empty: boolean };
 const flatCache = new Map<number, FlatChunk>();
+/** Evicts a flat chunk and frees its GPU bitmap right away instead of waiting for garbage collection. */
+function dropFlat(key: number) { const e = flatCache.get(key); if (e) { e.bm?.close(); e.bm = null; e.cv = null; } flatCache.delete(key); }
+function clearFlat() { for (const e of flatCache.values()) { e.bm?.close(); e.bm = null; } flatCache.clear(); }
 /** Bakes (ground or flat chunk) started this frame: one per frame keeps every frame short while panning. */
 let frameBakes = 0;
 const flatKinds = new Map<string, number>();
@@ -2958,7 +2961,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
       break outer;
     }
   }
-  while (flatCache.size > FLAT_KEEP) flatCache.delete(flatCache.keys().next().value!);
+  while (flatCache.size > FLAT_KEEP) dropFlat(flatCache.keys().next().value!);
   return flatSet;
 }
 /** Planted rare trees keep their tile: no field, house or workshop is ever drawn over them (display only — household capacity is unchanged). Roads keep their ribbon. */

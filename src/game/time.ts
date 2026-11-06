@@ -59,7 +59,11 @@ export const pealPause = (now: number) => { const h = worldHour(now); return PEA
 export const isWorkHour = (now: number) => { const h = worldHour(now); return h >= WORK_START && h < WORK_END; };
 /** Monotonic "work clock" in ms: advances WORK_RATE× during the working day, stands still at night; equals real time over whole days. */
 export function workClock(now: number): number {
-  const h = worldHour(now), day = now - h * 3.6e6;
+  // anchor on the local calendar day (wall-clock ms), not `now - h`: on DST switch days the local hour jumps,
+  // which would make the clock step back. Each local day contributes exactly 24 h, so it stays monotonic.
+  const h = worldHour(now), utcH = (now % 864e5) / 3.6e6;
+  const off = Math.round(((h - utcH + 36) % 24) - 12);
+  const day = Math.floor((now + off * 3.6e6) / 864e5) * 864e5;
   return day + Math.min(Math.max(h - WORK_START, 0), WORK_END - WORK_START) * WORK_RATE * 3.6e6;
 }
 /** Real moment when `ms` of work time have passed since `from` (inverse of workClock; pure). */
