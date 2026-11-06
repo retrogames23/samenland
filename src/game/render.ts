@@ -2759,8 +2759,13 @@ function drawBucket(c: C, x: number, y: number, q: Pose, t: number) {
   if (!q.walking) {
     const u = ((t / 840 + q.p.id * 0.37) % 1);
     if (u < 0.35) {
-      const k = u / 0.35; c.strokeStyle = `rgba(170,210,235,${0.8 * (1 - k)})`; c.lineWidth = 0.6;
-      c.beginPath(); c.moveTo(bx + f * 0.8, by - 1.3); c.quadraticCurveTo(bx + f * (2 + k * 3), by - 4 - k, bx + f * (3 + k * 5), by - 1 + k * 2); c.stroke();
+      // a gush of droplets thrown from the rim along an arc, thinning as it flies
+      const k = u / 0.35;
+      for (let i = 0; i < 7; i++) {
+        const s = Math.max(0, k - i * 0.05), px = bx + f * (0.8 + s * 5.5), py = by - 1.3 - Math.sin(s * Math.PI) * 3 + s * 2.5;
+        c.fillStyle = `rgba(185,215,232,${0.75 * (1 - k) * (1 - i / 8)})`;
+        c.beginPath(); c.ellipse(px, py, 0.45 - i * 0.04, 0.32 - i * 0.03, 0, 0, 7); c.fill();
+      }
     }
   }
   c.restore();
