@@ -1,4 +1,5 @@
 import { WalkStick } from "./WalkStick";
+import { maxZoom } from "@/game/camera";
 import { CharacterBadge, CharacterDetails } from "./hud/CharacterBadge";
 import { tileHits } from "@/game/disasters";
 import { BOOK } from "@/game/lang/book";
@@ -190,9 +191,6 @@ function drawBubble(ctx: CanvasRenderingContext2D, cv: HTMLCanvasElement, cam: C
   lines.forEach((l, i) => ctx.fillText(l, bx + bw / 2, by + pad * 0.8 + i * lh));
   ctx.restore();
 }
-
-/** Closest the camera may come. The test map doubles it: the control desk wants to inspect single pixels. */
-const maxZoom = (walk: boolean) => (walk ? 20 : 12) * (isLab() ? 2 : 1);
 
 export function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
