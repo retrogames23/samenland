@@ -3160,6 +3160,17 @@ export function draw(
   }
 
   // ---- bridges: one straight span per water crossing, abutment to abutment ----
+  // bridges join the tile depth order at their shallowest visible tile: the north bank stays behind the railing, the south bank in front
+  const bridgeInDepth = (ts: readonly (readonly [number, number])[], f: () => void) => {
+    let best = -1, bd = Infinity;
+    for (const [x, y] of ts) {
+      if (x < x0 || x > x1 || y < y0 || y > y1) continue;
+      const [cx, cy] = iso(x, y);
+      if (cx < cs0x - 56 || cx > cs1x + 56 || cy < cs0y - 28 || cy > cs1y + 96) continue;
+      if (x + y < bd) { bd = x + y; best = y * MAP + x; }
+    }
+    if (best < 0) f(); else addProp(best, () => f());
+  };
   if (detail) for (const l of worldLinks) {
     const n = l.tiles.length;
     for (let i = 0; i < n; i++) {
@@ -3172,7 +3183,7 @@ export function draw(
       if (built) {
         const [ax, ay] = iso(A[0], A[1]), [bx, by] = iso(B[0], B[1]);
         if (Math.max(ax, bx) > cs0x - 60 && Math.min(ax, bx) < cs1x + 60 && Math.max(ay, by) > cs0y - 60 && Math.min(ay, by) < cs1y + 60)
-          drawBridgeSpan(c, [ax, ay], [bx, by], A[0] * 31 + A[1], t);
+          bridgeInDepth(l.tiles.slice(i, j + 1), () => drawBridgeSpan(c, [ax, ay], [bx, by], A[0] * 31 + A[1], t));
       }
       i = j;
     }
@@ -3183,7 +3194,7 @@ export function draw(
     const tw = townOf(sd, seeds, now), sg = tw.steg; if (!sg || now < sg.done) continue;
     const [ax, ay] = iso(sg.a[0], sg.a[1]), [bx, by] = iso(sg.b[0], sg.b[1]);
     if (Math.max(ax, bx) > cs0x - 60 && Math.min(ax, bx) < cs1x + 60 && Math.max(ay, by) > cs0y - 60 && Math.min(ay, by) < cs1y + 60)
-      drawBridgeSpan(c, [ax, ay], [bx, by], sg.a[0] * 31 + sg.a[1], t);
+      bridgeInDepth([sg.a, sg.b], () => drawBridgeSpan(c, [ax, ay], [bx, by], sg.a[0] * 31 + sg.a[1], t));
   }
 
   // road traffic, messengers and stalls join the tile depth order: houses in front hide them (no object above a front roof)
