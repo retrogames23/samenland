@@ -3103,6 +3103,7 @@ export function draw(
   const steer = steeredMayor();
   const dogMayors = new Map<string, Pose>();
   let ownPose: Pose | null = null, ownDrawn = false;
+  lanternFolk.clear();
   if (folkOn) for (const sd of seeds) {
     // generous margin: strollers and the steered mayor wander well beyond the built-up edge — never cull them at the border
     const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 24;
@@ -3112,7 +3113,6 @@ export function draw(
     if (!mine && !live && (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1)) continue;
     const r0 = reachOf(sd, radiusOf(effAge(sd, seeds, now)));
     const darkOut = nightLevel(now) > 0.35;
-    if (sd === seeds[0]) lanternFolk.clear();
     for (const q of townPosesSmooth(sd, seeds, now)) {
       const k = Math.round(q.y) * MAP + Math.round(q.x);
       // out in the open at dusk: a small lantern glow keeps the figure readable on dark fields
