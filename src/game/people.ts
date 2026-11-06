@@ -498,6 +498,26 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
       out.push({ at, a: m, b: f, alliance, dowry, grand, town });
       return;
     }
+    // no older village families: the newest young couple marries as their own household
+    for (const h of homes) {
+      const sp = people.find((q) => q.hh === h.hh && q.role === "spouse" && q.spouse == null);
+      if (!sp) continue;
+      const [m, f] = h.sex === "m" ? [h, sp] : [sp, h];
+      m.spouse = f.id; f.spouse = m.id; m.wedAt = f.wedAt = at; m.alliance = f.alliance = false;
+      out.push({ at, a: m, b: f, alliance: false, dowry, grand, town });
+      return;
+    }
+    // last resort: any two unmarried adults of different homes
+    const any = people.filter((p) => p.role !== "mayor" && !p.guest && p.age >= 17 && p.age <= 50 && p.spouse == null && p.wedAt == null && bornAt(p.home[0], p.home[1], s) <= ageK);
+    const am = any.filter((p) => p.sex === "m");
+    if (!am.length) return;
+    const g2 = am[Math.floor(hash(k, s.x, 994) * am.length)]!;
+    const af = any.filter((p) => p.sex === "f" && p.hh !== g2.hh);
+    if (!af.length) return;
+    const b2 = af[Math.floor(hash(k, s.y, 995) * af.length)]!;
+    g2.spouse = b2.id; b2.spouse = g2.id; g2.wedAt = b2.wedAt = at; g2.alliance = b2.alliance = false;
+    b2.maiden = b2.last; b2.last = g2.last;
+    out.push({ at, a: g2, b: b2, alliance: false, dowry, grand, town });
   });
   return out;
 }
