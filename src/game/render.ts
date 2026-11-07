@@ -2711,7 +2711,7 @@ function labEntries(): LabEntry[] {
       const k = folkOf(pose(0)), robe = SKIRTS.has(k);
       const work = sit === "work", big = work ? (JOB_WORK[job]?.scale ?? 1.3) : 1;
       out.push({
-        label: `${row} · ${SIT_LABEL[sit]}`, row, sit: SIT_LABEL[sit], cat, h: 4.4 * big + (sit === "bucket" ? 0.5 : 0), w: work ? 7 : sit === "bucket" || sit === "lantern" ? 5.4 : 3.6,
+        label: `${row} · ${SIT_LABEL[sit]}`, row, sit: SIT_LABEL[sit], cat, h: 4.4 * big + (sit === "bucket" ? 0.5 : 0), w: work ? 4.6 : sit === "bucket" || sit === "lantern" ? 5.4 : 3.6,
         night: sit === "lantern", wx: sit === "rain" ? "drizzle" : sit === "storm" ? "storm" : sit === "snow" ? "snow" : undefined,
         cfg: walking && sit !== "carry" ? (robe ? fig(ROBE_HIP[k] ?? 0.5, 0.8, { style: "robe" }) : HIPS[k] ?? null) : null,
         draw: (c, _h, ph, now) => {
