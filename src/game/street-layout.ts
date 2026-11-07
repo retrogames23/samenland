@@ -29,8 +29,9 @@ const URBAN = new Set<Kind>(["townhouse", "townhouse2", "fachwerk", "steinhaus",
  * Four-lot stretches share a house family, while each tile retains its own painting.
  * Civic upgrades, tenements, purchased buildings and landmarks retain their identity. */
 export function streetHouse(s: Structure, x: number, y: number, isRoad: RoadAt): Structure {
+  if (s.homeKind || s.kind === "hut" || (!RURAL.has(s.kind) && !URBAN.has(s.kind))) return s;
   const front = streetFront(x, y, isRoad);
-  if (!front || s.homeKind || s.kind === "hut") return s;
+  if (!front) return s;
   const block = Math.floor((front.along - (front.axis === "x" ? s.seed.y : s.seed.x)) / 4);
   const line = front.line - (front.axis === "x" ? s.seed.x : s.seed.y);
   const alternate = ((block + line) % 2 + 2) % 2;
