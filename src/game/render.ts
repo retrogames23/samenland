@@ -41,7 +41,7 @@ import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
-import { folkImage, walkSheet, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
+import { folkImage, walkSheet, standSprite, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { townRank, seatKindForRank } from "./rank";
 import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
@@ -1358,7 +1358,9 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     // whole-body figures stand in the passing frame of their own walk sheet (feet together, same body as walking)
     const ws4 = !q.working && walkFramesOf(k) === 4 && k !== "toddler" ? walkSheet(k) : null;
     const stand = !ws4 && !q.working && k !== "watchman" && legsFor(q) ? folkImage("legsStand") : null;
-    if (ws4) { const sfw = ws4.naturalWidth / 4, sh = hgt * walkScaleOf(k); drawSheetFrame(c, ws4, 1, sfw, (sh * sfw) / ws4.naturalHeight, sh, 0); }
+    const st = ws4 ? standSprite(k) : null;
+    if (st) { const sh = hgt * walkScaleOf(k) * 0.985, sw = (sh * st.naturalWidth) / st.naturalHeight; c.drawImage(st, -sw / 2, -sh, sw, sh); }
+    else if (ws4) { const sfw = ws4.naturalWidth / 4, sh = hgt * walkScaleOf(k); drawSheetFrame(c, ws4, 1, sfw, (sh * sfw) / ws4.naturalHeight, sh, 0); }
     else if (stand) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, stand, 0, w, hgt, HIPS[k] ?? DEFAULT_FIG);
     else c.drawImage(im, -w / 2, -hgt, w, hgt);
   }
