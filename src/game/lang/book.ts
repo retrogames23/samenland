@@ -2,7 +2,7 @@ import type { Lang } from "../i18n";
 import { TOWN_CHARACTER } from "./character";
 import { TOWN_DEVELOPMENT } from "./development";
 import { TOWN_WAYS } from "./ways";
-import { BOOK_EXTRA } from "./book-extra";
+import { BOOK_EXTRA, BOOK_COMMUNITY } from "./book-extra";
 
 /** Two-part guide: the one-time founding letter and the detailed "Book of the town". */
 export type Book = {
@@ -540,5 +540,6 @@ for (const lang of Object.keys(BOOK) as Lang[]) {
     ...(["grain", "workshop", "gateway"] as const).map((way): [string, string] => [character.names[way], `${development.food[way]} ${development.homes[way]} ${development.boon[way]} ${ways.build[way]}`]),
     ways.trade,
   ]]);
+  BOOK[lang].chapters.push(BOOK_COMMUNITY[lang]);
   BOOK[lang].chapters.push(BOOK_EXTRA[lang]);
 }
