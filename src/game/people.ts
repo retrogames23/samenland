@@ -14,7 +14,7 @@ import { dwellingKey, dwellingTile } from "./density";
 export { foodCapacity, FEED_BASE, WILD_MAX, FEED_FIELD, FEED_GARDEN, FEED_PASTURE, FEED_FOOD_ITEM, FEED_HEALTH_ITEM, FEED_WINTER } from "./households";
 import { fires, floods, floodFront } from "./disasters";
 import { guestNow, maypoleUp, cowsOf } from "./encounters";
-import { mastOn, oakSpot, bakeGathering, stegOf, stegSpot } from "./commons";
+import { mastOn, oakSpot, bakeGathering, stegOf, stegSpot, heathSpot, lifeScenes } from "./commons";
 import { WORK_START, WORK_END } from "./time";
 import { worldHour } from "./time";
 const worldHourOf = worldHour;
@@ -360,6 +360,33 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
         const side = n % 2 ? banks[0] : banks[1], a = hash(q.id, 56, 720) * Math.PI * 2, rr = 0.5 + hash(q.id, 57, 720) * 0.7;
         q.fete = { at: from, spot: [side[0] + Math.cos(a) * rr, side[1] + Math.sin(a) * rr], face: [(banks[0][0] + banks[1][0]) / 2, (banks[0][1] + banks[1][1]) / 2], lag: hash(q.id, 58, 720) * 200, dur: (to - from) / 1000, work: true };
       }
+    }
+  }
+  // village life (disputes, common work, Whitsun green, spinning room): the answer is seen where it is kept
+  for (const { d, sc, at } of lifeScenes(decs, now)) {
+    const fields = [...(byKind.get("field") ?? []), ...(byKind.get("garden") ?? []), ...(byKind.get("pasture") ?? [])];
+    const mill = byKind.get("watermill")?.[0] ?? byKind.get("mill")?.[0];
+    const oven = byKind.get("backhaus")?.[0] ?? byKind.get("bakery")?.[0] ?? byKind.get("inn")?.[0];
+    const k = Math.floor(d.at / 60000);
+    const spot: Tile | null =
+      sc.place === "field" ? (fields.length ? nearFree(fields[Math.floor(hash(k, 1, 1441) * fields.length)]!, k) : null)
+      : sc.place === "church" ? church
+      : sc.place === "mill" ? (mill ? front(mill) ?? nearFree(mill, k) : stegSpot(s)?.[0] ?? null)
+      : sc.place === "oven" ? (oven ? front(oven) ?? nearFree(oven, k) : null)
+      : sc.place === "wood" ? (oakSpot(s) ? nearFree(oakSpot(s)!, k) : null)
+      : sc.place === "heath" ? heathSpot(s)
+      : null;
+    const c = spot ?? meet;
+    let n = 0;
+    const cap = Math.max(3, Math.round(people.length * sc.share));
+    for (const q of people) {
+      if (n >= cap || q.fete || q.proc || q.sick || q.carer != null || q.arrive || q.role === "mayor" || q.role === "guest") continue;
+      if (q.age < (sc.who === "young" ? 15 : 12) || (sc.work && q.age > 64) || (sc.who === "young" && q.age > 32)) continue;
+      if ((sc.who === "spinners" || sc.who === "women") && q.sex !== "f") continue;
+      if (sc.who === "builders" ? !["builder", "sawyer", "woodcutter", "crafter"].includes(q.job) && hash(q.id, 61, 720) > 0.05 : hash(q.id, 61 + (k % 97), 720) >= share(sc.share)) continue;
+      n++;
+      const a = hash(q.id, 62, 720) * Math.PI * 2, rr = (sc.work ? 0.6 + hash(q.id, 63, 720) * 0.9 : 1 + hash(q.id, 63, 720) * 1.4) * widen(sc.share);
+      q.fete = { at, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 64, 720) * 240, dur: sc.h * 3600, work: sc.work };
     }
   }
   // fire: the fire wardens and watch run to the blaze, and neighbours join the bucket chain until it is out
