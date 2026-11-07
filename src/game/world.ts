@@ -1189,6 +1189,15 @@ export function careStage(s: Seed, now: number) {
   for (const [nf, nh] of CARE_NEED) { if (f >= nf && hl >= nh) st++; else break; }
   return st;
 }
+/** What the next care step still lacks: how many more food and health crafts, and which ones are not yet bought. */
+export function careMissing(s: Seed, now: number) {
+  const st = careStage(s, now), need = CARE_NEED[st - 2];
+  if (!need) return null;
+  const own = new Set((s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item));
+  const f = CARE_FOOD.filter((i) => own.has(i)).length, hl = CARE_HEALTH.filter((i) => own.has(i)).length;
+  return { stage: st, food: Math.max(0, need[0] - f), health: Math.max(0, need[1] - hl),
+    foodItems: CARE_FOOD.filter((i) => !own.has(i)), healthItems: CARE_HEALTH.filter((i) => !own.has(i)) };
+}
 /** Soft ceiling: a neglected town levels off just below the next era and resumes as soon as care is bought. */
 function careCeiling(s: Seed, now: number, v: number) {
   const st = careStage(s, now);

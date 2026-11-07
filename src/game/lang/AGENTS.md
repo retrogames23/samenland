@@ -16,3 +16,4 @@
 - Way complement: roads between towns of different main ways add WAY_COMPLEMENT to tradeFactor (world.ts, capped as before); way buildings send derived carriers in assignHauls (people.ts) — pure, so all clients and resident taxation agree.
 - Trade soft cap (world.ts softTrade/tradeCapOf): trade counts fully to TRADE_CAP, then approaches the town ceiling (raised by gateway, trade charter, market hall); never below the old hard cap so existing towns never shrink. Surplus becomes toll prosperity in attributes() only — civic tax wealth/DB untouched.
 - Mayor address (lang/address.ts addressMayor/mayorWord/titleForm) derives from mayor_gender + townRank (town words from TOWN_ADDRESS_RANK) and is applied only at display; never stored, lines about other heads (Unser/fremde/andere) stay as written.
+- Population/rank quests pay only against a fresh server rank certificate (rank + citizens, DB quest_guard); the client certifies first, so rewards cannot be forged.

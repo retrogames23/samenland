@@ -36,7 +36,8 @@ type LetterRow = { id: string; from_seed: string; to_seed: string; created_at: s
 import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
 import { deleteAccount } from "@/lib/account.functions";
-import { settleTreasury, certifyMyRank } from "@/lib/treasury.functions";
+import { certifyMyRank } from "@/lib/treasury.functions";
+import { useTreasurySync } from "@/components/hooks/useTreasurySync";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText, MoreHorizontal } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
@@ -1258,31 +1259,8 @@ export function Game() {
   };
 
   const my = seeds.find((s) => s.id === mine);
-  const treasuryFn = useServerFn(settleTreasury);
   const certifyFn = useServerFn(certifyMyRank);
-  const [accounting, setAccounting] = useState<Awaited<ReturnType<typeof settleTreasury>> | null>(null);
-  const accountingSeed = useRef<string | null>(null);
-  accountingSeed.current = my?.id ?? null;
-  const refreshTreasury = async () => {
-    if (!my || !userId || my.user_id !== userId) return false;
-    const id = my.id;
-    try {
-      let result = await treasuryFn({ data: { seed: id } });
-      for (let batch = 0; !result.settled && batch < 7; batch++) result = await treasuryFn({ data: { seed: id } });
-      if (accountingSeed.current === id) setAccounting(result);
-      return result.settled;
-    } catch {
-      return false;
-    }
-  };
-  useEffect(() => {
-    if (!my || !userId || my.user_id !== userId) { setAccounting(null); return; }
-    void refreshTreasury();
-    const timer = setInterval(() => { void refreshTreasury(); }, 60000);
-    return () => clearInterval(timer);
-    // Refresh from authoritative rows, never from pointer/camera changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [my, userId, purchases, gifts, claims, encounters, works]);
+  const { accounting, setAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works]);
   const prepareSpend = async () => {
     // always book outstanding daily tax first — right after load `accounting` is still unknown
     if (await refreshTreasury()) return true;
@@ -1795,8 +1773,8 @@ export function Game() {
   const claimQuest = async () => {
     if (!my || !userId || !quest?.ready) return;
     setQuestOpen(false); jingle("fanfare");
-    // rank milestones are checked by the server against a fresh rank certificate
-    if (["hamlet", "village", "town", "merchant", "metro"].includes(quest.quest)) {
+    // rank and resident milestones are checked by the server against a fresh rank certificate
+    if (["ten", "fifty", "hundred", "hamlet", "village", "town", "merchant", "metro"].includes(quest.quest)) {
       try { await certifyFn({ data: { seed: my.id } }); } catch { return setMsg(t.quests.fail); }
     }
     const { data, error } = await supabase.from("quest_claims").insert({ seed_id: my.id, user_id: userId, quest: quest.quest }).select("id, seed_id, quest, reward, created_at").single();
