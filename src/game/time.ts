@@ -17,6 +17,8 @@ export function realmForOffset(h: number): Realm {
   if (h < 5) return "europe";
   return "asia";
 }
+/** Villages on Altenland (europe) after which uninvited European newcomers land on Elbwerder (europe-2). */
+export const EUROPE_FULL = 60;
 export function detectRealm(): Realm {
   return realmForOffset(-new Date().getTimezoneOffset() / 60);
 }

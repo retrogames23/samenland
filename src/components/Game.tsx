@@ -7,7 +7,7 @@ import { PROSPERITY } from "@/game/lang/prosperity";
 import { ESTATE_TAX } from "@/game/prosperity";
 import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind } from "@/game/gifts";
 import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
-import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, type Realm } from "@/game/time";
+import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, EUROPE_FULL, type Realm } from "@/game/time";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type WonderFind } from "@/game/wonders";
@@ -653,7 +653,7 @@ export function Game() {
     (async () => {
       let r = detectRealm();
       let uid: string | null = null;
-      let adminPick = false;
+      let adminPick = false, hasHome = false;
       try {
         // guests must never wait on auth: local session only, with a short cap
         const sess = await Promise.race([
@@ -671,6 +671,7 @@ export function Game() {
           // an invite only steers newcomers: players with a village keep their own map
           const { data: mine } = await supabase.from("seeds").select("id, realm").eq("user_id", uid).limit(1);
           if (mine?.length) {
+            hasHome = true;
             localStorage.removeItem("samenland-ref");
             // players always land on their own village's map, whatever the browser time zone
             const hr = mine[0]!.realm as Realm;
@@ -685,6 +686,11 @@ export function Game() {
         const { data } = await supabase.from("seeds").select("id, realm, name").eq("id", refId).maybeSingle();
         if (data) { refSeed = data; if (REALMS.includes(data.realm as Realm)) r = data.realm as Realm; }
         else localStorage.removeItem("samenland-ref");
+      }
+      // Altenland is full from EUROPE_FULL villages on: newcomers without an invite settle on Elbwerder (Europa II)
+      if (r === "europe" && !adminPick && !refSeed && !hasHome) {
+        const { count } = await supabase.from("seeds").select("id", { count: "exact", head: true }).eq("realm", "europe");
+        if ((count ?? 0) >= EUROPE_FULL) r = "europe-2";
       }
       const loadRealm = async (r: Realm) => {
       if (!uid) uid = (await supabase.auth.getSession()).data.session?.user.id ?? null;
