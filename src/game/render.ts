@@ -552,7 +552,7 @@ function putBeast(out: Bucket, c: C, b: Beast) {
     if (b.boar && b.state === "root") { shadow(c, X, Y, h * 0.5); sheetFrame(c, bw, 3, X, Y - (Math.floor(n / 500) & 1) * 0.08, h, b.flip, 0, b.alpha); return; }
     const moving = b.state === "walk" || b.state === "flee" ? 1 : 0;
     const idle = Math.floor(n / 1500) % 8 < 5 ? (Math.floor(n / 650) & 1) : 2;
-    drawBeast(c, b.boar ? bw : dw, b.boar ? null : dg, X, Y, h, b.flip, moving, b.state === "flee" ? n / 170 : b.dist + n / 2000, idle, b.alpha, b.boar ? BOAR_GAIT : undefined);
+    drawBeast(c, b.boar ? bw : dw, b.boar ? null : dg, X, Y, h, b.flip, moving, b.state === "flee" ? n / 170 : b.dist + n / 2000, idle, b.alpha, b.boar ? BOAR_GAIT : DEER_GAIT);
   });
 }
 /** Free game in its dens across the whole map; dens near a lodge are hunted in turn and regrow. */
