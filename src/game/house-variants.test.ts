@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { VARIANT_KINDS, VARIANT_COUNT, variantSlot, variantPaintingCount } from "./building-sprites";
 
 describe("house variants", () => {
-  it("farmhouse and cottage get three paintings per style", () => {
-    expect([...VARIANT_KINDS]).toEqual(["farmhouse", "cottage"]);
+  it("farmhouse, cottage, craftsman and merchant houses get three paintings per style", () => {
+    expect([...VARIANT_KINDS]).toEqual(["farmhouse", "cottage", "handwerker", "patrician"]);
     expect(VARIANT_COUNT).toBe(3);
     for (const kind of VARIANT_KINDS) for (const style of ["grain", "workshop", "gateway"] as const) {
       expect(variantPaintingCount(kind, style), `${style} ${kind}`).toBe(3);

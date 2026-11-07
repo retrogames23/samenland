@@ -203,6 +203,31 @@ import gatewayCottage2Light from "@/assets/sprites/cohesive/night/gateway-cottag
 import gatewayCottage3 from "@/assets/sprites/cohesive/gateway-cottage-3.webp";
 import gatewayCottage3Light from "@/assets/sprites/cohesive/night/gateway-cottage-3.webp";
 
+import grainHandwerker2 from "@/assets/sprites/cohesive/grain-handwerker-2.webp";
+import grainHandwerker2Light from "@/assets/sprites/cohesive/night/grain-handwerker-2.webp";
+import grainHandwerker3 from "@/assets/sprites/cohesive/grain-handwerker-3.webp";
+import grainHandwerker3Light from "@/assets/sprites/cohesive/night/grain-handwerker-3.webp";
+import grainPatrician2 from "@/assets/sprites/cohesive/grain-patrician-2.webp";
+import grainPatrician2Light from "@/assets/sprites/cohesive/night/grain-patrician-2.webp";
+import grainPatrician3 from "@/assets/sprites/cohesive/grain-patrician-3.webp";
+import grainPatrician3Light from "@/assets/sprites/cohesive/night/grain-patrician-3.webp";
+import workshopHandwerker2 from "@/assets/sprites/cohesive/workshop-handwerker-2.webp";
+import workshopHandwerker2Light from "@/assets/sprites/cohesive/night/workshop-handwerker-2.webp";
+import workshopHandwerker3 from "@/assets/sprites/cohesive/workshop-handwerker-3.webp";
+import workshopHandwerker3Light from "@/assets/sprites/cohesive/night/workshop-handwerker-3.webp";
+import workshopPatrician2 from "@/assets/sprites/cohesive/workshop-patrician-2.webp";
+import workshopPatrician2Light from "@/assets/sprites/cohesive/night/workshop-patrician-2.webp";
+import workshopPatrician3 from "@/assets/sprites/cohesive/workshop-patrician-3.webp";
+import workshopPatrician3Light from "@/assets/sprites/cohesive/night/workshop-patrician-3.webp";
+import gatewayHandwerker2 from "@/assets/sprites/cohesive/gateway-handwerker-2.webp";
+import gatewayHandwerker2Light from "@/assets/sprites/cohesive/night/gateway-handwerker-2.webp";
+import gatewayHandwerker3 from "@/assets/sprites/cohesive/gateway-handwerker-3.webp";
+import gatewayHandwerker3Light from "@/assets/sprites/cohesive/night/gateway-handwerker-3.webp";
+import gatewayPatrician2 from "@/assets/sprites/cohesive/gateway-patrician-2.webp";
+import gatewayPatrician2Light from "@/assets/sprites/cohesive/night/gateway-patrician-2.webp";
+import gatewayPatrician3 from "@/assets/sprites/cohesive/gateway-patrician-3.webp";
+import gatewayPatrician3Light from "@/assets/sprites/cohesive/night/gateway-patrician-3.webp";
+
 const nightUrls: Partial<Record<Kind, string>> = { badestube: badestubeLight, bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, lodge: lodgeLight, herbhut: herbhutLight, woodcamp: woodcampLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, firehouse: firehouseLight, guardhouse: guardhouseLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, belfry: belfryLight, theater: theaterLight, opera: operaLight, university: universityLight, exchange: exchangeLight, orangery: orangeryLight, harvesthall: harvesthallLight, guildtower: guildtowerLight, lighthouse: lighthouseLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: patricianLight, townhall: townhallLight, seat1: seat1Light, seat2: seat2Light, seat3: seat3Light, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight, bigstore: bigstoreLight, millrow: millrowLight, stonemason: stonemasonLight, hammerworks: hammerworksLight, smokehouse: smokehouseLight, saltquay: saltquayLight, backhaus: backhausLight, herberge: herbergeLight, beginenhof: beginenhofLight };
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
 export const hasNightSprite = (kind: Kind) => Boolean(nightUrls[kind]);
@@ -301,12 +326,14 @@ const styled: Record<HouseStyle, Record<StyleSlot, Styled>> = {
 const styledBase = (kind: Kind, style?: HouseStyle) => { const k = style ? STYLE_OF[kind] : undefined; return k && style ? styled[style][k] : undefined; };
 /** Alternative paintings of the commonest homes, per building style ("grain" = classic plains art). Slot 0 is always the
  * existing art; listed entries fill slots 1 and 2. Same width/base as the base kind, purely visual — households use the kind. */
-export const VARIANT_KINDS = ["farmhouse", "cottage"] as const;
+export const VARIANT_KINDS = ["farmhouse", "cottage", "handwerker", "patrician"] as const;
 export const VARIANT_COUNT = 3;
 type VariantKind = (typeof VARIANT_KINDS)[number];
 const variants: Record<VariantKind, Record<"grain" | HouseStyle, Styled[]>> = {
   farmhouse: { grain: [{ day: grainFarmhouse2, night: grainFarmhouse2Light, crop: [0, 0, 480, 348] }, { day: grainFarmhouse3, night: grainFarmhouse3Light, crop: [0, 0, 468, 480] }], workshop: [{ day: workshopFarmhouse2, night: workshopFarmhouse2Light, crop: [0, 0, 480, 428] }, { day: workshopFarmhouse3, night: workshopFarmhouse3Light, crop: [0, 0, 480, 323] }], gateway: [{ day: gatewayFarmhouse2, night: gatewayFarmhouse2Light, crop: [0, 0, 480, 341] }, { day: gatewayFarmhouse3, night: gatewayFarmhouse3Light, crop: [0, 0, 480, 367] }] },
   cottage: { grain: [{ day: grainCottage2, night: grainCottage2Light, crop: [0, 0, 480, 356] }, { day: grainCottage3, night: grainCottage3Light, crop: [0, 0, 480, 397] }], workshop: [{ day: workshopCottage2, night: workshopCottage2Light, crop: [0, 0, 480, 454] }, { day: workshopCottage3, night: workshopCottage3Light, crop: [0, 0, 480, 431] }], gateway: [{ day: gatewayCottage2, night: gatewayCottage2Light, crop: [0, 0, 480, 401] }, { day: gatewayCottage3, night: gatewayCottage3Light, crop: [0, 0, 480, 395] }] },
+  handwerker: { grain: [{ day: grainHandwerker2, night: grainHandwerker2Light, crop: [0, 0, 480, 410] }, { day: grainHandwerker3, night: grainHandwerker3Light, crop: [0, 0, 480, 441] }], workshop: [{ day: workshopHandwerker2, night: workshopHandwerker2Light, crop: [0, 0, 442, 480] }, { day: workshopHandwerker3, night: workshopHandwerker3Light, crop: [0, 0, 444, 480] }], gateway: [{ day: gatewayHandwerker2, night: gatewayHandwerker2Light, crop: [0, 0, 279, 480] }, { day: gatewayHandwerker3, night: gatewayHandwerker3Light, crop: [0, 0, 281, 480] }] },
+  patrician: { grain: [{ day: grainPatrician2, night: grainPatrician2Light, crop: [0, 0, 346, 480] }, { day: grainPatrician3, night: grainPatrician3Light, crop: [0, 0, 344, 480] }], workshop: [{ day: workshopPatrician2, night: workshopPatrician2Light, crop: [0, 0, 275, 480] }, { day: workshopPatrician3, night: workshopPatrician3Light, crop: [0, 0, 269, 480] }], gateway: [{ day: gatewayPatrician2, night: gatewayPatrician2Light, crop: [0, 0, 264, 480] }, { day: gatewayPatrician3, night: gatewayPatrician3Light, crop: [0, 0, 271, 480] }] },
 };
 /** Which of the VARIANT_COUNT paintings a tile shows (0 = original art); `variant` is the tile's stable hash. */
 export const variantSlot = (variant: number) => Math.min(VARIANT_COUNT - 1, Math.floor(variant * 997) % VARIANT_COUNT);
