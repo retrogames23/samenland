@@ -1,3 +1,4 @@
+import { streetFront } from "./street-layout";
 import { worldDayStart } from "./time";
 import { nearCourt, resetCourt } from "./court";
 import { resetWonders } from "./wonders";
@@ -339,14 +340,15 @@ let buildP = 1, buildAt = 0;
 /** Homes that may be mirrored so their front turns toward the street (pure, all clients agree). */
 export const MIRROR_KINDS: ReadonlySet<Kind> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "suburb", "barn", "workshop", "stall", "coop"]);
 /**
- * Sprites face the lower-left (+y). A street only on the lower-right (+x) mirrors the house;
- * without a clear street side, a stable hash breaks the clone pattern.
+ * Sprites face the lower-left (+y). Follow the neighbouring street axis on either side;
+ * yard buildings without street contact share a stable four-tile block orientation.
  */
 export function faceFlip(kind: Kind, x: number, y: number, isRoad: (x: number, y: number) => boolean): boolean {
   if (!MIRROR_KINDS.has(kind)) return false;
-  const px = isRoad(x + 1, y), py = isRoad(x, y + 1);
-  if (px !== py) return px;
-  return hash(x, y, 91) < 0.5;
+  const front = streetFront(x, y, isRoad);
+  if (front) return front.axis === "x";
+  // Back-yard buildings share a block orientation instead of checkerboard flips.
+  return hash(Math.floor(x / 4), Math.floor(y / 4), 91) < 0.5;
 }
 export const FLAT: ReadonlySet<Kind> = new Set(["path", "street", "square", "field", "pasture", "garden", "market", "road", "bridge", "avenue"]);
 const CORE: Record<string, Kind> = { "1,0": "hut", "0,1": "hut", "1,1": "campfire", "-1,0": "garden", "-1,1": "field", "0,-1": "garden" };

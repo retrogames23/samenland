@@ -178,6 +178,31 @@ import villaCoast from "@/assets/sprites/cohesive/gateway-villa.webp";
 import villaHillLight from "@/assets/sprites/cohesive/night/workshop-villa.webp";
 import villaCoastLight from "@/assets/sprites/cohesive/night/gateway-villa.webp";
 
+import grainFarmhouse2 from "@/assets/sprites/cohesive/grain-farmhouse-2.webp";
+import grainFarmhouse2Light from "@/assets/sprites/cohesive/night/grain-farmhouse-2.webp";
+import grainFarmhouse3 from "@/assets/sprites/cohesive/grain-farmhouse-3.webp";
+import grainFarmhouse3Light from "@/assets/sprites/cohesive/night/grain-farmhouse-3.webp";
+import workshopFarmhouse2 from "@/assets/sprites/cohesive/workshop-farmhouse-2.webp";
+import workshopFarmhouse2Light from "@/assets/sprites/cohesive/night/workshop-farmhouse-2.webp";
+import workshopFarmhouse3 from "@/assets/sprites/cohesive/workshop-farmhouse-3.webp";
+import workshopFarmhouse3Light from "@/assets/sprites/cohesive/night/workshop-farmhouse-3.webp";
+import gatewayFarmhouse2 from "@/assets/sprites/cohesive/gateway-farmhouse-2.webp";
+import gatewayFarmhouse2Light from "@/assets/sprites/cohesive/night/gateway-farmhouse-2.webp";
+import gatewayFarmhouse3 from "@/assets/sprites/cohesive/gateway-farmhouse-3.webp";
+import gatewayFarmhouse3Light from "@/assets/sprites/cohesive/night/gateway-farmhouse-3.webp";
+import grainCottage2 from "@/assets/sprites/cohesive/grain-cottage-2.webp";
+import grainCottage2Light from "@/assets/sprites/cohesive/night/grain-cottage-2.webp";
+import grainCottage3 from "@/assets/sprites/cohesive/grain-cottage-3.webp";
+import grainCottage3Light from "@/assets/sprites/cohesive/night/grain-cottage-3.webp";
+import workshopCottage2 from "@/assets/sprites/cohesive/workshop-cottage-2.webp";
+import workshopCottage2Light from "@/assets/sprites/cohesive/night/workshop-cottage-2.webp";
+import workshopCottage3 from "@/assets/sprites/cohesive/workshop-cottage-3.webp";
+import workshopCottage3Light from "@/assets/sprites/cohesive/night/workshop-cottage-3.webp";
+import gatewayCottage2 from "@/assets/sprites/cohesive/gateway-cottage-2.webp";
+import gatewayCottage2Light from "@/assets/sprites/cohesive/night/gateway-cottage-2.webp";
+import gatewayCottage3 from "@/assets/sprites/cohesive/gateway-cottage-3.webp";
+import gatewayCottage3Light from "@/assets/sprites/cohesive/night/gateway-cottage-3.webp";
+
 const nightUrls: Partial<Record<Kind, string>> = { badestube: badestubeLight, bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, lodge: lodgeLight, herbhut: herbhutLight, woodcamp: woodcampLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, firehouse: firehouseLight, guardhouse: guardhouseLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, belfry: belfryLight, theater: theaterLight, opera: operaLight, university: universityLight, exchange: exchangeLight, orangery: orangeryLight, harvesthall: harvesthallLight, guildtower: guildtowerLight, lighthouse: lighthouseLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: patricianLight, townhall: townhallLight, seat1: seat1Light, seat2: seat2Light, seat3: seat3Light, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight, bigstore: bigstoreLight, millrow: millrowLight, stonemason: stonemasonLight, hammerworks: hammerworksLight, smokehouse: smokehouseLight, saltquay: saltquayLight, backhaus: backhausLight, herberge: herbergeLight, beginenhof: beginenhofLight };
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
 export const hasNightSprite = (kind: Kind) => Boolean(nightUrls[kind]);
@@ -280,8 +305,8 @@ export const VARIANT_KINDS = ["farmhouse", "cottage"] as const;
 export const VARIANT_COUNT = 3;
 type VariantKind = (typeof VARIANT_KINDS)[number];
 const variants: Record<VariantKind, Record<"grain" | HouseStyle, Styled[]>> = {
-  farmhouse: { grain: [], workshop: [], gateway: [] },
-  cottage: { grain: [], workshop: [], gateway: [] },
+  farmhouse: { grain: [{ day: grainFarmhouse2, night: grainFarmhouse2Light, crop: [0, 0, 480, 348] }, { day: grainFarmhouse3, night: grainFarmhouse3Light, crop: [0, 0, 468, 480] }], workshop: [{ day: workshopFarmhouse2, night: workshopFarmhouse2Light, crop: [0, 0, 480, 428] }, { day: workshopFarmhouse3, night: workshopFarmhouse3Light, crop: [0, 0, 480, 323] }], gateway: [{ day: gatewayFarmhouse2, night: gatewayFarmhouse2Light, crop: [0, 0, 480, 387] }, { day: gatewayFarmhouse3, night: gatewayFarmhouse3Light, crop: [0, 0, 480, 336] }] },
+  cottage: { grain: [{ day: grainCottage2, night: grainCottage2Light, crop: [0, 0, 480, 356] }, { day: grainCottage3, night: grainCottage3Light, crop: [0, 0, 480, 397] }], workshop: [{ day: workshopCottage2, night: workshopCottage2Light, crop: [0, 0, 480, 454] }, { day: workshopCottage3, night: workshopCottage3Light, crop: [0, 0, 480, 431] }], gateway: [{ day: gatewayCottage2, night: gatewayCottage2Light, crop: [0, 0, 480, 401] }, { day: gatewayCottage3, night: gatewayCottage3Light, crop: [0, 0, 453, 480] }] },
 };
 /** Which of the VARIANT_COUNT paintings a tile shows (0 = original art); `variant` is the tile's stable hash. */
 export const variantSlot = (variant: number) => Math.min(VARIANT_COUNT - 1, Math.floor(variant * 997) % VARIANT_COUNT);
@@ -290,6 +315,7 @@ const styledOf = (kind: Kind, style?: HouseStyle, variant?: number) => {
   const slot = variant === undefined ? 0 : variantSlot(variant);
   return (slot > 0 ? vs?.[slot - 1] : undefined) ?? styledBase(kind, style);
 };
+export const variantPaintingCount = (kind: VariantKind, style: "grain" | HouseStyle) => 1 + variants[kind][style].length;
 const load = (url: string) => { const im = new Image(); im.decoding = "async"; im.src = url; return im; };
 const ready = (im?: HTMLImageElement) => !!(im?.complete && im.naturalWidth);
 
@@ -318,7 +344,7 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   }
   const st = styledOf(kind, style, variant);
   if (st && !st.image) st.image = load(st.day);
-  const image = st && ready(st.image) ? st.image! : sprite.image;
+  const image = st && ready(st.image) && st.image ? st.image : sprite.image;
   if (!image.complete || !image.naturalWidth) return true; // still loading: draw nothing, never the old vector art
   const [, , sw, sh] = image === st?.image ? st.crop : sprite.crop;
   const width = sprite.width * scaleOf(kind, variant);
@@ -348,7 +374,7 @@ export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: nu
   if (st && !st.light) st.light = load(st.night);
   const own = !!st && ready(st.image) && ready(st.light);
   if (st && !own) return; // never pair a variant's walls with another painting's windows
-  const image = own ? st!.light : nightImages[kind], box = spriteBox(kind, variant, own ? style : undefined);
+  const image = own ? st?.light : nightImages[kind], box = spriteBox(kind, variant, own ? style : undefined);
   if (!image?.complete || !image.naturalWidth || !box) return;
   c.save();
   c.globalAlpha *= intensity;
@@ -367,6 +393,7 @@ export function preloadBuildingSprites() {
     if (!nightImages[k]) { const im = new Image(); im.decoding = "async"; im.src = url; nightImages[k] = im; }
   }
   for (const set of Object.values(styled)) for (const v of Object.values(set)) { v.image ??= load(v.day); v.light ??= load(v.night); }
+  for (const sets of Object.values(variants)) for (const entries of Object.values(sets)) for (const v of entries) { v.image ??= load(v.day); v.light ??= load(v.night); }
   for (const s of Object.values(sprites)) if (s && !s.image) { s.image = new Image(); s.image.decoding = "async"; s.image.src = s.url; }
 }
 if (typeof window !== "undefined") preloadBuildingSprites();
