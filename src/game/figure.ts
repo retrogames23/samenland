@@ -182,7 +182,7 @@ export function drawRobeWalk(
       const lift = Math.max(0, Math.cos(ph) * sd) * h * 0.02;
       const x = sd * sway * w * 0.11 - fw2 * 0.45, yb = dy - lift;
       c.drawImage(foot, 0, 0, foot.naturalWidth, nh, x, yb - shoeH, fw2, shoeH);
-      if (sock > 0) c.drawImage(foot, 0, 0, foot.naturalWidth, band * 0.5, x, yb - shoeH - sock, fw2, sock + 0.02);
+      if (sock > 0) c.drawImage(foot, 0, nh * 0.07, foot.naturalWidth, band * 0.5, x, yb - shoeH - sock, fw2, sock + 0.02);
     }
   }
   void swing;
