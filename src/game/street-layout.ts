@@ -36,6 +36,6 @@ export function streetHouse(s: Structure, x: number, y: number, isRoad: RoadAt):
   const alternate = ((block + line) % 2 + 2) % 2;
   let kind = s.kind;
   if (RURAL.has(kind)) kind = alternate ? "cottage" : "farmhouse";
-  else if (URBAN.has(kind) && (kind === "townhouse" || kind === "townhouse2")) kind = alternate ? "townhouse2" : "townhouse";
+  else if (URBAN.has(kind)) kind = alternate ? "townhouse2" : "townhouse";
   return kind === s.kind ? s : { ...s, kind, homeKind: s.homeKind ?? s.kind };
 }

@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Samenland game
+- Settlement street order is paint-only in street-layout.ts and the render depth pass; never feed its substitute house kind into simulation or taxation, preserving every existing household, job and balance.
 - Identity/density rules: src/game/AGENTS.md; legacy trade unchanged.
 - Civic estates and tax assessments are derived in prosperity.ts from historical purchases and charter, mirrored by database village_civic_wealth/village_estate_tax; temporary stock bonuses do not permanently promote residents, and homeKind preserves population when sprites upgrade.
 - Occupied households are shared through game/households.ts; resident-tax.ts assesses those households on the trusted server, and immutable daily tax receipts are economic records, never stored growth. Keep legacy earnings before the cutover unchanged to protect already-spent balances.

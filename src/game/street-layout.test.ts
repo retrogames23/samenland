@@ -4,7 +4,7 @@ import type { Structure } from "./world";
 
 const house: Structure = {
   kind: "farmhouse", v: 0.42,
-  seed: { id: "street-test", x: 100, y: 100, name: "Test", hue: 20, created_at: "2026-01-01T00:00:00Z" },
+  seed: { id: "street-test", x: 100, y: 100, name: "Test", owner: "Test", hue: 20, created_at: "2026-01-01T00:00:00Z" },
 };
 
 describe("paint-only street order for existing and new settlements", () => {
@@ -35,5 +35,12 @@ describe("paint-only street order for existing and new settlements", () => {
     expect(streetFront(100, 100, x => x === 99)).toEqual({ axis: "x", line: 99, along: 100 });
     expect(streetFront(100, 100, (_x, y) => y === 99)).toEqual({ axis: "y", line: 99, along: 100 });
     expect(streetFront(100, 100, () => false)).toBeNull();
+  });
+  it("gives mixed urban homes a continuous gabled frontage without changing their records", () => {
+    const kinds = ["townhouse", "fachwerk", "steinhaus", "handwerker"] as const;
+    const originals = kinds.map(kind => ({ ...house, kind }));
+    expect(originals.map((s, i) => streetHouse(s, 100, 100 + i, x => x === 101).kind))
+      .toEqual(["townhouse2", "townhouse2", "townhouse2", "townhouse2"]);
+    expect(originals.map(s => s.kind)).toEqual([...kinds]);
   });
 });
