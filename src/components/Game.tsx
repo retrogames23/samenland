@@ -1751,7 +1751,7 @@ export function Game() {
     waySmall: purchases.some((p) => p.seed_id === my.id && WAY_SMALL.includes(p.item)),
     wayBig: purchases.some((p) => p.seed_id === my.id && WAY_BIG.includes(p.item)),
   }) : null;
-  const questText = quest && my ? t.quests.list[questKey(quest.quest, wayOf(my))] ?? t.quests.list[quest.quest]! : null;
+  const questText = quest && my ? (t.quests.list[questKey(quest.quest, wayOf(my))] ?? t.quests.list[quest.quest]!).map((x) => neutralMayor(x, lang, my.mayor_gender === "d")) as typeof t.quests.list[string] : null;
   const petition = quest && my ? petitionOf(quest.quest, lang, questKey(quest.quest, wayOf(my)) !== quest.quest, myTown?.people, my.mayor_gender === "d") : null;
   const questHow = () => {
     if (!quest || !my) return;
@@ -2697,7 +2697,7 @@ export function Game() {
         let near: Seed | null = null, nd = Infinity;
         for (const s of seeds) { const d = Math.hypot(px - s.x, py - s.y); if (d < nd) { nd = d; near = s; } }
         return (
-          <Parchment image={ART["surveyor"]} title={t.plantAsk.title} later={t.cancel} onLater={() => setPlantAsk(null)}>
+          <Parchment image={ART["surveyor"]} title={t.plantAsk.title} later={t.cancel} onLater={() => setPlantAsk(null)} action={<Button type="button" size="sm" disabled={planting} onClick={plantNow}>{planting ? t.plantAsk.wait : t.plantAsk.ok}</Button>}>
             <p className="mt-2 text-center font-display text-xl leading-snug">{t.plantAsk.intro(form.name.trim())}</p>
             <div className="mt-4 space-y-1 text-sm">
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.land}</span><span className="text-right font-semibold">{CHAR_ICON[c]} {TOWN_CHARACTER[lang].names[c]}</span></div>
@@ -2713,9 +2713,6 @@ export function Game() {
               <p className="pt-1 text-center font-semibold text-primary">{FOUNDING[lang].fair}</p>
             </div>
             <div className="mt-3 border-t border-border pt-3"><CharacterDetails seed={{ x: px, y: py }} lang={lang} /></div>
-            <div className="mt-4 flex justify-center">
-              <Button type="button" size="sm" disabled={planting} onClick={plantNow}>{planting ? t.plantAsk.wait : t.plantAsk.ok}</Button>
-            </div>
           </Parchment>
         );
       })()}
