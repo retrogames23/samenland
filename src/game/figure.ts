@@ -162,7 +162,7 @@ export function drawRobeWalk(
   c.drawImage(im, sx, 0, sw, sh * top, -w / 2, -h + dy, w, h * top);
   const N = 6;
   for (let i = 0; i < N; i++) {
-    const a = top + ((end - top) * i) / N, b = top + ((end - top) * (i + 1)) / N, dx = sway * w * swing * ((i + 1) / N);
+    const a = top + ((end - top) * i) / N, b = top + ((end - top) * (i + 1)) / N, u = (i + 0.5) / N, dx = sway * w * swing * 1.6 * Math.sin(Math.PI * u) * (1 - u * 0.5);
     c.drawImage(im, sx, sh * a, sw, sh * (b - a) + 0.5, -w / 2 + dx, -h + h * a + dy, w, h * (b - a) + 0.05);
   }
 }
