@@ -1842,15 +1842,21 @@ export function Game() {
       const err = canPlaceSpecial(item, x, y, my, seeds, clock());
       if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore"]);
     }
-    if (!await prepareSpend()) return;
-    setPlacing(null);
+    // instant feedback: sound, close placement and show the site right away; the server confirms or we roll back
+    tap(); setPlacing(null);
+    const price = (ITEMS as Record<string, number>)[item];
+    const tmpId = `pending-${item}-${Date.now()}`;
+    if (price != null && x != null && y != null) {
+      setPurchases((s) => [...s, { id: tmpId, seed_id: my.id, item, cost: price, created_at: new Date(clock()).toISOString(), x, y } as (typeof s)[number]]);
+    }
+    const rollback = (m: string) => { setPurchases((s) => s.filter((p) => p.id !== tmpId)); setMsg(m); };
+    if (!await prepareSpend()) return rollback(t.buyFail);
     // rank-gated items: the server counts citizens, homes and roads itself before the guard accepts the row
     const needRank = monumentOf(item) && /1$/.test(item) ? MONUMENTS[monumentOf(item)!].stage : (ITEM_STAGE[item] ?? 0);
-    if (needRank > 0) { try { await certifyFn({ data: { seed: my.id } }); } catch { return setMsg(t.buyFail); } }
+    if (needRank > 0) { try { await certifyFn({ data: { seed: my.id } }); } catch { return rollback(t.buyFail); } }
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null }).select("id, seed_id, item, cost, created_at, x, y").single();
-    if (error || !data) return setMsg(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
-    setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
-    tap();
+    if (error || !data) return rollback(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
+    setPurchases((s) => [...s.filter((x) => x.id !== data.id && x.id !== tmpId), data]);
     if (/^chest[2-4]$/.test(item)) { jingle("coins"); setMsg(`${CHEST[lang].title}: ${CHEST[lang].levels[+item.slice(5) - 1]}`); } else if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
   };
   useEffect(() => {
