@@ -3214,7 +3214,7 @@ export function Game() {
       )}
 
       {sealShown && !panelOpen && (
-        <div className="absolute end-3 z-30" style={{ top: barH + 8 }}>
+        <div className="absolute right-2 z-30" style={{ top: barH + 56 }}>
           <WaxSeal label={t.enc.waiting} onClick={reopen} />
         </div>
       )}
