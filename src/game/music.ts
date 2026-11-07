@@ -51,10 +51,22 @@ function ramp(to: number, then?: () => void) {
     if (Math.abs(to - el.volume) <= 0.03) { el.volume = to; clearInterval(fade); then?.(); } else el.volume = Math.max(0, Math.min(1, v));
   }, 60);
 }
+/** Fisher–Yates shuffle; never starts with `avoid` (the song that just ended) when there is a choice. */
+export function shuffled(list: string[], avoid?: string, rnd: () => number = Math.random): string[] {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j]!, a[i]!]; }
+  if (avoid && a.length > 1 && a[0] === avoid) [a[0], a[1]] = [a[1]!, a[0]!];
+  return a;
+}
+let deck: string[] = [];
+function nextSong(m: Exclude<Mood, null>, last?: string): string {
+  if (!deck.length) deck = shuffled(PLAYLISTS[m], last);
+  return deck.shift()!;
+}
 function play(m: Exclude<Mood, null>) {
   const list = PLAYLISTS[m];
-  if (!el) { el = new Audio(); el.preload = "auto"; el.addEventListener("ended", () => { if (!mood) return; idx = (idx + 1) % PLAYLISTS[mood].length; el!.src = PLAYLISTS[mood][idx]!; if (active) void el!.play().catch(() => {}); }); }
-  idx = idx % list.length; el.src = list[idx]!; el.loop = list.length === 1; el.volume = 0;
+  if (!el) { el = new Audio(); el.preload = "auto"; el.addEventListener("ended", () => { if (!mood) return; el!.src = nextSong(mood, el!.src); if (active) void el!.play().catch(() => {}); }); }
+  deck = shuffled(list); idx = 0; el.src = nextSong(m); el.loop = list.length === 1; el.volume = 0;
   void el.play().then(() => { if (mood === m && active) ramp(VOL); else hardStop(); }).catch(() => {});
 }
 function hardStop() {
