@@ -11,6 +11,8 @@ import { drawParchment } from "./parchment";
 import cowUrl from "@/assets/sprites/cow.webp";
 import cowWalkUrl from "@/assets/sprites/cow-walk.webp";
 import pigWalkUrl from "@/assets/sprites/pig-walk.webp";
+import pigRootUrl from "@/assets/sprites/pig-root.webp";
+import boarRootUrl from "@/assets/sprites/boar-root.webp";
 import pondUrl from "@/assets/sprites/pond.webp";
 import flowerTuftUrl from "@/assets/sprites/flower-tuft.webp";
 import pastureCloverUrl from "@/assets/sprites/pasture-clover.webp";
@@ -36,7 +38,7 @@ import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
-import { folkImage, walkSheet, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
+import { folkImage, walkSheet, walkFramesOf, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
 import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
@@ -475,19 +477,20 @@ export function walkShift(im: HTMLImageElement, f: number): number {
   }
   return v[f & 3] ?? 0;
 }
-function sheetFrame(c: C, im: HTMLImageElement, f: number, X: number, Y: number, h: number, flip: boolean, rot = 0, alpha = 1, centre = false) {
-  const fw = im.naturalWidth / 4, w = (h * fw) / im.naturalHeight, ox = centre ? walkShift(im, f) * w : 0;
+/** Clean 4-step cycle frame for pre-registered sheets (one 2π = two steps). */
+const step4 = (ph: number) => Math.floor(((((ph / 6.2832) % 1) + 1) % 1) * 4) & 3;
+function sheetFrame(c: C, im: HTMLImageElement, f: number, X: number, Y: number, h: number, flip: boolean, rot = 0, alpha = 1, centre = false, n = 4) {
+  const fw = im.naturalWidth / n, w = (h * fw) / im.naturalHeight, ox = centre ? walkShift(im, f) * w : 0;
   c.save(); c.globalAlpha *= alpha; c.translate(X, Y); if (flip) c.scale(-1, 1); if (rot) c.rotate(rot);
-  c.drawImage(im, (f & 3) * fw, 0, fw, im.naturalHeight, -w / 2 + ox, -h, w, h); c.restore();
+  c.drawImage(im, (f % n) * fw, 0, fw, im.naturalHeight, -w / 2 + ox, -h, w, h); c.restore();
 }
 const shadow = (c: C, X: number, Y: number, r: number, a = 0.24) => { c.fillStyle = `rgba(25,20,10,${a})`; c.beginPath(); c.ellipse(X, Y, r, r * 0.3, 0, 0, 7); c.fill(); };
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const ease = (k: number) => k * k * (3 - 2 * k);
 /** Animal on the move: walk sheet indexed by distance travelled, grazing/alert sheet when standing. */
-/** Boar sheet: frames 0–2 are steps, frame 3 is the rooting pose — never part of the gait. */
-const BOAR_GAIT = [0, 1, 2, 1];
-/** Deer sheet: frames 2 and 3 are near-identical strides, so alternate stride/gather evenly. */
-const DEER_GAIT = [0, 1, 2, 1];
+/** Walk sheets (boar, pig, deer, cow) are clean 4-phase cycles; rooting poses live in separate *-root sprites. */
+const BOAR_GAIT = [0, 1, 2, 3];
+const DEER_GAIT = [0, 1, 2, 3];
 function drawBeast(c: C, walkIm: HTMLImageElement, standIm: HTMLImageElement | null, X: number, Y: number, h: number, flip: boolean, moving: number, dist: number, idle: number, alpha = 1, seq?: number[]) {
   shadow(c, X, Y, h * 0.42);
   if (moving > 0.02 || !standIm) {
@@ -549,7 +552,7 @@ function putBeast(out: Bucket, c: C, b: Beast) {
   putAt(out, b.x, b.y, () => {
     const [X, Y] = iso(b.x, b.y), h = b.boar ? 4.4 : 6.2, n = renderNow + b.x * 997;
     if (b.state === "dead") { shadow(c, X, Y, h * 0.5); sheetFrame(c, dg, 3, X, Y, h, !b.flip, b.fall * 1.45 * (b.flip ? 1 : -1)); return; }
-    if (b.boar && b.state === "root") { shadow(c, X, Y, h * 0.5); sheetFrame(c, bw, 3, X, Y - (Math.floor(n / 500) & 1) * 0.08, h, b.flip, 0, b.alpha); return; }
+    if (b.boar && b.state === "root") { shadow(c, X, Y, h * 0.5); sheetFrame(c, huntIm("br", boarRootUrl) ?? bw, 0, X, Y - (Math.floor(n / 500) & 1) * 0.08, h, b.flip, 0, b.alpha, false, 1); return; }
     const moving = b.state === "walk" || b.state === "flee" ? 1 : 0;
     const idle = Math.floor(n / 1500) % 8 < 5 ? (Math.floor(n / 650) & 1) : 2;
     drawBeast(c, b.boar ? bw : dw, b.boar ? null : dg, X, Y, h, b.flip, moving, b.state === "flee" ? n / 170 : b.dist + n / 2000, idle, b.alpha, b.boar ? BOAR_GAIT : DEER_GAIT);
@@ -1305,8 +1308,8 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const frameOf = (fw: number) => { void fw; return gaitFrame(ph); };
   if (sheet) {
     // real painted walk cycle: frame follows the stride phase (one 2π = two steps)
-    const fw = sheet.naturalWidth / WALK_FRAMES, f = frameOf(fw);
-    const ww = (hgt * fw) / sheet.naturalHeight, dx = -(frameShift(sheet)[f] ?? 0) * ww;
+    const n = walkFramesOf(k), fw = sheet.naturalWidth / n, f = n === 4 ? step4(ph) : frameOf(fw);
+    const ww = (hgt * fw) / sheet.naturalHeight, dx = n === 4 ? 0 : -(frameShift(sheet)[f] ?? 0) * ww;
     drawSheetFrame(c, sheet, f, fw, ww, hgt, dx);
   } else if (legs) {
     // modular figure: one hip-registered painted leg cycle shared by all trades, trade torso on top
@@ -2715,8 +2718,8 @@ function labEntries(): LabEntry[] {
   for (const k of ["child", "girl", "toddler"] as FolkSprite[]) out.push({
     label: k, cat: "kids", h: k === "toddler" ? 2.4 : k === "child" || k === "girl" ? 3 : 3.9, cfg: null,
     draw: (c, h, ph) => { const sh = walkSheet(k); if (!sh) return null;
-      const fw = sh.naturalWidth / WALK_FRAMES, f = gaitFrame(ph), ww = (h * fw) / sh.naturalHeight;
-      drawSheetFrame(c, sh, f, fw, ww, h, -(frameShift(sh)[f] ?? 0) * ww); return ww; },
+      const n = walkFramesOf(k), fw = sh.naturalWidth / n, f = n === 4 ? step4(ph) : gaitFrame(ph), ww = (h * fw) / sh.naturalHeight;
+      drawSheetFrame(c, sh, f, fw, ww, h, n === 4 ? 0 : -(frameShift(sh)[f] ?? 0) * ww); return ww; },
   });
   // animals: real game draw calls at the origin; ph (radians) is turned into the distance / clock each one steps by
   const A = (label: string, h: number, w: number, draw: (c: C, ph: number, now: number) => unknown): LabEntry =>
@@ -2737,10 +2740,10 @@ function labEntries(): LabEntry[] {
     A("Hirsch äst", 6.2, 7, (c, _ph, now) => { const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl); if (!dw || !dg) return false;
       drawBeast(c, dw, dg, 0, 0, 6.2, false, 0, 0, Math.floor(now / 1500) % 8 < 5 ? (Math.floor(now / 650) & 1) : 2); return true; }),
     A("Wildschwein", 4.4, 6, (c, ph) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; drawBeast(c, bw, null, 0, 0, 4.4, false, 1, (ph / 6.2832) * 4.4, 0, 1, BOAR_GAIT); return true; }),
-    A("Wildschwein wühlt", 4.4, 6, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 2.2); sheetFrame(c, bw, 3, 0, -(Math.floor(now / 500) & 1) * 0.08, 4.4, false); return true; }),
+    A("Wildschwein wühlt", 4.4, 6, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 2.2); sheetFrame(c, huntIm("br", boarRootUrl) ?? bw, 0, 0, -(Math.floor(now / 500) & 1) * 0.08, 4.4, false, 0, 1, false, 1); return true; }),
     A("Hausschwein", 3.6, 6, (c, ph) => { const pw = huntIm("pw", pigWalkUrl); if (!pw) return false; drawBeast(c, pw, null, 0, 0, 3.6, false, 1, (ph / 6.2832) * 4.4, 0, 1, BOAR_GAIT); return true; }),
-    A("Hausschwein wühlt", 3.6, 6, (c, _ph, now) => { const pw = huntIm("pw", pigWalkUrl); if (!pw) return false; shadow(c, 0, 0, 1.8); sheetFrame(c, pw, 3, 0, -(Math.floor(now / 500) & 1) * 0.08, 3.6, false); return true; }),
-    A("Kuh geht", 5.2, 7, (c, ph) => { shadow(c, 0, 0, 2.8); c.save(); const ok = cowStep(c, 5.2, Math.floor((ph / 6.2832) * 4)); c.restore(); return ok; }),
+    A("Hausschwein wühlt", 3.6, 6, (c, _ph, now) => { const pw = huntIm("pw", pigWalkUrl); if (!pw) return false; shadow(c, 0, 0, 1.8); sheetFrame(c, huntIm("pr", pigRootUrl) ?? pw, 0, 0, -(Math.floor(now / 500) & 1) * 0.08, 3.6, false, 0, 1, false, 1); return true; }),
+    A("Kuh geht", 5.2, 7, (c, ph) => { shadow(c, 0, 0, 2.8); c.save(); const ok = cowStep(c, 5.2, step4(ph)); c.restore(); return ok; }),
     A("Jäger", 5.4, 3, (c, _ph, now) => { const hu = huntIm("hu", hunterUrl); if (!hu) return false; const f = Math.floor(now / 1200) % 3;
       shadow(c, 0, 0, 1.6, 0.3); sheetFrame(c, hu, f, 0, 0, 5.4, false); return true; }),
   );
@@ -2852,8 +2855,8 @@ function drawPig(c: C, x: number, y: number, now: number, sd: number) {
   const a = spot(k), b = spot(k + 1), into = u - (CYC - WALK), f = into > 0 ? into / WALK : 0, e = f * f * (3 - 2 * f);
   const X = x + a[0] + (b[0] - a[0]) * e, Y = y + a[1] + (b[1] - a[1]) * e, h = 3.6, flip = (into > 0 ? b[0] - a[0] : a[0] - spot(k - 1)[0]) < 0;
   shadow(c, X, Y, h * 0.45);
-  if (into > 0) sheetFrame(c, bw, BOAR_GAIT[Math.floor((into / 1000) * 3.2) & 3] ?? 0, X, Y - Math.abs(Math.sin(into / 160)) * 0.08, h, flip, 0, 1, true);
-  else sheetFrame(c, bw, 3, X, Y - (Math.floor((now + sd) / 500) & 1) * 0.08, h, flip);
+  if (into > 0) sheetFrame(c, bw, BOAR_GAIT[Math.floor((into / 1000) * 3.2) & 3] ?? 0, X, Y - Math.abs(Math.sin(into / 160)) * 0.08, h, flip);
+  else sheetFrame(c, huntIm("pr", pigRootUrl) ?? bw, 0, X, Y - (Math.floor((now + sd) / 500) & 1) * 0.08, h, flip, 0, 1, false, 1);
 }
 /** Whitsun ox: the cow sprite led along, garlanded with birch and bright ribbons. */
 /** One frame of the painted cow walk sheet (facing left like cow.webp), width w, hooves at 0. */

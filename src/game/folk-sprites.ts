@@ -133,6 +133,8 @@ const WALKS: Partial<Record<FolkSprite, FolkSprite>> = { child: "childWalk", gir
 /** Painted 6-frame harvest cycles (scythe for men, sickle and sheaf for women), feet centred in each frame. */
 const WORKS: Partial<Record<FolkSprite, FolkSprite>> = { farmer: "farmerMow" as FolkSprite, farmerF: "farmerFMow" as FolkSprite };
 export const workSheet = (k: FolkSprite) => { const w = WORKS[k]; return w ? folkImage(w) : null; };
+/** Frames per painted walk sheet: the toddler sheet is a clean, pre-registered 4-step cycle. */
+export const walkFramesOf = (k: FolkSprite) => (k === "toddler" ? 4 : WALK_FRAMES);
 export const walkSheet = (k: FolkSprite) => { const w = WALKS[k]; return w ? folkImage(w) : null; };
 
 /** Trade work cycles keyed by job (fishers and smiths wear ordinary clothes, so the sprite alone can't pick them).
