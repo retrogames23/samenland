@@ -2692,7 +2692,7 @@ function drawSheetFrame(c: C, sheet: HTMLImageElement, f: number, fw: number, ww
 /** Dev sprite lab: one row per figure, one card per situation it meets in the game — drawn by the real game paths. */
 export type LabOpts = { boxes: boolean; lines: boolean; weather: WeatherKind | null };
 export type LabCat = "mayor" | "court" | "folk" | "robe" | "kids" | "animal";
-type LabEntry = { label: string; row: string; sit: string; cat: LabCat; h: number; w?: number; night?: boolean; wx?: WeatherKind; cfg: FigureConfig | null; draw: (c: C, h: number, ph: number, now: number) => number | null };
+type LabEntry = { label: string; row: string; sit: string; cat: LabCat; h: number; w?: number; night?: boolean; wx?: WeatherKind | undefined; cfg: FigureConfig | null; draw: (c: C, h: number, ph: number, now: number) => number | null };
 const LAB_SEED = { id: "lab", hue: 30, bought: [], x: 0, y: 0 } as unknown as Seed;
 type LabSit = "stand" | "walk" | "work" | "carry" | "bucket" | "lantern" | "rain" | "storm" | "snow";
 const SIT_LABEL: Record<LabSit, string> = { stand: "Stehen", walk: "Gehen", work: "Arbeit", carry: "Last tragen", bucket: "Löscheimer", lantern: "Nacht · Laterne", rain: "Regen", storm: "Sturm", snow: "Schnee · Frost" };
