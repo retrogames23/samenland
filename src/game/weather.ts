@@ -11,6 +11,9 @@ const hash = (a: number, b: number) => { let h = (a * 374761393 + b * 668265263)
 const zoneId = (tz: string) => { let h = 7; for (let i = 0; i < tz.length; i++) h = (h * 31 + tz.charCodeAt(i)) | 0; return h; };
 
 let override: WeatherKind | null = null;
+/** Figure cabinet only: forced weather while a lab card is drawn (set and cleared around each draw). */
+let preview: WeatherKind | null = null;
+export const setWeatherPreview = (k: WeatherKind | null) => { preview = k; };
 if (typeof location !== "undefined") {
   const q = new URLSearchParams(location.search).get("weather");
   if (q && ["clear", "drizzle", "mist", "snow", "storm"].includes(q)) override = q as WeatherKind;
@@ -32,7 +35,7 @@ function kindFor(slot: number, now: number): WeatherKind {
 let cache: { key: number; v: Weather } | null = null;
 export function weatherAt(now: number): Weather {
   const key = Math.floor(now / 60_000);
-  const lw = labWeather();
+  const lw = preview ?? labWeather();
   if (lw) { const amount = lw === "clear" ? 0 : 0.9; return { kind: lw, amount, wind: lw === "storm" ? 1 : lw === "mist" ? 0.08 : 0.5, gloom: amount * (lw === "storm" ? 0.45 : lw === "drizzle" ? 0.22 : lw === "snow" ? 0.15 : lw === "mist" ? 0.12 : 0) }; }
   if (cache?.key === key && !override) return cache.v;
   const slot = Math.floor(now / SLOT), f = (now % SLOT) / SLOT;
