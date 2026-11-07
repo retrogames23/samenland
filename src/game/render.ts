@@ -2627,7 +2627,7 @@ function drawSupport(c: C, k: RewardKey, cx: number, cy: number, L: Light[], nig
   const im = huntIm(`support-${k}`, u); if (!im) return;
   const h = (w * im.naturalHeight) / im.naturalWidth;
   if (k === "lanterns") {
-    for (const ox of [-9, 9]) { c.drawImage(im, cx + ox - w / 2, cy + 3 - h, w, h); if (night) L.push({ x: cx + ox - 2, y: cy + 3 - h * 0.78, r: 6 }); }
+    for (const ox of [-9, 9]) { c.drawImage(im, cx + ox - w / 2, cy + 3 - h, w, h); if (night) L.push({ x: cx + ox - w * 0.15, y: cy + 3 - h * 0.78, r: 5 }); }
     return;
   }
   c.drawImage(im, cx - w / 2, cy + 6 - h, w, h);
