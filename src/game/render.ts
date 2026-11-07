@@ -1350,7 +1350,7 @@ const lanternFolk = new Set<number>();
 function drawHandLantern(c: C, X: number, Y: number, q: Pose, t: number) {
   const im = folkImage("hornLantern"); if (!im) return;
   const f = q.dir[0] - q.dir[1] >= 0 ? 1 : -1;
-  const hx = X + f * 0.88, hy = Y - 2.22; // the hand, by the hip on the forward side
+  const hx = X + f * 1.1, hy = Y - 2.36; // the hand, by the hip on the forward side
   const sw = Math.sin(q.phase * 2 + q.p.id) * (q.walking ? 0.12 : 0.03);
   const h = 0.8, w = (im.naturalWidth / im.naturalHeight) * h;
   c.save(); c.translate(hx, hy); c.rotate(sw);
@@ -3336,7 +3336,7 @@ export function draw(
       // only night walkers on far paths (and the strolling mayor) carry a visible hand lantern; the light comes from it
       if (darkOut && q.walking && !q.mounted && q.p.age >= 14 && (Math.hypot(q.x - sd.x, q.y - sd.y) > r0 * 0.8 || (steer && q.p.role === "mayor" && q.act === "stroll"))) {
         lanternFolk.add(q.p.id * 7919 + sd.id.length);
-        const [lx, ly] = iso(q.x, q.y); L.push({ x: lx + ((q.dir[0] - q.dir[1]) >= 0 ? 0.88 : -0.88), y: ly - 1.8, r: 4 });
+        const [lx, ly] = iso(q.x, q.y); L.push({ x: lx + ((q.dir[0] - q.dir[1]) >= 0 ? 1.1 : -1.1), y: ly - 1.9, r: 4 });
       }
       if (!folk.has(k)) folk.set(k, []);
       folk.get(k)!.push(q);
