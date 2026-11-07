@@ -8,7 +8,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
-    testTimeout: 20000,
+    testTimeout: 60000, // long 730-day town simulations exceed 20 s when run in parallel
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
   resolve: {
