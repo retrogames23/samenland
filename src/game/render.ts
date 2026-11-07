@@ -1187,7 +1187,7 @@ function folkOf(q: Pose): FolkSprite {
 // hipX = hip column, hemY = tunic hem (measured on the sprites); legs keep LEG_RATIO height regardless of hem
 const HIPS: Partial<Record<FolkSprite, FigureConfig>> = {
   man: fig(0.42, 0.585, { legs: "dark" }), farmer: fig(0.51, 0.71, { legs: "linen" }), porter: fig(0.44, 0.6, { legs: "linen" }), builder: fig(0.46, 0.64, { legs: "grey" }),
-  woodcutter: fig(0.46, 0.59, { legs: "linen" }), mason: fig(0.4, 0.62, { legs: "grey" }), elder: fig(0.47, 0.68, { legWidthScale: 1.04, legs: "dark" }),
+  woodcutter: fig(0.46, 0.59, { legs: "linen" }), mason: fig(0.4, 0.62, { legs: "grey" }), elder: fig(0.47, 0.68, { legWidthScale: 1.04, legs: "dark", keep: [[0.84, 0.96, 0.95]] }),
   robber: fig(0.45, 0.665, { legs: "dark" }), groom: fig(0.56, 0.74, { legWidthScale: 1.06, legs: "linen" }),
 };
 const LEG_IMG = { m: "legsM", grey: "legsGrey", dark: "legsDark", linen: "legsLinen", red: "legsRed" } as const;
@@ -2628,7 +2628,7 @@ function courtFigures(t: number) {
  * mantle, so he walks like the princess — swaying hem, only boot tips step out (no cut through the fur). */
 const COURT_GAIT: Record<CourtRole, FigureConfig> = {
   prince: fig(0.51, 0.68, { legs: "dark" }), princess: fig(0.52, 0.9, { style: "robe" }),
-  herald: fig(0.41, 0.64, { legs: "dark" }), guard: fig(0.51, 0.57, { stride: GUARD_STRIDE, legs: "grey", keep: [[0.27, 0.34, 0.83]] }),
+  herald: fig(0.41, 0.64, { legs: "dark", keep: [[0.73, 0.87, 0.96], [0, 0.35, 0.72]] }), guard: fig(0.51, 0.57, { stride: GUARD_STRIDE, legs: "grey", keep: [[0.36, 0.48, 0.84]] }),
   gardener: fig(0.44, 0.56, { legs: "grey", keep: [[0, 0.27, 0.7]] }), groom: fig(0.46, 0.58, { legs: "dark" }),
 };
 // the guard sprite: halberd tip only a little above the helmet (body ~88 % of the height)
