@@ -14,6 +14,8 @@ import type { Person, Job } from "./people";
 export type CommonsKey = (typeof COMMONS_KEYS)[number];
 /** Days between two commons questions (mirrored by the DB encounter_guard, with a small tolerance). */
 export const COMMONS_DAYS = 7;
+/** How many recent commons questions are held back before they may come again. */
+export const COMMONS_RECENT = 8;
 /** A village first meets the commons once it is this many hours old (a Weiler with a few families). */
 export const COMMONS_FROM_H = 72;
 /** The communal bake oven needs the village bakery (landmark age in growth hours). */
@@ -83,6 +85,11 @@ export function lifeSeason(key: CommonsKey, at: number): boolean {
     case "flur": return m >= 7 && m <= 9;
     case "pfingsten": { const p = fromPentecost(at); return p >= -6 && p <= 0; }
     case "lichtstube": return m >= 11 || m <= 2;
+    case "schwarm": return m >= 5 && m <= 7;       // swarming time
+    case "rotte": return m >= 7 && m <= 9;         // flax is pulled and retted in late summer
+    case "wolfspur": return m === 12 || m <= 2;    // tracks in the snow
+    case "miete": return m >= 1 && m <= 3;         // lean weeks before spring
+    case "funken": return m >= 10 || m <= 4;       // hearths burn all day in the cold half-year
     default: return true;
   }
 }
@@ -98,6 +105,9 @@ export function commonsOptions(s: Pick<Seed, "x" | "y">, decisions: Decision[], 
   const life: CommonsKey[] = ["zaun", "flur", "schelte", "pfingsten", "lichtstube"];
   if (heathSpot(s)) life.push("plaggen");
   if (growthH >= MILL_AGE) life.push("scharwerk");
+  life.push("besthaupt", "funken", "wolfspur", "miete");
+  if (oakSpot(s)) life.push("schwarm", "frevel");
+  if (stegSpot(s) || heathSpot(s)) life.push("rotte");
   for (const k of life) if (lifeSeason(k, at)) out.push(k);
   return out;
 }
@@ -115,7 +125,10 @@ export function commonsDue(s: Seed, decisions: Decision[], growthH: number): Com
   const past = decisions.filter((d) => isCommons(d.event)).sort((a, b) => a.at - b.at);
   const prev = past[past.length - 1];
   if (prev && from - prev.at < COMMONS_DAYS * 864e5) return null;
-  const opts = commonsOptions(s, decisions, growthH, from).filter((k) => k !== prev?.event);
+  // memory: questions met recently wait until the others had their turn (the last RECENT, or fewer if needed)
+  const all = commonsOptions(s, decisions, growthH, from);
+  let opts: CommonsKey[] = [];
+  for (let n = COMMONS_RECENT; n >= 1 && !opts.length; n--) { const seen = new Set(past.slice(-n).map((d) => d.event)); opts = all.filter((k) => !seen.has(k)); }
   if (!opts.length) return null;
   return opts[Math.floor(hash(c0 % 1e9, past.length, 1801) * opts.length)]!;
 }
@@ -150,9 +163,14 @@ const ASKER: Record<CommonsKey, Job[]> = {
   hutewald: ["farmer", "hunter", "woodcutter"], backtag: ["baker", "homemaker", "miller"], steg: ["miller", "builder", "farmer"],
   zaun: ["farmer"], flur: ["farmer"], plaggen: ["farmer"], schelte: ["homemaker", "farmer", "worker"], scharwerk: ["miller"],
   pfingsten: ["innkeeper", "farmer"], lichtstube: ["homemaker", "farmer"],
+  besthaupt: ["farmer", "homemaker"], schwarm: ["farmer"], funken: ["worker", "farmer"], rotte: ["farmer"],
+  wolfspur: ["farmer", "hunter"], frevel: ["woodcutter", "hunter", "farmer"], miete: ["farmer"],
 };
 /** The second party named in the question (the neighbour, the accused…), by trade. */
-const OTHER: Partial<Record<CommonsKey, Job[]>> = { zaun: ["farmer"], flur: ["farmer", "homemaker"], schelte: ["homemaker", "farmer", "worker"] };
+const OTHER: Partial<Record<CommonsKey, Job[]>> = {
+  zaun: ["farmer"], flur: ["farmer", "homemaker"], schelte: ["homemaker", "farmer", "worker"],
+  schwarm: ["farmer"], funken: ["farmer", "worker"], rotte: ["innkeeper", "baker", "farmer"], frevel: ["farmer"], miete: ["worker"],
+};
 /**
  * Who brings the question (a real resident by trade) and who counsels the village: the herb-wife or
  * healer as the community's wise woman, else the eldest. Stable for one question (hashed on the count).
@@ -206,6 +224,27 @@ export const LIFE_SCENES: Record<string, LifeScene> = {
   "pfingsten:reigen": { place: "meet", hour: 15, h: 3, share: 0.45 },
   "lichtstube:reigen": { place: "oven", hour: 18, h: 3, share: 0.4, who: "young" },
   "lichtstube:andacht": { place: "oven", hour: 18, h: 2, share: 0.35, who: "spinners" },
+  "besthaupt:loesen": { place: "meet", hour: 17, h: 1, share: 0.25 },
+  "besthaupt:bitte": { place: "church", hour: 11, h: 1, share: 0.1 },
+  "besthaupt:geben": { place: "meet", hour: 17, h: 1, share: 0.15 },
+  "schwarm:teilen": { place: "wood", hour: 11, h: 1, share: 0.08 },
+  "schwarm:korb": { place: "wood", hour: 10, h: 1, share: 0.06, work: true },
+  "schwarm:pfarrer": { place: "church", hour: 11, h: 1, share: 0.1 },
+  "funken:kalt": { place: "meet", hour: 10, h: 1, share: 0.06 },
+  "funken:helfer": { place: "meet", hour: 9, h: 4, share: 0.12, work: true, who: "builders" },
+  "funken:lehm": { place: "meet", hour: 9, h: 3, share: 0.1, work: true, who: "builders" },
+  "rotte:kuhle": { place: "mill", hour: 9, h: 3, share: 0.08, work: true },
+  "rotte:unten": { place: "mill", hour: 10, h: 1, share: 0.06 },
+  "rotte:bier": { place: "meet", hour: 18, h: 2, share: 0.2 },
+  "wolfspur:treib": { place: "wood", hour: 9, h: 4, share: 0.3, work: true, who: "young" },
+  "wolfspur:stall": { place: "field", hour: 15, h: 1, share: 0.1, work: true },
+  "wolfspur:fallen": { place: "wood", hour: 9, h: 3, share: 0.12, work: true, who: "builders" },
+  "frevel:pflanz": { place: "wood", hour: 9, h: 2, share: 0.08, work: true },
+  "frevel:pfand": { place: "meet", hour: 17, h: 1, share: 0.12 },
+  "frevel:warn": { place: "meet", hour: 17, h: 1, share: 0.15 },
+  "miete:arbeit": { place: "field", hour: 9, h: 3, share: 0.04, work: true },
+  "miete:korn": { place: "meet", hour: 12, h: 1, share: 0.1 },
+  "miete:stein": { place: "church", hour: 11, h: 1, share: 0.4 },
 };
 /** Village-life scenes playing now: the decision, its scene and start (ms). Pure from decisions + realm clock. */
 export function lifeScenes(decisions: Decision[], now: number): { d: Decision; sc: LifeScene; at: number }[] {

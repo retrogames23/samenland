@@ -1,5 +1,6 @@
 import type { Lang } from "../i18n";
 import { LIFE_TEXT } from "./village-life";
+import { LIFE2_TEXT } from "./village-life2";
 
 /** Allmende questions: title + the resident's question, the answers, header and the advisor's counsel. */
 type T = {
@@ -191,4 +192,7 @@ for (const l of Object.keys(COMMONS_TEXT) as Lang[]) {
   Object.assign(COMMONS_TEXT[l].events, LIFE_TEXT[l].events);
   Object.assign(COMMONS_TEXT[l].choices, LIFE_TEXT[l].choices);
   Object.assign(COMMONS_TEXT[l].advice, LIFE_TEXT[l].advice);
+  Object.assign(COMMONS_TEXT[l].events, LIFE2_TEXT[l].events);
+  Object.assign(COMMONS_TEXT[l].choices, LIFE2_TEXT[l].choices);
+  Object.assign(COMMONS_TEXT[l].advice, LIFE2_TEXT[l].advice);
 }

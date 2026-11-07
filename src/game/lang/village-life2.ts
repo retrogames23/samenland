@@ -27,7 +27,7 @@ const de: T = {
     "rotte:kuhle": "Den Flachs in eine eigene Rottekuhle abseits des Bachs legen", "rotte:unten": "Nur unterhalb der Tränke rotten lassen", "rotte:bier": "Buße: ein Fass Bier für die Nachbarn bachabwärts",
     "wolfspur:treib": "Männer zur Treibjagd aufbieten, wie der Amtmann es will", "wolfspur:stall": "Die Herden früher einstallen und nachts Feuer halten", "wolfspur:fallen": "Fanggruben am Waldsaum ausheben lassen",
     "frevel:pflanz": "Zur Sühne junge Eichen setzen", "frevel:pfand": "Die Pfähle einziehen und für den Gemeindezaun nutzen", "frevel:warn": "Bei einer Verwarnung vor den Nachbarn belassen",
-    "miete:arbeit": "Den Schaden auf dem Hof von {a} abarbeiten lassen", "miete:korn": "Aus der Gemeindekasse Korn für die hungernde Familie", "miete:stein": "Den Lasterstein am Sonntag vor der Kirche tragen lassen",
+    "miete:arbeit": "Den Schaden auf dem bestohlenen Hof abarbeiten lassen", "miete:korn": "Aus der Gemeindekasse Korn für die hungernde Familie", "miete:stein": "Den Lasterstein am Sonntag vor der Kirche tragen lassen",
   },
   advice: {
     besthaupt: ["„Gegen den Herrn kommt keiner an. Aber eine Kuh weniger heißt Hunger im Winter.“", "„Der Vogt ist auch nur ein Mensch – eine gute Fürsprache wirkt manchmal Wunder.“"],
@@ -57,7 +57,7 @@ const en: T = {
     "rotte:kuhle": "Move the flax to its own retting pit away from the brook", "rotte:unten": "Ret only below the watering place", "rotte:bier": "Amends: a barrel of ale for the neighbours downstream",
     "wolfspur:treib": "Call up the men for a drive hunt, as the steward wants", "wolfspur:stall": "Bring the herds in earlier and keep fires at night", "wolfspur:fallen": "Have pit traps dug at the wood's edge",
     "frevel:pflanz": "Plant young oaks in atonement", "frevel:pfand": "Seize the posts for the village fence", "frevel:warn": "Leave it at a warning before the neighbours",
-    "miete:arbeit": "Let him work off the loss on {a}'s farm", "miete:korn": "Grain from the village chest for the hungry family", "miete:stein": "Make him carry the shame stone before church on Sunday",
+    "miete:arbeit": "Let him work off the loss on the farm he robbed", "miete:korn": "Grain from the village chest for the hungry family", "miete:stein": "Make him carry the shame stone before church on Sunday",
   },
   advice: {
     besthaupt: ["“No one stands against the lord. But one cow less means hunger in winter.”", "“The bailiff is only human – a good word sometimes works wonders.”"],
@@ -87,7 +87,7 @@ const fr: T = {
     "rotte:kuhle": "Mettre le lin dans un routoir à l'écart du ruisseau", "rotte:unten": "Rouir seulement en aval de l'abreuvoir", "rotte:bier": "Amende : un tonneau de bière aux voisins d'aval",
     "wolfspur:treib": "Lever les hommes pour une battue, comme le veut l'officier", "wolfspur:stall": "Rentrer les troupeaux plus tôt et garder des feux la nuit", "wolfspur:fallen": "Faire creuser des fosses-pièges à l'orée",
     "frevel:pflanz": "Planter de jeunes chênes en réparation", "frevel:pfand": "Saisir les pieux pour la clôture commune", "frevel:warn": "S'en tenir à un avertissement devant les voisins",
-    "miete:arbeit": "Lui faire réparer le tort en travaillant chez {a}", "miete:korn": "Du grain de la caisse commune pour la famille affamée", "miete:stein": "Lui faire porter la pierre d'infamie dimanche devant l'église",
+    "miete:arbeit": "Lui faire réparer le tort en travaillant à la ferme volée", "miete:korn": "Du grain de la caisse commune pour la famille affamée", "miete:stein": "Lui faire porter la pierre d'infamie dimanche devant l'église",
   },
   advice: {
     besthaupt: ["« Nul ne tient tête au seigneur. Mais une vache de moins, c'est la faim en hiver. »", "« Le bailli n'est qu'un homme – une bonne intercession fait parfois merveille. »"],
@@ -117,7 +117,7 @@ const es: T = {
     "rotte:kuhle": "Llevar el lino a una poza propia lejos del arroyo", "rotte:unten": "Enriar solo aguas abajo del abrevadero", "rotte:bier": "Reparación: un barril de cerveza para los vecinos de abajo",
     "wolfspur:treib": "Convocar a los hombres para una batida, como quiere el oficial", "wolfspur:stall": "Recoger antes los rebaños y mantener fuegos de noche", "wolfspur:fallen": "Cavar fosas trampa en la linde",
     "frevel:pflanz": "Plantar robles jóvenes como reparación", "frevel:pfand": "Confiscar los postes para la cerca común", "frevel:warn": "Dejarlo en una amonestación ante los vecinos",
-    "miete:arbeit": "Que repare el daño trabajando en la granja de {a}", "miete:korn": "Grano de la caja común para la familia hambrienta", "miete:stein": "Que cargue la piedra de la vergüenza el domingo ante la iglesia",
+    "miete:arbeit": "Que repare el daño trabajando en la granja robada", "miete:korn": "Grano de la caja común para la familia hambrienta", "miete:stein": "Que cargue la piedra de la vergüenza el domingo ante la iglesia",
   },
   advice: {
     besthaupt: ["«Nadie puede contra el señor. Pero una vaca menos es hambre en invierno.»", "«El alguacil también es hombre: una buena intercesión a veces obra milagros.»"],
@@ -147,7 +147,7 @@ const ar: T = {
     "rotte:kuhle": "نقل الكتان إلى حفرة تعطين بعيدة عن الجدول", "rotte:unten": "التعطين أسفل موضع السقي فقط", "rotte:bier": "تعويض: برميل جعة لجيران أسفل الجدول",
     "wolfspur:treib": "استنفار الرجال لصيد بالتطويق كما يريد الوكيل", "wolfspur:stall": "إدخال القطعان مبكرًا وإبقاء النيران ليلًا", "wolfspur:fallen": "حفر حفر مصائد عند حافة الغابة",
     "frevel:pflanz": "غرس بلوط فتي كفارة", "frevel:pfand": "مصادرة الأوتاد لسياج الجماعة", "frevel:warn": "الاكتفاء بإنذار أمام الجيران",
-    "miete:arbeit": "أن يعوّض الضرر بالعمل في مزرعة {a}", "miete:korn": "حبوب من صندوق الجماعة للأسرة الجائعة", "miete:stein": "أن يحمل حجر العار يوم الأحد أمام الكنيسة",
+    "miete:arbeit": "أن يعوّض الضرر بالعمل في المزرعة المسروقة", "miete:korn": "حبوب من صندوق الجماعة للأسرة الجائعة", "miete:stein": "أن يحمل حجر العار يوم الأحد أمام الكنيسة",
   },
   advice: {
     besthaupt: ["«لا أحد يقف في وجه السيد. لكن بقرة أقل تعني جوعًا في الشتاء.»", "«الوكيل بشر أيضًا، والشفاعة الحسنة تصنع العجائب أحيانًا.»"],
@@ -177,7 +177,7 @@ const hi: T = {
     "rotte:kuhle": "सन को नाले से दूर अलग गड्ढे में डालो", "rotte:unten": "केवल घाट के नीचे सड़ाने दो", "rotte:bier": "हर्जाना: नीचे वाले पड़ोसियों को एक पीपा बियर",
     "wolfspur:treib": "अमले की इच्छा से हँकाई-शिकार के लिए आदमी बुलाओ", "wolfspur:stall": "रेवड़ जल्दी अंदर लाओ और रात को आग जलाए रखो", "wolfspur:fallen": "जंगल के किनारे फंदे के गड्ढे खुदवाओ",
     "frevel:pflanz": "प्रायश्चित में बलूत के पौधे लगाओ", "frevel:pfand": "खूँटे ज़ब्त कर गाँव की बाड़ में लगाओ", "frevel:warn": "पड़ोसियों के सामने चेतावनी पर छोड़ दो",
-    "miete:arbeit": "{a} के खेत पर काम करके नुक़सान भरवाओ", "miete:korn": "भूखे परिवार को गाँव के कोष से अनाज", "miete:stein": "रविवार को गिरजे के सामने कलंक-पत्थर उठवाओ",
+    "miete:arbeit": "जिस खेत से चुराया, वहाँ काम करके नुक़सान भरवाओ", "miete:korn": "भूखे परिवार को गाँव के कोष से अनाज", "miete:stein": "रविवार को गिरजे के सामने कलंक-पत्थर उठवाओ",
   },
   advice: {
     besthaupt: ["“मालिक के आगे कोई नहीं टिकता। पर एक गाय कम मतलब सर्दी में भूख।”", "“कारिंदा भी इंसान है – अच्छी सिफ़ारिश कभी-कभी चमत्कार करती है।”"],
@@ -207,7 +207,7 @@ const zh: T = {
     "rotte:kuhle": "把亚麻挪到远离小溪的沤麻坑", "rotte:unten": "只许在饮牲口处下游沤麻", "rotte:bier": "赔礼：给下游邻居一桶啤酒",
     "wolfspur:treib": "照官员的意思召集男人围猎", "wolfspur:stall": "牲口早些入圈，夜里守火", "wolfspur:fallen": "在林边挖陷阱坑",
     "frevel:pflanz": "种下橡树苗赎过", "frevel:pfand": "没收木桩用于村里的篱笆", "frevel:warn": "当着邻居警告一番了事",
-    "miete:arbeit": "让他在{a}的农庄做工抵偿", "miete:korn": "从村库拿粮食给饥饿的一家", "miete:stein": "让他星期天在教堂前背耻辱石",
+    "miete:arbeit": "让他在被偷的农庄做工抵偿", "miete:korn": "从村库拿粮食给饥饿的一家", "miete:stein": "让他星期天在教堂前背耻辱石",
   },
   advice: {
     besthaupt: ["“没人斗得过领主。但少一头牛，冬天就要挨饿。”", "“管家也是人——好言相求有时能出奇效。”"],
@@ -237,7 +237,7 @@ const ja: T = {
     "rotte:kuhle": "亜麻を小川から離れた浸け穴へ移す", "rotte:unten": "水飲み場より下流だけで浸ける", "rotte:bier": "償い：下流の近所にビールを一樽",
     "wolfspur:treib": "役人の望みどおり男たちを巻き狩りに集める", "wolfspur:stall": "家畜を早めに入れ、夜は火を絶やさない", "wolfspur:fallen": "林のはずれに落とし穴を掘らせる",
     "frevel:pflanz": "償いに樫の若木を植える", "frevel:pfand": "杭を没収して村の柵に使う", "frevel:warn": "近所の前での戒めにとどめる",
-    "miete:arbeit": "{a}の農家で働いて償わせる", "miete:korn": "村の金庫から飢えた一家に穀物を", "miete:stein": "日曜に教会の前で恥の石を担がせる",
+    "miete:arbeit": "盗まれた農家で働いて償わせる", "miete:korn": "村の金庫から飢えた一家に穀物を", "miete:stein": "日曜に教会の前で恥の石を担がせる",
   },
   advice: {
     besthaupt: ["「領主には誰も逆らえません。でも牛が一頭減れば冬は飢えます。」", "「代官も人の子。よいとりなしが効くこともあります。」"],
