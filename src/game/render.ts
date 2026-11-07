@@ -2689,7 +2689,7 @@ function labEntries(): LabEntry[] {
       drawSheetFrame(c, sh, f, fw, ww, h, -(frameShift(sh)[f] ?? 0) * ww); return ww; },
   });
   // animals: real game draw calls at the origin; ph (radians) is turned into the distance / clock each one steps by
-  const A = (label: string, h: number, w: number, draw: (c: C, ph: number, now: number) => boolean | void): LabEntry =>
+  const A = (label: string, h: number, w: number, draw: (c: C, ph: number, now: number) => unknown): LabEntry =>
     ({ label, cat: "animal", h, cfg: null, draw: (c, _h, ph, now) => (draw(c, ph, now) === false ? null : w) });
   out.push(
     A("Schaf geht", 4, 5, (c, ph) => drawSheep(c, 0, 0, false, (ph / 6.2832) * 1440, true, false, false)),

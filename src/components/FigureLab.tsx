@@ -39,7 +39,7 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
         const c = cv.getContext("2d")!; c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height); c.setTransform(d, 0, 0, d, 0, 0); f(c, W, H);
       };
       if (s.sel != null && big.current) {
-        const e = all[s.sel];
+        const e = all[s.sel]; if (!e) { raf = requestAnimationFrame(loop); return; }
         paint(big.current, (c, W, H) => {
           const v = view.current; if (!v.z) { v.z = (H * 0.7) / e.h; v.x = W / 2; v.y = H * 0.85; }
           c.strokeStyle = "rgba(60,40,20,0.12)"; c.lineWidth = 1; // world grid, one line per world unit
@@ -50,7 +50,7 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
         });
       } else for (const [i, cv] of cards.current) {
         const r = cv.getBoundingClientRect(); if (r.bottom < 0 || r.top > window.innerHeight) continue;
-        const e = all[i];
+        const e = all[i]; if (!e) continue;
         paint(cv, (c, W, H) => drawLabFigure(c, i, W / 2, H * 0.9, Math.min((H * 0.78) / e.h, (W * 0.8) / Math.max(2, e.h * 0.9)), s.ph, now, o));
       }
       raf = requestAnimationFrame(loop);
