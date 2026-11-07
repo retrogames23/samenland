@@ -3,7 +3,7 @@ import type { Realm } from "./time";
 
 // Island names per map (proper names, shown next to the own town in the top bar).
 export const ISLAND: Record<Realm | "lab", string> = {
-  europe: "Altenland", "us-east": "Möwenwerder", "us-west": "Westeroog", asia: "Sandwerder", lab: "Tüftelgrund",
+  europe: "Altenland", "europe-2": "Elbwerder", "us-east": "Möwenwerder", "us-west": "Westeroog", asia: "Sandwerder", lab: "Tüftelgrund",
 };
 const ON: Record<Lang, (n: string) => string> = {
   de: (n) => `auf ${n}`, en: (n) => `on ${n}`, fr: (n) => `sur ${n}`, es: (n) => `en ${n}`,

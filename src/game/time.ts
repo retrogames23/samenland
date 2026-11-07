@@ -1,11 +1,12 @@
 import { setBiome } from "./biome";
 /** Four realms (separate maps), each with one shared clock, so everyone on a map sees the same day/night. */
-export type Realm = "us-west" | "us-east" | "europe" | "asia" | "lab";
-export const REALMS: Realm[] = ["us-west", "us-east", "europe", "asia"];
+export type Realm = "us-west" | "us-east" | "europe" | "europe-2" | "asia" | "lab";
+export const REALMS: Realm[] = ["us-west", "us-east", "europe", "europe-2", "asia"];
 export const REALM_TZ: Record<Realm, string> = {
   "us-west": "America/Los_Angeles",
   "us-east": "America/New_York",
   europe: "Europe/Berlin",
+  "europe-2": "Europe/Berlin",
   asia: "Asia/Tokyo",
   lab: "Europe/Berlin",
 };

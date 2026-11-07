@@ -4,8 +4,8 @@ import type { Realm } from "./time";
  * Regional island look per realm (pure, display only): ground/foliage tint and tree mix.
  * Terrain, coordinates and buildings stay identical, so existing villages keep every tile.
  */
-export type Biome = "heartland" | "westwild" | "westwood" | "heath";
-export const BIOME_OF: Record<Realm, Biome> = { europe: "heartland", lab: "heartland", "us-west": "westwild", "us-east": "westwood", asia: "heath" };
+export type Biome = "heartland" | "elbe" | "westwild" | "westwood" | "heath";
+export const BIOME_OF: Record<Realm, Biome> = { europe: "heartland", "europe-2": "elbe", lab: "heartland", "us-west": "westwild", "us-east": "westwood", asia: "heath" };
 
 type Look = {
   /** Multiply-style RGB shift for grass/meadow/forest ground and leaves. */
@@ -21,6 +21,8 @@ type Look = {
 };
 const LOOK: Record<Biome, Look | null> = {
   heartland: null,
+  // Elbwerder: same north German flora and fauna as Altenland, only the island differs
+  elbe: null,
   // All islands are north German landscapes around 1500 (no native spruce/fir in the lowland: conifers = Scots pine).
   // Westeroog: North Frisian tidal coast — wind-shorn oaks, hawthorn scrub, few pines, salt-meadow greens
   westwild: { green: [0.9, 0.96, 0.98], stone: [0.9, 0.94, 1.0], sand: [0.95, 0.94, 0.9], water: [0.85, 0.95, 1.0], conifer: 0.12, birch: 0.15, heather: 0.02 },
