@@ -743,6 +743,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     if (!s.bought?.length) continue;
     const sp = specialSites(s).get(ck);
     if (!sp || now < sp.at) continue;
+    if (sp.kind === "square") { best = { kind: "square", seed: s, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
     const mk = MONUMENT_BY_KIND.get(sp.kind);
     const mill = sawmillUp(s, seeds, now);
     const p = mk ? monumentProgress(s, now, mk, mill) : (workClock(now) - workClock(sp.at)) / specialBuild(s, mill);
