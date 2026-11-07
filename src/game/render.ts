@@ -1203,11 +1203,13 @@ function folkOf(q: Pose): FolkSprite {
   if (p.job === "priest") return "priest";
   if (p.job === "watchman" && !f && p.age < 65) return "watchman"; // 1500: civic watch — plain iron hat, wool tunic, spear and horn (never the prince's guard)
   if (p.age >= 65) return f ? "elderF" : "elder";
+  // 1500: patrician households wear a fur-trimmed Schaube and beret / fine gown with Flemish hood
+  if (p.estate === "wealthy" && p.job !== "mayor") return f ? "wealthyF" : "wealthy";
   return f ? "woman" : "man";
 }
 // hipX = hip column, hemY = tunic hem (measured on the sprites); legs keep LEG_RATIO height regardless of hem
 const HIPS: Partial<Record<FolkSprite, FigureConfig>> = {
-  man: fig(0.465, 0.575, { legs: "dark" }), farmer: fig(0.51, 0.71, { legs: "linen" }), porter: fig(0.437, 0.676, { legs: "linen" }), builder: fig(0.472, 0.653, { legs: "grey" }),
+  man: fig(0.465, 0.575, { legs: "dark" }), wealthy: fig(0.48, 0.64, { legs: "dark" }), farmer: fig(0.51, 0.71, { legs: "linen" }), porter: fig(0.437, 0.676, { legs: "linen" }), builder: fig(0.472, 0.653, { legs: "grey" }),
   woodcutter: fig(0.453, 0.67, { legs: "grey" }), mason: fig(0.4, 0.62, { legs: "grey" }), elder: fig(0.47, 0.68, { legWidthScale: 1.04, legs: "dark", keep: [[0.84, 0.96, 0.95]] }),
   robber: fig(0.45, 0.665, { legs: "dark" }), watchman: fig(0.52, 0.64, { legs: "dark" }), youth: fig(0.5, 0.58, { legs: "dark" }), groom: fig(0.56, 0.74, { legWidthScale: 1.06, legs: "linen" }),
 };
@@ -1219,8 +1221,8 @@ const DEFAULT_FIG = fig(0.46, 0.66);
 const MAYOR_LEGS = fig(0.503, 0.58, { keep: [[0.37, 0.49, 0.605]] });
 // long robes walk like skirts: two painted shoes step under the hem
 // measured skirt centre (fraction of sprite width): shoes step under the body, not under a carried tool
-const ROBE_HIP: Partial<Record<FolkSprite, number>> = { farmerF: 0.31, masonF: 0.46, elderF: 0.46, woman: 0.46, priest: 0.46, woodcutterF: 0.47, porterF: 0.48, bride: 0.49, builderF: 0.51, youthF: 0.5 };
-const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride", "priest", "youthF"] as FolkSprite[]);
+const ROBE_HIP: Partial<Record<FolkSprite, number>> = { farmerF: 0.31, masonF: 0.46, elderF: 0.46, woman: 0.46, wealthyF: 0.5, priest: 0.46, woodcutterF: 0.47, porterF: 0.48, bride: 0.49, builderF: 0.51, youthF: 0.5 };
+const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "wealthyF", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride", "priest", "youthF"] as FolkSprite[]);
 const TOOL_WORK: ReadonlySet<FolkSprite> = new Set(["farmer", "farmerF", "woodcutter", "woodcutterF", "mason", "masonF", "builder", "builderF"] as FolkSprite[]);
 /** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
 const WORK_FRAMES = 6;
@@ -1232,10 +1234,6 @@ function insignia(c: C, q: Pose, hgt: number) {
   const wxs = Math.max(wetness(renderNow), snowiness(renderNow));
   if (wxs > 0.15 && q.p.age >= 12 && q.p.job !== "mayor" && !q.festive && !q.working && hash(q.p.id, 78, 5) < wxs * 1.4) {
     return;
-  }
-  if (q.p.estate === "wealthy" && q.p.age >= 16 && q.p.job !== "mayor" && !q.working && !q.festive) {
-    const hat = folkImage("beret");
-    if (hat) { const h = hgt * 0.17, w = h * hat.naturalWidth / hat.naturalHeight; c.drawImage(hat, -w / 2, -hgt * 1.03, w, h); }
   }
   if (q.p.job !== "mayor") return;
   const n = titleOfSeed(q.p.seed); if (n < 1) return;
