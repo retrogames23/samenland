@@ -1427,16 +1427,19 @@ export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, see
   const d = townDist(x, y, s);
   // the fisher walks to the shore, so his hut may stand well outside the village
   const reach = radiusOf(effAge(s, seeds, now)) + 2;
-  if (d > (kind === "fishery" ? Math.max(16, reach + 12) : Math.max(4, reach)) || d < 1) return "far";
+  if (d > (kind === "fishery" ? Math.max(16, reach + 12) : Math.max(4, reach))) return "far";
+  // the village well/campfire itself is occupied, not "far"
+  if (d < 1) return "taken";
+  // woodland is cleared for a bought building: its trees are simply not drawn under a structure
   const tt = terrain(x, y);
-  if (!buildable(tt) || tt === "forest") return "ground";
+  if (!buildable(tt)) return "ground";
   const st = structureAt(x, y, seeds, now);
   const agri = (k?: Kind) => k === "field" || k === "pasture" || k === "garden";
   if (st && !agri(st.kind)) return "taken";
   // 2×2 ensembles: the three tiles behind the front tile must be free ground too
   if (FOOT2.has(kind)) for (const [i, j] of FOOT2_BACK) {
     const xx = x + i, yy = y + j, t2 = terrain(xx, yy);
-    if (!buildable(t2) || t2 === "forest") return "ground";
+    if (!buildable(t2)) return "ground";
     const b = structureAt(xx, yy, seeds, now);
     if (b && !agri(b.kind)) return "taken";
   }
