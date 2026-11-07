@@ -9,6 +9,8 @@ import crowUrl from "@/assets/sprites/crow.webp";
 import { animalsSleeping } from "./animals";
 import { drawParchment } from "./parchment";
 import cowUrl from "@/assets/sprites/cow.webp";
+import cowWalkUrl from "@/assets/sprites/cow-walk.webp";
+import pigWalkUrl from "@/assets/sprites/pig-walk.webp";
 import pondUrl from "@/assets/sprites/pond.webp";
 import flowerTuftUrl from "@/assets/sprites/flower-tuft.webp";
 import pastureCloverUrl from "@/assets/sprites/pasture-clover.webp";
@@ -2727,6 +2729,9 @@ function labEntries(): LabEntry[] {
       drawBeast(c, dw, dg, 0, 0, 6.2, false, 0, 0, Math.floor(now / 1500) % 8 < 5 ? (Math.floor(now / 650) & 1) : 2); return true; }),
     A("Wildschwein", 4.4, 6, (c, ph) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; drawBeast(c, bw, null, 0, 0, 4.4, false, 1, (ph / 6.2832) * 4.4, 0, 1, BOAR_GAIT); return true; }),
     A("Wildschwein wühlt", 4.4, 6, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 2.2); sheetFrame(c, bw, 3, 0, -(Math.floor(now / 500) & 1) * 0.08, 4.4, false); return true; }),
+    A("Hausschwein", 3.6, 6, (c, ph) => { const pw = huntIm("pw", pigWalkUrl); if (!pw) return false; drawBeast(c, pw, null, 0, 0, 3.6, false, 1, (ph / 6.2832) * 4.4, 0, 1, BOAR_GAIT); return true; }),
+    A("Hausschwein wühlt", 3.6, 6, (c, _ph, now) => { const pw = huntIm("pw", pigWalkUrl); if (!pw) return false; shadow(c, 0, 0, 1.8); sheetFrame(c, pw, 3, 0, -(Math.floor(now / 500) & 1) * 0.08, 3.6, false); return true; }),
+    A("Kuh geht", 5.2, 7, (c, ph) => { shadow(c, 0, 0, 2.8); c.save(); const ok = cowStep(c, 5.2, Math.floor((ph / 6.2832) * 4)); c.restore(); return ok; }),
     A("Jäger", 5.4, 3, (c, _ph, now) => { const hu = huntIm("hu", hunterUrl); if (!hu) return false; const f = Math.floor(now / 1200) % 3;
       shadow(c, 0, 0, 1.6, 0.3); sheetFrame(c, hu, f, 0, 0, 5.4, false); return true; }),
   );
@@ -2832,7 +2837,7 @@ function drawMaypole(c: C, x: number, y: number, t: number) {
 /** A village cow from the cow encounter: grazes on a pasture (or the green), slowly turning, lying down at night. */
 /** Village pigs masting under the oaks (Allmende): root for acorns, then trot a few steps; asleep in the sty at night. */
 function drawPig(c: C, x: number, y: number, now: number, sd: number) {
-  const bw = huntIm("bw", boarWalkUrl); if (!bw || animalsSleeping(now)) return;
+  const bw = huntIm("pw", pigWalkUrl); if (!bw || animalsSleeping(now)) return;
   const CYC = 30000, WALK = 5000, tt = now + hash(sd, 1, 1503) * CYC, k = Math.floor(tt / CYC), u = tt - k * CYC;
   const spot = (j: number): [number, number] => [(hash(sd, j, 1504) - 0.5) * 8, (hash(sd, j, 1505) - 0.5) * 3];
   const a = spot(k), b = spot(k + 1), into = u - (CYC - WALK), f = into > 0 ? into / WALK : 0, e = f * f * (3 - 2 * f);
@@ -2842,6 +2847,12 @@ function drawPig(c: C, x: number, y: number, now: number, sd: number) {
   else sheetFrame(c, bw, 3, X, Y - (Math.floor((now + sd) / 500) & 1) * 0.08, h, flip);
 }
 /** Whitsun ox: the cow sprite led along, garlanded with birch and bright ribbons. */
+/** One frame of the painted cow walk sheet (facing left like cow.webp), width w, hooves at 0. */
+function cowStep(c: C, w: number, f: number, lift = 0): boolean {
+  const cw = huntIm("cw", cowWalkUrl); if (!cw) return false;
+  const fw = cw.naturalWidth / 4, h = (cw.naturalHeight / fw) * w;
+  c.drawImage(cw, (f & 3) * fw, 0, fw, cw.naturalHeight, -w / 2, -h - lift, w, h); return true;
+}
 function drawOx(c: C, x: number, y: number, w: Walk, now: number) {
   const im = huntIm("cow", cowUrl); if (!im) return;
   const W = 5.6, H = (im.naturalHeight / im.naturalWidth) * W, dir = screenFacing(w.dx, w.dy) < 0 ? -1 : 1;
@@ -2849,7 +2860,7 @@ function drawOx(c: C, x: number, y: number, w: Walk, now: number) {
   c.save();
   c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x, y + 0.2, 3, 0.95, 0, 0, 7); c.fill();
   c.translate(x, y); c.scale(dir, 1); c.rotate(sway);
-  c.drawImage(im, -W / 2, -H - lift, W, H);
+  if (!w.walking || !cowStep(c, W, Math.floor(now / 420), 0)) c.drawImage(im, -W / 2, -H - lift, W, H);
   // birch wreath over the shoulders, ribbons fluttering from the horns
   c.fillStyle = "rgba(128,170,72,0.95)";
   for (let i = 0; i < 7; i++) { c.beginPath(); c.ellipse(-0.4 + i * 0.45 - 1.2, -H * 0.72 - lift + Math.sin(i) * 0.25, 0.6, 0.42, 0, 0, 7); c.fill(); }
@@ -2883,6 +2894,7 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
   c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.2, 2.8, 0.9, 0, 0, 7); c.fill();
   c.translate(x + dx, y + dy); c.scale(night ? prevDir : scaleX, 1);
   if (night) c.drawImage(im, 0, im.naturalHeight * 0.45, im.naturalWidth, im.naturalHeight * 0.55, -w / 2, -h * 0.55, w, h * 0.55);
+  else if (walking) { c.rotate(tilt * 0.5); if (!cowStep(c, w, Math.floor(into / 480))) c.drawImage(im, -w / 2, -h * 0.96, w, h); }
   else { c.rotate(tilt); c.scale(1, breath); c.drawImage(im, -w / 2, -h * 0.96, w, h); }
   c.restore();
 }
