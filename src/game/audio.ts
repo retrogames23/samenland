@@ -301,9 +301,11 @@ export function setSound(on: boolean) {
   if (!on) setTimeout(() => { if (!enabled && ctx?.state === "running") void ctx.suspend(); }, 400);
 }
 // background tab / locked phone: suspend audio, resume when visible again
-if (typeof document !== "undefined") document.addEventListener("visibilitychange", () => {
+const onVisibility = () => {
   if (!ctx) return;
   if (document.hidden) void ctx.suspend(); else if (enabled) void ctx.resume();
-});
+};
+if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisibility);
 export function unlock() { if (enabled && ctx && ctx.state !== "running") void ctx.resume(); }
-export function disposeAudio() { clearInterval(timer); }
+/** Stops the clock; the audio thread is only suspended (the module is a singleton reused on remount). */
+export function disposeAudio() { clearInterval(timer); if (ctx?.state === "running") void ctx.suspend(); }

@@ -5,6 +5,8 @@ import type { Seed } from "@/game/world";
 import type { Realm } from "@/game/time";
 
 const DAY = 86400000;
+/** Days simulated per request; kept small so a full map stays inside the worker CPU budget. */
+const BATCH = 7;
 /** One bounded batch per request; old earnings remain handled by the legacy database function. */
 /** Every simulation input of one realm, read with service rights; the caller supplies nothing. */
 export async function loadEconomyInput(realm: string): Promise<EconomyWorld> {
@@ -41,32 +43,20 @@ export async function certifyRank(id: string, realm: string) {
 
 export async function calculateTreasury(id: string, realm: string) {
   const now = Date.now();
-  const [ss, cut, receipts] = await Promise.all([
-    supabaseAdmin.from("seeds").select("*").eq("realm", realm).order("created_at").order("id"),
+  const [cut, receipts] = await Promise.all([
     supabaseAdmin.from("tax_cutover").select("at").eq("singleton", true).maybeSingle(),
     supabaseAdmin.from("tax_receipts").select("day, income").eq("seed_id", id).order("day"),
   ]);
-  if (ss.error || cut.error || receipts.error) throw new Error("Treasury read failed");
+  if (cut.error || receipts.error) throw new Error("Treasury read failed");
   if (!cut.data) {
     const { data:balance, error } = await supabaseAdmin.rpc("village_balance", {_seed:id});
     if (error || balance==null) throw new Error("Balance unavailable");
     return { seed:id, balance, daily:0, population:0, earned:0, active:false, settled:true };
   }
-  const raw = (ss.data ?? []) as Seed[], target = raw.find(s => s.id === id);
+  // one shared read of all simulation inputs (previously duplicated here)
+  const input = await loadEconomyInput(realm);
+  const target = input.seeds.find(s => s.id === id);
   if (!target) throw new Error("Missing village");
-  const ids = raw.map(s => s.id);
-  const [p, b, c, e, r, v, w, g] = await Promise.all([
-    supabaseAdmin.from("purchases").select("seed_id,item,created_at,x,y").in("seed_id", ids).order("created_at"),
-    supabaseAdmin.from("blessings").select("seed_id,created_at").in("seed_id", ids),
-    supabaseAdmin.from("charters").select("seed_id,path,created_at").in("seed_id", ids),
-    supabaseAdmin.from("encounters").select("seed_id,event,choice,cost,created_at").in("seed_id", ids).order("created_at"),
-    supabaseAdmin.from("first_roads").select("seed_id,target_id,created_at").in("seed_id", ids).order("created_at"),
-    supabaseAdmin.from("twin_votes").select("seed_id,partner_id,pact,created_at").in("seed_id", ids),
-    supabaseAdmin.from("twin_works").select("seed_id,partner_id,work,cost,created_at").in("seed_id", ids),
-    supabaseAdmin.from("gifts").select("id,from_seed,to_seed,kind,created_at").in("to_seed", ids),
-  ]);
-  if ([p,b,c,e,r,v,w,g].some(q => q.error)) throw new Error("Simulation inputs unavailable");
-  const input: EconomyWorld = { seeds: raw, purchases: p.data ?? [], blessings: b.data ?? [], charters: c.data ?? [], encounters: e.data ?? [], roads: r.data ?? [], votes: v.data ?? [], works: w.data ?? [], gifts: g.data ?? [] };
   // Lazy import avoids loading visual art; the realm is fixed for this synchronous calculation.
   const { setRealm } = await import("@/game/time");
   setRealm(realm as Realm);
@@ -74,7 +64,7 @@ export async function calculateTreasury(id: string, realm: string) {
   const first = cut.data ? Math.max(1, Math.ceil((Date.parse(cut.data.at)-created)/DAY)) : days+1;
   const recorded = new Set((receipts.data ?? []).map(r => r.day));
   const pending: number[] = [];
-  for (let d=first; d<=days && pending.length<14; d++) if (!recorded.has(d)) pending.push(d);
+  for (let d=first; d<=days && pending.length<BATCH; d++) if (!recorded.has(d)) pending.push(d);
   const rows = pending.map(d => {
     const at = created+d*DAY, seeds = economyWorldAt(input, at), seed = seeds.find(s => s.id===id);
     if (!seed) throw new Error("Missing historical village");
@@ -93,5 +83,5 @@ export async function calculateTreasury(id: string, realm: string) {
   const { data:confirmed, error:confirmationError } = await supabaseAdmin.from("tax_receipts").select("income").eq("seed_id",id);
   if (confirmationError) throw new Error("Receipt verification failed");
   const completed = (confirmed ?? []).reduce((n,r)=>n+r.income,0);
-  return { seed:id, balance, daily:daily?.income ?? 0, population:daily?.population ?? 0, earned:completed, active:!!cut.data, settled:pending.length<14 || pending[pending.length-1]===days };
+  return { seed:id, balance, daily:daily?.income ?? 0, population:daily?.population ?? 0, earned:completed, active:!!cut.data, settled:pending.length<BATCH || pending[pending.length-1]===days };
 }
