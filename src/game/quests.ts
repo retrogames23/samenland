@@ -2,11 +2,12 @@
 export const QUESTS = [
   "bless", "build", "sign", "meet", "ten", "gift", "hamlet",
   // Dorf era
-  "road", "bless7", "buy3", "village",
+  // resident goals lead up to each rank-up, never trail behind it
+  "road", "bless7", "buy3", "fifty", "village",
   // Kleinstadt era
-  "gifts5", "fifty", "roads2", "town",
+  "gifts5", "roads2", "hundred", "town",
   // Handelsstadt era
-  "buy6", "hundred", "merchant",
+  "buy6", "merchant",
   // Hansestadt
   "metro",
 ] as const;
