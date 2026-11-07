@@ -53,6 +53,17 @@ export const ENCOUNTERS = {
   wolfspur: { treib: { cost: 0, fx: { h: 96, food: 6 } }, stall: { cost: 0, fx: { h: 120, food: 4, health: 2 } }, fallen: { cost: 10, fx: { h: 168, food: 8 } } },
   frevel: { pflanz: { cost: 0, fx: { h: 168, food: 4, health: 2 } }, pfand: { cost: 0, fx: { h: 96, wealth: 4 } }, warn: { cost: 0, fx: { h: 48, health: 4 } } },
   miete: { arbeit: { cost: 0, fx: { h: 96, food: 4, health: 2 } }, korn: { cost: 10, fx: { h: 120, health: 8 } }, stein: { cost: 0, fx: { h: 48, wealth: 2 } } },
+  // town life from Kleinstadt (commons.ts CITY): market police, guilds, beer, gate, watch; sea and Hanse from Handelsstadt
+  brot: { busse: { cost: -10, fx: { h: 72, wealth: 4 } }, spital: { cost: 0, fx: { h: 96, health: 8 } } },
+  stoerer: { zunft: { cost: 0, fx: { h: 96, wealth: 6 } }, dulden: { cost: -10, fx: { h: 96, growth: 0.03 } } },
+  bier: { zoll: { cost: 0, fx: { h: 120, wealth: 6 } }, frei: { cost: -10, fx: { h: 72, health: 6 } } },
+  torschluss: { zu: { cost: 0, fx: { h: 72, health: 6 } }, nachzoll: { cost: -8, fx: { h: 48, wealth: 3 } } },
+  wache: { pflicht: { cost: 0, fx: { h: 120, health: 8 } }, loskauf: { cost: -15, fx: { h: 96, wealth: 4 } } },
+  kaper: { geleit: { cost: 60, fx: { h: 168, wealth: 14 } }, selbst: { cost: 0, fx: { h: 48, wealth: 2 } } },
+  gast: { streng: { cost: 0, fx: { h: 120, wealth: 8 } }, frei: { cost: 0, fx: { h: 96, growth: 0.04 } } },
+  hansetag: { gefolge: { cost: 80, fx: { h: 168, wealth: 15, health: 5 } }, vollmacht: { cost: 15, fx: { h: 96, wealth: 6 } } },
+  strand: { berge: { cost: 0, fx: { h: 120, wealth: 8 } }, fischer: { cost: 0, fx: { h: 96, food: 8, health: 4 } } },
+  seuche: { absondern: { cost: 30, fx: { h: 168, health: 15 } }, offen: { cost: 0, fx: { h: 72, wealth: 6 } } },
   // historical news 1500/1501 (HISTORY below): dated, once per village, mirrored by DB encounter_guard
   werber: { fodder: { cost: 30, fx: { h: 120, health: 8 } }, quarter: { cost: 0, fx: { h: 72, wealth: 5 } } },
   weser: { carts: { cost: 0, fx: { h: 96, wealth: 5 } }, ransom: { cost: 40, fx: { h: 168, health: 10 } } },
@@ -65,7 +76,7 @@ export type EventKey = keyof typeof ENCOUNTERS;
  * "flood" is retired (kept for old decisions' boons): floods are a visible disaster in disasters.ts, never a text-only encounter.
  */
 /** Commons questions (commons.ts) share the encounter slot but are never drawn as visitors. */
-export const COMMONS_KEYS = ["hutewald", "backtag", "steg", "zaun", "flur", "plaggen", "schelte", "scharwerk", "pfingsten", "lichtstube", "besthaupt", "schwarm", "funken", "rotte", "wolfspur", "frevel", "miete"] as const;
+export const COMMONS_KEYS = ["hutewald", "backtag", "steg", "zaun", "flur", "plaggen", "schelte", "scharwerk", "pfingsten", "lichtstube", "besthaupt", "schwarm", "funken", "rotte", "wolfspur", "frevel", "miete", "brot", "stoerer", "bier", "torschluss", "wache", "kaper", "gast", "hansetag", "strand", "seuche"] as const;
 /**
  * Historical news that reached a north German village 1500/1501, as real-calendar UTC windows
  * (game year = real year - YEAR_SHIFT, so 2026-11 is November 1500). Each comes once per village,
