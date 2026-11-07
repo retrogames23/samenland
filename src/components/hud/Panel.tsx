@@ -17,7 +17,7 @@ export function WoodButton({ active, label, onClick, children, className = "" }:
       aria-pressed={active}
       title={label}
       onClick={onClick}
-      className={`grid place-items-center rounded-md border transition-colors ${active ? "border-brass bg-wood-light text-brass" : "border-transparent text-wood-foreground hover:bg-wood-light"} ${className}`}
+      className={`grid place-items-center items-center justify-center rounded-md border transition-colors ${active ? "border-brass bg-wood-light text-brass" : "border-transparent text-wood-foreground hover:bg-wood-light"} ${className}`}
     >
       {children}
     </button>
