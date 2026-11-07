@@ -353,10 +353,11 @@ function drawFeastKit(c: C, X: number, Y: number, q: Pose, t: number) {
   // Epiphany: paper crowns for the trio, the first one carries the star on a pole (it turns slowly)
   const si = f === "epiphany" ? fzStars.get(p.id) : undefined;
   if (si != null && h >= 10 && h < 17) {
-    const hy = top + 0.6;
-    c.fillStyle = "#d9b25a"; c.beginPath(); c.moveTo(X - 1.1, hy); c.lineTo(X - 1.1, hy - 1.3); c.lineTo(X - 0.55, hy - 0.7); c.lineTo(X, hy - 1.5); c.lineTo(X + 0.55, hy - 0.7); c.lineTo(X + 1.1, hy - 1.3); c.lineTo(X + 1.1, hy); c.closePath(); c.fill();
+    // children are shorter than the 4.4-unit adult: the crown sits on the child's head, not above it
+    const hy = Y - 3.55 / K, cw = 0.85;
+    c.fillStyle = "#d9b25a"; c.strokeStyle = "#8a6a2a"; c.lineWidth = 0.18; c.beginPath(); c.moveTo(X - cw, hy); c.lineTo(X - cw, hy - 1); c.lineTo(X - cw / 2, hy - 0.55); c.lineTo(X, hy - 1.15); c.lineTo(X + cw / 2, hy - 0.55); c.lineTo(X + cw, hy - 1); c.lineTo(X + cw, hy); c.closePath(); c.fill(); c.stroke();
     if (si === 0) {
-      const sx = X + 2, sy = top - 4.5, rot = t / 900;
+      const sx = X + 1.9, sy = hy - 3.2, rot = t / 900;
       c.strokeStyle = "#5e4229"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(X + 1.6, Y - 4.5); c.lineTo(sx, sy); c.stroke();
       c.fillStyle = "#e8c860"; c.strokeStyle = "#8a6a2a"; c.lineWidth = 0.25; c.beginPath();
       for (let i = 0; i < 16; i++) { const a = rot + (i * Math.PI) / 8, r = i % 2 ? 1.1 : 2.6; c.lineTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r * 0.9); }
