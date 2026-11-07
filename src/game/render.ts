@@ -3,6 +3,8 @@ import deerWalkUrl from "@/assets/sprites/deer-walk.webp";
 import deerGrazeUrl from "@/assets/sprites/deer-graze.webp";
 import boarWalkUrl from "@/assets/sprites/boar-walk.webp";
 import hunterUrl from "@/assets/sprites/folk/hunter.webp";
+import hunterWalkUrl from "@/assets/sprites/folk/hunter-walk.webp";
+import hunterCarryUrl from "@/assets/sprites/folk/hunter-carry.webp";
 import henUrl from "@/assets/sprites/hen.webp";
 import gullUrl from "@/assets/sprites/gull.webp";
 import crowUrl from "@/assets/sprites/crow.webp";
@@ -581,9 +583,12 @@ function huntFigures(lx: number, ly: number, out: Bucket, c: C, L?: Light[]) {
   const hp = sc.hunter;
   if (hp && L) { const [hx, hy] = iso(hp.x, hp.y); L.push({ x: hx, y: hy - 2, r: 7 }); }
   if (hp) put(hp.x, hp.y, () => {
-    const [X, Y] = iso(hp.x, hp.y), bob = hp.walk ? Math.abs(Math.sin(renderNow / 260)) * 0.15 : 0;
+    const [X, Y] = iso(hp.x, hp.y);
     shadow(c, X, Y, 1.6, 0.3);
-    sheetFrame(c, hu, hp.frame, X, Y - bob, 5.4, hp.flip);
+    // walking legs: real 4-phase sheets (crossbow shouldered / deer carried); kneel and idle keep the pose sheet
+    const ws = hp.walk ? huntIm(hp.frame === 3 ? "huc" : "huw", hp.frame === 3 ? hunterCarryUrl : hunterWalkUrl) : null;
+    if (ws) { const k = Math.floor(renderNow / 300); sheetFrame(c, ws, k & 3, X, Y - (k & 1 ? 0 : 0.08), 5.4, hp.flip); }
+    else sheetFrame(c, hu, hp.frame, X, Y, 5.4, hp.flip);
   });
   const bo = sc.bolt;
   if (bo) put(bo.to[0], bo.to[1], () => {
@@ -2746,6 +2751,8 @@ function labEntries(): LabEntry[] {
     A("Kuh geht", 5.2, 7, (c, ph) => { shadow(c, 0, 0, 2.8); c.save(); const ok = cowStep(c, 5.2, step4(ph)); c.restore(); return ok; }),
     A("Jäger", 5.4, 3, (c, _ph, now) => { const hu = huntIm("hu", hunterUrl); if (!hu) return false; const f = Math.floor(now / 1200) % 3;
       shadow(c, 0, 0, 1.6, 0.3); sheetFrame(c, hu, f, 0, 0, 5.4, false); return true; }),
+    A("Jäger geht", 5.4, 3, (c, ph) => { const w = huntIm("huw", hunterWalkUrl); if (!w) return false; shadow(c, 0, 0, 1.6, 0.3); sheetFrame(c, w, step4(ph), 0, 0, 5.4, false); return true; }),
+    A("Jäger trägt", 5.4, 3, (c, ph) => { const w = huntIm("huc", hunterCarryUrl); if (!w) return false; shadow(c, 0, 0, 1.6, 0.3); sheetFrame(c, w, step4(ph), 0, 0, 5.4, false); return true; }),
   );
   return out;
 }
