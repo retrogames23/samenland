@@ -201,9 +201,8 @@ function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking
   const sheet = walking ? sheepWalkImage() : null;
   const im = sheepImage(graze && !walking, sleeping); if (!im) return;
   const w = 4.6;
-  // walking: real painted 4-frame leg cycle, cross-faded so steps flow; body dips on each hoof fall
-  // unhurried gait (~2.8 frames/s) matched to the slow walk, so hooves don't trip on the spot
-  const ph = walking ? t / 360 : 0, f0 = Math.floor(ph) & 3, mix = ph - Math.floor(ph);
+  // walking: real painted 4-frame leg cycle, clean cuts (no cross-fade = no ghost legs); body dips on each hoof fall
+  const ph = walking ? t / 360 : 0, f0 = Math.floor(ph) & 3;
   const bob = sleeping ? 0 : walking ? Math.abs(Math.sin(ph * Math.PI)) * 0.18 : Math.sin(t / 2600) * 0.12;
   c.fillStyle = "rgba(30,36,22,0.32)"; c.beginPath(); c.ellipse(x, y, 2.4, 0.8, 0, 0, 7); c.fill();
   // zero-save: absolute matrix (world × translate × mirror), reset to the world matrix afterwards
@@ -212,8 +211,7 @@ function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking
   if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
   if (sheet) {
     const fw = sheet.naturalWidth / 4, fh = sheet.naturalHeight, ww = w * 1.1, h = (ww * fh) / fw;
-    c.drawImage(sheet, f0 * fw, 0, fw, fh, -ww / 2, -h, ww, h);
-    if (mix > 0.5) { c.globalAlpha = (mix - 0.5) * 2; c.drawImage(sheet, ((f0 + 1) & 3) * fw, 0, fw, fh, -ww / 2, -h, ww, h); }
+    c.drawImage(sheet, f0 * fw, 0, fw, fh, -ww / 2 + walkShift(sheet, f0) * ww, -h, ww, h);
   } else {
     const h = (w * im.naturalHeight) / im.naturalWidth;
     c.drawImage(im, -w / 2, -h * 0.95, w, h);
@@ -455,20 +453,42 @@ export function robberAt(s: Seed, now: number): [number, number, boolean] | null
 const huntIms: Record<string, HTMLImageElement> = {};
 const huntIm = (k: string, u: string) => { if (typeof Image === "undefined") return null; let i = huntIms[k]; if (!i) { i = new Image(); i.src = u; huntIms[k] = i; } return i.complete && i.naturalWidth ? i : null; };
 /** Draw frame f (0-3) of a 4-frame sheet, feet at (X,Y), facing right unless flip. */
-function sheetFrame(c: C, im: HTMLImageElement, f: number, X: number, Y: number, h: number, flip: boolean, rot = 0, alpha = 1) {
-  const fw = im.naturalWidth / 4, w = (h * fw) / im.naturalHeight;
+const bodyShift = new WeakMap<HTMLImageElement, number[]>();
+/** Horizontal offset (fraction of frame width) that puts each walk frame's body on one axis.
+ *  Measured from the alpha centroid of the upper 60 % (torso/head) so spreading legs don't pull it; cached per sheet. */
+export function walkShift(im: HTMLImageElement, f: number): number {
+  let v = bodyShift.get(im);
+  if (!v) {
+    v = [0, 0, 0, 0];
+    try {
+      const fw = Math.floor(im.naturalWidth / 4), fh = im.naturalHeight, cv = document.createElement("canvas");
+      cv.width = fw * 4; cv.height = fh; const g = cv.getContext("2d", { willReadFrequently: true })!; g.drawImage(im, 0, 0);
+      const d = g.getImageData(0, 0, fw * 4, Math.floor(fh * 0.6)).data, rows = Math.floor(fh * 0.6), cs: number[] = [];
+      for (let k = 0; k < 4; k++) { let sx = 0, sa = 0;
+        for (let y = 0; y < rows; y += 2) for (let x = 0; x < fw; x++) { const a = d[(y * fw * 4 + k * fw + x) * 4 + 3]; if (a > 40) { sx += x * a; sa += a; } }
+        cs.push(sa ? sx / sa : fw / 2); }
+      const m = cs.reduce((a, b) => a + b, 0) / 4; v = cs.map((x) => (m - x) / fw);
+    } catch { /* not decodable yet / tainted: no shift */ }
+    bodyShift.set(im, v);
+  }
+  return v[f & 3];
+}
+function sheetFrame(c: C, im: HTMLImageElement, f: number, X: number, Y: number, h: number, flip: boolean, rot = 0, alpha = 1, centre = false) {
+  const fw = im.naturalWidth / 4, w = (h * fw) / im.naturalHeight, ox = centre ? walkShift(im, f) * w : 0;
   c.save(); c.globalAlpha *= alpha; c.translate(X, Y); if (flip) c.scale(-1, 1); if (rot) c.rotate(rot);
-  c.drawImage(im, (f & 3) * fw, 0, fw, im.naturalHeight, -w / 2, -h, w, h); c.restore();
+  c.drawImage(im, (f & 3) * fw, 0, fw, im.naturalHeight, -w / 2 + ox, -h, w, h); c.restore();
 }
 const shadow = (c: C, X: number, Y: number, r: number, a = 0.24) => { c.fillStyle = `rgba(25,20,10,${a})`; c.beginPath(); c.ellipse(X, Y, r, r * 0.3, 0, 0, 7); c.fill(); };
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 const ease = (k: number) => k * k * (3 - 2 * k);
 /** Animal on the move: walk sheet indexed by distance travelled, grazing/alert sheet when standing. */
-function drawBeast(c: C, walkIm: HTMLImageElement, standIm: HTMLImageElement | null, X: number, Y: number, h: number, flip: boolean, moving: number, dist: number, idle: number, alpha = 1) {
+/** Boar sheet: frames 0–2 are steps, frame 3 is the rooting pose — never part of the gait. */
+const BOAR_GAIT = [0, 1, 2, 1];
+function drawBeast(c: C, walkIm: HTMLImageElement, standIm: HTMLImageElement | null, X: number, Y: number, h: number, flip: boolean, moving: number, dist: number, idle: number, alpha = 1, seq?: number[]) {
   shadow(c, X, Y, h * 0.42);
   if (moving > 0.02 || !standIm) {
-    const ph = dist / 1.1, f = Math.floor(ph), bob = Math.abs(Math.sin(ph * Math.PI)) * h * 0.02;
-    sheetFrame(c, walkIm, f, X, Y - bob, h, flip, 0, alpha);
+    const ph = dist / 1.1, k = Math.floor(ph), f = seq ? seq[k & 3] : k & 3, bob = Math.abs(Math.sin(ph * Math.PI)) * h * 0.02;
+    sheetFrame(c, walkIm, f, X, Y - bob, h, flip, 0, alpha, true);
   } else sheetFrame(c, standIm, idle, X, Y, h, flip, 0, alpha);
 }
 /** Hens around the coop: short trots, pecking, looking up; they roost inside at night. */
@@ -528,7 +548,7 @@ function putBeast(out: Bucket, c: C, b: Beast) {
     if (b.boar && b.state === "root") { shadow(c, X, Y, h * 0.5); sheetFrame(c, bw, 3, X, Y - (Math.floor(n / 500) & 1) * 0.08, h, b.flip, 0, b.alpha); return; }
     const moving = b.state === "walk" || b.state === "flee" ? 1 : 0;
     const idle = Math.floor(n / 1500) % 8 < 5 ? (Math.floor(n / 650) & 1) : 2;
-    drawBeast(c, b.boar ? bw : dw, b.boar ? null : dg, X, Y, h, b.flip, moving, b.state === "flee" ? n / 170 : b.dist + n / 2000, idle, b.alpha);
+    drawBeast(c, b.boar ? bw : dw, b.boar ? null : dg, X, Y, h, b.flip, moving, b.state === "flee" ? n / 170 : b.dist + n / 2000, idle, b.alpha, b.boar ? BOAR_GAIT : undefined);
   });
 }
 /** Free game in its dens across the whole map; dens near a lodge are hunted in turn and regrow. */
@@ -906,17 +926,18 @@ function drawMartin(c: C, x: number, y: number, w: Walk, t: number) {
   const sw = w.walking ? Math.sin(t / 160) * 0.3 : 0, d = screenFacing(w.dx, w.dy) < 0 ? 1 : -1;
   c.fillStyle = "#a12f25"; c.beginPath(); c.moveTo(x - 0.8, y - 9.6); c.lineTo(x + 0.9, y - 9.6); c.lineTo(x + 0.6 + d * 1.8 + sw, y - 6.6); c.lineTo(x - 0.4 + d * 0.6, y - 6.9); c.closePath(); c.fill();
 }
+const RIDER_MS = 190;
 function drawRider(c: C, x: number, y: number, dx: number, dy: number, sd: number, t: number) {
   const away = dy < -0.15 * Math.abs(dx), im = riderImage(away);
   if (!im) return;
   const H = 11, fw = im.naturalWidth / 4, W = (fw / im.naturalHeight) * H;
-  const g = (t / 110 + sd * 3.17) % 4, f = Math.floor(g), u = g - f, f2 = (f + 1) & 3, lift = Math.abs(Math.sin(g * Math.PI)) * 0.25;
+  // calm trot: RIDER_MS per pose, two lifts per 4-pose cycle (diagonal pairs), clean cuts
+  const g = (t / RIDER_MS + sd * 3.17) % 4, f = Math.floor(g) & 3, lift = Math.abs(Math.sin(g * Math.PI / 2)) * 0.25;
   c.save(); c.translate(x, y);
   const face = screenFacing(dx, dy); if (away ? face > 0 : face < 0) c.scale(-1, 1);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   c.fillStyle = "rgba(20,15,10,0.36)"; c.beginPath(); c.ellipse(0, -0.2, W * 0.36, 1, 0, 0, 7); c.fill();
-  c.drawImage(im, f * fw, 0, fw, im.naturalHeight, -W / 2, -H - lift, W, H);
-  if (u > 0.55) { c.globalAlpha = (u - 0.55) / 0.45; c.drawImage(im, f2 * fw, 0, fw, im.naturalHeight, -W / 2, -H - lift, W, H); c.globalAlpha = 1; }
+  c.drawImage(im, f * fw, 0, fw, im.naturalHeight, -W / 2 + walkShift(im, f) * W, -H - lift, W, H);
   c.restore();
 }
 // ---------------- the prince's messenger (heraldVisit in princely.ts) ----------------
@@ -1094,7 +1115,6 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
   const drawOx = () => {
     // short cross-blend into the next pose gives in-between leg positions instead of a flip-book cut
     c.drawImage(ox, f * fw, 0, fw, ox.naturalHeight, oxX - ow / 2, top, ow, oh);
-    if (u > 0.55) { c.globalAlpha = baseA * (u - 0.55) / 0.45; c.drawImage(ox, f2 * fw, 0, fw, ox.naturalHeight, oxX - ow / 2, top, ow, oh); c.globalAlpha = baseA; }
   };
   if (away) drawOx();
   c.drawImage(wag, wx, -wh + jolt, ww, wh);
@@ -2497,12 +2517,11 @@ function drawDog(c: C, d: DogPose, px: number, py: number, t: number, seedK: num
   }
   const sheet = huntIm("dog-trot", dogTrotU); if (!sheet) { c.restore(); return; }
   // stride: one painted frame per ~0.11 tiles trotting, 0.08 walking — feet plant instead of sliding
-  const ph = d.dist / (d.mode === "trot" ? 0.11 : 0.08), f0 = Math.floor(ph) & 3, mix = ph - Math.floor(ph);
+  const ph = d.dist / (d.mode === "trot" ? 0.11 : 0.08), f0 = Math.floor(ph) & 3;
   const bob = Math.abs(Math.sin(ph * Math.PI)) * (d.mode === "trot" ? 0.12 : 0.05);
   const fw = sheet.naturalWidth / 4, fh = sheet.naturalHeight, w = DOG_W, h = (w * fh) / fw;
   c.translate(px, py - bob); if (d.flip) c.scale(-1, 1);
-  c.drawImage(sheet, f0 * fw, 0, fw, fh, -w / 2, -h * 0.93, w, h);
-  if (mix > 0.6) { c.globalAlpha = (mix - 0.6) * 2.5; c.drawImage(sheet, ((f0 + 1) & 3) * fw, 0, fw, fh, -w / 2, -h * 0.93, w, h); }
+  c.drawImage(sheet, f0 * fw, 0, fw, fh, -w / 2 + walkShift(sheet, f0) * w, -h * 0.93, w, h);
   c.restore();
 }
 function drawSupport(c: C, k: RewardKey, cx: number, cy: number, L: Light[], night: boolean) {
@@ -2701,12 +2720,12 @@ function labEntries(): LabEntry[] {
     A("Hund geht", 2.2, 2.4, (c, ph, now) => drawDog(c, { x: 0, y: 0, mode: "walk", flip: false, dist: (ph / 6.2832) * 0.32 }, 0, 0, now, 1)),
     A("Hund sitzt", 2, 2, (c, _ph, now) => drawDog(c, { x: 0, y: 0, mode: "sit", flip: false, dist: 0 }, 0, 0, now, 1)),
     A("Hund schläft", 1.5, 3, (c, _ph, now) => drawDog(c, { x: 0, y: 0, mode: "sleep", flip: false, dist: 0 }, 0, 0, now, 1)),
-    A("Reiter", 11, 9, (c, ph) => drawRider(c, 0, 0, 1, 0.3, 5, (ph / 6.2832) * 1000)),
-    A("Reiter (weg)", 11, 9, (c, ph) => drawRider(c, 0, 0, 1, -1, 5, (ph / 6.2832) * 1000)),
+    A("Reiter", 11, 9, (c, ph) => drawRider(c, 0, 0, 1, 0.3, 0, (ph / 6.2832) * 4 * RIDER_MS)),
+    A("Reiter (weg)", 11, 9, (c, ph) => drawRider(c, 0, 0, 1, -1, 0, (ph / 6.2832) * 4 * RIDER_MS)),
     A("Hirsch geht", 6.2, 7, (c, ph) => { const dw = huntIm("dw", deerWalkUrl); if (!dw) return false; drawBeast(c, dw, null, 0, 0, 6.2, false, 1, (ph / 6.2832) * 4.4, 0); return true; }),
     A("Hirsch äst", 6.2, 7, (c, _ph, now) => { const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl); if (!dw || !dg) return false;
       drawBeast(c, dw, dg, 0, 0, 6.2, false, 0, 0, Math.floor(now / 1500) % 8 < 5 ? (Math.floor(now / 650) & 1) : 2); return true; }),
-    A("Wildschwein", 4.4, 6, (c, ph) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; drawBeast(c, bw, null, 0, 0, 4.4, false, 1, (ph / 6.2832) * 4.4, 0); return true; }),
+    A("Wildschwein", 4.4, 6, (c, ph) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; drawBeast(c, bw, null, 0, 0, 4.4, false, 1, (ph / 6.2832) * 4.4, 0, 1, BOAR_GAIT); return true; }),
     A("Wildschwein wühlt", 4.4, 6, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 2.2); sheetFrame(c, bw, 3, 0, -(Math.floor(now / 500) & 1) * 0.08, 4.4, false); return true; }),
     A("Jäger", 5.4, 3, (c, _ph, now) => { const hu = huntIm("hu", hunterUrl); if (!hu) return false; const f = Math.floor(now / 1200) % 3;
       shadow(c, 0, 0, 1.6, 0.3); sheetFrame(c, hu, f, 0, 0, 5.4, false); return true; }),
@@ -2819,7 +2838,7 @@ function drawPig(c: C, x: number, y: number, now: number, sd: number) {
   const a = spot(k), b = spot(k + 1), into = u - (CYC - WALK), f = into > 0 ? into / WALK : 0, e = f * f * (3 - 2 * f);
   const X = x + a[0] + (b[0] - a[0]) * e, Y = y + a[1] + (b[1] - a[1]) * e, h = 3.6, flip = (into > 0 ? b[0] - a[0] : a[0] - spot(k - 1)[0]) < 0;
   shadow(c, X, Y, h * 0.45);
-  if (into > 0) sheetFrame(c, bw, Math.floor((into / 1000) * 3.2), X, Y - Math.abs(Math.sin(into / 160)) * 0.08, h, flip);
+  if (into > 0) sheetFrame(c, bw, BOAR_GAIT[Math.floor((into / 1000) * 3.2) & 3], X, Y - Math.abs(Math.sin(into / 160)) * 0.08, h, flip, 0, 1, true);
   else sheetFrame(c, bw, 3, X, Y - (Math.floor((now + sd) / 500) & 1) * 0.08, h, flip);
 }
 /** Whitsun ox: the cow sprite led along, garlanded with birch and bright ribbons. */
