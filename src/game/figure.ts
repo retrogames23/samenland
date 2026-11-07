@@ -162,7 +162,7 @@ export function drawLegged(
 /** Floor-length garment walking: two shoes step out, the lower garment sways in strips; the sprite's own feet are cut. */
 export function drawRobeWalk(
   c: C, im: CanvasImageSource, sx: number, sw: number, sh: number, foot: HTMLImageElement | null,
-  w: number, h: number, ph: number, top = 0.8, end = 0.93, dy = 0, swing = 0.035,
+  w: number, h: number, ph: number, top = 0.8, end = 0.93, dy = 0, swing = 0.035, hipX = 0.5,
 ) {
   // gown cut at its measured painted hem (drops the painted standing boots); stepping shoes are drawn
   // first and tall enough that their ankles reach up behind the hem, so no gap and no floating feet;
@@ -171,14 +171,22 @@ export function drawRobeWalk(
   end = hemEnd(im, sx, sw, sh, end);
   const sway = Math.sin(ph);
   if (foot) {
-    const fs = h * (1 - end) + h * 0.06, fw2 = (fs * foot.naturalWidth) / foot.naturalHeight;
+    // anatomical shoe: length ~9.5 % of body height (like the men's boots); only the sock reaches up
+    // behind the hem, so the leather part never balloons when the hem sits high
+    const fw2 = h * 0.095, shoeH = (fw2 * foot.naturalHeight) / foot.naturalWidth;
+    const need = h * (1 - end) + h * 0.03; // ankle must tuck behind the hem
+    const sock = Math.max(0, need - shoeH);
+    // sock source band: top ~30 % of the foot sprite (skin/sock), stretched upward
+    const nh = foot.naturalHeight, band = nh * 0.3;
     for (const sd of [-1, 1]) {
       const lift = Math.max(0, Math.cos(ph) * sd) * h * 0.02;
-      c.drawImage(foot, sd * sway * w * 0.13 - fw2 * 0.45, dy - fs - lift, fw2, fs);
+      const x = sd * sway * w * 0.11 - fw2 * 0.45, yb = dy - lift;
+      c.drawImage(foot, 0, 0, foot.naturalWidth, nh, x, yb - shoeH, fw2, shoeH);
+      if (sock > 0) c.drawImage(foot, 0, 0, foot.naturalWidth, band * 0.5, x, yb - shoeH - sock, fw2, sock + 0.02);
     }
   }
   void swing;
-  c.drawImage(im, sx, 0, sw, sh * end, -w / 2, -h + dy, w, h * end);
+  c.drawImage(im, sx, 0, sw, sh * end, -w * hipX, -h + dy, w, h * end);
 }
 
 /** Painted hem line (fraction of height) of a skirted sprite, measured once from its alpha: the lowest row still
