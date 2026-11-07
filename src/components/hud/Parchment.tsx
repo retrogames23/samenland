@@ -51,12 +51,13 @@ export function Parchment({ image, title, later, onLater, wide, children }: {
   );
 }
 
+import sealUrl from "@/assets/wax-seal.webp";
 /** Wax seal reminder for a postponed decision. */
 export function WaxSeal({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button type="button" title={label} aria-label={label} onClick={onClick}
-      className="pointer-events-auto grid h-12 w-12 animate-pulse place-items-center rounded-full border-2 border-wax-edge bg-[radial-gradient(circle_at_35%_30%,var(--color-wax-shine),var(--color-wax)_60%,var(--color-wax-edge))] font-display text-2xl text-wood-foreground shadow-lg [animation-duration:3s]">
-      ✦
+      className="hit pointer-events-auto relative block h-12 w-12 transition-transform hover:scale-105">
+      <img src={sealUrl} alt="" width={48} height={48} className="h-12 w-12 object-contain drop-shadow-md" />
     </button>
   );
 }
