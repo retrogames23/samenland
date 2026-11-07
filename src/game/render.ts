@@ -354,15 +354,11 @@ function drawFeastKit(c: C, X: number, Y: number, q: Pose, t: number) {
   const si = f === "epiphany" ? fzStars.get(p.id) : undefined;
   if (si != null && h >= 10 && h < 17) {
     // children are shorter than the 4.4-unit adult: the crown sits on the child's head, not above it
-    const hy = Y - 3.55 / K, cw = 0.85;
-    c.fillStyle = "#d9b25a"; c.strokeStyle = "#8a6a2a"; c.lineWidth = 0.18; c.beginPath(); c.moveTo(X - cw, hy); c.lineTo(X - cw, hy - 1); c.lineTo(X - cw / 2, hy - 0.55); c.lineTo(X, hy - 1.15); c.lineTo(X + cw / 2, hy - 0.55); c.lineTo(X + cw, hy - 1); c.lineTo(X + cw, hy); c.closePath(); c.fill(); c.stroke();
+    const hy = Y - 3.55 / K;
+    const cr = folkImage("starCrown"); if (cr) { const w = 1.9, h = w * cr.naturalHeight / cr.naturalWidth; c.drawImage(cr, X - w / 2, hy - h * 0.8, w, h); }
     if (si === 0) {
-      const sx = X + 1.9, sy = hy - 3.2, rot = t / 900;
-      c.strokeStyle = "#5e4229"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(X + 1.6, Y - 4.5); c.lineTo(sx, sy); c.stroke();
-      c.fillStyle = "#e8c860"; c.strokeStyle = "#8a6a2a"; c.lineWidth = 0.25; c.beginPath();
-      for (let i = 0; i < 16; i++) { const a = rot + (i * Math.PI) / 8, r = i % 2 ? 0.6 : 1.45; c.lineTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r * 0.9); }
-      c.closePath(); c.fill(); c.stroke();
-      c.fillStyle = "#a8392c"; c.beginPath(); c.arc(sx, sy, 0.35, 0, 7); c.fill();
+      const sp = folkImage("starPole"); if (sp) { const h = 9, w = h * sp.naturalWidth / sp.naturalHeight, sw = Math.sin(t / 700 + p.id) * 0.04;
+        c.save(); c.translate(X + 1.7, Y - 2.6); c.rotate(0.12 + sw); c.drawImage(sp, -w / 2, -h, w, h); c.restore(); }
     }
   }
   // Shrovetide fools: a two-horned cap with jingling bells on top of the mask
@@ -631,8 +627,6 @@ function seasonalTrace(c: C, s: Structure, cx: number, cy: number, x: number, y:
     if (workshopCraft(sd) === "cooper") {
       prop(c, "cooper", ox, oy, 7);
       L.push({ x: ox - 1, y: oy - 1, r: 6 }); smoke(c, ox - 1, oy - 4, t, sd, 0.3);
-      // flames lick up between the staves
-      c.fillStyle = `rgba(255,${150 + Math.floor(60 * Math.sin(t / 90 + sd))},40,0.55)`; c.beginPath(); c.ellipse(ox - 1, oy - 1.2 - Math.abs(Math.sin(t / 130)) * 0.6, 0.9, 0.6, 0, 0, 7); c.fill();
     } else {
       prop(c, "loom", ox, oy, 6.5);
       // the beater swings against the cloth in the weaver's rhythm
