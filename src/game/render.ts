@@ -2623,7 +2623,7 @@ function courtFigures(t: number) {
  * mantle, so he walks like the princess — swaying hem, only boot tips step out (no cut through the fur). */
 const COURT_GAIT: Record<CourtRole, FigureConfig> = {
   prince: fig(0.61, 0.56, { style: "mantle" }), princess: fig(0.5, 0.8, { style: "robe" }),
-  herald: fig(0.465, 0.66), guard: fig(0.51, 0.57, { stride: GUARD_STRIDE }),
+  herald: fig(0.41, 0.64), guard: fig(0.51, 0.57, { stride: GUARD_STRIDE }),
   gardener: fig(0.31, 0.73), groom: fig(0.62, 0.63, { legWidthScale: 1.05 }),
 };
 // the guard sprite: halberd tip only a little above the helmet (body ~88 % of the height)
