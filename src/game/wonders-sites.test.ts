@@ -9,7 +9,7 @@ const known = new Set<string>();
 for (const f of readdirSync(dir).filter((n) => n.endsWith(".sql"))) for (const m of readFileSync(`${dir}/${f}`, "utf8").matchAll(/\('((?:wreck|cave|oak|ruin|caravan|spring):\d+:\d+)'/g)) known.add(m[1]!);
 
 describe("wonder sites", () => {
-  for (const r of ["europe", "us-west", "us-east", "asia"] as Realm[]) {
+  for (const r of ["europe", "europe-2", "us-west", "us-east", "asia"] as Realm[]) {
     it(`server knows every wonder on ${r}`, () => {
       setRealm(r); resetWonders();
       const missing = wonders().filter((w) => !known.has(w.key));
