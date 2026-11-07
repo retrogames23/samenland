@@ -118,6 +118,7 @@ import {
   sawmillUp, SEAT_KINDS,
   signTile,
   hash,
+  FOOT2,
 } from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<TownWay, string> = { grain: "🌾", workshop: "⚒", gateway: "⚓" };
@@ -928,11 +929,13 @@ export function Game() {
         const z = c.zoom * dpr.current, [gx, gy] = iso(gh[0], gh[1]);
         ctx.save();
         ctx.setTransform(z, 0, 0, z, cv.width / 2 - c.x * z, cv.height / 2 - c.y * z);
-        ctx.beginPath(); ctx.moveTo(gx, gy - 8); ctx.lineTo(gx + 16, gy); ctx.lineTo(gx, gy + 8); ctx.lineTo(gx - 16, gy); ctx.closePath();
+        // 2×2 ensembles: show the whole four-tile footprint and draw at the same lifted anchor as the finished building
+        const big = FOOT2.has(SPECIAL_KIND[s.placing]!), ay = big ? gy - 8 : gy, hw = big ? 32 : 16, hh = big ? 16 : 8;
+        ctx.beginPath(); ctx.moveTo(gx, ay - hh); ctx.lineTo(gx + hw, ay); ctx.lineTo(gx, ay + hh); ctx.lineTo(gx - hw, ay); ctx.closePath();
         ctx.fillStyle = good ? "rgba(90,190,90,0.45)" : "rgba(210,70,60,0.45)"; ctx.fill();
         ctx.lineWidth = 1 / Math.max(0.5, c.zoom); ctx.strokeStyle = good ? "rgba(40,120,40,0.9)" : "rgba(150,30,25,0.9)"; ctx.stroke();
         ctx.globalAlpha = good ? 0.8 : 0.45;
-        drawBuildingSprite(ctx, SPECIAL_KIND[s.placing]!, gx, gy, 0.5);
+        drawBuildingSprite(ctx, SPECIAL_KIND[s.placing]!, gx, ay, 0.5);
         ctx.restore();
       }
       const nowMs = performance.now();
