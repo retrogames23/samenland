@@ -147,7 +147,16 @@ export function drawLegged(
   const fw = legs.naturalWidth / WALK_FRAMES, lnh = legs.naturalHeight;
   const lh = h * (1 - g.hipY), lw = ((lh * fw) / lnh) * g.legWidthScale;
   drawLegPair(c, legs, frame, lw, lh, legDy, ph, g.legSpread * h, g.lift);
-  c.drawImage(im, sx, 0, sw, sh * g.hemY, -w * g.hipX, -h + torsoDy, w, h * g.hemY);
+  // torso down to the hem, the last few percent fading over the legs (never a hard scissor line)
+  const F = 0.035, top = g.hemY - F, x0 = -w * g.hipX, y0 = -h + torsoDy;
+  c.drawImage(im, sx, 0, sw, sh * top, x0, y0, w, h * top + 0.01);
+  const a0 = c.globalAlpha;
+  for (let i = 0; i < 3; i++) {
+    const a = top + (F * i) / 3, b = top + (F * (i + 1)) / 3;
+    c.globalAlpha = a0 * (1 - (i + 0.5) / 3.4);
+    c.drawImage(im, sx, sh * a, sw, sh * (b - a), x0, y0 + h * a, w, h * (b - a) + 0.01);
+  }
+  c.globalAlpha = a0;
 }
 
 /** Floor-length garment walking: two shoes step out, the lower garment sways in strips; the sprite's own feet are cut. */

@@ -1164,7 +1164,7 @@ function folkOf(q: Pose): FolkSprite {
 const HIPS: Partial<Record<FolkSprite, FigureConfig>> = {
   man: fig(0.42, 0.585), farmer: fig(0.26, 0.655), porter: fig(0.44, 0.6), builder: fig(0.45, 0.66),
   woodcutter: fig(0.46, 0.59), mason: fig(0.4, 0.62), elder: fig(0.47, 0.68, { legWidthScale: 1.04 }),
-  robber: fig(0.46, 0.6, { legWidthScale: 1.06 }), groom: fig(0.56, 0.74, { legWidthScale: 1.06 }),
+  robber: fig(0.45, 0.665), groom: fig(0.56, 0.74, { legWidthScale: 1.06 }),
 };
 const DEFAULT_FIG = fig(0.46, 0.66);
 const MAYOR_LEGS = fig(0.503, 0.58);
