@@ -135,7 +135,7 @@ import { LabDesk } from "@/components/hud/LabDesk";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { CHEST } from "@/game/lang/chest";
 import { FOUNDING } from "@/game/lang/founding";
-import { CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
+import { CHEST_STAGE, RANK_STAGE, CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
 import { titleOfSeed, TITLE_PRICE, TITLE_STAGE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, saplingsOwed, type Decision } from "@/game/encounters";
 import { pendingAll, isCommons, commonsVoices, adviceIdx, bakeCost } from "@/game/commons";
@@ -1864,7 +1864,7 @@ export function Game() {
     const rollback = (m: string) => { setPurchases((s) => s.filter((p) => p.id !== tmpId)); setMsg(m); };
     if (!await prepareSpend()) return rollback(t.buyFail);
     // rank-gated items: the server counts citizens, homes and roads itself before the guard accepts the row
-    const needRank = monumentOf(item) && /1$/.test(item) ? MONUMENTS[monumentOf(item)!].stage : (TITLE_STAGE as Record<string, number>)[item] ?? (ITEM_STAGE[item] ?? 0);
+    const needRank = monumentOf(item) && /1$/.test(item) ? MONUMENTS[monumentOf(item)!].stage : ({ ...TITLE_STAGE, ...CHEST_STAGE, ...RANK_STAGE } as Record<string, number>)[item] ?? (ITEM_STAGE[item] ?? 0);
     if (needRank > 0) { try { await certifyFn({ data: { seed: my.id } }); } catch { return rollback(t.buyFail); } }
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) return rollback(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
@@ -1961,7 +1961,7 @@ export function Game() {
         <div className="space-y-2">
           <Outlook t={t} lang={lang} my={my} seeds={seeds} now={slow} rank={myRank} charter={myCharter} way={wayOf(my)} />
           {my.user_id && (() => {
-            const ct = CHEST[lang], lvl = chestLevel(my.id, purchases), cap = chestCap(my.id, purchases), blk = chestBlock(my, purchases, now);
+            const ct = CHEST[lang], lvl = chestLevel(my.id, purchases), cap = chestCap(my.id, purchases), blk = chestBlock(my, purchases, myStage);
             const step = CHEST_STEPS[Math.min(lvl - 1, 2)]!, fill = Math.min(1, Math.max(0, cash) / cap);
             return (
               <div className="rounded-md border border-brass/60 bg-brass/10 p-2 text-xs">
@@ -1999,7 +1999,7 @@ export function Game() {
               {my && (() => {
                 const r = rankOf(my, purchases), step: RankStep = r === 1 ? "rank2" : "rank3";
                 const roads = links(seeds).filter((l) => (l.a.id === my.id || l.b.id === my.id) && now >= l.since).length;
-                const blk = rankBlock(my, purchases, now, roads);
+                const blk = rankBlock(my, purchases, myStage, roads);
                 const why = blk === "age" ? t.rank.need.age(t.stages[step === "rank2" ? 2 : 4] ?? "") : blk === "guild" ? t.rank.need.guild : blk === "belfry" ? t.rank.need.belfry : blk === "roads" ? t.rank.need.roads(RANK_ROADS) : "";
                 return (
                   <div className="mt-2 border-t border-brass/40 pt-2">
