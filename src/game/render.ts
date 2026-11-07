@@ -1365,8 +1365,8 @@ function drawHandLantern(c: C, X: number, Y: number, q: Pose, t: number) {
 }
 /** Painted load sprites per good: [sprite, source crop (fractions x,y,w,h), width as share of body height, hold]. */
 const CARRY_ART: Record<NonNullable<Pose["carry"]>, [FolkSprite, [number, number, number, number], number, "shoulder" | "hand"] | null> = {
-  grain: ["loadSack", [0, 0, 1, 1], 0.28, "shoulder"],
-  flour: ["loadSack", [0, 0, 1, 1], 0.28, "shoulder"],
+  grain: ["loadSack", [0, 0, 1, 1], 0.23, "shoulder"],
+  flour: ["loadSack", [0, 0, 1, 1], 0.23, "shoulder"],
   bundle: ["loadBale", [0, 0, 1, 1], 0.32, "shoulder"],
   log: ["logs", [0.36, 0.48, 0.64, 0.52], 0.5, "shoulder"],
   stone: ["blocks", [0.25, 0, 0.48, 0.5], 0.2, "hand"],
@@ -1398,7 +1398,7 @@ function drawCarryProp(c: C, X: number, Y: number, q: Pose, hgt: number) {
   const w = hgt * share, h = (w * ch * ih) / (cw * iw);
   // shoulder: resting on the back shoulder, a little behind the neck; hand: held at hip height on the leading side
   const bx = hold === "shoulder" ? X - f * hgt * 0.1 : X + f * hgt * 0.17 + sw;
-  const by = hold === "shoulder" ? Y - hgt * 0.74 - bob : Y - hgt * 0.4 - bob;
+  const by = hold === "shoulder" ? Y - hgt * 0.7 - bob : Y - hgt * 0.4 - bob;
   const B = c.getTransform();
   c.translate(bx, by);
   if (f < 0) c.scale(-1, 1);
