@@ -1,8 +1,9 @@
 import type { Lang } from "../i18n";
+import { LIFE_TEXT } from "./village-life";
 
 /** Allmende questions: title + the resident's question, the answers, header and the advisor's counsel. */
 type T = {
-  events: Record<"hutewald" | "backtag" | "steg", [string, string]>;
+  events: Record<string, [string, string]>;
   choices: Record<string, string>;
   /** Parchment header: who brings the question before the village. */
   asks: (name: string, job: string) => string;
@@ -11,7 +12,7 @@ type T = {
   /** Advisor's role (herb-wife / midwife, or the eldest). */
   roles: { herb: string; elder: string };
   /** Counsel per question; [0] in spring/summer, [1] in autumn/winter. */
-  advice: Record<"hutewald" | "backtag" | "steg", [string, string]>;
+  advice: Record<string, [string, string]>;
   find: string;
 };
 
@@ -185,3 +186,9 @@ const ja: T = {
 };
 
 export const COMMONS_TEXT: Record<Lang, T> = { de, en, fr, es, ar, hi, zh, ja };
+// village-life questions (lang/village-life.ts) share the parchment with the commons
+for (const l of Object.keys(COMMONS_TEXT) as Lang[]) {
+  Object.assign(COMMONS_TEXT[l].events, LIFE_TEXT[l].events);
+  Object.assign(COMMONS_TEXT[l].choices, LIFE_TEXT[l].choices);
+  Object.assign(COMMONS_TEXT[l].advice, LIFE_TEXT[l].advice);
+}
