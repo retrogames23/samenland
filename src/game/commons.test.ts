@@ -121,3 +121,24 @@ describe("Village life around 1500", () => {
     }
   });
 });
+
+describe("town life (Kleinstadt on)", () => {
+  const s = { x: 100, y: 100 };
+  const at = Date.parse("2027-01-10T12:00:00Z");
+  it("is never asked in villages and comes with the town rank", () => {
+    const vill = commonsOptions(s, [], 1000, at, 2);
+    for (const k of ["brot", "stoerer", "bier", "torschluss", "wache", "gast", "seuche", "hansetag"]) expect(vill).not.toContain(k);
+    const town = commonsOptions(s, [], 1000, at, 3);
+    for (const k of ["brot", "stoerer", "bier", "torschluss", "wache"]) expect(town).toContain(k);
+    expect(town).not.toContain("gast");
+    expect(commonsOptions(s, [], 1000, at, 4)).toContain("seuche");
+    expect(commonsOptions(s, [], 1000, at, 4)).not.toContain("hansetag");
+    expect(commonsOptions(s, [], 1000, at, 5)).toContain("hansetag");
+  });
+  it("charges the agreed prices", () => {
+    expect(choiceOf("hansetag", "gefolge")?.cost).toBe(80);
+    expect(choiceOf("kaper", "geleit")?.cost).toBe(60);
+    expect(choiceOf("seuche", "absondern")?.cost).toBe(30);
+    expect(choiceOf("brot", "busse")?.cost).toBe(-10);
+  });
+});

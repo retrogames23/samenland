@@ -1369,7 +1369,7 @@ export function Game() {
     charter: owner && !myCharter && charterReady(my!.created_at, now),
     pact: owner && !!pactPartner,
     // visitors only come while someone watches: the tab must have been open and visible for a few minutes
-    encounter: owner && (watching || encOpen) && !!pendingAll(my!, my!.decisions ?? [], now, effAge(my!, seeds, now)),
+    encounter: owner && (watching || encOpen) && !!pendingAll(my!, my!.decisions ?? [], now, effAge(my!, seeds, now), townRank(my!, seeds, Math.floor(now / 5000) * 5000)),
   }, (k) => (snooze[k] ?? 0) > now);
   const anyOpen = roadOpen || charterOpen || encOpen || pactOpen;
   const sealShown = !anyOpen && !decision.open && decision.due.length > 0;
@@ -2886,7 +2886,7 @@ export function Game() {
         </Parchment>
       )}
       {encOpen && my && (() => {
-        const ev = pendingAll(my, my.decisions ?? [], clock(), effAge(my, seeds, clock()));
+        const ev = pendingAll(my, my.decisions ?? [], clock(), effAge(my, seeds, clock()), townRank(my, seeds, slow));
         const fxText = (e: string, c: string) => {
           const ch = choiceOf(e, c)!; const f = ch.fx as { h?: number; growth?: number; food?: number; health?: number; wealth?: number };
           const parts = [f.growth ? t.enc.growth(Math.round(f.growth * 100)) : "", f.food ? `+${f.food} ${t.enc.food}` : "", f.health ? `+${f.health} ${t.enc.health}` : "", f.wealth ? `+${f.wealth} ${t.enc.wealth}` : ""].filter(Boolean);
