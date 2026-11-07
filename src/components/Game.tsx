@@ -2696,9 +2696,9 @@ export function Game() {
         )}
       </div>
       {tab && (
-        <div className="pointer-events-none absolute left-[var(--safe-l)] right-[var(--safe-r)] bottom-[calc(var(--dock-bottom)+4.5rem)] z-30 md:bottom-auto ltr:md:right-auto ltr:md:left-24 rtl:md:left-auto rtl:md:right-24 md:top-24 md:w-72">
+        <div className="pointer-events-none absolute left-[var(--safe-l)] right-[var(--safe-r)] bottom-[calc(var(--dock-bottom)+4.5rem)] z-30 md:bottom-auto ltr:md:right-auto ltr:md:left-[calc(max(0.75rem,env(safe-area-inset-left))+4.25rem)] rtl:md:left-auto rtl:md:right-[calc(max(0.75rem,env(safe-area-inset-right))+4.25rem)] md:top-[var(--bar-h,6rem)] md:w-72" style={{ "--bar-h": `${barH + 8}px` } as import("react").CSSProperties}>
           <div className="pointer-events-auto fixed inset-0 -z-10 md:hidden" aria-hidden onClick={() => pick(tab)} />
-          <div {...sheetSwipe(() => pick(tab))}><Panel className="max-h-[min(72dvh,calc(100dvh-11rem))] overflow-y-auto overscroll-contain max-md:rounded-t-2xl">{drawer}</Panel></div>
+          <div {...sheetSwipe(() => pick(tab))}><Panel className="flex flex-col max-h-[min(70dvh,calc(100dvh-var(--dock-bottom)-11rem))] md:max-h-[calc(100dvh-var(--bar-h,6rem)-1.5rem)] max-md:rounded-t-2xl" inner="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3">{drawer}</Panel></div>
         </div>
       )}
 
