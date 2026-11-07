@@ -2623,11 +2623,11 @@ function courtFigures(t: number) {
  * mantle, so he walks like the princess — swaying hem, only boot tips step out (no cut through the fur). */
 const COURT_GAIT: Record<CourtRole, FigureConfig> = {
   prince: fig(0.61, 0.56, { style: "mantle" }), princess: fig(0.5, 0.8, { style: "robe" }),
-  herald: fig(0.465, 0.66), guard: fig(0.4, 0.7, { lift: 0.05, legScale: 0.62, stride: GUARD_STRIDE }),
+  herald: fig(0.465, 0.66), guard: fig(0.55, 0.64, { stride: GUARD_STRIDE }),
   gardener: fig(0.31, 0.73), groom: fig(0.62, 0.63, { legWidthScale: 1.05 }),
 };
-// the guard sprite includes a tall halberd above the helmet (body = ~78 % of it), so it is scaled up to keep a human body size
-const courtHeight = (r: CourtRole) => (r === "prince" ? 4.9 : r === "guard" ? 7.2 : 4.6);
+// the guard sprite: halberd tip only a little above the helmet (body ~88 % of the height)
+const courtHeight = (r: CourtRole) => (r === "prince" ? 4.9 : r === "guard" ? 5.3 : 4.6);
 function drawCourtFigure(c: C, q: CourtPose, t: number) {
   const im = huntIm(`courtfig-${q.role}`, COURT_FIG[q.role]); if (!im) return;
   // same human scale as villagers/mayors (5.2); the prince stands a touch taller
