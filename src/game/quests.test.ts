@@ -18,8 +18,12 @@ describe("mayor's tasks", () => {
     expect(questState(c, "s", { ...ctx, stage: 1 })).toMatchObject({ quest: "road", ready: false });
     expect(questState(c, "s", { ...ctx, stage: 1, roads: 1 })!.ready).toBe(true);
   });
+  it("resident goals come before their rank-up (50 before Dorf, 150 before Kleinstadt)", () => {
+    expect(QUESTS.indexOf("fifty")).toBe(QUESTS.indexOf("village") - 1);
+    expect(QUESTS.indexOf("hundred")).toBe(QUESTS.indexOf("town") - 1);
+  });
   it("the town task needs stage Kleinstadt (3)", () => {
-    const c = ["bless", "build", "sign", "meet", "ten", "gift", "hamlet", "road", "bless7", "buy3", "village", "gifts5", "fifty", "roads2"].map(claim);
+    const c = ["bless", "build", "sign", "meet", "ten", "gift", "hamlet", "road", "bless7", "buy3", "fifty", "village", "gifts5", "roads2", "hundred"].map(claim);
     expect(questState(c, "s", { ...ctx, stage: 2 })).toMatchObject({ quest: "town", ready: false });
     expect(questState(c, "s", { ...ctx, stage: 3 })!.ready).toBe(true);
   });
