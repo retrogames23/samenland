@@ -12,3 +12,11 @@ export const MAYOR: Record<Lang, Text> = {
   zh: { edit: "编辑村长", title: "村长", name: "名字", role: "职位", m: "村长（男）", w: "村长（女）", d: "村首", age: "年龄", years: n => `${n} 岁`, traits: "性情（最多 2 个）", traitsHint: "相反的性情不能同时选择。", save: "保存", saving: "保存中…", saved: "村长已更新。", failed: "保存失败。", cancel: "取消" },
   ja: { edit: "村長を編集", title: "村長", name: "名前", role: "役職", m: "村長（男性）", w: "村長（女性）", d: "村の長", age: "年齢", years: n => `${n}歳`, traits: "気質（2つまで）", traitsHint: "正反対の気質は組み合わせられません。", save: "保存", saving: "保存中…", saved: "村長を更新しました。", failed: "うまくいきませんでした。", cancel: "キャンセル" },
 };
+
+/** Gender-neutral address for a village head who chose "d": swaps the default mayor words in de/en texts. */
+export function neutralMayor(text: string, lang: Lang, neutral: boolean): string {
+  if (!neutral) return text;
+  if (lang === "de") return text.replace(/\bSchulzen\b/g, "Dorfoberhaupts").replace(/\bSchulze\b/g, "Dorfoberhaupt");
+  if (lang === "en") return text.replace(/\b(reeve|mayor|headman)\b/g, "village head").replace(/\b(Reeve|Mayor|Headman)\b/g, "Village head");
+  return text;
+}
