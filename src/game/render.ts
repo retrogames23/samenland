@@ -360,9 +360,9 @@ function drawFeastKit(c: C, X: number, Y: number, q: Pose, t: number) {
       const sx = X + 1.9, sy = hy - 3.2, rot = t / 900;
       c.strokeStyle = "#5e4229"; c.lineWidth = 0.5; c.beginPath(); c.moveTo(X + 1.6, Y - 4.5); c.lineTo(sx, sy); c.stroke();
       c.fillStyle = "#e8c860"; c.strokeStyle = "#8a6a2a"; c.lineWidth = 0.25; c.beginPath();
-      for (let i = 0; i < 16; i++) { const a = rot + (i * Math.PI) / 8, r = i % 2 ? 1.1 : 2.6; c.lineTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r * 0.9); }
+      for (let i = 0; i < 16; i++) { const a = rot + (i * Math.PI) / 8, r = i % 2 ? 0.6 : 1.45; c.lineTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r * 0.9); }
       c.closePath(); c.fill(); c.stroke();
-      c.fillStyle = "#a8392c"; c.beginPath(); c.arc(sx, sy, 0.6, 0, 7); c.fill();
+      c.fillStyle = "#a8392c"; c.beginPath(); c.arc(sx, sy, 0.35, 0, 7); c.fill();
     }
   }
   // Shrovetide fools: a two-horned cap with jingling bells on top of the mask
@@ -3110,8 +3110,18 @@ function drawOx(c: C, x: number, y: number, w: Walk, now: number) {
   c.translate(x, y); c.scale(dir, 1); c.rotate(sway);
   if (!w.walking || !cowStep(c, W, Math.floor(now / 420), 0)) c.drawImage(im, -W / 2, -H - lift, W, H);
   // birch wreath over the shoulders, ribbons fluttering from the horns
-  c.fillStyle = "rgba(128,170,72,0.95)";
-  for (let i = 0; i < 7; i++) { c.beginPath(); c.ellipse(-0.4 + i * 0.45 - 1.2, -H * 0.72 - lift + Math.sin(i) * 0.25, 0.6, 0.42, 0, 0, 7); c.fill(); }
+  // a twisted birch withy draped over the neck, with small pointed leaves in three greens
+  const wy = (u: number) => -H * 0.74 - lift + Math.sin(u * Math.PI) * 0.55;
+  c.strokeStyle = "#6b5236"; c.lineWidth = 0.16; c.beginPath();
+  for (let i = 0; i <= 10; i++) { const u = i / 10, x0 = -1.5 + u * 2.9; i ? c.lineTo(x0, wy(u)) : c.moveTo(x0, wy(u)); }
+  c.stroke();
+  const greens = ["#5f7d36", "#7c9a44", "#a3b85c"];
+  for (let i = 0; i < 16; i++) {
+    const u = i / 15, x0 = -1.5 + u * 2.9, y0 = wy(u), a = (i % 2 ? 0.9 : -0.9) + Math.sin(i * 2.3) * 0.4 + Math.sin(now / 700 + i) * 0.05;
+    c.fillStyle = greens[i % 3]!; c.beginPath();
+    c.moveTo(x0, y0); c.quadraticCurveTo(x0 + Math.cos(a - 0.5) * 0.3, y0 + Math.sin(a - 0.5) * 0.3, x0 + Math.cos(a) * 0.55, y0 + Math.sin(a) * 0.55);
+    c.quadraticCurveTo(x0 + Math.cos(a + 0.5) * 0.3, y0 + Math.sin(a + 0.5) * 0.3, x0, y0); c.fill();
+  }
   const fl = Math.sin(now / 180) * 0.5;
   for (const [k, col] of [[0, "#a8392c"], [1, "#d9b25a"], [2, "#3d5f8a"]] as const) {
     c.strokeStyle = col; c.lineWidth = 0.3; c.beginPath(); c.moveTo(W * 0.32, -H * 0.86 - lift); c.quadraticCurveTo(W * 0.15, -H * 0.6 + k * 0.3, W * 0.05 - fl - k * 0.3, -H * 0.45 + k * 0.4); c.stroke();
