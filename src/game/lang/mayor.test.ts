@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { neutralMayor } from "./mayor";
+import { addressMayor } from "./address";
+const neutralMayor = (t: string, l: "de", n: boolean) => addressMayor(t, l, n ? "d" : "m", 0);
 
 describe("neutralMayor", () => {
   it("calls a 'd' village head Dorfoberhaupt in German", () => {

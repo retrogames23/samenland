@@ -52,7 +52,8 @@ import { RANK_NEED } from "@/game/rank";
 import { Tavern } from "@/components/Tavern";
 import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
-import { MAYOR, neutralMayor } from "@/game/lang/mayor";
+import { MAYOR } from "@/game/lang/mayor";
+import { addressMayor, mayorWord, titleForm } from "@/game/lang/address";
 import { COURT } from "@/game/lang/court";
 import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, heraldSpots, isPlantedRare } from "@/game/render";
 import { DOG } from "@/game/lang/dog";
@@ -135,7 +136,7 @@ import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang 
 import { CHEST } from "@/game/lang/chest";
 import { FOUNDING } from "@/game/lang/founding";
 import { CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
-import { TITLE_PRICE, TITLE_STAGE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
+import { titleOfSeed, TITLE_PRICE, TITLE_STAGE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, saplingsOwed, type Decision } from "@/game/encounters";
 import { pendingAll, isCommons, commonsVoices, adviceIdx, bakeCost } from "@/game/commons";
 import { COMMONS_TEXT } from "@/game/lang/commons";
@@ -1122,8 +1123,8 @@ export function Game() {
     if (!own && !mayorNear(q.x, q.y)) return;
     const child = p.role === "child" || p.age < 14, night = isNight() || q.act === "sleep";
     const myT = seeds.find((x) => x.id === mine)?.name ?? "";
-    const text = own ? banter(lang, { who: "own", traits: traitsOf(p.id), child, sick: !!p.sick, night, wedding: q.act === "wedding" || (q.act === "fete" && weddingLive(p.seed, nw) != null) }, bVars(p.seed.name))
-      : banter(lang, { who: "foreign", child, night }, bVars(myT));
+    const text = addr(own ? banter(lang, { who: "own", traits: traitsOf(p.id), child, sick: !!p.sick, night, wedding: q.act === "wedding" || (q.act === "fete" && weddingLive(p.seed, nw) != null) }, bVars(p.seed.name))
+      : banter(lang, { who: "foreign", child, night }, bVars(myT)));
     const f = lastPeople.find((o) => o.q.p === p);
     sayAt(text, f?.x ?? 0, f?.y ?? 0, 9, p.id, p.seed.id);
   };
@@ -1151,7 +1152,7 @@ export function Game() {
     const bd = Math.max(3, (coarse ? 34 : 16) / c.zoom);
     for (const q of courtPoses(worldHour(clock()), clock())) {
       const [ix, iy] = iso(q.x, q.y);
-      if (Math.hypot(ix - wx, iy - 2.5 - wy) < bd) { courtAct(q.role, q.x, q.y); if (mayorNear(q.x, q.y)) sayAt(banter(lang, { who: "court", role: q.role, night: isNight() }, bVars(seeds.find((x) => x.id === mine)?.name ?? "")), ix, iy, 10); return true; }
+      if (Math.hypot(ix - wx, iy - 2.5 - wy) < bd) { courtAct(q.role, q.x, q.y); if (mayorNear(q.x, q.y)) sayAt(addr(banter(lang, { who: "court", role: q.role, night: isNight() }, bVars(seeds.find((x) => x.id === mine)?.name ?? ""))), ix, iy, 10); return true; }
     }
     return false;
   };
@@ -1161,7 +1162,7 @@ export function Game() {
     const home = ins.residents.some((p) => { const a = poseOf(p, tw, seeds, nw).act; return a === "home" || a === "sleep" || a === "sick"; });
     const own = ins.seed.id === mine, [ix, iy] = iso(ins.x, ins.y);
     if (!own && !mayorNear(ins.x, ins.y)) return false;
-    sayAt(banter(lang, { who: "house", own, home, night: isNight() }, bVars(own ? ins.seed.name : seeds.find((x) => x.id === mine)?.name ?? "")), ix, iy, 22);
+    sayAt(addr(banter(lang, { who: "house", own, home, night: isNight() }, bVars(own ? ins.seed.name : seeds.find((x) => x.id === mine)?.name ?? ""))), ix, iy, 22);
     return true;
   };
   /** Stroll mode: talk to whoever/whatever lies under the tap; true when something answered. */
@@ -1429,7 +1430,13 @@ export function Game() {
   const askScribe = useServerFn(scribeGreeting);
   const chronDone = useRef<string | null>(null);
   const myCharterPath = (s: typeof my) => s?.charter?.path;
-  const titleName = (k: number) => (myCharterPath(my) ? t.office.names[myCharterPath(my)!]?.[k] : undefined) ?? t.office.title;
+  const titleOfPath = (s: typeof my, k: number) => { const path = myCharterPath(s); const male = path ? t.office.names[path]?.[k] : undefined; return male && path ? titleForm(lang, s?.mayor_gender as "m" | "w" | "d" | null, path, k, male) : male; };
+  const titleName = (k: number) => titleOfPath(my, k) ?? t.office.title;
+  /** Highest honorary title of a village head, or "" (display only). */
+  const honour = (s: typeof my) => { const n = s ? titleOfSeed(s) : 0; return n > 0 ? titleOfPath(s, n - 1) ?? "" : ""; };
+  /** Address the player's own head by gender and real settlement rank (display only). */
+  const addr = (x: string) => addressMayor(x, lang, my?.mayor_gender as "m" | "w" | "d" | null, rankRef.current);
+  const rankRef = useRef(0);
   const itemName = (item: string) => { if (/^title[1-3]$/.test(item)) return titleName(+item.slice(5) - 1); const mk = monumentOf(item); return t.items[item]?.[0] ?? (mk ? t.items[`${mk}1`]![0] : item); };
   const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(itemName(e.item)) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : e.code === "wedding" ? t.chron.wedding(e.a, e.b) : e.code === "fire" ? (e.guarded ? t.chron.fireOut : t.chron.fire(e.dead)) : e.code === "flood" ? t.chron.flood : e.code === "raid" ? (e.caught ? t.chron.caught : t.chron.raid(e.loss)) : e.code === "journeyman" ? t.chron.journeyman(e.name, t.job[e.craft]?.[e.sex === "f" ? 0 : 1] ?? e.craft, e.other) : e.code === "journeymen" ? t.chron.journeymen(e.n) : e.code === "bride" ? t.chron.bride(e.name, e.other, e.away) : e.code === "moved" ? t.chron.moved(e.name, e.other, e.away) : e.code === "letter" ? t.chron.letter(e.other) : t.chron.season(t.seasons[e.season]);
   useEffect(() => {
@@ -1723,6 +1730,7 @@ export function Game() {
     const myRank = my ? townRank(my, seeds, slow) : 0;
     // shop/monuments: the earned rank alone — the server re-counts it before every rank-gated purchase
     const myStage = myRank;
+    rankRef.current = myRank;
     const myTown = my ? townOf(my, seeds, slow) : null;
     const larder = my ? larderOf(my, seeds, slow) : null;
     const boons = larder ? boonsOf(larder) : null;
@@ -1775,8 +1783,8 @@ export function Game() {
     waySmall: purchases.some((p) => p.seed_id === my.id && WAY_SMALL.includes(p.item)),
     wayBig: purchases.some((p) => p.seed_id === my.id && WAY_BIG.includes(p.item)),
   }) : null;
-  const questText = quest && my ? (t.quests.list[questKey(quest.quest, wayOf(my))] ?? t.quests.list[quest.quest]!).map((x) => neutralMayor(x, lang, my.mayor_gender === "d")) as typeof t.quests.list[string] : null;
-  const petition = quest && my ? petitionOf(quest.quest, lang, questKey(quest.quest, wayOf(my)) !== quest.quest, myTown?.people, my.mayor_gender === "d") : null;
+  const questText = quest && my ? (t.quests.list[questKey(quest.quest, wayOf(my))] ?? t.quests.list[quest.quest]!).map((x) => addr(x)) as typeof t.quests.list[string] : null;
+  const petition = quest && my ? petitionOf(quest.quest, lang, questKey(quest.quest, wayOf(my)) !== quest.quest, myTown?.people, addr) : null;
   const questHow = () => {
     if (!quest || !my) return;
     const tabs: Partial<Record<Quest, Tab>> = { bless: "rituals", bless7: "rituals", build: "build", buy3: "build", buy6: "build", metro: "build", sign: "signs", gift: "towns", gifts5: "towns", road: "build", roads2: "build" };
@@ -2249,7 +2257,7 @@ export function Game() {
               <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { setProfile(s); setTab(null); }}>
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{s.mayor_gender === "d" ? MAYOR[lang].d : t.roll.role["mayor"]![f ? 0 : 1]}: {s.owner}{support.get(s.id)?.has("seal") && <span title={SUPPORT[lang].seal} className="ms-1 text-primary">⚜️</span>}</>; })()} · {t.age(ageHours(s, now))}
+                  {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{s.mayor_gender === "d" || townRank(s, seeds, slow) >= 3 ? mayorWord(lang, (s.mayor_gender ?? (f ? "w" : "m")) as "m" | "w" | "d", townRank(s, seeds, slow)) : t.roll.role["mayor"]![f ? 0 : 1]}{honour(s) && ` · ${honour(s)}`}: {s.owner}{support.get(s.id)?.has("seal") && <span title={SUPPORT[lang].seal} className="ms-1 text-primary">⚜️</span>}</>; })()} · {t.age(ageHours(s, now))}
                   {(() => { const p = speedParts(s, seeds, now); const chips = [
                     p.bless > 0.005 && t.blessBonus(Math.round(p.bless * 100)),
                     p.trade > 0.005 && t.tradeBonus(Math.round(p.trade * 100)) + (p.raw - p.trade > 0.005 ? ` (${t.tradeCap(Math.round(p.raw * 100), Math.round(p.cap * 100))})` : ""),
@@ -2343,7 +2351,7 @@ export function Game() {
       {walk && audience && (
         <div data-walk role="dialog" aria-label={COURT[lang].ask} className="absolute inset-x-0 top-[12%] z-50 mx-auto w-[min(26rem,90vw)] rounded-md border-2 border-wood bg-card px-5 py-4 text-foreground shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95">
           <div className="text-center font-display text-lg font-bold">{COURT[lang][audience]}</div>
-          <p className="mt-2 text-sm italic leading-relaxed">{audience === "prince" ? COURT[lang].princeSays(my?.owner ?? "") : audience === "herald" ? COURT[lang].heraldSays(my?.owner ?? "") : COURT[lang].closedSays}</p>
+          <p className="mt-2 text-sm italic leading-relaxed">{audience === "prince" ? addr(COURT[lang].princeSays([honour(my), my?.owner ?? ""].filter(Boolean).join(" "))) : audience === "herald" ? addr(COURT[lang].heraldSays([honour(my), my?.owner ?? ""].filter(Boolean).join(" "))) : COURT[lang].closedSays}</p>
           {audience !== "closed" && my && my.user_id === userId && (<>
             {decree && <p className="mt-3 text-sm italic leading-relaxed">{decree}</p>}
             {!decree && <Button type="button" size="sm" className="mt-3 w-full" onClick={() => askDecree(my.id)}>📜 {PRINCELY[lang].ask}</Button>}
@@ -3126,7 +3134,7 @@ export function Game() {
       )}
       {herald && my && (
         <Parchment title={HERALD[lang].title} later={HERALD[lang].leave} onLater={() => setHerald(false)}>
-          <p className="text-sm italic leading-relaxed text-ink">{HERALD[lang].arrive}</p>
+          <p className="text-sm italic leading-relaxed text-ink">{addr(HERALD[lang].arrive)}{honour(my) && <> · {honour(my)} {my?.owner}</>}</p>
           {decree ? <p className="mt-3 text-sm italic leading-relaxed text-ink">{decree}</p>
             : <Button type="button" size="sm" className="mt-3 w-full" onClick={() => askDecree(my.id)}>📜 {HERALD[lang].ask}</Button>}
           {decree && openTaskOf(princelyRows.current, my.id) && <p className="mt-2 text-xs italic text-muted-foreground">{HERALD[lang].read}</p>}
@@ -3227,7 +3235,7 @@ export function Game() {
       {chronOpen && chron && my && (
         <Parchment title={t.chron.title} later={t.chron.close} onLater={() => setChronOpen(false)}>
           <p className="text-center text-sm text-ink/70">{t.chron.away(Math.max(1, Math.round((chron.to - chron.from) / 864e5)))}</p>
-          <p className="mt-3 text-center font-display text-xl leading-snug text-ink">{scribe === undefined ? <span className="animate-pulse text-ink/60">{t.chron.writing}</span> : scribe ?? neutralMayor(t.chron.greet, lang, my?.mayor_gender === "d")}</p>
+          <p className="mt-3 text-center font-display text-xl leading-snug text-ink">{scribe === undefined ? <span className="animate-pulse text-ink/60">{t.chron.writing}</span> : scribe ?? addr(t.chron.greet)}</p>
           <div className="mt-4 flex justify-center gap-4 font-display text-lg text-ink">
             <span>{t.chron.pop(chron.popFrom, chron.popTo)}</span><span>{t.chron.taler(chron.taler)}</span>
           </div>
@@ -3366,7 +3374,7 @@ export function Game() {
                 <div className="font-['Caveat'] text-xl leading-tight">{who.first} {who.last}</div>
                 <button type="button" aria-label={t.close} className="hit relative -m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
               </div>
-              <div className="text-sm">{t.personAge(who.age)} · {who.job === "mayor" && who.seed.mayor_gender === "d" ? MAYOR[lang].d : t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
+              <div className="text-sm">{t.personAge(who.age)} · {who.job === "mayor" ? <>{mayorWord(lang, who.seed.mayor_gender as "m" | "w" | "d" | null, townRank(who.seed, seeds, slow))}{honour(who.seed) && <span className="text-primary"> · {honour(who.seed)}</span>}</> : t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
               {who.estate && <div className="mt-1 text-xs"><div>{PROSPERITY[lang].estates[who.estate]}</div><div className="text-muted-foreground">{PROSPERITY[lang].tax(who.sick ? 0 : ESTATE_TAX[who.estate])}</div></div>}
               {(kin.spouse || kin.parents.length || kin.children.length || kin.siblings.length || who.maiden) && (
                 <div className="mt-1 space-y-0.5 text-xs">
