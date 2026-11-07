@@ -1184,7 +1184,7 @@ function folkOf(q: Pose): FolkSprite {
 }
 // hipX = hip column, hemY = tunic hem (measured on the sprites); legs keep LEG_RATIO height regardless of hem
 const HIPS: Partial<Record<FolkSprite, FigureConfig>> = {
-  man: fig(0.42, 0.585), farmer: fig(0.26, 0.655, { legs: "linen" }), porter: fig(0.44, 0.6), builder: fig(0.46, 0.64),
+  man: fig(0.42, 0.585, { legs: "dark" }), farmer: fig(0.51, 0.71, { legs: "linen" }), porter: fig(0.44, 0.6, { legs: "linen" }), builder: fig(0.46, 0.64, { legs: "grey" }),
   woodcutter: fig(0.46, 0.59, { legs: "linen" }), mason: fig(0.4, 0.62, { legs: "grey" }), elder: fig(0.47, 0.68, { legWidthScale: 1.04, legs: "dark" }),
   robber: fig(0.45, 0.665, { legs: "dark" }), groom: fig(0.56, 0.74, { legWidthScale: 1.06, legs: "linen" }),
 };
