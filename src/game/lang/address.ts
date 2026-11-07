@@ -55,7 +55,25 @@ function deRules(f: DeForm): [RegExp, string][] {
 }
 
 /** Lines about other players' or a town's own head stay as written: they never address the player. */
-const KEEP_DE = /\b(Unsere?|[Ff]remde[rn]?|anderen|anderer|Goldene)\s+Schulze[n]?\b/g;
+const KEEP_DE = /\b(Unsere?n?|unsere?n?|[Ff]remde[rn]?|anderen|anderer|Goldene)\s+Schulze[n]?\b/g;
+
+/**
+ * Lines where villagers speak of their own head ("Unser Schulze …", "unseren Schulzen") follow that
+ * place's gender and real rank. Apply after addressMayor; display only.
+ */
+export function ownHead(text: string, lang: Lang, g: Gender, rank: number): string {
+  const k = key(g), tw = town(rank);
+  if (lang === "de") {
+    const f = DE[k][tw], fem = f.g === "f";
+    return text
+      .replace(/\b([Uu])nser Schulze\b/g, (_, u) => `${u}nser${fem ? "e" : ""} ${f.nom}`)
+      .replace(/\b([Uu])nseren Schulzen\b/g, (_, u) => `${u}nsere${fem ? "" : f.g === "n" ? "s" : "n"} ${f.g === "m" ? f.obl : f.nom}`);
+  }
+  if (lang === "en") return text.replace(/\b([Oo])ur mayor\b/g, `$1ur ${k === "d" ? (tw ? "town head" : "village head") : tw ? "mayor" : "reeve"}`);
+  if (lang === "fr") return text.replace(/\bNotre maire\b/g, k === "w" ? "Notre mairesse" : k === "d" ? `Notre ${tw ? "chef de la ville" : "chef du village"}` : "Notre maire");
+  if (lang === "es") return text.replace(/\bNuestro alcalde\b/g, k === "w" ? "Nuestra alcaldesa" : k === "d" ? `Nuestra ${tw ? "cabeza de la villa" : "cabeza de la aldea"}` : "Nuestro alcalde");
+  return text;
+}
 
 /**
  * Addresses the player's own head of the place in default (male village) texts: swaps the words for the
