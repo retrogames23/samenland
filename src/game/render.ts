@@ -2627,7 +2627,7 @@ const COURT_GAIT: Record<CourtRole, FigureConfig> = {
   gardener: fig(0.31, 0.73), groom: fig(0.62, 0.63, { legWidthScale: 1.05 }),
 };
 // the guard sprite includes a tall halberd above the helmet (body = ~78 % of it), so it is scaled up to keep a human body size
-const courtHeight = (r: CourtRole) => (r === "prince" ? 4.9 : r === "guard" ? 5.9 : 4.6);
+const courtHeight = (r: CourtRole) => (r === "prince" ? 4.9 : r === "guard" ? 7.2 : 4.6);
 function drawCourtFigure(c: C, q: CourtPose, t: number) {
   const im = huntIm(`courtfig-${q.role}`, COURT_FIG[q.role]); if (!im) return;
   // same human scale as villagers/mayors (5.2); the prince stands a touch taller
