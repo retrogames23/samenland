@@ -2653,29 +2653,29 @@ export function Game() {
 
       {/* build rail: left on desktop, bottom on phones */}
       <div className="pointer-events-none absolute left-[var(--safe-l)] right-[var(--safe-r)] bottom-[var(--dock-bottom)] z-30 md:bottom-auto ltr:md:right-auto ltr:md:left-[max(0.75rem,env(safe-area-inset-left))] rtl:md:left-auto rtl:md:right-[max(0.75rem,env(safe-area-inset-right))] md:top-[var(--bar-h,6rem)]" style={{ "--bar-h": `${barH + 8}px` } as import("react").CSSProperties}>
-        <Panel inner="!bg-wood !border-0 flex gap-1 p-1 md:flex-col">
+        <Panel className="md:max-h-[calc(100dvh-var(--bar-h,6rem)-2.5rem)] md:overflow-y-auto md:[scrollbar-width:none]" inner="!bg-wood !border-0 flex gap-1 p-1 md:flex-col">
           {tabs.map(({ k, icon: I, label }) => (
-            <WoodButton key={k} label={label} active={tab === k} onClick={() => { setMoreOpen(false); pick(k); }} className={`h-11 flex-1 flex-col gap-0.5 md:flex md:h-14 md:w-14 md:flex-none ${k === "rituals" || k === "signs" ? "max-md:hidden" : ""}`}>
+            <WoodButton key={k} label={label} active={tab === k} onClick={() => { setMoreOpen(false); pick(k); }} className={`h-11 flex-1 flex-col gap-0.5 md:flex md:h-14 md:w-14 [@media(min-width:768px)_and_(max-height:760px)]:md:h-11 [@media(min-width:768px)_and_(max-height:760px)]:md:mt-0 md:flex-none ${k === "rituals" || k === "signs" ? "max-md:hidden" : ""}`}>
               <I className="h-5 w-5" /><span className="text-[10px] leading-none">{label}</span>
             </WoodButton>
           ))}
           {owner && myTown && (
-            <WoodButton label={t.roll.title} active={rollOpen} onClick={() => setRollOpen(true)} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
+            <WoodButton label={t.roll.title} active={rollOpen} onClick={() => setRollOpen(true)} className="h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 [@media(min-width:768px)_and_(max-height:760px)]:md:h-11 [@media(min-width:768px)_and_(max-height:760px)]:md:mt-0 md:flex-none">
               <ScrollText className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.menu}</span>
             </WoodButton>
           )}
           {userId && (
-            <WoodButton label={t.tavern.menu} active={tavernOpen} onClick={() => setTavernOpen(true)} className="relative h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
+            <WoodButton label={t.tavern.menu} active={tavernOpen} onClick={() => setTavernOpen(true)} className="relative h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 [@media(min-width:768px)_and_(max-height:760px)]:md:h-11 [@media(min-width:768px)_and_(max-height:760px)]:md:mt-0 md:flex-none">
               <Beer className="h-5 w-5" /><span className="text-[10px] leading-none">{t.tavern.menu}</span>
               {chatUnread > 0 && <span className="absolute end-1 top-1 h-2.5 w-2.5 rounded-full bg-destructive" />}
             </WoodButton>
           )}
           {my && (
-            <WoodButton label={t.mayorFind} onClick={findMayor} className="max-md:hidden h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
+            <WoodButton label={t.mayorFind} onClick={findMayor} className="max-md:hidden h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 [@media(min-width:768px)_and_(max-height:760px)]:md:h-11 [@media(min-width:768px)_and_(max-height:760px)]:md:mt-0 md:flex-none">
               <Crown className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.role["mayor"]![1]}</span>
             </WoodButton>
           )}
-          <WoodButton label={t.guide.menu} active={guideOpen} onClick={() => setGuideOpen(true)} className="max-md:hidden h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 md:flex-none">
+          <WoodButton label={t.guide.menu} active={guideOpen} onClick={() => setGuideOpen(true)} className="max-md:hidden h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 [@media(min-width:768px)_and_(max-height:760px)]:md:h-11 [@media(min-width:768px)_and_(max-height:760px)]:md:mt-0 md:flex-none">
             <BookOpen className="h-5 w-5" /><span className="text-[10px] leading-none">{t.guide.menu}</span>
           </WoodButton>
           {my && (
@@ -2696,9 +2696,9 @@ export function Game() {
         )}
       </div>
       {tab && (
-        <div className="pointer-events-none absolute left-[var(--safe-l)] right-[var(--safe-r)] bottom-[calc(var(--dock-bottom)+4.5rem)] z-30 md:bottom-auto ltr:md:right-auto ltr:md:left-[calc(max(0.75rem,env(safe-area-inset-left))+5.25rem)] rtl:md:left-auto rtl:md:right-[calc(max(0.75rem,env(safe-area-inset-right))+5.25rem)] md:top-[var(--bar-h,6rem)] md:w-72" style={{ "--bar-h": `${barH + 8}px` } as import("react").CSSProperties}>
+        <div className="pointer-events-none absolute left-[var(--safe-l)] right-[var(--safe-r)] bottom-[calc(var(--dock-bottom)+4.5rem)] z-30 md:bottom-auto ltr:md:right-auto ltr:md:left-[calc(max(0.75rem,env(safe-area-inset-left))+5rem)] rtl:md:left-auto rtl:md:right-[calc(max(0.75rem,env(safe-area-inset-right))+5rem)] md:top-[var(--bar-h,6rem)] md:w-72" style={{ "--bar-h": `${barH + 8}px` } as import("react").CSSProperties}>
           <div className="pointer-events-auto fixed inset-0 -z-10 md:hidden" aria-hidden onClick={() => pick(tab)} />
-          <div {...sheetSwipe(() => pick(tab))}><Panel className="flex flex-col max-h-[min(70dvh,calc(100dvh-var(--dock-bottom)-11rem))] md:max-h-[calc(100dvh-var(--bar-h,6rem)-1.5rem)] max-md:rounded-t-2xl" inner="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3">{drawer}</Panel></div>
+          <div {...sheetSwipe(() => pick(tab))}><Panel className="flex flex-col max-h-[min(70dvh,calc(100dvh-var(--dock-bottom)-11rem))] md:max-h-[calc(100dvh-var(--bar-h,6rem)-2.5rem)] max-md:rounded-t-2xl" inner="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">{drawer}</Panel></div>
         </div>
       )}
 
