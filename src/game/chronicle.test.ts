@@ -26,7 +26,7 @@ describe("small milestones", () => {
   it("summarises more than six homes into one line", () => {
     const c = chronicle(s, [s], t0, t0 + 120 * 864e5);
     expect(c.events.filter((e) => e.code === "house").length).toBeLessThanOrEqual(CHRON_DETAIL);
-  }, 20000);
+  });
 });
 
 describe("completion feasts", () => {
