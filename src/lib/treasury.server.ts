@@ -31,12 +31,12 @@ export async function loadEconomyInput(realm: string): Promise<EconomyWorld> {
 export async function certifyRank(id: string, realm: string) {
   const input = await loadEconomyInput(realm);
   const { setRealm } = await import("@/game/time");
-  const { townRank } = await import("@/game/rank");
+  const { townRank, rankInput } = await import("@/game/rank");
   setRealm(realm as Realm);
   const now = Date.now(), seeds = economyWorldAt(input, now), seed = seeds.find(s => s.id === id);
   if (!seed) throw new Error("Missing village");
-  const rank = townRank(seed, seeds, now);
-  const { error } = await supabaseAdmin.from("rank_certificates").upsert({ seed_id: id, rank, certified_at: new Date(now).toISOString() }, { onConflict: "seed_id" });
+  const rank = townRank(seed, seeds, now), citizens = rankInput(seed, seeds, now).citizens;
+  const { error } = await supabaseAdmin.from("rank_certificates").upsert({ seed_id: id, rank, citizens, certified_at: new Date(now).toISOString() }, { onConflict: "seed_id" });
   if (error) throw new Error("Rank certificate failed");
   return { rank };
 }

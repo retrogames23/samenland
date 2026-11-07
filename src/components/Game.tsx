@@ -1795,8 +1795,8 @@ export function Game() {
   const claimQuest = async () => {
     if (!my || !userId || !quest?.ready) return;
     setQuestOpen(false); jingle("fanfare");
-    // rank milestones are checked by the server against a fresh rank certificate
-    if (["hamlet", "village", "town", "merchant", "metro"].includes(quest.quest)) {
+    // rank and resident milestones are checked by the server against a fresh rank certificate
+    if (["ten", "fifty", "hundred", "hamlet", "village", "town", "merchant", "metro"].includes(quest.quest)) {
       try { await certifyFn({ data: { seed: my.id } }); } catch { return setMsg(t.quests.fail); }
     }
     const { data, error } = await supabase.from("quest_claims").insert({ seed_id: my.id, user_id: userId, quest: quest.quest }).select("id, seed_id, quest, reward, created_at").single();
