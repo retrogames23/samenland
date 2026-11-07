@@ -314,7 +314,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
 export type HouseStyle = "workshop" | "gateway";
 type StyleSlot = "cottage" | "fachwerk" | "patrician" | "hut" | "handwerker" | "farmhouse" | "barn" | "steinhaus" | "villa";
 const STYLE_OF: Partial<Record<Kind, StyleSlot>> = { cottage: "cottage", fachwerk: "fachwerk", steinhaus: "steinhaus", villa: "villa", patrician: "patrician", hut: "hut", handwerker: "handwerker", farmhouse: "farmhouse", barn: "barn" };
-type Styled = { day: string; night: string; crop: [number, number, number, number]; image?: HTMLImageElement; light?: HTMLImageElement };
+type Styled = { day: string; night: string; crop: [number, number, number, number]; /** painted with its door on the opposite facade: mirrored so it faces the road like its siblings */ mirror?: boolean; image?: HTMLImageElement; light?: HTMLImageElement };
 const styled: Record<HouseStyle, Record<StyleSlot, Styled>> = {
   workshop: { cottage: { day: cottageHill, night: cottageHillLight, crop: [0, 0, 480, 419] }, fachwerk: { day: fachwerkHill, night: fachwerkHillLight, crop: [0, 0, 344, 480] }, patrician: { day: patricianHill, night: patricianHillLight, crop: [0, 0, 272, 480] },
     hut: { day: hutHill, night: hutHillLight, crop: [0, 0, 453, 480] }, handwerker: { day: craftHill, night: craftHillLight, crop: [0, 0, 445, 480] }, farmhouse: { day: farmHill, night: farmHillLight, crop: [0, 0, 480, 369] }, barn: { day: barnHill, night: barnHillLight, crop: [0, 0, 480, 440] },
@@ -331,7 +331,7 @@ export const VARIANT_COUNT = 3;
 type VariantKind = (typeof VARIANT_KINDS)[number];
 const variants: Record<VariantKind, Record<"grain" | HouseStyle, Styled[]>> = {
   farmhouse: { grain: [{ day: grainFarmhouse2, night: grainFarmhouse2Light, crop: [0, 0, 480, 348] }, { day: grainFarmhouse3, night: grainFarmhouse3Light, crop: [0, 0, 468, 480] }], workshop: [{ day: workshopFarmhouse2, night: workshopFarmhouse2Light, crop: [0, 0, 480, 428] }, { day: workshopFarmhouse3, night: workshopFarmhouse3Light, crop: [0, 0, 480, 323] }], gateway: [{ day: gatewayFarmhouse2, night: gatewayFarmhouse2Light, crop: [0, 0, 480, 341] }, { day: gatewayFarmhouse3, night: gatewayFarmhouse3Light, crop: [0, 0, 480, 367] }] },
-  cottage: { grain: [{ day: grainCottage2, night: grainCottage2Light, crop: [0, 0, 480, 356] }, { day: grainCottage3, night: grainCottage3Light, crop: [0, 0, 480, 397] }], workshop: [{ day: workshopCottage2, night: workshopCottage2Light, crop: [0, 0, 480, 454] }, { day: workshopCottage3, night: workshopCottage3Light, crop: [0, 0, 480, 431] }], gateway: [{ day: gatewayCottage2, night: gatewayCottage2Light, crop: [0, 0, 480, 401] }, { day: gatewayCottage3, night: gatewayCottage3Light, crop: [0, 0, 480, 395] }] },
+  cottage: { grain: [{ day: grainCottage2, night: grainCottage2Light, crop: [0, 0, 480, 356] }, { day: grainCottage3, night: grainCottage3Light, crop: [0, 0, 480, 397] }], workshop: [{ day: workshopCottage2, night: workshopCottage2Light, crop: [0, 0, 480, 454] }, { day: workshopCottage3, night: workshopCottage3Light, crop: [0, 0, 480, 431] }], gateway: [{ day: gatewayCottage2, night: gatewayCottage2Light, crop: [0, 0, 480, 401] }, { day: gatewayCottage3, night: gatewayCottage3Light, crop: [0, 0, 480, 395], mirror: true }] },
   handwerker: { grain: [{ day: grainHandwerker2, night: grainHandwerker2Light, crop: [0, 0, 480, 410] }, { day: grainHandwerker3, night: grainHandwerker3Light, crop: [0, 0, 480, 441] }], workshop: [{ day: workshopHandwerker2, night: workshopHandwerker2Light, crop: [0, 0, 442, 480] }, { day: workshopHandwerker3, night: workshopHandwerker3Light, crop: [0, 0, 444, 480] }], gateway: [{ day: gatewayHandwerker2, night: gatewayHandwerker2Light, crop: [0, 0, 279, 480] }, { day: gatewayHandwerker3, night: gatewayHandwerker3Light, crop: [0, 0, 281, 480] }] },
   patrician: { grain: [{ day: grainPatrician2, night: grainPatrician2Light, crop: [0, 0, 346, 480] }, { day: grainPatrician3, night: grainPatrician3Light, crop: [0, 0, 344, 480] }], workshop: [{ day: workshopPatrician2, night: workshopPatrician2Light, crop: [0, 0, 275, 480] }, { day: workshopPatrician3, night: workshopPatrician3Light, crop: [0, 0, 269, 480] }], gateway: [{ day: gatewayPatrician2, night: gatewayPatrician2Light, crop: [0, 0, 264, 480] }, { day: gatewayPatrician3, night: gatewayPatrician3Light, crop: [0, 0, 271, 480] }] },
 };
@@ -411,6 +411,7 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   const st = styledOf(kind, style, variant);
   if (st && !st.image) st.image = load(st.day);
   const image = st && ready(st.image) && st.image ? st.image : sprite.image;
+  if (image === st?.image && st.mirror) flip = !flip;
   if (!image.complete || !image.naturalWidth) return true; // still loading: draw nothing, never the old vector art
   const [, , sw, sh] = image === st?.image ? st.crop : sprite.crop;
   const width = sprite.width * scaleOf(kind, variant);
@@ -444,6 +445,7 @@ export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: nu
   if (st && !own) return; // never pair a variant's walls with another painting's windows
   const image = own ? st?.light : nightImages[kind], box = spriteBox(kind, variant, own ? style : undefined);
   if (!image?.complete || !image.naturalWidth || !box) return;
+  if (own && st?.mirror) flip = !flip;
   c.save();
   c.globalAlpha *= intensity;
   c.imageSmoothingEnabled = true;
