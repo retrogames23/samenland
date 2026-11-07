@@ -14,11 +14,11 @@ describe("village chest", () => {
   });
   it("expansions open by settlement rank, not age: Dorf, Kleinstadt, Handelsstadt", () => {
     const s = seed(CHEST_SINCE), c2 = [buy("chest2", 0, 250)], c3 = [...c2, buy("chest3", 0, 800)];
-    expect(chestBlock(s, [], 1)).toBe("age");
+    expect(chestBlock(s, [], 1)).toBe("rank");
     expect(chestBlock(s, [], 2)).toBe(null);
-    expect(chestBlock(s, c2, 2)).toBe("age");
+    expect(chestBlock(s, c2, 2)).toBe("rank");
     expect(chestBlock(s, c2, 3)).toBe(null);
-    expect(chestBlock(s, c3, 3)).toBe("age");
+    expect(chestBlock(s, c3, 3)).toBe("rank");
     expect(chestBlock(s, c3, 4)).toBe(null);
   });
   it("an untended village founded after the rule never holds more than 1200 from taxes", () => {

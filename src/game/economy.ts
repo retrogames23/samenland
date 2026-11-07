@@ -130,10 +130,10 @@ export const chestCap = (seedId: string, purchases: Owned[], at = Infinity) => {
   return l === 1 ? CHEST_BASE : CHEST_CAP[CHEST_STEPS[l - 2]!];
 };
 /** Why the next expansion cannot be bought yet, or null. */
-export function chestBlock(s: Seed, purchases: Owned[], townRank: number): null | "age" | "max" {
+export function chestBlock(s: Seed, purchases: Owned[], townRank: number): null | "rank" | "max" {
   const l = chestLevel(s.id, purchases);
   if (l === 4) return "max";
-  return townRank < CHEST_STAGE[CHEST_STEPS[l - 1]!] ? "age" : null;
+  return townRank < CHEST_STAGE[CHEST_STEPS[l - 1]!] ? "rank" : null;
 }
 
 /** Ledger entries besides tax/dowry/raids with their time — the same rows DB village_balance sums. */
