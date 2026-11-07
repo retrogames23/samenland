@@ -41,13 +41,28 @@ export async function certifyRank(id: string, realm: string) {
   return { rank };
 }
 
+/**
+ * Booked tax days from `first` on. Days are booked in ascending order, so normally they form one gap-free
+ * run first..max: then only count and max are read. If the run has a hole (count ≠ span), every day is
+ * read as before, so no day is ever skipped or booked twice.
+ */
+export async function bookedDays(id: string, first: number): Promise<{ has(d: number): boolean }> {
+  const [top, n] = await Promise.all([
+    supabaseAdmin.from("tax_receipts").select("day").eq("seed_id", id).gte("day", first).order("day", { ascending: false }).limit(1).maybeSingle(),
+    supabaseAdmin.from("tax_receipts").select("day", { count: "exact", head: true }).eq("seed_id", id).gte("day", first),
+  ]);
+  if (top.error || n.error) throw new Error("Treasury read failed");
+  const max = top.data?.day ?? first - 1, count = n.count ?? 0;
+  if (count === max - first + 1) return { has: (d) => d >= first && d <= max };
+  const all = await supabaseAdmin.from("tax_receipts").select("day").eq("seed_id", id).gte("day", first);
+  if (all.error) throw new Error("Treasury read failed");
+  return new Set((all.data ?? []).map(r => r.day));
+}
+
 export async function calculateTreasury(id: string, realm: string) {
   const now = Date.now();
-  const [cut, receipts] = await Promise.all([
-    supabaseAdmin.from("tax_cutover").select("at").eq("singleton", true).maybeSingle(),
-    supabaseAdmin.from("tax_receipts").select("day, income").eq("seed_id", id).order("day"),
-  ]);
-  if (cut.error || receipts.error) throw new Error("Treasury read failed");
+  const cut = await supabaseAdmin.from("tax_cutover").select("at").eq("singleton", true).maybeSingle();
+  if (cut.error) throw new Error("Treasury read failed");
   if (!cut.data) {
     const { data:balance, error } = await supabaseAdmin.rpc("village_balance", {_seed:id});
     if (error || balance==null) throw new Error("Balance unavailable");
@@ -62,7 +77,7 @@ export async function calculateTreasury(id: string, realm: string) {
   setRealm(realm as Realm);
   const created = Date.parse(target.created_at), days = Math.max(0, Math.floor((now-created)/DAY));
   const first = cut.data ? Math.max(1, Math.ceil((Date.parse(cut.data.at)-created)/DAY)) : days+1;
-  const recorded = new Set((receipts.data ?? []).map(r => r.day));
+  const recorded = await bookedDays(id, first);
   const pending: number[] = [];
   for (let d=first; d<=days && pending.length<BATCH; d++) if (!recorded.has(d)) pending.push(d);
   const rows = pending.map(d => {
