@@ -63,6 +63,7 @@ function syncGeo() {
 /** Founded villages (realm maps besides Europe) whose ground must stay dry, buildable lowland. */
 const ANCHORS: Record<Biome, [number, number][]> = {
   heartland: [],
+  elbe: [],
   westwild: [[304, 405], [330, 354]],
   westwood: [[297, 415]],
   heath: [[374, 379], [404, 411]],
@@ -82,6 +83,7 @@ function protect(x: number, y: number, h: number) {
 /** Island height with an irregular, bay-and-cape coastline (domain-warped radial falloff). */
 function heightAt(x: number, y: number) {
   if (geo === "heartland") return heightEurope(x, y);
+  if (geo === "elbe") return heightElbe(x, y);
   const h = geo === "westwild" ? heightFjords(x, y) : geo === "westwood" ? heightCoastPlain(x, y) : heightArchipelago(x, y);
   return protect(x, y, h);
 }
@@ -95,6 +97,27 @@ function heightEurope(x: number, y: number) {
   const edge = Math.max(0, Math.hypot(cx, cy) * 2 - coast) * 2.2;
   const ridge = 1 - Math.abs(fbm(x / 120, y / 120, 25) * 2 - 1); // mountain chains
   return fbm(x / 90, y / 90, 1) * 0.75 + ridge * ridge * 0.3 - edge;
+}
+/**
+ * Elbwerder (Europa II): a broad, squat island split by a wide estuary funnel that opens to the
+ * north-west, with marsh lowland along it, a sandy Geest ridge in the south-east and a ragged bodden
+ * coast to the east. Same flora as Altenland, only the land differs.
+ */
+function heightElbe(x: number, y: number) {
+  const wx = x + (fbm(x / 170, y / 170, 521) - 0.5) * 150;
+  const wy = y + (fbm(x / 170, y / 170, 522) - 0.5) * 150;
+  const cx = wx / MAP - 0.5, cy = wy / MAP - 0.52;
+  const ang = Math.atan2(cy, cx);
+  const coast = 0.76 + (vnoise(Math.cos(ang) * 4 + 30, Math.sin(ang) * 4 + 30, 523) - 0.5) * 0.3
+    + (vnoise(Math.cos(ang) * 11 + 5, Math.sin(ang) * 11 + 5, 524) - 0.5) * 0.12 * Math.max(0, Math.cos(ang)); // bodden in the east
+  const edge = Math.max(0, Math.hypot(cx * 1.1, cy * 0.95) * 2 - coast) * 2.1;
+  // estuary: a funnel from the north-west coast towards the centre, narrowing inland
+  const ex = cx + cy * 0.9, ey = -cx * 0.9 + cy; // axis running NW -> SE
+  const along = -(ex) , wid = 0.03 + Math.max(0, along) * 0.16;
+  const funnel = along > -0.12 ? Math.max(0, 1 - Math.abs(ey + (vnoise(ex * 6, 1, 525) - 0.5) * 0.06) / wid) * Math.min(1, (along + 0.12) * 5) : 0;
+  const ridge = 1 - Math.abs(fbm(x / 130, y / 130, 526) * 2 - 1);
+  const geest = Math.max(0, ex - 0.02) * 0.6; // higher sandy ground south-east of the river
+  return fbm(x / 95, y / 95, 501) * 0.72 + ridge * ridge * (0.2 + geest) - edge - funnel * 0.42;
 }
 /** West isles: a long, tilted island with ragged fjords and a granite spine along its eastern side. */
 function heightFjords(x: number, y: number) {
