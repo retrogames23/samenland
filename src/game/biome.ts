@@ -21,12 +21,13 @@ type Look = {
 };
 const LOOK: Record<Biome, Look | null> = {
   heartland: null,
-  // rough Atlantic islands: dark spruce woods, cool moss and grey granite
-  westwild: { green: [0.86, 0.95, 1.02], stone: [0.9, 0.94, 1.0], sand: [0.92, 0.92, 0.9], water: [0.85, 0.95, 1.0], conifer: 0.92, birch: 0.05, heather: 0 },
-  // wooded coast: mixed spruce and birch, fresh cool greens
-  westwood: { green: [0.92, 1.0, 0.98], stone: [0.95, 0.95, 0.97], sand: [0.97, 0.96, 0.92], water: [0.9, 0.97, 1.0], conifer: 0.7, birch: 0.25, heather: 0 },
-  // windswept trading isle: heath, pale dunes, dark basalt
-  heath: { green: [1.04, 0.94, 0.86], stone: [0.78, 0.78, 0.82], sand: [1.05, 1.02, 0.94], water: [0.92, 0.96, 0.98], conifer: 0.35, birch: 0.45, heather: 0.06 },
+  // All islands are north German landscapes around 1500 (no native spruce/fir in the lowland: conifers = Scots pine).
+  // Westeroog: North Frisian tidal coast — wind-shorn oaks, hawthorn scrub, few pines, salt-meadow greens
+  westwild: { green: [0.9, 0.96, 0.98], stone: [0.9, 0.94, 1.0], sand: [0.95, 0.94, 0.9], water: [0.85, 0.95, 1.0], conifer: 0.12, birch: 0.15, heather: 0.02 },
+  // Möwenwerder: Baltic bodden coast — oak/beech woods with moor birch and alder carr
+  westwood: { green: [0.94, 1.0, 0.96], stone: [0.95, 0.95, 0.97], sand: [0.97, 0.96, 0.92], water: [0.9, 0.97, 1.0], conifer: 0.08, birch: 0.3, heather: 0 },
+  // Sandwerder: Geest and Lüneburg-style heath — open Scots pine, birch, heather and pale dunes
+  heath: { green: [1.04, 0.94, 0.86], stone: [0.78, 0.78, 0.82], sand: [1.05, 1.02, 0.94], water: [0.92, 0.96, 0.98], conifer: 0.4, birch: 0.4, heather: 0.06 },
 };
 
 let biome: Biome = "heartland";
