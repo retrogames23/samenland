@@ -1162,9 +1162,9 @@ function folkOf(q: Pose): FolkSprite {
 }
 // hipX = hip column, hemY = tunic hem (measured on the sprites); legs keep LEG_RATIO height regardless of hem
 const HIPS: Partial<Record<FolkSprite, FigureConfig>> = {
-  man: fig(0.45, 0.63), farmer: fig(0.28, 0.66), porter: fig(0.47, 0.65), builder: fig(0.45, 0.64),
-  woodcutter: fig(0.5, 0.62), mason: fig(0.42, 0.62), elder: fig(0.45, 0.7, { legWidthScale: 1.04 }),
-  robber: fig(0.47, 0.72, { legWidthScale: 1.06 }), groom: fig(0.56, 0.74, { legWidthScale: 1.06 }),
+  man: fig(0.42, 0.585), farmer: fig(0.26, 0.655), porter: fig(0.44, 0.6), builder: fig(0.45, 0.66),
+  woodcutter: fig(0.46, 0.59), mason: fig(0.4, 0.62), elder: fig(0.47, 0.68, { legWidthScale: 1.04 }),
+  robber: fig(0.46, 0.6, { legWidthScale: 1.06 }), groom: fig(0.56, 0.74, { legWidthScale: 1.06 }),
 };
 const DEFAULT_FIG = fig(0.46, 0.66);
 const MAYOR_LEGS = fig(0.503, 0.58);
@@ -2601,7 +2601,7 @@ function courtFigures(t: number) {
 const COURT_GAIT: Record<CourtRole, FigureConfig> = {
   prince: fig(0.61, 0.56, { style: "mantle" }), princess: fig(0.5, 0.8, { style: "robe" }),
   herald: fig(0.465, 0.66), guard: fig(0.48, 0.72, { lift: 0.05, stride: GUARD_STRIDE }),
-  gardener: fig(0.47, 0.69), groom: fig(0.48, 0.63, { legWidthScale: 1.05 }),
+  gardener: fig(0.31, 0.73), groom: fig(0.48, 0.63, { legWidthScale: 1.05 }),
 };
 const courtHeight = (r: CourtRole) => (r === "prince" ? 4.9 : 4.6);
 function drawCourtFigure(c: C, q: CourtPose, t: number) {
