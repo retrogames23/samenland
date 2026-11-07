@@ -213,7 +213,7 @@ function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking
   if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
   if (sheet) {
     const fw = sheet.naturalWidth / 4, fh = sheet.naturalHeight, ww = w * 1.1, h = (ww * fh) / fw;
-    c.drawImage(sheet, f0 * fw, 0, fw, fh, -ww / 2 + walkShift(sheet, f0) * ww, -h, ww, h);
+    c.drawImage(sheet, f0 * fw, 0, fw, fh, -ww / 2, -h, ww, h); // no torso re-centring: the head swing is real motion, shifting made it jerk
   } else {
     const h = (w * im.naturalHeight) / im.naturalWidth;
     c.drawImage(im, -w / 2, -h * 0.95, w, h);
@@ -486,11 +486,13 @@ const ease = (k: number) => k * k * (3 - 2 * k);
 /** Animal on the move: walk sheet indexed by distance travelled, grazing/alert sheet when standing. */
 /** Boar sheet: frames 0–2 are steps, frame 3 is the rooting pose — never part of the gait. */
 const BOAR_GAIT = [0, 1, 2, 1];
+/** Deer sheet: frames 2 and 3 are near-identical strides, so alternate stride/gather evenly. */
+const DEER_GAIT = [0, 1, 2, 1];
 function drawBeast(c: C, walkIm: HTMLImageElement, standIm: HTMLImageElement | null, X: number, Y: number, h: number, flip: boolean, moving: number, dist: number, idle: number, alpha = 1, seq?: number[]) {
   shadow(c, X, Y, h * 0.42);
   if (moving > 0.02 || !standIm) {
     const ph = dist / 1.1, k = Math.floor(ph), f = seq ? (seq[k & 3] ?? 0) : k & 3, bob = Math.abs(Math.sin(ph * Math.PI)) * h * 0.02;
-    sheetFrame(c, walkIm, f, X, Y - bob, h, flip, 0, alpha, true);
+    sheetFrame(c, walkIm, f, X, Y - bob, h, flip, 0, alpha); // hooves stay put: no head-centroid shifting
   } else sheetFrame(c, standIm, idle, X, Y, h, flip, 0, alpha);
 }
 /** Hens around the coop: short trots, pecking, looking up; they roost inside at night. */
@@ -550,7 +552,7 @@ function putBeast(out: Bucket, c: C, b: Beast) {
     if (b.boar && b.state === "root") { shadow(c, X, Y, h * 0.5); sheetFrame(c, bw, 3, X, Y - (Math.floor(n / 500) & 1) * 0.08, h, b.flip, 0, b.alpha); return; }
     const moving = b.state === "walk" || b.state === "flee" ? 1 : 0;
     const idle = Math.floor(n / 1500) % 8 < 5 ? (Math.floor(n / 650) & 1) : 2;
-    drawBeast(c, b.boar ? bw : dw, b.boar ? null : dg, X, Y, h, b.flip, moving, b.state === "flee" ? n / 170 : b.dist + n / 2000, idle, b.alpha, b.boar ? BOAR_GAIT : undefined);
+    drawBeast(c, b.boar ? bw : dw, b.boar ? null : dg, X, Y, h, b.flip, moving, b.state === "flee" ? n / 170 : b.dist + n / 2000, idle, b.alpha, b.boar ? BOAR_GAIT : DEER_GAIT);
   });
 }
 /** Free game in its dens across the whole map; dens near a lodge are hunted in turn and regrow. */
@@ -2730,7 +2732,7 @@ function labEntries(): LabEntry[] {
     A("Hund schläft", 1.5, 3, (c, _ph, now) => drawDog(c, { x: 0, y: 0, mode: "sleep", flip: false, dist: 0 }, 0, 0, now, 1)),
     A("Reiter", 11, 9, (c, ph) => drawRider(c, 0, 0, 1, 0.3, 0, (ph / 6.2832) * 4 * RIDER_MS)),
     A("Reiter (weg)", 11, 9, (c, ph) => drawRider(c, 0, 0, 1, -1, 0, (ph / 6.2832) * 4 * RIDER_MS)),
-    A("Hirsch geht", 6.2, 7, (c, ph) => { const dw = huntIm("dw", deerWalkUrl); if (!dw) return false; drawBeast(c, dw, null, 0, 0, 6.2, false, 1, (ph / 6.2832) * 4.4, 0); return true; }),
+    A("Hirsch geht", 6.2, 7, (c, ph) => { const dw = huntIm("dw", deerWalkUrl); if (!dw) return false; drawBeast(c, dw, null, 0, 0, 6.2, false, 1, (ph / 6.2832) * 4.4, 0, 1, DEER_GAIT); return true; }),
     A("Hirsch äst", 6.2, 7, (c, _ph, now) => { const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl); if (!dw || !dg) return false;
       drawBeast(c, dw, dg, 0, 0, 6.2, false, 0, 0, Math.floor(now / 1500) % 8 < 5 ? (Math.floor(now / 650) & 1) : 2); return true; }),
     A("Wildschwein", 4.4, 6, (c, ph) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; drawBeast(c, bw, null, 0, 0, 4.4, false, 1, (ph / 6.2832) * 4.4, 0, 1, BOAR_GAIT); return true; }),
@@ -2898,7 +2900,7 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
   const tilt = walking ? Math.sin(now / 1100 + sd) * 0.02 : Math.sin(now / 5200 + sd) * 0.006;
   c.save();
   c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.2, 2.8, 0.9, 0, 0, 7); c.fill();
-  c.translate(x + dx, y + dy); c.scale(night ? prevDir : scaleX, 1);
+  c.translate(x + dx, y + dy); c.scale(-(night ? prevDir : scaleX), 1); // cow art faces left: mirror when heading right
   if (night) c.drawImage(im, 0, im.naturalHeight * 0.45, im.naturalWidth, im.naturalHeight * 0.55, -w / 2, -h * 0.55, w, h * 0.55);
   else if (walking) { c.rotate(tilt * 0.5); if (!cowStep(c, w, Math.floor(into / 480))) c.drawImage(im, -w / 2, -h * 0.96, w, h); }
   else { c.rotate(tilt); c.scale(1, breath); c.drawImage(im, -w / 2, -h * 0.96, w, h); }
