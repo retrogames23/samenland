@@ -2912,7 +2912,7 @@ export function Game() {
                             {v.asker && <p className="mt-2 text-center text-xs text-muted-foreground">{ct.asks(`${v.asker.first} ${v.asker.last}`, jobOf(v.asker))} <button type="button" className="hit relative underline decoration-dotted" onClick={() => show(v.asker!)}>{ct.find}</button></p>}
                             {v.advisor && <div className="mt-3 rounded-md border border-brass/50 bg-brass/10 p-2 text-sm">
                               <div className="text-xs font-semibold text-wood">{ct.counsel(`${v.advisor.first} ${v.advisor.last}`, v.herb ? ct.roles.herb : ct.roles.elder)}</div>
-                              <div className="italic">{ct.advice[ev][adviceIdx(nw)]}</div>
+                              <div className="italic">{ct.advice[ev]?.[adviceIdx(nw)]}</div>
                             </div>}
                           </>;
                         })()}
