@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { ITEMS } from "./economy";
+import { ITEMS, BADESTUBE_HEALTH, BADESTUBE_WEALTH } from "./economy";
+import { SPECIAL_KIND } from "./world";
+import { BATH_DAY } from "./people";
 import { ITEM_STAGE } from "./disasters";
 import { specialBuild, type Seed } from "./world";
 import { sickRate } from "./people";
@@ -8,6 +10,13 @@ describe("community buildings", () => {
   it("prices and unlock eras", () => {
     expect([ITEMS.backhaus, ITEMS.herberge, ITEMS.beginen]).toEqual([260, 420, 900]);
     expect([ITEM_STAGE["backhaus"], ITEM_STAGE["herberge"], ITEM_STAGE["beginen"]]).toEqual([1, 1, 2]);
+  });
+  it("bathhouse costs 700 Mark, unlocks at Kleinstadt, +10 health +5 prosperity, bath day Saturday", () => {
+    expect(ITEMS.badestube).toBe(700);
+    expect(ITEM_STAGE["badestube"]).toBe(3);
+    expect([BADESTUBE_HEALTH, BADESTUBE_WEALTH]).toEqual([10, 5]);
+    expect(SPECIAL_KIND["badestube"]).toBe("badestube");
+    expect(BATH_DAY).toBe(6);
   });
   it("hostel makes bought builds 15 % faster", () => {
     const h = { ...base, bought: [{ item: "herberge", at: 0 }] } as Seed;

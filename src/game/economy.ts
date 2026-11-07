@@ -9,7 +9,7 @@ import { speedParts, radiusOf, stageOf, effAge, ageHours, links, waterNearby, tw
 
 /** Starting treasury and fixed prices (Mark). Prices mirror the database purchase guard. */
 export const START_TALER = 160;
-export const ITEMS = { herbs: 90, backhaus: 260, herberge: 420, beginen: 900, hunter: 100, fisher: 140, woodcamp: 240, granary: 300, healer: 550, school: 1200, markethall: 450, guildhall: 450, library: 380, dairy: 350, firehouse: 600, guard: 750, bigstore: 380, stonemason: 380, smokehouse: 380, millrow: 700, hammerworks: 700, saltquay: 700 } as const;
+export const ITEMS = { herbs: 90, backhaus: 260, herberge: 420, beginen: 900, badestube: 700, hunter: 100, fisher: 140, woodcamp: 240, granary: 300, healer: 550, school: 1200, markethall: 450, guildhall: 450, library: 380, dairy: 350, firehouse: 600, guard: 750, bigstore: 380, stonemason: 380, smokehouse: 380, millrow: 700, hammerworks: 700, saltquay: 700 } as const;
 export type Item = keyof typeof ITEMS;
 /**
  * Prestige monuments built in paid steps (prices mirror the database purchase guard).
@@ -40,6 +40,8 @@ export const nextMonumentStep = (paid: string[], key: MonumentKey = "belfry"): s
 /** Bonuses of the early buildings that work without water. */
 /** Community buildings (Schritt 4): communal bakehouse, journeymen's hostel, beguinage. */
 export const BACKHAUS_HEALTH = 5, HERBERGE_WEALTH = 5, BEGINEN_WEALTH = 15, BEGINEN_HEALTH = 10;
+/** Badestube (ab Kleinstadt): bath, shave, cupping — health first, a little prosperity. */
+export const BADESTUBE_HEALTH = 10, BADESTUBE_WEALTH = 5;
 export const HUNTER_FOOD = 15, HERBS_HEALTH = 10, WOODCAMP_WEALTH = 5;
 /** Guild buildings: only villages with the matching charter may buy them (mirrored in the database guard). */
 export const GUILD: Partial<Record<Item, CharterPath>> = { markethall: "trade", guildhall: "craft", library: "culture", dairy: "farm" };
@@ -232,6 +234,7 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   b.wealth += Math.round(speedParts(s, seeds, now).toll / 2);
   b.health += has("backhaus") ? BACKHAUS_HEALTH : 0; b.wealth += has("herberge") ? HERBERGE_WEALTH : 0;
   if (has("beginen")) { b.wealth += BEGINEN_WEALTH; b.health += BEGINEN_HEALTH; }
+  if (has("badestube")) { b.health += BADESTUBE_HEALTH; b.wealth += BADESTUBE_WEALTH; }
   b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0; b.wealth += has("guard") ? 5 : 0;
   // weddings: a day of joy (health, prosperity) and lasting craft alliances between families
   const joy = weddingJoy(s, now);
