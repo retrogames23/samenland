@@ -9,7 +9,7 @@ export const fr: Dict = {
   townHint: "Le nom de votre bourg sur la carte et pour vos voisins.",
   yourName: "Nom du bailli / joueur",
   ownerHint: "Votre nom de chef du village – visible dans la liste, les lettres et la chronique.",
-  gender: { label: "Bailli ou baillie ?", hint: "Il s'agit de votre personnage, pas de vous : cela fixe l'habit et le titre.", m: "Bailli", w: "Baillie", d: "Libre" },
+  gender: { label: "Bailli ou baillie ?", hint: "Il s'agit de votre personnage, pas de vous : cela fixe l'habit et le titre.", m: "Bailli", w: "Baillie", d: "Chef du village" },
   needNames: "Renseignez d'abord le village, le nom du bailli et son rôle.",
   clickLand: "Cliquez à présent sur une terre libre.",
   plantFail: "La graine n'a point pris. Veuillez réessayer.",

@@ -2215,7 +2215,7 @@ export function Game() {
               <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { setProfile(s); setTab(null); }}>
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{t.roll.role["mayor"]![f ? 0 : 1]}: {s.owner}{support.get(s.id)?.has("seal") && <span title={SUPPORT[lang].seal} className="ms-1 text-primary">⚜️</span>}</>; })()} · {t.age(ageHours(s, now))}
+                  {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{s.mayor_gender === "d" ? MAYOR[lang].d : t.roll.role["mayor"]![f ? 0 : 1]}: {s.owner}{support.get(s.id)?.has("seal") && <span title={SUPPORT[lang].seal} className="ms-1 text-primary">⚜️</span>}</>; })()} · {t.age(ageHours(s, now))}
                   {(() => { const p = speedParts(s, seeds, now); const chips = [
                     p.bless > 0.005 && t.blessBonus(Math.round(p.bless * 100)),
                     p.trade > 0.005 && t.tradeBonus(Math.round(p.trade * 100)) + (p.raw - p.trade > 0.005 ? ` (${t.tradeCap(Math.round(p.raw * 100), Math.round(p.cap * 100))})` : ""),
@@ -3335,7 +3335,7 @@ export function Game() {
                 <div className="font-['Caveat'] text-xl leading-tight">{who.first} {who.last}</div>
                 <button type="button" aria-label={t.close} className="hit relative -m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
               </div>
-              <div className="text-sm">{t.personAge(who.age)} · {t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
+              <div className="text-sm">{t.personAge(who.age)} · {who.job === "mayor" && who.seed.mayor_gender === "d" ? MAYOR[lang].d : t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
               {who.estate && <div className="mt-1 text-xs"><div>{PROSPERITY[lang].estates[who.estate]}</div><div className="text-muted-foreground">{PROSPERITY[lang].tax(who.sick ? 0 : ESTATE_TAX[who.estate])}</div></div>}
               {(kin.spouse || kin.parents.length || kin.children.length || kin.siblings.length || who.maiden) && (
                 <div className="mt-1 space-y-0.5 text-xs">

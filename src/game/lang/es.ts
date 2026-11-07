@@ -9,7 +9,7 @@ export const es: Dict = {
   townHint: "Así se llamará tu poblado en el mapa y para tus vecinos.",
   yourName: "Nombre del alcalde / jugador",
   ownerHint: "Tu nombre como jefe del pueblo: aparece en la lista, las cartas y la crónica.",
-  gender: { label: "¿Alcalde o alcaldesa?", hint: "Se refiere a tu personaje, no a ti: define el atuendo y el tratamiento.", m: "Alcalde", w: "Alcaldesa", d: "Libre" },
+  gender: { label: "¿Alcalde o alcaldesa?", hint: "Se refiere a tu personaje, no a ti: define el atuendo y el tratamiento.", m: "Alcalde", w: "Alcaldesa", d: "Cabeza de la aldea" },
   needNames: "Indica primero la aldea, el nombre del alcalde y su papel.",
   clickLand: "Ahora pulsa en una porción de tierra libre.",
   plantFail: "No se pudo sembrar. Por favor, inténtalo de nuevo.",
