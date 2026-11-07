@@ -2947,7 +2947,7 @@ function labEntries(): LabEntry[] {
     R("Ochsenkarren", "Fährt fort", 9, 14, (c, ph) => drawCart(c, 0, 0, 1, -1, 0, 21, "", tw(ph) * 0.6, "lab-cart-b")),
     R("Kahn", "Treibt", 6, 13, (c, _ph, now) => drawBoat(c, 0, -1, false, now, 3)),
     R("Böttcher", "Biegt Dauben", 7, 9, (c, _ph, now) => { prop(c, "cooper", 0, 0, 7); smoke(c, -1, -4, now, 3, 0.3);
-      c.fillStyle = `rgba(255,${150 + Math.floor(60 * Math.sin(now / 90))},40,0.55)`; c.beginPath(); c.ellipse(-1, -1.2 - Math.abs(Math.sin(now / 130)) * 0.6, 0.9, 0.6, 0, 0, 7); c.fill(); }),
+      }),
     R("Weberin", "Am Webstuhl", 7, 9, (c, _ph, now) => { prop(c, "loom", 0, 0, 6.5);
       const im = folkImage("loom"); if (im) { const w = 6.5, h = (w * im.naturalHeight) / im.naturalWidth, by = -h * 0.85 + h * 0.45, sw = Math.sin(now / 380) * 0.5;
         c.strokeStyle = "rgba(70,48,28,0.9)"; c.lineWidth = 0.35; c.beginPath(); c.moveTo(-w * 0.25 + sw, by); c.lineTo(w * 0.2 + sw, by - h * 0.12); c.stroke(); } }),
