@@ -32,7 +32,7 @@ export function MayorEditor({ seed, lang, age: age0, traits: tr0, onClose, onSav
     onClose();
   };
   return (
-    <div className="mt-2 space-y-2 rounded-md border border-border bg-background/60 p-2 text-sm">
+    <div className="mt-2 space-y-2 rounded-md border border-border bg-card/80 p-2 text-sm">
       <div className="flex items-center gap-3">
         <div aria-hidden className="h-20 w-14 shrink-0 bg-no-repeat" style={{ backgroundImage: `url(${mayorSheetUrl(sex, age)})`, backgroundSize: "600% 100%", backgroundPosition: "0 0" }} />
         <div className="font-['Caveat'] text-lg leading-tight">{t.title}</div>

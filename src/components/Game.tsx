@@ -2327,7 +2327,7 @@ export function Game() {
       )}
       {walk && (
         <div data-walk className="pointer-events-none absolute inset-x-0 bottom-[var(--dock-bottom)] z-40 flex flex-col items-center gap-2">
-          {coarse ? <WalkStick out={stick} label={t.hud.walk} /> : <span className="rounded bg-background/70 px-2 py-0.5 text-[11px] text-foreground/80">{t.hud.walkHint}</span>}
+          {coarse ? <WalkStick out={stick} label={t.hud.walk} /> : <span className="rounded border border-wood/40 bg-card/95 px-2 py-0.5 text-[11px] text-foreground shadow-[var(--shadow-cozy)]">{t.hud.walkHint}</span>}
           <WoodButton label={t.hud.walkExit} onClick={() => { stick.current = { dx: 0, dy: 0 }; setWalk(false); }} className="pointer-events-auto h-11 gap-1.5 px-4">
             <X className="h-4 w-4" /><span className="text-xs">{t.hud.walkExit}</span>
           </WoodButton>
