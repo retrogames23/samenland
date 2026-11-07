@@ -38,6 +38,14 @@ export const ENCOUNTERS = {
   hutewald: { mast: { cost: 0, fx: { h: 168, food: 10 } }, wild: { cost: 0, fx: { h: 168, food: 4, health: 4 } } },
   backtag: { bake: { cost: 10, fx: { h: 168, health: 10, food: 4 } }, home: { cost: 0, fx: {} } },
   steg: { together: { cost: 0, fx: { h: 96, health: 8 } }, carpenter: { cost: 40, fx: { h: 96, wealth: 8 } } },
+  // village life around 1500 (commons.ts LIFE): disputes, common work and pastimes, same weekly slot
+  zaun: { buss: { cost: 0, fx: { h: 72, health: 6 } }, holz: { cost: 10, fx: { h: 96, food: 6, wealth: 4 } }, pfand: { cost: 0, fx: { h: 48, wealth: 3 } } },
+  flur: { schau: { cost: 0, fx: { h: 72, health: 6 } }, hilfe: { cost: 8, fx: { h: 96, food: 8 } } },
+  plaggen: { mass: { cost: 0, fx: { h: 168, food: 4, health: 4 } }, laub: { cost: 0, fx: { h: 120, food: 8 } } },
+  schelte: { widerruf: { cost: 0, fx: { h: 96, health: 8 } }, spende: { cost: 0, fx: { h: 96, health: 6, wealth: 2 } } },
+  scharwerk: { aufgebot: { cost: 0, fx: { h: 96, health: 6, food: 4 } }, dingen: { cost: 25, fx: { h: 168, food: 8, wealth: 4 } } },
+  pfingsten: { preis: { cost: 12, fx: { h: 72, health: 10, wealth: 3 } }, reigen: { cost: 0, fx: { h: 48, health: 6 } } },
+  lichtstube: { reigen: { cost: 0, fx: { h: 120, growth: 0.05, health: 4 } }, andacht: { cost: 0, fx: { h: 96, health: 5 } } },
   // historical news 1500/1501 (HISTORY below): dated, once per village, mirrored by DB encounter_guard
   werber: { fodder: { cost: 30, fx: { h: 120, health: 8 } }, quarter: { cost: 0, fx: { h: 72, wealth: 5 } } },
   weser: { carts: { cost: 0, fx: { h: 96, wealth: 5 } }, ransom: { cost: 40, fx: { h: 168, health: 10 } } },
@@ -50,7 +58,7 @@ export type EventKey = keyof typeof ENCOUNTERS;
  * "flood" is retired (kept for old decisions' boons): floods are a visible disaster in disasters.ts, never a text-only encounter.
  */
 /** Commons questions (commons.ts) share the encounter slot but are never drawn as visitors. */
-export const COMMONS_KEYS = ["hutewald", "backtag", "steg"] as const;
+export const COMMONS_KEYS = ["hutewald", "backtag", "steg", "zaun", "flur", "plaggen", "schelte", "scharwerk", "pfingsten", "lichtstube"] as const;
 /**
  * Historical news that reached a north German village 1500/1501, as real-calendar UTC windows
  * (game year = real year - YEAR_SHIFT, so 2026-11 is November 1500). Each comes once per village,
