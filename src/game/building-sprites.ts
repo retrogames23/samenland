@@ -360,6 +360,45 @@ export function spriteBox(kind: Kind, variant: number, style?: HouseStyle): { w:
   const [, , sw, sh] = styledOf(kind, style, variant)?.crop ?? sprite.crop, w = sprite.width * scaleOf(kind, variant);
   return { w, h: w * sh / sw, base: sprite.base };
 }
+/** Paintings that already carry painted ground (yard, paving, garden, stacks) — every other building gets a soft contact
+ * shadow derived from its own silhouette, so hard-cut plinths never float. Keys: kind, `<style>-<kind>`, `<style>-<kind>-<slot>`. */
+const GROUNDED = new Set(["campfire", "coop", "fence", "chapel", "barn", "villa", "tenement", "sawmill", "beginenhof", "stonemason", "saltquay", "herbhut", "woodcamp",
+  "infirmary", "firehouse", "guardhouse", "school", "university", "exchange", "lighthouse", "hay", "well", "market", "steinhaus", "watermill", "steamworks",
+  "workshop-cottage", "workshop-farmhouse", "workshop-villa", "workshop-steinhaus", "workshop-handwerker", "workshop-handwerker-2", "workshop-handwerker-3",
+  "gateway-cottage", "gateway-villa", "gateway-steinhaus", "gateway-handwerker", "gateway-handwerker-2", "gateway-handwerker-3", "gateway-farmhouse-3"]);
+const paintingKey = (kind: Kind, style: HouseStyle | undefined, variant: number) => {
+  const slot = (variants as Partial<Record<Kind, unknown>>)[kind] ? variantSlot(variant) : 0;
+  if (slot > 0) return `${style ?? "grain"}-${kind}-${slot + 1}`;
+  return style && STYLE_OF[kind] ? `${style}-${kind}` : kind;
+};
+export const needsGroundShadow = (kind: Kind, style: HouseStyle | undefined, variant: number) => !GROUNDED.has(paintingKey(kind, style, variant));
+const shadows = new WeakMap<HTMLImageElement, HTMLCanvasElement | null>();
+/** Blurred dark copy of the painting's lowest band (its footing), cached per image. */
+function shadowOf(im: HTMLImageElement): HTMLCanvasElement | null {
+  if (shadows.has(im)) return shadows.get(im)!;
+  let cv: HTMLCanvasElement | null = null;
+  if (typeof document !== "undefined") {
+    const W = im.naturalWidth, H = im.naturalHeight, pad = 24, band = Math.round(H * 0.3);
+    cv = document.createElement("canvas"); cv.width = W + pad * 2; cv.height = band + pad * 2;
+    const g = cv.getContext("2d");
+    if (g) {
+      const tmp = document.createElement("canvas"); tmp.width = W; tmp.height = band; const t = tmp.getContext("2d")!;
+      t.drawImage(im, 0, H - band, W, band, 0, 0, W, band);
+      t.globalCompositeOperation = "source-in"; t.fillStyle = "rgb(28,24,14)"; t.fillRect(0, 0, W, band);
+      // fade upwards: only the footing casts the shadow
+      t.globalCompositeOperation = "destination-in"; const fade = t.createLinearGradient(0, 0, 0, band); fade.addColorStop(0, "rgba(0,0,0,0)"); fade.addColorStop(1, "rgba(0,0,0,1)"); t.fillStyle = fade; t.fillRect(0, 0, W, band);
+      g.filter = "blur(9px)"; g.drawImage(tmp, pad, pad); g.filter = "blur(4px)"; g.drawImage(tmp, pad, pad);
+    } else cv = null;
+  }
+  shadows.set(im, cv); return cv;
+}
+function drawGroundShadow(c: CanvasRenderingContext2D, im: HTMLImageElement, left: number, top: number, width: number, height: number) {
+  const sh = shadowOf(im); if (!sh) return;
+  const k = width / im.naturalWidth, band = height * 0.3, a = c.globalAlpha;
+  c.globalAlpha = a * 0.55;
+  c.drawImage(sh, left - 24 * k + width * 0.012, top + height - band - 24 * k + height * 0.012, sh.width * k, sh.height * k);
+  c.globalAlpha = a;
+}
 /** `reveal` < 1 draws only the lower part of the building (walls rising on a construction site). */
 export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, reveal = 1, flip = false, style?: HouseStyle): boolean {
   const sprite = sprites[kind];
@@ -379,6 +418,7 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   // fast path (most houses): unmirrored, finished, no moving parts — one drawImage, no save()/restore()
   if (reveal >= 1 && !flip && kind !== "mill" && kind !== "watermill" && kind !== "campfire") {
     if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
+    if (c.globalCompositeOperation === "source-over" && needsGroundShadow(kind, style, variant)) drawGroundShadow(c, image, x - width / 2, y + sprite.base - height, width, height);
     c.drawImage(seasonalImage(image), x - width / 2, y + sprite.base - height, width, height);
     return true;
   }
@@ -388,6 +428,7 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   if (reveal < 1) { const top = y + sprite.base - height * reveal; c.beginPath(); c.rect(x - width, top, width * 2, height * 2); c.clip(); }
   const left = x - width / 2, top = y + sprite.base - height;
   if (flip) { c.translate(x * 2, 0); c.scale(-1, 1); }
+  if (reveal >= 1 && c.globalCompositeOperation === "source-over" && needsGroundShadow(kind, style, variant)) drawGroundShadow(c, image, left, top, width, height);
   c.drawImage(seasonalImage(image), left, top, width, height);
   // moving parts are drawn inside the same (possibly mirrored) frame, so mirrored mills keep turning
   if (reveal >= 1) animate(c, kind, left, top, width / sw, x * 7 + y * 13);
