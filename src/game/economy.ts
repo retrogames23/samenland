@@ -292,8 +292,8 @@ export function rankBoons(s: Seed, purchases: { seed_id: string; item: string }[
 export const TITLE_PRICE = { title1: 500, title2: 1200, title3: 2500 } as const;
 export type TitleStep = keyof typeof TITLE_PRICE;
 export const TITLE_STEPS: TitleStep[] = ["title1", "title2", "title3"];
-/** Real age (hours) before each appointment: Kleinstadt, Handelsstadt, Hansestadt. */
-export const TITLE_HOURS = { title1: 2160, title2: 4380, title3: 8760 } as const;
+/** Settlement rank (townRank) each appointment needs: Kleinstadt, Handelsstadt, Hansestadt — mirrors DB purchase_guard need_rank. */
+export const TITLE_STAGE = { title1: 3, title2: 4, title3: 5 } as const;
 /** Guild rank required for each appointment (journeyman, master, master). */
 export const TITLE_RANK = { title1: 2, title2: 3, title3: 3 } as const;
 /** Current title 0 (none) … 3, derived from purchase rows. */
@@ -303,12 +303,12 @@ export const titleOf = (s: Seed, purchases: { seed_id: string; item: string }[])
 };
 export const titleOfSeed = (s: Seed) => titleOf(s, (s.bought ?? []).map((b) => ({ seed_id: s.id, item: b.item })));
 /** Why the next appointment is not open yet, or null when it may be paid. */
-export function titleBlock(s: Seed, purchases: { seed_id: string; item: string }[], now: number): null | "charter" | "age" | "rank" | "max" {
+export function titleBlock(s: Seed, purchases: { seed_id: string; item: string }[], townRank: number): null | "charter" | "age" | "rank" | "max" {
   if (!s.charter) return "charter";
   const n = titleOf(s, purchases);
   if (n === 3) return "max";
   const step = TITLE_STEPS[n]!;
-  if ((now - Date.parse(s.created_at)) / 3.6e6 < TITLE_HOURS[step]) return "age";
+  if (townRank < TITLE_STAGE[step]) return "age";
   return rankOf(s, purchases) >= TITLE_RANK[step] ? null : "rank";
 }
 /** Attribute bonuses per path for each title — derived, never stored. */
