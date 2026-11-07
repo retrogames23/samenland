@@ -29,6 +29,10 @@ export interface FigureConfig {
   /** "legs" = breeches on the shared leg cycle; "robe" = floor-length garment, stepping shoes + swaying hem;
    * "mantle" = cape over the shoulders: lower coat hangs behind the striding legs, swinging as one piece. */
   style: "legs" | "robe" | "mantle";
+  /** Leg colour variant matching the outfit (default: brown breeches). */
+  legs?: "m" | "grey" | "dark" | "linen" | "red";
+  /** Sprite parts below the hem drawn over the legs: [x0, x1, yEnd] as fractions (halberd shaft, jug, hanging hand). */
+  keep?: [number, number, number][];
 }
 
 export const fig = (hipX: number, hemY: number, o: Partial<FigureConfig> = {}): FigureConfig =>
@@ -160,6 +164,9 @@ export function drawLegged(
     c.drawImage(im, sx, sh * a, sw, sh * (b - a), x0, y0 + h * a, w, h * (b - a) + 0.01);
   }
   c.globalAlpha = a0;
+  // carried things and hands reaching below the hem stay whole instead of being cut at the hip
+  for (const [k0, k1, k2] of g.keep ?? []) if (k2 > top)
+    c.drawImage(im, sx + sw * k0, sh * top, sw * (k1 - k0), sh * (k2 - top), x0 + w * k0, y0 + h * top, w * (k1 - k0), h * (k2 - top));
 }
 
 /** Floor-length garment walking: two shoes step out, the lower garment sways in strips; the sprite's own feet are cut. */
