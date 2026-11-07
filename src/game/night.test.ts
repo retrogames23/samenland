@@ -28,3 +28,10 @@ describe("household lighting", () => {
     }
   });
 });
+
+describe("lighting around 1500", () => {
+  const share = (k: string, h: number) => Array.from({ length: 1000 }, (_, s) => houseLit(k, s, h, 7, 17)).filter(Boolean).length / 1000;
+  it("lights at most 40% of plain cottages in the evening", () => expect(share("cottage", 19.5)).toBeLessThanOrEqual(0.4));
+  it("puts plain cottages to bed before 22:00", () => expect(share("cottage", 21.6)).toBe(0));
+  it("keeps the inn lit longest", () => expect(share("inn", 23)).toBe(1));
+});

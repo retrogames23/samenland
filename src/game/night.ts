@@ -19,7 +19,7 @@ export function houseLit(kind: string, seed: number, hour: number, rise = 7.2, s
     : simple ? 2 + a * 1.5          // in bed by about 20–21:30
     : rich ? 3.5 + a * 1.5          // candles until 21:30–23
     : 3 + a * 2.5;
-  const skip = simple ? 0.45 : rich ? 0.85 : 0.75;
+  const skip = simple ? 0.35 : rich ? 0.85 : 0.75;
   if (kind !== "inn" && a > skip) return false;
   return (hour >= 12 ? hour - 18 : evening) >= on && evening < off;
 }
