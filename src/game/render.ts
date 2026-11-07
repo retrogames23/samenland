@@ -1350,10 +1350,14 @@ const lanternFolk = new Set<number>();
 function drawHandLantern(c: C, X: number, Y: number, q: Pose, t: number) {
   const im = folkImage("hornLantern"); if (!im) return;
   const f = q.dir[0] - q.dir[1] >= 0 ? 1 : -1;
-  const hx = X + f * 1.1, hy = Y - 2.36; // the hand, by the hip on the forward side
+  // the hand by the hip on the forward side, riding the same stride bob as the body
+  const bob = q.walking ? Math.abs(Math.sin(q.phase + hash(q.p.id, 77, 5) * 6.2832)) * 0.07 : 0;
+  const hx = X + f * 0.72, hy = Y - 2.3 - bob;
   const sw = Math.sin(q.phase * 2 + q.p.id) * (q.walking ? 0.12 : 0.03);
   const h = 0.8, w = (im.naturalWidth / im.naturalHeight) * h;
   c.save(); c.translate(hx, hy); c.rotate(sw);
+  // short bail from fist to lantern ring, so it visibly hangs from the hand
+  c.strokeStyle = "rgba(40,30,20,0.85)"; c.lineWidth = 0.09; c.beginPath(); c.moveTo(0, -0.12); c.lineTo(0, 0.02); c.stroke();
   c.globalAlpha = 0.9 + Math.sin(t / 90 + q.p.id) * 0.1; // candle flicker
   c.drawImage(im, -w / 2, -0.05, w, h);
   c.restore();
@@ -2726,6 +2730,8 @@ function labEntries(): LabEntry[] {
   const ADULT: LabSit[] = ["stand", "walk", "work", "carry", "bucket", "lantern", "rain", "storm", "snow"];
   const PLAIN: LabSit[] = ["stand", "walk", "carry", "bucket", "lantern", "rain", "storm", "snow"];
   const KID: LabSit[] = ["stand", "walk", "rain", "snow"];
+  // clergy, elders and the well-to-do never haul sacks or join the bucket chain in the game
+  const GENTLE: LabSit[] = ["stand", "walk", "lantern", "rain", "storm", "snow"];
   // mayors: every age cohort, standing, walking, at office talk, at night, in the rain
   for (const sex of ["m", "f"] as const) for (const age of [20, 30, 40, 50, 60, 70])
     person(`Schulze${sex === "f" ? "in" : ""} ${age}`, "mayor", "mayor", sex, age, ["stand", "walk", "work", "lantern", "rain", "snow"]);
@@ -2883,10 +2889,13 @@ function drawSignpost(c: C, cx: number, cy: number, sd: number) {
 
 /** Wooden pail in a fire helper's hand; while standing at the blaze, water arcs toward the flames. */
 function drawBucket(c: C, x: number, y: number, q: Pose, t: number) {
-  const sx = q.dir[0] - q.dir[1], f = sx >= 0 ? 1 : -1, bx = x + f * 2.3, by = y - 2.6;
+  // a real pail (~30 cm) hanging from the hand at the hip, bobbing with the stride
+  const sx = q.dir[0] - q.dir[1], f = sx >= 0 ? 1 : -1, bob = q.walking ? Math.abs(Math.sin(q.phase + hash(q.p.id, 77, 5) * 6.2832)) * 0.07 : 0;
+  const sw = q.walking ? Math.sin(q.phase * 2 + q.p.id) * 0.08 : 0;
+  const bx = x + f * 0.75 + sw, by = y - 2.0 - bob;
   c.save();
   const im = folkImage("loadBucket");
-  if (im) { const bw = 2.3, bh = (bw * im.naturalHeight) / im.naturalWidth; c.drawImage(im, bx - bw / 2, by + 0.7 - bh, bw, bh); }
+  if (im) { const bw = 0.95, bh = (bw * im.naturalHeight) / im.naturalWidth; c.drawImage(im, bx - bw / 2, by + 0.7 - bh, bw, bh); }
   if (!q.walking) {
     const u = ((t / 840 + q.p.id * 0.37) % 1);
     if (u < 0.35) {
@@ -3336,7 +3345,7 @@ export function draw(
       // only night walkers on far paths (and the strolling mayor) carry a visible hand lantern; the light comes from it
       if (darkOut && q.walking && !q.mounted && q.p.age >= 14 && (Math.hypot(q.x - sd.x, q.y - sd.y) > r0 * 0.8 || (steer && q.p.role === "mayor" && q.act === "stroll"))) {
         lanternFolk.add(q.p.id * 7919 + sd.id.length);
-        const [lx, ly] = iso(q.x, q.y); L.push({ x: lx + ((q.dir[0] - q.dir[1]) >= 0 ? 1.1 : -1.1), y: ly - 1.9, r: 4 });
+        const [lx, ly] = iso(q.x, q.y); L.push({ x: lx + ((q.dir[0] - q.dir[1]) >= 0 ? 0.72 : -0.72), y: ly - 1.9, r: 4 });
       }
       if (!folk.has(k)) folk.set(k, []);
       folk.get(k)!.push(q);
