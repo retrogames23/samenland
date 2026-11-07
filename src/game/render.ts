@@ -38,7 +38,7 @@ import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
 import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
-import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose } from "./people";
+import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { folkImage, walkSheet, walkFramesOf, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
@@ -2715,7 +2715,7 @@ function labEntries(): LabEntry[] {
         night: sit === "lantern", wx: sit === "rain" ? "drizzle" : sit === "storm" ? "storm" : sit === "snow" ? "snow" : undefined,
         cfg: walking && sit !== "carry" ? (robe ? fig(ROBE_HIP[k] ?? 0.5, 0.8, { style: "robe" }) : HIPS[k] ?? null) : null,
         draw: (c, _h, ph, now) => {
-          const q = pose(ph); c.setTransform(c.getTransform());
+          const q = pose(ph);
           if (!drawFolk(c, 0, 0, q, now)) return null;
           if (q.bucket) drawBucket(c, 0, 0, q, now);
           if (sit === "lantern") drawHandLantern(c, 0, 0, q, now);
