@@ -82,18 +82,18 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
   };
   const local = (e: { clientX: number; clientY: number }) => { const r = big.current!.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
 
-  const btn = "rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-muted";
+  const btn = "rounded-md border border-border bg-card px-2 py-1 text-xs text-card-foreground hover:border-primary";
   const on = "bg-primary text-primary-foreground border-primary hover:bg-primary";
   const cur = sel != null ? all[sel] : null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-card text-foreground" dir="ltr">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-card text-card-foreground" dir="ltr">
       <header className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-3 text-card-foreground py-2 text-xs">
         <b className="me-2 text-sm">Figurenkabinett</b>
         {sel == null && CATS.map((c) => (
           <button key={c.k} className={`${btn} ${cat === c.k ? on : ""}`} onClick={() => setCat(c.k)}>{c.label}</button>
         ))}
-        {sel == null && <input className="w-36 rounded-md border border-border bg-background px-2 py-1 text-foreground" placeholder="Suchen…" value={q} onChange={(e) => setQ(e.target.value)} />}
+        {sel == null && <input className="w-36 rounded-md border border-border bg-card px-2 py-1 text-card-foreground" placeholder="Suchen…" value={q} onChange={(e) => setQ(e.target.value)} />}
         {sel != null && <>
           <button className={btn} onClick={() => open(null)}>← Übersicht</button>
           <button className={btn} onClick={() => step(-1)}>‹</button>
@@ -117,18 +117,18 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
         <div className="flex-1 overflow-y-auto p-3">
           <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${card}px, 1fr))` }}>
             {list.map((e) => (
-              <button key={e.i} onClick={() => open(e.i)} className="flex flex-col overflow-hidden rounded-lg border border-border bg-background text-start hover:border-primary hover:shadow-md">
-                <canvas ref={(el) => { if (el) cards.current.set(e.i, el); else cards.current.delete(e.i); }} className="w-full bg-muted/40" style={{ height: card * 1.2 }} />
+              <button key={e.i} onClick={() => open(e.i)} className="flex flex-col overflow-hidden rounded-lg border border-border bg-card text-start hover:border-primary hover:shadow-md">
+                <canvas ref={(el) => { if (el) cards.current.set(e.i, el); else cards.current.delete(e.i); }} className="w-full bg-card" style={{ height: card * 1.2 }} />
                 <span className="truncate px-2 py-1 text-xs">{e.label}</span>
               </button>
             ))}
-            {!list.length && <p className="text-sm text-muted-foreground">Keine Figur gefunden.</p>}
+            {!list.length && <p className="text-sm text-card-foreground">Keine Figur gefunden.</p>}
           </div>
         </div>
       ) : (
         <div className="relative flex-1">
           <canvas
-            ref={big} className="h-full w-full cursor-grab touch-none bg-muted/40 active:cursor-grabbing"
+            ref={big} className="h-full w-full cursor-grab touch-none bg-card active:cursor-grabbing"
             onWheel={(e) => { const p = local(e); zoomAt(p.x, p.y, Math.exp(-e.deltaY * 0.0015)); }}
             onDoubleClick={() => { view.current.z = 0; }}
             onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pts.current.set(e.pointerId, local(e)); }}
@@ -143,7 +143,7 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
               m.set(e.pointerId, p);
             }}
           />
-          <p className="pointer-events-none absolute bottom-2 start-3 rounded bg-background/85 px-2 py-1 text-[11px] text-muted-foreground">
+          <p className="pointer-events-none absolute bottom-2 start-3 rounded bg-card/90 px-2 py-1 text-[11px] text-card-foreground">
             Mausrad / zwei Finger: zoomen · Ziehen: verschieben · Doppelklick: einpassen · ← →: nächste Figur · Leertaste: Pause · Esc: zurück
             {lines && " · rot Hüfte, grün Saum, gestrichelt Boden"}
           </p>
