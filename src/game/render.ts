@@ -2809,6 +2809,14 @@ function labEntries(): LabEntry[] {
   person("Fuhrmann", "folk", "carter", "m", 42, ADULT);
   person("Wächter", "folk", "watchman", "m", 38, ADULT);
   person("Sackträger", "folk", "carter", "m", 30, ["carry"]);
+  person("Bäcker", "folk", "baker", "m", 38, ADULT);
+  person("Müller", "folk", "miller", "m", 44, ADULT);
+  person("Wirt", "folk", "innkeeper", "m", 40, ADULT);
+  person("Sägemüller", "folk", "sawyer", "m", 36, ADULT);
+  person("Tagelöhner", "folk", "worker", "m", 28, ADULT);
+  person("Schulmeister", "folk", "teacher", "m", 45, PLAIN);
+  person("Brandmeister", "folk", "firewarden", "m", 42, ADULT);
+  person("Jäger (im Ort)", "folk", "hunter", "m", 36, PLAIN);
   person("Ältester", "folk", "retired", "m", 70, GENTLE);
   person("Bräutigam", "folk", "crafter", "m", 24, ["stand", "walk"], { festive: "groom" });
   out.push({ label: "Räuber · Schleichen", row: "Räuber", sit: "Schleichen", cat: "folk", h: 4.4, w: 3.6, cfg: HIPS.robber ?? null, draw: (c, _h, _ph, now) => { drawRobber(c, 0, 0, false, now); return 3.6; } });
@@ -2823,6 +2831,10 @@ function labEntries(): LabEntry[] {
   person("Fischerin", "robe", "fisher", "f", 35, ADULT);
   person("Heilerin", "robe", "healer", "f", 50, ADULT);
   person("Händlerin", "robe", "merchant", "f", 40, ADULT);
+  person("Bäckerin", "robe", "baker", "f", 36, ADULT);
+  person("Wirtin", "robe", "innkeeper", "f", 40, ADULT);
+  person("Kräuterfrau", "robe", "herbalist", "f", 48, ADULT);
+  person("Magd", "robe", "worker", "f", 24, ADULT);
   person("Großmutter", "robe", "homemaker", "f", 70, GENTLE);
   person("Priester", "robe", "priest", "m", 50, GENTLE);
   person("Braut", "robe", "homemaker", "f", 22, ["stand", "walk"], { festive: "bride" });
@@ -2883,9 +2895,9 @@ function labEntries(): LabEntry[] {
   );
   // poultry and birds of the open map
   out.push(
-    A("Hühner", "Scharren", 2.4, 18, () => drawHens(c0(), 0, -5, 7)),
-    A("Krähe", "Fliegt", 6, 30, () => drawBird(c0(), 0, -20, false, 3)),
-    A("Möwe", "Fliegt", 6, 30, () => drawBird(c0(), 0, -20, true, 5)),
+    A("Hühner", "Scharren", 2.4, 18, (c) => drawHens(c, 0, -5, 7)),
+    A("Krähe", "Fliegt", 6, 30, (c) => drawBird(c, 0, -20, false, 3)),
+    A("Möwe", "Fliegt", 6, 30, (c) => drawBird(c, 0, -20, true, 5)),
   );
   // feast figures, through the same draw paths as on feast days
   const F = (row: string, sit: string, h: number, w: number, draw: (c: C, ph: number, now: number) => unknown): LabEntry =>
