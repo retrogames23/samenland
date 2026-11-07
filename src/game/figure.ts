@@ -155,14 +155,12 @@ export function drawRobeWalk(
   c: C, im: CanvasImageSource, sx: number, sw: number, sh: number, foot: HTMLImageElement | null,
   w: number, h: number, ph: number, top = 0.8, end = 0.93, dy = 0, swing = 0.035,
 ) {
-  end = hemEnd(im, sx, sw, sh, end); top = Math.min(top, end - 0.04);
-  const sway = Math.sin(ph), fs = h * 0.11, fw2 = foot ? (fs * foot.naturalWidth) / foot.naturalHeight : 0;
-  if (foot) for (const sd of [-1, 1]) {
-    const lift = Math.max(0, Math.cos(ph) * sd) * h * 0.025;
-    c.drawImage(foot, sd * sway * w * 0.16 - fw2 * 0.45, dy - fs - lift + h * 0.02, fw2, fs);
-  }
+  // the painted gown is kept whole down to its own shoes: cutting it and stamping extra shoes underneath
+  // left a severed hem with floating feet; the walk is shown by the swaying lower garment alone
+  void foot; void end; end = 1; top = Math.min(top, 0.8);
+  const sway = Math.sin(ph);
   c.drawImage(im, sx, 0, sw, sh * top, -w / 2, -h + dy, w, h * top);
-  const N = 4;
+  const N = 6;
   for (let i = 0; i < N; i++) {
     const a = top + ((end - top) * i) / N, b = top + ((end - top) * (i + 1)) / N, dx = sway * w * swing * ((i + 1) / N);
     c.drawImage(im, sx, sh * a, sw, sh * (b - a) + 0.5, -w / 2 + dx, -h + h * a + dy, w, h * (b - a) + 0.05);
