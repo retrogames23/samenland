@@ -332,7 +332,7 @@ export const fr: Dict = {
     gate: (a, b) => `Porte communale entre ${a} et ${b}`,
   },
   hud: { walk: "Promenade", walkExit: "Terminer la promenade", walkHome: "Rentrer au village", walkHint: "ZQSD/flèches ou touchez le sol · Échap pour quitter", build: "Bâtir", rituals: "Soins", signs: "Pancartes", towns: "Villages", plant: "Semer", settings: "Réglages", menu: "Menu", zoomIn: "Zoom avant", zoomOut: "Zoom arrière", close: "Fermer", noTown: "Semez d'abord votre graine.", login: "Connectez-vous pour fonder un village.", language: "Langue", realm: "Carte (admin)" },
-  realms: { "us-west": "Amérique de l'Ouest", "us-east": "Amérique de l'Est", europe: "Europe", asia: "Asie-Pacifique", lab: "Carte d'essai" },
+  realms: { "us-west": "Amérique de l'Ouest", "us-east": "Amérique de l'Est", europe: "Europe", "europe-2": "Europe II", asia: "Asie-Pacifique", lab: "Carte d'essai" },
   lab: { title: (k: number) => (k > 1 ? `Accéléré ${k}× · sauter vers` : "Temps normal · sauter vers"), note: "Réservé aux administrateurs. Le saut se compte depuis l'aube de la carte d'essai." },
   perDay: (n: number) => `+${n}/jour`,
   people: (n: number) => `${n} habitants`,
