@@ -1319,24 +1319,26 @@ export function Game() {
   };
   const sealRoad = async () => {
     if (!my || !userId || !roadPick) return;
+    bell(0); setRoadOpen(false);
     const { data, error } = await supabase.from("first_roads").insert({ seed_id: my.id, user_id: userId, target_id: roadPick }).select("id, seed_id, target_id, created_at").single();
     if (error || !data) return setMsg(error?.message?.includes("under construction") ? t.road.busyFail : t.road.fail);
     setFirstRoads((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
-    bell(0); setRoadOpen(false); setMsg(t.road.sealed(seeds.find((s) => s.id === roadPick)?.name ?? ""));
+    setMsg(t.road.sealed(seeds.find((s) => s.id === roadPick)?.name ?? ""));
   };
   const decide = async (event: string, choice: string) => {
     if (!my || !userId) return;
+    // instant feedback: bell and close at once; the server confirms (or we reopen on a money refusal)
+    bell(0); setEncOpen(false);
     // book outstanding tax first, but let the server guard judge the price — free choices must never be blocked here
     await refreshTreasury().catch(() => false);
     const { data, error } = await supabase.from("encounters").insert({ seed_id: my.id, user_id: userId, event, choice }).select("id, seed_id, event, choice, cost, created_at").single();
     if (error || !data) {
       // already answered elsewhere: reload instead of leaving a stale question open
       supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").then(({ data: rows }) => { if (rows) setEncounters(rows); });
-      if (!error?.message?.includes("not enough money")) setEncOpen(false);
+      if (error?.message?.includes("not enough money")) setEncOpen(true);
       return setMsg(error?.message?.includes("not enough money") ? t.poor : t.enc.fail);
     }
     setEncounters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
-    bell(0); setEncOpen(false);
     if (event === "nursery" && choice !== "pass") { setMode("sapling"); setMsg(t.sapling.hint); } else setMsg(t.enc.done);
   };
   const twinsOfMine = my ? twinLinks(my, seeds, clock()).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
@@ -1783,13 +1785,13 @@ export function Game() {
   };
   const claimQuest = async () => {
     if (!my || !userId || !quest?.ready) return;
+    setQuestOpen(false); jingle("fanfare");
     const { data, error } = await supabase.from("quest_claims").insert({ seed_id: my.id, user_id: userId, quest: quest.quest }).select("id, seed_id, quest, reward, created_at").single();
-    setQuestOpen(false);
     if (error || !data) return setMsg(t.quests.fail);
     setClaims((c) => [...c, data]);
     // show the reward in the chest at once; the next treasury refresh reconciles with the server
     setAccounting((a) => (a && a.seed === my.id && a.active ? { ...a, balance: a.balance + data.reward } : a));
-    jingle("fanfare"); setTimeout(() => jingle("coins"), 700); setMsg(t.quests.got(data.reward));
+    jingle("coins"); setMsg(t.quests.got(data.reward));
   };
   const sendLetter = async () => {
     if (!my || !postTo) return;
@@ -1811,19 +1813,20 @@ export function Game() {
   };
   const ring = async (kind: "bell" | "well") => {
     if (!my) return;
+    if (kind === "bell") bell(); else tap();
     const { data, error } = await supabase.from("blessings").insert({ seed_id: my.id, user_id: userId!, kind }).select("id, seed_id, created_at").single();
     if (error || !data) return setMsg(t.blessFail);
     setBlessings((s) => [...s, data]);
-    if (kind === "bell") bell(); else tap();
     setMsg(t.blessed(my.name));
   };
   const sendGift = async (to: Seed, kind: GiftKind, note = 0) => {
     if (!my || !userId) return;
+    tap();
     if (!await prepareSpend()) return;
     const { data, error } = await supabase.from("gifts").insert({ from_seed: my.id, to_seed: to.id, user_id: userId, kind, note }).select("id, from_seed, to_seed, kind, amount, note, created_at").single();
     if (error || !data) return setMsg(t.gifts.fail);
     setGifts((q) => (q.some((x) => x.id === data.id) ? q : [...q, data as Gift]));
-    tap(); setMsg(kind === "thanks" ? t.gifts.thanked(to.name) : t.gifts.sent(to.name));
+    setMsg(kind === "thanks" ? t.gifts.thanked(to.name) : t.gifts.sent(to.name));
   };
   const saveSign = async (to: Seed) => {
     if (!my) return;
