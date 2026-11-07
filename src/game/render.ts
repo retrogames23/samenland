@@ -69,6 +69,7 @@ import fountainU from "@/assets/sprites/court/fountain.webp";
 import pavilionU from "@/assets/sprites/court/pavilion.webp";
 import princeU from "@/assets/sprites/court/prince.webp";
 import princessU from "@/assets/sprites/court/princess.webp";
+import princeStandU from "@/assets/sprites/court/prince-stand.webp";
 import heraldU from "@/assets/sprites/court/herald.webp";
 import guardU from "@/assets/sprites/court/guard.webp";
 import gardenerU from "@/assets/sprites/court/gardener.webp";
@@ -2663,10 +2664,16 @@ function drawCourtFigure(c: C, q: CourtPose, t: number) {
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   if (!q.walking) {
     const br = Math.sin(t / 2100 + q.x * 5); c.transform(1 - br * 0.004, 0, 0, 1 + br * 0.012, 0, 0);
-    c.drawImage(im, -w * (q.role === "prince" ? g0.hipX : 0.5), -h, w, h); c.restore(); return;
+    drawCourtStand(c, q.role, im, h, g0); c.restore(); return;
   }
   drawCourtWalk(c, im, q.role, w, h, ph);
   c.restore();
+}
+/** Standing court figure; the prince has his own dignified standing sprite (feet together, hands folded). */
+function drawCourtStand(c: C, role: CourtRole, walkIm: HTMLImageElement, h: number, g: FigureConfig): number {
+  const st = role === "prince" ? huntIm("courtfig-prince-stand", princeStandU) : null;
+  if (st) { const w = (h * 1.04 * st.naturalWidth) / st.naturalHeight; c.drawImage(st, -w * 0.5, -h * 1.04, w, h * 1.04); return w; }
+  const w = (h * walkIm.naturalWidth) / walkIm.naturalHeight; c.drawImage(walkIm, -w * (role === "prince" ? g.hipX : 0.5), -h, w, h); return w;
 }
 function drawCourtWalk(c: C, im: HTMLImageElement, role: CourtRole, w: number, h: number, ph: number) {
   const g = COURT_GAIT[role], nw = im.naturalWidth, nh = im.naturalHeight;
@@ -2777,8 +2784,8 @@ function labEntries(): LabEntry[] {
     const im = () => huntIm(`courtfig-${r}`, COURT_FIG[r]), h = courtHeight(r);
     out.push(
       { label: `${COURT_NAME[r]} · Stehen`, row: COURT_NAME[r], sit: "Stehen", cat: "court", h, cfg: null, draw: (c, _h, _ph, now) => { const i = im(); if (!i) return null;
-        const w = (h * i.naturalWidth) / i.naturalHeight, br = Math.sin(now / 2100); c.transform(1 - br * 0.004, 0, 0, 1 + br * 0.012, 0, 0);
-        c.drawImage(i, -w * (r === "prince" ? COURT_GAIT[r].hipX : 0.5), -h, w, h); return w; } },
+        const br = Math.sin(now / 2100); c.transform(1 - br * 0.004, 0, 0, 1 + br * 0.012, 0, 0);
+        return drawCourtStand(c, r, i, h, COURT_GAIT[r]); } },
       { label: `${COURT_NAME[r]} · Gehen`, row: COURT_NAME[r], sit: "Gehen", cat: "court", h, cfg: COURT_GAIT[r], draw: (c, _h, ph) => { const i = im(); if (!i) return null;
         const w = (h * i.naturalWidth) / i.naturalHeight; drawCourtWalk(c, i, r, w, h, ph); return w; } },
     );
@@ -2788,6 +2795,10 @@ function labEntries(): LabEntry[] {
     label: `Fürstlicher Bote · ${sit}`, row: "Fürstlicher Bote", sit, cat: "court", h: 12, w: 9, night, cfg: null,
     draw: (c, _h, ph, now) => { drawHerald(c, 0, 0, dx, dy, walk ? (ph / 6.2832) * 4 : null, walk ? 1 : 0, now, waiting, night, 3); return 9; } });
   out.push(HB("Trab", 1, 0.3, true, false, false), HB("Wartet mit Erlass", 1, 0.3, false, true, false), HB("Nacht · Laterne", 1, 0.3, true, false, true), HB("Reitet fort", 1, -1, true, false, false));
+  // the knighted mayor on his riding horse (own strolling mayor after princely_knight), through the same drawRider path
+  for (const [sit, dx, dy, walk] of [["Steht", 1, 0.3, false], ["Reitet", 1, 0.3, true], ["Reitet fort", 1, -1, true]] as const)
+    out.push({ label: `Ritterschulze · ${sit}`, row: "Ritterschulze", sit, cat: "mayor", h: 11, w: 9, cfg: null,
+      draw: (c, _h, ph) => { drawRider(c, 0, 0, dx, dy, 0, walk ? (ph / 6.2832) * 4 * RIDER_MS : 0); return 9; } });
   // animals, hunters and riders: real game draw calls at the origin; ph (radians) is turned into the distance / clock each one steps by
   const A = (row: string, sit: string, h: number, w: number, draw: (c: C, ph: number, now: number) => unknown): LabEntry =>
     ({ label: `${row} · ${sit}`, row, sit, cat: "animal", h, w, cfg: null, draw: (c, _h, ph, now) => (draw(c, ph, now) === false ? null : w) });
