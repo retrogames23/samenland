@@ -16,7 +16,7 @@ export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T
   const big = roll.total > 300;
   const jobs = useMemo(() => [...new Set(roll.households.flatMap((h) => h.people.map((p) => p.job)))].sort(), [roll]);
   const by = useMemo(() => new Map(town.people.map((p) => [p.id, p])), [town]);
-  const jobName = (p: Person) => p.job === "mayor" && p.seed?.mayor_gender === "d" ? MAYOR[lang].d : t.job[p.job]?.[p.sex === "f" ? 0 : 1] ?? p.job;
+  const jobName = (p: Person) => p.job === "mayor" && p.seed?.mayor_gender === "d" ? t.gender.d : t.job[p.job]?.[p.sex === "f" ? 0 : 1] ?? p.job;
   const kin = (p: Person) => {
     const sp = p.spouse != null ? by.get(p.spouse) : undefined;
     const base = p.role === "spouse" || (sp && p.role !== "head") ? t.roll.spouse(p.sex, sp?.first ?? "") : p.role ? t.roll.role[p.role]?.[p.sex === "f" ? 0 : 1] ?? "" : "";
