@@ -2,7 +2,7 @@ import type { Lang } from "../i18n";
 import { TOWN_CHARACTER } from "./character";
 import { TOWN_DEVELOPMENT } from "./development";
 import { TOWN_WAYS } from "./ways";
-import { BOOK_EXTRA } from "./book-extra";
+import { BOOK_EXTRA, BOOK_COMMUNITY } from "./book-extra";
 
 /** Two-part guide: the one-time founding letter and the detailed "Book of the town". */
 export type Book = {
@@ -251,7 +251,7 @@ const es: Book = {
       ["Mercancías y lana", "Lo que tu región produce en abundancia se exporta: lana de las llanuras, piedra y mineral de las montañas, madera de los bosques, pescado y sal de la costa. Cuando bienes distintos se encuentran en los caminos, una sinergia duradera da a ambos pueblos crecimiento extra."],
     ]],
     ["Prosperidad, estamentos e impuestos", [
-      ["Tres estamentos", "Cada hogar pertenece a un estamento: la gente sencilla paga un tálero de impuesto al día, los artesanos cualificados dos y los ciudadanos acomodados tres. Una aldea pobre es casi solo gente sencilla; una ciudad próspera del mismo tamaño recauda casi el doble por cabeza."],
+      ["Tres estamentos", "Cada hogar pertenece a un estamento: la gente sencilla paga un marco de impuesto al día, los artesanos cualificados dos y los ciudadanos acomodados tres. Una aldea pobre es casi solo gente sencilla; una ciudad próspera del mismo tamaño recauda casi el doble por cabeza."],
       ["Aumentar la prosperidad", "La prosperidad nace de inversiones duraderas: caminos terminados, educación y edificios cívicos como escuela, casa gremial, lonja y biblioteca, y espléndidos monumentos. Poco a poco ascienden más hogares. Los graneros llenos alimentan y dan salud, pero no hacen ascender a nadie de forma duradera."],
       ["Ascenso visible", "Ves el ascenso en la ciudad: las chozas se vuelven casas de entramado y de artesanos, y estas, mansiones patricias. Toca a un vecino o una casa para ver su estamento, oficio e impuesto diario."],
       ["Para qué sirven los marcos", "Con impuestos, dotes y regalos financias oficios, edificios cívicos, monumentos y defensas, que a su vez aumentan la prosperidad."],
@@ -540,5 +540,6 @@ for (const lang of Object.keys(BOOK) as Lang[]) {
     ...(["grain", "workshop", "gateway"] as const).map((way): [string, string] => [character.names[way], `${development.food[way]} ${development.homes[way]} ${development.boon[way]} ${ways.build[way]}`]),
     ways.trade,
   ]]);
+  BOOK[lang].chapters.push(BOOK_COMMUNITY[lang]);
   BOOK[lang].chapters.push(BOOK_EXTRA[lang]);
 }
