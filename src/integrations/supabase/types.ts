@@ -710,16 +710,19 @@ export type Database = {
       rank_certificates: {
         Row: {
           certified_at: string
+          citizens: number
           rank: number
           seed_id: string
         }
         Insert: {
           certified_at?: string
+          citizens?: number
           rank: number
           seed_id: string
         }
         Update: {
           certified_at?: string
+          citizens?: number
           rank?: number
           seed_id?: string
         }

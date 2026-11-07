@@ -666,6 +666,13 @@
       "when": 1794091648242,
       "tag": "0094_quest_rank_check",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1794091810120,
+      "tag": "0095_quest_citizen_check",
+      "breakpoints": true
     }
   ]
 }
