@@ -6,7 +6,7 @@
  */
 import { terrain, buildable, riverDistAt, hash, MAP, type Seed } from "./world";
 import { pendingEncounter, historyDue, ENCOUNTER_FROM, COMMONS_KEYS, type Decision, type EventKey } from "./encounters";
-import { worldHour, workDone, WORK_START, WORK_END } from "./time";
+import { worldHour, workDone } from "./time";
 import { easterDay, realmDate } from "./feasts";
 import { seasonAt } from "./season";
 import type { Person, Job } from "./people";
@@ -200,8 +200,8 @@ export const LIFE_SCENES: Record<string, LifeScene> = {
   "plaggen:laub": { place: "wood", hour: 9, h: 3, share: 0.12, work: true },
   "schelte:widerruf": { place: "church", hour: 11, h: 1, share: 0.5 },
   "schelte:spende": { place: "church", hour: 11, h: 1, share: 0.15 },
-  "scharwerk:aufgebot": { place: "mill", hour: WORK_START, h: WORK_END - WORK_START, share: 0.35, work: true },
-  "scharwerk:dingen": { place: "mill", hour: WORK_START, h: WORK_END - WORK_START, share: 0.3, work: true, who: "builders" },
+  "scharwerk:aufgebot": { place: "mill", hour: 8, h: 8, share: 0.35, work: true },
+  "scharwerk:dingen": { place: "mill", hour: 8, h: 8, share: 0.3, work: true, who: "builders" },
   "pfingsten:preis": { place: "meet", hour: 15, h: 4, share: 0.55 },
   "pfingsten:reigen": { place: "meet", hour: 15, h: 3, share: 0.45 },
   "lichtstube:reigen": { place: "oven", hour: 18, h: 3, share: 0.4, who: "young" },
