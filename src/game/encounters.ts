@@ -46,6 +46,13 @@ export const ENCOUNTERS = {
   scharwerk: { aufgebot: { cost: 0, fx: { h: 96, health: 6, food: 4 } }, dingen: { cost: 25, fx: { h: 168, food: 8, wealth: 4 } } },
   pfingsten: { preis: { cost: 12, fx: { h: 72, health: 10, wealth: 3 } }, reigen: { cost: 0, fx: { h: 48, health: 6 } } },
   lichtstube: { reigen: { cost: 0, fx: { h: 120, growth: 0.05, health: 4 } }, andacht: { cost: 0, fx: { h: 96, health: 5 } } },
+  besthaupt: { loesen: { cost: 20, fx: { h: 168, food: 6, health: 6 } }, bitte: { cost: 0, fx: { h: 72, health: 4 } }, geben: { cost: 0, fx: { h: 96, health: 5 } } },
+  schwarm: { teilen: { cost: 0, fx: { h: 120, food: 4, health: 4 } }, korb: { cost: 0, fx: { h: 96, food: 6 } }, pfarrer: { cost: 0, fx: { h: 72, health: 6 } } },
+  funken: { kalt: { cost: 0, fx: { h: 72, health: 6 } }, helfer: { cost: 0, fx: { h: 96, health: 6, wealth: 2 } }, lehm: { cost: 8, fx: { h: 120, health: 8 } } },
+  rotte: { kuhle: { cost: 0, fx: { h: 96, health: 6 } }, unten: { cost: 0, fx: { h: 72, health: 3, wealth: 3 } }, bier: { cost: 6, fx: { h: 72, health: 6, wealth: 2 } } },
+  wolfspur: { treib: { cost: 0, fx: { h: 96, food: 6 } }, stall: { cost: 0, fx: { h: 120, food: 4, health: 2 } }, fallen: { cost: 10, fx: { h: 168, food: 8 } } },
+  frevel: { pflanz: { cost: 0, fx: { h: 168, food: 4, health: 2 } }, pfand: { cost: 0, fx: { h: 96, wealth: 4 } }, warn: { cost: 0, fx: { h: 48, health: 4 } } },
+  miete: { arbeit: { cost: 0, fx: { h: 96, food: 4, health: 2 } }, korn: { cost: 10, fx: { h: 120, health: 8 } }, stein: { cost: 0, fx: { h: 48, wealth: 2 } } },
   // historical news 1500/1501 (HISTORY below): dated, once per village, mirrored by DB encounter_guard
   werber: { fodder: { cost: 30, fx: { h: 120, health: 8 } }, quarter: { cost: 0, fx: { h: 72, wealth: 5 } } },
   weser: { carts: { cost: 0, fx: { h: 96, wealth: 5 } }, ransom: { cost: 40, fx: { h: 168, health: 10 } } },
@@ -58,7 +65,7 @@ export type EventKey = keyof typeof ENCOUNTERS;
  * "flood" is retired (kept for old decisions' boons): floods are a visible disaster in disasters.ts, never a text-only encounter.
  */
 /** Commons questions (commons.ts) share the encounter slot but are never drawn as visitors. */
-export const COMMONS_KEYS = ["hutewald", "backtag", "steg", "zaun", "flur", "plaggen", "schelte", "scharwerk", "pfingsten", "lichtstube"] as const;
+export const COMMONS_KEYS = ["hutewald", "backtag", "steg", "zaun", "flur", "plaggen", "schelte", "scharwerk", "pfingsten", "lichtstube", "besthaupt", "schwarm", "funken", "rotte", "wolfspur", "frevel", "miete"] as const;
 /**
  * Historical news that reached a north German village 1500/1501, as real-calendar UTC windows
  * (game year = real year - YEAR_SHIFT, so 2026-11 is November 1500). Each comes once per village,
