@@ -30,3 +30,4 @@
 - Hofstellen (world.ts barnOfYard): a roadside barn stays only beside a farmhouse and never next to another barn, otherwise it becomes a dwelling; a farmhouse with a yard barn gets YARD_HAND extra resident in households.ts — only ever adds homes, so no town loses residents.
 - Organic house sites use the fixed HOUSE_BUILD phase (world.ts), never age-scaled buildTime: big towns slow by building less often, not by slower sites; landmarks keep buildTime.
 - Admin control desk (lab-ctl.ts + hud/LabDesk.tsx): local localStorage overrides/triggers for weather, feast, wedding, fire, flood, raid; every getter returns null outside realm "lab", so public maps and DB mirrors are never touched.
+- Map overflow: realm europe-2 (Elbwerder) shares Altenland's flora (biome elbe, LOOK null) with its own heightElbe; uninvited newcomers without a village land there once europe holds EUROPE_FULL seeds (time.ts, checked in Game.tsx) — invites and existing homes always win.
