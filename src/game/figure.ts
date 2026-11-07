@@ -168,11 +168,8 @@ export function drawRobeWalk(
       c.drawImage(foot, sd * sway * w * 0.13 - fw2 * 0.45, dy - fs - lift, fw2, fs);
     }
   }
-  const lean = sway * swing * 0.35;
-  c.save();
-  c.transform(1, 0, -lean, 1, -lean * h * 0, 0);
+  void swing;
   c.drawImage(im, sx, 0, sw, sh * end, -w / 2, -h + dy, w, h * end);
-  c.restore();
 }
 
 /** Painted hem line (fraction of height) of a skirted sprite, measured once from its alpha: the lowest row still
