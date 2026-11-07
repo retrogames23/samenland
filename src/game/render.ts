@@ -40,7 +40,7 @@ import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
-import { folkImage, walkSheet, walkFramesOf, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
+import { folkImage, walkSheet, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
 import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
@@ -1310,9 +1310,12 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     if (q.walking && q.p.sex === "f") {
       drawRobeWalk(c, robe, 0, fw, fh, folkImage("footF"), ww, hh, ph, 0.8, 0.93, bob, 0.035, 0.45);
     } else if (q.walking) {
-      // vest + breeches, not a robe: cut the torso at the belt and step full-length painted legs from the hip
-      const legs = folkImage("legsM");
-      if (legs) {
+      // whole-body painted walk cycle per age cohort; the torso+legs composite is only a loading fallback
+      const ws = mayorWalk(q.p.sex, q.p.age), legs = folkImage("legsM");
+      if (ws) {
+        const sfw = ws.naturalWidth / 4, sww = (hgt * sfw) / ws.naturalHeight;
+        drawSheetFrame(c, ws, step4(ph), sfw, sww, hgt, 0);
+      } else if (legs) {
         const f = gaitFrame(ph);
         drawLegged(c, robe, 0, fw, fh, legs, f, ww, hh, MAYOR_LEGS, bob, bob, ph);
       } else c.drawImage(robe, 0, 0, fw, fh, -ww / 2, -hh, ww, hh);
@@ -1326,9 +1329,9 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const frameOf = (fw: number) => { void fw; return gaitFrame(ph); };
   if (sheet) {
     // real painted walk cycle: frame follows the stride phase (one 2π = two steps)
-    const n = walkFramesOf(k), fw = sheet.naturalWidth / n, f = n === 4 ? step4(ph) : frameOf(fw);
-    const ww = (hgt * fw) / sheet.naturalHeight, dx = n === 4 ? 0 : -(frameShift(sheet)[f] ?? 0) * ww;
-    drawSheetFrame(c, sheet, f, fw, ww, hgt, dx);
+    const n = walkFramesOf(k), fw = sheet.naturalWidth / n, f = n === 4 ? step4(ph) : frameOf(fw), sh = hgt * walkScaleOf(k);
+    const ww = (sh * fw) / sheet.naturalHeight, dx = n === 4 ? 0 : -(frameShift(sheet)[f] ?? 0) * ww;
+    drawSheetFrame(c, sheet, f, fw, ww, sh, dx);
   } else if (legs) {
     // modular figure: one hip-registered painted leg cycle shared by all trades, trade torso on top
     // each trade sprite: measured hip x (fraction of width) and tunic hem (fraction of height)
