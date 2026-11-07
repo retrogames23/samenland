@@ -7,8 +7,10 @@ export type DogPose = { x: number; y: number; mode: "trot" | "walk" | "sit" | "s
 type St = DogPose & { t: number; tx: number; ty: number; wait: number; moving: boolean; side: number; tile: number };
 const state = new Map<string, St>();
 
-/** Night: the dog sleeps on its sheepskin by the mayor's door. */
+/** Night: the dog sleeps on its straw by the mayor's door. */
 export const dogAsleep = (hour: number) => hour >= 22 || hour < 6;
+/** Only in summer (June–August, UTC calendar like season.ts) the dog sleeps outdoors; otherwise inside the mayor's house. */
+export const dogSleepsOutside = (now: number) => { const m = new Date(now).getUTCMonth(); return m >= 5 && m <= 7; };
 
 /**
  * Advance the dog of one village to wall time `now`.

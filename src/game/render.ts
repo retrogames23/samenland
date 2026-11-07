@@ -52,7 +52,7 @@ import { oxWalk, martinWalk, herdsmanWalk, type Walk } from "./feast-walkers";
 import { activeRaid, RAID_LEN, tileHits, type TileHit } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
 import { decorMap, seatTile, type RewardKey } from "./supporter";
-import { dogStep, dogTile, type DogPose } from "./dog";
+import { dogStep, dogTile, dogSleepsOutside, type DogPose } from "./dog";
 import dogTrotU from "@/assets/sprites/support/dog-trot.webp";
 import dogSitU from "@/assets/sprites/support/dog-sit.webp";
 import dogSleepU from "@/assets/sprites/support/dog-sleep.webp";
@@ -3605,6 +3605,7 @@ export function draw(
     const [hx, hy] = seatTile(sd), mq = dogMayors.get(sd.id);
     const near = mq || (hx >= x0 - 4 && hx <= x1 + 4 && hy >= y0 - 4 && hy <= y1 + 4); if (!near) continue;
     const d = dogStep(sd.id, [hx, hy + 1], mq ? { x: mq.x, y: mq.y, walking: mq.walking } : null, worldHour(now), now, freeGround);
+    if (d.mode === "sleep" && !dogSleepsOutside(now)) continue; // indoors by the hearth outside summer
     dogSpots.set(sd.id, { x: d.x, y: d.y });
     const [px, py] = iso(d.x, d.y), sk = sd.x * 7 + sd.y;
     addProp(dogTile(sd.id, d.x, d.y, MAP), () => drawDog(c, d, px, py, t, sk));
