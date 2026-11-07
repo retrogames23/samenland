@@ -90,12 +90,27 @@ export function lifeSeason(key: CommonsKey, at: number): boolean {
     case "wolfspur": return m === 12 || m <= 2;    // tracks in the snow
     case "miete": return m >= 1 && m <= 3;         // lean weeks before spring
     case "funken": return m >= 10 || m <= 4;       // hearths burn all day in the cold half-year
+    case "kaper": return m >= 3 && m <= 10;        // the sailing season
+    case "strand": return m >= 10 || m <= 3;       // autumn and winter gales
     default: return true;
   }
 }
 
-/** Commons questions this village can be asked now (terrain, bakery, footbridge not yet built). */
-export function commonsOptions(s: Pick<Seed, "x" | "y">, decisions: Decision[], growthH: number, at?: number): CommonsKey[] {
+const coastCache = new Map<string, boolean>();
+/** Open sea (deep water) within reach of the town: ships, privateers and strandings concern it. */
+export function onCoast(s: Pick<Seed, "x" | "y">): boolean {
+  const key = `${s.x},${s.y}`; const hit = coastCache.get(key); if (hit !== undefined) return hit;
+  let c = false;
+  for (let j = -R_MAX; j <= R_MAX && !c; j++) for (let i = -R_MAX; i <= R_MAX; i++) if (terrain(s.x + i, s.y + j) === "deep") { c = true; break; }
+  if (coastCache.size > 256) coastCache.clear();
+  coastCache.set(key, c);
+  return c;
+}
+/** Settlement ranks (rank.ts rankOf): 3 = Kleinstadt, 4 = Handelsstadt, 5 = Hansestadt. */
+export const CITY_FROM = 3, TRADE_FROM = 4, HANSE_FROM = 5;
+
+/** Commons questions this village can be asked now (terrain, bakery, footbridge not yet built, town rank). */
+export function commonsOptions(s: Pick<Seed, "x" | "y">, decisions: Decision[], growthH: number, at?: number, rank = 0): CommonsKey[] {
   const out: CommonsKey[] = [];
   if (oakSpot(s)) out.push("hutewald");
   if (growthH >= BAKERY_AGE) out.push("backtag");
@@ -108,6 +123,11 @@ export function commonsOptions(s: Pick<Seed, "x" | "y">, decisions: Decision[], 
   life.push("besthaupt", "funken", "wolfspur", "miete");
   if (oakSpot(s)) life.push("schwarm", "frevel");
   if (stegSpot(s) || heathSpot(s)) life.push("rotte");
+  // town life (Kleinstadt on): market police, guilds, beer, gate and watch; Handelsstadt: merchants' guest law,
+  // the plague; coast: privateers and strandings; Hansestadt: the summons to the Hanseatic diet
+  if (rank >= CITY_FROM) { if (growthH >= BAKERY_AGE) life.push("brot"); life.push("stoerer", "bier", "torschluss", "wache"); }
+  if (rank >= TRADE_FROM) { life.push("gast", "seuche"); if (onCoast(s)) life.push("kaper", "strand"); }
+  if (rank >= HANSE_FROM) life.push("hansetag");
   for (const k of life) if (lifeSeason(k, at)) out.push(k);
   return out;
 }
@@ -117,7 +137,7 @@ export function commonsOptions(s: Pick<Seed, "x" | "y">, decisions: Decision[], 
  * is at least COMMONS_DAYS old at the window start, so an open question never changes while it waits.
  * Rotation: never the same question twice in a row, then a stable hashed pick.
  */
-export function commonsDue(s: Seed, decisions: Decision[], growthH: number): CommonsKey | null {
+export function commonsDue(s: Seed, decisions: Decision[], growthH: number, rank = 0): CommonsKey | null {
   const c0 = Date.parse(s.created_at);
   const last = decisions.reduce((m, d) => d.event === "wedding" ? m : Math.max(m, d.at), -Infinity);
   const from = Number.isFinite(last) ? last : c0 + ENCOUNTER_FROM * 3.6e6;
@@ -126,7 +146,7 @@ export function commonsDue(s: Seed, decisions: Decision[], growthH: number): Com
   const prev = past[past.length - 1];
   if (prev && from - prev.at < COMMONS_DAYS * 864e5) return null;
   // memory: questions met recently wait until the others had their turn (the last RECENT, or fewer if needed)
-  const all = commonsOptions(s, decisions, growthH, from);
+  const all = commonsOptions(s, decisions, growthH, from, rank);
   let opts: CommonsKey[] = [];
   for (let n = COMMONS_RECENT; n >= 1 && !opts.length; n--) { const seen = new Set(past.slice(-n).map((d) => d.event)); opts = all.filter((k) => !seen.has(k)); }
   if (!opts.length) return null;
@@ -134,10 +154,10 @@ export function commonsDue(s: Seed, decisions: Decision[], growthH: number): Com
 }
 
 /** The open encounter including commons questions: a real wedding first, then the commons, then a visitor. */
-export function pendingAll(s: Seed, decisions: Decision[], now: number, growthH: number): EventKey | null {
+export function pendingAll(s: Seed, decisions: Decision[], now: number, growthH: number, rank = 0): EventKey | null {
   const p = pendingEncounter(s, decisions, now);
   if (!p || p === "wedding") return p;
-  return historyDue(s, decisions, now) ?? commonsDue(s, decisions, growthH) ?? p;
+  return historyDue(s, decisions, now) ?? commonsDue(s, decisions, growthH, rank) ?? p;
 }
 
 const latest = (decisions: Decision[], event: string, choice: string | null, now: number, ms: number) =>
@@ -165,11 +185,15 @@ const ASKER: Record<CommonsKey, Job[]> = {
   pfingsten: ["innkeeper", "farmer"], lichtstube: ["homemaker", "farmer"],
   besthaupt: ["farmer", "homemaker"], schwarm: ["farmer"], funken: ["worker", "farmer"], rotte: ["farmer"],
   wolfspur: ["farmer", "hunter"], frevel: ["woodcutter", "hunter", "farmer"], miete: ["farmer"],
+  brot: ["baker"], stoerer: ["smith", "crafter"], bier: ["innkeeper"], torschluss: ["watchman", "firewarden"], wache: ["merchant"],
+  kaper: ["merchant", "fisher"], gast: ["merchant"], hansetag: ["merchant", "teacher"], strand: ["fisher"], seuche: ["healer", "herbalist"],
 };
 /** The second party named in the question (the neighbour, the accused…), by trade. */
 const OTHER: Partial<Record<CommonsKey, Job[]>> = {
   zaun: ["farmer"], flur: ["farmer", "homemaker"], schelte: ["homemaker", "farmer", "worker"],
   schwarm: ["farmer"], funken: ["farmer", "worker"], rotte: ["innkeeper", "baker", "farmer"], frevel: ["farmer"], miete: ["worker"],
+  brot: ["watchman", "merchant"], stoerer: ["worker", "crafter"], bier: ["merchant", "carter"], torschluss: ["carter", "merchant"],
+  wache: ["smith", "crafter", "watchman"], gast: ["merchant", "carter"], strand: ["merchant"], seuche: ["watchman", "firewarden"],
 };
 /**
  * Who brings the question (a real resident by trade) and who counsels the village: the herb-wife or
@@ -245,6 +269,26 @@ export const LIFE_SCENES: Record<string, LifeScene> = {
   "miete:arbeit": { place: "field", hour: 9, h: 3, share: 0.04, work: true },
   "miete:korn": { place: "meet", hour: 12, h: 1, share: 0.1 },
   "miete:stein": { place: "church", hour: 11, h: 1, share: 0.4 },
+  "brot:busse": { place: "meet", hour: 10, h: 1, share: 0.3 },
+  "brot:spital": { place: "church", hour: 11, h: 1, share: 0.12 },
+  "stoerer:zunft": { place: "meet", hour: 17, h: 1, share: 0.15 },
+  "stoerer:dulden": { place: "meet", hour: 17, h: 1, share: 0.08 },
+  "bier:zoll": { place: "meet", hour: 18, h: 2, share: 0.15 },
+  "bier:frei": { place: "meet", hour: 18, h: 3, share: 0.35 },
+  "torschluss:zu": { place: "meet", hour: 19, h: 1, share: 0.08 },
+  "torschluss:nachzoll": { place: "meet", hour: 20, h: 1, share: 0.06 },
+  "wache:pflicht": { place: "meet", hour: 18, h: 2, share: 0.2, who: "young" },
+  "wache:loskauf": { place: "meet", hour: 18, h: 1, share: 0.1 },
+  "kaper:geleit": { place: "mill", hour: 9, h: 4, share: 0.15, work: true, who: "builders" },
+  "kaper:selbst": { place: "meet", hour: 11, h: 1, share: 0.08 },
+  "gast:streng": { place: "meet", hour: 10, h: 2, share: 0.15 },
+  "gast:frei": { place: "meet", hour: 10, h: 3, share: 0.3 },
+  "hansetag:gefolge": { place: "meet", hour: 9, h: 2, share: 0.5 },
+  "hansetag:vollmacht": { place: "church", hour: 11, h: 1, share: 0.1 },
+  "strand:berge": { place: "mill", hour: 9, h: 3, share: 0.12, work: true },
+  "strand:fischer": { place: "mill", hour: 9, h: 3, share: 0.2, work: true },
+  "seuche:absondern": { place: "church", hour: 11, h: 1, share: 0.2 },
+  "seuche:offen": { place: "meet", hour: 10, h: 2, share: 0.25 },
 };
 /** Village-life scenes playing now: the decision, its scene and start (ms). Pure from decisions + realm clock. */
 export function lifeScenes(decisions: Decision[], now: number): { d: Decision; sc: LifeScene; at: number }[] {
