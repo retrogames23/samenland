@@ -75,7 +75,7 @@ import guardU from "@/assets/sprites/court/guard.webp";
 import gardenerU from "@/assets/sprites/court/gardener.webp";
 import courtGroomU from "@/assets/sprites/court/groom.webp";
 import { heraldVisit, HERALD_RIDE_S, type PrincelyRow } from "./princely";
-import { SEAT_KINDS, onGeoChange, hash, vnoise, structureAt, soloSeeds, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { SEAT_KINDS, onGeoChange, hash, vnoise, structureAt, soloSeeds, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, FOOT2, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -233,7 +233,7 @@ const roofHue = (s: Structure, slate = false) => slate ? [215, 12, 46] : [12 + s
 function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail: boolean) {
   const p = s.build ?? 1, sd = Math.floor(s.v * 9973);
   const box = spriteBox(s.kind, s.v);
-  const w = Math.min(30, (box?.w ?? 24) * 0.75), hw = w / 2, hh = w / 4;
+  const w = Math.min(FOOT2.has(s.kind) ? 60 : 30, (box?.w ?? 24) * 0.75), hw = w / 2, hh = w / 4;
   // trodden, dug-up ground: a dark soil plot with a lighter trodden rim, visible from the first minute
   c.save();
   const dia = (k: number) => { c.beginPath(); c.moveTo(cx, cy - hh * k); c.lineTo(cx + hw * k, cy); c.lineTo(cx, cy + hh * k); c.lineTo(cx - hw * k, cy); c.closePath(); };
@@ -665,6 +665,8 @@ function beginLit(w: number, h: number, on: boolean) {
 }
 function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
   const sd = x * 1000 + y;
+  // 2×2 ensembles stand on their front tile: centre the sprite over all four tiles
+  if (FOOT2.has(s.kind)) cy -= TH / 2;
   if (SOUND_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: s.build !== undefined ? "site" : s.kind });
   else if (s.build !== undefined && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: "site" });
   // town bell: from the Kleinstadt seat (Amtshaus with bell gable) on, plus belfry, church and cathedral
@@ -1804,7 +1806,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
       if (st.kind === "field") { c.fillStyle = texture(c, fieldTex(x, y, st.seed, now)) ?? "#c9b46a"; diamond(c, cx, cy, step); c.fill(); }
       else if (PATHLIKE.has(st.kind) || st.kind === "square") { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#bfa47a"; diamond(c, cx, cy, step * 0.8); c.fill(); }
       else if (st.build !== undefined) drawSite(c, st, cx, cy, 0, false);
-      else if (!FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
+      else if (!FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, FOOT2.has(st.kind) ? cy - TH / 2 : cy, st.v);
     }
   }
   { // the prince's seat, at true scale like the towns
@@ -3809,7 +3811,7 @@ export function draw(
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
     if (!detail) {
       if (st?.build !== undefined) drawSite(c, st, cx, cy, t, false);
-      else if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, cy, st.v);
+      else if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, FOOT2.has(st.kind) ? cy - TH / 2 : cy, st.v);
       continue; // forests and crags are baked into the ground chunks
     }
     if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true, false); // turf already lies in the flat pass
