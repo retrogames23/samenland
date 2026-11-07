@@ -3089,7 +3089,7 @@ export function Game() {
       )}
 
       {heraldBtn && my && (
-        <div className="absolute inset-x-0 z-30 flex justify-center pointer-events-none" style={{ top: barH + 8 }}>
+        <div className="absolute inset-x-0 z-30 max-md:mt-12 flex justify-center pointer-events-none" style={{ top: barH + 8 }}>
           <WoodButton label={HERALD[lang].button} onClick={() => { const hs = heraldSpots.get(my.id); if (hs) { cam.current.x = hs.x; cam.current.y = hs.y - 6; } openHerald(); }} className="pointer-events-auto h-10 px-3 animate-in fade-in"><span className="text-sm font-semibold">📜 {HERALD[lang].button}</span></WoodButton>
         </div>
       )}
@@ -3104,13 +3104,13 @@ export function Game() {
       )}
       {owner && quest && claimsReady && !panelOpen && questFold && (
         <button type="button" aria-expanded={false} aria-label={petition!.header} title={petition!.header} onClick={() => foldQuest(false)}
-          className={`parchment hit absolute right-16 z-30 grid h-10 w-10 place-items-center rounded-full text-lg shadow ${heraldBtn ? "max-md:mt-12" : ""} ${quest.ready ? "ring-2 ring-brass ring-offset-1 ring-offset-transparent" : "opacity-80"}`} style={{ top: barH + 8 }}>
+          className={`parchment hit absolute right-16 z-30 grid h-10 w-10 place-items-center rounded-full text-lg shadow ${quest.ready ? "ring-2 ring-brass ring-offset-1 ring-offset-transparent" : "opacity-80"}`} style={{ top: barH + 8 }}>
           <span aria-hidden>📜</span>
           {quest.ready && <span aria-hidden className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border border-background bg-brass" />}
         </button>
       )}
       {owner && quest && claimsReady && !panelOpen && !questFold && (
-        <div className={`absolute right-16 z-30 ${heraldBtn ? "max-md:mt-12" : ""} ${waitDone && !waitShut && !anyOpen && !decision.open && !menuOpen ? "max-md:hidden" : ""} max-w-[calc(100vw-5rem)] w-60 md:w-64`} style={{ top: barH + 8 }}>
+        <div className={`absolute right-16 z-30 ${waitDone && !waitShut && !anyOpen && !decision.open && !menuOpen ? "max-md:hidden" : ""} max-w-[calc(100vw-5rem)] w-60 md:w-64`} style={{ top: barH + 8 }}>
           <div className="parchment px-3 py-2 text-sm text-ink shadow">
             <div className="flex w-full items-start gap-1">
               <button type="button" aria-expanded={!questFold} onClick={() => foldQuest(true)} className="flex min-w-0 flex-1 items-start justify-between gap-2 text-start">
