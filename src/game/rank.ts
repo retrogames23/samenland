@@ -26,3 +26,5 @@ export function rankInput(s: Seed, seeds: Seed[], now: number): RankInput {
   return { citizens: c.length, homes, roads };
 }
 export const townRank = (s: Seed, seeds: Seed[], now: number) => rankOf(rankInput(s, seeds, now));
+/** Mayor's seat painting per rank: Kate (Siedlung/Weiler), Hof (Dorf), Amtshaus (Kleinstadt), Rathaus (Handelsstadt+). */
+export const seatKindForRank = (r: number) => (r >= 4 ? "townhall" : r === 3 ? "seat3" : r === 2 ? "seat2" : "seat1") as "seat1" | "seat2" | "seat3" | "townhall";

@@ -135,7 +135,7 @@ import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang 
 import { CHEST } from "@/game/lang/chest";
 import { FOUNDING } from "@/game/lang/founding";
 import { CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
-import { TITLE_PRICE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
+import { TITLE_PRICE, TITLE_STAGE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, saplingsOwed, type Decision } from "@/game/encounters";
 import { pendingAll, isCommons, commonsVoices, adviceIdx, bakeCost } from "@/game/commons";
 import { COMMONS_TEXT } from "@/game/lang/commons";
@@ -1855,7 +1855,7 @@ export function Game() {
     const rollback = (m: string) => { setPurchases((s) => s.filter((p) => p.id !== tmpId)); setMsg(m); };
     if (!await prepareSpend()) return rollback(t.buyFail);
     // rank-gated items: the server counts citizens, homes and roads itself before the guard accepts the row
-    const needRank = monumentOf(item) && /1$/.test(item) ? MONUMENTS[monumentOf(item)!].stage : (ITEM_STAGE[item] ?? 0);
+    const needRank = monumentOf(item) && /1$/.test(item) ? MONUMENTS[monumentOf(item)!].stage : (TITLE_STAGE as Record<string, number>)[item] ?? (ITEM_STAGE[item] ?? 0);
     if (needRank > 0) { try { await certifyFn({ data: { seed: my.id } }); } catch { return rollback(t.buyFail); } }
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) return rollback(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
@@ -2008,7 +2008,7 @@ export function Game() {
                 );
               })()}
               {my && (() => {
-                const n = titleOf(my, purchases), blk = titleBlock(my, purchases, now), step = TITLE_STEPS[Math.min(n, 2)]!;
+                const n = titleOf(my, purchases), blk = titleBlock(my, purchases, myStage), step = TITLE_STEPS[Math.min(n, 2)]!;
                 const why = blk === "age" ? t.office.need.age(t.stages[[3, 4, 5][n] ?? 5] ?? "") : blk === "rank" ? t.office.need.rank(t.rank.ranks[TITLE_RANK[step] - 1] ?? "") : blk === "charter" ? t.office.need.charter : "";
                 const fmt = (b: Partial<Record<string, number>>) => Object.entries(b).map(([k, v]) => `+${v} ${t.office.stat[k] ?? k}`).join(", ");
                 return (

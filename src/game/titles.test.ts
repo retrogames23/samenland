@@ -8,15 +8,19 @@ const rows = (...items: string[]) => items.map((item) => ({ seed_id: "s", item }
 
 describe("mayor titles", () => {
   it("prices match the purchase guard", () => expect(TITLE_PRICE).toEqual({ title1: 500, title2: 1200, title3: 2500 }));
-  it("needs a charter, Kleinstadt age and the journeyman rank", () => {
-    expect(titleBlock(seed(3000), [], now)).toBe("charter");
-    expect(titleBlock(seed(2000, "trade"), rows("rank2"), now)).toBe("age");
-    expect(titleBlock(seed(3000, "trade"), [], now)).toBe("rank");
-    expect(titleBlock(seed(3000, "trade"), rows("rank2"), now)).toBeNull();
+  it("needs a charter, Kleinstadt rank and the journeyman rank", () => {
+    expect(titleBlock(seed(3000), [], 3)).toBe("charter");
+    expect(titleBlock(seed(99999, "trade"), rows("rank2"), 2)).toBe("age");
+    expect(titleBlock(seed(1, "trade"), [], 3)).toBe("rank");
+    expect(titleBlock(seed(1, "trade"), rows("rank2"), 3)).toBeNull();
   });
   it("second title needs Handelsstadt and the master rank", () => {
-    expect(titleBlock(seed(5000, "trade"), rows("rank2", "title1"), now)).toBe("rank");
-    expect(titleBlock(seed(5000, "trade"), rows("rank2", "rank3", "title1"), now)).toBeNull();
+    expect(titleBlock(seed(5000, "trade"), rows("rank2", "title1"), 4)).toBe("rank");
+    expect(titleBlock(seed(5000, "trade"), rows("rank2", "rank3", "title1"), 4)).toBeNull();
+  });
+  it("Hansestadt title waits for the Hansestadt rank, never for days", () => {
+    expect(titleBlock(seed(99999, "trade"), rows("rank2", "rank3", "title1", "title2"), 4)).toBe("age");
+    expect(titleBlock(seed(1, "trade"), rows("rank2", "rank3", "title1", "title2"), 5)).toBeNull();
   });
   it("titles add path bonuses", () => {
     const s = seed(9000, "farm"), p = rows("rank2", "rank3", "title1", "title2");
