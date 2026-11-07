@@ -471,7 +471,7 @@ export function walkShift(im: HTMLImageElement, f: number): number {
     } catch { /* not decodable yet / tainted: no shift */ }
     bodyShift.set(im, v);
   }
-  return v[f & 3];
+  return v[f & 3] ?? 0;
 }
 function sheetFrame(c: C, im: HTMLImageElement, f: number, X: number, Y: number, h: number, flip: boolean, rot = 0, alpha = 1, centre = false) {
   const fw = im.naturalWidth / 4, w = (h * fw) / im.naturalHeight, ox = centre ? walkShift(im, f) * w : 0;
@@ -487,7 +487,7 @@ const BOAR_GAIT = [0, 1, 2, 1];
 function drawBeast(c: C, walkIm: HTMLImageElement, standIm: HTMLImageElement | null, X: number, Y: number, h: number, flip: boolean, moving: number, dist: number, idle: number, alpha = 1, seq?: number[]) {
   shadow(c, X, Y, h * 0.42);
   if (moving > 0.02 || !standIm) {
-    const ph = dist / 1.1, k = Math.floor(ph), f = seq ? seq[k & 3] : k & 3, bob = Math.abs(Math.sin(ph * Math.PI)) * h * 0.02;
+    const ph = dist / 1.1, k = Math.floor(ph), f = seq ? (seq[k & 3] ?? 0) : k & 3, bob = Math.abs(Math.sin(ph * Math.PI)) * h * 0.02;
     sheetFrame(c, walkIm, f, X, Y - bob, h, flip, 0, alpha, true);
   } else sheetFrame(c, standIm, idle, X, Y, h, flip, 0, alpha);
 }
@@ -2838,7 +2838,7 @@ function drawPig(c: C, x: number, y: number, now: number, sd: number) {
   const a = spot(k), b = spot(k + 1), into = u - (CYC - WALK), f = into > 0 ? into / WALK : 0, e = f * f * (3 - 2 * f);
   const X = x + a[0] + (b[0] - a[0]) * e, Y = y + a[1] + (b[1] - a[1]) * e, h = 3.6, flip = (into > 0 ? b[0] - a[0] : a[0] - spot(k - 1)[0]) < 0;
   shadow(c, X, Y, h * 0.45);
-  if (into > 0) sheetFrame(c, bw, BOAR_GAIT[Math.floor((into / 1000) * 3.2) & 3], X, Y - Math.abs(Math.sin(into / 160)) * 0.08, h, flip, 0, 1, true);
+  if (into > 0) sheetFrame(c, bw, BOAR_GAIT[Math.floor((into / 1000) * 3.2) & 3] ?? 0, X, Y - Math.abs(Math.sin(into / 160)) * 0.08, h, flip, 0, 1, true);
   else sheetFrame(c, bw, 3, X, Y - (Math.floor((now + sd) / 500) & 1) * 0.08, h, flip);
 }
 /** Whitsun ox: the cow sprite led along, garlanded with birch and bright ribbons. */
