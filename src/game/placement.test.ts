@@ -13,3 +13,18 @@ describe("touch placement", () => {
     if (g) expect(canPlaceSpecial("herbs", g[0], g[1], s, [s], Date.now())).toBeNull();
   });
 });
+
+import { terrain } from "./world";
+describe("forest clearing", () => {
+  it("a bought building may stand on a forest tile near the village", () => {
+    const now = Date.now();
+    for (let y = 100; y < 900; y += 5) for (let x = 100; x < 900; x += 5) {
+      if (terrain(x + 2, y) !== "forest") continue;
+      const s = { id: "f", x, y, name: "F", created_at: new Date(now - 3600e3 * 200).toISOString() } as never;
+      const e = canPlaceSpecial("herbs", x + 2, y, s, [s], now);
+      expect(e === null || e === "taken").toBe(true);
+      expect(canPlaceSpecial("herbs", x, y, s, [s], now)).toBe("taken");
+      return;
+    }
+  });
+});
