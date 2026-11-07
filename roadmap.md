@@ -1,3 +1,5 @@
 # Roadmap
-- [x] Feiertage: Kalender, Arbeitsruhe, Abläufe, Osterfeuer/Johannisfeuer, Pfingstbaum, Weihnachtslichter, stille Glocken Karfreitag, Fest-Pergament (8 Sprachen)
-- [ ] Feiertage: eigene Requisiten (Türgrün, Eierkörbe, Masken, Baldachin, Fackeln) und Festsprüche der Bewohner
+- [x] Ganzkörper-Laufbilder Gruppe 1: Bürger, wohlhabender Bürger, Bauer, Träger, Schulze (alle Altersstufen)
+- [x] Gruppe 2: Bauarbeiter, Holzfäller, Steinmetz, Wächter, Jugendlicher, Knecht, Ältester
+- [ ] Gruppe 3: Hofstaat (Fürst, Herold, Wache, Gärtner, Stallknecht) und Räuber
+- [ ] Danach: Beinsheets/HIPS entfernen; automatische Sheet-Prüfung
