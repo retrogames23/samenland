@@ -184,7 +184,7 @@ type Sprite = { url: string; crop: [number, number, number, number]; width: numb
 // Alpha bounds remove unequal transparent margins. Width is in world pixels, not screen pixels.
 const sprites: Partial<Record<Kind, Sprite>> = {
   campfire: { url: campfire, crop: [0, 0, 480, 346], width: 7, base: 2.4 },
-  hut: { url: hut, crop: [0, 0, 480, 379], width: 16, base: 4 },
+  hut: { url: hut, crop: [0, 0, 480, 379], width: 16, base: 5.8 },
   coop: { url: coop, crop: [0, 0, 480, 450], width: 10, base: 4 },
   fence: { url: fence, crop: [0, 0, 480, 256], width: 11, base: 3 },
   chapel: { url: chapel, crop: [0, 0, 474, 480], width: 21, base: 4 },

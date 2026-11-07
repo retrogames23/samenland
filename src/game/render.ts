@@ -678,6 +678,8 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
   const style = houseStyle(s);
   // free-standing objects without a plinth get a soft ground-contact shadow so they never look like floating
   if (GROUNDED.has(s.kind)) { c.fillStyle = "rgba(30,22,12,0.28)"; c.beginPath(); c.ellipse(cx + 0.5, cy + 3.2, 3.6, 1.5, 0, 0, 7); c.fill(); c.fillStyle = "rgba(30,22,12,0.14)"; c.beginPath(); c.ellipse(cx + 1.4, cy + 3.6, 4.6, 2, 0, 0, 7); c.fill(); }
+  // plinthless thatched hut: soft contact shadow along the foundation, cast down-right (light from upper left)
+  if (s.kind === "hut" && !s.flood) { c.fillStyle = "rgba(30,22,12,0.22)"; c.beginPath(); c.ellipse(cx + 0.8, cy + 3.4, 9.6, 3.2, 0, 0, 7); c.fill(); c.fillStyle = "rgba(30,22,12,0.12)"; c.beginPath(); c.ellipse(cx + 2, cy + 4.2, 11, 3.8, 0, 0, 7); c.fill(); }
   if (s.flood && !FLAT.has(s.kind)) drawReflection(c, s, cx, cy, t, flip, style);
   if (drawBuildingSprite(c, s.kind, cx, cy, s.v, 1, flip, style)) {
     // window light lives on its own layer: every building drawn later (in front) erases the lights behind it
@@ -686,7 +688,7 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
     // plain thatched hut: hearth smoke rises animated from the roof hole (no chimney, painted smoke removed)
-    if (s.kind === "hut" && !style && !s.fire) smoke(c, cx + (flip ? 0.33 : -0.33), cy - 6.4, t, sd, 0.35);
+    if (s.kind === "hut" && !style && !s.fire) smoke(c, cx + (flip ? 0.33 : -0.33), cy - 4.6, t, sd, 0.35);
     if (s.fire) drawFire(c, cx, cy, t, sd, L);
     if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour(), sunNow().rise, sunNow().set) || (stormDark(renderNow) > 0.4 && STORM_LIT.has(s.kind) && localHour() >= 7 && localHour() < 20) || (isHomeKind(s.kind) && (sickLit(x, y) || christmasNight(renderNow))))) {
       if (lit) { lit.c.globalCompositeOperation = "source-over"; drawBuildingNight(lit.c, s.kind, cx, cy, s.v, candleFlicker(t, sd), flip, style); }
