@@ -1,4 +1,4 @@
-import { structureAt, type Kind, type Seed } from "./world";
+import { structureAt, seedsKey, type Kind, type Seed } from "./world";
 import { townOf, type Job, type Person } from "./people";
 import { seasonAt } from "./season";
 import { worldHour } from "./time";
@@ -52,7 +52,7 @@ export const grainCap = (byKind: Map<Kind, unknown[]>) =>
   GRAIN_BASE + GRAIN_PER_MILL * ((byKind.get("mill")?.length ?? 0) + (byKind.get("watermill")?.length ?? 0)) + GRAIN_PER_GRANARY * (byKind.get("granary")?.length ?? 0);
 export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   const t = townOf(s, seeds, now);
-  const key = `${s.id}|${(s.bought ?? []).length}|${t.now}|${Math.floor(now / 60000)}`;
+  const key = `${s.id}|${(s.bought ?? []).length}|${t.now}|${Math.floor(now / 60000)}|${seedsKey(seeds)}`;
   const hit = cache.get(key);
   if (hit) return hit;
   if (cache.size > 40) cache.clear();
