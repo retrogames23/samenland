@@ -273,7 +273,23 @@ const styled: Record<HouseStyle, Record<StyleSlot, Styled>> = {
     hut: { day: hutCoast, night: hutCoastLight, crop: [0, 0, 448, 480] }, handwerker: { day: craftCoast, night: craftCoastLight, crop: [0, 0, 280, 480] }, farmhouse: { day: farmCoast, night: farmCoastLight, crop: [0, 0, 480, 331] }, barn: { day: barnCoast, night: barnCoastLight, crop: [0, 0, 480, 334] },
     steinhaus: { day: steinCoast, night: steinCoastLight, crop: [0, 0, 338, 480] }, villa: { day: villaCoast, night: villaCoastLight, crop: [0, 0, 480, 410] } },
 };
-const styledOf = (kind: Kind, style?: HouseStyle) => { const k = style ? STYLE_OF[kind] : undefined; return k && style ? styled[style][k] : undefined; };
+const styledBase = (kind: Kind, style?: HouseStyle) => { const k = style ? STYLE_OF[kind] : undefined; return k && style ? styled[style][k] : undefined; };
+/** Alternative paintings of the commonest homes, per building style ("grain" = classic plains art). Slot 0 is always the
+ * existing art; listed entries fill slots 1 and 2. Same width/base as the base kind, purely visual — households use the kind. */
+export const VARIANT_KINDS = ["farmhouse", "cottage"] as const;
+export const VARIANT_COUNT = 3;
+type VariantKind = (typeof VARIANT_KINDS)[number];
+const variants: Record<VariantKind, Record<"grain" | HouseStyle, Styled[]>> = {
+  farmhouse: { grain: [], workshop: [], gateway: [] },
+  cottage: { grain: [], workshop: [], gateway: [] },
+};
+/** Which of the VARIANT_COUNT paintings a tile shows (0 = original art); `variant` is the tile's stable hash. */
+export const variantSlot = (variant: number) => Math.min(VARIANT_COUNT - 1, Math.floor(variant * 997) % VARIANT_COUNT);
+const styledOf = (kind: Kind, style?: HouseStyle, variant?: number) => {
+  const vs = (variants as Partial<Record<Kind, Record<string, Styled[]>>>)[kind]?.[style ?? "grain"];
+  const slot = variant === undefined ? 0 : variantSlot(variant);
+  return (slot > 0 ? vs?.[slot - 1] : undefined) ?? styledBase(kind, style);
+};
 const load = (url: string) => { const im = new Image(); im.decoding = "async"; im.src = url; return im; };
 const ready = (im?: HTMLImageElement) => !!(im?.complete && im.naturalWidth);
 
@@ -282,13 +298,13 @@ export const spriteUrl = (kind: Kind) => sprites[kind]?.url;
 /** Browser images are created only when the canvas draws, never during SSR. */
 /** Drawn width/height and ground offset of a building sprite (null while unknown). */
 const HOME_SIZE: ReadonlySet<string> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "suburb"]);
-/** Homes vary ±9 % in size, other buildings ±3 %. */
+/** Homes vary ±4 % in size (rows keep an even eaves line), other buildings ±3 %. */
 /** Homes are drawn larger so doors and yards read true beside villagers (realistic scale). */
 const HOME_GROW = 1.15;
-const scaleOf = (kind: Kind, variant: number) => HOME_SIZE.has(kind) ? HOME_GROW * (0.91 + variant * 0.18) : 0.97 + variant * 0.06;
+const scaleOf = (kind: Kind, variant: number) => HOME_SIZE.has(kind) ? HOME_GROW * (0.96 + variant * 0.08) : 0.97 + variant * 0.06;
 export function spriteBox(kind: Kind, variant: number, style?: HouseStyle): { w: number; h: number; base: number } | null {
   const sprite = sprites[kind]; if (!sprite) return null;
-  const [, , sw, sh] = styledOf(kind, style)?.crop ?? sprite.crop, w = sprite.width * scaleOf(kind, variant);
+  const [, , sw, sh] = styledOf(kind, style, variant)?.crop ?? sprite.crop, w = sprite.width * scaleOf(kind, variant);
   return { w, h: w * sh / sw, base: sprite.base };
 }
 /** `reveal` < 1 draws only the lower part of the building (walls rising on a construction site). */
@@ -300,7 +316,7 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
     sprite.image.decoding = "async";
     sprite.image.src = sprite.url;
   }
-  const st = styledOf(kind, style);
+  const st = styledOf(kind, style, variant);
   if (st && !st.image) st.image = load(st.day);
   const image = st && ready(st.image) ? st.image! : sprite.image;
   if (!image.complete || !image.naturalWidth) return true; // still loading: draw nothing, never the old vector art
@@ -328,9 +344,10 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
 
 /** The light-only layer uses exactly the daylight sprite's framing, scale and mirroring. */
 export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, intensity: number, flip = false, style?: HouseStyle) {
-  const st = styledOf(kind, style);
+  const st = styledOf(kind, style, variant);
   if (st && !st.light) st.light = load(st.night);
   const own = !!st && ready(st.image) && ready(st.light);
+  if (st && !own) return; // never pair a variant's walls with another painting's windows
   const image = own ? st!.light : nightImages[kind], box = spriteBox(kind, variant, own ? style : undefined);
   if (!image?.complete || !image.naturalWidth || !box) return;
   c.save();
