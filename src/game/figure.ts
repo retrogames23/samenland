@@ -22,6 +22,8 @@ export interface FigureConfig {
   legSpread: number;
   /** Swing-phase foot lift as a fraction of leg length. */
   lift: number;
+  /** Leg length multiplier for sprites with tall props (halberd) — torso drops to meet the shorter legs. */
+  legScale?: number;
   /** Tiles per full gait cycle (two steps). */
   stride?: number;
   /** "legs" = breeches on the shared leg cycle; "robe" = floor-length garment, stepping shoes + swaying hem;
@@ -145,7 +147,8 @@ export function drawLegged(
   w: number, h: number, g: FigureConfig, legDy = 0, torsoDy = 0, ph?: number,
 ) {
   const fw = legs.naturalWidth / WALK_FRAMES, lnh = legs.naturalHeight;
-  const lh = h * (1 - g.hipY), lw = ((lh * fw) / lnh) * g.legWidthScale;
+  const ls = g.legScale ?? 1, lh = h * (1 - g.hipY) * ls, lw = ((lh * fw) / lnh) * g.legWidthScale;
+  torsoDy += h * (1 - g.hipY) * (1 - ls);
   drawLegPair(c, legs, frame, lw, lh, legDy, ph, g.legSpread * h, g.lift);
   // torso down to the hem, the last few percent fading over the legs (never a hard scissor line)
   const F = 0.035, top = g.hemY - F, x0 = -w * g.hipX, y0 = -h + torsoDy;
