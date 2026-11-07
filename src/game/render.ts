@@ -43,6 +43,7 @@ import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, s
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { folkImage, walkSheet, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
+import { townRank, seatKindForRank } from "./rank";
 import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
 import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
 import { sheavesOn, woodpileLevel, frost, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
@@ -664,7 +665,17 @@ function beginLit(w: number, h: number, on: boolean) {
   L.c.setTransform(1, 0, 0, 1, 0, 0); L.c.globalCompositeOperation = "source-over"; L.c.clearRect(0, 0, w, h);
   lit = L;
 }
+/** Player towns: the mayor's seat is painted by the real settlement rank (townRank), never by elapsed time. Paint-only. */
+const seatRankMemo = new Map<string, { r: number; at: number }>();
+function seatByRank(s: Structure): Structure {
+  if (!s.seed.user_id || s.build !== undefined || !SEAT_KINDS.includes(s.kind)) return s;
+  let m = seatRankMemo.get(s.seed.id);
+  if (!m || Math.abs(renderNow - m.at) > 60_000) { m = { r: townRank(s.seed, renderSeeds, renderNow), at: renderNow }; seatRankMemo.set(s.seed.id, m); }
+  const kind = seatKindForRank(m.r);
+  return kind === s.kind ? s : { ...s, kind };
+}
 function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
+  s = seatByRank(s);
   const sd = x * 1000 + y;
   // 2×2 ensembles stand on their front tile: centre the sprite over all four tiles
   if (FOOT2.has(s.kind)) cy -= TH / 2;
