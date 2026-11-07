@@ -2647,14 +2647,15 @@ function drawSheetFrame(c: C, sheet: HTMLImageElement, f: number, fw: number, ww
   c.drawImage(sheet, f * fw + k, 0, sw, sheet.naturalHeight, -dw / 2 + dx, -hgt, dw, hgt);
 }
 
-/** Dev sprite lab: every figure class side by side in its walk cycle with anatomy guides. */
-export type LabOpts = { boxes: boolean; lines: boolean; scale: number };
-type LabEntry = { label: string; h: number; cfg: FigureConfig | null; draw: (c: C, w: number, h: number, ph: number) => number | null };
+/** Dev sprite lab: every figure and animal class in its own cycle with anatomy guides. */
+export type LabOpts = { boxes: boolean; lines: boolean };
+export type LabCat = "mayor" | "court" | "folk" | "robe" | "kids" | "animal";
+type LabEntry = { label: string; cat: LabCat; h: number; cfg: FigureConfig | null; draw: (c: C, h: number, ph: number, now: number) => number | null };
 function labEntries(): LabEntry[] {
   const out: LabEntry[] = [];
   const folk = (k: FolkSprite, robe = false): LabEntry => ({
-    label: k, h: 4.4, cfg: robe ? fig(0.5, 0.8, { style: "robe" }) : (HIPS[k] ?? DEFAULT_FIG),
-    draw: (c, _w, h, ph) => {
+    label: k, cat: robe ? "robe" : "folk", h: 4.4, cfg: robe ? fig(0.5, 0.8, { style: "robe" }) : (HIPS[k] ?? DEFAULT_FIG),
+    draw: (c, h, ph) => {
       const im = folkImage(k); if (!im) return null;
       const w = (h * im.naturalWidth) / im.naturalHeight, bob = -walkBob(ph, h);
       if (robe) drawRobeWalk(c, im, 0, im.naturalWidth, im.naturalHeight, folkImage("footF"), w, h, ph, 0.8, 0.93, -bob);
@@ -2664,8 +2665,8 @@ function labEntries(): LabEntry[] {
     },
   });
   for (const sex of ["m", "f"]) for (const age of [20, 30, 40, 50, 60, 70]) out.push({
-    label: `Schulze ${sex} ${age}`, h: 5.3, cfg: sex === "m" ? MAYOR_LEGS : fig(0.5, 0.8, { style: "robe" }),
-    draw: (c, _w, h, ph) => {
+    label: `Schulze ${sex} ${age}`, cat: "mayor", h: 5.3, cfg: sex === "m" ? MAYOR_LEGS : fig(0.5, 0.8, { style: "robe" }),
+    draw: (c, h, ph) => {
       const im = folkImage(mayorSheet(sex, age)); if (!im) return null;
       const fw = im.naturalWidth / WORK_FRAMES, fh = im.naturalHeight, w = (h * fw) / fh, bob = -walkBob(ph, h);
       const legs = folkImage("legsM"), f = gaitFrame(ph);
@@ -2675,43 +2676,65 @@ function labEntries(): LabEntry[] {
     },
   });
   for (const r of Object.keys(COURT_GAIT) as CourtRole[]) out.push({
-    label: r, h: courtHeight(r), cfg: COURT_GAIT[r],
-    draw: (c, _w, h, ph) => { const im = huntIm(`courtfig-${r}`, COURT_FIG[r]); if (!im) return null;
+    label: r, cat: "court", h: courtHeight(r), cfg: COURT_GAIT[r],
+    draw: (c, h, ph) => { const im = huntIm(`courtfig-${r}`, COURT_FIG[r]); if (!im) return null;
       const w = (h * im.naturalWidth) / im.naturalHeight; drawCourtWalk(c, im, r, w, h, ph); return w; },
   });
   for (const k of ["man", "farmer", "porter", "builder", "woodcutter", "mason", "elder", "groom", "robber"] as FolkSprite[]) out.push(folk(k));
   for (const k of ["woman", "farmerF", "elderF", "priest", "bride", "builderF", "woodcutterF", "masonF", "porterF"] as FolkSprite[]) out.push(folk(k, true));
   for (const k of ["child", "girl", "toddler", "youth", "youthF"] as FolkSprite[]) out.push({
-    label: k, h: k === "toddler" ? 2.4 : k === "child" || k === "girl" ? 3 : 3.9, cfg: null,
-    draw: (c, _w, h, ph) => { const sh = walkSheet(k); if (!sh) return null;
+    label: k, cat: "kids", h: k === "toddler" ? 2.4 : k === "child" || k === "girl" ? 3 : 3.9, cfg: null,
+    draw: (c, h, ph) => { const sh = walkSheet(k); if (!sh) return null;
       const fw = sh.naturalWidth / WALK_FRAMES, f = gaitFrame(ph), ww = (h * fw) / sh.naturalHeight;
       drawSheetFrame(c, sh, f, fw, ww, h, -(frameShift(sh)[f] ?? 0) * ww); return ww; },
   });
+  // animals: real game draw calls at the origin; ph (radians) is turned into the distance / clock each one steps by
+  const A = (label: string, h: number, w: number, draw: (c: C, ph: number, now: number) => boolean | void): LabEntry =>
+    ({ label, cat: "animal", h, cfg: null, draw: (c, _h, ph, now) => (draw(c, ph, now) === false ? null : w) });
+  out.push(
+    A("Schaf geht", 4, 5, (c, ph) => drawSheep(c, 0, 0, false, (ph / 6.2832) * 1440, true, false, false)),
+    A("Schaf weidet", 4, 5, (c, _ph, now) => drawSheep(c, 0, 0, false, now, false, true, false)),
+    A("Schaf schläft", 3, 5, (c, _ph, now) => drawSheep(c, 0, 0, false, now, false, false, true)),
+    A("Kuh", 5, 6, (c, _ph, now) => drawCow(c, 0, 0, now, 3, 1)),
+    A("Schwein", 3, 4, (c, _ph, now) => drawPig(c, 0, 0, now, 5)),
+    A("Hund trabt", 2.2, 2.4, (c, ph, now) => drawDog(c, { x: 0, y: 0, mode: "trot", flip: false, dist: (ph / 6.2832) * 0.44 }, 0, 0, now, 1)),
+    A("Hund geht", 2.2, 2.4, (c, ph, now) => drawDog(c, { x: 0, y: 0, mode: "walk", flip: false, dist: (ph / 6.2832) * 0.32 }, 0, 0, now, 1)),
+    A("Hund sitzt", 2, 2, (c, _ph, now) => drawDog(c, { x: 0, y: 0, mode: "sit", flip: false, dist: 0 }, 0, 0, now, 1)),
+    A("Hund schläft", 1.5, 3, (c, _ph, now) => drawDog(c, { x: 0, y: 0, mode: "sleep", flip: false, dist: 0 }, 0, 0, now, 1)),
+    A("Reiter", 11, 9, (c, ph) => drawRider(c, 0, 0, 1, 0.3, 5, (ph / 6.2832) * 1000)),
+    A("Reiter (weg)", 11, 9, (c, ph) => drawRider(c, 0, 0, 1, -1, 5, (ph / 6.2832) * 1000)),
+    A("Hirsch geht", 6.2, 7, (c, ph) => { const dw = huntIm("dw", deerWalkUrl); if (!dw) return false; drawBeast(c, dw, null, 0, 0, 6.2, false, 1, (ph / 6.2832) * 4.4, 0); }),
+    A("Hirsch äst", 6.2, 7, (c, _ph, now) => { const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl); if (!dw || !dg) return false;
+      drawBeast(c, dw, dg, 0, 0, 6.2, false, 0, 0, Math.floor(now / 1500) % 8 < 5 ? (Math.floor(now / 650) & 1) : 2); }),
+    A("Wildschwein", 4.4, 6, (c, ph) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; drawBeast(c, bw, null, 0, 0, 4.4, false, 1, (ph / 6.2832) * 4.4, 0); }),
+    A("Wildschwein wühlt", 4.4, 6, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 2.2); sheetFrame(c, bw, 3, 0, -(Math.floor(now / 500) & 1) * 0.08, 4.4, false); }),
+    A("Jäger", 5.4, 3, (c, _ph, now) => { const hu = huntIm("hu", hunterUrl); if (!hu) return false; const f = Math.floor(now / 1200) % 3;
+      shadow(c, 0, 0, 1.6, 0.3); sheetFrame(c, hu, f, 0, 0, f === 2 ? 4.1 : f === 1 ? 4.6 : 5.4, false); }),
+    A("Hühner", 4, 14, (c) => drawHens(c, 0, -5, 7)),
+  );
   return out;
 }
 let labCache: LabEntry[] | null = null;
-export function drawFigureLab(c: C, W: number, H: number, t: number, o: LabOpts) {
-  const es = (labCache ??= labEntries()), z = o.scale, cell = 9 * z, cols = Math.max(1, Math.floor((W - 20) / cell));
-  const ph = (t / 520) * 6.2832;
-  c.font = `${Math.max(10, z * 0.9)}px sans-serif`; c.textAlign = "center";
-  es.forEach((e, i) => {
-    const x = 10 + cell * (i % cols) + cell / 2, y = 30 + cell * 1.25 * (Math.floor(i / cols) + 1) - cell * 0.35;
-    if (y > H + cell) return;
-    c.setTransform(z, 0, 0, z, x, y); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-    const w = e.draw(c, 0, e.h, ph);
-    c.setTransform(1, 0, 0, 1, 0, 0);
-    c.fillStyle = "#3a2a14"; c.fillText(e.label, x, y + 14);
-    if (w == null) return;
-    const h = e.h * z, ww = w * z, g = e.cfg;
-    if (o.boxes) { c.strokeStyle = "rgba(0,120,255,0.8)"; c.lineWidth = 1; c.strokeRect(x - (g ? g.hipX : 0.5) * ww, y - h, ww, h); }
-    if (o.lines && g) {
-      const line = (fy: number, col: string) => { c.strokeStyle = col; c.beginPath(); c.moveTo(x - ww * 0.8, y - h + fy * h); c.lineTo(x + ww * 0.8, y - h + fy * h); c.stroke(); };
-      line(g.style === "robe" ? 1 - LEG_RATIO : g.hipY, "rgba(220,30,30,0.9)"); line(g.hemY, "rgba(20,160,60,0.9)");
-      // dashed ground line: soles must sit on it in stance, not slide
-      c.setLineDash([4, 3]); line(1, "rgba(40,40,40,0.85)"); c.setLineDash([]);
-    }
-    c.fillStyle = "#e0007a"; c.beginPath(); c.arc(x, y, 2.5, 0, 7); c.fill();
-  });
+const labList = () => (labCache ??= labEntries());
+/** Names and groups of every lab entry, in display order. */
+export function labCatalog(): { label: string; cat: LabCat; h: number }[] { return labList().map((e) => ({ label: e.label, cat: e.cat, h: e.h })); }
+/** Draws entry i with its feet at (x, y) in canvas pixels, z pixels per world unit; ph = gait phase in radians. */
+export function drawLabFigure(c: C, i: number, x: number, y: number, z: number, ph: number, now: number, o: LabOpts) {
+  const e = labList()[i]; if (!e) return;
+  c.save(); c.translate(x, y); c.scale(z, z); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  const w = e.draw(c, e.h, ph, now);
+  c.restore();
+  if (w == null) return;
+  const h = e.h * z, ww = w * z, g = e.cfg;
+  c.lineWidth = 1;
+  if (o.boxes) { c.strokeStyle = "rgba(0,120,255,0.8)"; c.strokeRect(x - (g ? g.hipX : 0.5) * ww, y - h, ww, h); }
+  if (o.lines) {
+    const line = (fy: number, col: string) => { c.strokeStyle = col; c.beginPath(); c.moveTo(x - ww * 0.8, y - h + fy * h); c.lineTo(x + ww * 0.8, y - h + fy * h); c.stroke(); };
+    if (g) { line(g.style === "robe" ? 1 - LEG_RATIO : g.hipY, "rgba(220,30,30,0.9)"); line(g.hemY, "rgba(20,160,60,0.9)"); }
+    // dashed ground line: soles must sit on it in stance, not slide
+    c.setLineDash([4, 3]); line(1, "rgba(40,40,40,0.85)"); c.setLineDash([]);
+  }
+  c.fillStyle = "#e0007a"; c.beginPath(); c.arc(x, y, Math.max(1.5, Math.min(4, z * 0.12)), 0, 7); c.fill();
 }
 // ---------------- player rituals: festive garlands and signposts ----------------
 let signSrc: Signpost[] = [], signKey = "", signSeeds: Seed[] | null = null;
