@@ -2622,9 +2622,9 @@ function courtFigures(t: number) {
 /** Court anatomy: legs keep LEG_RATIO height from the hip; the prince wears a floor-length ermine
  * mantle, so he walks like the princess — swaying hem, only boot tips step out (no cut through the fur). */
 const COURT_GAIT: Record<CourtRole, FigureConfig> = {
-  prince: fig(0.61, 0.56, { style: "mantle" }), princess: fig(0.5, 0.8, { style: "robe" }),
+  prince: fig(0.49, 0.7), princess: fig(0.5, 0.8, { style: "robe" }),
   herald: fig(0.41, 0.64), guard: fig(0.51, 0.57, { stride: GUARD_STRIDE }),
-  gardener: fig(0.31, 0.73), groom: fig(0.62, 0.63, { legWidthScale: 1.05 }),
+  gardener: fig(0.47, 0.52), groom: fig(0.59, 0.53, { legWidthScale: 1.05 }),
 };
 // the guard sprite: halberd tip only a little above the helmet (body ~88 % of the height)
 const courtHeight = (r: CourtRole) => (r === "prince" ? 4.9 : r === "guard" ? 5.3 : 4.6);
