@@ -26,7 +26,7 @@ const TXT = {
   },
 };
 
-const chip = (on: boolean) => `rounded px-1.5 py-1 text-[11px] ${on ? "bg-accent text-foreground" : "bg-background/40 hover:bg-accent/50"}`;
+const chip = (on: boolean) => `rounded px-1.5 py-1 text-[11px] ${on ? "bg-accent text-foreground" : "bg-card/60 hover:bg-accent/50"}`;
 
 export function LabDesk({ lang, onChange, onClose, onTrigger }: { lang: Lang; onChange: () => void; onClose: () => void; onTrigger?: (e: LabEvent) => void }) {
   const t = lang === "de" ? TXT.de : TXT.en;
