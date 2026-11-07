@@ -1209,9 +1209,9 @@ function folkOf(q: Pose): FolkSprite {
 }
 // hipX = hip column, hemY = tunic hem (measured on the sprites); legs keep LEG_RATIO height regardless of hem
 const HIPS: Partial<Record<FolkSprite, FigureConfig>> = {
-  man: fig(0.465, 0.575, { legs: "dark" }), wealthy: fig(0.48, 0.64, { legs: "dark" }), farmer: fig(0.51, 0.71, { legs: "linen" }), porter: fig(0.437, 0.676, { legs: "linen" }), builder: fig(0.472, 0.653, { legs: "grey" }),
+  man: fig(0.438, 0.556, { legs: "dark" }), wealthy: fig(0.425, 0.635, { legs: "dark" }), farmer: fig(0.51, 0.71, { legs: "linen" }), porter: fig(0.437, 0.676, { legs: "linen" }), builder: fig(0.472, 0.653, { legs: "grey" }),
   woodcutter: fig(0.453, 0.67, { legs: "grey" }), mason: fig(0.4, 0.62, { legs: "grey" }), elder: fig(0.47, 0.68, { legWidthScale: 1.04, legs: "dark", keep: [[0.84, 0.96, 0.95]] }),
-  robber: fig(0.45, 0.665, { legs: "dark" }), watchman: fig(0.52, 0.64, { legs: "dark" }), youth: fig(0.5, 0.58, { legs: "dark" }), groom: fig(0.56, 0.74, { legWidthScale: 1.06, legs: "linen" }),
+  robber: fig(0.45, 0.665, { legs: "dark" }), watchman: fig(0.58, 0.635, { legs: "dark", keep: [[0.17, 0.245, 1.0]] }), youth: fig(0.5, 0.58, { legs: "dark" }), groom: fig(0.56, 0.74, { legWidthScale: 1.06, legs: "linen" }),
 };
 const LEG_IMG = { m: "legsM", grey: "legsGrey", dark: "legsDark", linen: "legsLinen", red: "legsRed" } as const;
 /** Leg cycle in the outfit's colour (falls back to the shared brown breeches while loading). */
