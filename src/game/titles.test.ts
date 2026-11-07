@@ -28,3 +28,15 @@ describe("mayor titles", () => {
     expect(titleBoons(s, p)).toEqual({ food: 15, health: 0, wealth: 0 });
   });
 });
+
+import { rankBlock as rb } from "./economy";
+describe("guild exams follow settlement rank, not age", () => {
+  const s = { id: "g", created_at: new Date().toISOString(), charter: { path: "craft" } } as never;
+  it("journeyman from Dorf, master from Handelsstadt", () => {
+    expect(rb(s, [], 1, 0)).toBe("age");
+    expect(rb(s, [{ seed_id: "g", item: "guildhall" }], 2, 0)).toBe(null);
+    const j = [{ seed_id: "g", item: "rank2" }, { seed_id: "g", item: "belfry4" }];
+    expect(rb(s, j, 3, 2)).toBe("age");
+    expect(rb(s, j, 4, 2)).toBe(null);
+  });
+});

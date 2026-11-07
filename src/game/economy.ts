@@ -117,7 +117,8 @@ export type ChestStep = (typeof CHEST_STEPS)[number];
 export const CHEST_CAP = { chest2: 4000, chest3: 10000, chest4: 25000 } as const;
 export const CHEST_PRICE = { chest2: 250, chest3: 800, chest4: 2000 } as const;
 /** Real age (hours): Dorf, Handelsstadt, Großstadt. */
-export const CHEST_HOURS = { chest2: 168, chest3: 2160, chest4: 4380 } as const;
+/** Settlement rank (townRank) each expansion needs: Dorf, Kleinstadt, Handelsstadt — mirrors DB purchase_guard need_rank. */
+export const CHEST_STAGE = { chest2: 2, chest3: 3, chest4: 4 } as const;
 /** Warning threshold for the optional overflow letter. */
 export const CHEST_WARN = 0.9;
 type Owned = { seed_id: string; item: string; created_at: string };
@@ -129,10 +130,10 @@ export const chestCap = (seedId: string, purchases: Owned[], at = Infinity) => {
   return l === 1 ? CHEST_BASE : CHEST_CAP[CHEST_STEPS[l - 2]!];
 };
 /** Why the next expansion cannot be bought yet, or null. */
-export function chestBlock(s: Seed, purchases: Owned[], now: number): null | "age" | "max" {
+export function chestBlock(s: Seed, purchases: Owned[], townRank: number): null | "age" | "max" {
   const l = chestLevel(s.id, purchases);
   if (l === 4) return "max";
-  return (now - Date.parse(s.created_at)) / 3.6e6 < CHEST_HOURS[CHEST_STEPS[l - 1]!] ? "age" : null;
+  return townRank < CHEST_STAGE[CHEST_STEPS[l - 1]!] ? "age" : null;
 }
 
 /** Ledger entries besides tax/dowry/raids with their time — the same rows DB village_balance sums. */
@@ -247,8 +248,8 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
 /** Rank steps bought as purchases; prices, ages and requirements mirror the database purchase guard. */
 export const RANK_PRICE = { rank2: 250, rank3: 800 } as const;
 export type RankStep = keyof typeof RANK_PRICE;
-/** Real age (hours) before each exam: Dorf for journeymen, Handelsstadt for masters. */
-export const RANK_HOURS = { rank2: 168, rank3: 4380 } as const;
+/** Settlement rank (townRank) before each exam: Dorf for journeymen, Handelsstadt for masters — mirrors DB need_rank. */
+export const RANK_STAGE = { rank2: 2, rank3: 4 } as const;
 export const RANK_ROADS = 2;
 export const GUILD_OF: Record<CharterPath, Item> = { trade: "markethall", craft: "guildhall", culture: "library", farm: "dairy" };
 /** Current rank 0 (no charter) … 3 (master), derived from purchase rows. */
@@ -260,12 +261,12 @@ export const rankOf = (s: Seed, purchases: { seed_id: string; item: string }[]) 
 /** Rank from Seed.bought (for pure world code). */
 export const rankOfSeed = (s: Seed) => rankOf(s, (s.bought ?? []).map((b) => ({ seed_id: s.id, item: b.item })));
 /** Why the next exam is not open yet, or null when it may be paid. */
-export function rankBlock(s: Seed, purchases: { seed_id: string; item: string }[], now: number, roads: number): null | "charter" | "age" | "guild" | "belfry" | "roads" | "max" {
+export function rankBlock(s: Seed, purchases: { seed_id: string; item: string }[], townRank: number, roads: number): null | "charter" | "age" | "guild" | "belfry" | "roads" | "max" {
   const r = rankOf(s, purchases);
   if (r === 0) return "charter";
   if (r === 3) return "max";
   const step: RankStep = r === 1 ? "rank2" : "rank3";
-  if ((now - Date.parse(s.created_at)) / 3.6e6 < RANK_HOURS[step]) return "age";
+  if (townRank < RANK_STAGE[step]) return "age";
   const own = (i: string) => purchases.some((p) => p.seed_id === s.id && p.item === i);
   if (step === "rank2") return own(GUILD_OF[s.charter!.path]) ? null : "guild";
   if (!own("belfry4")) return "belfry";

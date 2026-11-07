@@ -2,8 +2,8 @@
  * Village chronicle: what happened between two moments, derived purely from seeds and time
  * (same functions that drive growth), so it needs no stored history. Returns codes; i18n formats them.
  */
-import { effAge, stageOf, landmarkSpots, specialDone, specialTile, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, radiusOf, reachOf, LANDMARKS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
-import { townRank } from "./rank";
+import { effAge, stageOf, landmarkSpots, specialDone, specialTile, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, radiusOf, reachOf, LANDMARKS, SEAT_KINDS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
+import { townRank, seatKindForRank } from "./rank";
 import { taxEarned } from "./economy";
 import { dowryEarned } from "./weddings";
 import { fires, floods, floodFront, raids, raidLoss } from "./disasters";
@@ -69,10 +69,15 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   for (let t = from + STEP; ; t += STEP) {
     const now = Math.min(t, to), age = effAge(s, seeds, now);
     const rk = townRank(s, seeds, now);
-    for (let k = prevRank + 1; k <= rk; k++) ev.push({ at: now, code: "stage", stage: k });
+    for (let k = prevRank + 1; k <= rk; k++) {
+      ev.push({ at: now, code: "stage", stage: k });
+      // player towns rebuild the mayor's seat when the real rank rises, never by elapsed time
+      if (s.user_id && k >= 2 && k <= 4) ev.push({ at: now, code: "built", kind: seatKindForRank(k) });
+    }
     prevRank = Math.max(prevRank, rk);
     LANDMARKS.forEach((l, i) => {
       if (!(l.at > prevAge && l.at <= age)) return;
+      if (s.user_id && SEAT_KINDS.includes(l.kind) && l.kind !== "seat1") return;
       let x: number | undefined, y: number | undefined;
       for (const [k, list] of landmarkSpots(s)) if (list.includes(i)) { const [dx, dy] = k.split(",").map(Number); x = s.x + dx!; y = s.y + dy!; break; }
       const st = x != null && y != null ? structureAt(x, y, seeds, now) : null;

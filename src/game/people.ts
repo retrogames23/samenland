@@ -23,7 +23,7 @@ import { wetness, shelters } from "./weather";
 import { fieldLook, farmTask } from "./rotation";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { geoKey, MAP, hash, structureAt, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, type TradeGood, type Seed, type Kind } from "./world";
+import { geoKey, MAP, hash, structureAt, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -631,10 +631,37 @@ function processions(ws: Wedding[], people: Person[], church: Tile, now: number)
 export const FETE_SECS = 3600;
 const FETE_WIN = 2.5 * 3600e3;
 /** The latest landmark finished within the last FETE_WIN ms, with the moment it was finished (pure). */
+/** townRank, registered by rank.ts (it imports this module, so no static import back). */
+let rankHook: ((s: Seed, seeds: Seed[], t: number) => number) | null = null;
+export const setRankHook = (f: typeof rankHook) => { rankHook = f; };
+let inRank = false;
+const RANK_STEP = 15 * 60e3, rankMemo = new Map<string, number>();
+const SEAT_OF = (r: number) => (r >= 4 ? "townhall" : r === 3 ? "seat3" : r === 2 ? "seat2" : "seat1") as Kind;
+function rankAtStep(s: Seed, seeds: Seed[], t: number) {
+  const k = `${s.id}:${t}:${seeds.length}`; let r = rankMemo.get(k);
+  if (r == null) { inRank = true; try { r = rankHook!(s, seeds, t); } finally { inRank = false; } if (rankMemo.size > 4000) rankMemo.clear(); rankMemo.set(k, r); }
+  return r;
+}
+/** Player towns: the seat is rebuilt when the real rank rises (never by elapsed time) — the latest such moment within the window. */
+function seatFete(s: Seed, seeds: Seed[], now: number): { at: number; tile: Tile; kind: Kind } | null {
+  if (!rankHook || inRank) return null;
+  let tile: Tile | null = null;
+  for (const [k, list] of landmarkSpots(s)) if (list.some((j) => SEAT_KINDS.includes(LANDMARKS[j]!.kind))) { const [dx, dy] = k.split(",").map(Number); tile = [s.x + dx!, s.y + dy!]; break; }
+  if (!tile) return null;
+  const b = Math.floor(now / RANK_STEP) * RANK_STEP;
+  for (let t = b; t > now - FETE_WIN; t -= RANK_STEP) {
+    const r1 = rankAtStep(s, seeds, t), r0 = rankAtStep(s, seeds, t - RANK_STEP);
+    if (r1 > r0 && SEAT_OF(r1) !== SEAT_OF(r0)) return { at: t, tile, kind: SEAT_OF(r1) };
+  }
+  return null;
+}
 export function inauguration(s: Seed, seeds: Seed[], now: number): { at: number; tile: Tile; kind: Kind } | null {
+  if (inRank) return null;
   const a1 = effAge(s, seeds, now), a0 = effAge(s, seeds, now - FETE_WIN);
+  const player = !!s.user_id;
   let li = -1;
-  for (let i = 0; i < LANDMARKS.length; i++) { const l = LANDMARKS[i]!; if (l.at > a0 && l.at <= a1 && (li < 0 || l.at > LANDMARKS[li]!.at)) li = i; }
+  for (let i = 0; i < LANDMARKS.length; i++) { const l = LANDMARKS[i]!; if (player && SEAT_KINDS.includes(l.kind) && l.kind !== "seat1") continue; if (l.at > a0 && l.at <= a1 && (li < 0 || l.at > LANDMARKS[li]!.at)) li = i; }
+  const sf = player ? seatFete(s, seeds, now) : null;
   // bought buildings finished within the window are inaugurated just like landmarks
   let bb: { at: number; tile: Tile; kind: Kind } | null = null;
   for (const b of s.bought ?? []) {
@@ -644,6 +671,7 @@ export function inauguration(s: Seed, seeds: Seed[], now: number): { at: number;
     const done = mk ? monumentDone(s, seeds, mk) : specialDone(s, seeds, b.at); if (done == null || done <= now - FETE_WIN || done > now || (bb && bb.at >= done)) continue;
     const tl = specialTile(s, kind); if (tl) bb = { at: done, tile: tl, kind };
   }
+  if (sf && sf.at <= now && (!bb || sf.at > bb.at)) bb = sf;
   if (li < 0) return bb;
   let tile: Tile | null = null;
   for (const [k, list] of landmarkSpots(s)) if (list.includes(li) && !list.some((j) => j !== li && LANDMARKS[j]!.at > LANDMARKS[li]!.at && LANDMARKS[j]!.at - 96 <= a1)) { const [dx, dy] = k.split(",").map(Number); tile = [s.x + dx!, s.y + dy!]; break; }
