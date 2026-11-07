@@ -355,7 +355,7 @@ function drawFeastKit(c: C, X: number, Y: number, q: Pose, t: number) {
   if (si != null && h >= 10 && h < 17) {
     // children are shorter than the 4.4-unit adult: the crown sits on the child's head, not above it
     const hy = Y - 3.55 / K;
-    const cr = folkImage("starCrown"); if (cr) { const w = 1.9, h = w * cr.naturalHeight / cr.naturalWidth; c.drawImage(cr, X - w / 2, hy - h * 0.8, w, h); }
+    const cr = folkImage("starCrown"); if (cr) { const w = 1.9, h = w * cr.naturalHeight / cr.naturalWidth; c.drawImage(cr, X - w / 2, top - h * 0.35, w, h); }
     if (si === 0) {
       const sp = folkImage("starPole"); if (sp) { const h = 9, w = h * sp.naturalWidth / sp.naturalHeight, sw = Math.sin(t / 700 + p.id) * 0.04;
         c.save(); c.translate(X + 1.7, Y - 2.6); c.rotate(0.12 + sw); c.drawImage(sp, -w / 2, -h, w, h); c.restore(); }
