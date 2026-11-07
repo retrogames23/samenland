@@ -1364,7 +1364,7 @@ function drawHandLantern(c: C, X: number, Y: number, q: Pose, t: number) {
   c.restore();
 }
 /** Painted load sprites per good: [sprite, source crop (fractions x,y,w,h), width as share of body height, hold]. */
-const CARRY_ART: Record<Good, [FolkSprite, [number, number, number, number], number, "shoulder" | "hand"] | null> = {
+const CARRY_ART: Record<NonNullable<Pose["carry"]>, [FolkSprite, [number, number, number, number], number, "shoulder" | "hand"] | null> = {
   grain: ["loadSack", [0, 0, 1, 1], 0.28, "shoulder"],
   flour: ["loadSack", [0, 0, 1, 1], 0.28, "shoulder"],
   bundle: ["loadBale", [0, 0, 1, 1], 0.32, "shoulder"],
