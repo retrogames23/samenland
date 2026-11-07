@@ -155,16 +155,21 @@ export function drawRobeWalk(
   c: C, im: CanvasImageSource, sx: number, sw: number, sh: number, foot: HTMLImageElement | null,
   w: number, h: number, ph: number, top = 0.8, end = 0.93, dy = 0, swing = 0.035,
 ) {
-  // the painted gown is kept whole down to its own shoes: cutting it and stamping extra shoes underneath
-  // left a severed hem with floating feet; the walk is shown by the swaying lower garment alone
-  void foot; void end; end = 1; top = Math.min(top, 0.8);
+  // gown cut at its measured painted hem (drops the painted standing boots); stepping shoes are drawn
+  // first and tall enough that their ankles reach up behind the hem, so no gap and no floating feet;
+  // the gown stays one closed piece (never strips) with a gentle whole-skirt swing
+  void top;
+  end = hemEnd(im, sx, sw, sh, end);
   const sway = Math.sin(ph);
-  c.drawImage(im, sx, 0, sw, sh * top, -w / 2, -h + dy, w, h * top);
-  const N = 6;
-  for (let i = 0; i < N; i++) {
-    const a = top + ((end - top) * i) / N, b = top + ((end - top) * (i + 1)) / N, u = (i + 0.5) / N, dx = sway * w * swing * 1.6 * Math.sin(Math.PI * u) * (1 - u * 0.5);
-    c.drawImage(im, sx, sh * a, sw, sh * (b - a) + 0.5, -w / 2 + dx, -h + h * a + dy, w, h * (b - a) + 0.05);
+  if (foot) {
+    const fs = h * (1 - end) + h * 0.06, fw2 = (fs * foot.naturalWidth) / foot.naturalHeight;
+    for (const sd of [-1, 1]) {
+      const lift = Math.max(0, Math.cos(ph) * sd) * h * 0.02;
+      c.drawImage(foot, sd * sway * w * 0.13 - fw2 * 0.45, dy - fs - lift, fw2, fs);
+    }
   }
+  void swing;
+  c.drawImage(im, sx, 0, sw, sh * end, -w / 2, -h + dy, w, h * end);
 }
 
 /** Painted hem line (fraction of height) of a skirted sprite, measured once from its alpha: the lowest row still
