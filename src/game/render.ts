@@ -3537,12 +3537,13 @@ export function draw(
         const tx = host.x + dx, ty = host.y + dy;
         if (isWater(terrain(tx, ty))) continue;
         const st = structureAt(tx, ty, seeds, now);
-        if (st && !FLAT.has(st.kind)) continue;
-        if (st && (st.kind === "field" || st.kind === "pasture" || st.kind === "garden")) continue;
+        if (st && (!FLAT.has(st.kind) || st.build !== undefined)) continue;
+        if (st && (st.kind === "field" || st.kind === "pasture" || st.kind === "garden" || st.kind === "bridge")) continue;
         const owner = gs[placed % gs.length]!;
         const [X, Y] = iso(tx, ty);
         const fl = hash(tx, ty, 77) < 0.5;
-        roadProp(X, Y + TH / 2, 1, () => drawStall(c, X, Y + TH / 2, fl));
+        // bound to its own tile: houses further south are drawn later and hide it, never the other way round
+        addProp(ty * MAP + tx, (cx, cy) => drawStall(c, cx, cy + 2, fl));
         const ex = tradeProfile(owner, now).exports;
         lastTraders.push({ x: X, y: Y, from: owner.name, to: host.name, good: ex[0] ?? null, cart: false, stall: true });
         placed++;
