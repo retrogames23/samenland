@@ -386,7 +386,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       if (sc.who === "builders" ? !["builder", "sawyer", "woodcutter", "crafter"].includes(q.job) && hash(q.id, 61, 720) > 0.05 : hash(q.id, 61 + (k % 97), 720) >= share(sc.share)) continue;
       n++;
       const a = hash(q.id, 62, 720) * Math.PI * 2, rr = (sc.work ? 0.6 + hash(q.id, 63, 720) * 0.9 : 1 + hash(q.id, 63, 720) * 1.4) * widen(sc.share);
-      q.fete = { at, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 64, 720) * 240, dur: sc.h * 3600, work: sc.work };
+      q.fete = { at, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 64, 720) * 240, dur: sc.h * 3600, ...(sc.work ? { work: true } : {}) };
     }
   }
   // fire: the fire wardens and watch run to the blaze, and neighbours join the bucket chain until it is out
