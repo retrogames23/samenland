@@ -47,6 +47,9 @@ export function seatTile(s: Seed): [number, number] {
 const RING: [number, number][] = [];
 for (let r = 1; r <= 4; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r) RING.push([dx, dy]);
 
+const WIDE = new Set<RewardKey>(["fountain", "linden", "rosearch", "beegarden"]);
+const NEIGH: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1]];
+const OPEN = new Set<string>(["street", "path", "square", "field", "garden", "pasture"]);
 let cache: { key: string; map: Map<number, RewardKey> } | null = null;
 /** tile index (y*MAP+x) -> decoration, for every village with granted rewards. Recomputed at most every 10 minutes. */
 export function decorMap(seeds: Seed[], owned: Map<string, Set<string>>, now: number, MAP: number): Map<number, RewardKey> {
@@ -63,6 +66,8 @@ export function decorMap(seeds: Seed[], owned: Map<string, Set<string>>, now: nu
       while (ri < RING.length) {
         const [dx, dy] = RING[ri++]!, x = sx + dx, y = sy + dy;
         if (map.has(y * MAP + x) || !buildable(terrain(x, y)) || structureAt(x, y, seeds, now)) continue;
+        // larger pieces need free neighbours too, so they never press into a house or yard
+        if (WIDE.has(k) && NEIGH.some(([i, j]) => { const n = structureAt(x + i, y + j, seeds, now); return (n && !OPEN.has(n.kind)) || map.has((y + j) * MAP + x + i); })) continue;
         map.set(y * MAP + x, k); break;
       }
     }

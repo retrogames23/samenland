@@ -10,4 +10,4 @@ import type { RewardKey } from "./supporter";
 /** Sprite per supporter decoration (seal is a UI badge only). */
 export const SUPPORT_ART: Partial<Record<RewardKey, string>> = { statue, linden, fountain, rosearch, beegarden, lanterns: lantern, vane };
 /** On-map width in world pixels, so decorations match the village scale. */
-export const SUPPORT_W: Partial<Record<RewardKey, number>> = { statue: 22, linden: 60, fountain: 32, rosearch: 32, beegarden: 44, lanterns: 12, vane: 12 };
+export const SUPPORT_W: Partial<Record<RewardKey, number>> = { statue: 22, linden: 60, fountain: 11, rosearch: 32, beegarden: 44, lanterns: 12, vane: 3 };
