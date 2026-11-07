@@ -47,3 +47,5 @@
 - Keyboard: one window listener in the canvas effect skips form fields; pan keys stay in KEYMAP, all other keys go to the per-render hotkey ref (Escape closes windows → modes → stroll) and Space glides via the glide ref inside panStep — no stale closures, no second listener.
 - Camera zoom limits live in src/game/camera.ts and apply to every realm and input path; wheel, pinch, buttons, double-tap and stroll exit all use maxZoom so their limits cannot diverge.
 - Church feasts (src/game/feasts.ts) are derived from the realm calendar (Julian Easter of the game year, snapped to the map's Sunday); rest days, bonfires, Whitsun tree, Christmas lights and the feast parchment all read feastOn() — never stored, so every player on a map keeps the same feast.
+- Game.tsx is split step by step into hooks under src/components/hooks/ (useTreasurySync owns chest settlement); move logic out without changing behaviour, because the monolith was hard to maintain.
+- Population and rank quests are paid only against a fresh server rank certificate (rank + citizens in rank_certificates, checked by DB quest_guard); the client certifies before claiming, so rewards cannot be forged.
