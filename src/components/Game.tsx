@@ -1737,7 +1737,9 @@ export function Game() {
   const [questOpen, setQuestOpen] = useState(false);
   const [signEdit, setSignEdit] = useState<string | null>(null);
   const [questFold, setQuestFold] = useState(false);
-  useEffect(() => { if (coarse && window.innerWidth < 768) setQuestFold(true); }, [coarse]); // phones: quest starts as a small badge
+  // the fold choice sticks until the player opens it again; phones start folded
+  useEffect(() => { let v: string | null = null; try { v = localStorage.getItem("questFold"); } catch { /* storage off */ } setQuestFold(v != null ? v === "1" : coarse && window.innerWidth < 768); }, [coarse]);
+  const foldQuest = (f: boolean) => { setQuestFold(f); try { localStorage.setItem("questFold", f ? "1" : "0"); } catch { /* storage off */ } };
   const quest = my ? questState(claims, my.id, {
     blessings: blessings.filter((b) => b.seed_id === my.id).length,
     purchases: purchases.filter((p) => p.seed_id === my.id).length,
@@ -3100,11 +3102,18 @@ export function Game() {
           <p className="mt-2 text-xs text-muted-foreground">{PRINCELY[lang].favour(favourOf(princelyRows.current, my.id), PRINCELY_COUNT)}</p>
         </Parchment>
       )}
-      {owner && quest && claimsReady && !panelOpen && (
-        <div className={`absolute right-16 z-30 ${heraldBtn ? "max-md:mt-12" : ""} ${waitDone && !waitShut && !anyOpen && !decision.open && !menuOpen ? "max-md:hidden" : ""} max-w-[calc(100vw-5rem)] md:w-64 ${questFold ? "w-44" : "w-60"}`} style={{ top: barH + 8 }}>
+      {owner && quest && claimsReady && !panelOpen && questFold && (
+        <button type="button" aria-expanded={false} aria-label={petition!.header} title={petition!.header} onClick={() => foldQuest(false)}
+          className={`parchment hit absolute right-16 z-30 grid h-10 w-10 place-items-center rounded-full text-lg shadow ${heraldBtn ? "max-md:mt-12" : ""} ${quest.ready ? "ring-2 ring-brass ring-offset-1 ring-offset-transparent" : "opacity-80"}`} style={{ top: barH + 8 }}>
+          <span aria-hidden>📜</span>
+          {quest.ready && <span aria-hidden className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border border-background bg-brass" />}
+        </button>
+      )}
+      {owner && quest && claimsReady && !panelOpen && !questFold && (
+        <div className={`absolute right-16 z-30 ${heraldBtn ? "max-md:mt-12" : ""} ${waitDone && !waitShut && !anyOpen && !decision.open && !menuOpen ? "max-md:hidden" : ""} max-w-[calc(100vw-5rem)] w-60 md:w-64`} style={{ top: barH + 8 }}>
           <div className="parchment px-3 py-2 text-sm text-ink shadow">
             <div className="flex w-full items-start gap-1">
-              <button type="button" aria-expanded={!questFold} onClick={() => setQuestFold((f) => !f)} className="flex min-w-0 flex-1 items-start justify-between gap-2 text-start">
+              <button type="button" aria-expanded={!questFold} onClick={() => foldQuest(true)} className="flex min-w-0 flex-1 items-start justify-between gap-2 text-start">
                 <span className="font-display text-base leading-tight">{petition!.header}</span>
                 <ChevronDown className={`mt-0.5 h-4 w-4 shrink-0 opacity-60 transition-transform ${questFold ? "" : "rotate-180"}`} />
               </button>
