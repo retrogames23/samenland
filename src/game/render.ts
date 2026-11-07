@@ -1,3 +1,4 @@
+import { streetHouse } from "./street-layout";
 import { weatherAt, wetness, snowiness, stormDark, setWeatherPreview, type WeatherKind } from "./weather";
 import deerWalkUrl from "@/assets/sprites/deer-walk.webp";
 import deerGrazeUrl from "@/assets/sprites/deer-graze.webp";
@@ -3806,7 +3807,12 @@ export function draw(
   const decor = supportOwned.size ? decorMap(seeds, supportOwned, now, MAP) : null, decorNight = worldHour(now) >= 19 || worldHour(now) < 7;
   type Item = Body & { q?: Pose; sh?: { k: number; m: ReturnType<typeof sheepSpots>[number]["m"] } };
   for (let ti = 0; ti < nTiles; ti++) {
-    const { x, y, cx, cy, st } = tiles[ti]!;
+    const { x, y, cx, cy, st: original } = tiles[ti]!;
+    // Change only the paint used by this depth pass, never the simulation's tile.
+    const st = original ? streetHouse(original, x, y, (rx, ry) => {
+      const k = structureAt(rx, ry, seeds, now)?.kind;
+      return !!k && PATHLIKE.has(k);
+    }) : original;
     ord.set(y * MAP + x, ti);
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
     if (!detail) {
