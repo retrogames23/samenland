@@ -90,3 +90,19 @@ export function addressMayor(text: string, lang: Lang, g: Gender, rank: number):
   if (lang === "ja") return k === "d" ? text.replace(/村長/g, tw ? "町の長" : "村の長") : tw ? text.replace(/村長/g, "町長") : text;
   return text;
 }
+
+/** Female and neutral forms of the honorary titles (Amt & Würden) per charter path; missing forms fall back to the male one. Latin offices stay as written. */
+const TITLE_FORMS: Partial<Record<Lang, Partial<Record<"w" | "d", Record<string, (string | undefined)[]>>>>> = {
+  de: {
+    w: { trade: ["Ratsfrau der Gilde", "Älterfrau des Kontors", "Ratssendbotin zum Hansetag"], craft: ["Zunftälteste", "Obermeisterin der Bauhütte", "Oberälteste der Ämter"], farm: ["Flurvögtin", "Erbdrostin der Kornmark", "Landeshauptfrau"] },
+    d: { trade: ["Ratsmitglied der Gilde"], craft: ["Zunftältestes Mitglied"] },
+  },
+  fr: { w: { trade: ["Conseillère de la guilde"], craft: ["Doyenne de la guilde"] } },
+  es: { w: { trade: ["Consejera del gremio"], craft: ["Decana del gremio"] } },
+};
+/** Honorary title in the chosen gender form, falling back to the male (given) name. */
+export function titleForm(lang: Lang, g: Gender, path: string, k: number, male: string): string {
+  const gk = key(g);
+  if (gk === "m") return male;
+  return TITLE_FORMS[lang]?.[gk]?.[path]?.[k] ?? male;
+}
