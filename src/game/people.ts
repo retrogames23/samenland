@@ -16,7 +16,7 @@ import { fires, floods, floodFront } from "./disasters";
 import { guestNow, maypoleUp, cowsOf } from "./encounters";
 import { mastOn, oakSpot, bakeGathering, stegOf, stegSpot, heathSpot, lifeScenes } from "./commons";
 import { WORK_START, WORK_END } from "./time";
-import { worldHour } from "./time";
+import { worldHour, worldWeekday } from "./time";
 const worldHourOf = worldHour;
 import { seasonAt } from "./season";
 import { wetness, shelters } from "./weather";
@@ -31,6 +31,8 @@ export type Job =
   | "sawyer" | "builder" | "woodcutter" | "mason" | "merchant" | "priest" | "carter" | "mayor" | "fisher" | "healer" | "teacher" | "firewarden" | "watchman" | "hunter" | "herbalist" | "homemaker" | "retired" | "child";
 export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play" | "sick" | "care" | "church" | "visit" | "stroll" | "wedding" | "fete" | "fire" | "guest";
 type Tile = [number, number];
+/** Bath day at the Badestube: Saturday (weekday 6), hour slots between BATH_FROM and BATH_TO realm time. */
+export const BATH_DAY = 6, BATH_FROM = 14, BATH_TO = 18;
 export type Person = {
   id: number; seed: Seed; first: string; last: string; sex: Sex; age: number; job: Job;
   home: Tile; work: Tile | null; workIndoor: boolean; speed: number;
@@ -342,6 +344,18 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       if (q.fete || q.proc || q.sick || q.carer != null || q.arrive || q.age < 14 || hash(q.id, 51, 720) >= share(0.3)) continue;
       const a = hash(q.id, 52, 720) * Math.PI * 2, rr = (1 + hash(q.id, 53, 720) * 1.2) * widen(0.3);
       q.fete = { at: bake, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 54, 720) * 300 };
+    }
+  }
+  // Saturday bath day (Badetag before Sunday church): small groups visit the Badestube for an hour, 14–18 h realm time
+  const bath = byKind.get("badestube")?.[0];
+  if (bath && worldWeekday(now) === BATH_DAY) {
+    const h = worldHourOf(now), day0 = now - h * 3.6e6, c = front(bath) ?? bath;
+    for (const q of people) {
+      if (q.fete || q.proc || q.sick || q.carer != null || q.arrive || q.age < 12 || hash(q.id, 61, 720) >= share(0.35)) continue;
+      const slot = BATH_FROM + Math.floor(hash(q.id, 62, 720) * (BATH_TO - BATH_FROM)), at = day0 + slot * 3.6e6;
+      if (now < at || now >= at + 3.6e6) continue;
+      const a = hash(q.id, 63, 720) * Math.PI * 2, rr = (0.8 + hash(q.id, 64, 720)) * widen(0.3);
+      q.fete = { at, spot: [c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr], face: c, lag: hash(q.id, 65, 720) * 600, dur: 3000 };
     }
   }
   // footbridge: the crew works on the bank during working hours until it stands
