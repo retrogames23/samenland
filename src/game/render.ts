@@ -2752,7 +2752,7 @@ function drawSheetFrame(c: C, sheet: HTMLImageElement, f: number, fw: number, ww
 
 /** Dev sprite lab: one row per figure, one card per situation it meets in the game — drawn by the real game paths. */
 export type LabOpts = { boxes: boolean; lines: boolean; weather: WeatherKind | null };
-export type LabCat = "mayor" | "court" | "folk" | "robe" | "kids" | "animal";
+export type LabCat = "mayor" | "court" | "folk" | "robe" | "kids" | "animal" | "feast" | "road";
 type LabEntry = { label: string; row: string; sit: string; cat: LabCat; h: number; w?: number; night?: boolean; wx?: WeatherKind | undefined; cfg: FigureConfig | null; draw: (c: C, h: number, ph: number, now: number) => number | null };
 const LAB_SEED = { id: "lab", hue: 30, bought: [], x: 0, y: 0 } as unknown as Seed;
 type LabSit = "stand" | "walk" | "work" | "carry" | "bucket" | "lantern" | "rain" | "storm" | "snow";
@@ -2880,6 +2880,63 @@ function labEntries(): LabEntry[] {
     A("Hund", "Geht", 2.2, 2.4, (c, ph, now) => drawDog(c, { x: 0, y: 0, mode: "walk", flip: false, dist: (ph / 6.2832) * 0.32 }, 0, 0, now, 1)),
     A("Hund", "Sitzt", 2, 2, (c, _ph, now) => drawDog(c, { x: 0, y: 0, mode: "sit", flip: false, dist: 0 }, 0, 0, now, 1)),
     A("Hund", "Schläft", 1.5, 3, (c, _ph, now) => drawDog(c, { x: 0, y: 0, mode: "sleep", flip: false, dist: 0 }, 0, 0, now, 1)),
+  );
+  // poultry and birds of the open map
+  out.push(
+    A("Hühner", "Scharren", 2.4, 18, () => drawHens(c0(), 0, -5, 7)),
+    A("Krähe", "Fliegt", 6, 30, () => drawBird(c0(), 0, -20, false, 3)),
+    A("Möwe", "Fliegt", 6, 30, () => drawBird(c0(), 0, -20, true, 5)),
+  );
+  // feast figures, through the same draw paths as on feast days
+  const F = (row: string, sit: string, h: number, w: number, draw: (c: C, ph: number, now: number) => unknown): LabEntry =>
+    ({ label: `${row} · ${sit}`, row, sit, cat: "feast", h, w, cfg: null, draw: (c, _h, ph, now) => (draw(c, ph, now) === false ? null : w) });
+  const fw = (walking: boolean): Walk => ({ x: 0, y: 0, dx: 1, dy: 0.3, walking });
+  out.push(
+    F("St. Martin", "Reitet", 12, 9, (c, ph) => drawMartin(c, 0, 0, fw(true), (ph / 6.2832) * 4 * RIDER_MS)),
+    F("St. Martin", "Hält an der Kirche", 12, 9, (c, _ph, now) => drawMartin(c, 0, 0, fw(false), now)),
+    F("Pfingstochse", "Wird geführt", 6, 8, (c, _ph, now) => drawOx(c, 0, 0, fw(true), now)),
+    F("Pfingstochse", "Steht geschmückt", 6, 8, (c, _ph, now) => drawOx(c, 0, 0, fw(false), now)),
+  );
+  // herdsman leading the ox, and the Epiphany star singers (paper crowns, the first carries the star)
+  const feastPerson = (row: string, sit: string, job: string, sex: "m" | "f", age: number, walking: boolean, star: number | null) => {
+    const id = 9000 + pid++;
+    const p = { id, seed: LAB_SEED, first: row, last: "", sex, age, job, home: [0, 0], work: null, workIndoor: false, speed: 1,
+      looks: { skin: 0, hair: 0, shirt: 0, pants: 0, hat: false, stick: false } } as unknown as Person;
+    const k = folkOf({ p, x: 0, y: 0, visible: true, walking, dir: [1, 0], phase: 0, act: "stroll", working: false, talk: null, talkTurn: false, carry: null, dest: null } as Pose);
+    out.push({ label: `${row} · ${sit}`, row, sit, cat: "feast", h: star === 0 ? 7 : 4.6, w: 4.6, cfg: walking ? (SKIRTS.has(k) ? fig(ROBE_HIP[k] ?? 0.5, 0.8, { style: "robe" }) : HIPS[k] ?? null) : null,
+      draw: (c, _h, ph, now) => {
+        const q = { p, x: 0, y: 0, visible: true, walking, dir: [1, 0], phase: ph, act: "stroll", working: false, talk: null, talkTurn: false, carry: null, dest: null } as unknown as Pose;
+        const fz0 = fzNow, fh0 = fzHour;
+        if (star != null) { fzNow = "epiphany"; fzHour = 12; fzStars.set(id, star); }
+        try {
+          if (star == null) { c.strokeStyle = "rgba(92,66,40,0.9)"; c.lineWidth = 0.22; c.beginPath(); c.moveTo(0, -2.2); c.quadraticCurveTo(2, -1.2, 3.6, -2.6); c.stroke(); }
+          return drawFolk(c, 0, 0, q, now) ? 3.6 : null;
+        } finally { fzNow = fz0; fzHour = fh0; fzStars.delete(id); }
+      } });
+  };
+  feastPerson("Ochsenhirte", "Führt am Halfter", "farmer", "m", 40, true, null);
+  feastPerson("Ochsenhirte", "Steht beim Ochsen", "farmer", "m", 40, false, null);
+  feastPerson("Sternsinger (Stern)", "Geht", "child", "m", 12, true, 0);
+  feastPerson("Sternsinger (Stern)", "Steht an der Tür", "child", "m", 12, false, 0);
+  feastPerson("Sternsingerin", "Geht", "child", "f", 10, true, 1);
+  feastPerson("Sternsinger", "Geht", "child", "m", 8, true, 2);
+  // road traffic: wanderers, carts, boats and craft yards — real game draw calls
+  const R = (row: string, sit: string, h: number, w: number, draw: (c: C, ph: number, now: number) => unknown): LabEntry =>
+    ({ label: `${row} · ${sit}`, row, sit, cat: "road", h, w, cfg: null, draw: (c, _h, ph, now) => (draw(c, ph, now) === false ? null : w) });
+  const tw = (ph: number) => (ph / 6.2832) * 1000 / 0.95;
+  out.push(
+    R("Fernwanderer", "Wandert hin", 5, 3.6, (c, ph) => drawWanderer(c, 0, 0, 1, 0.3, tw(ph), 11)),
+    R("Fernwanderer", "Wandert fort", 5, 3.6, (c, ph) => drawWanderer(c, 0, 0, 1, -1, tw(ph), 11)),
+    R("Wanderin", "Wandert", 5, 3.6, (c, ph) => drawWanderer(c, 0, 0, 1, 0.3, tw(ph), 4)),
+    R("Händler mit Last", "Wandert", 5, 4, (c, ph) => drawWanderer(c, 0, 0, 1, 0.3, tw(ph), 17, "bundle")),
+    R("Ochsenkarren", "Fährt hin", 9, 14, (c, ph) => drawCart(c, 0, 0, 1, 0.3, 0, 21, "", tw(ph) * 0.6, "lab-cart-a")),
+    R("Ochsenkarren", "Fährt fort", 9, 14, (c, ph) => drawCart(c, 0, 0, 1, -1, 0, 21, "", tw(ph) * 0.6, "lab-cart-b")),
+    R("Kahn", "Treibt", 6, 13, (c, _ph, now) => drawBoat(c, 0, -1, false, now, 3)),
+    R("Böttcher", "Biegt Dauben", 7, 9, (c, _ph, now) => { prop(c, "cooper", 0, 0, 7); smoke(c, -1, -4, now, 3, 0.3);
+      c.fillStyle = `rgba(255,${150 + Math.floor(60 * Math.sin(now / 90))},40,0.55)`; c.beginPath(); c.ellipse(-1, -1.2 - Math.abs(Math.sin(now / 130)) * 0.6, 0.9, 0.6, 0, 0, 7); c.fill(); }),
+    R("Weberin", "Am Webstuhl", 7, 9, (c, _ph, now) => { prop(c, "loom", 0, 0, 6.5);
+      const im = folkImage("loom"); if (im) { const w = 6.5, h = (w * im.naturalHeight) / im.naturalWidth, by = -h * 0.85 + h * 0.45, sw = Math.sin(now / 380) * 0.5;
+        c.strokeStyle = "rgba(70,48,28,0.9)"; c.lineWidth = 0.35; c.beginPath(); c.moveTo(-w * 0.25 + sw, by); c.lineTo(w * 0.2 + sw, by - h * 0.12); c.stroke(); } }),
   );
   return out;
 }
