@@ -2964,13 +2964,39 @@ function drawBucket(c: C, x: number, y: number, q: Pose, t: number) {
   if (im) { const bw = 0.95, bh = (bw * im.naturalHeight) / im.naturalWidth; c.drawImage(im, bx - bw / 2, by + 0.7 - bh, bw, bh); }
   if (!q.walking) {
     const u = ((t / 840 + q.p.id * 0.37) % 1);
-    if (u < 0.35) {
-      // a gush of droplets thrown from the rim along an arc, thinning as it flies
-      const k = u / 0.35;
-      for (let i = 0; i < 7; i++) {
-        const s = Math.max(0, k - i * 0.05), px = bx + f * (0.8 + s * 5.5), py = by - 1.3 - Math.sin(s * Math.PI) * 3 + s * 2.5;
-        c.fillStyle = `rgba(185,215,232,${0.75 * (1 - k) * (1 - i / 8)})`;
-        c.beginPath(); c.ellipse(px, py, 0.45 - i * 0.04, 0.32 - i * 0.03, 0, 0, 7); c.fill();
+    if (u < 0.5) {
+      // a painted sheet of water flung from the rim: a tapering ribbon along the arc,
+      // a pale highlight stroke, scattered spray, then hiss-steam where it meets the blaze
+      const k = u / 0.5, arc = (s: number): [number, number] => [bx + f * (0.6 + s * 5.5), by - 1.2 - Math.sin(s * Math.PI) * 2.6 + s * 2.6];
+      const head = Math.min(1, k * 1.6), tail = Math.max(0, k * 1.6 - 0.6), fade = k < 0.75 ? 1 : (1 - k) / 0.25;
+      if (head > tail + 0.02) {
+        const N = 10, up: [number, number][] = [], dn: [number, number][] = [];
+        for (let i = 0; i <= N; i++) {
+          const s = tail + ((head - tail) * i) / N, [px, py] = arc(s), wd = 0.42 * (1 - s * 0.55) * Math.sin((i / N) * Math.PI * 0.9 + 0.15);
+          up.push([px, py - wd]); dn.push([px, py + wd]);
+        }
+        c.fillStyle = `rgba(150,182,198,${0.55 * fade})`;
+        c.beginPath(); c.moveTo(up[0]![0], up[0]![1]);
+        for (const p of up) c.lineTo(p[0], p[1]);
+        for (let i = dn.length - 1; i >= 0; i--) c.lineTo(dn[i]![0], dn[i]![1]);
+        c.closePath(); c.fill();
+        c.strokeStyle = `rgba(232,240,240,${0.6 * fade})`; c.lineWidth = 0.12; c.lineCap = "round";
+        c.beginPath(); for (let i = 0; i <= N; i++) { const p = up[i]!; i ? c.lineTo(p[0], p[1] + 0.08) : c.moveTo(p[0], p[1] + 0.08); } c.stroke();
+      }
+      // loose spray drops shed off the sheet
+      for (let i = 0; i < 6; i++) {
+        const s = tail + (head - tail) * hash(q.p.id, i, 811), [px, py] = arc(s), j = hash(q.p.id, i, 812) - 0.5;
+        c.fillStyle = `rgba(215,230,235,${0.6 * fade})`;
+        c.beginPath(); c.ellipse(px + j * 0.6, py - 0.5 - Math.abs(j) * 0.7 - k * 0.4, 0.09, 0.07, 0, 0, 7); c.fill();
+      }
+      // steam where the water lands
+      if (head >= 1) {
+        const [ex, ey] = arc(1), g = Math.min(1, (k - 0.62) / 0.2) * fade;
+        for (let i = 0; i < 3; i++) {
+          const r = 0.5 + i * 0.35 + k * 0.6;
+          c.fillStyle = `rgba(225,225,220,${0.22 * g * (1 - i / 3)})`;
+          c.beginPath(); c.ellipse(ex + (i - 1) * 0.35, ey - 0.6 - i * 0.55 - k * 0.8, r, r * 0.65, 0, 0, 7); c.fill();
+        }
       }
     }
   }
