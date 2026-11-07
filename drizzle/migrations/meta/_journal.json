@@ -624,13 +624,6 @@
       "when": 1794020000000,
       "tag": "0088_village_life_more",
       "breakpoints": true
-    },
-    {
-      "idx": 89,
-      "version": "7",
-      "when": 1794030000000,
-      "tag": "0089_city_life_encounters",
-      "breakpoints": true
     }
   ]
 }
