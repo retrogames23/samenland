@@ -1,5 +1,5 @@
 import { RANK_NEED, rankInput } from "@/game/rank";
-import { LANDMARKS, STAGES, type Seed } from "@/game/world";
+import { LANDMARKS, STAGES, careMissing, type Seed } from "@/game/world";
 import { ITEMS, MONUMENTS, canBuy, canBuyWay, type Item } from "@/game/economy";
 import { ITEM_STAGE } from "@/game/disasters";
 import { OUTLOOK } from "@/game/lang/outlook";
@@ -21,6 +21,7 @@ export function Outlook({ t, lang, my, seeds, now, rank, charter, way }: { t: T;
   const o = OUTLOOK[lang];
   const inp = rankInput(my, seeds, now);
   const need = RANK_NEED[rank];
+  const care = careMissing(my, now);
   const kn = (k: string) => (t as unknown as { kind: Record<string, string> }).kind[k] ?? k;
   const names = (s: number) => {
     const u = stageUnlocks(s, charter, way);
@@ -54,6 +55,13 @@ export function Outlook({ t, lang, my, seeds, now, rank, charter, way }: { t: T;
           <Bar label={o.homes} have={inp.homes} want={need[1]} />
           <Bar label={o.roads} have={inp.roads} want={need[2]} />
           <List s={rank + 1} />
+          {care && care.stage <= rank + 1 && (care.food > 0 || care.health > 0) && (
+            <div className="rounded border border-wood/40 bg-parchment/40 p-1.5">
+              <div className="font-semibold text-wood">🍞 {o.care}</div>
+              {care.food > 0 && <div>• {o.food(care.food)} <span className="text-muted-foreground">({o.pick}: {care.foodItems.map((i) => t.items[i]?.[0] ?? i).join(", ")})</span></div>}
+              {care.health > 0 && <div>• {o.health(care.health)} <span className="text-muted-foreground">({o.pick}: {care.healthItems.map((i) => t.items[i]?.[0] ?? i).join(", ")})</span></div>}
+            </div>
+          )}
         </div>
       )}
       <details className="mt-2 border-t border-brass/40 pt-1.5">
