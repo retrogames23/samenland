@@ -1104,7 +1104,7 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
   const fw = ox.naturalWidth / 4, ow = fw * k * L.os, oh = ox.naturalHeight * k * L.os;
   const oxX = wx + L.ox[0] * k, oxY = L.ox[1] * k;
   // continuous gait clock (~150 ms per pose, 0.6 s per full stride) so legs don't freeze between poses
-  const g = (t / 150 + sd * 7.31) % 4, f = Math.floor(g), u = g - f, f2 = (f + 1) & 3;
+  const g = (t / 150 + sd * 7.31) % 4, f = Math.floor(g);
   // body weight: tiny dip on each hoof contact, wagon jolts slightly behind
   const dip = Math.abs(Math.sin(g * Math.PI)) * 0.18, jolt = Math.abs(Math.sin(g * Math.PI + 1)) * 0.08;
   // contact shadows directly on the road under wheels and hooves
