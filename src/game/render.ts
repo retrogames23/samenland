@@ -1363,6 +1363,51 @@ function drawHandLantern(c: C, X: number, Y: number, q: Pose, t: number) {
   c.drawImage(im, -w / 2, -0.05, w, h);
   c.restore();
 }
+/** Painted load sprites per good: [sprite, source crop (fractions x,y,w,h), width as share of body height, hold]. */
+const CARRY_ART: Record<Good, [FolkSprite, [number, number, number, number], number, "shoulder" | "hand"] | null> = {
+  grain: ["loadSack", [0, 0, 1, 1], 0.28, "shoulder"],
+  flour: ["loadSack", [0, 0, 1, 1], 0.28, "shoulder"],
+  bundle: ["loadBale", [0, 0, 1, 1], 0.32, "shoulder"],
+  log: ["logs", [0.36, 0.48, 0.64, 0.52], 0.5, "shoulder"],
+  stone: ["blocks", [0.25, 0, 0.48, 0.5], 0.2, "hand"],
+  bread: ["breadBasket", [0, 0, 1, 1], 0.24, "hand"],
+  planks: null,
+};
+/** A carried good as a painted prop on the wearer's own figure: shoulder loads ride the torso, hand loads hang at the hip; both bob with the stride. */
+function drawCarryProp(c: C, X: number, Y: number, q: Pose, hgt: number) {
+  if (!q.carry) return;
+  const f = q.dir[0] - q.dir[1] >= 0 ? 1 : -1;
+  const bob = q.walking ? Math.abs(Math.sin(q.phase + hash(q.p.id, 77, 5) * 6.2832)) * hgt * 0.015 : 0;
+  const sw = q.walking ? Math.sin(q.phase * 2 + q.p.id) * hgt * 0.012 : 0;
+  const art = CARRY_ART[q.carry];
+  if (!art) {
+    // planks: three boards over the shoulder
+    const sx = X - f * hgt * 0.05, sy = Y - hgt * 0.8 - bob;
+    c.lineCap = "round";
+    for (let i = 0; i < 3; i++) {
+      const o = -i * hgt * 0.025;
+      c.strokeStyle = i % 2 ? "#c49a62" : "#a07a4a"; c.lineWidth = hgt * 0.035;
+      c.beginPath(); c.moveTo(sx - f * hgt * 0.32, sy + hgt * 0.06 + o); c.lineTo(sx + f * hgt * 0.3, sy - hgt * 0.06 + o); c.stroke();
+    }
+    c.lineCap = "butt";
+    return;
+  }
+  const [k, [cx, cy, cw, ch], share, hold] = art;
+  const im = folkImage(k); if (!im) return;
+  const iw = im.naturalWidth, ih = im.naturalHeight;
+  const w = hgt * share, h = (w * ch * ih) / (cw * iw);
+  // shoulder: resting on the back shoulder, a little behind the neck; hand: held at hip height on the leading side
+  const bx = hold === "shoulder" ? X - f * hgt * 0.1 : X + f * hgt * 0.17 + sw;
+  const by = hold === "shoulder" ? Y - hgt * 0.74 - bob : Y - hgt * 0.4 - bob;
+  const B = c.getTransform();
+  c.translate(bx, by);
+  if (f < 0) c.scale(-1, 1);
+  if (hold === "shoulder" && q.carry === "log") c.rotate(-0.25);
+  if (q.carry === "flour") c.filter = "brightness(1.25) saturate(0.5)";
+  c.drawImage(im, cx * iw, cy * ih, cw * iw, ch * ih, -w / 2, hold === "shoulder" ? -h * 0.6 : -h * 0.3, w, h);
+  c.filter = "none";
+  c.setTransform(B);
+}
 function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
   if (q.p.job === "hunter" && q.working) return; // shown by the hunt scene at the lodge
   // workers sharing one site door stand apart instead of stacking (stable per person)
@@ -1375,6 +1420,7 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   }
   const sp = drawFolk(c, X, Y, q, t);
   if (fzNow) drawFeastKit(c, X, Y, q, t);
+  if (sp && q.carry) drawCarryProp(c, X, Y, q, Y - sp[1]);
   if (sp && q.p.seed && lanternFolk.has(q.p.id * 7919 + q.p.seed.id.length)) drawHandLantern(c, X, Y, q, t);
   if (sp) { if (q.talk !== null && q.talkTurn) bubble(c, sp[0] + 1.8, sp[1] + 0.6, q.talk); return; }
   c.save(); c.translate(X, Y); c.scale(PERSON_SCALE, PERSON_SCALE); c.translate(-X, -Y);
