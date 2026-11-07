@@ -540,7 +540,7 @@ export function Game() {
         const h = data[0] as Seed;
         setHome(h);
         // signed in after the map loaded: swap to the home village's map in place
-        if (!isAdmin && h.realm && REALMS.includes(h.realm) && h.realm !== realmRef.current) loadRealmRef.current?.(h.realm);
+        if (!isAdmin && !localStorage.getItem("samenland-realm") && h.realm && REALMS.includes(h.realm) && h.realm !== realmRef.current) loadRealmRef.current?.(h.realm);
         return;
       }
       // signed in without a village: guide straight into founding instead of leaving them on the map
