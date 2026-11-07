@@ -631,6 +631,13 @@
       "when": 1794062757057,
       "tag": "0089_city_life_encounters",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1794064326713,
+      "tag": "0090_bathhouse_purchase",
+      "breakpoints": true
     }
   ]
 }
