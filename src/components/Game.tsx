@@ -118,7 +118,8 @@ import {
   sawmillUp, SEAT_KINDS,
   signTile,
   hash,
-, FOOT2 } from "@/game/world";
+  FOOT2,
+} from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<TownWay, string> = { grain: "🌾", workshop: "⚒", gateway: "⚓" };
 const WAY_BUILDS: Record<TownWay, string[]> = { grain: ["bigstore", "millrow", "harvesthall"], workshop: ["stonemason", "hammerworks", "guildtower"], gateway: ["smokehouse", "saltquay", "lighthouse"] };
