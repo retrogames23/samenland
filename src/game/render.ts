@@ -1205,7 +1205,7 @@ const DEFAULT_FIG = fig(0.46, 0.66);
 const MAYOR_LEGS = fig(0.503, 0.58);
 // long robes walk like skirts: two painted shoes step under the hem
 // measured skirt centre (fraction of sprite width): shoes step under the body, not under a carried tool
-const ROBE_HIP: Partial<Record<FolkSprite, number>> = { farmerF: 0.31, masonF: 0.42, elderF: 0.46, woman: 0.46, priest: 0.46, woodcutterF: 0.47, porterF: 0.48, bride: 0.49, builderF: 0.51, youthF: 0.5 };
+const ROBE_HIP: Partial<Record<FolkSprite, number>> = { farmerF: 0.31, masonF: 0.46, elderF: 0.46, woman: 0.46, priest: 0.46, woodcutterF: 0.47, porterF: 0.48, bride: 0.49, builderF: 0.51, youthF: 0.5 };
 const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride", "priest", "youthF"] as FolkSprite[]);
 const TOOL_WORK: ReadonlySet<FolkSprite> = new Set(["farmer", "farmerF", "woodcutter", "woodcutterF", "mason", "masonF", "builder", "builderF"] as FolkSprite[]);
 /** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
