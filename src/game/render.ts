@@ -1191,6 +1191,8 @@ const HIPS: Partial<Record<FolkSprite, FigureConfig>> = {
 const DEFAULT_FIG = fig(0.46, 0.66);
 const MAYOR_LEGS = fig(0.503, 0.58);
 // long robes walk like skirts: two painted shoes step under the hem
+// measured skirt centre (fraction of sprite width): shoes step under the body, not under a carried tool
+const ROBE_HIP: Partial<Record<FolkSprite, number>> = { farmerF: 0.31, masonF: 0.42, elderF: 0.46, woman: 0.46, priest: 0.46, woodcutterF: 0.47, porterF: 0.48, bride: 0.49, builderF: 0.51 };
 const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride", "priest"] as FolkSprite[]);
 const TOOL_WORK: ReadonlySet<FolkSprite> = new Set(["farmer", "farmerF", "woodcutter", "woodcutterF", "mason", "masonF", "builder", "builderF"] as FolkSprite[]);
 /** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
@@ -1280,7 +1282,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   if (robe) {
     const fw = robe.naturalWidth / WORK_FRAMES, fh = robe.naturalHeight, hh = hgt * 1.01, ww = (hh * fw) / fh;
     if (q.walking && q.p.sex === "f") {
-      drawRobeWalk(c, robe, 0, fw, fh, folkImage("footF"), ww, hh, ph, 0.8, 0.93, bob);
+      drawRobeWalk(c, robe, 0, fw, fh, folkImage("footF"), ww, hh, ph, 0.8, 0.93, bob, 0.035, 0.45);
     } else if (q.walking) {
       // vest + breeches, not a robe: cut the torso at the belt and step full-length painted legs from the hip
       const legs = folkImage("legsM");
@@ -1308,7 +1310,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     const yb = walkBob(ph, hgt);
     drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, hgt, g, yb, yb, ph);
   } else if (skirt) {
-    drawRobeWalk(c, im, 0, im.naturalWidth, im.naturalHeight, folkImage("footF"), w, hgt, ph, 0.8, 0.93, bob);
+    drawRobeWalk(c, im, 0, im.naturalWidth, im.naturalHeight, folkImage("footF"), w, hgt, ph, 0.8, 0.93, bob, 0.035, ROBE_HIP[k] ?? 0.5);
   } else {
     // standing still: slow breathing (chest rises, feet stay planted) and a rare weight shift
     const id = q.p.id, br = Math.sin(t / (1900 + hash(id, 41, 3) * 900) + id);
@@ -2675,23 +2677,23 @@ type LabEntry = { label: string; cat: LabCat; h: number; w?: number; cfg: Figure
 function labEntries(): LabEntry[] {
   const out: LabEntry[] = [];
   const folk = (k: FolkSprite, robe = false): LabEntry => ({
-    label: k, cat: robe ? "robe" : "folk", h: 4.4, cfg: robe ? fig(0.5, 0.8, { style: "robe" }) : (HIPS[k] ?? DEFAULT_FIG),
+    label: k, cat: robe ? "robe" : "folk", h: 4.4, cfg: robe ? fig(ROBE_HIP[k] ?? 0.5, 0.8, { style: "robe" }) : (HIPS[k] ?? DEFAULT_FIG),
     draw: (c, h, ph) => {
       const im = folkImage(k); if (!im) return null;
       const w = (h * im.naturalWidth) / im.naturalHeight, bob = -walkBob(ph, h);
-      if (robe) drawRobeWalk(c, im, 0, im.naturalWidth, im.naturalHeight, folkImage("footF"), w, h, ph, 0.8, 0.93, -bob);
+      if (robe) drawRobeWalk(c, im, 0, im.naturalWidth, im.naturalHeight, folkImage("footF"), w, h, ph, 0.8, 0.93, -bob, 0.035, ROBE_HIP[k] ?? 0.5);
       else { const legs = folkImage("legsM"); const f = gaitFrame(ph);
         if (legs) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, h, HIPS[k] ?? DEFAULT_FIG, -bob, -bob, ph); }
       return w;
     },
   });
   for (const sex of ["m", "f"]) for (const age of [20, 30, 40, 50, 60, 70]) out.push({
-    label: `Schulze ${sex} ${age}`, cat: "mayor", h: 5.3, cfg: sex === "m" ? MAYOR_LEGS : fig(0.5, 0.8, { style: "robe" }),
+    label: `Schulze ${sex} ${age}`, cat: "mayor", h: 5.3, cfg: sex === "m" ? MAYOR_LEGS : fig(0.45, 0.8, { style: "robe" }),
     draw: (c, h, ph) => {
       const im = folkImage(mayorSheet(sex, age)); if (!im) return null;
       const fw = im.naturalWidth / WORK_FRAMES, fh = im.naturalHeight, w = (h * fw) / fh, bob = -walkBob(ph, h);
       const legs = folkImage("legsM"), f = gaitFrame(ph);
-      if (sex === "f") drawRobeWalk(c, im, 0, fw, fh, folkImage("footF"), w, h, ph, 0.8, 0.93, -bob);
+      if (sex === "f") drawRobeWalk(c, im, 0, fw, fh, folkImage("footF"), w, h, ph, 0.8, 0.93, -bob, 0.035, 0.45);
       else if (legs) drawLegged(c, im, 0, fw, fh, legs, f, w, h, MAYOR_LEGS, -bob, -bob, ph);
       return w;
     },
