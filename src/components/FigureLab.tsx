@@ -5,7 +5,7 @@ import type { WeatherKind } from "@/game/weather";
 
 const CATS: { k: LabCat | "all"; label: string }[] = [
   { k: "all", label: "Alle" }, { k: "mayor", label: "Schulzen" }, { k: "court", label: "Hofstaat" },
-  { k: "folk", label: "Männer" }, { k: "robe", label: "Frauen & Gewänder" }, { k: "kids", label: "Kinder" }, { k: "animal", label: "Tiere & Jagd" },
+  { k: "folk", label: "Männer" }, { k: "robe", label: "Frauen & Gewänder" }, { k: "kids", label: "Kinder" }, { k: "animal", label: "Tiere & Jagd" }, { k: "feast", label: "Feste" }, { k: "road", label: "Straße & Werkstatt" },
 ];
 const WEATHERS: { k: WeatherKind | null; label: string }[] = [{ k: null, label: "Trocken" }, { k: "drizzle", label: "Regen" }, { k: "storm", label: "Sturm" }, { k: "snow", label: "Schnee" }];
 const SPEEDS = [0, 0.25, 0.5, 1, 2];
