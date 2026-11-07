@@ -1188,7 +1188,8 @@ function folkOf(q: Pose): FolkSprite {
   if (p.age < 11) return p.sex === "f" ? "girl" : "child";
   if (p.age < 16) return p.sex === "f" ? "youthF" : "youth"; // 11–15: doublet and hose / maid's dress and coif
   const f = p.sex === "f";
-  if (q.carry) return f ? "porterF" : "porter";
+  // the priest and elders keep their own look even when helping to carry (no change of clothes)
+  if (q.carry && p.job !== "priest" && p.age < 65) return f ? "porterF" : "porter";
   if (p.job === "builder") return f ? "builderF" : "builder";
   if (p.job === "farmer") return f ? "farmerF" : "farmer";
   if (p.job === "woodcutter") return f ? "woodcutterF" : "woodcutter";
