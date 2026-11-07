@@ -2921,8 +2921,9 @@ function labEntries(): LabEntry[] {
         const fz0 = fzNow, fh0 = fzHour;
         if (star != null) { fzNow = "epiphany"; fzHour = 12; fzStars.set(id, star); }
         try {
-          if (star == null) { c.strokeStyle = "rgba(92,66,40,0.9)"; c.lineWidth = 0.22; c.beginPath(); c.moveTo(0, -2.2); c.quadraticCurveTo(2, -1.2, 3.6, -2.6); c.stroke(); }
-          return drawFolk(c, 0, 0, q, now) ? 3.6 : null;
+          const top = drawFolk(c, 0, 0, q, now); if (!top) return null;
+          if (star != null) drawFeastKit(c, 0, 0, q, now);
+          return 3.6;
         } finally { fzNow = fz0; fzHour = fh0; fzStars.delete(id); }
       } });
   };
