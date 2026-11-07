@@ -1184,10 +1184,13 @@ function folkOf(q: Pose): FolkSprite {
 }
 // hipX = hip column, hemY = tunic hem (measured on the sprites); legs keep LEG_RATIO height regardless of hem
 const HIPS: Partial<Record<FolkSprite, FigureConfig>> = {
-  man: fig(0.42, 0.585), farmer: fig(0.26, 0.655), porter: fig(0.44, 0.6), builder: fig(0.46, 0.64),
-  woodcutter: fig(0.46, 0.59), mason: fig(0.4, 0.62), elder: fig(0.47, 0.68, { legWidthScale: 1.04 }),
-  robber: fig(0.45, 0.665), groom: fig(0.56, 0.74, { legWidthScale: 1.06 }),
+  man: fig(0.42, 0.585), farmer: fig(0.26, 0.655, { legs: "linen" }), porter: fig(0.44, 0.6), builder: fig(0.46, 0.64),
+  woodcutter: fig(0.46, 0.59, { legs: "linen" }), mason: fig(0.4, 0.62, { legs: "grey" }), elder: fig(0.47, 0.68, { legWidthScale: 1.04, legs: "dark" }),
+  robber: fig(0.45, 0.665, { legs: "dark" }), groom: fig(0.56, 0.74, { legWidthScale: 1.06, legs: "linen" }),
 };
+const LEG_IMG = { m: "legsM", grey: "legsGrey", dark: "legsDark", linen: "legsLinen", red: "legsRed" } as const;
+/** Leg cycle in the outfit's colour (falls back to the shared brown breeches while loading). */
+const legsImg = (g: FigureConfig) => folkImage(LEG_IMG[g.legs ?? "m"]) ?? folkImage("legsM");
 const DEFAULT_FIG = fig(0.46, 0.66);
 const MAYOR_LEGS = fig(0.503, 0.58);
 // long robes walk like skirts: two painted shoes step under the hem
@@ -1296,7 +1299,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     return [X, Y - hgt - bob];
   }
   const sheet = q.walking ? walkSheet(k) : null;
-  const legs = q.walking && !sheet && legsFor(q) ? folkImage("legsM") : null;
+  const legs = q.walking && !sheet && legsFor(q) ? legsImg(HIPS[k] ?? DEFAULT_FIG) : null;
   const frameOf = (fw: number) => { void fw; return gaitFrame(ph); };
   if (sheet) {
     // real painted walk cycle: frame follows the stride phase (one 2π = two steps)
@@ -2622,9 +2625,9 @@ function courtFigures(t: number) {
 /** Court anatomy: legs keep LEG_RATIO height from the hip; the prince wears a floor-length ermine
  * mantle, so he walks like the princess — swaying hem, only boot tips step out (no cut through the fur). */
 const COURT_GAIT: Record<CourtRole, FigureConfig> = {
-  prince: fig(0.51, 0.68), princess: fig(0.52, 0.9, { style: "robe" }),
-  herald: fig(0.41, 0.64), guard: fig(0.51, 0.57, { stride: GUARD_STRIDE }),
-  gardener: fig(0.44, 0.56), groom: fig(0.46, 0.58),
+  prince: fig(0.51, 0.68, { legs: "dark" }), princess: fig(0.52, 0.9, { style: "robe" }),
+  herald: fig(0.41, 0.64, { legs: "dark" }), guard: fig(0.51, 0.57, { stride: GUARD_STRIDE, legs: "grey", keep: [[0.27, 0.34, 0.83]] }),
+  gardener: fig(0.44, 0.56, { legs: "grey", keep: [[0, 0.27, 0.7]] }), groom: fig(0.46, 0.58, { legs: "dark" }),
 };
 // the guard sprite: halberd tip only a little above the helmet (body ~88 % of the height)
 const courtHeight = (r: CourtRole) => (r === "prince" ? 4.9 : r === "guard" ? 5.3 : 4.6);
@@ -2659,7 +2662,7 @@ function drawCourtWalk(c: C, im: HTMLImageElement, role: CourtRole, w: number, h
     drawRobeWalk(c, im, 0, nw, nh, folkImage("footF"), w, h, ph, g.hemY, 0.93, -bob, role === "prince" ? 0.025 : 0.035);
     return;
   }
-  const legs = folkImage("legsM");
+  const legs = legsImg(g);
   if (legs) drawLegged(c, im, 0, nw, nh, legs, f, w, h, g, -bob, -bob, ph);
   else c.drawImage(im, -w / 2, -h - bob, w, h);
 }
@@ -2683,7 +2686,7 @@ function labEntries(): LabEntry[] {
       const im = folkImage(k); if (!im) return null;
       const w = (h * im.naturalWidth) / im.naturalHeight, bob = -walkBob(ph, h);
       if (robe) drawRobeWalk(c, im, 0, im.naturalWidth, im.naturalHeight, folkImage("footF"), w, h, ph, 0.8, 0.93, -bob, 0.035, ROBE_HIP[k] ?? 0.5);
-      else { const legs = folkImage("legsM"); const f = gaitFrame(ph);
+      else { const legs = legsImg(HIPS[k] ?? DEFAULT_FIG); const f = gaitFrame(ph);
         if (legs) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, legs, f, w, h, HIPS[k] ?? DEFAULT_FIG, -bob, -bob, ph); }
       return w;
     },
