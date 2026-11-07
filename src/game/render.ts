@@ -1181,6 +1181,7 @@ function bubble(c: C, x: number, y: number, icon: number) {
   else if (icon === 4) { c.fillStyle = INK; for (const k of [-0.9, 0, 0.9]) { c.beginPath(); c.arc(x + k, y, 0.28, 0, 7); c.fill(); } }
   else { c.fillStyle = INK; c.beginPath(); c.ellipse(x - 0.4, y + 0.6, 0.45, 0.35, -0.4, 0, 7); c.fill(); c.strokeStyle = INK; c.beginPath(); c.moveTo(x - 0.0, y + 0.6); c.lineTo(x, y - 1); c.quadraticCurveTo(x + 0.8, y - 0.7, x + 0.9, y - 0.2); c.stroke(); }
 }
+const SACK_LOADS: ReadonlySet<string> = new Set(["grain", "flour", "bundle"]);
 /** Which painted figure represents this villager right now. */
 function folkOf(q: Pose): FolkSprite {
   const p = q.p;
@@ -1189,7 +1190,12 @@ function folkOf(q: Pose): FolkSprite {
   if (p.age < 11) return p.sex === "f" ? "girl" : "child";
   if (p.age < 16) return p.sex === "f" ? "youthF" : "youth"; // 11–15: doublet and hose / maid's dress and coif
   const f = p.sex === "f";
-  // 1500: everyone keeps their own clothes while carrying; the load is drawn as a separate prop
+  // 1500: sacks and bales go on the shoulder of a stooped day-labourer/miller's lad (porter sprite carries its own sack);
+  // other loads are drawn as a prop on a plain figure — the craft tool stays at the workplace
+  if (q.carry && p.job !== "priest" && p.job !== "mayor" && p.age < 65) {
+    if (SACK_LOADS.has(q.carry)) return f ? "porterF" : "porter";
+    if (p.job === "builder" || p.job === "farmer" || p.job === "woodcutter" || p.job === "mason") return f ? "woman" : "man";
+  }
   if (p.job === "builder") return f ? "builderF" : "builder";
   if (p.job === "farmer") return f ? "farmerF" : "farmer";
   if (p.job === "woodcutter") return f ? "woodcutterF" : "woodcutter";
@@ -1376,6 +1382,7 @@ const CARRY_ART: Record<NonNullable<Pose["carry"]>, [FolkSprite, [number, number
 /** A carried good as a painted prop on the wearer's own figure: shoulder loads ride the torso, hand loads hang at the hip; both bob with the stride. */
 function drawCarryProp(c: C, X: number, Y: number, q: Pose, hgt: number) {
   if (!q.carry) return;
+  const fk = folkOf(q); if (fk === "porter" || fk === "porterF") return; // sack painted on the porter
   const f = q.dir[0] - q.dir[1] >= 0 ? 1 : -1;
   const bob = q.walking ? Math.abs(Math.sin(q.phase + hash(q.p.id, 77, 5) * 6.2832)) * hgt * 0.015 : 0;
   const sw = q.walking ? Math.sin(q.phase * 2 + q.p.id) * hgt * 0.012 : 0;
@@ -2780,8 +2787,8 @@ function labEntries(): LabEntry[] {
       });
     }
   };
-  const ADULT: LabSit[] = ["stand", "walk", "work", "carry", "bucket", "lantern", "rain", "storm", "snow"];
-  const PLAIN: LabSit[] = ["stand", "walk", "carry", "bucket", "lantern", "rain", "storm", "snow"];
+  const ADULT: LabSit[] = ["stand", "walk", "work", "bucket", "lantern", "rain", "storm", "snow"];
+  const PLAIN: LabSit[] = ["stand", "walk", "bucket", "lantern", "rain", "storm", "snow"];
   const KID: LabSit[] = ["stand", "walk", "rain", "snow"];
   // clergy, elders and the well-to-do never haul sacks or join the bucket chain in the game
   const GENTLE: LabSit[] = ["stand", "walk", "lantern", "rain", "storm", "snow"];
@@ -2801,11 +2808,13 @@ function labEntries(): LabEntry[] {
   person("Kräutersammler", "folk", "herbalist", "m", 45, ADULT);
   person("Fuhrmann", "folk", "carter", "m", 42, ADULT);
   person("Wächter", "folk", "watchman", "m", 38, ADULT);
+  person("Sackträger", "folk", "carter", "m", 30, ["carry"]);
   person("Ältester", "folk", "retired", "m", 70, GENTLE);
   person("Bräutigam", "folk", "crafter", "m", 24, ["stand", "walk"], { festive: "groom" });
   out.push({ label: "Räuber · Schleichen", row: "Räuber", sit: "Schleichen", cat: "folk", h: 4.4, w: 3.6, cfg: HIPS.robber ?? null, draw: (c, _h, _ph, now) => { drawRobber(c, 0, 0, false, now); return 3.6; } });
   // women and gowns
   person("Bürgerin", "robe", "homemaker", "f", 35, PLAIN);
+  person("Sackträgerin", "robe", "carter", "f", 30, ["carry"]);
   person("Wohlhabende Bürgerin", "robe", "homemaker", "f", 42, GENTLE, { estate: "wealthy" });
   person("Bäuerin", "robe", "farmer", "f", 35, ADULT);
   person("Holzfällerin", "robe", "woodcutter", "f", 30, ADULT);
