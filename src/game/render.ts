@@ -1188,7 +1188,7 @@ function folkOf(q: Pose): FolkSprite {
 const HIPS: Partial<Record<FolkSprite, FigureConfig>> = {
   man: fig(0.42, 0.585, { legs: "dark" }), farmer: fig(0.51, 0.71, { legs: "linen" }), porter: fig(0.437, 0.676, { legs: "linen" }), builder: fig(0.472, 0.653, { legs: "grey" }),
   woodcutter: fig(0.453, 0.67, { legs: "grey" }), mason: fig(0.4, 0.62, { legs: "grey" }), elder: fig(0.47, 0.68, { legWidthScale: 1.04, legs: "dark", keep: [[0.84, 0.96, 0.95]] }),
-  robber: fig(0.45, 0.665, { legs: "dark" }), groom: fig(0.56, 0.74, { legWidthScale: 1.06, legs: "linen" }),
+  robber: fig(0.45, 0.665, { legs: "dark" }), youth: fig(0.5, 0.58, { legs: "dark" }), groom: fig(0.56, 0.74, { legWidthScale: 1.06, legs: "linen" }),
 };
 const LEG_IMG = { m: "legsM", grey: "legsGrey", dark: "legsDark", linen: "legsLinen", red: "legsRed" } as const;
 /** Leg cycle in the outfit's colour (falls back to the shared brown breeches while loading). */
@@ -1197,8 +1197,8 @@ const DEFAULT_FIG = fig(0.46, 0.66);
 const MAYOR_LEGS = fig(0.503, 0.58);
 // long robes walk like skirts: two painted shoes step under the hem
 // measured skirt centre (fraction of sprite width): shoes step under the body, not under a carried tool
-const ROBE_HIP: Partial<Record<FolkSprite, number>> = { farmerF: 0.31, masonF: 0.42, elderF: 0.46, woman: 0.46, priest: 0.46, woodcutterF: 0.47, porterF: 0.48, bride: 0.49, builderF: 0.51 };
-const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride", "priest"] as FolkSprite[]);
+const ROBE_HIP: Partial<Record<FolkSprite, number>> = { farmerF: 0.31, masonF: 0.42, elderF: 0.46, woman: 0.46, priest: 0.46, woodcutterF: 0.47, porterF: 0.48, bride: 0.49, builderF: 0.51, youthF: 0.5 };
+const SKIRTS: ReadonlySet<FolkSprite> = new Set(["woman", "porterF", "farmerF", "elderF", "masonF", "woodcutterF", "builderF", "bride", "priest", "youthF"] as FolkSprite[]);
 const TOOL_WORK: ReadonlySet<FolkSprite> = new Set(["farmer", "farmerF", "woodcutter", "woodcutterF", "mason", "masonF", "builder", "builderF"] as FolkSprite[]);
 /** Men in breeches (every trade except robes/gowns) share the painted leg cycle. */
 const WORK_FRAMES = 6;
@@ -2711,7 +2711,8 @@ function labEntries(): LabEntry[] {
   });
   for (const k of ["man", "farmer", "porter", "builder", "woodcutter", "mason", "elder", "groom", "robber"] as FolkSprite[]) out.push(folk(k));
   for (const k of ["woman", "farmerF", "elderF", "priest", "bride", "builderF", "woodcutterF", "masonF", "porterF"] as FolkSprite[]) out.push(folk(k, true));
-  for (const k of ["child", "girl", "toddler", "youth", "youthF"] as FolkSprite[]) out.push({
+  out.push({ ...folk("youth"), cat: "kids", h: 3.9 }, { ...folk("youthF", true), cat: "kids", h: 3.9 });
+  for (const k of ["child", "girl", "toddler"] as FolkSprite[]) out.push({
     label: k, cat: "kids", h: k === "toddler" ? 2.4 : k === "child" || k === "girl" ? 3 : 3.9, cfg: null,
     draw: (c, h, ph) => { const sh = walkSheet(k); if (!sh) return null;
       const fw = sh.naturalWidth / WALK_FRAMES, f = gaitFrame(ph), ww = (h * fw) / sh.naturalHeight;
