@@ -3,11 +3,14 @@ import { Parchment } from "@/components/hud/Parchment";
 import { Input } from "@/components/ui/input";
 import { rollOf, matches } from "@/game/roll";
 import type { Person, Town } from "@/game/people";
-import type { DICT } from "@/game/i18n";
+import type { DICT, Lang } from "@/game/i18n";
+import { censusOf } from "@/game/census";
+import { CENSUS } from "@/game/lang/census";
 
 type T = (typeof DICT)["de"];
 
-export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T; town: Town; hue: number; character?: ReactNode; onPick: (p: Person) => void; onClose: () => void }) {
+export function VillageRoll({ t, lang = "de", town, hue, character, onPick, onClose }: { t: T; lang?: Lang; town: Town; hue: number; character?: ReactNode; onPick: (p: Person) => void; onClose: () => void }) {
+  const [tab, setTab] = useState<"roll" | "book">("roll");
   const [q, setQ] = useState("");
   const [job, setJob] = useState("");
   const [sort, setSort] = useState<"house" | "name" | "age">("house");
@@ -42,6 +45,14 @@ export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T
   return (
     <Parchment wide title={t.roll.title} later={t.close} onLater={onClose}>
       <p className="text-center text-sm italic">{t.roll.stats(roll.total, roll.households.length, roll.kids, roll.sick)}</p>
+      <div role="tablist" className="mt-3 flex justify-center gap-1 border-b border-ink/25">
+        {(["roll", "book"] as const).map((k) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`-mb-px rounded-t border border-b-0 px-3 py-1 font-display text-base ${tab === k ? "border-ink/25 bg-parchment text-ink" : "border-transparent text-muted-foreground hover:text-ink"}`}>
+            {k === "roll" ? CENSUS[lang].tabRoll : CENSUS[lang].tabBook}
+          </button>
+        ))}
+      </div>
+      {tab === "book" ? <CensusBook lang={lang} town={town} /> : <>
       {roll.mayor && (
         <button type="button" onClick={() => onPick(roll.mayor!)} className="mx-auto mt-3 flex items-center gap-3 rounded px-3 py-1 hover:bg-ink/10">
           <span aria-hidden className="grid h-10 w-10 place-items-center rounded-full font-display text-lg text-primary-foreground shadow" style={{ background: `hsl(${hue} 55% 38%)` }}>✠</span>
@@ -76,6 +87,61 @@ export function VillageRoll({ t, town, hue, character, onPick, onClose }: { t: T
           );
         })}
       </div>
+      </>}
     </Parchment>
+  );
+}
+
+/** Ink tally: one stroke per soul, bundled in fives like a scribe's count. */
+function Tally({ n }: { n: number }) {
+  const fives = Math.floor(n / 5), rest = n % 5;
+  const show = Math.min(fives, 24);
+  return (
+    <span aria-hidden className="font-display tracking-tight text-ink/80">
+      {Array.from({ length: show }, (_, i) => <span key={i} className="me-1 line-through decoration-ink/70">||||</span>)}
+      {fives > show ? "… " : ""}{"|".repeat(rest)}
+    </span>
+  );
+}
+
+function CensusBook({ lang, town }: { lang: Lang; town: Town }) {
+  const c = useMemo(() => censusOf(town.people), [town]);
+  const L = CENSUS[lang];
+  const keys = ["ordinary", "skilled", "wealthy"] as const;
+  const top = keys.reduce((a, k) => (c.estates[k].hearths > c.estates[a].hearths ? k : a), "ordinary" as (typeof keys)[number]);
+  const H = ({ children }: { children: ReactNode }) => <h3 className="mt-4 border-b border-ink/20 font-display text-lg text-ink">{children}</h3>;
+  const ages = c.ages.reduce((a, b) => a + b, 0) || 1;
+  const trades: number[] = [c.trades.food, c.trades.craft, c.trades.common];
+  return (
+    <div className="mt-2 px-1 text-sm">
+      <H>{L.estatesH}</H>
+      <ul className="mt-1 space-y-1">
+        {keys.map((k, i) => (
+          <li key={k} className="flex flex-wrap items-baseline justify-between gap-x-3">
+            <span><b className="text-ink">{"I".repeat(i + 1)}.</b> {L.estates[i]}</span>
+            <span className="text-xs text-muted-foreground">{L.hearths(c.estates[k].hearths, c.estates[k].souls)}</span>
+            <span className="basis-full"><Tally n={c.estates[k].hearths} /></span>
+          </li>
+        ))}
+      </ul>
+      {c.souls > 0 && <p className="mt-2 text-center italic">„{L.verdict[keys.indexOf(top)]}“</p>}
+      <H>{L.agesH}</H>
+      <div aria-hidden className="mt-2 flex h-3 overflow-hidden rounded-sm border border-ink/40">
+        {c.ages.map((n, i) => <span key={i} style={{ width: `${(n / ages) * 100}%`, opacity: 0.2 + i * 0.22 }} className="border-e border-ink/40 bg-ink last:border-e-0" />)}
+      </div>
+      <ul className="mt-1 grid grid-cols-2 gap-x-3 text-xs">
+        {c.ages.map((n, i) => <li key={i} className="flex justify-between"><span>{L.ages[i]}</span><b className="text-ink">{n}</b></li>)}
+      </ul>
+      <H>{L.tradesH}</H>
+      <ul className="mt-1 space-y-1">
+        {trades.map((n, i) => <li key={i} className="flex flex-wrap items-baseline justify-between gap-x-3"><span>{L.trades[i]} <b className="text-ink">{n}</b></span><span className="basis-full"><Tally n={n} /></span></li>)}
+      </ul>
+      <H>{L.kinH}</H>
+      <ul className="mt-1 space-y-0.5">
+        <li>{L.couples(c.couples)}</li>
+        <li>{L.widowed(c.widowed)}</li>
+        <li>{L.newcomers(c.newcomers)}</li>
+      </ul>
+    </div>
   );
 }
