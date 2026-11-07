@@ -30,7 +30,7 @@ import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
 import { huntScene, lodgeDens, denOk, denBeast, denFate, startle, DEN_R, type Den, type Beast } from "./wildlife";
 import { roadMotion, screenFacing } from "./motion";
 import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
-import { houseLit, candleFlicker } from "./night";
+import { houseLit, candleFlicker, lampStrength } from "./night";
 import { sunTimes, nightLevel, duskGlow } from "./sun";
 const sunNow = () => sunTimes(clock());
 import { setArtTime, seasonalImage } from "./season-art";
@@ -690,7 +690,7 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
     if (s.kind === "hut" && !style && !s.fire) smoke(c, cx + (flip ? 0.33 : -0.33), cy - 4.6, t, sd, 0.35);
     if (s.fire) drawFire(c, cx, cy, t, sd, L);
     if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour(), sunNow().rise, sunNow().set) || (stormDark(renderNow) > 0.4 && STORM_LIT.has(s.kind) && localHour() >= 7 && localHour() < 20) || (isHomeKind(s.kind) && (sickLit(x, y) || christmasNight(renderNow))))) {
-      if (lit) { lit.c.globalCompositeOperation = "source-over"; drawBuildingNight(lit.c, s.kind, cx, cy, s.v, candleFlicker(t, sd), flip, style); }
+      if (lit) { lit.c.globalCompositeOperation = "source-over"; drawBuildingNight(lit.c, s.kind, cx, cy, s.v, candleFlicker(t, sd) * lampStrength(s.kind), flip, style); }
     }
     if (s.kind === "mill" || s.kind === "watermill") {
       // flour sacks pile up by the door through the workday (stack sprite revealed from the bottom)
