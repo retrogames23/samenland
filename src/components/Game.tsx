@@ -50,7 +50,7 @@ import { RANK_NEED } from "@/game/rank";
 import { Tavern } from "@/components/Tavern";
 import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
-import { MAYOR } from "@/game/lang/mayor";
+import { MAYOR, neutralMayor } from "@/game/lang/mayor";
 import { COURT } from "@/game/lang/court";
 import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, heraldSpots, isPlantedRare } from "@/game/render";
 import { DOG } from "@/game/lang/dog";
@@ -3199,7 +3199,7 @@ export function Game() {
       {chronOpen && chron && my && (
         <Parchment title={t.chron.title} later={t.chron.close} onLater={() => setChronOpen(false)}>
           <p className="text-center text-sm text-ink/70">{t.chron.away(Math.max(1, Math.round((chron.to - chron.from) / 864e5)))}</p>
-          <p className="mt-3 text-center font-display text-xl leading-snug text-ink">{scribe === undefined ? <span className="animate-pulse text-ink/60">{t.chron.writing}</span> : scribe ?? neutralMayor(t.chron.greet, lang, myTown?.seed?.mayor_gender === "d")}</p>
+          <p className="mt-3 text-center font-display text-xl leading-snug text-ink">{scribe === undefined ? <span className="animate-pulse text-ink/60">{t.chron.writing}</span> : scribe ?? neutralMayor(t.chron.greet, lang, my?.mayor_gender === "d")}</p>
           <div className="mt-4 flex justify-center gap-4 font-display text-lg text-ink">
             <span>{t.chron.pop(chron.popFrom, chron.popTo)}</span><span>{t.chron.taler(chron.taler)}</span>
           </div>
