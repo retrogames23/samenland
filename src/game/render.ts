@@ -1403,9 +1403,7 @@ function drawCarryProp(c: C, X: number, Y: number, q: Pose, hgt: number) {
   c.translate(bx, by);
   if (f < 0) c.scale(-1, 1);
   if (hold === "shoulder" && q.carry === "log") c.rotate(-0.25);
-  if (q.carry === "flour") c.filter = "brightness(1.25) saturate(0.5)";
   c.drawImage(im, cx * iw, cy * ih, cw * iw, ch * ih, -w / 2, hold === "shoulder" ? -h * 0.6 : -h * 0.3, w, h);
-  c.filter = "none";
   c.setTransform(B);
 }
 function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
@@ -2769,10 +2767,12 @@ function labEntries(): LabEntry[] {
       out.push({
         label: `${row} · ${SIT_LABEL[sit]}`, row, sit: SIT_LABEL[sit], cat, h: 4.4 * big + (sit === "bucket" ? 0.5 : 0), w: work ? 4.6 : sit === "bucket" || sit === "lantern" ? 5.4 : 3.6,
         night: sit === "lantern", wx: sit === "rain" ? "drizzle" : sit === "storm" ? "storm" : sit === "snow" ? "snow" : undefined,
-        cfg: walking && sit !== "carry" ? (robe ? fig(ROBE_HIP[k] ?? 0.5, 0.8, { style: "robe" }) : HIPS[k] ?? null) : null,
+        cfg: walking ? (robe ? fig(ROBE_HIP[k] ?? 0.5, 0.8, { style: "robe" }) : HIPS[k] ?? null) : null,
         draw: (c, _h, ph, now) => {
           const q = pose(ph);
-          if (!drawFolk(c, 0, 0, q, now)) return null;
+          const top = drawFolk(c, 0, 0, q, now);
+          if (!top) return null;
+          if (q.carry) drawCarryProp(c, 0, 0, q, -top[1]);
           if (q.bucket) drawBucket(c, 0, 0, q, now);
           if (sit === "lantern") drawHandLantern(c, 0, 0, q, now);
           return 3.6;
