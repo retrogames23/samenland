@@ -1022,9 +1022,10 @@ function drawHerald(c: C, x: number, y: number, dx: number, dy: number, gait: nu
   }
   if (night) { // lantern on a short pole by the saddle
     const lx = -W * 0.18, ly = -H * 0.62 + (gait !== null ? Math.sin(t / 140) * 0.15 : 0);
-    const gl = c.createRadialGradient(lx, ly, 0, lx, ly, 3); gl.addColorStop(0, "rgba(255,200,110,0.55)"); gl.addColorStop(1, "rgba(255,200,110,0)");
-    c.fillStyle = gl; c.beginPath(); c.arc(lx, ly, 3, 0, 7); c.fill();
-    c.fillStyle = "#ffd98a"; c.beginPath(); c.rect(lx - 0.3, ly - 0.4, 0.6, 0.8); c.fill();
+    const gl = c.createRadialGradient(lx, ly, 0, lx, ly, 1.4); gl.addColorStop(0, "rgba(255,200,110,0.35)"); gl.addColorStop(1, "rgba(255,200,110,0)");
+    c.fillStyle = gl; c.beginPath(); c.arc(lx, ly, 1.4, 0, 7); c.fill();
+    c.fillStyle = "#3a2c1e"; c.fillRect(lx - 0.4, ly - 0.55, 0.8, 1.1);
+    c.fillStyle = "#ffd98a"; c.fillRect(lx - 0.25, ly - 0.4, 0.5, 0.8);
   }
   c.restore();
 }
@@ -3436,7 +3437,8 @@ export function draw(
     const [sx, sy] = iso(at.x + dir[0], at.y + dir[1]), ddx = sx - px, ddy = sy - py;
     const gait = speed > 0.02 ? s / 0.24 : null, night = worldHour(now) >= 19 || worldHour(now) < 7;
     const fade = v.phase === "arrive" ? Math.min(1, v.t / 1500) : v.phase === "leave" ? Math.min(1, (ride - v.t) / 1500) : 1;
-    if (night) L.push({ x: px, y: py - 7, r: 6 });
+    // small saddle lantern: a modest glow ahead of the horse, low enough that rider and horse stay readable
+    if (night) L.push({ x: px + (ddx >= 0 ? -2 : 2), y: py - 4, r: 2.6 });
     heraldSpots.set(sd.id, { x: px, y: py });
     roadProp(px, py, fade, (context) => drawHerald(context, px, py, ddx, ddy, gait, speed, t, v.phase === "wait", night, sd.x * 13 + sd.y), true, `herald:${sd.id}`);
   }
