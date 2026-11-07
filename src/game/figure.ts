@@ -181,11 +181,18 @@ export function hemEnd(im: CanvasImageSource, sx: number, sw: number, sh: number
     const W = Math.max(1, Math.round(sw)), H = Math.max(1, Math.round(sh)), y0 = Math.floor(H * 0.7);
     const cv = document.createElement("canvas"); cv.width = W; cv.height = H - y0;
     const g = cv.getContext("2d")!; g.drawImage(im, sx, y0, sw, H - y0, 0, 0, W, H - y0);
-    const d = g.getImageData(0, 0, W, H - y0).data, wid: number[] = [];
-    for (let y = 0; y < H - y0; y++) { let a = -1, b = -1; for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3]! > 60) { if (a < 0) a = x; b = x; } wid.push(a < 0 ? 0 : b - a + 1); }
-    const mx = Math.max(...wid.slice(0, Math.ceil(wid.length * 0.6)));
-    let last = -1; for (let y = 0; y < wid.length; y++) if (wid[y]! >= mx * 0.55) last = y;
-    if (mx > 0 && last >= 0) out = Math.min(0.985, Math.max(0.8, (y0 + last + 1) / H));
+    // per row: filled pixel count and widest inner gap; the hem is where the legs part (gap) or the
+    // cloth thins sharply — outer span alone mistook spread standing boots for skirt
+    const d = g.getImageData(0, 0, W, H - y0).data, R = H - y0, cnt: number[] = [], gap: number[] = [];
+    for (let y = 0; y < R; y++) {
+      let n = 0, prev = -1, gp = 0;
+      for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3]! > 60) { n++; if (prev >= 0 && x - prev - 1 > gp) gp = x - prev - 1; prev = x; }
+      cnt.push(n); gap.push(gp);
+    }
+    const mx = Math.max(0, ...cnt.slice(0, Math.ceil(R * 0.5)));
+    let hem = R - 1;
+    for (let y = Math.floor(R * 0.35); y < R; y++) if (gap[y]! >= Math.max(6, W * 0.06) || cnt[y]! < mx * 0.68) { hem = y - 1; break; }
+    if (mx > 0) out = Math.min(0.985, Math.max(0.82, (y0 + hem + 1) / H));
   } catch { /* keep fallback */ }
   m.set(key, out); return out;
 }
