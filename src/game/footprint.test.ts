@@ -24,7 +24,7 @@ describe("2×2 placement checks the whole footprint", () => {
     // every accepted spot keeps all four tiles free of standing buildings
     for (let y = 594; y <= 606; y++) for (let x = 594; x <= 606; x++) {
       if (canPlaceSpecial("beginen", x, y, s, [s], now) !== null) continue;
-      for (const [i, j] of [[-1, 0], [0, -1], [-1, -1]]) { const k = structureAt(x + i, y + j, [s], now)?.kind; expect(!k || ["field", "pasture", "garden"].includes(k)).toBe(true); }
+      for (const [i, j] of [[-1, 0], [0, -1], [-1, -1]] as const) { const k = structureAt(x + i, y + j, [s], now)?.kind; expect(!k || ["field", "pasture", "garden"].includes(k)).toBe(true); }
     }
   });
 });
