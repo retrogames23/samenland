@@ -1352,6 +1352,7 @@ export type Database = {
         Args: { _at: string; _created: string; _seed: string }
         Returns: number
       }
+      village_receipt_total: { Args: { _seed: string }; Returns: number }
       village_tax: { Args: { _at: string; _created: string }; Returns: number }
       village_tax_pop: {
         Args: { _at: string; _h: number; _seed: string }

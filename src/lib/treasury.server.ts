@@ -80,8 +80,8 @@ export async function calculateTreasury(id: string, realm: string) {
   const daily = current ? residentTax(current, currentSeeds, now) : null;
   const { data:balance, error:balanceError } = await supabaseAdmin.rpc("village_balance", {_seed:id});
   if (balanceError || balance==null) throw new Error("Balance unavailable");
-  const { data:confirmed, error:confirmationError } = await supabaseAdmin.from("tax_receipts").select("income").eq("seed_id",id);
+  const { data:confirmed, error:confirmationError } = await supabaseAdmin.rpc("village_receipt_total", {_seed:id});
   if (confirmationError) throw new Error("Receipt verification failed");
-  const completed = (confirmed ?? []).reduce((n,r)=>n+r.income,0);
+  const completed = Number(confirmed ?? 0);
   return { seed:id, balance, daily:daily?.income ?? 0, population:daily?.population ?? 0, earned:completed, active:!!cut.data, settled:pending.length<BATCH || pending[pending.length-1]===days };
 }
