@@ -67,7 +67,7 @@ export function textureAlt(c: C, t: Tex): CanvasPattern | null {
 type Sprite = { url: string; crop: [number, number, number, number]; width: number };
 const NATURE = {
   oak: { url: oak, crop: [0, 0, 480, 474], width: 24 },
-  fir: { url: fir, crop: [0, 0, 255, 480], width: 13 },
+  fir: { url: fir, crop: [0, 0, 245, 480], width: 13 } /* Scots pine (Waldkiefer) */,
   birch: { url: birch, crop: [0, 0, 318, 480], width: 15 },
   crag: { url: crag, crop: [0, 0, 480, 258], width: 44 },
   bush: { url: bush, crop: [0, 0, 480, 384], width: 9 },
