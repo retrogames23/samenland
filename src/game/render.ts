@@ -1215,7 +1215,8 @@ const LEG_IMG = { m: "legsM", grey: "legsGrey", dark: "legsDark", linen: "legsLi
 /** Leg cycle in the outfit's colour (falls back to the shared brown breeches while loading). */
 const legsImg = (g: FigureConfig) => folkImage(LEG_IMG[g.legs ?? "m"]) ?? folkImage("legsM");
 const DEFAULT_FIG = fig(0.46, 0.66);
-const MAYOR_LEGS = fig(0.503, 0.58);
+// hanging front hand reaches just below the doublet hem: keep it whole over the legs (measured on all four cohorts)
+const MAYOR_LEGS = fig(0.503, 0.58, { keep: [[0.37, 0.49, 0.605]] });
 // long robes walk like skirts: two painted shoes step under the hem
 // measured skirt centre (fraction of sprite width): shoes step under the body, not under a carried tool
 const ROBE_HIP: Partial<Record<FolkSprite, number>> = { farmerF: 0.31, masonF: 0.46, elderF: 0.46, woman: 0.46, priest: 0.46, woodcutterF: 0.47, porterF: 0.48, bride: 0.49, builderF: 0.51, youthF: 0.5 };
