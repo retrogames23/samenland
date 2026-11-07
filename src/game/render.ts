@@ -2703,13 +2703,13 @@ function labEntries(): LabEntry[] {
     A("Hund schläft", 1.5, 3, (c, _ph, now) => drawDog(c, { x: 0, y: 0, mode: "sleep", flip: false, dist: 0 }, 0, 0, now, 1)),
     A("Reiter", 11, 9, (c, ph) => drawRider(c, 0, 0, 1, 0.3, 5, (ph / 6.2832) * 1000)),
     A("Reiter (weg)", 11, 9, (c, ph) => drawRider(c, 0, 0, 1, -1, 5, (ph / 6.2832) * 1000)),
-    A("Hirsch geht", 6.2, 7, (c, ph) => { const dw = huntIm("dw", deerWalkUrl); if (!dw) return false; drawBeast(c, dw, null, 0, 0, 6.2, false, 1, (ph / 6.2832) * 4.4, 0); }),
+    A("Hirsch geht", 6.2, 7, (c, ph) => { const dw = huntIm("dw", deerWalkUrl); if (!dw) return false; drawBeast(c, dw, null, 0, 0, 6.2, false, 1, (ph / 6.2832) * 4.4, 0); return true; }),
     A("Hirsch äst", 6.2, 7, (c, _ph, now) => { const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl); if (!dw || !dg) return false;
-      drawBeast(c, dw, dg, 0, 0, 6.2, false, 0, 0, Math.floor(now / 1500) % 8 < 5 ? (Math.floor(now / 650) & 1) : 2); }),
-    A("Wildschwein", 4.4, 6, (c, ph) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; drawBeast(c, bw, null, 0, 0, 4.4, false, 1, (ph / 6.2832) * 4.4, 0); }),
-    A("Wildschwein wühlt", 4.4, 6, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 2.2); sheetFrame(c, bw, 3, 0, -(Math.floor(now / 500) & 1) * 0.08, 4.4, false); }),
+      drawBeast(c, dw, dg, 0, 0, 6.2, false, 0, 0, Math.floor(now / 1500) % 8 < 5 ? (Math.floor(now / 650) & 1) : 2); return true; }),
+    A("Wildschwein", 4.4, 6, (c, ph) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; drawBeast(c, bw, null, 0, 0, 4.4, false, 1, (ph / 6.2832) * 4.4, 0); return true; }),
+    A("Wildschwein wühlt", 4.4, 6, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 2.2); sheetFrame(c, bw, 3, 0, -(Math.floor(now / 500) & 1) * 0.08, 4.4, false); return true; }),
     A("Jäger", 5.4, 3, (c, _ph, now) => { const hu = huntIm("hu", hunterUrl); if (!hu) return false; const f = Math.floor(now / 1200) % 3;
-      shadow(c, 0, 0, 1.6, 0.3); sheetFrame(c, hu, f, 0, 0, f === 2 ? 4.1 : f === 1 ? 4.6 : 5.4, false); }),
+      shadow(c, 0, 0, 1.6, 0.3); sheetFrame(c, hu, f, 0, 0, f === 2 ? 4.1 : f === 1 ? 4.6 : 5.4, false); return true; }),
     A("Hühner", 4, 14, (c) => drawHens(c, 0, -5, 7)),
   );
   return out;
