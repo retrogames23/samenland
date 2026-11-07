@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { moodAt, songsOf } from "./music";
+import { moodAt, songsOf, shuffled } from "./music";
 import daySong from "@/assets/music/day_currents_through_the_city_gate.mp3.asset.json";
 import nightSong from "@/assets/music/night_last_candle_waning.mp3.asset.json";
 import nightSong3 from "@/assets/music/night_moonlight_on_the_well.mp3.asset.json";
@@ -25,6 +25,14 @@ describe("Musik-Playlists", () => {
     expect(songsOf("day")[0]).not.toBe(songsOf("night")[0]);
     expect(songsOf("night")).toContain(nightSong3.url);
     expect(songsOf("night")[2]).toBe(nightSong3.url);
+  });
+  it("shuffle keeps every song once and never repeats the last one first", () => {
+    const day = songsOf("day");
+    for (let k = 0; k < 50; k++) {
+      const s = shuffled(day, day[0]);
+      expect([...s].sort()).toEqual([...day].sort());
+      expect(s[0]).not.toBe(day[0]);
+    }
   });
   it("the day loop carries both new songs", () => {
     expect(songsOf("day")).toContain(daySong3.url);
