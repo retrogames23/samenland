@@ -2650,7 +2650,7 @@ function drawSheetFrame(c: C, sheet: HTMLImageElement, f: number, fw: number, ww
 /** Dev sprite lab: every figure and animal class in its own cycle with anatomy guides. */
 export type LabOpts = { boxes: boolean; lines: boolean };
 export type LabCat = "mayor" | "court" | "folk" | "robe" | "kids" | "animal";
-type LabEntry = { label: string; cat: LabCat; h: number; cfg: FigureConfig | null; draw: (c: C, h: number, ph: number, now: number) => number | null };
+type LabEntry = { label: string; cat: LabCat; h: number; w?: number; cfg: FigureConfig | null; draw: (c: C, h: number, ph: number, now: number) => number | null };
 function labEntries(): LabEntry[] {
   const out: LabEntry[] = [];
   const folk = (k: FolkSprite, robe = false): LabEntry => ({
@@ -2690,13 +2690,13 @@ function labEntries(): LabEntry[] {
   });
   // animals: real game draw calls at the origin; ph (radians) is turned into the distance / clock each one steps by
   const A = (label: string, h: number, w: number, draw: (c: C, ph: number, now: number) => unknown): LabEntry =>
-    ({ label, cat: "animal", h, cfg: null, draw: (c, _h, ph, now) => (draw(c, ph, now) === false ? null : w) });
+    ({ label, cat: "animal", h, w, cfg: null, draw: (c, _h, ph, now) => (draw(c, ph, now) === false ? null : w) });
   out.push(
     A("Schaf geht", 4, 5, (c, ph) => drawSheep(c, 0, 0, false, (ph / 6.2832) * 1440, true, false, false)),
     A("Schaf weidet", 4, 5, (c, _ph, now) => drawSheep(c, 0, 0, false, now, false, true, false)),
     A("Schaf schläft", 3, 5, (c, _ph, now) => drawSheep(c, 0, 0, false, now, false, false, true)),
-    A("Kuh", 5, 6, (c, _ph, now) => drawCow(c, 0, 0, now, 3, 1)),
-    A("Schwein", 3, 4, (c, _ph, now) => drawPig(c, 0, 0, now, 5)),
+    A("Kuh", 5, 14, (c, _ph, now) => drawCow(c, 0, 0, now, 3, 1)),
+    A("Schwein", 3, 11, (c, _ph, now) => drawPig(c, 0, 0, now, 5)),
     A("Hund trabt", 2.2, 2.4, (c, ph, now) => drawDog(c, { x: 0, y: 0, mode: "trot", flip: false, dist: (ph / 6.2832) * 0.44 }, 0, 0, now, 1)),
     A("Hund geht", 2.2, 2.4, (c, ph, now) => drawDog(c, { x: 0, y: 0, mode: "walk", flip: false, dist: (ph / 6.2832) * 0.32 }, 0, 0, now, 1)),
     A("Hund sitzt", 2, 2, (c, _ph, now) => drawDog(c, { x: 0, y: 0, mode: "sit", flip: false, dist: 0 }, 0, 0, now, 1)),
@@ -2710,14 +2710,13 @@ function labEntries(): LabEntry[] {
     A("Wildschwein wühlt", 4.4, 6, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 2.2); sheetFrame(c, bw, 3, 0, -(Math.floor(now / 500) & 1) * 0.08, 4.4, false); return true; }),
     A("Jäger", 5.4, 3, (c, _ph, now) => { const hu = huntIm("hu", hunterUrl); if (!hu) return false; const f = Math.floor(now / 1200) % 3;
       shadow(c, 0, 0, 1.6, 0.3); sheetFrame(c, hu, f, 0, 0, f === 2 ? 4.1 : f === 1 ? 4.6 : 5.4, false); return true; }),
-    A("Hühner", 4, 14, (c) => drawHens(c, 0, -5, 7)),
   );
   return out;
 }
 let labCache: LabEntry[] | null = null;
 const labList = () => (labCache ??= labEntries());
 /** Names and groups of every lab entry, in display order. */
-export function labCatalog(): { label: string; cat: LabCat; h: number }[] { return labList().map((e) => ({ label: e.label, cat: e.cat, h: e.h })); }
+export function labCatalog(): { label: string; cat: LabCat; h: number; w: number }[] { return labList().map((e) => ({ label: e.label, cat: e.cat, h: e.h, w: e.w ?? e.h * 0.6 })); }
 /** Draws entry i with its feet at (x, y) in canvas pixels, z pixels per world unit; ph = gait phase in radians. */
 export function drawLabFigure(c: C, i: number, x: number, y: number, z: number, ph: number, now: number, o: LabOpts) {
   const e = labList()[i]; if (!e) return;

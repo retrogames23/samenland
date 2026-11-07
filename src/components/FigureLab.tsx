@@ -41,7 +41,7 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
       if (s.sel != null && big.current) {
         const e = all[s.sel]; if (!e) { raf = requestAnimationFrame(loop); return; }
         paint(big.current, (c, W, H) => {
-          const v = view.current; if (!v.z) { v.z = (H * 0.7) / e.h; v.x = W / 2; v.y = H * 0.85; }
+          const v = view.current; if (!v.z) { v.z = Math.min((H * 0.7) / e.h, (W * 0.8) / e.w); v.x = W / 2; v.y = H * 0.85; }
           c.strokeStyle = "rgba(60,40,20,0.12)"; c.lineWidth = 1; // world grid, one line per world unit
           if (v.z > 14) { const s0x = v.x % v.z, s0y = v.y % v.z;
             for (let x = s0x; x < W; x += v.z) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke(); }
@@ -51,7 +51,7 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
       } else for (const [i, cv] of cards.current) {
         const r = cv.getBoundingClientRect(); if (r.bottom < 0 || r.top > window.innerHeight) continue;
         const e = all[i]; if (!e) continue;
-        paint(cv, (c, W, H) => drawLabFigure(c, i, W / 2, H * 0.9, Math.min((H * 0.78) / e.h, (W * 0.8) / Math.max(2, e.h * 0.9)), s.ph, now, o));
+        paint(cv, (c, W, H) => drawLabFigure(c, i, W / 2, H * 0.9, Math.min((H * 0.78) / e.h, (W * 0.85) / e.w), s.ph, now, o));
       }
       raf = requestAnimationFrame(loop);
     };
@@ -77,23 +77,23 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
   // detail view: wheel zooms at the cursor, drag pans, two fingers pinch
   const pts = useRef(new Map<number, { x: number; y: number }>());
   const zoomAt = (px: number, py: number, f: number) => {
-    const v = view.current, nz = Math.max(2, Math.min(400, v.z * f)), k = nz / v.z;
+    const v = view.current, nz = Math.max(2, Math.min(160, v.z * f)), k = nz / v.z;
     v.x = px - (px - v.x) * k; v.y = py - (py - v.y) * k; v.z = nz;
   };
   const local = (e: { clientX: number; clientY: number }) => { const r = big.current!.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
 
-  const btn = "rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-muted";
+  const btn = "rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground hover:bg-muted";
   const on = "bg-primary text-primary-foreground border-primary hover:bg-primary";
   const cur = sel != null ? all[sel] : null;
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-card text-foreground" dir="ltr">
-      <header className="flex flex-wrap items-center gap-2 border-b border-border bg-background/95 px-3 py-2 text-xs">
+      <header className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-3 text-card-foreground py-2 text-xs">
         <b className="me-2 text-sm">Figurenkabinett</b>
         {sel == null && CATS.map((c) => (
           <button key={c.k} className={`${btn} ${cat === c.k ? on : ""}`} onClick={() => setCat(c.k)}>{c.label}</button>
         ))}
-        {sel == null && <input className="w-36 rounded-md border border-border bg-background px-2 py-1" placeholder="Suchen…" value={q} onChange={(e) => setQ(e.target.value)} />}
+        {sel == null && <input className="w-36 rounded-md border border-border bg-background px-2 py-1 text-foreground" placeholder="Suchen…" value={q} onChange={(e) => setQ(e.target.value)} />}
         {sel != null && <>
           <button className={btn} onClick={() => open(null)}>← Übersicht</button>
           <button className={btn} onClick={() => step(-1)}>‹</button>
