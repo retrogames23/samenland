@@ -16,7 +16,7 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
   const all = useMemo(() => labCatalog().map((e, i) => ({ ...e, i })), []);
   const [cat, setCat] = useState<LabCat | "all">("all"), [q, setQ] = useState("");
   const [boxes, setBoxes] = useState(false), [lines, setLines] = useState(true);
-  const [speed, setSpeed] = useState(1), [card, setCard] = useState(170), [sel, setSel] = useState<number | null>(null);
+  const [speed, setSpeed] = useState(1), [card, setCard] = useState(130), [sel, setSel] = useState<number | null>(null);
   const [phase, setPhase] = useState(0), [weather, setWeather] = useState<WeatherKind | null>(null);
   const list = all.filter((e) => (cat === "all" || e.cat === cat) && e.label.toLowerCase().includes(q.toLowerCase()));
   // one row per figure, its situations side by side (catalog order keeps them together)
