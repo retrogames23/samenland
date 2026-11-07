@@ -2923,7 +2923,7 @@ function labEntries(): LabEntry[] {
         if (star != null) { fzNow = "epiphany"; fzHour = 12; fzStars.set(id, star); }
         try {
           const top = drawFolk(c, 0, 0, q, now); if (!top) return null;
-          if (star != null) drawFeastKit(c, 0, 0, q, now);
+          if (star != null) drawFeastKit(c, 0, 0, q, now, top[1]);
           return 3.6;
         } finally { fzNow = fz0; fzHour = fh0; fzStars.delete(id); }
       } });
