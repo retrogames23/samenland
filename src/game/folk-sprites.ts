@@ -150,7 +150,6 @@ export const JOB_WORK: Record<string, { m: FolkSprite; f: FolkSprite; scale: num
   healer: { m: "gatherWork", f: "gatherFWork", scale: 1.01, per: 8000 },
   hunter: { m: "gatherWork", f: "gatherFWork", scale: 1.01, per: 9000 },
   merchant: { m: "talkWork", f: "talkFWork", scale: 1.01, per: 8000 },
-  carter: { m: "talkWork", f: "talkFWork", scale: 1.01, per: 9000 },
-  watchman: { m: "talkWork", f: "talkFWork", scale: 1.01, per: 10000 },
+  // carter/watchman: no work sheet — they keep their own clothes on duty (talkWork is the mayor's outfit)
   mayor: { m: "talkWork", f: "talkFWork", scale: 1.01, per: 9000 },
 };
