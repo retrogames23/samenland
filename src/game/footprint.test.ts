@@ -13,3 +13,18 @@ describe("2×2 ensembles", () => {
     expect(specialSites(s).size).toBe(1);
   });
 });
+
+describe("2×2 placement checks the whole footprint", () => {
+  it("refuses a Beginenhof whose back tile already holds a house", async () => {
+    const { canPlaceSpecial, structureAt } = await import("./world");
+    const now = Date.parse("2026-11-07T12:00:00Z");
+    const s = { id: "scale-collision", x: 600, y: 600, name: "T", created_at: new Date(now - 20 * 86400000).toISOString(), hue: 0, bought: [] } as unknown as Seed;
+    const back = structureAt(599, 593, [s], now)?.kind;
+    if (back && !["field", "pasture", "garden"].includes(back)) expect(canPlaceSpecial("beginen", 600, 593, s, [s], now)).not.toBeNull();
+    // every accepted spot keeps all four tiles free of standing buildings
+    for (let y = 594; y <= 606; y++) for (let x = 594; x <= 606; x++) {
+      if (canPlaceSpecial("beginen", x, y, s, [s], now) !== null) continue;
+      for (const [i, j] of [[-1, 0], [0, -1], [-1, -1]]) { const k = structureAt(x + i, y + j, [s], now)?.kind; expect(!k || ["field", "pasture", "garden"].includes(k)).toBe(true); }
+    }
+  });
+});
