@@ -652,7 +652,6 @@ function seatFete(s: Seed, seeds: Seed[], now: number): { at: number; tile: Tile
   for (let t = b; t > now - FETE_WIN; t -= RANK_STEP) {
     const r1 = rankAtStep(s, seeds, t), r0 = rankAtStep(s, seeds, t - RANK_STEP);
     if (r1 > r0 && SEAT_OF(r1) !== SEAT_OF(r0)) return { at: t, tile, kind: SEAT_OF(r1) };
-    if (r1 === r0 && t < b - 2 * RANK_STEP && r1 === rankAtStep(s, seeds, now - FETE_WIN)) break;
   }
   return null;
 }
@@ -663,7 +662,6 @@ export function inauguration(s: Seed, seeds: Seed[], now: number): { at: number;
   let li = -1;
   for (let i = 0; i < LANDMARKS.length; i++) { const l = LANDMARKS[i]!; if (player && SEAT_KINDS.includes(l.kind) && l.kind !== "seat1") continue; if (l.at > a0 && l.at <= a1 && (li < 0 || l.at > LANDMARKS[li]!.at)) li = i; }
   const sf = player ? seatFete(s, seeds, now) : null;
-  if (sf && (!bb0(s, seeds, now) || true)) { /* seat rebuild competes with other feasts below */ }
   // bought buildings finished within the window are inaugurated just like landmarks
   let bb: { at: number; tile: Tile; kind: Kind } | null = null;
   for (const b of s.bought ?? []) {
@@ -673,6 +671,7 @@ export function inauguration(s: Seed, seeds: Seed[], now: number): { at: number;
     const done = mk ? monumentDone(s, seeds, mk) : specialDone(s, seeds, b.at); if (done == null || done <= now - FETE_WIN || done > now || (bb && bb.at >= done)) continue;
     const tl = specialTile(s, kind); if (tl) bb = { at: done, tile: tl, kind };
   }
+  if (sf && sf.at <= now && (!bb || sf.at > bb.at)) bb = sf;
   if (li < 0) return bb;
   let tile: Tile | null = null;
   for (const [k, list] of landmarkSpots(s)) if (list.includes(li) && !list.some((j) => j !== li && LANDMARKS[j]!.at > LANDMARKS[li]!.at && LANDMARKS[j]!.at - 96 <= a1)) { const [dx, dy] = k.split(",").map(Number); tile = [s.x + dx!, s.y + dy!]; break; }
