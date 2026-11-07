@@ -362,7 +362,7 @@ export function spriteBox(kind: Kind, variant: number, style?: HouseStyle): { w:
 }
 /** Paintings that already carry painted ground (yard, paving, garden, stacks) — every other building gets a soft contact
  * shadow derived from its own silhouette, so hard-cut plinths never float. Keys: kind, `<style>-<kind>`, `<style>-<kind>-<slot>`. */
-const GROUNDED = new Set(["campfire", "coop", "fence", "chapel", "barn", "villa", "tenement", "sawmill", "beginenhof", "stonemason", "saltquay", "herbhut", "woodcamp",
+const GROUNDED = new Set(["campfire", "coop", "fence", "chapel", "barn", "villa", "tenement", "sawmill", "beginenhof", "orangery", "stonemason", "saltquay", "herbhut", "woodcamp",
   "infirmary", "firehouse", "guardhouse", "school", "university", "exchange", "lighthouse", "hay", "well", "market", "steinhaus", "watermill", "steamworks",
   "workshop-cottage", "workshop-farmhouse", "workshop-villa", "workshop-steinhaus", "workshop-handwerker", "workshop-handwerker-2", "workshop-handwerker-3",
   "gateway-cottage", "gateway-villa", "gateway-steinhaus", "gateway-handwerker", "gateway-handwerker-2", "gateway-handwerker-3", "gateway-farmhouse-3"]);

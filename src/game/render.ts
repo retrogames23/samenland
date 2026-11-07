@@ -1357,10 +1357,12 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
 }
 /** People carrying a hand lantern this frame (night walkers on far paths, the strolling mayor). */
 const lanternFolk = new Set<number>();
+/** Screen facing of a villager's body; every separately drawn hand/shoulder prop uses it so props never flip apart from the body. */
+const bodyFace = (q: Pose) => screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2);
 /** Painted horn lantern (tinned iron, horn panes) hanging from the hand at hip height, swinging gently; the caller pushes its light. */
 function drawHandLantern(c: C, X: number, Y: number, q: Pose, t: number) {
   const im = folkImage("hornLantern"); if (!im) return;
-  const f = q.dir[0] - q.dir[1] >= 0 ? 1 : -1;
+  const f = bodyFace(q);
   // the hand by the hip on the forward side, riding the same stride bob as the body
   const bob = q.walking ? Math.abs(Math.sin(q.phase + hash(q.p.id, 77, 5) * 6.2832)) * 0.07 : 0;
   const hx = X + f * 0.72, hy = Y - 2.3 - bob;
@@ -1387,7 +1389,7 @@ const CARRY_ART: Record<NonNullable<Pose["carry"]>, [FolkSprite, [number, number
 function drawCarryProp(c: C, X: number, Y: number, q: Pose, hgt: number) {
   if (!q.carry) return;
   const fk = folkOf(q); if (fk === "porter" || fk === "porterF") return; // sack painted on the porter
-  const f = q.dir[0] - q.dir[1] >= 0 ? 1 : -1;
+  const f = bodyFace(q);
   const bob = q.walking ? Math.abs(Math.sin(q.phase + hash(q.p.id, 77, 5) * 6.2832)) * hgt * 0.015 : 0;
   const sw = q.walking ? Math.sin(q.phase * 2 + q.p.id) * hgt * 0.012 : 0;
   const art = CARRY_ART[q.carry];
@@ -2434,15 +2436,17 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
 }
 const AGRI_VARIANTS = 6, AGRI_S = 3, AGRI_W = 48, AGRI_UP = 20, AGRI_H = 34;
 const agriSprites = new Map<string, HTMLCanvasElement>();
+/** Set when an agri detail sprite could not be built yet (art loading): the flat chunk being baked is then not complete. */
+let agriMiss = false;
 function agriSprite(a: AgriSpec, key: string): HTMLCanvasElement | null {
   gCabbage = huntIm("gCab", gardenCabbageUrl); gLeek = huntIm("gLeek", gardenLeekUrl); gBeans = huntIm("gBeans", gardenBeansUrl);
   pastureClover = huntIm("pClover", pastureCloverUrl); pastureTussock = huntIm("pTussock", pastureTussockUrl); pastureTrough = huntIm("pTrough", pastureTroughUrl);
   let cv = agriSprites.get(key);
   if (cv) return cv;
   // plant art not loaded yet: draw nothing cached (the fill is still shown) and retry next frame
-  if (a.kind !== "pasture" && !a.winter && !fieldRowImage(a.kind === "field" && a.ripe)) return null;
-  if (a.kind === "garden" && !a.winter && !(gCabbage && gLeek && gBeans)) return null;
-  if (a.kind === "pasture" && !(pastureClover && pastureTussock && pastureTrough)) return null;
+  if (a.kind !== "pasture" && !a.winter && !fieldRowImage(a.kind === "field" && a.ripe)) { agriMiss = true; return null; }
+  if (a.kind === "garden" && !a.winter && !(gCabbage && gLeek && gBeans)) { agriMiss = true; return null; }
+  if (a.kind === "pasture" && !(pastureClover && pastureTussock && pastureTrough)) { agriMiss = true; return null; }
   cv = document.createElement("canvas"); cv.width = AGRI_W * AGRI_S; cv.height = AGRI_H * AGRI_S;
   const g = cv.getContext("2d")!; g.setTransform(AGRI_S, 0, 0, AGRI_S, 0, 0);
   agriDetail(g, AGRI_W / 2, AGRI_UP, a);
@@ -3030,7 +3034,7 @@ function drawSignpost(c: C, cx: number, cy: number, sd: number) {
 /** Wooden pail in a fire helper's hand; while standing at the blaze, water arcs toward the flames. */
 function drawBucket(c: C, x: number, y: number, q: Pose, t: number) {
   // a real pail (~30 cm) hanging from the hand at the hip, bobbing with the stride
-  const sx = q.dir[0] - q.dir[1], f = sx >= 0 ? 1 : -1, bob = q.walking ? Math.abs(Math.sin(q.phase + hash(q.p.id, 77, 5) * 6.2832)) * 0.07 : 0;
+  const f = bodyFace(q), bob = q.walking ? Math.abs(Math.sin(q.phase + hash(q.p.id, 77, 5) * 6.2832)) * 0.07 : 0;
   const sw = q.walking ? Math.sin(q.phase * 2 + q.p.id) * 0.08 : 0;
   const bx = x + f * 0.75 + sw, by = y - 2.0 - bob;
   c.save();
@@ -3106,7 +3110,7 @@ function cowStep(c: C, w: number, f: number, lift = 0): boolean {
 }
 function drawOx(c: C, x: number, y: number, w: Walk, now: number) {
   const im = huntIm("cow", cowUrl); if (!im) return;
-  const W = 5.6, H = (im.naturalHeight / im.naturalWidth) * W, dir = screenFacing(w.dx, w.dy) < 0 ? -1 : 1;
+  const W = 5.6, H = (im.naturalHeight / im.naturalWidth) * W, dir = -screenFacing(w.dx - w.dy, (w.dx + w.dy) / 2); // cow art faces left: mirror when heading right on screen
   const sway = w.walking ? Math.sin(now / 420) * 0.04 : Math.sin(now / 5200) * 0.006, lift = w.walking ? Math.abs(Math.sin(now / 420)) * 0.15 : 0;
   c.save();
   c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x, y + 0.2, 3, 0.95, 0, 0, 7); c.fill();
@@ -3224,6 +3228,7 @@ function flatCheck(x: number, y: number, st: Structure | null) {
   for (const [dx, dy] of NB8) { const n = flatCache.get((((y + dy) / FC) | 0) * 4096 + (((x + dx) / FC) | 0)); if (n) n.dirty = true; }
 }
 function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number) {
+  agriMiss = false;
   const X0 = ix * FC, Y0 = iy * FC, X1 = Math.min(MAP - 1, X0 + FC - 1), Y1 = Math.min(MAP - 1, Y0 + FC - 1);
   let any = false;
   const sts: (Structure | null)[] = [];
@@ -3262,7 +3267,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     else { flatCache.delete(key); flatCache.set(key, e); }
     // art still loading: bake anyway, but refresh that chunk every 2 s until it is complete
     const stale = e.dirty || e.q !== q || e.sk !== sk || (!e.full && t - e.baked > 2000);
-    if (stale && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; e.dirty = false; }
+    if (stale && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false; }
     if (e.empty && e.q === q) { flatSet.add(key); continue; }
     // soft fallback: while a re-bake is pending, keep showing the previous bake scaled (never live-draw the whole chunk)
     if (e.cv && (e.q === q && e.sk === sk || e.q !== q && e.sk === sk)) { c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
@@ -3277,7 +3282,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
       let e = flatCache.get(key);
       if (e && !e.dirty && e.q === q && e.sk === sk) continue;
       if (!e) { e = { cv: null, q: 0, sk: "", tok: new Int32Array(FC * FC), dirty: true, full: false, baked: -1e9, empty: false }; flatCache.set(key, e); }
-      frameBakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready; e.baked = t; e.dirty = false;
+      frameBakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false;
       break outer;
     }
   }
@@ -3896,7 +3901,7 @@ export function draw(
     if (st) {
       drawStructure(c, st, cx, cy, x, y, t, L);
       if (st.build === undefined && SEAT_KINDS.includes(st.kind) && supportOwned.get(st.seed.id)?.has("vane")) { const b = spriteBox(st.kind, st.v, houseStyle(st)); if (b) drawVane(c, cx, cy + b.base - b.h); }
-      if (st.build === undefined && !FLAT.has(st.kind)) { const b = spriteBox(st.kind, st.v, houseStyle(st)); if (b && b.h > 8) occ.push(ti, cx - b.w / 2, cy + b.base - b.h, cx + b.w / 2, cy + b.base - 2); }
+      if (st.build === undefined && !FLAT.has(st.kind)) { const b = spriteBox(st.kind, st.v, houseStyle(st)); if (b && b.h > 8) { const oy = FOOT2.has(st.kind) ? cy - TH / 2 : cy; occ.push(ti, cx - b.w / 2, oy + b.base - b.h, cx + b.w / 2, oy + b.base - 2); } }
     }
     for (const f of hunt.get(y * MAP + x) ?? []) f();
     for (const f of props.get(y * MAP + x) ?? []) f(cx, cy);

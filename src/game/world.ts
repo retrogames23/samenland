@@ -1408,7 +1408,17 @@ export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, see
   const tt = terrain(x, y);
   if (!buildable(tt) || tt === "forest") return "ground";
   const st = structureAt(x, y, seeds, now);
-  if (st && !(st.kind === "field" || st.kind === "pasture" || st.kind === "garden")) return "taken";
+  const agri = (k?: Kind) => k === "field" || k === "pasture" || k === "garden";
+  if (st && !agri(st.kind)) return "taken";
+  // 2×2 ensembles: the three tiles behind the front tile must be free ground too
+  if (FOOT2.has(kind)) for (const [i, j] of FOOT2_BACK) {
+    const xx = x + i, yy = y + j, t2 = terrain(xx, yy);
+    if (!buildable(t2) || t2 === "forest") return "ground";
+    const b = structureAt(xx, yy, seeds, now);
+    if (b && !agri(b.kind)) return "taken";
+  }
+  // the carp pond must not cover a standing building (it would be hidden yet still block the way)
+  if (kind === "fishery" && !waterBeside(x, y)) { const p = pondSpot(x, y); if (p) { const b = structureAt(p[0], p[1], seeds, now); if (b && !agri(b.kind)) return "taken"; } }
   // away from water the fisher digs a carp pond beside his hut, so it needs one free neighbour tile
   if (kind === "fishery" && !waterBeside(x, y) && !pondSpot(x, y)) return "shore";
   return null;
