@@ -3337,7 +3337,7 @@ export function draw(
       // only night walkers on far paths (and the strolling mayor) carry a visible hand lantern; the light comes from it
       if (darkOut && q.walking && !q.mounted && q.p.age >= 14 && (Math.hypot(q.x - sd.x, q.y - sd.y) > r0 * 0.8 || (steer && q.p.role === "mayor" && q.act === "stroll"))) {
         lanternFolk.add(q.p.id * 7919 + sd.id.length);
-        const [lx, ly] = iso(q.x, q.y); L.push({ x: lx + 1.6, y: ly - 2.2, r: 7 });
+        const [lx, ly] = iso(q.x, q.y); L.push({ x: lx + ((q.dir[0] - q.dir[1]) >= 0 ? 0.55 : -0.55), y: ly - 1.3, r: 4 });
       }
       if (!folk.has(k)) folk.set(k, []);
       folk.get(k)!.push(q);
