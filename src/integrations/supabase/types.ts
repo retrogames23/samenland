@@ -1328,6 +1328,10 @@ export type Database = {
         Args: { _at: string; _seed: string }
         Returns: number
       }
+      village_capped_tax_fast: {
+        Args: { _at: string; _seed: string }
+        Returns: number
+      }
       village_civic_wealth: {
         Args: { _at: string; _seed: string }
         Returns: number
@@ -1348,12 +1352,21 @@ export type Database = {
         Args: { _at: string; _created: string; _seed: string }
         Returns: number
       }
+      village_receipt_total: { Args: { _seed: string }; Returns: number }
       village_tax: { Args: { _at: string; _created: string }; Returns: number }
       village_tax_pop: {
         Args: { _at: string; _h: number; _seed: string }
         Returns: number
       }
       village_weddings: {
+        Args: { _at: string; _seed: string }
+        Returns: {
+          dowry: number
+          last_at: string
+          n: number
+        }[]
+      }
+      village_weddings_fast: {
         Args: { _at: string; _seed: string }
         Returns: {
           dowry: number

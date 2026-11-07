@@ -673,6 +673,20 @@
       "when": 1794091810120,
       "tag": "0095_quest_citizen_check",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1794094094582,
+      "tag": "0096_fast_treasury",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1794094107916,
+      "tag": "0097_receipt_total",
+      "breakpoints": true
     }
   ]
 }
