@@ -41,7 +41,7 @@ import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
-import { folkImage, walkSheet, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
+import { folkImage, walkSheet, standSprite, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { townRank, seatKindForRank } from "./rank";
 import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
@@ -1358,7 +1358,9 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     // whole-body figures stand in the passing frame of their own walk sheet (feet together, same body as walking)
     const ws4 = !q.working && walkFramesOf(k) === 4 && k !== "toddler" ? walkSheet(k) : null;
     const stand = !ws4 && !q.working && k !== "watchman" && legsFor(q) ? folkImage("legsStand") : null;
-    if (ws4) { const sfw = ws4.naturalWidth / 4, sh = hgt * walkScaleOf(k); drawSheetFrame(c, ws4, 1, sfw, (sh * sfw) / ws4.naturalHeight, sh, 0); }
+    const st = ws4 ? standSprite(k) : null;
+    if (st) { const sh = hgt * walkScaleOf(k) * 0.985, sw = (sh * st.naturalWidth) / st.naturalHeight; c.drawImage(st, -sw / 2, -sh, sw, sh); }
+    else if (ws4) { const sfw = ws4.naturalWidth / 4, sh = hgt * walkScaleOf(k); drawSheetFrame(c, ws4, 1, sfw, (sh * sfw) / ws4.naturalHeight, sh, 0); }
     else if (stand) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, stand, 0, w, hgt, HIPS[k] ?? DEFAULT_FIG);
     else c.drawImage(im, -w / 2, -hgt, w, hgt);
   }
@@ -2774,8 +2776,8 @@ export type LabOpts = { boxes: boolean; lines: boolean; weather: WeatherKind | n
 export type LabCat = "mayor" | "court" | "folk" | "robe" | "kids" | "animal" | "feast" | "road";
 type LabEntry = { label: string; row: string; sit: string; cat: LabCat; h: number; w?: number; night?: boolean; wx?: WeatherKind | undefined; cfg: FigureConfig | null; draw: (c: C, h: number, ph: number, now: number) => number | null };
 const LAB_SEED = { id: "lab", hue: 30, bought: [], x: 0, y: 0 } as unknown as Seed;
-type LabSit = "stand" | "walk" | "work" | "carry" | "bucket" | "lantern" | "rain" | "storm" | "snow";
-const SIT_LABEL: Record<LabSit, string> = { stand: "Stehen", walk: "Gehen", work: "Arbeit", carry: "Last tragen", bucket: "Löscheimer", lantern: "Nacht · Laterne", rain: "Regen", storm: "Sturm", snow: "Schnee · Frost" };
+type LabSit = "stand" | "walk" | "work" | "carry" | "carryStand" | "bucket" | "lantern" | "rain" | "storm" | "snow";
+const SIT_LABEL: Record<LabSit, string> = { stand: "Stehen", walk: "Gehen", work: "Arbeit", carry: "Last tragen", carryStand: "Last · Stehen", bucket: "Löscheimer", lantern: "Nacht · Laterne", rain: "Regen", storm: "Sturm", snow: "Schnee · Frost" };
 function labEntries(): LabEntry[] {
   const out: LabEntry[] = [];
   let pid = 1;
@@ -2787,7 +2789,7 @@ function labEntries(): LabEntry[] {
     for (const sit of sits) {
       const walking = sit === "walk" || sit === "carry" || sit === "lantern" || sit === "rain" || sit === "storm";
       const pose = (ph: number): Pose => ({ p, x: 0, y: 0, visible: true, walking, dir: [1, 0], phase: ph, act: sit === "work" ? "work" : "stroll",
-        working: sit === "work", talk: null, talkTurn: false, carry: sit === "carry" ? "grain" : null, dest: null, festive: o.festive, bucket: sit === "bucket" });
+        working: sit === "work", talk: null, talkTurn: false, carry: sit === "carry" || sit === "carryStand" ? "grain" : null, dest: null, festive: o.festive, bucket: sit === "bucket" });
       const k = folkOf(pose(0)), robe = SKIRTS.has(k);
       const work = sit === "work", big = work ? (JOB_WORK[job]?.scale ?? 1.3) : 1;
       out.push({
@@ -2827,7 +2829,7 @@ function labEntries(): LabEntry[] {
   person("Kräutersammler", "folk", "herbalist", "m", 45, ADULT);
   person("Fuhrmann", "folk", "carter", "m", 42, ADULT);
   person("Wächter", "folk", "watchman", "m", 38, ADULT);
-  person("Sackträger", "folk", "carter", "m", 30, ["carry"]);
+  person("Sackträger", "folk", "carter", "m", 30, ["carryStand", "carry"]);
   person("Bäcker", "folk", "baker", "m", 38, ADULT);
   person("Müller", "folk", "miller", "m", 44, ADULT);
   person("Wirt", "folk", "innkeeper", "m", 40, ADULT);
@@ -2841,7 +2843,7 @@ function labEntries(): LabEntry[] {
   out.push({ label: "Räuber · Schleichen", row: "Räuber", sit: "Schleichen", cat: "folk", h: 4.4, w: 3.6, cfg: HIPS.robber ?? null, draw: (c, _h, _ph, now) => { drawRobber(c, 0, 0, false, now); return 3.6; } });
   // women and gowns
   person("Bürgerin", "robe", "homemaker", "f", 35, PLAIN);
-  person("Sackträgerin", "robe", "carter", "f", 30, ["carry"]);
+  person("Sackträgerin", "robe", "carter", "f", 30, ["carryStand", "carry"]);
   person("Wohlhabende Bürgerin", "robe", "homemaker", "f", 42, GENTLE, { estate: "wealthy" });
   person("Bäuerin", "robe", "farmer", "f", 35, ADULT);
   person("Holzfällerin", "robe", "woodcutter", "f", 30, ADULT);
