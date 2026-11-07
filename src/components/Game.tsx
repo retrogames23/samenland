@@ -536,7 +536,13 @@ export function Game() {
     if (isAdmin) q = q.eq("realm", realm);
     q.limit(1).then(async ({ data }) => {
       if (!live) return;
-      if (data?.[0]) { setHome(data[0] as Seed); return; }
+      if (data?.[0]) {
+        const h = data[0] as Seed;
+        setHome(h);
+        // signed in after the map loaded: swap to the home village's map in place
+        if (!isAdmin && h.realm && REALMS.includes(h.realm) && h.realm !== realmRef.current) loadRealmRef.current?.(h.realm);
+        return;
+      }
       // signed in without a village: guide straight into founding instead of leaving them on the map
       setAuthOpen(false);
       // admins visiting the test map are not pushed into founding there
@@ -659,8 +665,13 @@ export function Game() {
           if (adm && o && (REALMS.includes(o) || o === "lab")) { r = o; adminPick = true; }
           if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
           // an invite only steers newcomers: players with a village keep their own map
-          const { data: mine } = await supabase.from("seeds").select("id").eq("user_id", uid).limit(1);
-          if (mine?.length) localStorage.removeItem("samenland-ref");
+          const { data: mine } = await supabase.from("seeds").select("id, realm").eq("user_id", uid).limit(1);
+          if (mine?.length) {
+            localStorage.removeItem("samenland-ref");
+            // players always land on their own village's map, whatever the browser time zone
+            const hr = mine[0]!.realm as Realm;
+            if (!adm && REALMS.includes(hr)) r = hr;
+          }
         }
       } catch { /* play as guest */ }
       // invited newcomers land on their friend's map
