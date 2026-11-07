@@ -1346,18 +1346,18 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
 }
 /** People carrying a hand lantern this frame (night walkers on far paths, the strolling mayor). */
 const lanternFolk = new Set<number>();
-/** Horn lantern swinging from the hand: iron frame, pale horn panes, a candle point; the frame's light is pushed by the caller. */
+/** Painted horn lantern (tinned iron, horn panes) hanging from the hand at hip height, swinging gently; the caller pushes its light. */
 function drawHandLantern(c: C, X: number, Y: number, q: Pose, t: number) {
-  const lx = X + 1.6, sw = Math.sin(q.phase * 2 + q.p.id) * 0.25, ly = Y - 2.2;
-  c.strokeStyle = "#3a2c1e"; c.lineWidth = 0.18;
-  c.beginPath(); c.moveTo(lx - 0.1, Y - 2.9); c.lineTo(lx + sw, ly - 0.75); c.stroke();
-  const x = lx + sw, fl = 0.85 + Math.sin(t / 90 + q.p.id) * 0.15;
-  c.fillStyle = "rgba(255,190,100,0.22)"; c.beginPath(); c.arc(x, ly, 1.6, 0, 7); c.fill();
-  c.fillStyle = `rgba(242,196,120,${fl})`; c.fillRect(x - 0.38, ly - 0.55, 0.76, 1.05);
-  c.fillStyle = "#fff0c0"; c.beginPath(); c.arc(x, ly, 0.16, 0, 7); c.fill();
-  c.strokeStyle = "#2e241a"; c.lineWidth = 0.14; c.strokeRect(x - 0.38, ly - 0.55, 0.76, 1.05);
-  c.fillStyle = "#2e241a"; c.beginPath(); c.moveTo(x - 0.48, ly - 0.55); c.lineTo(x, ly - 0.85); c.lineTo(x + 0.48, ly - 0.55); c.closePath(); c.fill();
-  c.fillRect(x - 0.45, ly + 0.5, 0.9, 0.14);
+  const im = folkImage("hornLantern"); if (!im) return;
+  const f = q.dir[0] - q.dir[1] >= 0 ? 1 : -1;
+  const hx = X + f * 0.55, hy = Y - 1.7; // the hand, by the hip on the forward side
+  const sw = Math.sin(q.phase * 2 + q.p.id) * (q.walking ? 0.12 : 0.03);
+  const h = 0.8, w = (im.naturalWidth / im.naturalHeight) * h;
+  c.save(); c.translate(hx, hy); c.rotate(sw);
+  c.fillStyle = `rgba(255,190,100,${0.16 + Math.sin(t / 90 + q.p.id) * 0.03})`;
+  c.beginPath(); c.arc(0, h * 0.6, 0.55, 0, 7); c.fill();
+  c.drawImage(im, -w / 2, -0.05, w, h);
+  c.restore();
 }
 function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean) {
   if (q.p.job === "hunter" && q.working) return; // shown by the hunt scene at the lodge
