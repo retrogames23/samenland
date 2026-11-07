@@ -1201,6 +1201,7 @@ function folkOf(q: Pose): FolkSprite {
   if (p.job === "woodcutter") return f ? "woodcutterF" : "woodcutter";
   if (p.job === "mason") return f ? "masonF" : "mason";
   if (p.job === "priest") return "priest";
+  if (p.job === "watchman" && !f && p.age < 65) return "watchman"; // 1500: civic watch — plain iron hat, wool tunic, spear and horn (never the prince's guard)
   if (p.age >= 65) return f ? "elderF" : "elder";
   return f ? "woman" : "man";
 }
@@ -1208,7 +1209,7 @@ function folkOf(q: Pose): FolkSprite {
 const HIPS: Partial<Record<FolkSprite, FigureConfig>> = {
   man: fig(0.465, 0.575, { legs: "dark" }), farmer: fig(0.51, 0.71, { legs: "linen" }), porter: fig(0.437, 0.676, { legs: "linen" }), builder: fig(0.472, 0.653, { legs: "grey" }),
   woodcutter: fig(0.453, 0.67, { legs: "grey" }), mason: fig(0.4, 0.62, { legs: "grey" }), elder: fig(0.47, 0.68, { legWidthScale: 1.04, legs: "dark", keep: [[0.84, 0.96, 0.95]] }),
-  robber: fig(0.45, 0.665, { legs: "dark" }), youth: fig(0.5, 0.58, { legs: "dark" }), groom: fig(0.56, 0.74, { legWidthScale: 1.06, legs: "linen" }),
+  robber: fig(0.45, 0.665, { legs: "dark" }), watchman: fig(0.52, 0.64, { legs: "dark" }), youth: fig(0.5, 0.58, { legs: "dark" }), groom: fig(0.56, 0.74, { legWidthScale: 1.06, legs: "linen" }),
 };
 const LEG_IMG = { m: "legsM", grey: "legsGrey", dark: "legsDark", linen: "legsLinen", red: "legsRed" } as const;
 /** Leg cycle in the outfit's colour (falls back to the shared brown breeches while loading). */
@@ -1343,7 +1344,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     const sy = 1 + br * 0.012, sx = 1 - br * 0.004, lean = shift > 0.85 ? (shift - 0.85) * 0.12 : shift < -0.85 ? (shift + 0.85) * 0.12 : 0;
     c.transform(sx, 0, lean, sy, 0, 0);
     // real standing pose: both boots planted side by side under the trade torso (no frozen mid-stride)
-    const stand = !q.working && legsFor(q) ? folkImage("legsStand") : null;
+    const stand = !q.working && k !== "watchman" && legsFor(q) ? folkImage("legsStand") : null;
     if (stand) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, stand, 0, w, hgt, HIPS[k] ?? DEFAULT_FIG);
     else c.drawImage(im, -w / 2, -hgt, w, hgt);
   }
