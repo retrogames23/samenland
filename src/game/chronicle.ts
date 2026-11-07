@@ -3,7 +3,7 @@
  * (same functions that drive growth), so it needs no stored history. Returns codes; i18n formats them.
  */
 import { effAge, stageOf, landmarkSpots, specialDone, specialTile, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, radiusOf, reachOf, LANDMARKS, SEAT_KINDS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
-import { townRank } from "./rank";
+import { townRank, seatKindForRank } from "./rank";
 import { taxEarned } from "./economy";
 import { dowryEarned } from "./weddings";
 import { fires, floods, floodFront, raids, raidLoss } from "./disasters";
