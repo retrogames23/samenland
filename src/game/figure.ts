@@ -134,7 +134,9 @@ export function frameShift(legs: HTMLImageElement, frac = 0.4): number[] {
       if (n) out[f] = (s / n - fw / 2) / fw;
     }
   } catch { /* keep zero offsets */ }
-  WAIST.set(legs, out); return out;
+  // painted heads don't line up pixel-exactly: smooth circularly so neighbouring frames never jump sideways
+  const n = WALK_FRAMES, sm = out.map((_, f) => (out[(f + n - 1) % n]! + 2 * out[f]! + out[(f + 1) % n]!) / 4);
+  WAIST.set(legs, sm); return sm;
 }
 export function drawLegPair(c: C, legs: HTMLImageElement, frame: number, lw: number, lh: number, dy: number, ph: number | undefined, spread = 0, lift = 0.15) {
   // the painted frames already carry the foot lift: draw each frame whole, never split at the crotch
