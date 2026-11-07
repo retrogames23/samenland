@@ -651,6 +651,13 @@ export const FARM_BONUS = 0.05;
 export const SPECIAL_BUILD = 6 * 3600000;
 const CORE_SPOTS = new Set([...Object.keys(CORE), ...LANDMARKS.map((l) => `${l.dx},${l.dy}`), "0,0"]);
 const siteCache = new Map<string, Map<number, { kind: Kind; at: number }>>();
+/** Ensembles painted as whole complexes (courtyards, wings) stand on 2×2 tiles: the sprite sits on the
+ * front (south) tile, the three tiles behind become its paved ground ("square") — nothing else grows there. */
+export const FOOT2: ReadonlySet<Kind> = new Set<Kind>(["beginenhof", "university", "orangery", "factory"]);
+const FOOT2_BACK: [number, number][] = [[-1, 0], [0, -1], [-1, -1]];
+function coverBack(out: Map<number, { kind: Kind; at: number }>, x: number, y: number, at: number) {
+  for (const [i, j] of FOOT2_BACK) { const k = (y + j) * MAP + x + i; if (!out.has(k)) out.set(k, { kind: "square", at }); }
+}
 /**
  * Where each bought building stands: a pure function of the seed and its purchases. The fishery
  * looks for the shore, the healer for the forest edge, the school for the village core, the granary for the fields.
@@ -667,13 +674,15 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
   for (const b of [...items].sort((a, c) => a.at - c.at)) {
     if (seen.has(b.item)) continue; seen.add(b.item);
     const kind = SPECIAL_KIND[b.item]!;
-    // the player chose the spot in the build preview
-    if (b.x != null && b.y != null && !out.has(b.y * MAP + b.x)) { out.set(b.y * MAP + b.x, { kind, at: b.at }); continue; }
+    const big = FOOT2.has(kind);
+    // the player chose the spot in the build preview (for 2×2 ensembles: the front tile)
+    if (b.x != null && b.y != null && !out.has(b.y * MAP + b.x)) { out.set(b.y * MAP + b.x, { kind, at: b.at }); if (big) coverBack(out, b.x, b.y, b.at); continue; }
     let best = -1, bs = Infinity;
     for (let dy = -9; dy <= 9; dy++) for (let dx = -9; dx <= 9; dx++) {
       const x = s.x + dx, y = s.y + dy, d = Math.hypot(dx, dy), k = y * MAP + x;
       if (d < 2.4 || d > 9 || out.has(k) || CORE_SPOTS.has(`${dx},${dy}`)) continue;
       if (!buildable(terrain(x, y)) || terrain(x, y) === "forest" || pathAt(x, y, s, 20000, 10)) continue;
+      if (big && FOOT2_BACK.some(([i, j]) => { const xx = x + i, yy = y + j; return out.has(yy * MAP + xx) || CORE_SPOTS.has(`${xx - s.x},${yy - s.y}`) || !buildable(terrain(xx, yy)) || terrain(xx, yy) === "forest" || pathAt(xx, yy, s, 20000, 10); })) continue;
       let water = 0, forest = 0;
       for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) { const t = terrain(x + i, y + j); if (isWater(t)) water++; else if (t === "forest") forest++; }
       let sc = d + hash(x, y, 777) * 1.5;
@@ -687,7 +696,7 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
       if (kind === "herberge") sc += pathAt(x + 1, y, s, 20000, 10) || pathAt(x, y + 1, s, 20000, 10) ? -3 : 0;
       if (sc < bs) { bs = sc; best = k; }
     }
-    if (best >= 0) out.set(best, { kind, at: b.at });
+    if (best >= 0) { out.set(best, { kind, at: b.at }); if (big) coverBack(out, best % MAP, Math.floor(best / MAP), b.at); }
   }
   if (siteCache.size > 200) siteCache.clear();
   siteCache.set(key, out);
