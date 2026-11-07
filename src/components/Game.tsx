@@ -2817,7 +2817,7 @@ export function Game() {
               <div className="mt-3 flex justify-center">
                 <Button type="button" size="sm" onClick={async () => {
                   const text = `${t.invite.share} ${link}`;
-                  try { if (navigator.share) await navigator.share({ text, url: link }); else await navigator.clipboard.writeText(text); setMsg(t.invite.copied); }
+                  try { if (navigator.share) await navigator.share({ text: t.invite.share, url: link }); else await navigator.clipboard.writeText(text); setMsg(t.invite.copied); }
                   catch { try { await navigator.clipboard.writeText(text); setMsg(t.invite.copied); } catch { /* user cancelled */ } }
                 }}>{t.invite.copy}</Button>
               </div>
