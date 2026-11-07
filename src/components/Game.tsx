@@ -1145,7 +1145,7 @@ export function Game() {
     const bd = Math.max(3, (coarse ? 34 : 16) / c.zoom);
     for (const q of courtPoses(worldHour(clock()), clock())) {
       const [ix, iy] = iso(q.x, q.y);
-      if (Math.hypot(ix - wx, iy - 2.5 - wy) < bd) { courtAct(q.role, q.x, q.y); sayAt(banter(lang, { who: "court", role: q.role, night: isNight() }, bVars(seeds.find((x) => x.id === mine)?.name ?? "")), ix, iy, 10); return true; }
+      if (Math.hypot(ix - wx, iy - 2.5 - wy) < bd) { courtAct(q.role, q.x, q.y); if (mayorNear(q.x, q.y)) sayAt(banter(lang, { who: "court", role: q.role, night: isNight() }, bVars(seeds.find((x) => x.id === mine)?.name ?? "")), ix, iy, 10); return true; }
     }
     return false;
   };
