@@ -12,6 +12,13 @@ describe("derived larder", () => {
     expect(a.flows.length).toBeGreaterThan(0);
     for (const f of a.flows) expect(f.stock).toBeGreaterThanOrEqual(0);
   });
+  it("recomputes when the neighbour seed set changes at the same moment", () => {
+    const neighbour = { ...(seed as object), id: "g2", name: "Nachbar", x: 520, y: 500 } as never;
+    const a = larderOf(seed, [seed], AUTUMN);
+    const b = larderOf(seed, [seed, neighbour], AUTUMN);
+    expect(b).not.toBe(a);
+    expect(larderOf(seed, [seed], AUTUMN)).toBe(a);
+  });
   it("harvest season yields more grain than spring", () => {
     const g = (n: number) => larderOf(seed, [seed], n).flows.find((f) => f.ware === "grain")?.made ?? 0;
     expect(g(AUTUMN)).toBeGreaterThan(g(SPRING));
