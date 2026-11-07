@@ -1189,8 +1189,7 @@ function folkOf(q: Pose): FolkSprite {
   if (p.age < 11) return p.sex === "f" ? "girl" : "child";
   if (p.age < 16) return p.sex === "f" ? "youthF" : "youth"; // 11–15: doublet and hose / maid's dress and coif
   const f = p.sex === "f";
-  // the priest and elders keep their own look even when helping to carry (no change of clothes)
-  if (q.carry && p.job !== "priest" && p.age < 65) return f ? "porterF" : "porter";
+  // 1500: everyone keeps their own clothes while carrying; the load is drawn as a separate prop
   if (p.job === "builder") return f ? "builderF" : "builder";
   if (p.job === "farmer") return f ? "farmerF" : "farmer";
   if (p.job === "woodcutter") return f ? "woodcutterF" : "woodcutter";
@@ -1226,7 +1225,7 @@ function insignia(c: C, q: Pose, hgt: number) {
   if (wxs > 0.15 && q.p.age >= 12 && q.p.job !== "mayor" && !q.festive && !q.working && hash(q.p.id, 78, 5) < wxs * 1.4) {
     return;
   }
-  if (q.p.estate === "wealthy" && q.p.age >= 16 && q.p.job !== "mayor" && !q.working && !q.carry && !q.festive) {
+  if (q.p.estate === "wealthy" && q.p.age >= 16 && q.p.job !== "mayor" && !q.working && !q.festive) {
     const hat = folkImage("beret");
     if (hat) { const h = hgt * 0.17, w = h * hat.naturalWidth / hat.naturalHeight; c.drawImage(hat, -w / 2, -hgt * 1.03, w, h); }
   }
@@ -1298,7 +1297,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   }
   // the mayor keeps his robe of office (first frame of his talk cycle) when standing and walking,
   // so the figure never swaps to a plain villager on the first step; walking steps shoes under the hem
-  const robe = q.p.job === "mayor" && !q.festive && !q.carry ? folkImage(mayorSheet(q.p.sex, q.p.age)) : null;
+  const robe = q.p.job === "mayor" && !q.festive ? folkImage(mayorSheet(q.p.sex, q.p.age)) : null;
   if (robe) {
     const fw = robe.naturalWidth / WORK_FRAMES, fh = robe.naturalHeight, hh = hgt * 1.01, ww = (hh * fw) / fh;
     if (q.walking && q.p.sex === "f") {
