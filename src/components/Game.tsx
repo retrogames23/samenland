@@ -136,7 +136,7 @@ import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang 
 import { CHEST } from "@/game/lang/chest";
 import { FOUNDING } from "@/game/lang/founding";
 import { CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
-import { TITLE_PRICE, TITLE_STAGE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
+import { titleOfSeed, TITLE_PRICE, TITLE_STAGE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, saplingsOwed, type Decision } from "@/game/encounters";
 import { pendingAll, isCommons, commonsVoices, adviceIdx, bakeCost } from "@/game/commons";
 import { COMMONS_TEXT } from "@/game/lang/commons";
@@ -1435,7 +1435,8 @@ export function Game() {
   /** Highest honorary title of a village head, or "" (display only). */
   const honour = (s: typeof my) => { const n = s ? titleOfSeed(s) : 0; return n > 0 ? titleOfPath(s, n - 1) ?? "" : ""; };
   /** Address the player's own head by gender and real settlement rank (display only). */
-  const addr = (x: string) => addressMayor(x, lang, my?.mayor_gender as "m" | "w" | "d" | null, my ? townRank(my, seeds, slowNow()) : 0);
+  const addr = (x: string) => addressMayor(x, lang, my?.mayor_gender as "m" | "w" | "d" | null, rankRef.current);
+  const rankRef = useRef(0);
   const itemName = (item: string) => { if (/^title[1-3]$/.test(item)) return titleName(+item.slice(5) - 1); const mk = monumentOf(item); return t.items[item]?.[0] ?? (mk ? t.items[`${mk}1`]![0] : item); };
   const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(itemName(e.item)) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : e.code === "wedding" ? t.chron.wedding(e.a, e.b) : e.code === "fire" ? (e.guarded ? t.chron.fireOut : t.chron.fire(e.dead)) : e.code === "flood" ? t.chron.flood : e.code === "raid" ? (e.caught ? t.chron.caught : t.chron.raid(e.loss)) : e.code === "journeyman" ? t.chron.journeyman(e.name, t.job[e.craft]?.[e.sex === "f" ? 0 : 1] ?? e.craft, e.other) : e.code === "journeymen" ? t.chron.journeymen(e.n) : e.code === "bride" ? t.chron.bride(e.name, e.other, e.away) : e.code === "moved" ? t.chron.moved(e.name, e.other, e.away) : e.code === "letter" ? t.chron.letter(e.other) : t.chron.season(t.seasons[e.season]);
   useEffect(() => {
@@ -1729,6 +1730,7 @@ export function Game() {
     const myRank = my ? townRank(my, seeds, slow) : 0;
     // shop/monuments: the earned rank alone — the server re-counts it before every rank-gated purchase
     const myStage = myRank;
+    rankRef.current = myRank;
     const myTown = my ? townOf(my, seeds, slow) : null;
     const larder = my ? larderOf(my, seeds, slow) : null;
     const boons = larder ? boonsOf(larder) : null;
@@ -3372,7 +3374,7 @@ export function Game() {
                 <div className="font-['Caveat'] text-xl leading-tight">{who.first} {who.last}</div>
                 <button type="button" aria-label={t.close} className="hit relative -m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
               </div>
-              <div className="text-sm">{t.personAge(who.age)} · {who.job === "mayor" ? <>{mayorWord(lang, who.seed.mayor_gender as "m" | "w" | "d" | null, townRank(who.seed, seeds, slowNow()))}{honour(who.seed) && <span className="text-primary"> · {honour(who.seed)}</span>}</> : t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
+              <div className="text-sm">{t.personAge(who.age)} · {who.job === "mayor" ? <>{mayorWord(lang, who.seed.mayor_gender as "m" | "w" | "d" | null, townRank(who.seed, seeds, slow))}{honour(who.seed) && <span className="text-primary"> · {honour(who.seed)}</span>}</> : t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
               {who.estate && <div className="mt-1 text-xs"><div>{PROSPERITY[lang].estates[who.estate]}</div><div className="text-muted-foreground">{PROSPERITY[lang].tax(who.sick ? 0 : ESTATE_TAX[who.estate])}</div></div>}
               {(kin.spouse || kin.parents.length || kin.children.length || kin.siblings.length || who.maiden) && (
                 <div className="mt-1 space-y-0.5 text-xs">
