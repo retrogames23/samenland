@@ -1186,8 +1186,8 @@ function folkOf(q: Pose): FolkSprite {
 }
 // hipX = hip column, hemY = tunic hem (measured on the sprites); legs keep LEG_RATIO height regardless of hem
 const HIPS: Partial<Record<FolkSprite, FigureConfig>> = {
-  man: fig(0.42, 0.585, { legs: "dark" }), farmer: fig(0.51, 0.71, { legs: "linen" }), porter: fig(0.44, 0.6, { legs: "linen" }), builder: fig(0.46, 0.64, { legs: "grey" }),
-  woodcutter: fig(0.46, 0.59, { legs: "linen" }), mason: fig(0.4, 0.62, { legs: "grey" }), elder: fig(0.47, 0.68, { legWidthScale: 1.04, legs: "dark", keep: [[0.84, 0.96, 0.95]] }),
+  man: fig(0.42, 0.585, { legs: "dark" }), farmer: fig(0.51, 0.71, { legs: "linen" }), porter: fig(0.437, 0.676, { legs: "linen" }), builder: fig(0.472, 0.653, { legs: "grey" }),
+  woodcutter: fig(0.453, 0.67, { legs: "grey" }), mason: fig(0.4, 0.62, { legs: "grey" }), elder: fig(0.47, 0.68, { legWidthScale: 1.04, legs: "dark", keep: [[0.84, 0.96, 0.95]] }),
   robber: fig(0.45, 0.665, { legs: "dark" }), groom: fig(0.56, 0.74, { legWidthScale: 1.06, legs: "linen" }),
 };
 const LEG_IMG = { m: "legsM", grey: "legsGrey", dark: "legsDark", linen: "legsLinen", red: "legsRed" } as const;
