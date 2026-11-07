@@ -2737,7 +2737,7 @@ function labEntries(): LabEntry[] {
     person(`Schulze${sex === "f" ? "in" : ""} ${age}`, "mayor", "mayor", sex, age, ["stand", "walk", "work", "lantern", "rain", "snow"]);
   // men
   person("Bürger", "folk", "crafter", "m", 35, PLAIN);
-  person("Wohlhabender Bürger", "folk", "crafter", "m", 45, PLAIN, { estate: "wealthy" });
+  person("Wohlhabender Bürger", "folk", "crafter", "m", 45, GENTLE, { estate: "wealthy" });
   person("Kaufmann", "folk", "merchant", "m", 46, ADULT);
   person("Bauer", "folk", "farmer", "m", 35, ADULT);
   person("Holzfäller", "folk", "woodcutter", "m", 30, ADULT);
@@ -2748,12 +2748,12 @@ function labEntries(): LabEntry[] {
   person("Kräutersammler", "folk", "herbalist", "m", 45, ADULT);
   person("Fuhrmann", "folk", "carter", "m", 42, ADULT);
   person("Wächter", "folk", "watchman", "m", 38, ADULT);
-  person("Ältester", "folk", "retired", "m", 70, PLAIN);
+  person("Ältester", "folk", "retired", "m", 70, GENTLE);
   person("Bräutigam", "folk", "crafter", "m", 24, ["stand", "walk"], { festive: "groom" });
   out.push({ label: "Räuber · Schleichen", row: "Räuber", sit: "Schleichen", cat: "folk", h: 4.4, w: 3.6, cfg: HIPS.robber ?? null, draw: (c, _h, _ph, now) => { drawRobber(c, 0, 0, false, now); return 3.6; } });
   // women and gowns
   person("Bürgerin", "robe", "homemaker", "f", 35, PLAIN);
-  person("Wohlhabende Bürgerin", "robe", "homemaker", "f", 42, PLAIN, { estate: "wealthy" });
+  person("Wohlhabende Bürgerin", "robe", "homemaker", "f", 42, GENTLE, { estate: "wealthy" });
   person("Bäuerin", "robe", "farmer", "f", 35, ADULT);
   person("Holzfällerin", "robe", "woodcutter", "f", 30, ADULT);
   person("Steinmetzin", "robe", "mason", "f", 40, ADULT);
@@ -2761,8 +2761,8 @@ function labEntries(): LabEntry[] {
   person("Fischerin", "robe", "fisher", "f", 35, ADULT);
   person("Heilerin", "robe", "healer", "f", 50, ADULT);
   person("Händlerin", "robe", "merchant", "f", 40, ADULT);
-  person("Großmutter", "robe", "homemaker", "f", 70, PLAIN);
-  person("Priester", "robe", "priest", "m", 50, PLAIN);
+  person("Großmutter", "robe", "homemaker", "f", 70, GENTLE);
+  person("Priester", "robe", "priest", "m", 50, GENTLE);
   person("Braut", "robe", "homemaker", "f", 22, ["stand", "walk"], { festive: "bride" });
   // children
   person("Knabe", "kids", "child", "m", 13, KID);
