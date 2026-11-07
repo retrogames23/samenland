@@ -685,6 +685,8 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
     if (s.kind === "campfire") {
       L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
     }
+    // plain thatched hut: hearth smoke rises animated from the roof hole (no chimney, painted smoke removed)
+    if (s.kind === "hut" && !style && !s.fire) smoke(c, cx + (flip ? 0.33 : -0.33), cy - 6.4, t, sd, 0.35);
     if (s.fire) drawFire(c, cx, cy, t, sd, L);
     if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour(), sunNow().rise, sunNow().set) || (stormDark(renderNow) > 0.4 && STORM_LIT.has(s.kind) && localHour() >= 7 && localHour() < 20) || (isHomeKind(s.kind) && (sickLit(x, y) || christmasNight(renderNow))))) {
       if (lit) { lit.c.globalCompositeOperation = "source-over"; drawBuildingNight(lit.c, s.kind, cx, cy, s.v, candleFlicker(t, sd), flip, style); }
