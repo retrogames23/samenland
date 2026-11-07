@@ -8,6 +8,16 @@ describe("prince's seat", () => {
     expect(canPlant(Math.round(c.x), Math.round(c.y), [])).toBe("court");
   });
   it("keeps the guard ring at 30 tiles", () => expect(COURT_GUARD).toBe(30));
+  it("moves the estate buildings with the map on realm switch", async () => {
+    const { setRealm } = await import("./time");
+    const { courtSite, courtPieces } = await import("./court");
+    const { terrain, MAP } = await import("./world");
+    setRealm("europe"); terrain(0, 0); courtPieces();
+    setRealm("europe-2"); terrain(0, 0);
+    const s = courtSite(), castle = [...courtPieces()].find(([, v]) => v === "castle")![0];
+    expect([castle % MAP, Math.floor(castle / MAP)]).toEqual([s.x + 6, s.y + 6]);
+    setRealm("europe"); terrain(0, 0);
+  });
 });
 
 import { audienceHost, atCourt } from "./court";

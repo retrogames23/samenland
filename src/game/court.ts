@@ -12,7 +12,7 @@ export const COURT_LAYOUT: Record<CourtPiece, [number, number, number]> = {
 export const COURT_GUARD = 30;
 
 let site: { x: number; y: number } | null = null;
-export const resetCourt = () => { site = null; };
+export const resetCourt = () => { site = null; pieceM = null; };
 function ok(x: number, y: number): boolean {
   for (let j = -2; j < COURT_N + 2; j++) for (let i = -2; i < COURT_N + 2; i++) { const t = terrain(x + i, y + j); if (!buildable(t) || t === "forest") return false; }
   for (const w of wonders()) if (w.x > x - 6 && w.x < x + COURT_N + 6 && w.y > y - 6 && w.y < y + COURT_N + 6) return false;
