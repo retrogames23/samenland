@@ -95,4 +95,29 @@ describe("Village life around 1500", () => {
     expect(v.other).not.toBeNull();
     expect(v.other!.home).not.toEqual(v.asker!.home);
   });
+  it("second set: prices mirror the database guard", () => {
+    expect(choiceOf("besthaupt", "loesen")?.cost).toBe(20);
+    expect(choiceOf("funken", "lehm")?.cost).toBe(8);
+    expect(choiceOf("rotte", "bier")?.cost).toBe(6);
+    expect(choiceOf("wolfspur", "fallen")?.cost).toBe(10);
+    expect(choiceOf("miete", "korn")?.cost).toBe(10);
+  });
+  it("second set keeps its season: wolf tracks in winter, swarms in early summer", () => {
+    expect(lifeSeason("wolfspur", Date.parse("2027-01-10T12:00:00Z"))).toBe(true);
+    expect(lifeSeason("wolfspur", Date.parse("2027-06-10T12:00:00Z"))).toBe(false);
+    expect(lifeSeason("schwarm", Date.parse("2027-06-10T12:00:00Z"))).toBe(true);
+    expect(lifeSeason("schwarm", Date.parse("2027-01-10T12:00:00Z"))).toBe(false);
+  });
+  it("a question met recently is not asked again within the next eight", () => {
+    const s0 = { ...seed, created_at: new Date(c0).toISOString() } as Seed;
+    const decs: Decision[] = [];
+    let t = c0 + 100 * H;
+    for (let i = 0; i < 6; i++) {
+      const k = commonsDue(s0, decs, 1000);
+      if (!k) break;
+      expect(decs.slice(-8).map((d) => d.event)).not.toContain(k);
+      decs.push({ event: k, choice: "x", at: t, cost: 0 });
+      t += 8 * 864e5;
+    }
+  });
 });
