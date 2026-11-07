@@ -1363,7 +1363,8 @@ export function Game() {
   const now = clock();
   const owner = !!my && !!userId && my.user_id === userId;
   const decision = pickDecision({
-    road: owner && !myRoad && !links(seeds).some((l) => l.a.id === my!.id || l.b.id === my!.id) && roadCandidates(my!, seeds).length > 0,
+    // newcomers first get their bearings: the road question waits for the first claimed task
+    road: owner && !myRoad && claims.some((c) => c.seed_id === my!.id) && !links(seeds).some((l) => l.a.id === my!.id || l.b.id === my!.id) && roadCandidates(my!, seeds).length > 0,
     charter: owner && !myCharter && charterReady(my!.created_at, now),
     pact: owner && !!pactPartner,
     // visitors only come while someone watches: the tab must have been open and visible for a few minutes
@@ -1764,6 +1765,8 @@ export function Game() {
     setQuestOpen(false);
     if (error || !data) return setMsg(t.quests.fail);
     setClaims((c) => [...c, data]);
+    // show the reward in the chest at once; the next treasury refresh reconciles with the server
+    setAccounting((a) => (a && a.seed === my.id && a.active ? { ...a, balance: a.balance + data.reward } : a));
     jingle("fanfare"); setTimeout(() => jingle("coins"), 700); setMsg(t.quests.got(data.reward));
   };
   const sendLetter = async () => {
@@ -2532,7 +2535,7 @@ export function Game() {
               </button>
               <div className="hidden gap-3 lg:flex">
                 {(["food", "health", "wealth"] as const).map((k) => (
-                  <div key={k} className="w-24 text-xs" title={k === "food" && larder ? t.goods.food(larder.food, larder.eaters) : undefined}>
+                  <div key={k} className="w-24 text-xs" title={k === "food" && larder ? t.goods.food(larder.food, residents) : undefined}>
                     <div className="flex justify-between gap-1"><span className="truncate">{t.attrs[k]}</span><span>{at[k]}</span></div>
                     <div className="h-1.5 rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${at[k]}%` }} /></div>
                   </div>
@@ -2722,7 +2725,7 @@ export function Game() {
             <div key={k} className="text-xs"><div className="flex justify-between gap-1"><span className="truncate">{t.attrs[k]}</span><span className="tabular-nums">{at[k]}</span></div>
               <div className="h-1.5 rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${at[k]}%` }} /></div></div>
           ))}</div>}
-          <p className="text-xs text-muted-foreground">{t.goods.food(larder.food, larder.eaters)}</p>
+          <p className="text-xs text-muted-foreground">{t.goods.food(larder.food, residents)}</p>
           <div className="mt-3 border-t border-border pt-2 text-sm">
             <p className="mb-1 font-semibold">{t.goods.boonsTitle}</p>
             <ul className="space-y-0.5">
