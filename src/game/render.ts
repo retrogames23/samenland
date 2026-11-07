@@ -465,7 +465,7 @@ export function walkShift(im: HTMLImageElement, f: number): number {
       cv.width = fw * 4; cv.height = fh; const g = cv.getContext("2d", { willReadFrequently: true })!; g.drawImage(im, 0, 0);
       const d = g.getImageData(0, 0, fw * 4, Math.floor(fh * 0.6)).data, rows = Math.floor(fh * 0.6), cs: number[] = [];
       for (let k = 0; k < 4; k++) { let sx = 0, sa = 0;
-        for (let y = 0; y < rows; y += 2) for (let x = 0; x < fw; x++) { const a = d[(y * fw * 4 + k * fw + x) * 4 + 3]; if (a > 40) { sx += x * a; sa += a; } }
+        for (let y = 0; y < rows; y += 2) for (let x = 0; x < fw; x++) { const a = d[(y * fw * 4 + k * fw + x) * 4 + 3] ?? 0; if (a > 40) { sx += x * a; sa += a; } }
         cs.push(sa ? sx / sa : fw / 2); }
       const m = cs.reduce((a, b) => a + b, 0) / 4; v = cs.map((x) => (m - x) / fw);
     } catch { /* not decodable yet / tainted: no shift */ }
