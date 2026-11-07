@@ -556,7 +556,7 @@ function huntFigures(lx: number, ly: number, out: Bucket, c: C, L?: Light[]) {
   if (hp) put(hp.x, hp.y, () => {
     const [X, Y] = iso(hp.x, hp.y), bob = hp.walk ? Math.abs(Math.sin(renderNow / 260)) * 0.15 : 0;
     shadow(c, X, Y, 1.6, 0.3);
-    sheetFrame(c, hu, hp.frame, X, Y - bob, hp.frame === 2 ? 4.1 : hp.frame === 1 ? 4.6 : 5.4, hp.flip);
+    sheetFrame(c, hu, hp.frame, X, Y - bob, 5.4, hp.flip);
   });
   const bo = sc.bolt;
   if (bo) put(bo.to[0], bo.to[1], () => {
@@ -2709,7 +2709,7 @@ function labEntries(): LabEntry[] {
     A("Wildschwein", 4.4, 6, (c, ph) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; drawBeast(c, bw, null, 0, 0, 4.4, false, 1, (ph / 6.2832) * 4.4, 0); return true; }),
     A("Wildschwein wühlt", 4.4, 6, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 2.2); sheetFrame(c, bw, 3, 0, -(Math.floor(now / 500) & 1) * 0.08, 4.4, false); return true; }),
     A("Jäger", 5.4, 3, (c, _ph, now) => { const hu = huntIm("hu", hunterUrl); if (!hu) return false; const f = Math.floor(now / 1200) % 3;
-      shadow(c, 0, 0, 1.6, 0.3); sheetFrame(c, hu, f, 0, 0, f === 2 ? 4.1 : f === 1 ? 4.6 : 5.4, false); return true; }),
+      shadow(c, 0, 0, 1.6, 0.3); sheetFrame(c, hu, f, 0, 0, 5.4, false); return true; }),
   );
   return out;
 }
