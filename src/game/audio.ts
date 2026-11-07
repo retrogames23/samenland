@@ -36,8 +36,13 @@ function loop(a: AudioContext, buf: AudioBuffer, type: BiquadFilterType, f: numb
   return { g, fl };
 }
 
+/** Starts the 120 ms mixing clock unless it already runs (never two intervals). */
+function startTicker() { if (!timer) timer = window.setInterval(tick, 120); }
+/** True while the mixing clock runs (for tests). */
+export const tickerRunning = () => timer !== 0;
 function init() {
-  if (ctx) return;
+  // context survives a remount (module singleton): only the clock has to come back
+  if (ctx) { startTicker(); return; }
   const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
   if (!AC) return;
   ctx = new AC();
@@ -64,7 +69,7 @@ function init() {
     ({ g: fChurn, fl: fChurnF } = chain("bandpass", 520, 0.9));
     ({ g: fHiss } = chain("highpass", 2400, 0.4, 5200));
   }
-  timer = window.setInterval(tick, 120);
+  startTicker();
   // real sheep "Mäh!" (public-domain recording), played when a sheep is clicked
   fetch("/sounds/sheep.mp3").then((r) => r.arrayBuffer()).then((b) => ctx!.decodeAudioData(b)).then((b) => { sheepBuf = b; }).catch(() => {});
 }
@@ -308,4 +313,4 @@ const onVisibility = () => {
 if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisibility);
 export function unlock() { if (enabled && ctx && ctx.state !== "running") void ctx.resume(); }
 /** Stops the clock; the audio thread is only suspended (the module is a singleton reused on remount). */
-export function disposeAudio() { clearInterval(timer); if (ctx?.state === "running") void ctx.suspend(); }
+export function disposeAudio() { clearInterval(timer); timer = 0; if (ctx?.state === "running") void ctx.suspend(); }
