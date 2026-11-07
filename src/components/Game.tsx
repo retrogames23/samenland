@@ -12,6 +12,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type WonderFind } from "@/game/wonders";
 import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, signpostMap, type Camera } from "@/game/render";
+/** Tiles within which strangers in a foreign village speak to the strolling mayor. */
+const MEET_TILES = 4;
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townRank, rankInput, nextRankNeed } from "@/game/rank";
 import { townOf, poseOf, weddingFocus, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, parkMayor, mayorAway, setMounted, setStrollHold, setOwnMayor, citizensOf, isHomeKind, setRemoteMayor, clearRemoteMayors, type Person } from "@/game/people";
@@ -1100,10 +1102,19 @@ export function Game() {
   // ---- talking: tap a villager, court servant or house for a fitting local speech bubble ----
   const bVars = (town: string) => { const m = seeds.find((x) => x.id === mine); return { mayor: m?.owner ?? "", town }; };
   const isNight = () => { const hr = worldHour(clock()); return hr >= 22 || hr < 6; };
+  /** True when the player's own mayor is strolling within MEET_TILES of tile (x, y): only then do strangers address him. */
+  const mayorNear = (x: number, y: number) => {
+    if (!walk) return false;
+    const me = lastPeople.find((o) => o.q.p.role === "mayor" && o.q.p.seed.id === mine);
+    return !!me && Math.hypot(me.q.x - x, me.q.y - y) <= MEET_TILES;
+  };
   const speak = (p: Person) => {
     if (p.role === "mayor") return;
     const nw = clock(), tw = townOf(p.seed, seeds, nw), q = poseOf(p, tw, seeds, nw);
-    const own = p.seed.id === mine, child = p.role === "child" || p.age < 14, night = isNight() || q.act === "sleep";
+    const own = p.seed.id === mine;
+    // foreign folk stay silent unless our mayor stands before them in person
+    if (!own && !mayorNear(q.x, q.y)) return;
+    const child = p.role === "child" || p.age < 14, night = isNight() || q.act === "sleep";
     const myT = seeds.find((x) => x.id === mine)?.name ?? "";
     const text = own ? banter(lang, { who: "own", traits: traitsOf(p.id), child, sick: !!p.sick, night, wedding: q.act === "wedding" || (q.act === "fete" && weddingLive(p.seed, nw) != null) }, bVars(p.seed.name))
       : banter(lang, { who: "foreign", child, night }, bVars(myT));
@@ -1143,6 +1154,7 @@ export function Game() {
     const nw = clock(), tw = townOf(ins.seed, seeds, nw);
     const home = ins.residents.some((p) => { const a = poseOf(p, tw, seeds, nw).act; return a === "home" || a === "sleep" || a === "sick"; });
     const own = ins.seed.id === mine, [ix, iy] = iso(ins.x, ins.y);
+    if (!own && !mayorNear(ins.x, ins.y)) return false;
     sayAt(banter(lang, { who: "house", own, home, night: isNight() }, bVars(own ? ins.seed.name : seeds.find((x) => x.id === mine)?.name ?? "")), ix, iy, 22);
     return true;
   };
