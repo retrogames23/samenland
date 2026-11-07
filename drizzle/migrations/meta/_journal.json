@@ -610,6 +610,13 @@
       "when": 1794002979606,
       "tag": "0086_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1794010000000,
+      "tag": "0087_village_life_encounters",
+      "breakpoints": true
     }
   ]
 }

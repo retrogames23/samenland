@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { commonsDue, commonsOptions, pendingAll, stegOf, mastOn, COMMONS_DAYS, COMMONS_FROM_H, STEG_WORK_H } from "./commons";
+import { commonsDue, commonsOptions, pendingAll, stegOf, mastOn, lifeSeason, lifeScenes, commonsVoices, COMMONS_DAYS, COMMONS_FROM_H, STEG_WORK_H } from "./commons";
+import type { Person } from "./people";
 import { EVENT_KEYS, choiceOf, pendingEncounter, type Decision } from "./encounters";
 import { canPlant, MAP, type Seed } from "./world";
 import { setRealm } from "./time";
@@ -59,5 +60,39 @@ describe("Allmende questions", () => {
   });
   it("a wedding still comes first", () => {
     expect(pendingAll(seed, [], c0 + 10 * H, 1000)).not.toBe("steg");
+  });
+});
+
+describe("Village life around 1500", () => {
+  it("prices mirror the database guard", () => {
+    expect(choiceOf("zaun", "holz")?.cost).toBe(10);
+    expect(choiceOf("flur", "hilfe")?.cost).toBe(8);
+    expect(choiceOf("scharwerk", "dingen")?.cost).toBe(25);
+    expect(choiceOf("pfingsten", "preis")?.cost).toBe(12);
+    for (const [e, c] of [["zaun", "buss"], ["zaun", "pfand"], ["flur", "schau"], ["plaggen", "mass"], ["plaggen", "laub"], ["schelte", "widerruf"], ["schelte", "spende"], ["scharwerk", "aufgebot"], ["pfingsten", "reigen"], ["lichtstube", "reigen"], ["lichtstube", "andacht"]] as const) expect(choiceOf(e, c)?.cost).toBe(0);
+  });
+  it("are never drawn as visitors", () => {
+    for (const k of ["zaun", "flur", "plaggen", "schelte", "scharwerk", "pfingsten", "lichtstube"]) expect(EVENT_KEYS).not.toContain(k);
+  });
+  it("keep their season: spinning room only in winter, stubble quarrel only at harvest", () => {
+    expect(lifeSeason("lichtstube", Date.parse("2027-01-10T12:00:00Z"))).toBe(true);
+    expect(lifeSeason("lichtstube", Date.parse("2027-06-10T12:00:00Z"))).toBe(false);
+    expect(lifeSeason("flur", Date.parse("2027-08-10T12:00:00Z"))).toBe(true);
+    expect(lifeSeason("flur", Date.parse("2027-03-10T12:00:00Z"))).toBe(false);
+    expect(lifeSeason("schelte", Date.parse("2027-03-10T12:00:00Z"))).toBe(true);
+  });
+  it("show on the map: the retraction gathers the village before the church at 11 the next day", () => {
+    const d: Decision = { event: "schelte", choice: "widerruf", at: Date.parse("2027-03-10T15:00:00Z"), cost: 0 };
+    expect(lifeScenes([d], d.at + 3600e3)).toHaveLength(0);
+    const hit = lifeScenes([d], Date.parse("2027-03-11T10:30:00Z"));
+    expect(hit).toHaveLength(1);
+    expect(hit[0]!.sc.place).toBe("church");
+  });
+  it("name real villagers: the quarrel is between two different households", () => {
+    const mk = (id: number, home: [number, number]) => ({ id, first: "A" + id, last: "B", sex: "m", age: 40, job: "farmer", home, role: undefined, sick: false } as unknown as Person);
+    const v = commonsVoices("zaun", [mk(1, [0, 0]), mk(2, [0, 0]), mk(3, [5, 5])], 0);
+    expect(v.asker).not.toBeNull();
+    expect(v.other).not.toBeNull();
+    expect(v.other!.home).not.toEqual(v.asker!.home);
   });
 });

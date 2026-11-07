@@ -136,6 +136,7 @@ import { TITLE_PRICE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock,
 import { ENCOUNTERS, choiceOf, saplingsOwed, type Decision } from "@/game/encounters";
 import { pendingAll, isCommons, commonsVoices, adviceIdx, bakeCost } from "@/game/commons";
 import { COMMONS_TEXT } from "@/game/lang/commons";
+import { fillLife } from "@/game/lang/village-life";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -2900,7 +2901,7 @@ export function Game() {
                       const w = ev === "wedding" ? townOf(my, seeds, clock()).weddings.filter((x) => x.at <= clock()).pop() : undefined;
                       const live = w && clock() - w.at < 3 * 3600e3;
                       return <>
-                        <p className="mt-2 text-center font-display text-xl leading-snug">{live ? t.enc.couple(`${w.a.first} ${w.a.last}`, `${w.b.first} ${w.b.maiden ?? w.b.last}`) : t.enc.events[ev]![1]}</p>
+                        <p className="mt-2 text-center font-display text-xl leading-snug">{live ? t.enc.couple(`${w.a.first} ${w.a.last}`, `${w.b.first} ${w.b.maiden ?? w.b.last}`) : isCommons(ev) ? (() => { const v = commonsVoices(ev, townOf(my, seeds, clock()).people, (my.decisions ?? []).filter((d) => isCommons(d.event)).length); const nm = (p: Person | null) => p ? `${p.first} ${p.last}` : null; return fillLife(t.enc.events[ev]![1], nm(v.asker), nm(v.other), lang); })() : t.enc.events[ev]![1]}</p>
                         {isCommons(ev) && (() => {
                           const ct = COMMONS_TEXT[lang], nw = clock(), tw = townOf(my, seeds, nw);
                           const n = (my.decisions ?? []).filter((d) => isCommons(d.event)).length;
@@ -2911,7 +2912,7 @@ export function Game() {
                             {v.asker && <p className="mt-2 text-center text-xs text-muted-foreground">{ct.asks(`${v.asker.first} ${v.asker.last}`, jobOf(v.asker))} <button type="button" className="hit relative underline decoration-dotted" onClick={() => show(v.asker!)}>{ct.find}</button></p>}
                             {v.advisor && <div className="mt-3 rounded-md border border-brass/50 bg-brass/10 p-2 text-sm">
                               <div className="text-xs font-semibold text-wood">{ct.counsel(`${v.advisor.first} ${v.advisor.last}`, v.herb ? ct.roles.herb : ct.roles.elder)}</div>
-                              <div className="italic">{ct.advice[ev][adviceIdx(nw)]}</div>
+                              <div className="italic">{ct.advice[ev]?.[adviceIdx(nw)]}</div>
                             </div>}
                           </>;
                         })()}
