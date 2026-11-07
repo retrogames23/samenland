@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { drawLabFigure, labCatalog, type LabCat } from "@/game/render";
 import { clock, worldHour } from "@/game/time";
+import type { WeatherKind } from "@/game/weather";
 
 const CATS: { k: LabCat | "all"; label: string }[] = [
   { k: "all", label: "Alle" }, { k: "mayor", label: "Schulzen" }, { k: "court", label: "Hofstaat" },
   { k: "folk", label: "Männer" }, { k: "robe", label: "Frauen & Gewänder" }, { k: "kids", label: "Kinder" }, { k: "animal", label: "Tiere & Jagd" },
 ];
+const WEATHERS: { k: WeatherKind | null; label: string }[] = [{ k: null, label: "Trocken" }, { k: "drizzle", label: "Regen" }, { k: "storm", label: "Sturm" }, { k: "snow", label: "Schnee" }];
 const SPEEDS = [0, 0.25, 0.5, 1, 2];
 const CYCLE = 4 * Math.PI; // two full leg cycles on the scrubber
 
@@ -15,12 +17,15 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
   const [cat, setCat] = useState<LabCat | "all">("all"), [q, setQ] = useState("");
   const [boxes, setBoxes] = useState(false), [lines, setLines] = useState(true);
   const [speed, setSpeed] = useState(1), [card, setCard] = useState(170), [sel, setSel] = useState<number | null>(null);
-  const [phase, setPhase] = useState(0);
+  const [phase, setPhase] = useState(0), [weather, setWeather] = useState<WeatherKind | null>(null);
   const list = all.filter((e) => (cat === "all" || e.cat === cat) && e.label.toLowerCase().includes(q.toLowerCase()));
+  // one row per figure, its situations side by side (catalog order keeps them together)
+  const rows: { row: string; items: typeof list }[] = [];
+  for (const e of list) { const r = rows[rows.length - 1]; if (r && r.row === e.row) r.items.push(e); else rows.push({ row: e.row, items: [e] }); }
 
   // shared animation clock: lab phase advances by speed; animals see a daytime realm clock so nobody sleeps by default
-  const st = useRef({ ph: 0, last: 0, speed, boxes, lines, sel, card });
-  st.current = { ...st.current, speed, boxes, lines, sel, card };
+  const st = useRef({ ph: 0, last: 0, speed, boxes, lines, sel, card, weather });
+  st.current = { ...st.current, speed, boxes, lines, sel, card, weather };
   const noon = useMemo(() => { const n = clock(); return n - (worldHour(n) - 12) * 3.6e6; }, []);
   const cards = useRef(new Map<number, HTMLCanvasElement>());
   const big = useRef<HTMLCanvasElement>(null);
@@ -32,7 +37,7 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
       const s = st.current, dt = s.last ? t - s.last : 0; s.last = t;
       s.ph += (dt / 520) * Math.PI * 2 * s.speed;
       const now = noon + s.ph * 520 / (Math.PI * 2);
-      const o = { boxes: s.boxes, lines: s.lines }, d = window.devicePixelRatio || 1;
+      const o = { boxes: s.boxes, lines: s.lines, weather: s.weather }, d = window.devicePixelRatio || 1;
       const paint = (cv: HTMLCanvasElement, f: (c: CanvasRenderingContext2D, W: number, H: number) => void) => {
         const W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
         if (cv.width !== Math.round(W * d) || cv.height !== Math.round(H * d)) { cv.width = Math.round(W * d); cv.height = Math.round(H * d); }
@@ -59,7 +64,7 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
   }, [all, noon]);
 
   const open = (i: number | null) => { view.current.z = 0; setSel(i); };
-  const step = (d: number) => { if (sel == null) return; const k = list.findIndex((e) => e.i === sel); const n = list[(k + d + list.length) % list.length]; if (n) open(n.i); };
+  const step = (d: number) => { if (sel == null) return; const row = list.filter((e) => e.row === all[sel]?.row), k = row.findIndex((e) => e.i === sel); const n = row[(k + d + row.length) % row.length]; if (n) open(n.i); };
   const setSpeedP = (v: number) => { setSpeed(v); if (v === 0) setPhase(((st.current.ph % CYCLE) + CYCLE) % CYCLE); };
   const scrub = (v: number) => { setPhase(v); st.current.ph = v; };
 
@@ -104,6 +109,7 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
           <button className={btn} onClick={() => { view.current.z = 0; }}>Einpassen</button>
         </>}
         <span className="ms-auto flex flex-wrap items-center gap-2">
+          {WEATHERS.map((w) => <button key={w.label} className={`${btn} ${weather === w.k ? on : ""}`} onClick={() => setWeather(w.k)}>{w.label}</button>)}
           {SPEEDS.map((v) => <button key={v} className={`${btn} ${speed === v ? on : ""}`} onClick={() => setSpeedP(v)}>{v === 0 ? "❚❚" : `${v}×`}</button>)}
           {speed === 0 && <input type="range" min={0} max={CYCLE} step={0.01} value={phase} onChange={(e) => scrub(+e.target.value)} className="w-32" aria-label="Bild für Bild" />}
           <label className="flex items-center gap-1"><input type="checkbox" checked={lines} onChange={(e) => setLines(e.target.checked)} /> Linien</label>
@@ -115,20 +121,25 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
 
       {sel == null ? (
         <div className="flex-1 overflow-y-auto p-3">
-          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${card}px, 1fr))` }}>
-            {list.map((e) => (
-              <button key={e.i} onClick={() => open(e.i)} className="flex flex-col overflow-hidden rounded-lg border border-border bg-card text-start hover:border-primary hover:shadow-md">
-                <canvas ref={(el) => { if (el) cards.current.set(e.i, el); else cards.current.delete(e.i); }} className="w-full bg-card" style={{ height: card * 1.2 }} />
-                <span className="truncate px-2 py-1 text-xs">{e.label}</span>
-              </button>
-            ))}
-            {!list.length && <p className="text-sm text-card-foreground">Keine Figur gefunden.</p>}
-          </div>
+          {rows.map((r) => (
+            <section key={r.row} className="mb-4">
+              <h3 className="mb-1 font-display text-sm">{r.row}</h3>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {r.items.map((e) => (
+                  <button key={e.i} onClick={() => open(e.i)} className="flex shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-card text-start hover:border-primary hover:shadow-md" style={{ width: card }}>
+                    <canvas ref={(el) => { if (el) cards.current.set(e.i, el); else cards.current.delete(e.i); }} className={`w-full ${e.night ? "bg-foreground/85" : "bg-card"}`} style={{ height: card * 1.2 }} />
+                    <span className="truncate px-2 py-1 text-xs">{e.sit}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
+          {!rows.length && <p className="text-sm text-card-foreground">Keine Figur gefunden.</p>}
         </div>
       ) : (
         <div className="relative flex-1">
           <canvas
-            ref={big} className="h-full w-full cursor-grab touch-none bg-card active:cursor-grabbing"
+            ref={big} className={`h-full w-full cursor-grab touch-none ${cur?.night ? "bg-foreground/85" : "bg-card"} active:cursor-grabbing`}
             onWheel={(e) => { const p = local(e); zoomAt(p.x, p.y, Math.exp(-e.deltaY * 0.0015)); }}
             onDoubleClick={() => { view.current.z = 0; }}
             onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pts.current.set(e.pointerId, local(e)); }}
@@ -144,7 +155,7 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
             }}
           />
           <p className="pointer-events-none absolute bottom-2 start-3 rounded bg-card/90 px-2 py-1 text-[11px] text-card-foreground">
-            Mausrad / zwei Finger: zoomen · Ziehen: verschieben · Doppelklick: einpassen · ← →: nächste Figur · Leertaste: Pause · Esc: zurück
+            Mausrad / zwei Finger: zoomen · Ziehen: verschieben · Doppelklick: einpassen · ← →: nächste Situation · Leertaste: Pause · Esc: zurück
             {lines && " · rot Hüfte, grün Saum, gestrichelt Boden"}
           </p>
         </div>
