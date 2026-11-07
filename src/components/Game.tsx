@@ -53,7 +53,7 @@ import { Tavern } from "@/components/Tavern";
 import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
 import { MAYOR } from "@/game/lang/mayor";
-import { addressMayor, mayorWord, titleForm } from "@/game/lang/address";
+import { ownHead, addressMayor, mayorWord, titleForm } from "@/game/lang/address";
 import { COURT } from "@/game/lang/court";
 import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, heraldSpots, isPlantedRare } from "@/game/render";
 import { DOG } from "@/game/lang/dog";
@@ -1123,8 +1123,9 @@ export function Game() {
     if (!own && !mayorNear(q.x, q.y)) return;
     const child = p.role === "child" || p.age < 14, night = isNight() || q.act === "sleep";
     const myT = seeds.find((x) => x.id === mine)?.name ?? "";
-    const text = addr(own ? banter(lang, { who: "own", traits: traitsOf(p.id), child, sick: !!p.sick, night, wedding: q.act === "wedding" || (q.act === "fete" && weddingLive(p.seed, nw) != null) }, bVars(p.seed.name))
-      : banter(lang, { who: "foreign", child, night }, bVars(myT)));
+    const head = (x: string) => ownHead(x, lang, p.seed.mayor_gender as "m" | "w" | "d" | null, townRank(p.seed, seeds, Math.floor(nw / 5000) * 5000));
+    const text = head(addr(own ? banter(lang, { who: "own", traits: traitsOf(p.id), child, sick: !!p.sick, night, wedding: q.act === "wedding" || (q.act === "fete" && weddingLive(p.seed, nw) != null) }, bVars(p.seed.name))
+      : banter(lang, { who: "foreign", child, night }, bVars(myT))));
     const f = lastPeople.find((o) => o.q.p === p);
     sayAt(text, f?.x ?? 0, f?.y ?? 0, 9, p.id, p.seed.id);
   };
@@ -1162,7 +1163,7 @@ export function Game() {
     const home = ins.residents.some((p) => { const a = poseOf(p, tw, seeds, nw).act; return a === "home" || a === "sleep" || a === "sick"; });
     const own = ins.seed.id === mine, [ix, iy] = iso(ins.x, ins.y);
     if (!own && !mayorNear(ins.x, ins.y)) return false;
-    sayAt(addr(banter(lang, { who: "house", own, home, night: isNight() }, bVars(own ? ins.seed.name : seeds.find((x) => x.id === mine)?.name ?? ""))), ix, iy, 22);
+    sayAt(ownHead(addr(banter(lang, { who: "house", own, home, night: isNight() }, bVars(own ? ins.seed.name : seeds.find((x) => x.id === mine)?.name ?? ""))), lang, ins.seed.mayor_gender as "m" | "w" | "d" | null, townRank(ins.seed, seeds, Math.floor(nw / 5000) * 5000)), ix, iy, 22);
     return true;
   };
   /** Stroll mode: talk to whoever/whatever lies under the tap; true when something answered. */

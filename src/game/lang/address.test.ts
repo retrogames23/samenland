@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { addressMayor, mayorWord, titleForm } from "./address";
+import { ownHead, addressMayor, mayorWord, titleForm } from "./address";
 
 describe("mayor address by gender and settlement rank", () => {
   it("Dorf, m: Schulze", () => expect(mayorWord("de", "m", 2)).toBe("Schulze"));
@@ -23,5 +23,13 @@ describe("mayor address by gender and settlement rank", () => {
   it("female title form, neutral falls back to male", () => {
     expect(titleForm("de", "w", "farm", 0, "Flurvogt")).toBe("Flurvögtin");
     expect(titleForm("de", "d", "farm", 0, "Flurvogt")).toBe("Flurvogt");
+  });
+  it("foreign town's own head follows that town's rank and gender", () => {
+    expect(ownHead("Unser Schulze wohnt woanders.", "de", "m", 3)).toBe("Unser Bürgermeister wohnt woanders.");
+    expect(ownHead("Unser Schulze wohnt woanders.", "de", "w", 3)).toBe("Unsere Bürgermeisterin wohnt woanders.");
+    expect(ownHead("Unser Schulze wohnt woanders.", "de", "d", 3)).toBe("Unser Stadtoberhaupt wohnt woanders.");
+    expect(ownHead("Unser Schulze wohnt woanders.", "de", "m", 2)).toBe("Unser Schulze wohnt woanders.");
+    expect(ownHead("Wir haben schon unseren Schulzen.", "de", "w", 3)).toBe("Wir haben schon unsere Bürgermeisterin.");
+    expect(ownHead("Our mayor lives elsewhere.", "en", "m", 1)).toBe("Our reeve lives elsewhere.");
   });
 });

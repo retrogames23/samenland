@@ -191,7 +191,7 @@ const de: Cat = {
     "Unser Schulze wohnt woanders, Fremder.",
     "Hier ist niemand. … Mist, jetzt hab ich geantwortet.",
     "Wenn Ihr Euch verlaufen habt, nach links und dann geradeaus.",
-    "Wir haben schon einen Schulzen, danke.",
+    "Wir haben schon unseren Schulzen, danke.",
     "Fremde? Der Hund ist los!",
     "Geht weiter, hier gibt's nichts zu sehen.",
     "Nur wenn Ihr was zu essen mitbringt!",
