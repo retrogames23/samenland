@@ -50,7 +50,7 @@ import { RANK_NEED } from "@/game/rank";
 import { Tavern } from "@/components/Tavern";
 import { BugReport } from "@/components/BugReport";
 import { MayorEditor } from "@/components/MayorEditor";
-import { MAYOR } from "@/game/lang/mayor";
+import { MAYOR, neutralMayor } from "@/game/lang/mayor";
 import { COURT } from "@/game/lang/court";
 import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, heraldSpots, isPlantedRare } from "@/game/render";
 import { DOG } from "@/game/lang/dog";
@@ -1751,8 +1751,8 @@ export function Game() {
     waySmall: purchases.some((p) => p.seed_id === my.id && WAY_SMALL.includes(p.item)),
     wayBig: purchases.some((p) => p.seed_id === my.id && WAY_BIG.includes(p.item)),
   }) : null;
-  const questText = quest && my ? t.quests.list[questKey(quest.quest, wayOf(my))] ?? t.quests.list[quest.quest]! : null;
-  const petition = quest && my ? petitionOf(quest.quest, lang, questKey(quest.quest, wayOf(my)) !== quest.quest, myTown?.people) : null;
+  const questText = quest && my ? (t.quests.list[questKey(quest.quest, wayOf(my))] ?? t.quests.list[quest.quest]!).map((x) => neutralMayor(x, lang, my.mayor_gender === "d")) as typeof t.quests.list[string] : null;
+  const petition = quest && my ? petitionOf(quest.quest, lang, questKey(quest.quest, wayOf(my)) !== quest.quest, myTown?.people, my.mayor_gender === "d") : null;
   const questHow = () => {
     if (!quest || !my) return;
     const tabs: Partial<Record<Quest, Tab>> = { bless: "rituals", bless7: "rituals", build: "build", buy3: "build", buy6: "build", metro: "build", sign: "signs", gift: "towns", gifts5: "towns", road: "build", roads2: "build" };
@@ -2697,11 +2697,11 @@ export function Game() {
         let near: Seed | null = null, nd = Infinity;
         for (const s of seeds) { const d = Math.hypot(px - s.x, py - s.y); if (d < nd) { nd = d; near = s; } }
         return (
-          <Parchment image={ART["surveyor"]} title={t.plantAsk.title} later={t.cancel} onLater={() => setPlantAsk(null)}>
+          <Parchment image={ART["surveyor"]} title={t.plantAsk.title} later={t.cancel} onLater={() => setPlantAsk(null)} action={<Button type="button" size="sm" disabled={planting} onClick={plantNow}>{planting ? t.plantAsk.wait : t.plantAsk.ok}</Button>}>
             <p className="mt-2 text-center font-display text-xl leading-snug">{t.plantAsk.intro(form.name.trim())}</p>
             <div className="mt-4 space-y-1 text-sm">
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.land}</span><span className="text-right font-semibold">{CHAR_ICON[c]} {TOWN_CHARACTER[lang].names[c]}</span></div>
-              <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.owner}</span><span className="text-right font-semibold">{form.owner.trim()}</span></div>
+              <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{form.gender === "d" ? MAYOR[lang].d : form.gender === "w" ? MAYOR[lang].w : t.plantAsk.owner}</span><span className="text-right font-semibold">{form.owner.trim()}</span></div>
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.spread}</span><span className="text-right">{t.plantAsk.first(Math.round(radiusOf(8760)))}</span></div>
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.nearest}</span><span className="text-right">{near ? t.plantAsk.near(near.name, Math.round(nd)) : t.plantAsk.none}</span></div>
             </div>
@@ -2713,9 +2713,6 @@ export function Game() {
               <p className="pt-1 text-center font-semibold text-primary">{FOUNDING[lang].fair}</p>
             </div>
             <div className="mt-3 border-t border-border pt-3"><CharacterDetails seed={{ x: px, y: py }} lang={lang} /></div>
-            <div className="mt-4 flex justify-center">
-              <Button type="button" size="sm" disabled={planting} onClick={plantNow}>{planting ? t.plantAsk.wait : t.plantAsk.ok}</Button>
-            </div>
           </Parchment>
         );
       })()}
@@ -3199,7 +3196,7 @@ export function Game() {
       {chronOpen && chron && my && (
         <Parchment title={t.chron.title} later={t.chron.close} onLater={() => setChronOpen(false)}>
           <p className="text-center text-sm text-ink/70">{t.chron.away(Math.max(1, Math.round((chron.to - chron.from) / 864e5)))}</p>
-          <p className="mt-3 text-center font-display text-xl leading-snug text-ink">{scribe === undefined ? <span className="animate-pulse text-ink/60">{t.chron.writing}</span> : scribe ?? t.chron.greet}</p>
+          <p className="mt-3 text-center font-display text-xl leading-snug text-ink">{scribe === undefined ? <span className="animate-pulse text-ink/60">{t.chron.writing}</span> : scribe ?? neutralMayor(t.chron.greet, lang, my?.mayor_gender === "d")}</p>
           <div className="mt-4 flex justify-center gap-4 font-display text-lg text-ink">
             <span>{t.chron.pop(chron.popFrom, chron.popTo)}</span><span>{t.chron.taler(chron.taler)}</span>
           </div>

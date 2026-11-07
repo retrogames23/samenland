@@ -1,3 +1,4 @@
+import { neutralMayor } from "./mayor";
 import type { Lang } from "@/game/i18n";
 import type { Quest } from "@/game/quests";
 import type { Job, Person } from "@/game/people";
@@ -83,14 +84,14 @@ export function speakerIn(s: Speaker, people: readonly Person[]): Person | undef
 }
 
 /** Presentation of the current task: who asks, their words, or a milestone header. */
-export function petitionOf(q: Quest, lang: Lang, variant: boolean, people: readonly Person[] = []): Petition {
+export function petitionOf(q: Quest, lang: Lang, variant: boolean, people: readonly Person[] = [], neutral = false): Petition {
   const c = CHROME[lang] ?? CHROME.en;
   const s = SPEAKER[q];
   if (!s || MILESTONES.includes(q)) return { milestone: true, header: c.milestone };
   const person = speakerIn(s, people);
   const name = person ? `${person.first} ${person.last}`.trim() : NAMES[s];
   const v = variant ? undefined : VOICE[lang]?.[q];
-  return { milestone: false, header: c.plea(name, c.roles[s]), plea: v?.[0], thanks: v?.[1], who: c.thanks(person?.first ?? name), person, find: person ? c.find : undefined };
+  return { milestone: false, header: c.plea(name, c.roles[s]), plea: v?.[0] && neutralMayor(v[0], lang, neutral), thanks: v?.[1] && neutralMayor(v[1], lang, neutral), who: c.thanks(person?.first ?? name), person, find: person ? c.find : undefined };
 }
 
 export const feastTitle = (lang: Lang) => (CHROME[lang] ?? CHROME.en).feast;

@@ -6,8 +6,8 @@ export const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { /* un
 
 /** Illustrated parchment overlay for decisions (road, charter, encounters).
  *  On phones it rises from the bottom as a sheet within thumb reach and closes with a downward swipe. */
-export function Parchment({ image, title, later, onLater, wide, children }: {
-  image?: string | undefined; title: string; later: string; onLater: () => void; wide?: boolean; children: ReactNode;
+export function Parchment({ image, title, later, onLater, wide, action, children }: {
+  image?: string | undefined; title: string; later: string; onLater: () => void; wide?: boolean; action?: ReactNode; children: ReactNode;
 }) {
   const y0 = useRef<number | null>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -37,15 +37,15 @@ export function Parchment({ image, title, later, onLater, wide, children }: {
           <h2 className="text-center font-display text-4xl leading-none text-ink max-md:text-3xl">{title}</h2>
           <div className="mx-auto my-2 h-px w-2/3 bg-ink/30" />
           {children}
-          <div className="mt-4 flex justify-center">
-            <button type="button" onClick={onLater} className="hit relative font-display text-xl text-ink/70 underline decoration-ink/30 underline-offset-4 hover:text-ink">{later}</button>
+          {/* sticky footer: the primary action and "later" stay visible however long the text runs */}
+          <div className="sticky bottom-0 z-10 -mx-5 -mb-5 mt-4 bg-parchment/95 px-5 pb-4 pt-3 sm:-mx-8 sm:px-8 max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            {more && <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-10 h-10 bg-gradient-to-t from-parchment/95 to-transparent"><span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 animate-bounce text-ink/50">▾</span></div>}
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+              {action}
+              <button type="button" onClick={onLater} className="hit relative font-display text-xl text-ink/70 underline decoration-ink/30 underline-offset-4 hover:text-ink">{later}</button>
+            </div>
           </div>
         </div>
-        {more && (
-          <div aria-hidden className="pointer-events-none sticky bottom-0 z-10 -mt-12 h-12 bg-gradient-to-t from-parchment via-parchment/70 to-transparent">
-            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 animate-bounce text-ink/50">▾</span>
-          </div>
-        )}
       </div>
     </div>
   );
