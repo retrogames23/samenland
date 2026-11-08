@@ -273,19 +273,19 @@
  },
  "gateway-patrician-2": {
   "day": "2c0a5576d524d5d0",
-  "night": "2b51c232eaf29e9e",
+  "night": "4de25be93097b675",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-08: Maske aus Scheibengeometrie neu abgeleitet, Überlagerung visuell geprüft, freigegeben"
  },
  "gateway-patrician-3": {
   "day": "bb0cc2a4ac3831e7",
   "night": "df217258b13f0662",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-08: visuell geprüft (Kontaktbogen), freigegeben"
  },
  "gateway-steinhaus": {
   "day": "0c9889f4cf6a79a9",
@@ -363,9 +363,9 @@
   "day": "f5c883971ab46334",
   "night": "5625b16ae9c28d33",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-08: visuell geprüft (Kontaktbogen), freigegeben"
  },
  "granary": {
   "day": "1f842f3b3e46a911",
@@ -881,19 +881,19 @@
  },
  "workshop-patrician-2": {
   "day": "856227e58e19cca8",
-  "night": "f471e4fd9d6f6fee",
+  "night": "e13952a28789e7ad",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-08: Maske aus Scheibengeometrie neu abgeleitet, Überlagerung visuell geprüft, freigegeben"
  },
  "workshop-patrician-3": {
   "day": "d7c44731838aecda",
-  "night": "1f35d3508c720244",
+  "night": "521a7187ba8c7dd9",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-08: Maske aus Scheibengeometrie neu abgeleitet, Überlagerung visuell geprüft, freigegeben"
  },
  "workshop-steinhaus": {
   "day": "bd5121cef82e98c0",
