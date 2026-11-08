@@ -3156,7 +3156,7 @@ function drawFarmAnimal(c: C, kind: FarmAnimal, x: number, y: number, now: numbe
   const count = kind === "goose" && previewFrame === undefined ? 3 : 1;
   for (let k = 0; k < count; k++) {
     const p = farmAnimalPose(sd, count === 1 ? 1 : k, now), h = kind === "goose" ? 1.5 : 2.1;
-    const X = x + (previewFrame === undefined ? p.dx * 0.65 : 0), Y = y + (previewFrame === undefined ? p.dy * 0.65 : 0);
+    const X = x + (previewFrame === undefined ? p.dx * 0.65 : 0), Y = y + (previewFrame === undefined ? Math.abs(p.dy) * 0.65 : 0); // stay in front of trees/huts on the tile
     shadow(c, X, Y, h * 0.42);
     sheetFrame(c, im, previewFrame ?? p.frame, X, Y, h, previewFrame === undefined && p.flip);
   }
@@ -3165,7 +3165,7 @@ function drawFarmAnimal(c: C, kind: FarmAnimal, x: number, y: number, now: numbe
 function drawPig(c: C, x: number, y: number, now: number, sd: number) {
   const bw = huntIm("pw", pigWalkUrl); if (!bw || animalsSleeping(now)) return;
   const CYC = 30000, WALK = 5000, tt = now + hash(sd, 1, 1503) * CYC, k = Math.floor(tt / CYC), u = tt - k * CYC;
-  const spot = (j: number): [number, number] => [(hash(sd, j, 1504) - 0.5) * 8, (hash(sd, j, 1505) - 0.5) * 3];
+  const spot = (j: number): [number, number] => [(hash(sd, j, 1504) - 0.5) * 6, 0.3 + hash(sd, j, 1505) * 1.5]; // only in front of the oak's foot, never behind the trunk
   const a = spot(k), b = spot(k + 1), into = u - (CYC - WALK), f = into > 0 ? into / WALK : 0, e = f * f * (3 - 2 * f);
   const X = x + a[0] + (b[0] - a[0]) * e, Y = y + a[1] + (b[1] - a[1]) * e, h = 2.4, flip = (into > 0 ? b[0] - a[0] : a[0] - spot(k - 1)[0]) < 0;
   shadow(c, X, Y, h * 0.45);
