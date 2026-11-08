@@ -32,8 +32,9 @@ export const frost = (now: number) => seasonAt(now).winter >= 0.6;
  */
 export function waySnow(now: number): 0 | 1 | 2 | 3 {
   const w = seasonAt(now).winter; if (w < 0.6) return 0;
-  const s = snowiness(now);
-  return s > 0.55 ? 3 : s > 0.05 || w > 0.85 ? 2 : 1;
+  const s = snowiness(now), c = snowCoverAt(now);
+  if (c < 0.12 && s < 0.05) return 1;
+  return s > 0.55 || c > 0.75 ? 3 : 2;
 }
 /** Straw mantles go round young fruit trees from November till March. */
 export const strawOn = (now: number) => { const d = doy(now); return d >= 305 || d < 80; };

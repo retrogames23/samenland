@@ -1,5 +1,6 @@
 import { biomeKey } from "./biome";
 import { isLab } from "./time";
+import { labSeason } from "./lab-ctl";
 export type Season = "winter" | "spring" | "summer" | "autumn";
 export type SeasonWeights = Record<Season, number>;
 const DAY = 86_400_000;
@@ -9,6 +10,7 @@ const transitions: [number, Season, Season][] = [[2, "winter", "spring"], [5, "s
 let pinned: Season | null | undefined;
 const pinnedSeason = (): Season | null => {
   if (!isLab()) return null;
+  const desk = labSeason(); if (desk) return desk;
   if (pinned !== undefined) return pinned;
   try { const v = new URLSearchParams(location.search).get("season"); pinned = v === "winter" || v === "spring" || v === "summer" || v === "autumn" ? v : null; } catch { pinned = null; }
   return pinned;
@@ -30,5 +32,10 @@ export function seasonAt(now: number): SeasonWeights {
 }
 export function seasonKey(now: number) {
   const w = seasonAt(now);
-  return `${biomeKey()}:${Math.round(w.winter * 8)}:${Math.round(w.spring * 8)}:${Math.round(w.autumn * 8)}`;
+  return `${biomeKey()}:${Math.round(snowCoverAt(now) * 8)}:${Math.round(w.winter * 8)}:${Math.round(w.spring * 8)}:${Math.round(w.autumn * 8)}`;
 }
+
+/** Lying snow 0..1, registered by weather.ts (it builds up only after enough snowfall, see snowCover). */
+let coverFn: (now: number) => number = (now) => seasonAt(now).winter;
+export const setSnowCoverFn = (f: (now: number) => number) => { coverFn = f; };
+export const snowCoverAt = (now: number) => coverFn(now);
