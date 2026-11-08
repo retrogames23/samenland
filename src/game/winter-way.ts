@@ -38,21 +38,21 @@ function paint(kind: WayTex): HTMLCanvasElement | null {
     if (kind === "pack" || kind === "fringe") {
       // compacted snow: grey-beige, cloudy tone shifts, fine grain of trampled crystals
       // crisp-edged: the snow itself is pressed (opaque grain), loose snow remains in hard-edged islands
-      const t = 0.5 * l + 0.3 * h + 0.2 * f, grain = (f - 0.5) * 34;
-      r = 140 + t * 62 + grain; gg = 138 + t * 60 + grain; b = 134 + t * 62 + grain;
-      const n = 0.55 * h + 0.3 * f + 0.15 * l;
-      a = kind === "pack" ? (1 - smooth(0.66, 0.70, n)) * 0.96 : smooth(0.47, 0.51, 0.55 * l + 0.3 * h + 0.15 * f) * 0.9;
+      // compacted snow: one closed surface; character only from gentle tone and fine grain, never holes
+      const t = 0.55 * l + 0.3 * h + 0.15 * f, grain = (f - 0.5) * 12;
+      r = 176 + t * 34 + grain; gg = 172 + t * 32 + grain; b = 166 + t * 30 + grain;
+      a = kind === "pack" ? 0.82 + 0.12 * l
+        : smooth(0.3, 0.62, 0.6 * l + 0.3 * h + 0.1 * f) * 0.75; // verge: broad soft drift edge
     } else if (kind === "slush") {
-      // wet brown churn and bare frozen earth in hard-edged patches with grain
-      const m = smooth(0.5, 0.54, 0.55 * patch(x, y) + 0.3 * h + 0.15 * f);
-      const wet = f, dark = (h - 0.5) * 30;
-      r = 88 + wet * 34 + dark; gg = 72 + wet * 26 + dark; b = 56 + wet * 20 + dark;
-      a = m * (0.75 + f * 0.25);
+      // wet churn blends gradually into the packed snow along low, wide clouds — no islands
+      const m = smooth(0.38, 0.78, 0.65 * patch(x, y) + 0.25 * l + 0.1 * h);
+      const wet = 0.6 * h + 0.4 * f;
+      r = 116 + wet * 30; gg = 100 + wet * 24; b = 84 + wet * 20;
+      a = m * 0.55;
     } else if (kind === "rut") {
-      // deeper-pressed wet snow, grey-brown; breaks off irregularly
-      const m = smooth(0.5, 0.55, 0.5 * l + 0.35 * h + 0.15 * f);
-      r = 112 + f * 34; gg = 102 + f * 30; b = 90 + f * 26;
-      a = m * (0.7 + 0.3 * f);
+      // continuous wheel track: slightly damper, denser snow, only its moisture breathes along the length
+      r = 150 + l * 22; gg = 144 + l * 20; b = 136 + l * 18;
+      a = 0.4 + 0.25 * smooth(0.3, 0.7, 0.7 * l + 0.3 * h);
     } else {
       // icy glaze: pale, slightly blue, sparse
       const m = smooth(0.66, 0.78, 0.6 * patch(x + 97, y + 41) + 0.4 * l);
