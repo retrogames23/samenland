@@ -49,6 +49,7 @@ import { titleOfSeed } from "./economy";
 import { townRank, seatKindForRank } from "./rank";
 import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
 import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
+import { wayTexture } from "./winter-way";
 import { sheavesOn, woodpileLevel, frost, waySnow, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
 import { pealPause } from "./time";
 import { isRestDay, bonfireLit, christmasNight, feastOn, FEASTS, type FeastCode } from "./feasts";
@@ -848,7 +849,7 @@ export function chaikin(p: Pt[], rounds = 2): Pt[] {
   }
   return a;
 }
-type Ribbon = { path: Path2D; tufts: [number, number, number][]; blades?: Path2D; pebbles?: Path2D; pack?: Path2D; mud?: Path2D; dark?: Path2D; drift?: Path2D };
+type Ribbon = { path: Path2D; tufts: [number, number, number][]; blades?: Path2D; pebbles?: Path2D; rutA?: Path2D; rutB?: Path2D };
 // deterministic depth order with hysteresis: near-ties keep last frame's order, exact ties break by id
 const DEPTH_HYST = 0.75;
 const depthWas = new Map<string, number>();
@@ -861,20 +862,7 @@ export function sortDepth<T extends { x: number; y: number }>(items: T[], id: (t
 }
 const runMemo = new WeakMap<object, { seeds: Seed[]; tick: number; runs: [number, number][]; key: string }>();
 const ribbonCache = new WeakMap<object, Map<string, Ribbon>>();
-let winterPack = new Path2D(), winterMud = new Path2D(), winterDark = new Path2D(), winterDrift = new Path2D();
-/** An irregular, lumpy blot (7 wobbling points, smoothed) — organic wear, never a geometric dash. */
-function blot(x: number, y: number, rx: number, ry: number, rot: number, h: number): Path2D {
-  const p = new Path2D(), n = 7, cs = Math.cos(rot), sn = Math.sin(rot), pts: [number, number][] = [];
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * 6.283, f = 0.62 + hash(Math.round(h * 1e4), i, 719) * 0.55;
-    const lx = Math.cos(a) * rx * f, ly = Math.sin(a) * ry * f;
-    pts.push([x + lx * cs - ly * sn, y + (lx * sn + ly * cs) * 0.6]);
-  }
-  const mid = (a: [number, number], b: [number, number]) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as const;
-  const m0 = mid(pts[n - 1]!, pts[0]!); p.moveTo(m0[0], m0[1]);
-  for (let i = 0; i < n; i++) { const a = pts[i]!, m = mid(a, pts[(i + 1) % n]!); p.quadraticCurveTo(a[0], a[1], m[0], m[1]); }
-  p.closePath(); return p;
-}
+
 /** Built, dry stretches of a trade road drawn as one smooth band with frayed verges, instead of per-tile strokes. */
 function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], now: number) {
   const pts = smoothRoad(l), n = l.tiles.length;
@@ -899,7 +887,7 @@ function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], n
   let byKey = ribbonCache.get(l); if (!byKey) ribbonCache.set(l, (byKey = new Map()));
   let rb = byKey.get(key);
   if (!rb) {
-    const path = new Path2D(), tufts: [number, number, number][] = [];
+    const path = new Path2D(), tufts: [number, number, number][] = [], rutA = new Path2D(), rutB = new Path2D();
     for (const [a, b] of runs) {
       let seg = pts.slice(a, b + 1);
       if (seg.length === 1) { const [x, y] = seg[0]!; path.moveTo(x + 0.01, y); path.lineTo(x, y); continue; }
@@ -917,38 +905,37 @@ function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], n
         const side = hash(hx, hy, 611) < 0.5 ? -1 : 1, off = 2.5 + hash(hx, hy, 612) * 0.9;
         tufts.push([x1 + nx * off * side, y1 + ny * off * side * 0.6, hash(hx, hy, 613)]);
       }
-      // winter wear, as irregular overlapping blots (never dashes): packed snow of wandering width,
-      // churned slush where wheels and hooves bite, darker wet earth, and snow tongues reaching in from the verge
-      for (let k = 1; k < seg.length; k++) {
-        const [x0, y0] = seg[k - 1]!, [x1, y1] = seg[k]!, d = Math.hypot(x1 - x0, y1 - y0) || 1;
-        const tx = (x1 - x0) / d, ty = (y1 - y0) / d, nx = -ty, ny = tx, ang = Math.atan2(ty, tx);
-        for (let u = 0; u < d; u += 1.1) {
-          const px = x0 + tx * u, py = y0 + ty * u, hx = Math.round(px * 4), hy = Math.round(py * 4);
-          const r1 = hash(hx, hy, 700), r2 = hash(hx, hy, 701), r3 = hash(hx, hy, 702), r4 = hash(hx, hy, 703);
-          const wob = (r1 - 0.5) * 1.1, w = 2.1 + r2 * 1.1;
-          winterPack.addPath(blot(px + nx * wob, py + ny * wob * 0.6, w * 1.15, w * 0.62, ang, r3));
-          if (r4 < 0.62) { const o = (r3 < 0.5 ? -1 : 1) * (0.4 + r1 * 1.3); winterMud.addPath(blot(px + nx * o, py + ny * o * 0.6, 0.7 + r2 * 1.5, 0.35 + r4 * 0.55, ang + (r1 - 0.5) * 0.6, r2)); }
-          if (r4 > 0.86) winterDark.addPath(blot(px + nx * (r2 - 0.5) * 1.6, py + ny * (r2 - 0.5), 0.5 + r3 * 0.8, 0.28 + r1 * 0.3, ang, r4));
-          if (r1 > 0.72) { const s = r2 < 0.5 ? -1 : 1, o = s * (1.6 + r3 * 0.9); winterDrift.addPath(blot(px + nx * o, py + ny * o * 0.6, 0.8 + r4 * 1.6, 0.4 + r3 * 0.5, ang + (r2 - 0.5), r1)); }
+      // winter wheel tracks: two centre-lines offset either side of the band, slowly wandering;
+      // they are only guides for a noise-masked material stroke, never drawn as lines themselves
+      for (const [side, ref] of [[-1, rutA], [1, rutB]] as [number, Path2D][]) {
+        for (let k = 0; k < seg.length; k++) {
+          const a = seg[Math.max(0, k - 1)]!, b = seg[Math.min(seg.length - 1, k + 1)]!, d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+          const nx = -(b[1] - a[1]) / d, ny = (b[0] - a[0]) / d, [px, py] = seg[k]!;
+          const o = side * (0.95 + (hash(Math.round(px * 2), Math.round(py * 2), 720 + side) - 0.5) * 0.35);
+          if (k === 0) ref.moveTo(px + nx * o, py + ny * o * 0.6); else ref.lineTo(px + nx * o, py + ny * o * 0.6);
         }
       }
     }
-    rb = { path, tufts, pack: winterPack, mud: winterMud, dark: winterDark, drift: winterDrift };
-    winterPack = new Path2D(); winterMud = new Path2D(); winterDark = new Path2D(); winterDrift = new Path2D(); byKey.set(key, rb);
+    rb = { path, tufts, rutA, rutB };
+    byKey.set(key, rb);
     if (byKey.size > 250) byKey.delete(byKey.keys().next().value!);
   }
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
   const ws = waySnow(now), dirt = texture(c, "dirt", 0, !!ws) ?? "#c49e6c";
   if (ws) {
-    // winter trade road: no lines at all — overlapping blots of packed grey snow of wandering width,
-    // churned slush and wet earth where traffic bites, snow tongues from the verge; heavier snow fills it in
-    const earth = ws === 1 ? 0.75 : ws === 2 ? 0.55 : 0.3;
-    c.fillStyle = "rgba(140,134,124,0.10)"; c.fill(rb.pack!); // soft, wide trampled halo
-    c.fillStyle = ws === 3 ? "rgba(206,208,206,0.42)" : "rgba(176,170,158,0.40)"; c.fill(rb.pack!);
-    c.fillStyle = dirt; c.globalAlpha = earth * 0.75; c.fill(rb.mud!);
-    c.fillStyle = "rgba(78,62,44,1)"; c.globalAlpha = earth * 0.35; c.fill(rb.dark!);
-    c.globalAlpha = 1;
-    c.fillStyle = ws === 3 ? "rgba(236,239,240,0.8)" : "rgba(226,228,226,0.55)"; c.fill(rb.drift!);
+    // winter trade road: one continuous band of packed grey snow (procedural texture, ragged noise verge);
+    // the ruts are only a change of material inside it, slush/earth and ice show in irregular patches
+    const fr = wayTexture(c, "fringe"), pk = wayTexture(c, "pack"), rt = wayTexture(c, "rut"), sl = wayTexture(c, "slush"), ic = wayTexture(c, "ice");
+    const fresh = ws === 3 ? 0.45 : ws === 2 ? 0.75 : 1;
+    if (fr && pk && rt && sl && ic) {
+      c.strokeStyle = fr; c.globalAlpha = 0.55 * fresh; c.lineWidth = 7.4; c.stroke(rb.path);
+      c.strokeStyle = pk; c.globalAlpha = 0.7 * fresh + 0.15; c.lineWidth = 5.4; c.stroke(rb.path);
+      c.strokeStyle = rt; c.lineWidth = 1.5; c.globalAlpha = 0.85 * fresh; c.stroke(rb.rutA!);
+      c.lineWidth = 1.2; c.globalAlpha = 0.6 * fresh; c.stroke(rb.rutB!);
+      c.strokeStyle = sl; c.lineWidth = 4.8; c.globalAlpha = (ws === 1 ? 0.95 : ws === 2 ? 0.7 : 0.35); c.stroke(rb.path);
+      c.strokeStyle = ic; c.lineWidth = 4.4; c.globalAlpha = 0.8; c.stroke(rb.path);
+      c.globalAlpha = 1;
+    }
   } else {
     c.strokeStyle = "rgba(70,52,30,0.16)"; c.lineWidth = 6.6; c.stroke(rb.path); // trodden, soft verge
     c.strokeStyle = dirt; c.lineWidth = 4.6; c.stroke(rb.path);
@@ -3474,25 +3461,19 @@ function drawPond(c: C, x: number, y: number, cx: number, cy: number) {
  * the heavier the snowfall, the more the ruts fill in again. Pure tile hash, same on every client.
  */
 function winterTrack(c: C, x: number, y: number, cx: number, cy: number, con: [number, number][], pp: (i: number, j: number) => [number, number], wBase: number, col: string | CanvasPattern, ws: 1 | 2 | 3) {
-  // footpath in winter: trodden snow as one union of lumpy blots (edge wanders, width breathes), a few
-  // churned slush blots and wet earth where feet bite; heavier snow leaves fewer, smaller holes
-  const earth = ws === 1 ? 0.6 : ws === 2 ? 0.45 : 0.22;
-  const pack = new Path2D(), mud = new Path2D();
-  pack.addPath(blot(cx + (hash(x, y, 450) - 0.5), cy, wBase * (0.42 + hash(x, y, 451) * 0.16), wBase * 0.42, hash(x, y, 452) * 3, hash(x, y, 453)));
-  for (const [i, j] of con) {
-    const m = pp(i * 0.5, j * 0.5), dx = m[0] - cx, dy = m[1] - cy, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d, ang = Math.atan2(dy, dx);
-    for (let k = 0; k < 4; k++) {
-      const r1 = hash(x * 3 + i, y * 3 + j, 460 + k), r2 = hash(x + i, y + j, 470 + k), u = (k + 0.5) / 4;
-      const o = (r1 - 0.5) * wBase * 0.35, w = wBase * (0.3 + r2 * 0.22);
-      pack.addPath(blot(cx + dx * u + nx * o, cy + dy * u + ny * o * 0.6, d * 0.2 + w * 0.5, w, ang, r1 * r2 + k));
-      if (hash(x + i, y + j, 480 + k) < 0.55 - ws * 0.1) {
-        const o2 = (r2 - 0.5) * wBase * 0.5;
-        mud.addPath(blot(cx + dx * u + nx * o2, cy + dy * u + ny * o2 * 0.6, wBase * (0.12 + r1 * 0.16), wBase * (0.07 + r2 * 0.07), ang + (r1 - 0.5) * 0.8, r2 + k));
-      }
-    }
-  }
-  c.fillStyle = ws === 3 ? "rgba(208,210,208,0.45)" : "rgba(178,172,160,0.45)"; c.fill(pack);
-  c.fillStyle = col; c.globalAlpha = earth; c.fill(mud); c.globalAlpha = 1;
+  // footpath in winter: one continuous trodden surface (world-anchored noise texture, so neighbouring
+  // tiles flow into each other), a ragged noise verge, and earth/slush only where the noise mask opens up
+  void x; void y; void col;
+  const fr = wayTexture(c, "fringe"), pk = wayTexture(c, "pack"), sl = wayTexture(c, "slush");
+  if (!fr || !pk || !sl) return;
+  const fresh = ws === 3 ? 0.5 : ws === 2 ? 0.8 : 1;
+  const line = new Path2D();
+  if (!con.length) { line.moveTo(cx - 0.01, cy); line.lineTo(cx + 0.01, cy); }
+  for (const [i, j] of con) { const m = pp(i * 0.5, j * 0.5); line.moveTo(cx, cy); line.lineTo(m[0], m[1]); }
+  c.strokeStyle = fr; c.globalAlpha = 0.6 * fresh; c.lineWidth = wBase * 1.25; c.stroke(line);
+  c.strokeStyle = pk; c.globalAlpha = 0.55 * fresh + 0.15; c.lineWidth = wBase * 0.85; c.stroke(line);
+  c.strokeStyle = sl; c.globalAlpha = ws === 1 ? 0.8 : ws === 2 ? 0.5 : 0.2; c.lineWidth = wBase * 0.7; c.stroke(line);
+  c.globalAlpha = 1;
 }
 /** Flat ground dressing of one tile (turf, ore rocks, paths, squares, acres) — drawn live or baked into a flat chunk. */
 function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number) {
