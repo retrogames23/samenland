@@ -122,7 +122,7 @@ export const es: Dict = {
   signFrom: (n) => `Poste indicador desde ${n}`,
   signUi: { placed: "Postes colocados", open: "Aún sin poste", stands: "está a la entrada del pueblo", edit: "Cambiar texto", town: "Ir al pueblo", look: "Ir al poste", theirs: (n) => `Saludo de ${n} para nosotros`, cancel: "Cancelar" },
   signTitle: "Poste indicador",
-  noNeighbours: "Aún no hay caminos comerciales hacia aldeas vecinas.",
+  noNeighbours: "Aún no hay caminos comerciales hacia aldeas vecinas. Un poste indicador se alza en un camino terminado: acuérdalo en el menú de obras cuando haya un vecino a tu alcance.",
   treasury: "Arcas de la aldea",
   taxInfo: (n) => `${n} ciudadanos pagan impuestos a diario según su estamento`,
   taler: (n) => `${n.toLocaleString("es-ES")} marcos`,

@@ -64,7 +64,7 @@ export function questProgress(q: Quest, c: QuestCtx): [number, number] {
 /** Three independent tracks (mirrored by DB quest_guard): a slow daily task in one never blocks the others. */
 export const TRACKS: readonly (readonly Quest[])[] = [
   ["build", "ten", "hamlet", "road", "buy3", "fifty", "village", "roads2", "hundred", "town", "buy6", "merchant", "metro"],
-  ["sign", "meet", "gift", "gifts5"],
+  ["meet", "sign", "gift", "gifts5"],
   ["bless", "bless7"],
 ];
 export const trackOf = (q: Quest) => TRACKS.findIndex((t) => t.includes(q));
