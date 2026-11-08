@@ -30,29 +30,32 @@ export type QuestClaim = { id: string; seed_id: string; quest: string; reward: n
 export type QuestCtx = {
   blessings: number; purchases: number; signposts: number; encounters: number; giftsSent: number;
   residents: number; stage: number; roads?: number;
+  /** Towns within road reach on the same map; lonely towns get road/neighbour quests waived (mirrors DB quest_guard). */
+  reach?: number;
   /** Own way buildings bought: small = Großspeicher/Steinmetzhütte/Räucherei, big = Windmühlenreihe/Hammerwerk/Salzkontor. */
   waySmall?: boolean; wayBig?: boolean;
 };
 
 const need = (have: number, n: number): [number, number] => [Math.min(n, have), n];
+const near = (c: QuestCtx, n: number) => Math.min(n, c.reach ?? n);
 
 /** Progress toward a quest as [have, need]. */
 export function questProgress(q: Quest, c: QuestCtx): [number, number] {
   switch (q) {
     case "bless": return need(c.blessings, 1);
     case "build": return need(c.purchases, 1);
-    case "sign": return need(c.signposts, 1);
+    case "sign": return need(c.signposts, near(c, 1));
     case "meet": return need(c.encounters, 1);
     case "ten": return need(c.residents, 10);
-    case "gift": return need(c.giftsSent, 1);
+    case "gift": return need(c.giftsSent, near(c, 1));
     case "hamlet": return need(c.stage, 1);
-    case "road": return need(c.roads ?? 0, 1);
+    case "road": return need(c.roads ?? 0, near(c, 1));
     case "bless7": return need(c.blessings, 3);
     case "buy3": return need(c.purchases, 3);
     case "village": return [c.stage >= 2 ? 1 : 0, 1];
-    case "gifts5": return need(c.giftsSent, 3);
+    case "gifts5": return need(c.giftsSent, near(c, 1) * 3);
     case "fifty": return need(c.residents, 50);
-    case "roads2": return need(c.roads ?? 0, 2);
+    case "roads2": return need(c.roads ?? 0, near(c, 2));
     case "town": return [c.stage >= 3 ? 1 : 0, 1];
     case "buy6": return need(c.waySmall ? c.purchases : Math.min(c.purchases, 5), 6);
     case "hundred": return need(c.residents, 150);

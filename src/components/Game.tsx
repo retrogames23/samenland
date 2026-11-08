@@ -130,6 +130,7 @@ import {
   signTile,
   hash,
   FOOT2,
+  TRADE_DIST,
 } from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<TownWay, string> = { grain: "🌾", workshop: "⚒", gateway: "⚓" };
@@ -1775,7 +1776,10 @@ export function Game() {
     signposts: signs.filter((s) => s.seed_id === my.id).length,
     encounters: encounters.filter((e) => e.seed_id === my.id).length,
     giftsSent: gifts.filter((g) => g.from_seed === my.id).length,
-    residents, stage: myRank, roads: firstRoads.filter((f) => f.seed_id === my.id).length,
+    residents, stage: myRank,
+    // a road counts for both towns, whoever decided it first
+    roads: new Set(firstRoads.filter((f) => f.seed_id === my.id || f.target_id === my.id).map((f) => (f.seed_id === my.id ? f.target_id : f.seed_id))).size,
+    reach: seeds.filter((o) => o.id !== my.id && (o.realm ?? "europe") === (my.realm ?? "europe") && Math.hypot(o.x - my.x, o.y - my.y) <= TRADE_DIST).length,
     waySmall: purchases.some((p) => p.seed_id === my.id && WAY_SMALL.includes(p.item)),
     wayBig: purchases.some((p) => p.seed_id === my.id && WAY_BIG.includes(p.item)),
   }) : [];
