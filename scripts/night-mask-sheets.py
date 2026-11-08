@@ -39,23 +39,23 @@ def analyse(p):
         under = lum[sl][m].mean()
         b = []
         if area / sil.sum() > 0.025: b.append(f"große Fläche {area / sil.sum() * 100:.1f} %")
-        if fill > 0.9 and area > 150: b.append("rechteckiger Block")
-        if under > 150: b.append(f"über heller Malfläche (Ø{under:.0f}) – Wand/Dach statt Fenster?")
+        if fill > 0.9 and area > max(400, 0.008 * sil.sum()): b.append("rechteckiger Block")
+        if under > 170 and area > 30: b.append(f"über heller Malfläche (Ø{under:.0f}) – Wand/Dach statt Fenster?")
         if cy > 0.97: b.append("am Sockel")
         if b: blobs.append((sl[1].start, sl[0].start, w, h, b))
     stats["areas"] = int(n); stats["share"] = float(lit.sum() / sil.sum())
     # dark compact openings in the day painting without light nearby → possibly missing window
     inner = ndimage.binary_erosion(sil, iterations=4)
-    dark = inner & (lum < 60)
+    dark = inner & (lum < 45)
     dl, dn = ndimage.label(dark)
     near = ndimage.binary_dilation(lit, iterations=4)
     miss = 0
     for i, sl in enumerate(ndimage.find_objects(dl), 1):
         m = dl[sl] == i; a = m.sum(); h, w = m.shape
-        if 12 <= a <= 600 and 0.3 < w / h < 3 and a / (w * h) > 0.45 and not near[sl][m].any(): miss += 1
+        if 25 <= a <= 600 and 0.3 < w / h < 3 and a / (w * h) > 0.45 and not near[sl][m].any(): miss += 1
     stats["dark_unlit"] = miss
     for x, y, w, h, b in blobs[:5]: hints.append(f"Fläche {w}×{h} bei {x},{y}: " + ", ".join(b))
-    if miss >= 3: hints.append(f"{miss} dunkle fensterartige Öffnungen ohne Licht im Tagesbild")
+    if miss >= 6 and miss > n: hints.append(f"{miss} dunkle fensterartige Öffnungen ohne Licht im Tagesbild")
     return hints, stats, blobs
 
 def font(s):
