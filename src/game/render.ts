@@ -49,7 +49,7 @@ import { titleOfSeed } from "./economy";
 import { townRank, seatKindForRank } from "./rank";
 import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
 import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
-import { sheavesOn, woodpileLevel, frost, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
+import { sheavesOn, woodpileLevel, frost, waySnow, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
 import { pealPause } from "./time";
 import { isRestDay, bonfireLit, christmasNight, feastOn, FEASTS, type FeastCode } from "./feasts";
 import { oxWalk, martinWalk, herdsmanWalk, type Walk } from "./feast-walkers";
@@ -3350,7 +3350,7 @@ const FLAT_QMAX = TOUCH ? 2 : 4, FLAT_KEEP = TOUCH ? 80 : 96;
 function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
   flatSet.clear();
   // near zoom: bake farmland/paths at screen resolution so acres stay as crisp as the buildings
-  const q = Math.min(FLAT_QMAX, z > 3.2 ? 4 : z > 1.6 ? 2.5 : z > 0.6 ? 1 : 0.5), sk = seasonKey(now), ready = allTexturesReady() && natureReady();
+  const q = Math.min(FLAT_QMAX, z > 3.2 ? 4 : z > 1.6 ? 2.5 : z > 0.6 ? 1 : 0.5), sk = seasonKey(now) + ":" + waySnow(now), ready = allTexturesReady() && natureReady();
   let bakes = 0;
   const cx0 = Math.floor(x0 / FC), cx1 = Math.floor(x1 / FC), cy0 = Math.floor(y0 / FC), cy1 = Math.floor(y1 / FC);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {

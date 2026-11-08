@@ -4,7 +4,7 @@
  */
 import { seasonAt } from "./season";
 import { worldHour, isSunday } from "./time";
-import { wetness } from "./weather";
+import { wetness, snowiness } from "./weather";
 
 const DAY = 864e5;
 const h3 = (a: number, b: number, c: number) => { let x = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263) ^ Math.imul(c | 0, 2147483647); x = Math.imul(x ^ (x >>> 13), 1274126177); return ((x ^ (x >>> 16)) >>> 0) / 4294967296; };
@@ -26,6 +26,15 @@ export function woodpileLevel(now: number): number {
 
 /** Hard frost: troughs freeze, paths are trodden through the snow. */
 export const frost = (now: number) => seasonAt(now).winter >= 0.6;
+/**
+ * Snow on the ways, quantised so baked ground chunks only refresh on real changes:
+ * 0 = none, 1 = hard frost (thin crust, ruts dark), 2 = light snow (tracks clear), 3 = heavy snow (tracks half filled).
+ */
+export function waySnow(now: number): 0 | 1 | 2 | 3 {
+  const w = seasonAt(now).winter; if (w < 0.6) return 0;
+  const s = snowiness(now);
+  return s > 0.55 ? 3 : s > 0.05 || w > 0.85 ? 2 : 1;
+}
 /** Straw mantles go round young fruit trees from November till March. */
 export const strawOn = (now: number) => { const d = doy(now); return d >= 305 || d < 80; };
 
