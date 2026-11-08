@@ -1,4 +1,7 @@
 # Roadmap
+- [ ] Schaukasten: Alter/Geschlecht am Feuer und Herd korrekt abbilden
+- [ ] Schaukasten: Patrizierfamilie und schreibende Kauffrau passend einkleiden
+- [ ] Schaukasten: schwebende Sitzfiguren korrigieren und prüfen
 - [x] Herbst-Schweine, Ufergänse und einzelne Hütten-Ziegen samt Animation und Tests ergänzen
 - [x] Einwohner- und Rang-Aufgaben serverseitig absichern
 - [x] Truhen-Sperrgrund „Rang"
