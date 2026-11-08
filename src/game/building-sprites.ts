@@ -1,8 +1,4 @@
 import { seasonalImage } from "./season-art";
-import { isLab } from "./time";
-import draftHut from "@/assets/sprites/cohesive/drafts/grain-hut-draft-v4.webp";
-import draftCottage from "@/assets/sprites/cohesive/drafts/grain-cottage-draft-v4.webp";
-import draftFachwerk from "@/assets/sprites/cohesive/drafts/grain-fachwerk-draft-v4.webp";
 import waterWheelUrl from "@/assets/sprites/water-wheel.webp";
 import campfire from "@/assets/sprites/campfire.webp";
 import hut from "@/assets/sprites/cohesive/grain-hut.webp";
@@ -240,7 +236,7 @@ type Sprite = { url: string; crop: [number, number, number, number]; width: numb
 // Alpha bounds remove unequal transparent margins. Width is in world pixels, not screen pixels.
 const sprites: Partial<Record<Kind, Sprite>> = {
   campfire: { url: campfire, crop: [0, 0, 480, 346], width: 7, base: 2.4 },
-  hut: { url: hut, crop: [0, 0, 480, 379], width: 16, base: 5.8 },
+  hut: { url: hut, crop: [0, 0, 480, 392], width: 17, base: 4.6 },
   coop: { url: coop, crop: [0, 0, 480, 450], width: 10, base: 4 },
   fence: { url: fence, crop: [0, 0, 480, 256], width: 11, base: 3 },
   chapel: { url: chapel, crop: [0, 0, 474, 480], width: 21, base: 4 },
@@ -256,7 +252,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   station: { url: station, crop: [0, 0, 418, 480], width: 27, base: 4 },
   suburb: { url: patrician, crop: [0, 0, 340, 480], width: 20, base: 4 },
   farmhouse: { url: farmhouse, crop: [0, 0, 480, 326], width: 22, base: 6.5 },
-  cottage: { url: cottage, crop: [0, 0, 480, 441], width: 20, base: 5 },
+  cottage: { url: cottage, crop: [0, 0, 480, 385], width: 21.5, base: 4.4 },
   barn: { url: barn, crop: [0, 0, 475, 480], width: 15, base: 5 },
   church: { url: church, crop: [0, 0, 428, 480], width: 32, base: 5 },
   mill: { url: mill, crop: [0, 0, 477, 779], width: 16, base: 4 },
@@ -264,7 +260,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   bakery: { url: bakery, crop: [0, 0, 480, 422], width: 23, base: 5 },
   townhouse: { url: townhouse, crop: [0, 0, 252, 480], width: 17, base: 4 },
   townhouse2: { url: townhouse2, crop: [0, 0, 291, 480], width: 17, base: 4 },
-  fachwerk: { url: fachwerk, crop: [0, 0, 473, 480], width: 21, base: 4 },
+  fachwerk: { url: fachwerk, crop: [0, 0, 480, 413], width: 23, base: 4 },
   steinhaus: { url: steinhaus, crop: [0, 0, 334, 480], width: 19, base: 4 },
   handwerker: { url: handwerker, crop: [0, 0, 480, 445], width: 21, base: 4 },
   patrician: { url: patrician, crop: [0, 0, 340, 480], width: 23, base: 4 },
@@ -313,25 +309,8 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   dairy: { url: dairy, crop: [0, 0, 480, 391], width: 24, base: 4 },
 };
 
-/** Test map only (realm "lab" + localStorage samenland-draft-houses=1 or ?drafts): plain-style hut/cottage/fachwerk show the
- * reworked draft paintings for in-game comparison. Production art and all other maps stay untouched. */
-const DRAFTS: Partial<Record<Kind, Sprite>> = {
-  hut: { url: draftHut, crop: [0, 0, 480, 392], width: 17, base: 4.6 },
-  cottage: { url: draftCottage, crop: [0, 0, 480, 385], width: 21.5, base: 4.4 },
-  fachwerk: { url: draftFachwerk, crop: [0, 0, 480, 413], width: 23, base: 4 },
-};
-let draftFlag: boolean | undefined;
-const draftsOn = () => {
-  if (!isLab()) return false;
-  if (draftFlag === undefined) {
-    try { draftFlag = localStorage.getItem("samenland-draft-houses") === "1" || new URLSearchParams(location.search).has("drafts"); } catch { draftFlag = false; }
-  }
-  return draftFlag;
-};
-const spriteOf = (kind: Kind, style?: HouseStyle) => (!style && DRAFTS[kind] && draftsOn() ? DRAFTS[kind] : sprites[kind]);
-/** In draft mode the drafted kinds replace their original painting in every building style (slot 0 only), so every test town shows them. */
-const draftStyle = (kind: Kind, style: HouseStyle | undefined, variant: number) =>
-  DRAFTS[kind] && draftsOn() && !((variants as Partial<Record<Kind, unknown>>)[kind] && variantSlot(variant) > 0) ? undefined : style;
+const spriteOf = (kind: Kind, _style?: HouseStyle) => sprites[kind];
+const draftStyle = (_kind: Kind, style: HouseStyle | undefined, _variant: number) => style;
 
 /** Town-character house styles (stone hill towns, brick harbour towns); same width, base and night framing as the base kind,
  * purely visual: households, taxes and rank use the base kind. Plains (grain) keep the classic art. */
@@ -469,7 +448,6 @@ export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: nu
   const st = styledOf(kind, style, variant);
   if (st && !st.light) st.light = load(st.night);
   const own = !!st && ready(st.image) && ready(st.light);
-  if (!st && spriteOf(kind, style) !== sprites[kind]) return; // test drafts have no night layer yet
   if (st && !own) return; // never pair a variant's walls with another painting's windows
   const image = own ? st?.light : nightImages[kind], box = spriteBox(kind, variant, own ? style : undefined);
   if (!image?.complete || !image.naturalWidth || !box) return;
