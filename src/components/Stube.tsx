@@ -98,7 +98,7 @@ function figOf(pl: StubePlace): Fig | null {
 /** Merchant's town house, cut open top to bottom (fractions of the 1024×1536 picture): bedchamber, Dornse, Diele. */
 function tallFigOf(pl: StubePlace): Fig | null {
   const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < 4, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
-  if (spot === "bed") return { url: small ? sleepChildUrl : sleepUrl, x: slot ? 0.405 : 0.235, y: 0.4, h: small ? 0.038 : 0.055 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
+  if (spot === "bed") return { url: small ? sleepChildUrl : sleepUrl, x: slot ? 0.405 : 0.235, y: 0.398, h: small ? 0.028 : 0.04 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
   if (spot === "hearth") return { url: stirUrl, x: 0.4, y: 0.895, h: 0.12 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
   if (spot === "fire") return { url: f ? elderWomanUrl : elderUrl, x: 0.31, y: 0.655, h: 0.09 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
   if (spot === "desk") return { url: f ? womanUrl : manUrl, x: 0.6, y: 0.895, h: 0.1, flip: f, anim: "eat", ph };
