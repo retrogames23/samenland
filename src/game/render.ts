@@ -761,7 +761,6 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
               const A = lp(a, b, n / posts), lean = (hash(sd, n, 78) - 0.5) * 0.3;
               fp[1]!.moveTo(A[0], A[1]); fp[1]!.lineTo(A[0] + 0.6, A[1] + 0.2);
               fp[2]!.moveTo(A[0], A[1]); fp[2]!.lineTo(A[0] + lean, A[1] - 1.9);
-              fp[3]!.moveTo(A[0] - 0.12, A[1] - 0.2); fp[3]!.lineTo(A[0] - 0.12 + lean, A[1] - 1.8);
             }
           }
           fenceCache.set(fkey, fp); if (fenceCache.size > 3000) fenceCache.clear();
