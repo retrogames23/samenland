@@ -5,6 +5,10 @@ import womanUrl from "@/assets/sprites/stube/eat-woman.webp";
 import sleepUrl from "@/assets/sprites/stube/sleeper.webp";
 import stirUrl from "@/assets/sprites/stube/stir.webp";
 import elderUrl from "@/assets/sprites/stube/warm-elder.webp";
+import elderWomanUrl from "@/assets/sprites/stube/elder-woman.webp";
+import boyUrl from "@/assets/sprites/stube/eat-boy.webp";
+import girlUrl from "@/assets/sprites/stube/eat-girl.webp";
+import sleepChildUrl from "@/assets/sprites/stube/sleep-child.webp";
 import { stubeOf, type StubePlace } from "@/game/stube";
 import { clock } from "@/game/time";
 import { nightLevel } from "@/game/sun";
@@ -20,16 +24,21 @@ const img = (u: string) => { let i = imgs.get(u); if (!i) { i = new Image(); i.s
 
 /** Painted seat for each place in the room (fractions of the room picture). */
 function figOf(pl: StubePlace): Fig | null {
-  const { p, spot, slot } = pl, kid = p.age < 14, ph = (p.id % 97) / 97 * 6.28;
-  if (spot === "bed") return { url: sleepUrl, x: 0.12, y: slot ? 0.497 : 0.677, h: 0.043 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
+  const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < 4, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
+  // the picture always matches the resident's real age and sex
+  if (spot === "bed") return small
+    ? { url: sleepChildUrl, x: 0.1, y: slot ? 0.497 : 0.677, h: 0.03, flip: false, anim: "sleep", ph }
+    : { url: sleepUrl, x: 0.12, y: slot ? 0.497 : 0.677, h: 0.043 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
   if (spot === "hearth") return { url: stirUrl, x: 0.35, y: 0.79, h: 0.3 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
-  if (spot === "fire") return { url: elderUrl, x: 0.505, y: 0.8, h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
+  if (spot === "fire") return f
+    ? { url: elderWomanUrl, x: 0.505, y: 0.8, h: 0.22 * (kid ? 0.75 : 1), flip: true, anim: "warm", ph }
+    : { url: elderUrl, x: 0.505, y: 0.8, h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
   if (spot === "table") {
-    const left = slot % 2 === 0, f = p.sex === "f";
-    const url = left ? (f ? womanUrl : manUrl) : (f ? womanUrl : manUrl);
-    const flip = left ? f : !f; // man faces right, woman faces left in the art
+    const left = slot % 2 === 0;
+    const url = kid ? (f ? girlUrl : boyUrl) : (f ? womanUrl : manUrl);
+    const flip = left ? f : !f; // males face right, females face left in the art
     const x = [0.56, 0.715, 0.525, 0.75][slot]!;
-    return { url, x, y: slot < 2 ? 0.8 : 0.83, h: 0.26 * (kid ? 0.72 : 1), flip, anim: "eat", ph };
+    return { url, x, y: slot < 2 ? 0.8 : 0.83, h: kid ? 0.2 * Math.min(1, 0.6 + p.age / 30) : 0.26, flip, anim: "eat", ph };
   }
   return null;
 }
@@ -74,7 +83,7 @@ export function Stube({ seed, seeds, residents, family, lang, onClose }: { seed:
       g.globalCompositeOperation = "source-over";
       raf = requestAnimationFrame(draw);
     };
-    for (const u of [roomUrl, manUrl, womanUrl, sleepUrl, stirUrl, elderUrl]) img(u);
+    for (const u of [roomUrl, manUrl, womanUrl, sleepUrl, stirUrl, elderUrl, elderWomanUrl, boyUrl, girlUrl, sleepChildUrl]) img(u);
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
   }, [figs]);
