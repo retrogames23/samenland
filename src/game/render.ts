@@ -9,7 +9,9 @@ import hunterCarryUrl from "@/assets/sprites/folk/hunter-carry.webp";
 import henUrl from "@/assets/sprites/hen.webp";
 import gullUrl from "@/assets/sprites/gull.webp";
 import crowUrl from "@/assets/sprites/crow.webp";
-import { animalsSleeping, herdAt } from "./animals";
+import { animalsSleeping, herdAt, farmAnimalsAt, farmAnimalPose, type FarmAnimal } from "./animals";
+import gooseWalkUrl from "@/assets/sprites/goose-walk4.webp";
+import goatWalkUrl from "@/assets/sprites/goat-walk4.webp";
 import { drawParchment } from "./parchment";
 import cowUrl from "@/assets/sprites/cow.webp";
 import cowWalkUrl from "@/assets/sprites/cow-walk.webp";
@@ -2944,6 +2946,10 @@ function labEntries(): LabEntry[] {
     A("Hausschwein", "Geht", 3.6, 6, (c, ph) => { const pw = huntIm("pw", pigWalkUrl); if (!pw) return false; drawBeast(c, pw, null, 0, 0, 3.6, false, 1, (ph / 6.2832) * 4.4, 0, 1, BOAR_GAIT); return true; }),
     A("Hausschwein", "Wühlt", 3.6, 6, (c, _ph, now) => { const pw = huntIm("pw", pigWalkUrl); if (!pw) return false; shadow(c, 0, 0, 1.8); sheetFrame(c, huntIm("pr", pigRootUrl) ?? pw, 0, 0, -(Math.floor(now / 500) & 1) * 0.08, 3.6, false, 0, 1, false, 1); return true; }),
     A("Hausschwein", "Eichelmast", 3, 11, (c, _ph, now) => drawPig(c, 0, 0, now, 5)),
+    A("Gans", "Geht", 2.5, 5, (c, ph) => drawFarmAnimal(c, "goose", 0, 0, 0, 0, Math.floor(ph / 6.2832 * 4) & 3)),
+    A("Gans", "Am Ufer", 2.5, 18, (c, _ph, now) => drawFarmAnimal(c, "goose", 0, 0, now, 7)),
+    A("Ziege", "Geht", 3.3, 6, (c, ph) => drawFarmAnimal(c, "goat", 0, 0, 0, 0, Math.floor(ph / 6.2832 * 4) & 3)),
+    A("Ziege", "Bei der Hütte", 3.3, 12, (c, _ph, now) => drawFarmAnimal(c, "goat", 0, 0, now, 9)),
     A("Wildschwein", "Geht", 4.4, 6, (c, ph) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; drawBeast(c, bw, null, 0, 0, 4.4, false, 1, (ph / 6.2832) * 4.4, 0, 1, BOAR_GAIT); return true; }),
     A("Wildschwein", "Wühlt", 4.4, 6, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 2.2); sheetFrame(c, huntIm("br", boarRootUrl) ?? bw, 0, 0, -(Math.floor(now / 500) & 1) * 0.08, 4.4, false, 0, 1, false, 1); return true; }),
     A("Hirsch", "Geht", 6.2, 7, (c, ph) => { const dw = huntIm("dw", deerWalkUrl); if (!dw) return false; drawBeast(c, dw, null, 0, 0, 6.2, false, 1, (ph / 6.2832) * 4.4, 0, 1, DEER_GAIT); return true; }),
@@ -3144,6 +3150,18 @@ function drawMaypole(c: C, x: number, y: number, t: number) {
 }
 /** A village cow from the cow encounter: grazes on a pasture (or the green), slowly turning, lying down at night. */
 /** Village pigs masting under the oaks (Allmende): root for acorns, then trot a few steps; asleep in the sty at night. */
+function drawFarmAnimal(c: C, kind: FarmAnimal, x: number, y: number, now: number, sd: number, previewFrame?: number) {
+  if (kind === "pig") { drawPig(c, x, y, now, sd); return; }
+  const im = huntIm(kind, kind === "goose" ? gooseWalkUrl : goatWalkUrl); if (!im) return false;
+  const count = kind === "goose" && previewFrame === undefined ? 3 : 1;
+  for (let k = 0; k < count; k++) {
+    const p = farmAnimalPose(sd, count === 1 ? 1 : k, now), h = kind === "goose" ? 2.5 : 3.3;
+    const X = x + (previewFrame === undefined ? p.dx * 0.65 : 0), Y = y + (previewFrame === undefined ? p.dy * 0.65 : 0);
+    shadow(c, X, Y, h * 0.42);
+    sheetFrame(c, im, previewFrame ?? p.frame, X, Y, h, previewFrame === undefined && p.flip);
+  }
+  return true;
+}
 function drawPig(c: C, x: number, y: number, now: number, sd: number) {
   const bw = huntIm("pw", pigWalkUrl); if (!bw || animalsSleeping(now)) return;
   const CYC = 30000, WALK = 5000, tt = now + hash(sd, 1, 1503) * CYC, k = Math.floor(tt / CYC), u = tt - k * CYC;
@@ -3885,6 +3903,10 @@ export function draw(
       continue; // forests and crags are baked into the ground chunks
     }
     if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true, false); // turf already lies in the flat pass
+    if (!original && !floodWild.get(y * MAP + x)?.flood && !inCourt(x, y)) {
+      const animal = farmAnimalsAt(x, y, seeds, now, pondsNow);
+      if (animal) drawFarmAnimal(c, animal, cx, cy, now, x * 31 + y);
+    }
     if (st?.kind === "coop" && st.build === undefined) drawHens(c, cx, cy, x * 31 + y);
     if (hash(x, y, 501) < 0.006) { const tr = st ? null : terrain(x, y); if (tr === "water" || (tr === "sand" && hash(x, y, 502) < 0.5)) birds.push([cx, cy, 1, x * 7 + y]); }
     if (st?.kind === "field" && hash(x, y, 503) < 0.02) birds.push([cx, cy, 0, x * 7 + y]);

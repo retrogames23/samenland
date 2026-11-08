@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Herbst-Schweine, Ufergänse und einzelne Hütten-Ziegen samt Animation und Tests ergänzen
 - [x] Einwohner- und Rang-Aufgaben serverseitig absichern
 - [x] Truhen-Sperrgrund „Rang"
 - [x] Versorgungs-Hinweis im Ausblick

@@ -1,8 +1,33 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { animalsSleeping, sheepPose } from "./animals";
+import { animalsSleeping, sheepPose, mastSeason, farmAnimalKind, farmAnimalPose } from "./animals";
 import { setRealm } from "./time";
 
 afterEach(() => setRealm("europe"));
+describe("historical village animal dressing", () => {
+  const free = { free: true, nearVillage: true, oak: false, shore: false, hutBeside: false, autumn: false };
+  it("shows oak mast pigs in autumn, not summer or winter", () => {
+    expect(mastSeason(Date.parse("2026-10-15T12:00Z"))).toBe(true);
+    expect(mastSeason(Date.parse("2026-07-15T12:00Z"))).toBe(false);
+    expect(mastSeason(Date.parse("2026-01-15T12:00Z"))).toBe(false);
+    expect(farmAnimalKind({ ...free, oak: true, autumn: true })).toBe("pig");
+    expect(farmAnimalKind({ ...free, oak: true })).toBeNull();
+  });
+  it("keeps geese at the water throughout the year", () => {
+    for (const autumn of [true, false]) expect(farmAnimalKind({ ...free, shore: true, autumn })).toBe("goose");
+    expect(farmAnimalKind(free)).toBeNull();
+  });
+  it("puts goats beside huts, not on unrelated land or occupied tiles", () => {
+    expect(farmAnimalKind({ ...free, hutBeside: true })).toBe("goat");
+    expect(farmAnimalKind({ ...free, hutBeside: true, free: false })).toBeNull();
+    expect(farmAnimalKind({ ...free, hutBeside: true, nearVillage: false })).toBeNull();
+  });
+  it("uses four articulated walk frames and holds feet still when resting", () => {
+    const now = Date.parse("2026-10-15T12:00Z");
+    const poses = Array.from({ length: 1200 }, (_, k) => farmAnimalPose(17, 1, now + k * 100));
+    expect(new Set(poses.filter(p => p.walking).map(p => p.frame)).size).toBe(4);
+    expect(poses.filter(p => !p.walking).every(p => p.frame === 1)).toBe(true);
+  });
+});
 describe("animal night rest", () => {
   it("rests between 21:00 and 06:00 on the shared realm clock", () => {
     setRealm("europe");

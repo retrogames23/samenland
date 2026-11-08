@@ -1,6 +1,7 @@
-import { herdAt } from "./animals";
+import { herdAt, farmAnimalsAt } from "./animals";
 // Pure hover facts for one tile: what is there, which animals live on it, and its effect on play.
-import { terrain, isWater, riverDistAt, resourceAt, structureAt, acreOf, specialTile, type Seed, type Terrain } from "./world";
+import { terrain, isWater, riverDistAt, resourceAt, structureAt, acreOf, specialTile, pondTiles, type Seed, type Terrain } from "./world";
+import { inCourt } from "./court";
 import { roleOf } from "./rotation";
 import { isDen, denOk, denBeast } from "./wildlife";
 import { worldHour, isWorkHour } from "./time";
@@ -28,6 +29,10 @@ export function tileFacts(x: number, y: number, seeds: Seed[], now: number, plan
   }
   if (kind === "pasture" && st && st.build === undefined && st.v > 0.35) animals.add(herdAt(x, y));
   if (kind === "coop") animals.add("hen");
+  if (!st?.flood && !inCourt(x, y)) {
+    const animal = farmAnimalsAt(x, y, seeds, now, pondTiles(seeds));
+    if (animal) animals.add(animal);
+  }
   const sd = st?.seed ?? null;
   if (sd && townOf(sd, seeds, now).cows.some(([cx, cy]) => cx === x && cy === y)) animals.add("cow");
   const fx: Effect[] = [];
