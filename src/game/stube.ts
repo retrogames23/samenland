@@ -26,6 +26,9 @@ export const PATRICIAN_SLOTS: StubeSlots = { ...STUBE_SLOTS, desk: 1 };
 
 const home = (q: Pose) => !q.visible && Math.hypot(q.x - q.p.home[0], q.y - q.p.home[1]) < 1.5;
 
+/** Only infants are swaddled in bed all day; toddlers (1–2) sit with the family. */
+export const SWADDLE_AGE = 1;
+
 /** Pure from the derived routine: only people really at home appear; nothing is stored. */
 export function stubePlaces(poses: Pose[], slots: StubeSlots = STUBE_SLOTS): StubePlace[] {
   const used: Record<string, number> = { bed: 0, table: 0, hearth: 0, fire: 0, desk: 0 };
@@ -42,7 +45,8 @@ export function stubePlaces(poses: Pose[], slots: StubeSlots = STUBE_SLOTS): Stu
   for (const q of order) {
     const p = q.p;
     if (!home(q)) { out.push({ p, spot: "out", slot: 0 }); continue; }
-    if (q.act === "sleep" || q.act === "sick" || p.age < BABY_AGE) put(p, ["bed"]);
+    if (q.act === "sleep" || q.act === "sick" || p.age < SWADDLE_AGE) put(p, ["bed"]);
+    else if (p.age < BABY_AGE) put(p, ["table", "bed"]); // toddlers sit at the table by day
     else if (q.act === "lunch") put(p, ["table", "fire"]);
     else if (p.job === "homemaker" || q.act === "care") put(p, ["hearth", "table"]);
     else if (p.job === "retired" || p.age >= 60) put(p, ["fire", "table"]);

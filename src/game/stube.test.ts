@@ -73,5 +73,7 @@ describe("Schaukasten: merchant's house storeys", () => {
   });
   it("children never take the desk", () => {
     expect(stubePlaces([pose(1, "home", false, { age: 9 })], PATRICIAN_SLOTS)[0]!.spot).toBe("table");
+    expect(stubePlaces([pose(1, "home", false, { age: 2 })])[0]!.spot).toBe("table");
+    expect(stubePlaces([pose(1, "home", false, { age: 0 })])[0]!.spot).toBe("bed");
   });
 });
