@@ -5,9 +5,14 @@ import farmHillUrl from "@/assets/sprites/stube/farmhouse-room-workshop.webp";
 import farmCoastUrl from "@/assets/sprites/stube/farmhouse-room-gateway.webp";
 import hutHillUrl from "@/assets/sprites/stube/hut-room-workshop.webp";
 import hutCoastUrl from "@/assets/sprites/stube/hut-room-gateway.webp";
+import craftUrl from "@/assets/sprites/stube/craft-room.webp";
+import craftHillUrl from "@/assets/sprites/stube/craft-room-workshop.webp";
+import craftCoastUrl from "@/assets/sprites/stube/craft-room-gateway.webp";
 import { townCharacter } from "@/game/character";
 /** Room picture per house kind and building style (plains / hill stone / coastal), matching the map sprite. */
-const ROOMS = { farmhouse: { grain: roomUrl, workshop: farmHillUrl, gateway: farmCoastUrl }, hut: { grain: hutRoomUrl, workshop: hutHillUrl, gateway: hutCoastUrl } } as const;
+const ROOMS = { farmhouse: { grain: roomUrl, workshop: farmHillUrl, gateway: farmCoastUrl }, hut: { grain: hutRoomUrl, workshop: hutHillUrl, gateway: hutCoastUrl }, handwerker: { grain: craftUrl, workshop: craftHillUrl, gateway: craftCoastUrl } } as const;
+export type StubeKind = keyof typeof ROOMS;
+export const STUBE_KINDS: ReadonlySet<string> = new Set(Object.keys(ROOMS));
 import manUrl from "@/assets/sprites/stube/eat-man.webp";
 import womanUrl from "@/assets/sprites/stube/eat-woman.webp";
 import sleepUrl from "@/assets/sprites/stube/sleeper.webp";
@@ -89,7 +94,7 @@ function figOf(pl: StubePlace): Fig | null {
 }
 
 /** Farmhouse diorama: the painted room with exactly those residents the derived routine keeps at home. */
-export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang, onClose }: { seed: Seed; seeds: Seed[]; residents: Person[]; family: string; lang: Lang; onClose: () => void; kind?: "farmhouse" | "hut" }) {
+export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang, onClose }: { seed: Seed; seeds: Seed[]; residents: Person[]; family: string; lang: Lang; onClose: () => void; kind?: StubeKind }) {
   const T = STUBE[lang];
   const ref = useRef<HTMLCanvasElement>(null);
   const [places, setPlaces] = useState<StubePlace[]>(() => stubeOf(residents, seed, seeds, clock()));
