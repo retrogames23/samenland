@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { BODY_ANCHORS, FURNITURE, anchorBottom, furnitureY, stubeFigureKey, type StubePlace, type StubeLayoutKey } from "./stube";
+import { BODY_ANCHORS, FURNITURE, anchorBottom, anchorX, furnitureY, stubeFigureKey, type StubePlace, type StubeLayoutKey } from "./stube";
 import type { Person } from "./people";
 
 const P = (age: number, sex: "m" | "f", spot: StubePlace["spot"]): StubePlace => ({ p: { id: 1, age, sex } as Person, spot, slot: 0 });
@@ -32,5 +32,16 @@ describe("Schaukasten anchors", () => {
   });
   it("figures painted with their own stool stand on the floor", () => {
     expect(anchorBottom(FURNITURE.wide.fire![0]!, BODY_ANCHORS["elder-woman"]!, 0.22)).toBe(0.82);
+  });
+});
+
+describe("stool contact", () => {
+  it("a seated figure's seat point lands on the stool, mirrored figures too", () => {
+    const f = FURNITURE.coast.table![0]!, b = BODY_ANCHORS["eat-man"]!, h = 0.19, a = 1024 / 1536;
+    for (const flip of [false, true]) {
+      const x = anchorX(f, b, h, flip, a);
+      expect(x + (b.dx ?? 0) * h * a * (flip ? -1 : 1)).toBeCloseTo(f.x, 9);
+    }
+    expect(anchorX(FURNITURE.wide.table![0]!, b, 0.26, false, a)).toBe(FURNITURE.wide.table![0]!.x); // long bench
   });
 });
