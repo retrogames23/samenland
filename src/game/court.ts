@@ -3,10 +3,10 @@ import { wonders } from "./wonders";
 
 /** The prince's seat: one fixed estate near the map centre, pure from the shared terrain (same on every client). */
 export const COURT_N = 14;
-export type CourtPiece = "castle" | "stable" | "fountain" | "pavilion";
+export type CourtPiece = "castle" | "stable" | "fountain" | "pavilion" | "garden";
 /** Footprints in local tiles: [i0, j0, size]; drawn on the front tile (i0+size-1, j0+size-1). */
 export const COURT_LAYOUT: Record<CourtPiece, [number, number, number]> = {
-  castle: [1, 1, 6], pavilion: [11, 6, 2], stable: [1, 8, 4], fountain: [8, 8, 2],
+  castle: [1, 1, 6], garden: [8, 1, 4], pavilion: [11, 6, 2], stable: [1, 8, 4], fountain: [8, 8, 2],
 };
 /** Settlers keep this distance (tiles) from the estate centre. */
 export const COURT_GUARD = 30;
@@ -38,7 +38,7 @@ export function nearCourt(x: number, y: number) { const c = courtCenter(); retur
 export function courtSolid(x: number, y: number): boolean {
   const s = courtSite(), i = x - s.x, j = y - s.y;
   if (i < 0 || j < 0 || i >= COURT_N || j >= COURT_N) return false;
-  for (const [i0, j0, n] of Object.values(COURT_LAYOUT)) if (i >= i0 && j >= j0 && i < i0 + n && j < j0 + n) return true;
+  for (const [k, [i0, j0, n]] of Object.entries(COURT_LAYOUT)) if (k !== "garden" && i >= i0 && j >= j0 && i < i0 + n && j < j0 + n) return true;
   return false;
 }
 
@@ -47,7 +47,8 @@ let pieceM: Map<number, CourtPiece> | null = null;
 export function courtPieces(): Map<number, CourtPiece> {
   if (pieceM) return pieceM;
   const s = courtSite(); pieceM = new Map();
-  for (const [k, [i, j, n]] of Object.entries(COURT_LAYOUT)) pieceM.set((s.y + j + n - 1) * MAP + s.x + i + n - 1, k as CourtPiece);
+  // the rose garden is flat ground: drawn on its back tile so walkers inside stay on top
+  for (const [k, [i, j, n]] of Object.entries(COURT_LAYOUT)) { const b = k === "garden" ? 0 : n - 1; pieceM.set((s.y + j + b) * MAP + s.x + i + b, k as CourtPiece); }
   return pieceM;
 }
 

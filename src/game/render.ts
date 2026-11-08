@@ -71,6 +71,7 @@ import castleU from "@/assets/sprites/court/castle.webp";
 import stableU from "@/assets/sprites/court/stable.webp";
 import fountainU from "@/assets/sprites/court/fountain.webp";
 import pavilionU from "@/assets/sprites/court/pavilion.webp";
+import parterreU from "@/assets/sprites/court/parterre.webp";
 import princeU from "@/assets/sprites/court/prince.webp";
 import princessU from "@/assets/sprites/court/princess.webp";
 import princeStandU from "@/assets/sprites/court/prince-stand.webp";
@@ -2707,7 +2708,7 @@ function drawCourtLabel(c: C, cam: Camera, w: number, h: number, z: number, dpr:
   c.fillStyle = hsl(345, 45, 30); c.fillText(courtName, sx, sy);
   return [sx, sy] as [number, number];
 }
-const COURT_ART: Record<CourtPiece, string> = { castle: castleU, stable: stableU, fountain: fountainU, pavilion: pavilionU };
+const COURT_ART: Record<CourtPiece, string> = { castle: castleU, stable: stableU, fountain: fountainU, pavilion: pavilionU, garden: parterreU };
 const COURT_FIG: Record<CourtRole, string> = { prince: princeU, princess: princessU, herald: heraldU, guard: guardU, gardener: gardenerU, groom: courtGroomU };
 /** Pixel-native water: 4 baked frames of the sprite where only its own water pixels shift brightness in bands that travel downward (falling streams, basin ripples) — no vector overlay. */
 let fountainFr: HTMLCanvasElement[] | null = null;
@@ -2734,10 +2735,14 @@ function fountainFrames(im: HTMLImageElement) {
 }
 function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[], t = 0) {
   const n = COURT_LAYOUT[k][2], im = huntIm(`court-${k}`, COURT_ART[k]);
+  if (k === "garden") { // flat rose parterre, anchored on its back tile, spans the whole footprint
+    if (im) { const w = n * TW, h = (w * im.naturalHeight) / im.naturalWidth, my = cy + ((n - 1) * TH) / 2; c.drawImage(im, cx - w / 2, my - h / 2, w, h); }
+    return;
+  }
   // centre of the footprint, the front tile sits n-1 tiles toward the viewer
   // world-pixel widths matched to 5.4px figures (church 32, farmhouse 23): castle ≈3× a church,
   // stable ≈ a big barn, fountain ≈3 people wide, pavilion ≈2.5 people tall
-  const W: Record<CourtPiece, number> = { castle: 100, stable: 40, fountain: 15, pavilion: 11 };
+  const W: Record<CourtPiece, number> = { castle: 100, stable: 40, fountain: 15, pavilion: 11, garden: 0 };
   const mx = cx, my = cy - ((n - 1) * TH) / 2, w = W[k];
   const by = k === "castle" || k === "stable" ? my + (n * TH) / 2 + 2 : cy + TH / 2;
   if (im) {
