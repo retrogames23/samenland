@@ -9,8 +9,9 @@ const LENS = `url("data:image/svg+xml,${encodeURIComponent(
 export function useModeCursor(ref: RefObject<HTMLCanvasElement | null>, lens: boolean, walk: boolean) {
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el) return undefined;
     if (lens && !walk) { el.style.cursor = LENS; return () => { el.style.cursor = ""; }; }
     el.style.cursor = "";
+    return undefined;
   }, [ref, lens, walk]);
 }
