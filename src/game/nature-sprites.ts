@@ -42,12 +42,12 @@ export const setNatureTime = (now: number) => { artNow = now; };
 const texRole = (t: Tex) => t === "water" ? "water" : t === "wheat" || t === "crops" ? "field" : t === "meadow" ? "flower" : "ground";
 const TEX_M = typeof DOMMatrix !== "undefined" ? new DOMMatrix() : (null as unknown as DOMMatrix); // reused, no per-tile allocation
 /** Texture laid on the iso ground plane (rotated 45° and squashed), anchored in world space. */
-export function texture(c: C, t: Tex, shift = 0): CanvasPattern | null {
-  const key = `${t}:${seasonKey(artNow)}`;
+export function texture(c: C, t: Tex, shift = 0, bare = false): CanvasPattern | null {
+  const key = `${t}:${bare ? "bare:" : ""}${seasonKey(artNow)}`;
   let p = pats.get(key);
   if (!p) {
     const i = img(TEX[t]); if (!i) return null;
-    p = c.createPattern(seasonalImage(i, texRole(t)), "repeat") ?? undefined; if (!p) return null;
+    p = c.createPattern(seasonalImage(i, bare ? "track" : texRole(t)), "repeat") ?? undefined; if (!p) return null;
     if (pats.size > 44) pats.clear(); pats.set(key, p);
   }
   const s = SPAN[t] / 816;
@@ -114,7 +114,7 @@ export function texSample(t: Tex) {
   const s = samples.get(key); if (s) return s;
   const i = img(TEX[t]); if (!i) return null;
   const n = 64, cv = document.createElement("canvas"); cv.width = cv.height = n;
-  const g = cv.getContext("2d", { willReadFrequently: true })!; g.drawImage(seasonalImage(i, texRole(t)), 0, 0, n, n);
+  const g = cv.getContext("2d", { willReadFrequently: true })!; g.drawImage(seasonalImage(i, bare ? "track" : texRole(t)), 0, 0, n, n);
   const r = { d: g.getImageData(0, 0, n, n).data, n }; if (samples.size > 44) samples.clear(); samples.set(key, r); return r;
 }
 export const allTexturesReady = () => (Object.keys(TEX) as Tex[]).every((t) => texSample(t));
