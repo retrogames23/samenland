@@ -3210,7 +3210,7 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
   const im = huntIm("cow", cowUrl); if (!im) return;
   // shoulder just below a villager's head (person 5.2 tall), like a real cow beside a farmer
   // a cattle beast stands clearly taller and heavier than a sheep (sheep w 4.6)
-  const w = 5.5, h = (im.naturalHeight / im.naturalWidth) * w;
+  const w = 6.8, h = (im.naturalHeight / im.naturalWidth) * w;
   // walk sheet frames are wider than cow.webp: pick the width that gives the same standing height
   const cwi = huntIm("cw", cowWalkUrl), ws = cwi ? (h * cwi.naturalWidth) / 4 / cwi.naturalHeight : w;
   const night = animalsSleeping(now);
@@ -3229,7 +3229,7 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
   const breath = 1 + Math.sin(now / 2600 + sd) * 0.012;
   const tilt = walking ? Math.sin(now / 1100 + sd) * 0.02 : Math.sin(now / 5200 + sd) * 0.006;
   c.save();
-  c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.2, 2.8, 0.9, 0, 0, 7); c.fill();
+  c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.2, 3.4, 1.1, 0, 0, 7); c.fill();
   c.translate(x + dx, y + dy); c.scale(-(night ? prevDir : scaleX), 1); // cow art faces left: mirror when heading right
   if (night) c.drawImage(im, 0, im.naturalHeight * 0.45, im.naturalWidth, im.naturalHeight * 0.55, -w / 2, -h * 0.55, w, h * 0.55);
   else if (walking) { c.rotate(tilt * 0.5); if (!cowStep(c, ws, Math.floor(into / 480))) c.drawImage(im, -w / 2, -h * 0.96, w, h); }
