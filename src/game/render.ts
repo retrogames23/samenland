@@ -3209,7 +3209,8 @@ function drawOx(c: C, x: number, y: number, w: Walk, now: number) {
 function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number) {
   const im = huntIm("cow", cowUrl); if (!im) return;
   // shoulder just below a villager's head (person 5.2 tall), like a real cow beside a farmer
-  const w = 5.2, h = (im.naturalHeight / im.naturalWidth) * w;
+  // a cattle beast stands clearly taller and heavier than a sheep (sheep w 4.6)
+  const w = 7.4, h = (im.naturalHeight / im.naturalWidth) * w;
   const night = animalsSleeping(now);
   // grazes at one spot ~40-55 s, then ambles slowly (7 s) to the next one instead of teleporting
   const CYC = 48000, WALK = 7000, tt = now + hash(sd, i, 1500) * CYC, k = Math.floor(tt / CYC), u = tt - k * CYC;
@@ -3220,14 +3221,13 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
   // facing: the heading of the last walk is held while grazing; a new heading turns in over 400 ms
   // at the start of the walk (horizontal scale passes through a narrow side-on pose) — never a 1-frame flip
   const prevDir = a[0] < spot(k - 1)[0] ? -1 : 1, nextDir = b[0] < a[0] ? -1 : 1;
-  const TURN = 400, tf = walking ? Math.min(1, into / TURN) : 0;
-  const sx = prevDir === nextDir || !walking ? (walking ? nextDir : prevDir) : prevDir + (nextDir - prevDir) * (tf * tf * (3 - 2 * tf));
-  const scaleX = Math.sign(sx || nextDir) * Math.max(0.25, Math.abs(sx));
+  // facing flips cleanly with the first step (never a squashed cardboard turn)
+  const scaleX = walking ? nextDir : prevDir;
   // hooves stay on the ground: only a slow breath (body stretches a hair upward) and a gentle sway while walking
   const breath = 1 + Math.sin(now / 2600 + sd) * 0.012;
   const tilt = walking ? Math.sin(now / 1100 + sd) * 0.02 : Math.sin(now / 5200 + sd) * 0.006;
   c.save();
-  c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.2, 2.8, 0.9, 0, 0, 7); c.fill();
+  c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.2, 3.9, 1.25, 0, 0, 7); c.fill();
   c.translate(x + dx, y + dy); c.scale(-(night ? prevDir : scaleX), 1); // cow art faces left: mirror when heading right
   if (night) c.drawImage(im, 0, im.naturalHeight * 0.45, im.naturalWidth, im.naturalHeight * 0.55, -w / 2, -h * 0.55, w, h * 0.55);
   else if (walking) { c.rotate(tilt * 0.5); if (!cowStep(c, w, Math.floor(into / 480))) c.drawImage(im, -w / 2, -h * 0.96, w, h); }
