@@ -908,7 +908,7 @@ function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], n
     if (byKey.size > 250) byKey.delete(byKey.keys().next().value!);
   }
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
-  const ws = waySnow(now), dirt = texture(c, "dirt") ?? "#c49e6c";
+  const ws = waySnow(now), dirt = texture(c, "dirt", 0, !!ws) ?? "#c49e6c";
   if (ws) {
     // winter trade road: wide packed snow, two broken wheel ruts with earth showing through, snowy crown
     const earth = ws === 1 ? 0.7 : ws === 2 ? 0.55 : 0.3;
@@ -3503,7 +3503,7 @@ function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Struct
       for (const [i, j] of [[1, 1], [-1, -1], [1, -1], [-1, 1]] as [number, number][]) if (isP(i, j) && !isP(i, 0) && !isP(0, j)) con.push([i, j]);
       c.lineCap = "round"; c.lineJoin = "round";
       const ws = waySnow(now);
-      if (ws && !street) { winterTrack(c, x, y, cx, cy, con, pp, wBase, col, ws); return; }
+      if (ws && !street) { winterTrack(c, x, y, cx, cy, con, pp, wBase, texture(c, "dirt", 0, true) ?? col, ws); return; }
       c.strokeStyle = col;
       for (const [i, j] of con) {
         const m = pp(i * 0.5, j * 0.5);
