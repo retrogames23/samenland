@@ -1094,15 +1094,16 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
   if (axis) {
     const back = dy < 0, im = cartAxisImage(back);
     if (im) {
-      // fixed scale (17 units per 480 px of the original painting) so the wagon keeps its size; the smaller ox shortened the sheet
-      const iw = im.naturalWidth, ih = im.naturalHeight, k = 17 / 480, h = ih * k, w = iw * k;
+      // one shared scale for both steep sheets: front ox withers stand 172 px above its hooves → 5.0 units like the side views;
+      // the rear ox's horn span (97 px) equals the front ox's (96 px), so the same scale gives it the same physical size
+      const iw = im.naturalWidth, ih = im.naturalHeight, k = 5 / 172, h = ih * k, w = iw * k;
       // gait clock: 0.6 s per stride, legs alternate (left lifts while right plants)
       const g = (t / 300 + sd * 0.731) % 1, ph = g * Math.PI * 2;
       const liftL = Math.max(0, Math.sin(ph)) * 0.55, liftR = Math.max(0, -Math.sin(ph)) * 0.55;
       const dip = Math.abs(Math.sin(ph)) * 0.12; // body settles a hair on each hoof contact
       c.save(); c.translate(x, y); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
       // two ground contacts: wheels (row of their rim bottoms) and hooves (front only)
-      const wheelRow = back ? 425 : 322, wy = -(ih - wheelRow) * k;
+      const wheelRow = back ? 527 : 322, wy = -(ih - wheelRow) * k;
       c.fillStyle = "rgba(20,15,10,0.36)";
       c.beginPath(); c.ellipse(-w * 0.4, wy, w * 0.11, 0.55, 0, 0, 7); c.fill();
       c.beginPath(); c.ellipse(w * 0.4, wy, w * 0.11, 0.55, 0, 0, 7); c.fill();
@@ -1110,7 +1111,7 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
       const x0 = -w / 2, y0 = -h;
       if (back) {
         // ox seen from behind: its forequarters (rows 0..140) nod with the stride, wagon stays put
-        const cut = 91;
+        const cut = 160; // ox body above the canvas top
         c.drawImage(im, 0, cut, iw, ih - cut, x0, y0 + cut * k, w, (ih - cut) * k);
         c.drawImage(im, 0, 0, iw, cut, x0, y0 + dip * 1.5, w, cut * k);
       } else {
