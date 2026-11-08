@@ -125,6 +125,8 @@ for cat, _ in CATS:
         h = res[p["key"]][0]
         report.append(f"- **{p['key']}** ({STYLE[p['style']]}): " + ("; ".join(h) if h else "unauffällig"))
 flag = [k for k, v in res.items() if v[0]]
+strong = sorted(k for k, v in res.items() if any(w in " ".join(v[0]) for w in ("rechteckig", "große Fläche", "heller", "Sockel")))
+report.insert(1, f"\nVorrangig ansehen (Blöcke, große Flächen, Licht auf Wand/Dach): {', '.join(strong)}\n")
 report.insert(1, f"\n{len(open_p)} offene Masken, davon {len(flag)} mit Hinweisen: {', '.join(sorted(flag))}\n")
 open(os.path.join(out, "auffaelligkeiten.md"), "w").write("\n".join(report) + "\n")
 print(len(open_p), "offen;", len(flag), "auffällig;", len(sheets), "Bögen")
