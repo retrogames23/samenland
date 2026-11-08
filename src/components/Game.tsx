@@ -165,7 +165,7 @@ const FEAST_ART: Record<FeastCode, string> = { christmas: "feast-christmas", eas
 
 type Mode = "look" | "seed" | "tree" | "flower" | "lantern" | "sapling";
 
-const SHEET = "pointer-events-auto w-full max-w-xs rounded-md border-2 border-wood bg-card px-3 py-2 text-foreground shadow-[var(--shadow-cozy)] max-md:max-h-[45dvh] max-md:max-w-none max-md:overflow-y-auto max-md:overscroll-contain max-md:rounded-t-2xl";
+const SHEET = "pointer-events-auto w-full max-w-xs rounded-md border-2 border-wood bg-card px-3 py-2 text-foreground shadow-[var(--shadow-cozy)] max-md:max-h-[45dvh] max-md:max-w-none max-md:overflow-y-auto max-md:overflow-x-hidden max-md:overscroll-contain max-md:rounded-t-2xl";
 /** swipe a phone sheet down to close it */
 const sheetSwipe = (close: () => void) => {
   let y0: number | null = null;
@@ -1959,7 +1959,7 @@ export function Game() {
       <div className="mt-2 border-t border-border pt-2 text-xs">
         <div className="font-display text-sm text-foreground">{t.post.book}</div>
         {got.length === 0 ? <div className="text-muted-foreground">{t.post.empty}</div> : (
-          <ul className="max-h-40 space-y-1 overflow-auto">{got.map((g) => (
+          <ul className="max-h-40 space-y-1 overflow-y-auto overflow-x-hidden">{got.map((g) => (
             <li key={g.id}><button type="button" className="w-full rounded px-1 py-0.5 text-left hover:bg-accent" onClick={() => { setRollOpen(false); setTab(null); setFest((q) => [{ at: letterArrives(g.o, my, g.at), code: "letter", id: g.id, other: g.o.name }, ...q]); }}>
               <span className="italic text-foreground">„{bodies[g.id] ?? t.post.sealed}“</span> <span className="text-muted-foreground">{t.post.from(g.o.name)}</span>
             </button></li>
@@ -2268,7 +2268,7 @@ export function Game() {
         );
       })()}
       {tab === "towns" && (
-        <ul className="max-h-[50vh] space-y-1 overflow-auto">
+        <ul className="max-h-[50vh] space-y-1 overflow-y-auto overflow-x-hidden">
           {seeds.map((s) => (
             <li key={s.id}>
               <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { setProfile(s); setTab(null); }}>
@@ -2731,7 +2731,7 @@ export function Game() {
       {tab && (
         <div className="pointer-events-none absolute left-[var(--safe-l)] right-[var(--safe-r)] bottom-[calc(var(--dock-bottom)+4.5rem)] z-30 md:bottom-auto ltr:md:right-auto ltr:md:left-[calc(max(0.75rem,env(safe-area-inset-left))+5rem)] rtl:md:left-auto rtl:md:right-[calc(max(0.75rem,env(safe-area-inset-right))+5rem)] md:top-[var(--bar-h,6rem)] md:w-72" style={{ "--bar-h": `${barH + 8}px` } as import("react").CSSProperties}>
           <div className="pointer-events-auto fixed inset-0 -z-10 md:hidden" aria-hidden onClick={() => pick(tab)} />
-          <div {...sheetSwipe(() => pick(tab))}><Panel className="flex flex-col max-h-[min(70dvh,calc(100dvh-var(--dock-bottom)-11rem))] md:max-h-[calc(100dvh-var(--bar-h,6rem)-2.5rem)] max-md:rounded-t-2xl" inner="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">{drawer}</Panel></div>
+          <div {...sheetSwipe(() => pick(tab))}><Panel className="flex flex-col max-h-[min(70dvh,calc(100dvh-var(--dock-bottom)-11rem))] md:max-h-[calc(100dvh-var(--bar-h,6rem)-2.5rem)] max-md:rounded-t-2xl" inner="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden [overflow-wrap:anywhere] overscroll-contain pb-6">{drawer}</Panel></div>
         </div>
       )}
 
