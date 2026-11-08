@@ -908,9 +908,22 @@ function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], n
     if (byKey.size > 250) byKey.delete(byKey.keys().next().value!);
   }
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
-  c.strokeStyle = "rgba(70,52,30,0.16)"; c.lineWidth = 6.6; c.stroke(rb.path); // trodden, soft verge
-  c.strokeStyle = texture(c, "dirt") ?? "#c49e6c"; c.lineWidth = 4.6; c.stroke(rb.path);
-  c.strokeStyle = "rgba(60,45,28,0.10)"; c.lineWidth = 1.4; c.stroke(rb.path); // worn centre line
+  const ws = waySnow(now), dirt = texture(c, "dirt") ?? "#c49e6c";
+  if (ws) {
+    // winter trade road: wide packed snow, two broken wheel ruts with earth showing through, snowy crown
+    const earth = ws === 1 ? 0.7 : ws === 2 ? 0.55 : 0.3;
+    c.strokeStyle = "rgba(150,146,136,0.18)"; c.lineWidth = 6.8; c.stroke(rb.path);
+    c.strokeStyle = ws === 3 ? "rgba(212,215,216,0.8)" : "rgba(188,185,176,0.7)"; c.lineWidth = 5.2; c.stroke(rb.path);
+    c.strokeStyle = dirt; c.lineWidth = 3.4; c.globalAlpha = earth;
+    c.setLineDash([2.6, 1.1, 4.2, 1.6, 1.8, 2.4]); c.stroke(rb.path);
+    c.setLineDash([]); c.globalAlpha = 1;
+    c.strokeStyle = ws === 3 ? "rgba(230,234,236,0.75)" : "rgba(214,214,208,0.6)"; c.lineWidth = 1.1;
+    c.setLineDash([3.5, 2, 1.5, 3]); c.stroke(rb.path); c.setLineDash([]); // crown between the ruts
+  } else {
+    c.strokeStyle = "rgba(70,52,30,0.16)"; c.lineWidth = 6.6; c.stroke(rb.path); // trodden, soft verge
+    c.strokeStyle = dirt; c.lineWidth = 4.6; c.stroke(rb.path);
+    c.strokeStyle = "rgba(60,45,28,0.10)"; c.lineWidth = 1.4; c.stroke(rb.path); // worn centre line
+  }
   c.restore();
   if (!rb.blades) { // verge tufts and pebbles are static: two cached paths, two draw calls per road
     const bl = new Path2D(), pb = new Path2D();
@@ -3552,6 +3565,16 @@ function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Struct
       for (let n = 0; n < 5; n++) {
         const a = hash(x, y, 80 + n) * 6.283, d = 0.95 + hash(x, y, 90 + n) * 0.25;
         c.globalAlpha = 0.7; c.beginPath(); c.ellipse(cx + Math.cos(a) * rx * d, cy + Math.sin(a) * ry * d, 0.9, 0.5, 0, 0, 7); c.fill();
+      }
+      const ws = waySnow(now);
+      if (ws) {
+        // snow swept to the rim and left in the joints; the busy middle stays trodden open
+        c.fillStyle = "rgb(236,240,243)";
+        for (let n = 0; n < 3 + ws * 3; n++) {
+          const a = hash(x, y, 460 + n) * 6.283, d = 0.55 + hash(x, y, 470 + n) * 0.4;
+          c.globalAlpha = 0.35 + ws * 0.15;
+          c.beginPath(); c.ellipse(cx + Math.cos(a) * rx * d, cy + Math.sin(a) * ry * d, 1 + hash(x, y, 480 + n) * 1.6, 0.45 + hash(x, y, 490 + n) * 0.4, 0, 0, 7); c.fill();
+        }
       }
       c.globalAlpha = 1;
     } else if (st.kind === "field" || st.kind === "garden" || st.kind === "pasture") {
