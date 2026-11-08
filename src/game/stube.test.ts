@@ -22,3 +22,12 @@ describe("Schaukasten: only people really at home appear", () => {
     expect(r.find((x) => x.p.id === 2)!.spot).toBe("table");
   });
 });
+
+import { poseMix } from "@/components/Stube";
+describe("stube gestures", () => {
+  it("holds each pose, then moves between them", () => {
+    expect(poseMix(0.5, 1, 0.3, 1.5)).toBe(0);
+    expect(poseMix(2, 1, 0.3, 1.5)).toBe(1);
+    expect(poseMix(1.15, 1, 0.3, 1.5)).toBeCloseTo(0.5);
+  });
+});
