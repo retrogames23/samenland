@@ -5,6 +5,19 @@ import type { Seed } from "./world";
 export type StubeSpot = "bed" | "table" | "hearth" | "fire" | "desk" | "out";
 export type StubePlace = { p: Person; spot: StubeSpot; slot: number };
 
+/** Semantic painted figure; age, sex and household dress never depend on the seat overflow. */
+export function stubeFigureKey({ p, spot }: StubePlace, patrician = false): string {
+  const female = p.sex === "f", kid = p.age < 14;
+  const who = kid ? (female ? "girl" : "boy") : (female ? "woman" : "man");
+  if (spot === "hearth") return female ? "stir" : "stir-man";
+  if (spot === "desk") return `pat-write-${female ? "woman" : "man"}`;
+  if (spot === "fire") {
+    if (p.age >= 60) return patrician ? `pat-elder-${female ? "woman" : "man"}` : female ? "elder-woman" : "warm-elder";
+    return `${patrician ? "pat-" : ""}warm-${who}`;
+  }
+  return `${patrician ? "pat-" : ""}eat-${who}`;
+}
+
 /** Seats per spot in the painted room: two box beds, four table places, one cook, one fireside stool. */
 export type StubeSlots = Record<Exclude<StubeSpot, "out">, number>;
 export const STUBE_SLOTS: StubeSlots = { bed: 2, table: 4, hearth: 1, fire: 1, desk: 0 };
