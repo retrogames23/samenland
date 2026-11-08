@@ -300,7 +300,7 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
           <button type="button" aria-label={T.close} className="hit relative p-1 text-2xl leading-none text-muted-foreground hover:text-foreground" onClick={onClose}>×</button>
         </div>
         {L0.floors ? (
-          <div ref={(el) => { if (el && !el.dataset.s) { el.dataset.s = "1"; requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; }); } }} className="relative max-h-[calc(100dvh-8.5rem)] overflow-y-auto overscroll-contain">
+          <div ref={(el) => { if (el && !el.dataset["s"]) { el.dataset["s"] = "1"; requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; }); } }} className="relative max-h-[calc(100dvh-8.5rem)] overflow-y-auto overscroll-contain">
             <div className="relative">
               <canvas ref={ref} width={W} height={H} className="block aspect-[2/3] w-full" dir="ltr" />
               {L0.floors.map(([k, at]) => (
