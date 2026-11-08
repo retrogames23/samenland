@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import roomUrl from "@/assets/sprites/stube/farmhouse-room.webp";
 import hutRoomUrl from "@/assets/sprites/stube/hut-room.webp";
+import farmHillUrl from "@/assets/sprites/stube/farmhouse-room-workshop.webp";
+import farmCoastUrl from "@/assets/sprites/stube/farmhouse-room-gateway.webp";
+import hutHillUrl from "@/assets/sprites/stube/hut-room-workshop.webp";
+import hutCoastUrl from "@/assets/sprites/stube/hut-room-gateway.webp";
+import { townCharacter } from "@/game/character";
+/** Room picture per house kind and building style (plains / hill stone / coastal), matching the map sprite. */
+const ROOMS = { farmhouse: { grain: roomUrl, workshop: farmHillUrl, gateway: farmCoastUrl }, hut: { grain: hutRoomUrl, workshop: hutHillUrl, gateway: hutCoastUrl } } as const;
 import manUrl from "@/assets/sprites/stube/eat-man.webp";
 import womanUrl from "@/assets/sprites/stube/eat-woman.webp";
 import sleepUrl from "@/assets/sprites/stube/sleeper.webp";
@@ -93,7 +100,7 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
     const g = cv.getContext("2d"); if (!g) return;
     let raf = 0;
     const draw = () => {
-      const t = performance.now() / 1000, room = img(kind === "hut" ? hutRoomUrl : roomUrl);
+      const t = performance.now() / 1000, room = img(ROOMS[kind][townCharacter(seed).main]);
       g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
       if (room.complete && room.naturalWidth) g.drawImage(room, 0, 0, W, H);
       for (const f of figs) {
@@ -134,7 +141,7 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
     for (const u of [roomUrl, hutRoomUrl, manUrl, womanUrl, sleepUrl, stirUrl, elderUrl, elderWomanUrl, boyUrl, girlUrl, sleepChildUrl, ...Object.values(LAYERS).flat()]) img(u);
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [figs, kind]);
+  }, [figs, kind, seed]);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose]);
   const home = places.filter((p) => p.spot !== "out"), away = places.filter((p) => p.spot === "out");
   return (
