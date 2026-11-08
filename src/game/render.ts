@@ -3957,7 +3957,7 @@ export function draw(
           fig(c);
           // muddy water laps over the shoes instead of clipping the sprite
           c.fillStyle = `rgba(104,92,68,${0.55 + 0.3 * wd})`; c.beginPath(); c.ellipse(px, py - 0.2, 2.2, 0.6 + wd * 0.5, 0, 0, 7); c.fill();
-          const rp = (t / 700 + q.p.id * 0.37) % 1;
+          const rp = (((t / 700 + q.p.id * 0.37) % 1) + 1) % 1;
           c.strokeStyle = `rgba(230,232,218,${0.45 * (1 - rp) * wd})`; c.lineWidth = 0.35;
           c.beginPath(); c.ellipse(px, cut + 0.2, 1.6 + rp * 2.2, 0.55 + rp * 0.7, 0, 0, 7); c.stroke();
           c.fillStyle = `rgba(110,100,76,${0.35 * wd})`; c.beginPath(); c.ellipse(px, cut + 0.2, 1.5, 0.5, 0, 0, 7); c.fill();
