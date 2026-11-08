@@ -884,9 +884,12 @@ function cachedLink(a: Seed, b: Seed, d: number): Link | null {
   return p ? { a, b, d, since: p.since, tiles: p.tiles, water: p.water } : null;
 }
 
+/** links() key per seeds array (same immutability assumption as seedsKey): building it was most of structureAt's cost. */
+const lkMemo = new WeakMap<Seed[], string>();
 export function links(seeds: Seed[]): Link[] {
   syncGeo();
-  const key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.roads ?? []).map((r) => `${r.target}@${r.at}`).join("+")}`).join("|");
+  let key = lkMemo.get(seeds);
+  if (key === undefined) { key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.roads ?? []).map((r) => `${r.target}@${r.at}`).join("+")}`).join("|"); lkMemo.set(seeds, key); }
   if (key === linkKey) return linkCache;
   const hit = linkSets.get(key);
   if (hit) { linkKey = key; linkCache = hit.links; roadIdx = hit.idx; return linkCache; }
