@@ -51,9 +51,9 @@ export function Stube({ seed, seeds, residents, family, lang, onClose }: { seed:
       if (room.complete && room.naturalWidth) g.drawImage(room, 0, 0, W, H);
       for (const f of figs) {
         const im = img(f.url); if (!im.complete || !im.naturalWidth) continue;
-        const h = f.anim === "sleep" ? f.h * W * im.naturalHeight / im.naturalWidth / 0.375 * 0.375 : f.h * H;
-        const w = f.anim === "sleep" ? f.h * W / 0.375 * 0.375 * (im.naturalWidth / im.naturalHeight) * 0 + 0.115 * W * (f.h / 0.043) : h * im.naturalWidth / im.naturalHeight;
-        const hh = f.anim === "sleep" ? w * im.naturalHeight / im.naturalWidth : h;
+        // sleepers are sized by bed width, everyone else by body height
+        const w = f.anim === "sleep" ? 0.115 * W * (f.h / 0.043) : f.h * H * im.naturalWidth / im.naturalHeight;
+        const hh = w * im.naturalHeight / im.naturalWidth;
         const px = f.x * W, py = f.y * H;
         g.save(); g.translate(px, py);
         if (f.flip) g.scale(-1, 1);
