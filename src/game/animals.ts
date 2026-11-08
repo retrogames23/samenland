@@ -1,5 +1,41 @@
 import { worldHour } from "./time";
-import { hash, terrain } from "./world";
+import { hash, terrain, isWater, structureAt, MAP, type Seed } from "./world";
+import { treeKind } from "./biome";
+import { seasonAt } from "./season";
+
+export type FarmAnimal = "pig" | "goose" | "goat";
+/** September–November, following the same shared seasonal calendar as the painted trees. */
+export const mastSeason = (now: number) => seasonAt(now).autumn >= 0.5;
+export function farmAnimalKind(f: { free: boolean; nearVillage: boolean; oak: boolean; shore: boolean; hutBeside: boolean; autumn: boolean }): FarmAnimal | null {
+  if (!f.free || !f.nearVillage) return null;
+  if (f.hutBeside) return "goat";
+  if (f.shore) return "goose";
+  return f.oak && f.autumn ? "pig" : null;
+}
+/** Sparse tile-local dressing; no town scan, no stored herd and no economic inputs. */
+export function farmAnimalsAt(x: number, y: number, seeds: Seed[], now: number, ponds?: Set<number>): FarmAnimal | null {
+  if (animalsSleeping(now) || hash(x, y, 1510) >= 0.12) return null;
+  if (!seeds.some(s => Math.hypot(x - s.x, y - s.y) <= 18)) return null;
+  const tr = terrain(x, y);
+  if (isWater(tr) || tr === "mountain" || structureAt(x, y, seeds, now) || ponds?.has(y * MAP + x)) return null;
+  const open = tr !== "forest";
+  let shore = false, hutBeside = false;
+  if (open) for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+    const nx = x + dx, ny = y + dy;
+    shore ||= isWater(terrain(nx, ny)) || !!ponds?.has(ny * MAP + nx);
+    const st = structureAt(nx, ny, seeds, now);
+    // Only one possible goat tile per hut: its open southern neighbour, selected by the hut hash.
+    hutBeside ||= dy === -1 && st?.kind === "hut" && st.build === undefined && !st.flood && hash(nx, ny, 1511) < 0.45;
+  }
+  const oak = tr === "forest" && treeKind(hash(x, y, 18), 0.6) === "oak";
+  return farmAnimalKind({ free: true, nearVillage: true, oak, shore, hutBeside, autumn: mastSeason(now) });
+}
+
+/** Gentle daytime grazing/steps within one open tile. Frame cadence is tied to distance, not bobbing. */
+export function farmAnimalPose(sd: number, k: number, now: number) {
+  const p = sheepPose(sd, k, now);
+  return { ...p, frame: p.walking ? Math.floor(now / 240 + k) & 3 : 1 };
+}
 
 /** Share of lowland pastures grazed by cattle (Hallenhaus country c. 1500); the rest keep sheep. */
 export const COW_SHARE = 0.65;
