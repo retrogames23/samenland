@@ -861,6 +861,20 @@ export function sortDepth<T extends { x: number; y: number }>(items: T[], id: (t
 }
 const runMemo = new WeakMap<object, { seeds: Seed[]; tick: number; runs: [number, number][]; key: string }>();
 const ribbonCache = new WeakMap<object, Map<string, Ribbon>>();
+let winterPack = new Path2D(), winterMud = new Path2D(), winterDark = new Path2D(), winterDrift = new Path2D();
+/** An irregular, lumpy blot (7 wobbling points, smoothed) — organic wear, never a geometric dash. */
+function blot(x: number, y: number, rx: number, ry: number, rot: number, h: number): Path2D {
+  const p = new Path2D(), n = 7, cs = Math.cos(rot), sn = Math.sin(rot), pts: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * 6.283, f = 0.62 + hash(Math.round(h * 1e4), i, 719) * 0.55;
+    const lx = Math.cos(a) * rx * f, ly = Math.sin(a) * ry * f;
+    pts.push([x + lx * cs - ly * sn, y + (lx * sn + ly * cs) * 0.6 + ly * 0.4 * 0]);
+  }
+  const mid = (a: [number, number], b: [number, number]) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as const;
+  const m0 = mid(pts[n - 1]!, pts[0]!); p.moveTo(m0[0], m0[1]);
+  for (let i = 0; i < n; i++) { const a = pts[i]!, m = mid(a, pts[(i + 1) % n]!); p.quadraticCurveTo(a[0], a[1], m[0], m[1]); }
+  p.closePath(); return p;
+}
 /** Built, dry stretches of a trade road drawn as one smooth band with frayed verges, instead of per-tile strokes. */
 function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], now: number) {
   const pts = smoothRoad(l), n = l.tiles.length;
@@ -926,15 +940,15 @@ function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], n
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
   const ws = waySnow(now), dirt = texture(c, "dirt", 0, !!ws) ?? "#c49e6c";
   if (ws) {
-    // winter trade road: wide packed snow, two broken wheel ruts with earth showing through, snowy crown
-    const earth = ws === 1 ? 0.7 : ws === 2 ? 0.55 : 0.3;
-    c.strokeStyle = "rgba(150,146,136,0.18)"; c.lineWidth = 6.8; c.stroke(rb.path);
-    c.strokeStyle = ws === 3 ? "rgba(212,215,216,0.8)" : "rgba(188,185,176,0.7)"; c.lineWidth = 5.2; c.stroke(rb.path);
-    c.strokeStyle = dirt; c.lineWidth = 3.4; c.globalAlpha = earth;
-    c.setLineDash([2.6, 1.1, 4.2, 1.6, 1.8, 2.4]); c.stroke(rb.path);
-    c.setLineDash([]); c.globalAlpha = 1;
-    c.strokeStyle = ws === 3 ? "rgba(230,234,236,0.75)" : "rgba(214,214,208,0.6)"; c.lineWidth = 1.1;
-    c.setLineDash([3.5, 2, 1.5, 3]); c.stroke(rb.path); c.setLineDash([]); // crown between the ruts
+    // winter trade road: no lines at all — overlapping blots of packed grey snow of wandering width,
+    // churned slush and wet earth where traffic bites, snow tongues from the verge; heavier snow fills it in
+    const earth = ws === 1 ? 0.75 : ws === 2 ? 0.55 : 0.3;
+    c.fillStyle = "rgba(140,134,124,0.10)"; c.fill(rb.pack!); // soft, wide trampled halo
+    c.fillStyle = ws === 3 ? "rgba(206,208,206,0.42)" : "rgba(176,170,158,0.40)"; c.fill(rb.pack!);
+    c.fillStyle = dirt; c.globalAlpha = earth * 0.75; c.fill(rb.mud!);
+    c.fillStyle = "rgba(78,62,44,1)"; c.globalAlpha = earth * 0.35; c.fill(rb.dark!);
+    c.globalAlpha = 1;
+    c.fillStyle = ws === 3 ? "rgba(236,239,240,0.8)" : "rgba(226,228,226,0.55)"; c.fill(rb.drift!);
   } else {
     c.strokeStyle = "rgba(70,52,30,0.16)"; c.lineWidth = 6.6; c.stroke(rb.path); // trodden, soft verge
     c.strokeStyle = dirt; c.lineWidth = 4.6; c.stroke(rb.path);
