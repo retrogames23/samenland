@@ -2736,7 +2736,7 @@ function fountainFrames(im: HTMLImageElement) {
 function drawCourtPiece(c: C, k: CourtPiece, cx: number, cy: number, L: Light[], t = 0) {
   const n = COURT_LAYOUT[k][2], im = huntIm(`court-${k}`, COURT_ART[k]);
   if (k === "garden") { // flat rose parterre, anchored on its back tile, spans the whole footprint
-    if (im) { const w = n * TW, h = (w * im.naturalHeight) / im.naturalWidth, my = cy + ((n - 1) * TH) / 2; c.drawImage(im, cx - w / 2, my - h / 2, w, h); }
+    if (im) { const w = n * TW, h = (w * im.naturalHeight) / im.naturalWidth, my = cy + ((n - 1) * TH) / 2; c.drawImage(im, cx - w / 2, my + (n * TH) / 2 - h, w, h); } // front corner on the ground, arch rises above
     return;
   }
   // centre of the footprint, the front tile sits n-1 tiles toward the viewer
