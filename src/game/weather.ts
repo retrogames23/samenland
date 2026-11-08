@@ -1,6 +1,6 @@
-import { seasonAt } from "./season";
+import { seasonAt, setSnowCoverFn } from "./season";
 import { worldTz, worldHour } from "./time";
-import { labWeather } from "./lab-ctl";
+import { labWeather, labVersion } from "./lab-ctl";
 
 /** Weather is display only: pure from realm zone + clock, never stored, never touches economy. */
 export type WeatherKind = "clear" | "drizzle" | "mist" | "snow" | "storm";
@@ -61,3 +61,26 @@ export const stormDark = (now: number) => { const w = weatherAt(now); return w.k
 /** Shelter rule: outdoor leisure, lunch and play move indoors when it rains — each person has their own tolerance. */
 export const shelters = (act: string, indoor: boolean, id: number, wet: number) =>
   !indoor && (act === "leisure" || act === "lunch" || act === "play" || act === "stroll") && wet > 0.15 && hash(id, 77) < wet * 1.3;
+
+/**
+ * Lying snow 0..1, pure from the past five days of weather slots: each snowy slot adds, rain washes
+ * it away and dry spells slowly thaw it (faster outside deep winter). Never stored — all clients agree.
+ */
+const COVER_SLOTS = 40;
+let coverCache: { key: string; v: number } | null = null;
+export function snowCover(now: number): number {
+  const winter = seasonAt(now).winter; if (winter < 0.05) return 0;
+  if ((preview ?? labWeather() ?? override) === "snow") return winter;
+  const slot = Math.floor(now / SLOT), key = `${slot}:${worldTz()}:${labVersion()}`;
+  if (coverCache?.key === key) return coverCache.v;
+  let c = 0;
+  for (let i = COVER_SLOTS; i >= 0; i--) {
+    const t = (slot - i) * SLOT + SLOT / 2, k = kindFor(slot - i, t), w = seasonAt(t).winter;
+    if (k === "snow") c = Math.min(1, c + 0.22);
+    else c = Math.max(0, c - (k === "drizzle" || k === "storm" ? 0.3 : 0.035) - (1 - w) * 0.12);
+  }
+  const v = Math.min(1, c / 0.6) * winter;
+  coverCache = { key, v };
+  return v;
+}
+setSnowCoverFn(snowCover);

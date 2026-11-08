@@ -1,4 +1,4 @@
-import { seasonAt, seasonKey } from "./season";
+import { seasonAt, seasonKey, snowCoverAt } from "./season";
 import { biomeLook } from "./biome";
 
 let now = 0;
@@ -6,7 +6,7 @@ export const setArtTime = (time: number) => { now = time; };
 const cache = new WeakMap<HTMLImageElement, Map<string, HTMLCanvasElement>>();
 /** Small cached, alpha-preserving seasonal surfaces. No per-frame pixel processing. */
 export function seasonalImage(image: HTMLImageElement, role: "building" | "leaf" | "fir" | "ground" | "field" | "water" | "flower" | "track" = "building"): HTMLImageElement | HTMLCanvasElement {
-  const w = seasonAt(now), key = `${role}:${seasonKey(now)}`;
+  const w = seasonAt(now), sc = snowCoverAt(now), key = `${role}:${seasonKey(now)}`;
   const look = role === "building" ? null : biomeLook();
   if (!look && (w.winter + w.autumn + w.spring < 0.02 || role === "water" && w.winter < 0.02)) return image;
   let entries = cache.get(image);
@@ -41,10 +41,10 @@ export function seasonalImage(image: HTMLImageElement, role: "building" | "leaf"
     else {
       // Bright upward-facing surfaces retain snow; dark walls remain legible.
       let snow=0;
-      if (role==="ground"||role==="flower"||role==="field") snow=w.winter*0.8;
-      else if (role==="track") { snow=w.winter*0.12; const wet=1-w.winter*0.22; r*=wet; green*=wet; b*=wet*1.02; } // trodden earth: damp and darker, barely snowed
-      else if (role==="leaf"||role==="fir") snow=w.winter*(lum>55?0.65:0.15);
-      else if (y<cv.height*0.65 && lum>65 && r>b*0.8) snow=w.winter*0.78;
+      if (role==="ground"||role==="flower"||role==="field") { snow=sc*0.8; if (sc<0.5) { const f=w.winter*(1-sc*2)*0.35; r=r*(1-f)+lum*0.95*f+f*14; green=green*(1-f)+lum*0.9*f; b=b*(1-f)+lum*0.85*f; } } // bare winter: dun grass with rime
+      else if (role==="track") { snow=sc*0.12; const wet=1-w.winter*0.22; r*=wet; green*=wet; b*=wet*1.02; } // trodden earth: damp and darker, barely snowed
+      else if (role==="leaf"||role==="fir") snow=sc*(lum>55?0.65:0.15);
+      else if (y<cv.height*0.65 && lum>65 && r>b*0.8) snow=sc*0.78;
       r=r*(1-snow)+231*snow; green=green*(1-snow)+239*snow; b=b*(1-snow)+242*snow;
       if (role==="flower" && w.spring>0 && foliage && ((x*197+y*29)%359)<3) { const f=w.spring; r=r*(1-f)+242*f; green=green*(1-f)+205*f; b=b*(1-f)+221*f; }
     }

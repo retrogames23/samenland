@@ -1,6 +1,7 @@
 import { isLab } from "./time";
 import type { WeatherKind } from "./weather";
 import type { FeastCode } from "./feasts";
+import type { Season } from "./season";
 
 /**
  * Admin control desk for the test map only: local overrides (weather, feast) and event triggers
@@ -8,7 +9,7 @@ import type { FeastCode } from "./feasts";
  * nothing outside the lab realm, so public maps are never affected.
  */
 export type LabEvent = "wedding" | "fire" | "flood" | "raid";
-type State = { weather?: WeatherKind | undefined; feast?: FeastCode | undefined; ev: Partial<Record<LabEvent, number>> };
+type State = { weather?: WeatherKind | undefined; feast?: FeastCode | undefined; season?: Season | undefined; ev: Partial<Record<LabEvent, number>> };
 const KEY = "samenland-lab-ctl";
 let st: State = { ev: {} };
 if (typeof localStorage !== "undefined") {
@@ -21,9 +22,11 @@ export const labVersion = () => ver;
 export const labState = () => st;
 export const labWeather = (): WeatherKind | null => (isLab() && st.weather) || null;
 export const labFeast = (): FeastCode | null => (isLab() && st.feast) || null;
+export const labSeason = (): Season | null => (isLab() && st.season) || null;
 export const labEvent = (e: LabEvent): number | null => (isLab() && st.ev[e]) || null;
 
 export function setLabWeather(w: WeatherKind | null) { st.weather = w ?? undefined; save(); }
+export function setLabSeason(x: Season | null) { st.season = x ?? undefined; save(); }
 export function setLabFeast(f: FeastCode | null) { st.feast = f ?? undefined; save(); }
 export function triggerLab(e: LabEvent, now: number) { st.ev[e] = now; save(); }
 export function clearLabEvent(e: LabEvent) { delete st.ev[e]; save(); }
