@@ -8,6 +8,7 @@ import { ESTATE_TAX } from "@/game/prosperity";
 import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind } from "@/game/gifts";
 import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
 import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, EUROPE_FULL, type Realm } from "@/game/time";
+import { useModeCursor } from "@/components/hooks/useModeCursor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type WonderFind } from "@/game/wonders";
@@ -466,6 +467,7 @@ export function Game() {
   /** Schaukasten: lens toggle and the opened farmhouse diorama (local only, nothing stored). */
   const [lens, setLens] = useState(false);
   const [stube, setStube] = useState<Inspect | null>(null);
+  useModeCursor(canvasRef, lens, walk);
   const [, tick] = useState(0);
 
   const dpr = useRef(1);
