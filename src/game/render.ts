@@ -554,7 +554,7 @@ function putBeast(out: Bucket, c: C, b: Beast) {
   const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl), bw = huntIm("bw", boarWalkUrl);
   if (!dw || !dg || !bw || b.alpha <= 0) return;
   putAt(out, b.x, b.y, () => {
-    const [X, Y] = iso(b.x, b.y), h = b.boar ? 4.4 : 6.2, n = renderNow + b.x * 997;
+    const [X, Y] = iso(b.x, b.y), h = b.boar ? 2.7 : 4.9, n = renderNow + b.x * 997;
     if (b.state === "dead") { shadow(c, X, Y, h * 0.5); sheetFrame(c, dg, 3, X, Y, h, !b.flip, b.fall * 1.45 * (b.flip ? 1 : -1)); return; }
     if (b.boar && b.state === "root") { shadow(c, X, Y, h * 0.5); sheetFrame(c, huntIm("br", boarRootUrl) ?? bw, 0, X, Y - (Math.floor(n / 500) & 1) * 0.08, h, b.flip, 0, b.alpha, false, 1); return; }
     const moving = b.state === "walk" || b.state === "flee" ? 1 : 0;
@@ -2950,10 +2950,10 @@ function labEntries(): LabEntry[] {
     A("Gans", "Am Ufer", 2.5, 18, (c, _ph, now) => drawFarmAnimal(c, "goose", 0, 0, now, 7)),
     A("Ziege", "Geht", 3.3, 6, (c, ph) => drawFarmAnimal(c, "goat", 0, 0, 0, 0, Math.floor(ph / 6.2832 * 4) & 3)),
     A("Ziege", "Bei der Hütte", 3.3, 12, (c, _ph, now) => drawFarmAnimal(c, "goat", 0, 0, now, 9)),
-    A("Wildschwein", "Geht", 4.4, 6, (c, ph) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; drawBeast(c, bw, null, 0, 0, 4.4, false, 1, (ph / 6.2832) * 4.4, 0, 1, BOAR_GAIT); return true; }),
-    A("Wildschwein", "Wühlt", 4.4, 6, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 2.2); sheetFrame(c, huntIm("br", boarRootUrl) ?? bw, 0, 0, -(Math.floor(now / 500) & 1) * 0.08, 4.4, false, 0, 1, false, 1); return true; }),
-    A("Hirsch", "Geht", 6.2, 7, (c, ph) => { const dw = huntIm("dw", deerWalkUrl); if (!dw) return false; drawBeast(c, dw, null, 0, 0, 6.2, false, 1, (ph / 6.2832) * 4.4, 0, 1, DEER_GAIT); return true; }),
-    A("Hirsch", "Äst", 6.2, 7, (c, _ph, now) => { const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl); if (!dw || !dg) return false;
+    A("Wildschwein", "Geht", 2.7, 4, (c, ph) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; drawBeast(c, bw, null, 0, 0, 2.7, false, 1, (ph / 6.2832) * 4.4, 0, 1, BOAR_GAIT); return true; }),
+    A("Wildschwein", "Wühlt", 2.7, 4, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 1.35); sheetFrame(c, huntIm("br", boarRootUrl) ?? bw, 0, 0, -(Math.floor(now / 500) & 1) * 0.08, 2.7, false, 0, 1, false, 1); return true; }),
+    A("Hirsch", "Geht", 4.9, 6, (c, ph) => { const dw = huntIm("dw", deerWalkUrl); if (!dw) return false; drawBeast(c, dw, null, 0, 0, 4.9, false, 1, (ph / 6.2832) * 4.4, 0, 1, DEER_GAIT); return true; }),
+    A("Hirsch", "Äst", 4.9, 6, (c, _ph, now) => { const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl); if (!dw || !dg) return false;
       drawBeast(c, dw, dg, 0, 0, 6.2, false, 0, 0, Math.floor(now / 1500) % 8 < 5 ? (Math.floor(now / 650) & 1) : 2); return true; }),
     A("Hund", "Trabt", 2.2, 2.4, (c, ph, now) => drawDog(c, { x: 0, y: 0, mode: "trot", flip: false, dist: (ph / 6.2832) * 0.44 }, 0, 0, now, 1)),
     A("Hund", "Geht", 2.2, 2.4, (c, ph, now) => drawDog(c, { x: 0, y: 0, mode: "walk", flip: false, dist: (ph / 6.2832) * 0.32 }, 0, 0, now, 1)),
@@ -3210,7 +3210,7 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
   const im = huntIm("cow", cowUrl); if (!im) return;
   // shoulder just below a villager's head (person 5.2 tall), like a real cow beside a farmer
   // a cattle beast stands clearly taller and heavier than a sheep (sheep w 4.6)
-  const w = 4.4, h = (im.naturalHeight / im.naturalWidth) * w;
+  const w = 5.5, h = (im.naturalHeight / im.naturalWidth) * w;
   // walk sheet frames are wider than cow.webp: pick the width that gives the same standing height
   const cwi = huntIm("cw", cowWalkUrl), ws = cwi ? (h * cwi.naturalWidth) / 4 / cwi.naturalHeight : w;
   const night = animalsSleeping(now);
@@ -3229,7 +3229,7 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
   const breath = 1 + Math.sin(now / 2600 + sd) * 0.012;
   const tilt = walking ? Math.sin(now / 1100 + sd) * 0.02 : Math.sin(now / 5200 + sd) * 0.006;
   c.save();
-  c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.2, 2.3, 0.75, 0, 0, 7); c.fill();
+  c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.2, 2.8, 0.9, 0, 0, 7); c.fill();
   c.translate(x + dx, y + dy); c.scale(-(night ? prevDir : scaleX), 1); // cow art faces left: mirror when heading right
   if (night) c.drawImage(im, 0, im.naturalHeight * 0.45, im.naturalWidth, im.naturalHeight * 0.55, -w / 2, -h * 0.55, w, h * 0.55);
   else if (walking) { c.rotate(tilt * 0.5); if (!cowStep(c, ws, Math.floor(into / 480))) c.drawImage(im, -w / 2, -h * 0.96, w, h); }
