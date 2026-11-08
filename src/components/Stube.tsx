@@ -100,7 +100,7 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
     const g = cv.getContext("2d"); if (!g) return;
     let raf = 0;
     const draw = () => {
-      const t = performance.now() / 1000, room = img(ROOMS[kind][seed.user_id ? townCharacter(seed).main : "grain"]);
+      const t = performance.now() / 1000, room = img(ROOMS[kind][townCharacter(seed).main]);
       g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
       if (room.complete && room.naturalWidth) g.drawImage(room, 0, 0, W, H);
       for (const f of figs) {
