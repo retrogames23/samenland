@@ -246,7 +246,7 @@ const layoutOf = (k: StubeKind, way?: string) => (k === "patrician" ? TALL : k =
 export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang, onClose }: { seed: Seed; seeds: Seed[]; residents: Person[]; family: string; lang: Lang; onClose: () => void; kind?: StubeKind }) {
   const T = STUBE[lang];
   const ref = useRef<HTMLCanvasElement>(null);
-  const L0 = layoutOf(kind), W = L0.w, H = L0.h;
+  const L0 = layoutOf(kind, townCharacter(seed).main), W = L0.w, H = L0.h;
   const [places, setPlaces] = useState<StubePlace[]>(() => stubeOf(residents, seed, seeds, clock(), L0.slots));
   useEffect(() => { const id = setInterval(() => setPlaces(stubeOf(residents, seed, seeds, clock(), L0.slots)), 2000); return () => clearInterval(id); }, [residents, seed, seeds, L0]);
   // never in lockstep: housemates have neighbouring ids, so each figure gets a hashed tempo and a golden-ratio phase offset in the room
