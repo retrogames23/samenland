@@ -102,6 +102,22 @@ import newFig12 from "@/assets/sprites/stube/warm-woman.webp";
 import newFig12Base from "@/assets/sprites/stube/warm-woman-base.webp";
 import newFig12Top from "@/assets/sprites/stube/warm-woman-top.webp";
 import newFig12Alt from "@/assets/sprites/stube/warm-woman-b.webp";
+import patWarmBoy from "@/assets/sprites/stube/pat-warm-boy.webp";
+import patWarmBoyBase from "@/assets/sprites/stube/pat-warm-boy-base.webp";
+import patWarmBoyTop from "@/assets/sprites/stube/pat-warm-boy-top.webp";
+import patWarmBoyAlt from "@/assets/sprites/stube/pat-warm-boy-b.webp";
+import patWarmGirl from "@/assets/sprites/stube/pat-warm-girl.webp";
+import patWarmGirlBase from "@/assets/sprites/stube/pat-warm-girl-base.webp";
+import patWarmGirlTop from "@/assets/sprites/stube/pat-warm-girl-top.webp";
+import patWarmGirlAlt from "@/assets/sprites/stube/pat-warm-girl-b.webp";
+import patWarmMan from "@/assets/sprites/stube/pat-warm-man.webp";
+import patWarmManBase from "@/assets/sprites/stube/pat-warm-man-base.webp";
+import patWarmManTop from "@/assets/sprites/stube/pat-warm-man-top.webp";
+import patWarmManAlt from "@/assets/sprites/stube/pat-warm-man-b.webp";
+import patWarmWoman from "@/assets/sprites/stube/pat-warm-woman.webp";
+import patWarmWomanBase from "@/assets/sprites/stube/pat-warm-woman-base.webp";
+import patWarmWomanTop from "@/assets/sprites/stube/pat-warm-woman-top.webp";
+import patWarmWomanAlt from "@/assets/sprites/stube/pat-warm-woman-b.webp";
 import seatUrl from "@/assets/sprites/stube/seat.webp";
 import { stubeFigureKey, stubeOf, STUBE_SLOTS, PATRICIAN_SLOTS, type StubePlace } from "@/game/stube";
 import { clock } from "@/game/time";
@@ -114,6 +130,10 @@ import type { Seed } from "@/game/world";
 type Fig = { url: string; layers?: [string, string, string]; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep" | "write"; ph: number };
 /** Whole-pose layers: unchanged lower body, painted upper body in pose A and pose B. */
 const LAYERS: Record<string, [string, string, string]> = {
+  [patWarmBoy]: [patWarmBoyBase, patWarmBoyTop, patWarmBoyAlt],
+  [patWarmGirl]: [patWarmGirlBase, patWarmGirlTop, patWarmGirlAlt],
+  [patWarmMan]: [patWarmManBase, patWarmManTop, patWarmManAlt],
+  [patWarmWoman]: [patWarmWomanBase, patWarmWomanTop, patWarmWomanAlt],
   [manUrl]: [manBase, manTop, manAlt], [writeUrl]: [writeBase, writeTop, writeAlt], [womanUrl]: [womanBase, womanTop, womanAlt], [boyUrl]: [boyBase, boyTop, boyAlt], [girlUrl]: [girlBase, girlTop, girlAlt],
   [newFig0]: [newFig0Base, newFig0Top, newFig0Alt],
   [newFig1]: [newFig1Base, newFig1Top, newFig1Alt],
@@ -131,6 +151,10 @@ const LAYERS: Record<string, [string, string, string]> = {
   [stirUrl]: [stirBase, stirTop, stirAlt], [elderUrl]: [elderBase, elderTop, elderAlt], [elderWomanUrl]: [elderWomanBase, elderWomanTop, elderWomanAlt],
 };
 const FIGURES: Record<string, string> = {
+  "pat-warm-boy": patWarmBoy,
+  "pat-warm-girl": patWarmGirl,
+  "pat-warm-man": patWarmMan,
+  "pat-warm-woman": patWarmWoman,
   "eat-man": manUrl, "eat-woman": womanUrl, "eat-boy": boyUrl, "eat-girl": girlUrl, "stir": stirUrl, "warm-elder": elderUrl, "elder-woman": elderWomanUrl,
   "pat-eat-boy": newFig0,
   "pat-eat-girl": newFig1,
@@ -186,7 +210,7 @@ export function tallFigOf(pl: StubePlace): Fig | null {
   const figure = FIGURES[stubeFigureKey(pl, true)] ?? manUrl;
   if (spot === "bed") return { url: small ? sleepChildUrl : sleepUrl, x: slot ? 0.405 : 0.235, y: 0.398, h: small ? 0.028 : 0.04 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
   if (spot === "hearth") return { url: figure, x: 0.4, y: 0.895, h: 0.12 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
-  if (spot === "fire") return { url: figure, x: 0.31, y: 0.655, h: 0.09 * (kid ? 0.75 : 1), flip: false, anim: p.age >= 60 ? "warm" : "eat", ph };
+  if (spot === "fire") return { url: figure, x: 0.31, y: 0.655, h: 0.09 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
   if (spot === "desk") return { url: figure, x: 0.6, y: 0.895, h: 0.1, flip: false, anim: "write", ph };
   if (spot === "table") {
     const left = slot % 2 === 0, url = figure;
