@@ -26,7 +26,7 @@ describe("night masks", () => {
   });
 
   for (const p of pairs) it(`${p.key}`, async () => {
-    const entry = lock[p.key];
+    const entry = lock[p.key]!;
     expect(entry, `${p.key}: not in night-masks.lock.json`).toBeTruthy();
     const day = file(p.day);
     expect(existsSync(day)).toBe(true);
