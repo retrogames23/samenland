@@ -311,7 +311,7 @@ export function Game() {
   const tileInfoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // tile facts are written straight into the fixed bottom-left strip, so pointer moves never re-render the HUD
   const showTileInfo = (nt: [number, number], fade?: number) => {
-    const box = tileInfoRef.current; if (!box) return;
+    const box = tileInfoRef.current; if (!box || openCard.current) return;
     const f = tileFacts(nt[0], nt[1], st.current.seeds, clock(), isPlantedRare(st.current.plantings, nt[0], nt[1])), ti = TILEINFO[lang];
     const head = f.kind ? `${t.kind[f.kind] ?? (t.kinds as Record<string, string>)[f.kind] ?? f.kind}${f.seed ? ` (${f.seed})` : ""}` : t.terrain[f.terrain];
     const parts = [head, ...(f.kind ? [t.terrain[f.terrain]] : []), ...f.animals.map((a) => ti.animals[a])];
@@ -457,6 +457,8 @@ export function Game() {
   const [editMayor, setEditMayor] = useState(false);
   useEffect(() => setEditMayor(false), [who?.id]);
   const [place, setPlace] = useState<Inspect | null>(null);
+  // an open person/house card owns the bottom edge: the tile strip must never cover its buttons
+  useEffect(() => { if (who || place) hideTileInfo(); }, [who, place]);
   /** Schaukasten: lens toggle and the opened farmhouse diorama (local only, nothing stored). */
   const [lens, setLens] = useState(false);
   const [stube, setStube] = useState<Inspect | null>(null);
