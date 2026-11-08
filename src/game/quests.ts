@@ -72,6 +72,10 @@ export const TRACKS: readonly (readonly Quest[])[] = [
 ];
 export const trackOf = (q: Quest) => TRACKS.findIndex((t) => t.includes(q));
 
+/** Neighbour quests a lonely town (no one in reach) may skip — but unpaid (mirrors DB quest_guard). */
+export const NEIGHBOUR_QUESTS: readonly Quest[] = ["sign", "gift", "road", "gifts5", "roads2"];
+export const questReward = (q: Quest, c: QuestCtx) => (c.reach === 0 && NEIGHBOUR_QUESTS.includes(q) ? 0 : QUEST_REWARD[q]);
+
 /** The open quest of every unfinished track. */
 export function questHeads(claims: QuestClaim[], seedId: string, c: QuestCtx) {
   const done = new Set(claims.filter((x) => x.seed_id === seedId).map((x) => x.quest));
@@ -79,7 +83,7 @@ export function questHeads(claims: QuestClaim[], seedId: string, c: QuestCtx) {
     const quest = t.find((q) => !done.has(q));
     if (!quest) return [];
     const [have, need] = questProgress(quest, c);
-    return [{ quest, track, index: QUESTS.indexOf(quest), have, need, ready: have >= need, reward: QUEST_REWARD[quest] }];
+    return [{ quest, track, index: QUESTS.indexOf(quest), have, need, ready: have >= need, reward: questReward(quest, c) }];
   });
 }
 
