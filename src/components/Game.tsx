@@ -536,8 +536,9 @@ export function Game() {
   /** Placement on touch: centre the site in the free map strip above the placement panel, not behind it. */
   const placeFocus = (x: number, y: number) => {
     focus(x, y);
-    const panelH = placeBox.current?.getBoundingClientRect().height ?? 170;
-    cam.current.y += (panelH / 2 + 40) / Math.max(0.1, cam.current.zoom);
+    // screen shift = viewport centre minus centre of the strip between top bar (~120 px) and panel top
+    const vh = window.innerHeight, top = placeBox.current?.getBoundingClientRect().top ?? vh * 0.55;
+    cam.current.y += Math.max(0, vh / 2 - (120 + top) / 2) / Math.max(0.1, cam.current.zoom);
   };
   /** Entering seed mode: if the view centre is unplantable (mountain, water), glide to the nearest free valley. */
   const startSeedMode = () => {
