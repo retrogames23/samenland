@@ -868,7 +868,7 @@ function blot(x: number, y: number, rx: number, ry: number, rot: number, h: numb
   for (let i = 0; i < n; i++) {
     const a = (i / n) * 6.283, f = 0.62 + hash(Math.round(h * 1e4), i, 719) * 0.55;
     const lx = Math.cos(a) * rx * f, ly = Math.sin(a) * ry * f;
-    pts.push([x + lx * cs - ly * sn, y + (lx * sn + ly * cs) * 0.6 + ly * 0.4 * 0]);
+    pts.push([x + lx * cs - ly * sn, y + (lx * sn + ly * cs) * 0.6]);
   }
   const mid = (a: [number, number], b: [number, number]) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as const;
   const m0 = mid(pts[n - 1]!, pts[0]!); p.moveTo(m0[0], m0[1]);
