@@ -10,7 +10,7 @@ let pinned: Season | null | undefined;
 const pinnedSeason = (): Season | null => {
   if (!isLab()) return null;
   if (pinned !== undefined) return pinned;
-  try { const v = new URLSearchParams(location.search).get("season") : null; pinned = v === "winter" || v === "spring" || v === "summer" || v === "autumn" ? v : null; } catch { pinned = null; }
+  try { const v = new URLSearchParams(location.search).get("season"); pinned = v === "winter" || v === "spring" || v === "summer" || v === "autumn" ? v : null; } catch { pinned = null; }
   return pinned;
 };
 export function seasonAt(now: number): SeasonWeights {
