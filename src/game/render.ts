@@ -211,11 +211,11 @@ export const signFocus: { k: number; until: number } = { k: -1, until: 0 };
 function drawSheep(c: C, x: number, y: number, flip: boolean, t: number, walking: boolean, graze: boolean, sleeping: boolean) {
   const sheet = walking ? sheepWalkImage() : null;
   const im = sheepImage(graze && !walking, sleeping); if (!im) return;
-  const w = 4.6;
+  const w = 3.2;
   // walking: real painted 4-frame leg cycle, clean cuts (no cross-fade = no ghost legs); body dips on each hoof fall
   const ph = walking ? t / 360 : 0, f0 = Math.floor(ph) & 3;
   const bob = sleeping ? 0 : walking ? Math.abs(Math.sin(ph * Math.PI)) * 0.18 : Math.sin(t / 2600) * 0.12;
-  c.fillStyle = "rgba(30,36,22,0.32)"; c.beginPath(); c.ellipse(x, y, 2.4, 0.8, 0, 0, 7); c.fill();
+  c.fillStyle = "rgba(30,36,22,0.32)"; c.beginPath(); c.ellipse(x, y, 1.7, 0.56, 0, 0, 7); c.fill();
   // zero-save: absolute matrix (world × translate × mirror), reset to the world matrix afterwards
   const B = c.getTransform(), fs = flip ? -1 : 1, ga = c.globalAlpha;
   c.setTransform(B.a * fs, B.b * fs, B.c, B.d, B.a * x + B.c * (y - bob) + B.e, B.b * x + B.d * (y - bob) + B.f);
@@ -3155,7 +3155,7 @@ function drawFarmAnimal(c: C, kind: FarmAnimal, x: number, y: number, now: numbe
   const im = huntIm(kind, kind === "goose" ? gooseWalkUrl : goatWalkUrl); if (!im) return false;
   const count = kind === "goose" && previewFrame === undefined ? 3 : 1;
   for (let k = 0; k < count; k++) {
-    const p = farmAnimalPose(sd, count === 1 ? 1 : k, now), h = kind === "goose" ? 2.5 : 3.3;
+    const p = farmAnimalPose(sd, count === 1 ? 1 : k, now), h = kind === "goose" ? 1.5 : 2.1;
     const X = x + (previewFrame === undefined ? p.dx * 0.65 : 0), Y = y + (previewFrame === undefined ? p.dy * 0.65 : 0);
     shadow(c, X, Y, h * 0.42);
     sheetFrame(c, im, previewFrame ?? p.frame, X, Y, h, previewFrame === undefined && p.flip);
@@ -3167,7 +3167,7 @@ function drawPig(c: C, x: number, y: number, now: number, sd: number) {
   const CYC = 30000, WALK = 5000, tt = now + hash(sd, 1, 1503) * CYC, k = Math.floor(tt / CYC), u = tt - k * CYC;
   const spot = (j: number): [number, number] => [(hash(sd, j, 1504) - 0.5) * 8, (hash(sd, j, 1505) - 0.5) * 3];
   const a = spot(k), b = spot(k + 1), into = u - (CYC - WALK), f = into > 0 ? into / WALK : 0, e = f * f * (3 - 2 * f);
-  const X = x + a[0] + (b[0] - a[0]) * e, Y = y + a[1] + (b[1] - a[1]) * e, h = 3.6, flip = (into > 0 ? b[0] - a[0] : a[0] - spot(k - 1)[0]) < 0;
+  const X = x + a[0] + (b[0] - a[0]) * e, Y = y + a[1] + (b[1] - a[1]) * e, h = 2.4, flip = (into > 0 ? b[0] - a[0] : a[0] - spot(k - 1)[0]) < 0;
   shadow(c, X, Y, h * 0.45);
   if (into > 0) sheetFrame(c, bw, BOAR_GAIT[Math.floor((into / 1000) * 3.2) & 3] ?? 0, X, Y - Math.abs(Math.sin(into / 160)) * 0.08, h, flip);
   else sheetFrame(c, huntIm("pr", pigRootUrl) ?? bw, 0, X, Y - (Math.floor((now + sd) / 500) & 1) * 0.08, h, flip, 0, 1, false, 1);
@@ -3210,7 +3210,9 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
   const im = huntIm("cow", cowUrl); if (!im) return;
   // shoulder just below a villager's head (person 5.2 tall), like a real cow beside a farmer
   // a cattle beast stands clearly taller and heavier than a sheep (sheep w 4.6)
-  const w = 7.4, h = (im.naturalHeight / im.naturalWidth) * w;
+  const w = 4.4, h = (im.naturalHeight / im.naturalWidth) * w;
+  // walk sheet frames are wider than cow.webp: pick the width that gives the same standing height
+  const cwi = huntIm("cw", cowWalkUrl), ws = cwi ? (h * cwi.naturalWidth) / 4 / cwi.naturalHeight : w;
   const night = animalsSleeping(now);
   // grazes at one spot ~40-55 s, then ambles slowly (7 s) to the next one instead of teleporting
   const CYC = 48000, WALK = 7000, tt = now + hash(sd, i, 1500) * CYC, k = Math.floor(tt / CYC), u = tt - k * CYC;
@@ -3227,10 +3229,10 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
   const breath = 1 + Math.sin(now / 2600 + sd) * 0.012;
   const tilt = walking ? Math.sin(now / 1100 + sd) * 0.02 : Math.sin(now / 5200 + sd) * 0.006;
   c.save();
-  c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.2, 3.9, 1.25, 0, 0, 7); c.fill();
+  c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.2, 2.3, 0.75, 0, 0, 7); c.fill();
   c.translate(x + dx, y + dy); c.scale(-(night ? prevDir : scaleX), 1); // cow art faces left: mirror when heading right
   if (night) c.drawImage(im, 0, im.naturalHeight * 0.45, im.naturalWidth, im.naturalHeight * 0.55, -w / 2, -h * 0.55, w, h * 0.55);
-  else if (walking) { c.rotate(tilt * 0.5); if (!cowStep(c, w, Math.floor(into / 480))) c.drawImage(im, -w / 2, -h * 0.96, w, h); }
+  else if (walking) { c.rotate(tilt * 0.5); if (!cowStep(c, ws, Math.floor(into / 480))) c.drawImage(im, -w / 2, -h * 0.96, w, h); }
   else { c.rotate(tilt); c.scale(1, breath); c.drawImage(im, -w / 2, -h * 0.96, w, h); }
   c.restore();
 }
