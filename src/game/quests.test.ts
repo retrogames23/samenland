@@ -60,3 +60,17 @@ describe("mayor's tasks", () => {
     expect(treasury(s, [], 0, [], [claim("bless"), claim("build")])).toBe(START_TALER + 50);
   });
 });
+
+import { questProgress as qp } from "./quests";
+describe("lonely towns and road counting", () => {
+  const base = { blessings: 0, purchases: 0, signposts: 0, encounters: 0, giftsSent: 0, residents: 0, stage: 0 };
+  it("waives road and neighbour quests without any town in reach", () => {
+    for (const q of ["road", "roads2", "sign", "gift", "gifts5"] as const) {
+      const [h, n] = qp(q, { ...base, reach: 0 }); expect(h >= n).toBe(true);
+    }
+  });
+  it("asks only one road when one neighbour exists", () => {
+    expect(qp("roads2", { ...base, reach: 1, roads: 1 })).toEqual([1, 1]);
+    expect(qp("roads2", { ...base, reach: 5, roads: 1 })).toEqual([1, 2]);
+  });
+});
