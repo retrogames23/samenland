@@ -183,7 +183,7 @@ export function poseMix(t: number, holdA: number, move: number, holdB: number): 
 const GESTURE = { eat: [1.1, 0.28, 1.6], stir: [0.9, 0.55, 0.9], warm: [3.2, 0.45, 1.8], write: [2.6, 0.5, 1.3] } as const;
 const imgs = new Map<string, HTMLImageElement>();
 /** Figures painted with their own bench or stool; desk writers use the painted chair. */
-const OWN_SEAT = new Set([boyUrl, elderWomanUrl, FIGURES["pat-elder-woman"]]);
+const OWN_SEAT = new Set([boyUrl, elderWomanUrl]);
 const img = (u: string) => { let i = imgs.get(u); if (!i) { i = new Image(); i.src = u; imgs.set(u, i); } return i; };
 
 /** Painted seat for each place in the room (fractions of the room picture). */
