@@ -2942,7 +2942,7 @@ function labEntries(): LabEntry[] {
     A("Schaf", "Weidet", 4, 5, (c, _ph, now) => drawSheep(c, 0, 0, false, now, false, true, false)),
     A("Schaf", "Schläft", 3, 5, (c, _ph, now) => drawSheep(c, 0, 0, false, now, false, false, true)),
     A("Kuh", "Geht", 5.2, 7, (c, ph) => { shadow(c, 0, 0, 2.8); c.save(); const ok = cowStep(c, 5.2, step4(ph)); c.restore(); return ok; }),
-    A("Kuh", "Auf der Weide", 5, 14, (c, _ph, now) => drawCow(c, 0, 0, now, 3, 1)),
+    A("Kuh", "Auf der Weide", 4.6, 14, (c, _ph, now) => drawCow(c, 0, 0, now, 3, 1)),
     A("Hausschwein", "Geht", 3.6, 6, (c, ph) => { const pw = huntIm("pw", pigWalkUrl); if (!pw) return false; drawBeast(c, pw, null, 0, 0, 3.6, false, 1, (ph / 6.2832) * 4.4, 0, 1, BOAR_GAIT); return true; }),
     A("Hausschwein", "Wühlt", 3.6, 6, (c, _ph, now) => { const pw = huntIm("pw", pigWalkUrl); if (!pw) return false; shadow(c, 0, 0, 1.8); sheetFrame(c, huntIm("pr", pigRootUrl) ?? pw, 0, 0, -(Math.floor(now / 500) & 1) * 0.08, 3.6, false, 0, 1, false, 1); return true; }),
     A("Hausschwein", "Eichelmast", 3, 11, (c, _ph, now) => drawPig(c, 0, 0, now, 5)),
@@ -2954,7 +2954,7 @@ function labEntries(): LabEntry[] {
     A("Wildschwein", "Wühlt", 2.7, 4, (c, _ph, now) => { const bw = huntIm("bw", boarWalkUrl); if (!bw) return false; shadow(c, 0, 0, 1.35); sheetFrame(c, huntIm("br", boarRootUrl) ?? bw, 0, 0, -(Math.floor(now / 500) & 1) * 0.08, 2.7, false, 0, 1, false, 1); return true; }),
     A("Hirsch", "Geht", 4.9, 6, (c, ph) => { const dw = huntIm("dw", deerWalkUrl); if (!dw) return false; drawBeast(c, dw, null, 0, 0, 4.9, false, 1, (ph / 6.2832) * 4.4, 0, 1, DEER_GAIT); return true; }),
     A("Hirsch", "Äst", 4.9, 6, (c, _ph, now) => { const dw = huntIm("dw", deerWalkUrl), dg = huntIm("dg", deerGrazeUrl); if (!dw || !dg) return false;
-      drawBeast(c, dw, dg, 0, 0, 6.2, false, 0, 0, Math.floor(now / 1500) % 8 < 5 ? (Math.floor(now / 650) & 1) : 2); return true; }),
+      drawBeast(c, dw, dg, 0, 0, 4.9, false, 0, 0, Math.floor(now / 1500) % 8 < 5 ? (Math.floor(now / 650) & 1) : 2); return true; }),
     A("Hund", "Trabt", 2.2, 2.4, (c, ph, now) => drawDog(c, { x: 0, y: 0, mode: "trot", flip: false, dist: (ph / 6.2832) * 0.44 }, 0, 0, now, 1)),
     A("Hund", "Geht", 2.2, 2.4, (c, ph, now) => drawDog(c, { x: 0, y: 0, mode: "walk", flip: false, dist: (ph / 6.2832) * 0.32 }, 0, 0, now, 1)),
     A("Hund", "Sitzt", 2, 2, (c, _ph, now) => drawDog(c, { x: 0, y: 0, mode: "sit", flip: false, dist: 0 }, 0, 0, now, 1)),
