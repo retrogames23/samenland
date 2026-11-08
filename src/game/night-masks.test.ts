@@ -7,7 +7,7 @@ import path from "node:path";
 import { nightPairs } from "./building-sprites";
 import { audit, sha } from "./night-audit";
 
-const file = (u: string) => path.resolve(process.cwd(), u.replace(/^\//, "").split("?")[0]);
+const file = (u: string) => path.resolve(process.cwd(), u.replace(/^\//, "").split("?")[0]!);
 type Lock = Record<string, { day: string; night: string | null; approved: string; allowEmpty?: boolean }>;
 const lock: Lock = JSON.parse(readFileSync(path.resolve(__dirname, "night-masks.lock.json"), "utf8"));
 const pairs = nightPairs();
