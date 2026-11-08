@@ -225,13 +225,28 @@ export function tallFigOf(pl: StubePlace): Fig | null {
 type Layout = { w: number; h: number; seat: (pl: StubePlace) => Fig | null; slots: typeof STUBE_SLOTS; glow: [number, number, number, number][]; floors?: [keyof typeof STUBE.de.floors, number][] };
 const WIDE: Layout = { w: 1536, h: 1024, seat: figOf, slots: STUBE_SLOTS, glow: [[0.42, 0.71, 0.38, 1]] };
 const TALL: Layout = { w: 1024, h: 1536, seat: tallFigOf, slots: PATRICIAN_SLOTS, glow: [[0.26, 0.84, 0.32, 1], [0.39, 0.6, 0.2, 0.5], [0.62, 0.36, 0.12, 0.35]], floors: [["loft", 0.04], ["chamber", 0.3], ["dornse", 0.495], ["diele", 0.685]] };
-const layoutOf = (k: StubeKind) => (k === "patrician" ? TALL : WIDE);
+/** Coastal craftsman's Hanseatic gable house (1536×1024): chamber upstairs, Diele workshop with hearth below. */
+export function coastCraftFigOf(pl: StubePlace): Fig | null {
+  const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < SWADDLE_AGE, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
+  const figure = FIGURES[stubeFigureKey(pl)];
+  if (spot === "bed") return { url: small ? sleepChildUrl : sleepUrl, x: slot ? 0.455 : 0.415, y: 0.47, h: small ? 0.022 : 0.032 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
+  if (spot === "hearth") return { url: figure ?? stirUrl, x: 0.585, y: 0.86, h: 0.21 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
+  if (spot === "fire") return { url: figure ?? elderUrl, x: 0.67, y: 0.88, h: 0.16 * (kid ? 0.75 : 1), flip: true, anim: "warm", ph };
+  if (spot === "table") {
+    const left = slot % 2 === 0, url = figure ?? manUrl;
+    const h = kid ? 0.15 * Math.min(1, 0.6 + p.age / 30) : 0.19;
+    return { url, x: [0.44, 0.6, 0.41, 0.63][slot] ?? 0.44, y: slot < 2 ? 0.88 : 0.9, h, flip: left ? f : !f, anim: "eat", ph };
+  }
+  return null;
+}
+const COAST_CRAFT: Layout = { w: 1536, h: 1024, seat: coastCraftFigOf, slots: STUBE_SLOTS, glow: [[0.62, 0.76, 0.2, 1]] };
+const layoutOf = (k: StubeKind, way?: string) => (k === "patrician" ? TALL : k === "handwerker" && way === "gateway" ? COAST_CRAFT : WIDE);
 
 /** Farmhouse diorama: the painted room with exactly those residents the derived routine keeps at home. */
 export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang, onClose }: { seed: Seed; seeds: Seed[]; residents: Person[]; family: string; lang: Lang; onClose: () => void; kind?: StubeKind }) {
   const T = STUBE[lang];
   const ref = useRef<HTMLCanvasElement>(null);
-  const L0 = layoutOf(kind), W = L0.w, H = L0.h;
+  const L0 = layoutOf(kind, townCharacter(seed).main), W = L0.w, H = L0.h;
   const [places, setPlaces] = useState<StubePlace[]>(() => stubeOf(residents, seed, seeds, clock(), L0.slots));
   useEffect(() => { const id = setInterval(() => setPlaces(stubeOf(residents, seed, seeds, clock(), L0.slots)), 2000); return () => clearInterval(id); }, [residents, seed, seeds, L0]);
   // never in lockstep: housemates have neighbouring ids, so each figure gets a hashed tempo and a golden-ratio phase offset in the room
