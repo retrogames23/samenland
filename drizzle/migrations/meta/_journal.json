@@ -715,6 +715,13 @@
       "when": 1794160900912,
       "tag": "0101_quest_meet_first_again",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1794180000000,
+      "tag": "0102_lonely_quests_unpaid",
+      "breakpoints": true
     }
   ]
 }
