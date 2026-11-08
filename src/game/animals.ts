@@ -20,7 +20,7 @@ export function farmAnimalsAt(x: number, y: number, seeds: Seed[], now: number, 
   if (isWater(tr) || tr === "mountain" || structureAt(x, y, seeds, now) || ponds?.has(y * MAP + x)) return null;
   const open = tr !== "forest";
   let shore = false, hutBeside = false;
-  if (open) for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) {
+  if (open) for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]] as const) {
     const nx = x + dx, ny = y + dy;
     shore ||= isWater(terrain(nx, ny)) || !!ponds?.has(ny * MAP + nx);
     const st = structureAt(nx, ny, seeds, now);
