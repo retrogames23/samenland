@@ -119,7 +119,7 @@ import patWarmWomanBase from "@/assets/sprites/stube/pat-warm-woman-base.webp";
 import patWarmWomanTop from "@/assets/sprites/stube/pat-warm-woman-top.webp";
 import patWarmWomanAlt from "@/assets/sprites/stube/pat-warm-woman-b.webp";
 import seatUrl from "@/assets/sprites/stube/seat.webp";
-import { stubeFigureKey, stubeOf, SWADDLE_AGE, STUBE_SLOTS, PATRICIAN_SLOTS, type StubePlace } from "@/game/stube";
+import { stubeFigureKey, stubeOf, SWADDLE_AGE, STUBE_SLOTS, PATRICIAN_SLOTS, BODY_ANCHORS, FURNITURE, anchorBottom, anchorX, furnitureY, type StubePlace, type StubeLayoutKey, type Furniture, type BodyAnchor } from "@/game/stube";
 import { clock } from "@/game/time";
 import { nightLevel } from "@/game/sun";
 import { STUBE } from "@/game/lang/stube";
@@ -127,7 +127,7 @@ import type { Lang } from "@/game/i18n";
 import type { Person } from "@/game/people";
 import type { Seed } from "@/game/world";
 
-type Fig = { url: string; layers?: [string, string, string]; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep" | "write"; ph: number; rate?: number; bench?: boolean; adultH?: number };
+type Fig = { url: string; layers?: [string, string, string]; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep" | "write"; ph: number; rate?: number; furn: Furniture; body: BodyAnchor };
 /** Whole-pose layers: unchanged lower body, painted upper body in pose A and pose B. */
 const LAYERS: Record<string, [string, string, string]> = {
   [patWarmBoy]: [patWarmBoyBase, patWarmBoyTop, patWarmBoyAlt],
@@ -182,44 +182,40 @@ export function poseMix(t: number, holdA: number, move: number, holdB: number): 
 // eating: spoon in the bowl (B) longer than at the mouth (A); stirring: steady strokes; fireside: hands held out, now and then rubbed
 const GESTURE = { eat: [1.1, 0.28, 1.6], stir: [0.9, 0.55, 0.9], warm: [3.2, 0.45, 1.8], write: [2.6, 0.5, 1.3] } as const;
 const imgs = new Map<string, HTMLImageElement>();
-/** Figures painted with their own bench or stool; desk writers use the painted chair. */
-const OWN_SEAT = new Set([boyUrl, elderWomanUrl]);
+/** Dev-only anchor overlay: ?anchors in the URL (green = furniture, red = body contact, deviation in px). */
+const DEBUG_ANCHORS = import.meta.env.DEV && typeof location !== "undefined" && new URLSearchParams(location.search).has("anchors");
+/** Painted figures with their own stool (eat-boy, elder-woman) carry a "feet" anchor in BODY_ANCHORS, so no stool is added. */
 const img = (u: string) => { let i = imgs.get(u); if (!i) { i = new Image(); i.src = u; imgs.set(u, i); } return i; };
 
-/** Painted seat for each place in the room (fractions of the room picture). */
+/** Every place is a furniture anchor (FURNITURE) and every figure a body anchor (BODY_ANCHORS); y is derived, never estimated. */
+function place(lay: StubeLayoutKey, pl: StubePlace, key: string, url: string, h: number, flip: boolean, anim: Fig["anim"], ph: number): Fig | null {
+  const furn = FURNITURE[lay][pl.spot as Exclude<StubePlace["spot"], "out">]?.[pl.slot];
+  const body = BODY_ANCHORS[key];
+  if (!furn || !body) return null;
+  return { url, x: anchorX(furn, body, h, flip, lay === "tall" ? 1.5 : 2 / 3), y: anchorBottom(furn, body, h), h, flip, anim, ph, furn, body };
+}
+const ageH = (adult: number, kidH: number, p: Person) => (p.age < 14 ? kidH * Math.min(1, 0.6 + p.age / 30) : adult);
+
+/** Farmhouse, hut and craftsman's room (1536×1024). */
 export function figOf(pl: StubePlace): Fig | null {
   const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < SWADDLE_AGE, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
-  const figure = FIGURES[stubeFigureKey(pl)];
-  // the picture always matches the resident's real age and sex
-  if (spot === "bed") return small
-    ? { url: sleepChildUrl, x: 0.1, y: slot ? 0.497 : 0.677, h: 0.03, flip: false, anim: "sleep", ph }
-    : { url: sleepUrl, x: 0.12, y: slot ? 0.497 : 0.677, h: 0.043 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
-  if (spot === "hearth") return { url: figure ?? stirUrl, x: 0.35, y: 0.82, h: 0.3 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
-  if (spot === "fire") return { url: figure ?? elderUrl, x: 0.455, y: 0.82 - (kid ? 0.37 * 0.22 * 0.25 : 0), h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph, adultH: 0.22 };
-  if (spot === "table") {
-    const left = slot % 2 === 0;
-    const url = figure ?? manUrl;
-    const flip = left ? f : !f; // males face right, females face left in the art
-    const x = [0.56, 0.715, 0.525, 0.75][slot] ?? 0.56;
-    // everyone sits on the painted benches (0/2 left, 1/3 right); children are lifted so their seat meets the bench top
-    const h = kid ? 0.2 * Math.min(1, 0.6 + p.age / 30) : 0.26;
-    return { url, x, y: 0.8 - 0.37 * (0.26 - h), h, flip, anim: "eat", ph, bench: true };
-  }
+  const key = stubeFigureKey(pl), figure = FIGURES[key];
+  if (spot === "bed") return small ? place("wide", pl, "sleep-child", sleepChildUrl, 0.03, false, "sleep", ph) : place("wide", pl, "sleep", sleepUrl, 0.043 * (kid ? 0.8 : 1), false, "sleep", ph);
+  if (spot === "hearth") return place("wide", pl, key, figure ?? stirUrl, 0.3 * (kid ? 0.7 : 1), false, "stir", ph);
+  if (spot === "fire") return place("wide", pl, key, figure ?? elderUrl, 0.22 * (kid ? 0.75 : 1), false, "warm", ph);
+  if (spot === "table") return place("wide", pl, key, figure ?? manUrl, ageH(0.26, 0.2, p), slot % 2 === 0 ? f : !f, "eat", ph); // males face right, females left in the art
   return null;
 }
 
 /** Merchant's town house, cut open top to bottom (fractions of the 1024×1536 picture): bedchamber, Dornse, Diele. */
 export function tallFigOf(pl: StubePlace): Fig | null {
-  const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < SWADDLE_AGE, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
-  const figure = FIGURES[stubeFigureKey(pl, true)] ?? manUrl;
-  if (spot === "bed") return { url: small ? sleepChildUrl : sleepUrl, x: slot ? 0.405 : 0.235, y: 0.398, h: small ? 0.028 : 0.04 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
-  if (spot === "hearth") return { url: figure, x: 0.4, y: 0.895, h: 0.12 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
-  if (spot === "fire") return { url: figure, x: 0.31, y: 0.655, h: 0.09 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
-  if (spot === "desk") return { url: figure, x: 0.6, y: 0.895, h: 0.1, flip: false, anim: "write", ph };
-  if (spot === "table") {
-    const left = slot % 2 === 0, url = figure;
-    return { url, x: ([0.6, 0.745, 0.565, 0.785][slot] ?? 0.6), y: slot < 2 ? 0.635 : 0.655, h: kid ? 0.08 * Math.min(1, 0.6 + p.age / 30) : 0.1, flip: !left, anim: "eat", ph };
-  }
+  const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < SWADDLE_AGE, ph = (p.id % 97) / 97 * 6.28;
+  const key = stubeFigureKey(pl, true), figure = FIGURES[key] ?? manUrl;
+  if (spot === "bed") return place("tall", pl, small ? "sleep-child" : "sleep", small ? sleepChildUrl : sleepUrl, small ? 0.028 : 0.04 * (kid ? 0.8 : 1), false, "sleep", ph);
+  if (spot === "hearth") return place("tall", pl, key, figure, 0.12 * (kid ? 0.7 : 1), false, "stir", ph);
+  if (spot === "fire") return place("tall", pl, key, figure, 0.09 * (kid ? 0.75 : 1), false, "warm", ph);
+  if (spot === "desk") return place("tall", pl, key, figure, 0.1, false, "write", ph);
+  if (spot === "table") return place("tall", pl, key, figure, ageH(0.1, 0.08, p), slot % 2 !== 0, "eat", ph);
   return null;
 }
 type Layout = { w: number; h: number; seat: (pl: StubePlace) => Fig | null; slots: typeof STUBE_SLOTS; glow: [number, number, number, number][]; floors?: [keyof typeof STUBE.de.floors, number][] };
@@ -228,15 +224,11 @@ const TALL: Layout = { w: 1024, h: 1536, seat: tallFigOf, slots: PATRICIAN_SLOTS
 /** Coastal craftsman's Hanseatic gable house (1536×1024): chamber upstairs, Diele workshop with hearth below. */
 export function coastCraftFigOf(pl: StubePlace): Fig | null {
   const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < SWADDLE_AGE, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
-  const figure = FIGURES[stubeFigureKey(pl)];
-  if (spot === "bed") return { url: small ? sleepChildUrl : sleepUrl, x: slot ? 0.455 : 0.415, y: 0.47, h: small ? 0.022 : 0.032 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
-  if (spot === "hearth") return { url: figure ?? stirUrl, x: 0.585, y: 0.86, h: 0.21 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
-  if (spot === "fire") return { url: figure ?? elderUrl, x: 0.67, y: 0.88, h: 0.16 * (kid ? 0.75 : 1), flip: true, anim: "warm", ph };
-  if (spot === "table") {
-    const left = slot % 2 === 0, url = figure ?? manUrl;
-    const h = kid ? 0.15 * Math.min(1, 0.6 + p.age / 30) : 0.19;
-    return { url, x: [0.44, 0.6, 0.41, 0.63][slot] ?? 0.44, y: slot < 2 ? 0.88 : 0.9, h, flip: left ? f : !f, anim: "eat", ph };
-  }
+  const key = stubeFigureKey(pl), figure = FIGURES[key];
+  if (spot === "bed") return place("coast", pl, small ? "sleep-child" : "sleep", small ? sleepChildUrl : sleepUrl, small ? 0.022 : 0.032 * (kid ? 0.8 : 1), false, "sleep", ph);
+  if (spot === "hearth") return place("coast", pl, key, figure ?? stirUrl, 0.21 * (kid ? 0.7 : 1), false, "stir", ph);
+  if (spot === "fire") return place("coast", pl, key, figure ?? elderUrl, 0.16 * (kid ? 0.75 : 1), true, "warm", ph);
+  if (spot === "table") return place("coast", pl, key, figure ?? manUrl, ageH(0.19, 0.15, p), slot % 2 === 0 ? f : !f, "eat", ph);
   return null;
 }
 const COAST_CRAFT: Layout = { w: 1536, h: 1024, seat: coastCraftFigOf, slots: STUBE_SLOTS, glow: [[0.62, 0.76, 0.2, 1]] };
@@ -265,12 +257,12 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
         const w = f.anim === "sleep" ? 0.115 * 1536 * (f.h / 0.043) : f.h * H * im.naturalWidth / im.naturalHeight;
         const hh = w * im.naturalHeight / im.naturalWidth;
         const px = f.x * W, py = f.y * H;
-        if ((f.anim === "eat" || f.anim === "warm") && !OWN_SEAT.has(f.url) && !f.bench) {
+        if (f.furn.kind === "stool" && f.body.on === "seat") {
           const seat = img(seatUrl);
           if (seat.complete && seat.naturalWidth) {
-            // a stool keeps its real height; a child's feet simply dangle
-            const sh = (f.adultH ?? f.h) * H * 0.37, sw = sh * seat.naturalWidth / seat.naturalHeight;
-            g.drawImage(seat, px - sw / 2, py - sh, sw, sh);
+            // the stool stands on the floor anchor and reaches up to the seat anchor; a child's feet simply dangle
+            const sh = (f.furn.floor - (f.furn.seat ?? f.furn.floor)) * H, sw = sh * seat.naturalWidth / seat.naturalHeight;
+            g.drawImage(seat, px - sw / 2, f.furn.floor * H - sh, sw, sh);
           }
         }
         g.save(); g.translate(px, py);
@@ -290,6 +282,13 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
           g.globalAlpha = 1;
         }
         g.restore();
+      }
+      if (DEBUG_ANCHORS) for (const f of figs) {
+        const fy = furnitureY(f.furn, f.body) * H, by = (f.y - (f.body.on === "seat" ? f.body.at * f.h : 0)) * H, x = f.furn.x * W, bx = (f.x + (f.body.on === "seat" && f.furn.kind === "stool" ? (f.body.dx ?? 0) * f.h * (H / W) * (f.flip ? -1 : 1) : 0)) * W;
+        g.strokeStyle = "#ffff00"; g.lineWidth = 2; g.beginPath(); g.moveTo(x, fy); g.lineTo(bx, by); g.stroke();
+        g.fillStyle = "#00c000"; g.beginPath(); g.arc(x, fy, 6, 0, 7); g.fill();
+        g.fillStyle = "#e00000"; g.beginPath(); g.arc(bx, by, 5, 0, 7); g.fill();
+        g.font = "20px monospace"; g.fillText(`${Math.round(Math.hypot(bx - x, by - fy))} px`, x + 12, fy - 8);
       }
       // dusk and night: the room darkens, the hearth keeps glowing
       const n = nightLevel(clock());

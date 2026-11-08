@@ -61,3 +61,61 @@ export function stubeOf(residents: Person[], seed: Seed, seeds: Seed[], now: num
   const t = townOf(seed, seeds, now);
   return stubePlaces(residents.map((p) => poseOf(p, t, seeds, now)), slots);
 }
+
+// ---------- Body-contact and furniture anchors (Schaukasten) ----------
+/** Where a painted figure touches its support, measured from the sprite's bottom edge as a share of its height:
+ *  "seat" = buttocks on the seat board, "feet" = soles on the floor (standing, or a stool painted into the figure),
+ *  "bed" = body lying on the mattress (sprite bottom). Every figure key must be listed here. */
+/** dx: horizontal offset of the seat contact from the sprite centre (share of sprite height, unflipped art). */
+export type BodyAnchor = { on: "seat" | "feet" | "bed"; at: number; dx?: number };
+export const BODY_ANCHORS: Record<string, BodyAnchor> = {
+  "eat-man": { on: "seat", at: 0.37, dx: -0.107 }, "eat-woman": { on: "seat", at: 0.36, dx: 0.095 }, "eat-girl": { on: "seat", at: 0.37, dx: 0.079 },
+  "eat-boy": { on: "feet", at: 0 }, // painted on his own stool
+  "pat-eat-man": { on: "seat", at: 0.38, dx: -0.117 }, "pat-eat-woman": { on: "seat", at: 0.35, dx: 0.071 }, "pat-eat-boy": { on: "seat", at: 0.4, dx: -0.124 }, "pat-eat-girl": { on: "seat", at: 0.37, dx: 0.074 },
+  "warm-man": { on: "seat", at: 0.31, dx: 0.169 }, "warm-woman": { on: "seat", at: 0.3, dx: 0.091 }, "warm-boy": { on: "seat", at: 0.3, dx: 0.165 }, "warm-girl": { on: "seat", at: 0.3, dx: 0.052 }, "warm-elder": { on: "seat", at: 0.29, dx: 0.176 },
+  "elder-woman": { on: "feet", at: 0 }, // painted on her own stool
+  "pat-warm-man": { on: "seat", at: 0.33, dx: 0.169 }, "pat-warm-woman": { on: "seat", at: 0.33, dx: 0.178 }, "pat-warm-boy": { on: "seat", at: 0.33, dx: 0.152 }, "pat-warm-girl": { on: "seat", at: 0.31, dx: 0.101 },
+  "pat-elder-man": { on: "seat", at: 0.3, dx: 0.177 }, "pat-elder-woman": { on: "seat", at: 0.3, dx: 0.125 },
+  "pat-write-man": { on: "seat", at: 0.36, dx: -0.124 }, "pat-write-woman": { on: "seat", at: 0.35, dx: -0.100 },
+  "stir": { on: "feet", at: 0 }, "stir-man": { on: "feet", at: 0 },
+  "sleep": { on: "bed", at: 0 }, "sleep-child": { on: "bed", at: 0 },
+};
+/** One place in a room picture (fractions of its width/height): floor line, and the seat top for seats.
+ *  bench/chair are painted into the room; stool is the separate stool sprite standing on the floor. */
+export type Furniture = { x: number; floor: number; kind: "bench" | "stool" | "chair" | "floor" | "bed"; seat?: number };
+export type StubeLayoutKey = "wide" | "tall" | "coast";
+const stool = (x: number, floor: number, seatH: number): Furniture => ({ x, floor, kind: "stool", seat: floor - seatH });
+export const FURNITURE: Record<StubeLayoutKey, Partial<Record<Exclude<StubeSpot, "out">, Furniture[]>>> = {
+  wide: {
+    bed: [{ x: 0.12, floor: 0.677, kind: "bed" }, { x: 0.12, floor: 0.497, kind: "bed" }],
+    hearth: [{ x: 0.35, floor: 0.82, kind: "floor" }],
+    fire: [stool(0.455, 0.82, 0.0814)],
+    table: [0.56, 0.715, 0.525, 0.75].map((x): Furniture => ({ x, floor: 0.8, kind: "bench", seat: 0.7038 })),
+  },
+  tall: {
+    bed: [{ x: 0.235, floor: 0.398, kind: "bed" }, { x: 0.405, floor: 0.398, kind: "bed" }],
+    hearth: [{ x: 0.4, floor: 0.895, kind: "floor" }],
+    fire: [stool(0.31, 0.655, 0.0333)],
+    desk: [{ x: 0.6, floor: 0.895, kind: "chair", seat: 0.859 }],
+    table: [stool(0.6, 0.635, 0.037), stool(0.745, 0.635, 0.037), stool(0.565, 0.655, 0.037), stool(0.785, 0.655, 0.037)],
+  },
+  coast: {
+    bed: [{ x: 0.415, floor: 0.47, kind: "bed" }, { x: 0.455, floor: 0.47, kind: "bed" }],
+    hearth: [{ x: 0.585, floor: 0.86, kind: "floor" }],
+    fire: [stool(0.67, 0.88, 0.0592)],
+    table: [stool(0.44, 0.88, 0.0703), stool(0.6, 0.88, 0.0703), stool(0.41, 0.9, 0.0703), stool(0.63, 0.9, 0.0703)],
+  },
+};
+/** Bottom edge (fraction of room height) for a figure of height h (fraction of room height) so its body anchor meets the furniture anchor. */
+export function anchorBottom(furn: Furniture, body: BodyAnchor, h: number): number {
+  if (body.on === "seat") return (furn.seat ?? furn.floor) + body.at * h;
+  return furn.floor; // feet and lying bodies rest on the floor / mattress line
+}
+/** Furniture anchor point y for the debug overlay and tests. */
+export const furnitureY = (furn: Furniture, body: BodyAnchor) => (body.on === "seat" ? furn.seat ?? furn.floor : furn.floor);
+/** Sprite centre x so a seated body lands on a stool anchor (benches are long, so table sitters keep the bench place).
+ *  aspect = room height / room width. */
+export function anchorX(furn: Furniture, body: BodyAnchor, h: number, flip: boolean, aspect: number): number {
+  if (furn.kind !== "stool" || body.on !== "seat") return furn.x;
+  return furn.x - (body.dx ?? 0) * h * aspect * (flip ? -1 : 1);
+}
