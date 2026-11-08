@@ -767,10 +767,11 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
           fenceCache.set(fkey, fp); if (fenceCache.size > 3000) fenceCache.clear();
         }
         c.lineCap = "round";
-        c.strokeStyle = "rgba(92,64,38,0.9)"; c.lineWidth = 0.32; c.stroke(fp[0]!);
         c.strokeStyle = "rgba(40,28,16,0.25)"; c.lineWidth = 0.5; c.stroke(fp[1]!);
-        c.strokeStyle = "rgba(78,54,32,1)"; c.lineWidth = 0.42; c.stroke(fp[2]!);
-        c.strokeStyle = "rgba(170,130,90,0.6)"; c.lineWidth = 0.15; c.stroke(fp[3]!);
+        c.strokeStyle = "rgba(96,72,46,1)"; c.lineWidth = 0.14; c.stroke(fp[3]!);
+        c.strokeStyle = "rgba(108,84,56,0.95)"; c.lineWidth = 0.2; c.stroke(fp[0]!);
+        c.strokeStyle = "rgba(150,122,88,0.55)"; c.lineWidth = 0.07; c.stroke(fp[0]!);
+        c.strokeStyle = "rgba(74,52,32,1)"; c.lineWidth = 0.4; c.stroke(fp[2]!);
       }
       // with villagers on the tile, sheep and people are resolved and depth-sorted together in pass 2
       if (v > 0.35 && herdAt(x, y) === "cow") drawCow(c, cx, cy, renderNow, sd, 1);
