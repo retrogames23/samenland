@@ -759,7 +759,8 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
         c.strokeStyle = "rgba(170,130,90,0.6)"; c.lineWidth = 0.15; c.stroke(fp[3]!);
       }
       // with villagers on the tile, sheep and people are resolved and depth-sorted together in pass 2
-      if (v > 0.35 && !sharedPasture.has(sd)) {
+      if (v > 0.35 && herdAt(x, y) === "cow") drawCow(c, cx, cy, renderNow, sd, 1);
+      else if (v > 0.35 && !sharedPasture.has(sd)) {
         const flock = sheepSpots(sd, v, renderNow).sort((a, b) => a.m.dy - b.m.dy);
         for (const { k, m } of flock) {
           drawSheep(c, cx + m.dx, cy + m.dy, m.flip, t + k * 1700, m.walking, m.graze, m.sleeping);
@@ -3892,7 +3893,7 @@ export function draw(
     if (wh?.flood) { drawFlood(c, cx, cy, t, x * 7 + y, wh.wet ?? 1); if ((x + y) % 3 === 0 && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: "flood" }); }
     if (wh?.levee && !wh.flood) drawLevee(c, cx, cy + 4, x * 7 + y, wh.levee);
     const fk = folk.get(y * MAP + x);
-    const sdT = x * 1000 + y, flock = fk && st?.kind === "pasture" && st.build === undefined && !st.flood ? sheepSpots(sdT, st.v, now) : [];
+    const sdT = x * 1000 + y, flock = fk && st?.kind === "pasture" && st.build === undefined && !st.flood && herdAt(x, y) === "sheep" ? sheepSpots(sdT, st.v, now) : [];
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
     // figures on the north half of a building tile stand behind its wall: draw them before the building
     const behindSet = framePool.behind; behindSet.clear();

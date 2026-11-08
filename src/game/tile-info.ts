@@ -25,7 +25,7 @@ export function tileFacts(x: number, y: number, seeds: Seed[], now: number, plan
       if (Math.round(b.x) === x && Math.round(b.y) === y) animals.add(b.boar ? "boar" : "deer");
     }
   }
-  if (kind === "pasture" && st && st.build === undefined && st.v > 0.35) animals.add("sheep");
+  if (kind === "pasture" && st && st.build === undefined && st.v > 0.35) animals.add(herdAt(x, y));
   if (kind === "coop") animals.add("hen");
   const sd = st?.seed ?? null;
   if (sd && townOf(sd, seeds, now).cows.some(([cx, cy]) => cx === x && cy === y)) animals.add("cow");
