@@ -2374,6 +2374,7 @@ export function Game() {
         dir="ltr"
         style={{ touchAction: "none" }}
         className="absolute inset-0 h-full w-full cursor-grab touch-none active:cursor-grabbing"
+        onContextMenu={(e) => e.preventDefault()}
         onLostPointerCapture={(e) => { touches.current.delete(e.pointerId); if (touches.current.size < 2) pinch.current = null; }}
         onPointerDown={(e) => {
           // a mouse is always a single pointer; drop any finger left over from a missed release

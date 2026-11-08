@@ -203,6 +203,9 @@
   :root { --dock-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
 }
 html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+/* iOS: long presses on map, joystick and HUD never open the "Copy / Look Up" callout; form fields stay editable */
+html, body, canvas { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+input, textarea, [contenteditable="true"] { -webkit-touch-callout: default; -webkit-user-select: text; user-select: text; }
 
 /* Large screens: rem-based HUD grows gently (16 → 18 px root at 4K) so text stays readable without breaking proportions. */
 @media (min-width: 1920px) { html { font-size: clamp(16px, 0.42vw + 8px, 18px); } }
