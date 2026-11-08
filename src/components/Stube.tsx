@@ -25,6 +25,10 @@ import elderWomanUrl from "@/assets/sprites/stube/elder-woman.webp";
 import boyUrl from "@/assets/sprites/stube/eat-boy.webp";
 import girlUrl from "@/assets/sprites/stube/eat-girl.webp";
 import sleepChildUrl from "@/assets/sprites/stube/sleep-child.webp";
+import writeUrl from "@/assets/sprites/stube/write-man.webp";
+import writeBase from "@/assets/sprites/stube/write-man-base.webp";
+import writeTop from "@/assets/sprites/stube/write-man-top.webp";
+import writeAlt from "@/assets/sprites/stube/write-man-b.webp";
 import manBase from "@/assets/sprites/stube/eat-man-base.webp";
 import manTop from "@/assets/sprites/stube/eat-man-top.webp";
 import manAlt from "@/assets/sprites/stube/eat-man-b.webp";
@@ -54,10 +58,10 @@ import type { Lang } from "@/game/i18n";
 import type { Person } from "@/game/people";
 import type { Seed } from "@/game/world";
 
-type Fig = { url: string; layers?: [string, string, string]; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep"; ph: number };
+type Fig = { url: string; layers?: [string, string, string]; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep" | "write"; ph: number };
 /** Whole-pose layers: unchanged lower body, painted upper body in pose A and pose B. */
 const LAYERS: Record<string, [string, string, string]> = {
-  [manUrl]: [manBase, manTop, manAlt], [womanUrl]: [womanBase, womanTop, womanAlt], [boyUrl]: [boyBase, boyTop, boyAlt], [girlUrl]: [girlBase, girlTop, girlAlt],
+  [manUrl]: [manBase, manTop, manAlt], [writeUrl]: [writeBase, writeTop, writeAlt], [womanUrl]: [womanBase, womanTop, womanAlt], [boyUrl]: [boyBase, boyTop, boyAlt], [girlUrl]: [girlBase, girlTop, girlAlt],
   [stirUrl]: [stirBase, stirTop, stirAlt], [elderUrl]: [elderBase, elderTop, elderAlt], [elderWomanUrl]: [elderWomanBase, elderWomanTop, elderWomanAlt],
 };
 const ease = (x: number) => x * x * (3 - 2 * x);
@@ -70,7 +74,7 @@ export function poseMix(t: number, holdA: number, move: number, holdB: number): 
   return 1 - ease((u - holdA - move - holdB) / move);
 }
 // eating: spoon in the bowl (B) longer than at the mouth (A); stirring: steady strokes; fireside: hands held out, now and then rubbed
-const GESTURE = { eat: [1.1, 0.28, 1.6], stir: [0.9, 0.55, 0.9], warm: [3.2, 0.45, 1.8] } as const;
+const GESTURE = { eat: [1.1, 0.28, 1.6], stir: [0.9, 0.55, 0.9], warm: [3.2, 0.45, 1.8], write: [2.6, 0.5, 1.3] } as const;
 const imgs = new Map<string, HTMLImageElement>();
 const img = (u: string) => { let i = imgs.get(u); if (!i) { i = new Image(); i.src = u; imgs.set(u, i); } return i; };
 
@@ -101,7 +105,7 @@ function tallFigOf(pl: StubePlace): Fig | null {
   if (spot === "bed") return { url: small ? sleepChildUrl : sleepUrl, x: slot ? 0.405 : 0.235, y: 0.398, h: small ? 0.028 : 0.04 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
   if (spot === "hearth") return { url: stirUrl, x: 0.4, y: 0.895, h: 0.12 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
   if (spot === "fire") return { url: f ? elderWomanUrl : elderUrl, x: 0.31, y: 0.655, h: 0.09 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
-  if (spot === "desk") return { url: f ? womanUrl : manUrl, x: 0.6, y: 0.895, h: 0.1, flip: f, anim: "eat", ph };
+  if (spot === "desk") return f ? { url: womanUrl, x: 0.6, y: 0.895, h: 0.1, flip: true, anim: "eat", ph } : { url: writeUrl, x: 0.6, y: 0.895, h: 0.1, flip: false, anim: "write", ph };
   if (spot === "table") {
     const left = slot % 2 === 0, url = kid ? (f ? girlUrl : boyUrl) : (f ? womanUrl : manUrl);
     return { url, x: [0.6, 0.745, 0.565, 0.785][slot]!, y: slot < 2 ? 0.635 : 0.655, h: kid ? 0.08 * Math.min(1, 0.6 + p.age / 30) : 0.1, flip: left ? f : !f, anim: "eat", ph };
