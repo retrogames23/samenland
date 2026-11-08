@@ -63,7 +63,7 @@ import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT } from "@/game/lang/support";
 import { Survey } from "@/components/Survey";
-import { Stube } from "@/components/Stube";
+import { Stube, STUBE_KINDS, type StubeKind } from "@/components/Stube";
 import { STUBE } from "@/game/lang/stube";
 import { Search } from "lucide-react";
 import { THANKS, OSS } from "@/game/lang/thanks";
@@ -2493,7 +2493,7 @@ export function Game() {
             if (mode === "look" && lens) {
               const [lx, ly] = tileAt(e), li = inspectAt(lx, ly, seeds, clock());
               setWho(null); setPlace(null);
-              if (li && (li.kind === "farmhouse" || li.kind === "hut") && li.build === null) { tap((e.clientX / window.innerWidth) * 2 - 1); setStube(li); }
+              if (li && STUBE_KINDS.has(li.kind) && li.build === null) { tap((e.clientX / window.innerWidth) * 2 - 1); setStube(li); }
               else setMsg(STUBE[lang].onlyFarm);
               return;
             }
@@ -2738,7 +2738,7 @@ export function Game() {
         </Panel>
       </div>
       <Survey userId={userId} lang={lang} />
-      {stube && <Stube kind={stube.kind === "hut" ? "hut" : "farmhouse"} seed={stube.seed} seeds={seeds} residents={stube.residents} family={stube.residents.find((p) => p.role === "head")?.last ?? stube.residents[0]?.last ?? stube.seed.name} lang={lang} onClose={() => setStube(null)} />}
+      {stube && <Stube kind={(STUBE_KINDS.has(stube.kind) ? stube.kind : "farmhouse") as StubeKind} seed={stube.seed} seeds={seeds} residents={stube.residents} family={stube.residents.find((p) => p.role === "head")?.last ?? stube.residents[0]?.last ?? stube.seed.name} lang={lang} onClose={() => setStube(null)} />}
 
       {plantAsk && (() => {
         const [px, py] = plantAsk;
@@ -3334,7 +3334,7 @@ export function Game() {
                   {t.purpose[ins.kind] && <div>{t.purpose[ins.kind]}</div>}
                   {ins.residents.some(p => p.estate) && <div className="text-xs text-muted-foreground">{PROSPERITY[lang].household(ins.residents.reduce((sum, p) => sum + (p.estate && !p.sick ? ESTATE_TAX[p.estate] : 0), 0))}</div>}
                   {ins.residents.length > 0 && <div className="text-xs"><div className="font-semibold">{t.residents}</div>{list(ins.residents)}</div>}
-                  {(ins.kind === "farmhouse" || ins.kind === "hut") && <Button type="button" size="sm" variant="outline" className="mt-1" onClick={() => { setStube(ins); setPlace(null); }}><Search className="me-1 h-4 w-4" />{STUBE[lang].look}</Button>}
+                  {STUBE_KINDS.has(ins.kind) && <Button type="button" size="sm" variant="outline" className="mt-1" onClick={() => { setStube(ins); setPlace(null); }}><Search className="me-1 h-4 w-4" />{STUBE[lang].look}</Button>}
                   {ins.workers.length > 0 && <div className="text-xs"><div className="font-semibold">{t.workers}</div>{list(ins.workers)}</div>}
                   {(() => {
                     const l = larderOf(ins.seed, seeds, clock());
