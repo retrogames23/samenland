@@ -9,6 +9,27 @@ import elderWomanUrl from "@/assets/sprites/stube/elder-woman.webp";
 import boyUrl from "@/assets/sprites/stube/eat-boy.webp";
 import girlUrl from "@/assets/sprites/stube/eat-girl.webp";
 import sleepChildUrl from "@/assets/sprites/stube/sleep-child.webp";
+import manBase from "@/assets/sprites/stube/eat-man-base.webp";
+import manTop from "@/assets/sprites/stube/eat-man-top.webp";
+import manAlt from "@/assets/sprites/stube/eat-man-b.webp";
+import womanBase from "@/assets/sprites/stube/eat-woman-base.webp";
+import womanTop from "@/assets/sprites/stube/eat-woman-top.webp";
+import womanAlt from "@/assets/sprites/stube/eat-woman-b.webp";
+import boyBase from "@/assets/sprites/stube/eat-boy-base.webp";
+import boyTop from "@/assets/sprites/stube/eat-boy-top.webp";
+import boyAlt from "@/assets/sprites/stube/eat-boy-b.webp";
+import girlBase from "@/assets/sprites/stube/eat-girl-base.webp";
+import girlTop from "@/assets/sprites/stube/eat-girl-top.webp";
+import girlAlt from "@/assets/sprites/stube/eat-girl-b.webp";
+import stirBase from "@/assets/sprites/stube/stir-base.webp";
+import stirTop from "@/assets/sprites/stube/stir-top.webp";
+import stirAlt from "@/assets/sprites/stube/stir-b.webp";
+import elderBase from "@/assets/sprites/stube/warm-elder-base.webp";
+import elderTop from "@/assets/sprites/stube/warm-elder-top.webp";
+import elderAlt from "@/assets/sprites/stube/warm-elder-b.webp";
+import elderWomanBase from "@/assets/sprites/stube/elder-woman-base.webp";
+import elderWomanTop from "@/assets/sprites/stube/elder-woman-top.webp";
+import elderWomanAlt from "@/assets/sprites/stube/elder-woman-b.webp";
 import { stubeOf, type StubePlace } from "@/game/stube";
 import { clock } from "@/game/time";
 import { nightLevel } from "@/game/sun";
@@ -18,7 +39,23 @@ import type { Person } from "@/game/people";
 import type { Seed } from "@/game/world";
 
 const W = 1536, H = 1024;
-type Fig = { url: string; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep"; ph: number };
+type Fig = { url: string; layers?: [string, string, string]; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep"; ph: number };
+/** Whole-pose layers: unchanged lower body, painted upper body in pose A and pose B. */
+const LAYERS: Record<string, [string, string, string]> = {
+  [manUrl]: [manBase, manTop, manAlt], [womanUrl]: [womanBase, womanTop, womanAlt], [boyUrl]: [boyBase, boyTop, boyAlt], [girlUrl]: [girlBase, girlTop, girlAlt],
+  [stirUrl]: [stirBase, stirTop, stirAlt], [elderUrl]: [elderBase, elderTop, elderAlt], [elderWomanUrl]: [elderWomanBase, elderWomanTop, elderWomanAlt],
+};
+const ease = (x: number) => x * x * (3 - 2 * x);
+/** Weight of pose B over one gesture cycle: hold A, move, hold B, move back (seconds). */
+export function poseMix(t: number, holdA: number, move: number, holdB: number): number {
+  const c = holdA + holdB + 2 * move, u = ((t % c) + c) % c;
+  if (u < holdA) return 0;
+  if (u < holdA + move) return ease((u - holdA) / move);
+  if (u < holdA + move + holdB) return 1;
+  return 1 - ease((u - holdA - move - holdB) / move);
+}
+// eating: spoon in the bowl (B) longer than at the mouth (A); stirring: steady strokes; fireside: hands held out, now and then rubbed
+const GESTURE = { eat: [1.1, 0.28, 1.6], stir: [0.9, 0.55, 0.9], warm: [3.2, 0.45, 1.8] } as const;
 const imgs = new Map<string, HTMLImageElement>();
 const img = (u: string) => { let i = imgs.get(u); if (!i) { i = new Image(); i.src = u; imgs.set(u, i); } return i; };
 
@@ -66,10 +103,18 @@ export function Stube({ seed, seeds, residents, family, lang, onClose }: { seed:
         const px = f.x * W, py = f.y * H;
         g.save(); g.translate(px, py);
         if (f.flip) g.scale(-1, 1);
-        const s = Math.sin(t * (f.anim === "stir" ? 2.2 : f.anim === "eat" ? 2.6 : f.anim === "warm" ? 0.9 : 0.8) + f.ph);
-        if (f.anim === "sleep") g.scale(1, 1 + 0.025 * s); // breathing under the blanket
-        else g.rotate((f.anim === "stir" ? 0.035 : f.anim === "eat" ? 0.02 : 0.012) * s); // spoon, ladle, gentle rocking
-        g.drawImage(im, -w / 2, -hh, w, hh);
+        const s = Math.sin(t * 0.8 + f.ph), L = LAYERS[f.url];
+        if (f.anim === "sleep" || !L) { g.scale(1, 1 + 0.025 * s); g.drawImage(im, -w / 2, -hh, w, hh); } // breathing under the blanket
+        else {
+          const [hA, mv, hB] = GESTURE[f.anim], k = poseMix(t + f.ph, hA, mv, hB);
+          const [base, top, alt] = L.map(img) as [HTMLImageElement, HTMLImageElement, HTMLImageElement];
+          g.drawImage(base, -w / 2, -hh, w, hh);
+          // the upper body breathes gently and leans into each gesture
+          g.translate(0, -hh * 0.4); g.scale(1, 1 + 0.006 * Math.sin(t * 1.6 + f.ph)); g.translate(0, hh * 0.4);
+          if (k < 1) { g.globalAlpha = 1 - k; g.drawImage(top, -w / 2, -hh, w, hh); }
+          if (k > 0) { g.globalAlpha = k; g.drawImage(alt, -w / 2, -hh, w, hh); }
+          g.globalAlpha = 1;
+        }
         g.restore();
       }
       // dusk and night: the room darkens, the hearth keeps glowing
@@ -83,7 +128,7 @@ export function Stube({ seed, seeds, residents, family, lang, onClose }: { seed:
       g.globalCompositeOperation = "source-over";
       raf = requestAnimationFrame(draw);
     };
-    for (const u of [roomUrl, manUrl, womanUrl, sleepUrl, stirUrl, elderUrl, elderWomanUrl, boyUrl, girlUrl, sleepChildUrl]) img(u);
+    for (const u of [roomUrl, manUrl, womanUrl, sleepUrl, stirUrl, elderUrl, elderWomanUrl, boyUrl, girlUrl, sleepChildUrl, ...Object.values(LAYERS).flat()]) img(u);
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
   }, [figs]);
