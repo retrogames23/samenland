@@ -26,6 +26,7 @@ export function WalkStick({ out, label }: { out: { current: { dx: number; dy: nu
       onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) move(e); }}
       onPointerUp={end}
       onPointerCancel={end}
+      onContextMenu={(e) => e.preventDefault()}
     >
       <div className="absolute inset-3 rounded-full border border-dashed border-wood/40" />
       <div
