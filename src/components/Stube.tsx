@@ -127,7 +127,7 @@ import type { Lang } from "@/game/i18n";
 import type { Person } from "@/game/people";
 import type { Seed } from "@/game/world";
 
-type Fig = { url: string; layers?: [string, string, string]; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep" | "write"; ph: number; rate?: number };
+type Fig = { url: string; layers?: [string, string, string]; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep" | "write"; ph: number; rate?: number; bench?: boolean; adultH?: number };
 /** Whole-pose layers: unchanged lower body, painted upper body in pose A and pose B. */
 const LAYERS: Record<string, [string, string, string]> = {
   [patWarmBoy]: [patWarmBoyBase, patWarmBoyTop, patWarmBoyAlt],
@@ -195,7 +195,7 @@ export function figOf(pl: StubePlace): Fig | null {
     ? { url: sleepChildUrl, x: 0.1, y: slot ? 0.497 : 0.677, h: 0.03, flip: false, anim: "sleep", ph }
     : { url: sleepUrl, x: 0.12, y: slot ? 0.497 : 0.677, h: 0.043 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
   if (spot === "hearth") return { url: figure ?? stirUrl, x: 0.35, y: 0.82, h: 0.3 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
-  if (spot === "fire") return { url: figure ?? elderUrl, x: 0.455, y: 0.82, h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph, adultH: 0.22 };
+  if (spot === "fire") return { url: figure ?? elderUrl, x: 0.455, y: 0.82 - (kid ? 0.37 * 0.22 * 0.25 : 0), h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph, adultH: 0.22 };
   if (spot === "table") {
     const left = slot % 2 === 0;
     const url = figure ?? manUrl;
