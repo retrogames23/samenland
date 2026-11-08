@@ -2299,7 +2299,7 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
     if (L >= 3 && L <= 5) { // grassland: break the tiling with a rotated second layer + soft macro light patches
       c.save(); c.clip(path);
       const alt = textureAlt(c, tx);
-      if (alt) { c.globalAlpha = 0.42; c.fillStyle = alt; c.fill(path); }
+      if (alt) { c.globalAlpha = VEG.altAlpha; c.fillStyle = alt; c.fill(path); }
       const M = 7;
       for (let gy = Math.floor(y0 / M); gy <= Math.ceil(y1 / M); gy++) for (let gx = Math.floor(x0 / M); gx <= Math.ceil(x1 / M); gx++) {
         const h = hash(gx, gy, 311), mx = (gx + hash(gx, gy, 312)) * M, my = (gy + hash(gx, gy, 313)) * M;
@@ -2337,15 +2337,26 @@ function nearTown(x: number, y: number) {
  * Wild meadow in 2.5D: upright grass blades (vertical, lit from the upper left) and, on flower meadows,
  * small blossoms on stalks — pure hash per tile, so baked chunks and the live view agree.
  */
+/**
+ * Ground vegetation scale & frequency in one place (world px; a villager is 5 px tall, a sheep ~3 px).
+ * `p` = chance per tile/slot, `w`/`h` = base size + random extra. Ground textures carry no plants (see AGENTS.md).
+ */
+export const VEG = {
+  altAlpha: 0.42,                                   // textureAlt overlay strength
+  blade: { slots: 3, slotsMeadow: 5, skip: 0.25, h: 1.1, hx: 1.1 },
+  flower: { slots: 2, p: 0.35, h: 1.6, hx: 0.7 },   // meadow wildflowers: knee high
+  clover: { slots: 1, p: 0.3, w: 1.6, wx: 0.6 },    // pasture clover: low patches
+  tussock: { p: 0.18, w: 1.9, wx: 0.6 },            // coarse tussocks: rare
+};
 function wildTurfPaths(g: C, x: number, y: number, cx: number, cy: number, tr: string) {
-  const n = tr === "meadow" ? 5 : 3;
+  const B = VEG.blade, n = tr === "meadow" ? B.slotsMeadow : B.slots;
   g.lineCap = "round";
   for (let i = 0; i < n; i++) {
-    const h = hash(x, y, 820 + i); if (h < 0.25) continue;
+    const h = hash(x, y, 820 + i); if (h < B.skip) continue;
     // stay inside the iso diamond: u,v in tile space, projected with the 2:1 ratio
     const u = hash(x, y, 830 + i) - 0.5, v = hash(x, y, 840 + i) - 0.5;
     const px = cx + (u - v) * TW * 0.42, py = cy + (u + v) * TH * 0.42;
-    const tall = 1.1 + h * 1.1;
+    const tall = B.h + h * B.hx;
     g.fillStyle = "rgba(30,24,10,0.14)"; g.beginPath(); g.ellipse(px + 0.5, py + 0.15, 1.2, 0.35, 0, 0, 7); g.fill();
     g.strokeStyle = tr === "hill" ? "rgba(92,104,58,0.85)" : "rgba(70,100,40,0.85)"; g.lineWidth = 0.32; g.beginPath();
     for (let b = -1; b <= 1; b++) { g.moveTo(px + b * 0.35, py); g.lineTo(px + b * 0.6, py - tall * (b ? 0.8 : 1)); }
@@ -2356,11 +2367,12 @@ function wildTurfPaths(g: C, x: number, y: number, cx: number, cy: number, tr: s
   const fl = tr === "meadow" ? huntIm("flowerTuft", flowerTuftUrl) : null, w = seasonAt(renderNow);
   if (fl) {
     const bloom = Math.max(0, 1 - w.winter * 1.2 - w.autumn * 0.7);
-    for (let i = 0; i < 2; i++) {
-      if (hash(x, y, 860 + i) > bloom * 0.85) continue;
+    const F = VEG.flower;
+    for (let i = 0; i < F.slots; i++) {
+      if (hash(x, y, 860 + i) > bloom * F.p) continue;
       const u = hash(x, y, 870 + i) - 0.5, v = hash(x, y, 880 + i) - 0.5;
-      const px = cx + (u - v) * TW * 0.36, py = cy + (u + v) * TH * 0.36, fh = 3.2 + hash(x, y, 890 + i) * 1.4, fw = fh * fl.width / fl.height;
-      g.fillStyle = "rgba(30,24,10,0.16)"; g.beginPath(); g.ellipse(px + 0.4, py, fw * 0.45, 0.4, 0, 0, 7); g.fill();
+      const px = cx + (u - v) * TW * 0.36, py = cy + (u + v) * TH * 0.36, fh = F.h + hash(x, y, 890 + i) * F.hx, fw = fh * fl.width / fl.height;
+      g.fillStyle = "rgba(30,24,10,0.2)"; g.beginPath(); g.ellipse(px + 0.3, py, fw * 0.4, 0.25, 0, 0, 7); g.fill();
       g.drawImage(fl, px - fw / 2, py - fh, fw, fh);
     }
   }
@@ -2428,12 +2440,13 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
     // painted standing plants: clover patches and coarse tussocks the cattle avoid
     const stamp = (im: HTMLImageElement | null, u: number, v: number, wd: number, sd: number) => {
       if (!im) return; const [px, py] = pp(u, v), h = wd * im.height / im.width;
-      c.fillStyle = "rgba(30,24,10,0.16)"; c.beginPath(); c.ellipse(px + 0.4, py, wd * 0.42, 0.5, 0, 0, 7); c.fill();
+      c.fillStyle = "rgba(30,24,10,0.2)"; c.beginPath(); c.ellipse(px + 0.3, py, wd * 0.38, 0.3, 0, 0, 7); c.fill();
       if (hash(x, y, sd) < 0.5) c.drawImage(im, px - wd / 2, py - h * 0.95, wd, h);
       else { c.save(); c.translate(px, 0); c.scale(-1, 1); c.drawImage(im, -wd / 2, py - h * 0.95, wd, h); c.restore(); }
     };
-    if (!a.winter) for (let n = 0; n < 2; n++) if (hash(x, y, 750 + n) < 0.6) stamp(pastureClover, (hash(x, y, 752 + n) - 0.5) * 0.8, (hash(x, y, 754 + n) - 0.5) * 0.8, 3.6 + hash(x, y, 756 + n) * 1.4, 758 + n);
-    if (hash(x, y, 760) < 0.45) stamp(pastureTussock, (hash(x, y, 761) - 0.5) * 0.7, (hash(x, y, 762) - 0.5) * 0.7, 2.6 + hash(x, y, 763) * 1.2, 764);
+    const Cl = VEG.clover, Tu = VEG.tussock;
+    if (!a.winter) for (let n = 0; n < Cl.slots; n++) if (hash(x, y, 750 + n) < Cl.p) stamp(pastureClover, (hash(x, y, 752 + n) - 0.5) * 0.8, (hash(x, y, 754 + n) - 0.5) * 0.8, Cl.w + hash(x, y, 756 + n) * Cl.wx, 758 + n);
+    if (hash(x, y, 760) < Tu.p) stamp(pastureTussock, (hash(x, y, 761) - 0.5) * 0.7, (hash(x, y, 762) - 0.5) * 0.7, Tu.w + hash(x, y, 763) * Tu.wx, 764);
     if (hash(x, y, 740) > 0.8 && pastureTrough) { // hollowed log trough
       const im = pastureTrough, wd = 7, h = wd * im.height / im.width, [ox, oy] = pp(0.15, -0.15);
       c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(ox + 0.8, oy + 0.3, wd * 0.45, 1, 0, 0, 7); c.fill();
@@ -3094,7 +3107,7 @@ export function drawGroundLab(c: C, stage: number, W: number, H: number, z: numb
     const pp = P(cx, cy), d = [pp(-0.5, -0.5), pp(0.5, -0.5), pp(0.5, 0.5), pp(-0.5, 0.5)];
     c.beginPath(); c.moveTo(d[0]![0], d[0]![1]); for (const q of d.slice(1)) c.lineTo(q[0], q[1]); c.closePath();
     c.fillStyle = texture(c, "grass") ?? "#6b7a3a"; c.fill();
-    if (stage >= 1) { const alt = textureAlt(c, "grass"); if (alt) { c.globalAlpha = 0.42; c.fillStyle = alt; c.fill(); c.globalAlpha = 1; } }
+    if (stage >= 1) { const alt = textureAlt(c, "grass"); if (alt) { c.globalAlpha = VEG.altAlpha; c.fillStyle = alt; c.fill(); c.globalAlpha = 1; } }
     if (stage >= 2) wildTurf(c, wx, wy, cx, cy, "grass");
   }
   if (stage >= 3) for (let s = 0; s < N * 2 - 1; s++) for (let x = 0; x < N; x++) {
@@ -3102,6 +3115,11 @@ export function drawGroundLab(c: C, stage: number, W: number, H: number, z: numb
     const cx = (x - y) * TW / 2, cy = (x + y) * TH / 2, v = Math.floor(hash(300 + x, 300 + y, 661) * AGRI_VARIANTS);
     const a: AgriSpec = { kind: "pasture", ripe: false, along: false, outer: [], winter, hx: 7001 + v * 3, hy: 5003, k2: 0.5 };
     const sp = agriSprite(a, `p0.5|${v}${seasonKey(now)}`); if (sp) c.drawImage(sp, cx - AGRI_W / 2, cy - AGRI_UP, AGRI_W, AGRI_H);
+  }
+  if (stage >= 4) { // scale references: sheep and a cow on the patch
+    const t = now / 1000;
+    drawSheep(c, -10, 30, false, t, false, true, false); drawSheep(c, 14, 38, true, t, false, true, false); drawSheep(c, 4, 26, false, t, false, false, false);
+    drawCow(c, -2, 46, now, 77, 0);
   }
   // scale bar: villager height (5 world px)
   c.fillStyle = "rgba(200,30,30,0.85)"; c.fillRect(-1 * TW, 2 * TH, 0.6, -5);
