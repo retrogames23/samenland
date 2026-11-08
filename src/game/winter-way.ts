@@ -37,20 +37,22 @@ function paint(kind: WayTex): HTMLCanvasElement | null {
     let r = 0, gg = 0, b = 0, a = 0;
     if (kind === "pack" || kind === "fringe") {
       // compacted snow: grey-beige, cloudy tone shifts, fine grain of trampled crystals
-      const t = 0.55 * l + 0.3 * h + 0.15 * f;
-      r = 150 + t * 75; gg = 146 + t * 75; b = 138 + t * 80;
-      a = kind === "pack" ? 0.82 + (h - 0.5) * 0.3 : smooth(0.42, 0.62, 0.6 * l + 0.4 * h) * 0.75; // fringe: ragged, broken verge
+      // crisp-edged: the snow itself is pressed (opaque grain), loose snow remains in hard-edged islands
+      const t = 0.5 * l + 0.3 * h + 0.2 * f, grain = (f - 0.5) * 34;
+      r = 140 + t * 62 + grain; gg = 138 + t * 60 + grain; b = 134 + t * 62 + grain;
+      const n = 0.55 * h + 0.3 * f + 0.15 * l;
+      a = kind === "pack" ? (1 - smooth(0.66, 0.70, n)) * 0.96 : smooth(0.47, 0.51, 0.55 * l + 0.3 * h + 0.15 * f) * 0.9;
     } else if (kind === "slush") {
-      // earth and churned slush showing through only in scattered, irregular patches
-      const m = smooth(0.44, 0.62, 0.6 * patch(x, y) + 0.4 * h);
-      const wet = f;
-      r = 92 + wet * 40; gg = 76 + wet * 30; b = 58 + wet * 24;
-      a = m * (0.55 + f * 0.45);
+      // wet brown churn and bare frozen earth in hard-edged patches with grain
+      const m = smooth(0.5, 0.54, 0.55 * patch(x, y) + 0.3 * h + 0.15 * f);
+      const wet = f, dark = (h - 0.5) * 30;
+      r = 88 + wet * 34 + dark; gg = 72 + wet * 26 + dark; b = 56 + wet * 20 + dark;
+      a = m * (0.75 + f * 0.25);
     } else if (kind === "rut") {
-      // darker, deeper-pressed snow with brown water in it — varies in strength, often breaks off
-      const m = smooth(0.48, 0.72, 0.5 * l + 0.5 * h);
-      r = 128 + f * 30; gg = 116 + f * 26; b = 100 + f * 22;
-      a = m * (0.45 + 0.4 * f);
+      // deeper-pressed wet snow, grey-brown; breaks off irregularly
+      const m = smooth(0.5, 0.55, 0.5 * l + 0.35 * h + 0.15 * f);
+      r = 112 + f * 34; gg = 102 + f * 30; b = 90 + f * 26;
+      a = m * (0.7 + 0.3 * f);
     } else {
       // icy glaze: pale, slightly blue, sparse
       const m = smooth(0.66, 0.78, 0.6 * patch(x + 97, y + 41) + 0.4 * l);
