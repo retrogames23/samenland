@@ -2359,9 +2359,15 @@ function wildTurfPaths(g: C, x: number, y: number, cx: number, cy: number, tr: s
     const tall = B.h + h * B.hx;
     g.fillStyle = "rgba(30,24,10,0.14)"; g.beginPath(); g.ellipse(px + 0.5, py + 0.15, 1.2, 0.35, 0, 0, 7); g.fill();
     g.strokeStyle = tr === "hill" ? "rgba(92,104,58,0.85)" : "rgba(70,100,40,0.85)"; g.lineWidth = 0.32; g.beginPath();
-    for (let b = -1; b <= 1; b++) { g.moveTo(px + b * 0.35, py); g.lineTo(px + b * 0.6, py - tall * (b ? 0.8 : 1)); }
+    // low tuft: blades rise from one root and arch outward (curved, unequal lean), never straight vertical strokes
+    const lean = (hash(x, y, 850 + i) - 0.5) * 0.6;
+    for (let b = -2; b <= 2; b++) {
+      const s = b * 0.42 + lean, top = tall * (1 - Math.abs(b) * 0.2);
+      g.moveTo(px + b * 0.12, py);
+      g.quadraticCurveTo(px + b * 0.18 + s * 0.2, py - top * 0.75, px + b * 0.25 + s * 1.15, py - top * (b ? 0.82 : 1));
+    }
     g.stroke();
-    g.strokeStyle = "rgba(190,200,120,0.5)"; g.lineWidth = 0.14; g.beginPath(); g.moveTo(px - 0.4, py - 0.1); g.lineTo(px - 0.65, py - tall * 0.75); g.stroke();
+    g.strokeStyle = "rgba(190,200,120,0.5)"; g.lineWidth = 0.14; g.beginPath(); g.moveTo(px - 0.15, py - 0.1); g.quadraticCurveTo(px - 0.3, py - tall * 0.5, px - 0.75 + lean, py - tall * 0.72); g.stroke();
   }
   // flower meadow: painted wildflower clumps standing upright on the turf (season-thinned), never baked into the ground texture
   const fl = tr === "meadow" ? huntIm("flowerTuft", flowerTuftUrl) : null, w = seasonAt(renderNow);
