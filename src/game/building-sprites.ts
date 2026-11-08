@@ -329,6 +329,9 @@ const draftsOn = () => {
   return draftFlag;
 };
 const spriteOf = (kind: Kind, style?: HouseStyle) => (!style && DRAFTS[kind] && draftsOn() ? DRAFTS[kind] : sprites[kind]);
+/** In draft mode the drafted kinds replace their original painting in every building style (slot 0 only), so every test town shows them. */
+const draftStyle = (kind: Kind, style: HouseStyle | undefined, variant: number) =>
+  DRAFTS[kind] && draftsOn() && !((variants as Partial<Record<Kind, unknown>>)[kind] && variantSlot(variant) > 0) ? undefined : style;
 
 /** Town-character house styles (stone hill towns, brick harbour towns); same width, base and night framing as the base kind,
  * purely visual: households, taxes and rank use the base kind. Plains (grain) keep the classic art. */
@@ -377,6 +380,7 @@ const HOME_SIZE: ReadonlySet<string> = new Set(["hut", "farmhouse", "cottage", "
 const HOME_GROW = 1.15;
 const scaleOf = (kind: Kind, variant: number) => HOME_SIZE.has(kind) ? HOME_GROW * (0.96 + variant * 0.08) : 0.97 + variant * 0.06;
 export function spriteBox(kind: Kind, variant: number, style?: HouseStyle): { w: number; h: number; base: number } | null {
+  style = draftStyle(kind, style, variant);
   const sprite = spriteOf(kind, style); if (!sprite) return null;
   const [, , sw, sh] = styledOf(kind, style, variant)?.crop ?? sprite.crop, w = sprite.width * scaleOf(kind, variant);
   return { w, h: w * sh / sw, base: sprite.base };
@@ -392,7 +396,7 @@ const paintingKey = (kind: Kind, style: HouseStyle | undefined, variant: number)
   if (slot > 0) return `${style ?? "grain"}-${kind}-${slot + 1}`;
   return style && STYLE_OF[kind] ? `${style}-${kind}` : kind;
 };
-export const needsGroundShadow = (kind: Kind, style: HouseStyle | undefined, variant: number) => !GROUNDED.has(paintingKey(kind, style, variant)) && !(paintingKey(kind, style, variant) === kind && spriteOf(kind, style) !== sprites[kind]);
+export const needsGroundShadow = (kind: Kind, style: HouseStyle | undefined, variant: number) => (style = draftStyle(kind, style, variant), true) && !GROUNDED.has(paintingKey(kind, style, variant)) && !(paintingKey(kind, style, variant) === kind && spriteOf(kind, style) !== sprites[kind]);
 const shadows = new WeakMap<HTMLImageElement, HTMLCanvasElement | null>();
 /** Blurred dark copy of the painting's lowest band (its footing), cached per image. */
 function shadowOf(im: HTMLImageElement): HTMLCanvasElement | null {
@@ -422,6 +426,7 @@ function drawGroundShadow(c: CanvasRenderingContext2D, im: HTMLImageElement, lef
 }
 /** `reveal` < 1 draws only the lower part of the building (walls rising on a construction site). */
 export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, reveal = 1, flip = false, style?: HouseStyle): boolean {
+  style = draftStyle(kind, style, variant);
   const sprite = spriteOf(kind, style);
   if (!sprite || typeof Image === "undefined") return false;
   if (!sprite.image) {
@@ -460,6 +465,7 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
 
 /** The light-only layer uses exactly the daylight sprite's framing, scale and mirroring. */
 export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, intensity: number, flip = false, style?: HouseStyle) {
+  style = draftStyle(kind, style, variant);
   const st = styledOf(kind, style, variant);
   if (st && !st.light) st.light = load(st.night);
   const own = !!st && ready(st.image) && ready(st.light);
