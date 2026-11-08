@@ -251,6 +251,8 @@ export function Game() {
     return () => { clearTimeout(id); document.removeEventListener("visibilitychange", arm); };
   }, []);
   const instantOpen = useRef(false);
+  // true while an encounter answer is being saved: keeps the auto-open timer from re-asking the same question
+  const encSaving = useRef(false);
   const [snooze, setSnooze] = useState<Partial<Record<DecisionKind, number>>>({});
   const [roadPick, setRoadPick] = useState<string | null>(null);
   const [charterPick, setCharterPick] = useState<CharterPath | null>(null);
@@ -1346,12 +1348,14 @@ export function Game() {
     setMsg(t.road.sealed(seeds.find((s) => s.id === roadPick)?.name ?? ""));
   };
   const decide = async (event: string, choice: string) => {
-    if (!my || !userId) return;
+    if (!my || !userId || encSaving.current) return;
     // instant feedback: bell and close at once; the server confirms (or we reopen on a money refusal)
+    encSaving.current = true;
     bell(0); setEncOpen(false);
     // book outstanding tax first, but let the server guard judge the price — free choices must never be blocked here
     await refreshTreasury().catch(() => false);
     const { data, error } = await supabase.from("encounters").insert({ seed_id: my.id, user_id: userId, event, choice }).select("id, seed_id, event, choice, cost, created_at").single();
+    encSaving.current = false;
     if (error || !data) {
       // already answered elsewhere: reload instead of leaving a stale question open
       supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").then(({ data: rows }) => { if (rows) setEncounters(rows); });
@@ -2329,7 +2333,7 @@ export function Game() {
       if (k === "road") openRoad();
       else if (k === "charter") { setCharterPick(null); setCharterOpen(true); }
       else if (k === "pact") { setPactPick(null); setPactOpen(true); }
-      else setEncOpen(true);
+      else if (!encSaving.current) setEncOpen(true);
     }, instantOpen.current ? 0 : 2500);
     instantOpen.current = false;
     return () => clearTimeout(id);
