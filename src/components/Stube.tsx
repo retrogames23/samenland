@@ -46,7 +46,7 @@ import elderAlt from "@/assets/sprites/stube/warm-elder-b.webp";
 import elderWomanBase from "@/assets/sprites/stube/elder-woman-base.webp";
 import elderWomanTop from "@/assets/sprites/stube/elder-woman-top.webp";
 import elderWomanAlt from "@/assets/sprites/stube/elder-woman-b.webp";
-import { stubeOf, type StubePlace } from "@/game/stube";
+import { stubeOf, STUBE_SLOTS, PATRICIAN_SLOTS, type StubePlace } from "@/game/stube";
 import { clock } from "@/game/time";
 import { nightLevel } from "@/game/sun";
 import { STUBE } from "@/game/lang/stube";
@@ -54,7 +54,6 @@ import type { Lang } from "@/game/i18n";
 import type { Person } from "@/game/people";
 import type { Seed } from "@/game/world";
 
-const W = 1536, H = 1024;
 type Fig = { url: string; layers?: [string, string, string]; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep"; ph: number };
 /** Whole-pose layers: unchanged lower body, painted upper body in pose A and pose B. */
 const LAYERS: Record<string, [string, string, string]> = {
@@ -96,13 +95,32 @@ function figOf(pl: StubePlace): Fig | null {
   return null;
 }
 
+/** Merchant's town house, cut open top to bottom (fractions of the 1024×1536 picture): bedchamber, Dornse, Diele. */
+function tallFigOf(pl: StubePlace): Fig | null {
+  const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < 4, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
+  if (spot === "bed") return { url: small ? sleepChildUrl : sleepUrl, x: slot ? 0.405 : 0.235, y: 0.4, h: small ? 0.038 : 0.055 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
+  if (spot === "hearth") return { url: stirUrl, x: 0.4, y: 0.895, h: 0.12 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
+  if (spot === "fire") return { url: f ? elderWomanUrl : elderUrl, x: 0.31, y: 0.655, h: 0.09 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
+  if (spot === "desk") return { url: f ? womanUrl : manUrl, x: 0.6, y: 0.895, h: 0.1, flip: f, anim: "eat", ph };
+  if (spot === "table") {
+    const left = slot % 2 === 0, url = kid ? (f ? girlUrl : boyUrl) : (f ? womanUrl : manUrl);
+    return { url, x: [0.6, 0.745, 0.565, 0.785][slot]!, y: slot < 2 ? 0.635 : 0.655, h: kid ? 0.08 * Math.min(1, 0.6 + p.age / 30) : 0.1, flip: left ? f : !f, anim: "eat", ph };
+  }
+  return null;
+}
+type Layout = { w: number; h: number; seat: (pl: StubePlace) => Fig | null; slots: typeof STUBE_SLOTS; glow: [number, number, number, number][]; floors?: [keyof typeof STUBE.de.floors, number][] };
+const WIDE: Layout = { w: 1536, h: 1024, seat: figOf, slots: STUBE_SLOTS, glow: [[0.42, 0.71, 0.38, 1]] };
+const TALL: Layout = { w: 1024, h: 1536, seat: tallFigOf, slots: PATRICIAN_SLOTS, glow: [[0.26, 0.84, 0.32, 1], [0.39, 0.6, 0.2, 0.5], [0.62, 0.36, 0.12, 0.35]], floors: [["loft", 0.04], ["chamber", 0.3], ["dornse", 0.495], ["diele", 0.685]] };
+const layoutOf = (k: StubeKind) => (k === "patrician" ? TALL : WIDE);
+
 /** Farmhouse diorama: the painted room with exactly those residents the derived routine keeps at home. */
 export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang, onClose }: { seed: Seed; seeds: Seed[]; residents: Person[]; family: string; lang: Lang; onClose: () => void; kind?: StubeKind }) {
   const T = STUBE[lang];
   const ref = useRef<HTMLCanvasElement>(null);
-  const [places, setPlaces] = useState<StubePlace[]>(() => stubeOf(residents, seed, seeds, clock()));
-  useEffect(() => { const id = setInterval(() => setPlaces(stubeOf(residents, seed, seeds, clock())), 2000); return () => clearInterval(id); }, [residents, seed, seeds]);
-  const figs = useMemo(() => places.map(figOf).filter((f): f is Fig => !!f).sort((a, b) => a.y - b.y), [places]);
+  const L0 = layoutOf(kind), W = L0.w, H = L0.h;
+  const [places, setPlaces] = useState<StubePlace[]>(() => stubeOf(residents, seed, seeds, clock(), L0.slots));
+  useEffect(() => { const id = setInterval(() => setPlaces(stubeOf(residents, seed, seeds, clock(), L0.slots)), 2000); return () => clearInterval(id); }, [residents, seed, seeds, L0]);
+  const figs = useMemo(() => places.map(L0.seat).filter((f): f is Fig => !!f).sort((a, b) => a.y - b.y), [places, L0]);
   useEffect(() => {
     const cv = ref.current; if (!cv) return;
     const g = cv.getContext("2d"); if (!g) return;
@@ -114,7 +132,7 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
       for (const f of figs) {
         const im = img(f.url); if (!im.complete || !im.naturalWidth) continue;
         // sleepers are sized by bed width, everyone else by body height
-        const w = f.anim === "sleep" ? 0.115 * W * (f.h / 0.043) : f.h * H * im.naturalWidth / im.naturalHeight;
+        const w = f.anim === "sleep" ? 0.115 * 1536 * (f.h / 0.043) : f.h * H * im.naturalWidth / im.naturalHeight;
         const hh = w * im.naturalHeight / im.naturalWidth;
         const px = f.x * W, py = f.y * H;
         g.save(); g.translate(px, py);
@@ -140,26 +158,37 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
       if (n > 0.01) { g.fillStyle = `rgba(18,20,42,${0.6 * n})`; g.fillRect(0, 0, W, H); }
       const fl = 0.85 + 0.1 * Math.sin(t * 7.3) + 0.05 * Math.sin(t * 13.1);
       g.globalCompositeOperation = "lighter";
-      const gr = g.createRadialGradient(0.42 * W, 0.71 * H, 10, 0.42 * W, 0.71 * H, 0.38 * W);
-      gr.addColorStop(0, `rgba(255,150,60,${(0.22 + 0.3 * n) * fl})`); gr.addColorStop(1, "rgba(255,120,40,0)");
-      g.fillStyle = gr; g.fillRect(0, 0, W, H);
+      for (const [gx, gy, gr0, gk] of L0.glow) {
+        const gr = g.createRadialGradient(gx * W, gy * H, 10, gx * W, gy * H, gr0 * W);
+        gr.addColorStop(0, `rgba(255,150,60,${(0.22 + 0.3 * n) * fl * gk})`); gr.addColorStop(1, "rgba(255,120,40,0)");
+        g.fillStyle = gr; g.fillRect(0, 0, W, H);
+      }
       g.globalCompositeOperation = "source-over";
       raf = requestAnimationFrame(draw);
     };
     for (const u of [roomUrl, hutRoomUrl, manUrl, womanUrl, sleepUrl, stirUrl, elderUrl, elderWomanUrl, boyUrl, girlUrl, sleepChildUrl, ...Object.values(LAYERS).flat()]) img(u);
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [figs, kind, seed]);
+  }, [figs, kind, seed, L0, W, H]);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose]);
   const home = places.filter((p) => p.spot !== "out"), away = places.filter((p) => p.spot === "out");
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-3 backdrop-blur-[2px]" onClick={onClose}>
-      <div className="w-full max-w-4xl overflow-hidden rounded-xl border-4 border-[hsl(25_35%_25%)] bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className={`w-full ${L0.floors ? "max-w-md" : "max-w-4xl"} overflow-hidden rounded-xl border-4 border-[hsl(25_35%_25%)] bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3 px-3 py-1.5">
           <div className="font-['Caveat'] text-2xl leading-tight">{T.title(family)}</div>
           <button type="button" aria-label={T.close} className="hit relative p-1 text-2xl leading-none text-muted-foreground hover:text-foreground" onClick={onClose}>×</button>
         </div>
-        <canvas ref={ref} width={W} height={H} className="block aspect-[3/2] max-h-[70dvh] w-full object-contain" dir="ltr" />
+        {L0.floors ? (
+          <div className="relative max-h-[70dvh] overflow-y-auto overscroll-contain">
+            <div className="relative">
+              <canvas ref={ref} width={W} height={H} className="block aspect-[2/3] w-full" dir="ltr" />
+              {L0.floors.map(([k, top]) => (
+                <span key={k} className="pointer-events-none absolute start-2 rounded bg-card/80 px-1.5 font-['Caveat'] text-base leading-tight text-foreground" style={{ top: `${top * 100}%` }}>{T.floors[k]}</span>
+              ))}
+            </div>
+          </div>
+        ) : <canvas ref={ref} width={W} height={H} className="block aspect-[3/2] max-h-[70dvh] w-full object-contain" dir="ltr" />}
         <div className="space-y-0.5 px-3 py-2 text-xs text-muted-foreground">
           {residents.length === 0 ? <div>{T.nobodyLives}</div> : home.length === 0 ? <div>{T.empty}</div> : null}
           {away.length > 0 && <div><span className="font-semibold">{T.out}:</span> {away.map((a) => a.p.first).join(", ")}</div>}
