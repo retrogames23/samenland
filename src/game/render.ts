@@ -1780,14 +1780,14 @@ function skyTint(c: C, w: number, h: number): number {
 /** Display-only bitmap cache of each town's overview buildings: rebaked when its look can change (radius, step, resolution, purchases, season, coarse clock). */
 const OV_TICK = 30_000, OV_MAX = 48, OV_PX = 2048, OV_WARM = 15_000;
 const ovCache = new Map<string, { key: string; cv: HTMLCanvasElement | OffscreenCanvas; ox: number; oy: number; k: number }>();
-let ovStart = -1;
+let ovT0 = -1;
 export function overviewKey(s: Pick<Seed, "id" | "bought">, Ri: number, step: number, k: number, now: number, warm = 0): string {
   return `${s.id}|${Ri}|${step}|${k}|${s.bought?.length ?? 0}|${seasonKey(now)}|${Math.floor(now / OV_TICK)}|${warm}`;
 }
 function drawOverviewTown(c: C, s: Seed, Ri: number, step: number, z: number, ix: number, iy: number, now: number, paint: (g: C) => void): boolean {
   if (typeof document === "undefined" && typeof OffscreenCanvas === "undefined") return false;
-  const pn = performance.now(); if (ovStart < 0) ovStart = pn;
-  const warm = pn - ovStart < OV_WARM ? Math.floor(pn / 2000) : 0; // sprites still arriving: rebake every 2 s at first
+  const pn = performance.now(); if (ovT0 < 0) ovT0 = pn;
+  const warm = pn - ovT0 < OV_WARM ? Math.floor(pn / 2000) : 0; // sprites still arriving: rebake every 2 s at first
   const k = Math.min(4, 2 ** Math.ceil(Math.log2(Math.max(z, 1 / 64))));
   const ox = ix - (Ri + 1) * TW, oy = iy - Ri * TH - 160;
   const ww = 2 * (Ri + 1) * TW, hh = 2 * Ri * TH + 200;
