@@ -62,6 +62,9 @@ import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT } from "@/game/lang/support";
 import { Survey } from "@/components/Survey";
+import { Stube } from "@/components/Stube";
+import { STUBE } from "@/game/lang/stube";
+import { Search } from "lucide-react";
 import { THANKS, OSS } from "@/game/lang/thanks";
 import { TILEINFO } from "@/game/lang/tileinfo";
 import { tileFacts } from "@/game/tile-info";
@@ -453,6 +456,9 @@ export function Game() {
   const [editMayor, setEditMayor] = useState(false);
   useEffect(() => setEditMayor(false), [who?.id]);
   const [place, setPlace] = useState<Inspect | null>(null);
+  /** Schaukasten: lens toggle and the opened farmhouse diorama (local only, nothing stored). */
+  const [lens, setLens] = useState(false);
+  const [stube, setStube] = useState<Inspect | null>(null);
   const [, tick] = useState(0);
 
   const dpr = useRef(1);
@@ -2474,6 +2480,13 @@ export function Game() {
               if (my) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (me && commandMayor(me, tw, seeds, nw, [tx, ty])) tap((e.clientX / window.innerWidth) * 2 - 1); }
               return;
             }
+            if (mode === "look" && lens) {
+              const [lx, ly] = tileAt(e), li = inspectAt(lx, ly, seeds, clock());
+              setWho(null); setPlace(null);
+              if (li && li.kind === "farmhouse" && li.build === null) { tap((e.clientX / window.innerWidth) * 2 - 1); setStube(li); }
+              else setMsg(STUBE[lang].onlyFarm);
+              return;
+            }
             if (mode === "look") {
               const best = personAt(e);
               const pan = (e.clientX / window.innerWidth) * 2 - 1;
@@ -2696,6 +2709,7 @@ export function Game() {
 
       {!tab && (
         <div className="pointer-events-auto absolute end-[calc(var(--safe-r)+0.5rem)] bottom-[calc(var(--dock-bottom)+5.5rem)] z-20 flex flex-col gap-1.5 md:hidden">
+          <Button size="sm" variant={lens ? "default" : "secondary"} className="hit h-9 w-9 rounded-full p-0 opacity-85 shadow" aria-label={STUBE[lang].lens} aria-pressed={lens} title={STUBE[lang].lens} onClick={() => { const on = !lens; setLens(on); setMsg(on ? STUBE[lang].lensOn : null); }}><Search className="h-4 w-4" /></Button>
           <Button size="sm" variant="secondary" className="hit h-9 w-9 rounded-full p-0 opacity-85 shadow" aria-label={t.hud.zoomIn} onClick={() => zoomBy(1.6)}><Plus className="h-4 w-4" /></Button>
           <Button size="sm" variant="secondary" className="hit h-9 w-9 rounded-full p-0 opacity-85 shadow" aria-label={t.hud.zoomOut} onClick={() => zoomBy(1 / 1.6)}><Minus className="h-4 w-4" /></Button>
         </div>
@@ -2707,12 +2721,14 @@ export function Game() {
           <div className="mt-1.5 flex gap-1">
             <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.hud.zoomOut} onClick={() => zoomBy(1 / 1.6)}><Minus className="h-4 w-4" /></Button>
             <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.hud.zoomIn} onClick={() => zoomBy(1.6)}><Plus className="h-4 w-4" /></Button>
+            <Button size="sm" variant={lens ? "default" : "secondary"} className="h-7 flex-1 px-0" aria-label={STUBE[lang].lens} aria-pressed={lens} title={STUBE[lang].lens} onClick={() => { const on = !lens; setLens(on); setMsg(on ? STUBE[lang].lensOn : null); }}><Search className="h-4 w-4" /></Button>
             {my && <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.toMine} title={t.toMine} onClick={() => focus(my.x, my.y)}><Home className="h-4 w-4" /></Button>}
             {my && <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.mayorFind} title={t.mayorFind} onClick={findMayor}><Crown className="h-4 w-4" /></Button>}
           </div>
         </Panel>
       </div>
       <Survey userId={userId} lang={lang} />
+      {stube && <Stube seed={stube.seed} seeds={seeds} residents={stube.residents} family={stube.residents.find((p) => p.role === "head")?.last ?? stube.residents[0]?.last ?? stube.seed.name} lang={lang} onClose={() => setStube(null)} />
 
       {plantAsk && (() => {
         const [px, py] = plantAsk;
@@ -3296,6 +3312,7 @@ export function Game() {
                   {t.purpose[ins.kind] && <div>{t.purpose[ins.kind]}</div>}
                   {ins.residents.some(p => p.estate) && <div className="text-xs text-muted-foreground">{PROSPERITY[lang].household(ins.residents.reduce((sum, p) => sum + (p.estate && !p.sick ? ESTATE_TAX[p.estate] : 0), 0))}</div>}
                   {ins.residents.length > 0 && <div className="text-xs"><div className="font-semibold">{t.residents}</div>{list(ins.residents)}</div>}
+                  {ins.kind === "farmhouse" && <Button type="button" size="sm" variant="outline" className="mt-1" onClick={() => { setStube(ins); setPlace(null); }}><Search className="me-1 h-4 w-4" />{STUBE[lang].look}</Button>}
                   {ins.workers.length > 0 && <div className="text-xs"><div className="font-semibold">{t.workers}</div>{list(ins.workers)}</div>}
                   {(() => {
                     const l = larderOf(ins.seed, seeds, clock());
