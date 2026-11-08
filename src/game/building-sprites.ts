@@ -240,7 +240,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   coop: { url: coop, crop: [0, 0, 480, 450], width: 10, base: 4 },
   fence: { url: fence, crop: [0, 0, 480, 256], width: 11, base: 3 },
   chapel: { url: chapel, crop: [0, 0, 474, 480], width: 21, base: 4 },
-  watermill: { url: watermill, crop: [0, 0, 480, 460], width: 28, base: 4 },
+  watermill: { url: watermill, crop: [0, 0, 480, 478], width: 28, base: 4 },
   harbor: { url: harbor, crop: [0, 0, 480, 427], width: 26, base: 4 },
   stall: { url: stall, crop: [0, 0, 480, 480], width: 10, base: 4 },
   townhall: { url: townhall, crop: [0, 0, 423, 480], width: 31, base: 4 },
@@ -367,7 +367,7 @@ export function spriteBox(kind: Kind, variant: number, style?: HouseStyle): { w:
 /** Paintings that already carry painted ground (yard, paving, garden, stacks) — every other building gets a soft contact
  * shadow derived from its own silhouette, so hard-cut plinths never float. Keys: kind, `<style>-<kind>`, `<style>-<kind>-<slot>`. */
 const GROUNDED = new Set(["campfire", "coop", "fence", "chapel", "barn", "villa", "tenement", "sawmill", "beginenhof", "orangery", "stonemason", "saltquay", "herbhut", "woodcamp",
-  "infirmary", "firehouse", "guardhouse", "school", "university", "exchange", "lighthouse", "hay", "well", "market", "steinhaus", "watermill", "steamworks",
+  "infirmary", "firehouse", "guardhouse", "school", "university", "exchange", "lighthouse", "hay", "well", "market", "steinhaus", "steamworks",
   "workshop-cottage", "workshop-farmhouse", "workshop-villa", "workshop-steinhaus", "workshop-handwerker", "workshop-handwerker-2", "workshop-handwerker-3",
   "gateway-cottage", "gateway-villa", "gateway-steinhaus", "gateway-handwerker", "gateway-handwerker-2", "gateway-handwerker-3", "gateway-farmhouse-3"]);
 const paintingKey = (kind: Kind, style: HouseStyle | undefined, variant: number) => {
@@ -486,7 +486,7 @@ if (typeof Image !== "undefined") { wheelImg = new Image(); wheelImg.decoding = 
 function animate(c: CanvasRenderingContext2D, kind: Kind, left: number, top: number, k: number, sd: number) {
   const t = animT, P = (u: number, v: number): [number, number] => [left + u * k, top + v * k];
   if (kind === "mill") millSailsAt(c, ...P(33, 149), 480 * k * 1.45, t, sd);
-  else if (kind === "watermill") waterWheel(c, ...P(372, 305), 70 * k, t, sd);
+  else if (kind === "watermill") waterWheel(c, ...P(370, 304), 72 * k, t, sd);
   else if (kind === "campfire") flames(c, ...P(168, 200), 150 * k, t, sd);
 }
 
@@ -495,7 +495,7 @@ function millSailsAt(c: CanvasRenderingContext2D, x: number, y: number, d: numbe
   // integrated angle: steady ~19 s per turn with gentle gusts (multiplying t by a gust factor made it spin wildly)
   const a = t / 3000 - (0.25 * 9000 / 3000) * Math.cos(t / 9000 + sd) + sd;
   c.save(); c.translate(x, y);
-  c.transform(0.62, 0.22, 0, 1, 0, 0); // sails face the viewer at an angle, like the cap
+  c.transform(0.62, 0.31, 0, 1, 0, 0); // sails parallel to the gable face (2:1 ground axis)
   c.rotate(a);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   c.drawImage(sailsImg, -d / 2, -d / 2, d, d);
@@ -504,10 +504,9 @@ function millSailsAt(c: CanvasRenderingContext2D, x: number, y: number, d: numbe
 
 function waterWheel(c: CanvasRenderingContext2D, x: number, y: number, r: number, t: number, sd: number) {
   const a = t / 1800 + sd;
-  c.save(); c.translate(x, y); c.transform(0.82, 0.12, 0, 1.12, 0, 0);
-  // dark hollow of the wheel, hiding the painted still spokes
-  c.fillStyle = "rgba(36,30,24,0.92)"; c.beginPath(); c.arc(0, 0, r * 0.93, 0, 7); c.fill();
-  // painted wheel, turning
+  // the building sprite has an empty wheel pit with shaft; this is the only wheel. Its plane runs parallel to the
+  // pit wall (the +26.6° ground axis). Overshot: water drops on the top far side, so the wheel turns clockwise on screen.
+  c.save(); c.translate(x, y); c.transform(0.58, -0.29, 0, 1, 0, 0);
   if (wheelImg?.complete && wheelImg.naturalWidth) {
     c.rotate(a); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
     c.drawImage(seasonalImage(wheelImg), -r * 1.05, -r * 1.05, r * 2.1, r * 2.1);
