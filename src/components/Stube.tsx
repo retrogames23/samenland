@@ -182,11 +182,13 @@ export function poseMix(t: number, holdA: number, move: number, holdB: number): 
 // eating: spoon in the bowl (B) longer than at the mouth (A); stirring: steady strokes; fireside: hands held out, now and then rubbed
 const GESTURE = { eat: [1.1, 0.28, 1.6], stir: [0.9, 0.55, 0.9], warm: [3.2, 0.45, 1.8], write: [2.6, 0.5, 1.3] } as const;
 const imgs = new Map<string, HTMLImageElement>();
+/** Figures painted with their own bench or stool; desk writers use the painted chair. */
+const OWN_SEAT = new Set([boyUrl, elderWomanUrl, FIGURES["pat-elder-woman"]]);
 const img = (u: string) => { let i = imgs.get(u); if (!i) { i = new Image(); i.src = u; imgs.set(u, i); } return i; };
 
 /** Painted seat for each place in the room (fractions of the room picture). */
 export function figOf(pl: StubePlace): Fig | null {
-  const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < 4, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
+  const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < SWADDLE_AGE, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
   const figure = FIGURES[stubeFigureKey(pl)];
   // the picture always matches the resident's real age and sex
   if (spot === "bed") return small
@@ -206,7 +208,7 @@ export function figOf(pl: StubePlace): Fig | null {
 
 /** Merchant's town house, cut open top to bottom (fractions of the 1024×1536 picture): bedchamber, Dornse, Diele. */
 export function tallFigOf(pl: StubePlace): Fig | null {
-  const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < 4, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
+  const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < SWADDLE_AGE, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
   const figure = FIGURES[stubeFigureKey(pl, true)] ?? manUrl;
   if (spot === "bed") return { url: small ? sleepChildUrl : sleepUrl, x: slot ? 0.405 : 0.235, y: 0.398, h: small ? 0.028 : 0.04 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
   if (spot === "hearth") return { url: figure, x: 0.4, y: 0.895, h: 0.12 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
@@ -245,7 +247,7 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
         const w = f.anim === "sleep" ? 0.115 * 1536 * (f.h / 0.043) : f.h * H * im.naturalWidth / im.naturalHeight;
         const hh = w * im.naturalHeight / im.naturalWidth;
         const px = f.x * W, py = f.y * H;
-        if (f.anim === "eat" || f.anim === "warm" || f.anim === "write") {
+        if ((f.anim === "eat" || f.anim === "warm") && !OWN_SEAT.has(f.url)) {
           const seat = img(seatUrl);
           if (seat.complete && seat.naturalWidth) {
             const sh = hh * 0.37, sw = sh * seat.naturalWidth / seat.naturalHeight;
