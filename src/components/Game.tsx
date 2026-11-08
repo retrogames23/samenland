@@ -320,6 +320,7 @@ export function Game() {
     if (tileInfoTimer.current) clearTimeout(tileInfoTimer.current);
     tileInfoTimer.current = fade ? setTimeout(() => { if (tileInfoRef.current) tileInfoRef.current.style.display = "none"; }, fade) : null;
   };
+  const hideTileInfo = () => { if (tileInfoTimer.current) clearTimeout(tileInfoTimer.current); tileInfoTimer.current = null; if (tileInfoRef.current) tileInfoRef.current.style.display = "none"; };
   // touch placement: the preview sits on its own tile until the player confirms
   const [ghost, setGhost] = useState<[number, number] | null>(null);
   const hotkey = useRef<(e: KeyboardEvent) => void>(() => {});
