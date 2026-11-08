@@ -283,9 +283,9 @@
   "day": "bb0cc2a4ac3831e7",
   "night": "df217258b13f0662",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-08: visuell geprüft (Kontaktbogen), freigegeben"
  },
  "gateway-steinhaus": {
   "day": "0c9889f4cf6a79a9",
@@ -363,9 +363,9 @@
   "day": "f5c883971ab46334",
   "night": "5625b16ae9c28d33",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-08: visuell geprüft (Kontaktbogen), freigegeben"
  },
  "granary": {
   "day": "1f842f3b3e46a911",
