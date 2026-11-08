@@ -31,7 +31,7 @@ function figOf(pl: StubePlace): Fig | null {
     : { url: sleepUrl, x: 0.12, y: slot ? 0.497 : 0.677, h: 0.043 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
   if (spot === "hearth") return { url: stirUrl, x: 0.35, y: 0.79, h: 0.3 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
   if (spot === "fire") return f
-    ? { url: elderWomanUrl, x: 0.505, y: 0.8, h: 0.22 * (kid ? 0.75 : 1), flip: true, anim: "warm", ph }
+    ? { url: elderWomanUrl, x: 0.505, y: 0.8, h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph }
     : { url: elderUrl, x: 0.505, y: 0.8, h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
   if (spot === "table") {
     const left = slot % 2 === 0;
