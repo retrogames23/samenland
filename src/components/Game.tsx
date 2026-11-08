@@ -725,16 +725,19 @@ export function Game() {
       realmRef.current = r;
       setRealmState(r);
       if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
-      const [a, b, bl, sg, pu] = await Promise.all([
+      // charters and roads load together with the seeds, so no settled decision pops up again
+      const [a, b, bl, sg, pu, chq, frq] = await Promise.all([
         supabase.from("seeds").select("*").eq("realm", r).order("created_at"),
         supabase.from("plantings").select("*"),
         supabase.from("blessings").select("id, seed_id, created_at"),
         supabase.from("signposts").select("id, seed_id, target_id, user_id, message"),
         supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y"),
+        supabase.from("charters").select("id, seed_id, path, created_at"),
+        supabase.from("first_roads").select("id, seed_id, target_id, created_at"),
       ]);
-      supabase.from("charters").select("id, seed_id, path, created_at").then(({ data }) => setCharters(data ?? []));
+      setCharters(chq.data ?? []);
+      setFirstRoads(frq.data ?? []);
       supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").then(({ data }) => setEncounters(data ?? []));
-      supabase.from("first_roads").select("id, seed_id, target_id, created_at").then(({ data }) => setFirstRoads(data ?? []));
       supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").then(({ data }) => setVotes(data ?? []));
       supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").then(({ data }) => setWorks(data ?? []));
       supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").then(({ data }) => setGifts((data ?? []) as Gift[]));
@@ -1311,7 +1314,17 @@ export function Game() {
   const sealCharter = async () => {
     if (!my || !userId || !charterPick) return;
     const { data, error } = await supabase.from("charters").insert({ seed_id: my.id, user_id: userId, path: charterPick }).select("id, seed_id, path, created_at").single();
-    if (error || !data) return setMsg(t.charter.fail);
+    if (error || !data) {
+      // already sealed (e.g. on another device): refresh and close instead of a silent dead button
+      if (error?.code === "23505") {
+        const { data: all } = await supabase.from("charters").select("id, seed_id, path, created_at");
+        if (all) setCharters(all);
+        setCharterOpen(false);
+        return;
+      }
+      toast.error(t.charter.fail);
+      return setMsg(t.charter.fail);
+    }
     setCharters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
     bell(0); setCharterOpen(false); setMsg(t.charter.sealed(t.charter.paths[charterPick]![0]));
   };
