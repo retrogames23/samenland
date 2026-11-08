@@ -14,6 +14,7 @@ import { dwellingKey, dwellingTile } from "./density";
 export { foodCapacity, FEED_BASE, WILD_MAX, FEED_FIELD, FEED_GARDEN, FEED_PASTURE, FEED_FOOD_ITEM, FEED_HEALTH_ITEM, FEED_WINTER } from "./households";
 import { fires, floods, floodFront } from "./disasters";
 import { guestNow, maypoleUp, cowsOf } from "./encounters";
+import { orphanNow } from "./orphan";
 import { mastOn, oakSpot, bakeGathering, stegOf, stegSpot, heathSpot, lifeScenes } from "./commons";
 import { WORK_START, WORK_END } from "./time";
 import { worldHour, worldWeekday } from "./time";
@@ -460,7 +461,25 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   // babies never join a gathering on their own feet
   for (const q of people) if (q.fete && q.age < BABY_AGE && q.job === "child") delete q.fete;
   // the day's travelling visitor stands at the well/square while the mayor decides, and a while after a welcome
-  const gn = guestNow(s, decs, now);
+  const orphan = orphanNow(decs, now);
+  const gn0 = guestNow(s, decs, now);
+  // once taken in, the orphan boy lives on as his own figure below — no second copy at the well
+  const gn = gn0 && gn0.event === "orphan" && orphan && gn0.until !== Infinity ? null : gn0;
+  if (orphan) {
+    const fc = well ?? meet;
+    const place = orphan.choice === "apprentice" ? (byKind.get("smithy") ?? byKind.get("workshop") ?? [])[0] : (byKind.get("farmhouse") ?? byKind.get("hut") ?? [])[0];
+    const c: Tile = place ? (front(place) ?? place) : fc;
+    let spot: Tile = [c[0] + 0.6, c[1] + 0.5];
+    for (let d = 0; d <= 3 && !open(Math.round(spot[0]), Math.round(spot[1])); d++) for (let a = 0; a < 8; a++) { const x = c[0] + Math.round(Math.cos(a * Math.PI / 4) * (d + 1)), y = c[1] + Math.round(Math.sin(a * Math.PI / 4) * (d + 1)); if (open(x, y)) { spot = [x, y]; break; } }
+    const h = (j: number) => hash(Math.floor(orphan.at / 60000), 0, 1430 + j);
+    people.push({
+      id: -(5e6 + (s.x * 1024 + s.y) * 8 + 7), seed: s, first: pick(M, h(0)), last: "", sex: "m", age: 11, job: "child",
+      home: fc, work: null, workIndoor: false, speed: 0.3,
+      looks: { skin: h(1), hair: h(2), shirt: h(3), pants: h(4), hat: false, stick: false },
+      haul: null, role: "guest",
+      guest: { at: orphan.at, until: orphan.until, from: fc, spot, face: place ?? fc, event: "orphan" },
+    });
+  }
   if (gn) {
     const cast = GUESTS[gn.event] ?? [];
     const k0 = Math.floor(gn.at / 60000);
