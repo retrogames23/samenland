@@ -39,6 +39,19 @@ export function courtSolid(x: number, y: number): boolean {
   const s = courtSite(), i = x - s.x, j = y - s.y;
   if (i < 0 || j < 0 || i >= COURT_N || j >= COURT_N) return false;
   for (const [k, [i0, j0, n]] of Object.entries(COURT_LAYOUT)) if (k !== "garden" && i >= i0 && j >= j0 && i < i0 + n && j < j0 + n) return true;
+  return gardenSolid(i, j);
+}
+/** Rose garden: beds and fence are solid; only the gravel cross, the ring round the middle bed
+ *  and the front gate (south corner, facing the fountain) are walkable. */
+export function gardenSolid(i: number, j: number): boolean {
+  const [g0, h0, n] = COURT_LAYOUT.garden, a = i - g0, b = j - h0;
+  if (a < 0 || b < 0 || a > n || b > n) return false;
+  const r = Math.hypot(a - n / 2, b - n / 2);
+  if (r < 0.55) return true; // middle bed
+  const onPath = Math.abs(a - b) < 0.45 || Math.abs(a + b - n) < 0.45 || r < 1.15;
+  if (!onPath) return true;
+  // fence corners closed except the gate at the south corner (a=b=n)
+  if (Math.hypot(a, b) < 0.5 || Math.hypot(a, b - n) < 0.5 || Math.hypot(a - n, b) < 0.5) return true;
   return false;
 }
 
@@ -83,7 +96,9 @@ const loop = (pts: P[], period: number, t: number, phase = 0, st = COURT_STRIDE)
 // walks skirt the fountain (tiles 8–10) and pavilion (11–13 × 6–8) instead of crossing them
 const GARDEN: P[] = [[8.2, 5.4], [10.6, 5.4], [10.7, 7.5], [7.6, 7.4]];
 const PATROL: P[] = [[11.5, 12.6], [10.8, 10.8], [10.8, 7.6], [7.6, 7.6], [10.8, 7.6], [10.8, 10.8]];
-const BEDS: P[] = [[7.6, 1.6], [7.6, 5.2], [12.4, 5.2], [12.4, 1.6]];
+// gardener: in through the south gate, along the gravel cross and the ring, tending each arm
+const BEDS: P[] = [[12.5, 5.5], [11.4, 4.4], [10.75, 3.75], [10.75, 2.25], [11.5, 1.5], [10.75, 2.25],
+  [9.25, 2.25], [8.6, 1.6], [9.25, 2.25], [9.25, 3.75], [8.5, 4.5], [9.25, 3.75], [10.75, 3.75], [11.4, 4.4]];
 const YARD: P[] = [[5.4, 10.4], [5.8, 12.4], [3.2, 12.6], [5.4, 10.4]];
 
 /** Where the court is at `hour` (realm time); `t` is ms for walking phases. */
