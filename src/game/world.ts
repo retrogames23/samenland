@@ -980,8 +980,8 @@ function buildLink(a: Seed, b: Seed, d: number): Link | null {
     const pull = Math.min(off(x, y), 12) * 0.12;
     if (t === "deep") return 400;
     if (isWater(t)) return 40 + pull;
-    if (t === "mountain") return 30 + pull;
-    if (t === "hill") return 2.5 + pull;
+    if (t === "mountain") return 250 + pull; // rock massifs: always go round, only cross if truly walled in
+    if (t === "hill") return 4 + pull; // prefer valleys and the flat foot of the hills
     if (t === "forest") return 1.8 + pull;
     return 1 + vnoise(x * 0.15, y * 0.15, sn) * 0.25 + pull; // gentle meander
   };
