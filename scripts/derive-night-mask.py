@@ -43,6 +43,14 @@ def framed(x, y, R=4):
 
 inside = lambda x, y, bs: any(b[0] <= x <= b[2] and b[1] <= y <= b[3] for b in bs)
 cand = [[dark[y][x] and framed(x, y) and (not only or inside(x, y, only)) and not inside(x, y, skip) for x in range(W)] for y in range(H)]
+if only:
+    # explicit window boxes: the panes are the darker pixels of each box (frame, bars and reveal are lighter and stay dark)
+    for b in only:
+        vals = sorted(L[y][x] for y in range(b[1], b[3] + 1) for x in range(b[0], b[2] + 1))
+        cut = vals[len(vals) * 45 // 100]
+        for y in range(b[1], b[3] + 1):
+            for x in range(b[0], b[2] + 1):
+                cand[y][x] = px[x, y][3] > 200 and L[y][x] <= cut and not light[y][x] and not inside(x, y, skip)
 # keep pane-sized components only
 seen = [[False] * W for _ in range(H)]; keep = [[False] * W for _ in range(H)]; panes = 0
 for y in range(H):
