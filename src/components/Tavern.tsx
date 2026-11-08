@@ -210,9 +210,10 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
               </div>
             )}
             <form className="flex gap-2 border-t border-ink/25 p-2" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-              <input dir="auto" value={text} maxLength={300} disabled={!userId || !my} onChange={(e) => setText(e.target.value)}
+              <textarea dir="auto" rows={3} value={text} maxLength={300} disabled={!userId || !my} onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }}
                 placeholder={!my ? t.tavern.needVillage : chan === "tavern" ? t.tavern.say : t.tavern.sayLetter(people.get(chan.peer)?.owner ?? "")}
-                className="min-w-0 flex-1 rounded border border-ink/30 bg-parchment/60 px-2 py-1 font-mono text-base outline-none sm:text-sm focus:border-ink/60" />
+                className="min-w-0 flex-1 resize-none rounded border border-ink/30 bg-parchment/60 px-2 py-1 font-mono text-base outline-none sm:text-sm focus:border-ink/60" />
               <button type="submit" disabled={!text.trim() || !my || sending} className="min-h-11 rounded bg-primary px-3 text-sm text-primary-foreground disabled:opacity-40 sm:min-h-0">{t.tavern.send}</button>
             </form>
           </div>
