@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { QUESTS, QUEST_REWARD, questState } from "./quests";
+import { QUESTS, QUEST_REWARD, questState, questProgress } from "./quests";
 import { treasury, START_TALER } from "./economy";
 
 const ctx = { blessings: 0, purchases: 0, signposts: 0, encounters: 0, giftsSent: 0, residents: 3, stage: 0 };
@@ -30,6 +30,15 @@ describe("mayor's tasks", () => {
   it("starts with the blessing, not ready until blessed", () => {
     expect(questState([], "s", ctx)).toMatchObject({ quest: "bless", ready: false });
     expect(questState([], "s", { ...ctx, blessings: 1 })!.ready).toBe(true);
+  });
+  it("tracks run in parallel: a slow blessing never blocks building", () => {
+    const c = ["bless", "build"].map(claim);
+    expect(questState(c, "s", { ...ctx, residents: 10, blessings: 1 })).toMatchObject({ quest: "ten", ready: true });
+  });
+  it("the devout village needs three blessings, the good neighbour three gifts", () => {
+    expect(questProgress("bless7", { ...ctx, blessings: 2 })).toEqual([2, 3]);
+    expect(questState(["bless"].map(claim), "s", { ...ctx, blessings: 3 })).toMatchObject({ quest: "bless7", ready: true });
+    expect(questState(["sign", "meet", "gift"].map(claim), "s", { ...ctx, giftsSent: 3 })).toMatchObject({ quest: "gifts5", ready: true });
   });
   it("the next task only opens after the previous is claimed", () => {
     expect(questState([claim("bless")], "s", { ...ctx, purchases: 1 })).toMatchObject({ quest: "build", ready: true });

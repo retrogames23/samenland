@@ -687,6 +687,13 @@
       "when": 1794094107916,
       "tag": "0097_receipt_total",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1794129424273,
+      "tag": "0098_quest_tracks",
+      "breakpoints": true
     }
   ]
 }

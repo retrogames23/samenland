@@ -47,10 +47,10 @@ export function questProgress(q: Quest, c: QuestCtx): [number, number] {
     case "gift": return need(c.giftsSent, 1);
     case "hamlet": return need(c.stage, 1);
     case "road": return need(c.roads ?? 0, 1);
-    case "bless7": return need(c.blessings, 7);
+    case "bless7": return need(c.blessings, 3);
     case "buy3": return need(c.purchases, 3);
     case "village": return [c.stage >= 2 ? 1 : 0, 1];
-    case "gifts5": return need(c.giftsSent, 5);
+    case "gifts5": return need(c.giftsSent, 3);
     case "fifty": return need(c.residents, 50);
     case "roads2": return need(c.roads ?? 0, 2);
     case "town": return [c.stage >= 3 ? 1 : 0, 1];
@@ -61,13 +61,29 @@ export function questProgress(q: Quest, c: QuestCtx): [number, number] {
   }
 }
 
-/** The current open quest (first unclaimed in order), or null when the chain is complete. */
-export function questState(claims: QuestClaim[], seedId: string, c: QuestCtx) {
+/** Three independent tracks (mirrored by DB quest_guard): a slow daily task in one never blocks the others. */
+export const TRACKS: readonly (readonly Quest[])[] = [
+  ["build", "ten", "hamlet", "road", "buy3", "fifty", "village", "roads2", "hundred", "town", "buy6", "merchant", "metro"],
+  ["sign", "meet", "gift", "gifts5"],
+  ["bless", "bless7"],
+];
+export const trackOf = (q: Quest) => TRACKS.findIndex((t) => t.includes(q));
+
+/** The open quest of every unfinished track. */
+export function questHeads(claims: QuestClaim[], seedId: string, c: QuestCtx) {
   const done = new Set(claims.filter((x) => x.seed_id === seedId).map((x) => x.quest));
-  const quest = QUESTS.find((q) => !done.has(q));
-  if (!quest) return null;
-  const [have, need] = questProgress(quest, c);
-  return { quest, index: QUESTS.indexOf(quest), have, need, ready: have >= need, reward: QUEST_REWARD[quest] };
+  return TRACKS.flatMap((t, track) => {
+    const quest = t.find((q) => !done.has(q));
+    if (!quest) return [];
+    const [have, need] = questProgress(quest, c);
+    return [{ quest, track, index: QUESTS.indexOf(quest), have, need, ready: have >= need, reward: QUEST_REWARD[quest] }];
+  });
+}
+
+/** The quest shown on the card: a ready one first, else the earliest open one; null when all tracks are done. */
+export function questState(claims: QuestClaim[], seedId: string, c: QuestCtx) {
+  const heads = questHeads(claims, seedId, c).sort((a, b) => a.index - b.index);
+  return heads.find((h) => h.ready) ?? heads[0] ?? null;
 }
 
 export const questEarned = (claims: QuestClaim[], seedId: string) =>
