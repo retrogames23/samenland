@@ -10,7 +10,7 @@ const [key, note, flag] = process.argv.slice(2);
 if (!key || !note) throw new Error('usage: bun scripts/night-masks-approve.ts <key|--all> "<note>" [--allow-empty]');
 const lockFile = path.resolve("src/game/night-masks.lock.json");
 const lock = JSON.parse(readFileSync(lockFile, "utf8")) as Record<string, object>;
-const file = (u: string) => path.resolve(u.replace(/^\//, "").split("?")[0]);
+const file = (u: string) => { const p = u.split("?")[0]; return p.startsWith(process.cwd()) ? p : path.resolve(p.replace(/^\//, "")); };
 const date = new Date().toISOString().slice(0, 10);
 let n = 0;
 for (const p of nightPairs()) {
