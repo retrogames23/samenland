@@ -377,7 +377,7 @@ const HOME_SIZE: ReadonlySet<string> = new Set(["hut", "farmhouse", "cottage", "
 const HOME_GROW = 1.15;
 const scaleOf = (kind: Kind, variant: number) => HOME_SIZE.has(kind) ? HOME_GROW * (0.96 + variant * 0.08) : 0.97 + variant * 0.06;
 export function spriteBox(kind: Kind, variant: number, style?: HouseStyle): { w: number; h: number; base: number } | null {
-  const sprite = sprites[kind]; if (!sprite) return null;
+  const sprite = spriteOf(kind, style); if (!sprite) return null;
   const [, , sw, sh] = styledOf(kind, style, variant)?.crop ?? sprite.crop, w = sprite.width * scaleOf(kind, variant);
   return { w, h: w * sh / sw, base: sprite.base };
 }
@@ -422,7 +422,7 @@ function drawGroundShadow(c: CanvasRenderingContext2D, im: HTMLImageElement, lef
 }
 /** `reveal` < 1 draws only the lower part of the building (walls rising on a construction site). */
 export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, reveal = 1, flip = false, style?: HouseStyle): boolean {
-  const sprite = sprites[kind];
+  const sprite = spriteOf(kind, style);
   if (!sprite || typeof Image === "undefined") return false;
   if (!sprite.image) {
     sprite.image = new Image();
