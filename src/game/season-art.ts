@@ -5,7 +5,7 @@ let now = 0;
 export const setArtTime = (time: number) => { now = time; };
 const cache = new WeakMap<HTMLImageElement, Map<string, HTMLCanvasElement>>();
 /** Small cached, alpha-preserving seasonal surfaces. No per-frame pixel processing. */
-export function seasonalImage(image: HTMLImageElement, role: "building" | "leaf" | "fir" | "ground" | "field" | "water" | "flower" = "building"): HTMLImageElement | HTMLCanvasElement {
+export function seasonalImage(image: HTMLImageElement, role: "building" | "leaf" | "fir" | "ground" | "field" | "water" | "flower" | "track" = "building"): HTMLImageElement | HTMLCanvasElement {
   const w = seasonAt(now), key = `${role}:${seasonKey(now)}`;
   const look = role === "building" ? null : biomeLook();
   if (!look && (w.winter + w.autumn + w.spring < 0.02 || role === "water" && w.winter < 0.02)) return image;
@@ -21,7 +21,7 @@ export function seasonalImage(image: HTMLImageElement, role: "building" | "leaf"
     let r=d[k], green=d[k+1], b=d[k+2];
     if (r === undefined || green === undefined || b === undefined) continue;
     const lum=(r+green+b)/3;
-    const foliage=green>r*0.85 && green>b*1.15;
+    const foliage=role!=="track" && green>r*0.85 && green>b*1.15;
     if (look) {
       // regional island look: tint foliage, stone, sand and water; heather speckles on open ground
       const m = role==="water" ? look.water : foliage || role==="leaf" || role==="fir" ? look.green : lum>140 && r>b ? look.sand : look.stone;
@@ -42,6 +42,7 @@ export function seasonalImage(image: HTMLImageElement, role: "building" | "leaf"
       // Bright upward-facing surfaces retain snow; dark walls remain legible.
       let snow=0;
       if (role==="ground"||role==="flower"||role==="field") snow=w.winter*0.8;
+      else if (role==="track") { snow=w.winter*0.12; const wet=1-w.winter*0.22; r*=wet; green*=wet; b*=wet*1.02; } // trodden earth: damp and darker, barely snowed
       else if (role==="leaf"||role==="fir") snow=w.winter*(lum>55?0.65:0.15);
       else if (y<cv.height*0.65 && lum>65 && r>b*0.8) snow=w.winter*0.78;
       r=r*(1-snow)+231*snow; green=green*(1-snow)+239*snow; b=b*(1-snow)+242*snow;

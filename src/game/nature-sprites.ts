@@ -42,12 +42,12 @@ export const setNatureTime = (now: number) => { artNow = now; };
 const texRole = (t: Tex) => t === "water" ? "water" : t === "wheat" || t === "crops" ? "field" : t === "meadow" ? "flower" : "ground";
 const TEX_M = typeof DOMMatrix !== "undefined" ? new DOMMatrix() : (null as unknown as DOMMatrix); // reused, no per-tile allocation
 /** Texture laid on the iso ground plane (rotated 45° and squashed), anchored in world space. */
-export function texture(c: C, t: Tex, shift = 0): CanvasPattern | null {
-  const key = `${t}:${seasonKey(artNow)}`;
+export function texture(c: C, t: Tex, shift = 0, bare = false): CanvasPattern | null {
+  const key = `${t}:${bare ? "bare:" : ""}${seasonKey(artNow)}`;
   let p = pats.get(key);
   if (!p) {
     const i = img(TEX[t]); if (!i) return null;
-    p = c.createPattern(seasonalImage(i, texRole(t)), "repeat") ?? undefined; if (!p) return null;
+    p = c.createPattern(seasonalImage(i, bare ? "track" : texRole(t)), "repeat") ?? undefined; if (!p) return null;
     if (pats.size > 44) pats.clear(); pats.set(key, p);
   }
   const s = SPAN[t] / 816;
