@@ -193,7 +193,7 @@ export function figOf(pl: StubePlace): Fig | null {
     ? { url: sleepChildUrl, x: 0.1, y: slot ? 0.497 : 0.677, h: 0.03, flip: false, anim: "sleep", ph }
     : { url: sleepUrl, x: 0.12, y: slot ? 0.497 : 0.677, h: 0.043 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
   if (spot === "hearth") return { url: figure ?? stirUrl, x: 0.35, y: 0.82, h: 0.3 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
-  if (spot === "fire") return { url: figure ?? elderUrl, x: 0.505, y: 0.8, h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
+  if (spot === "fire") return { url: figure ?? elderUrl, x: 0.455, y: 0.82, h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
   if (spot === "table") {
     const left = slot % 2 === 0;
     const url = figure ?? manUrl;
