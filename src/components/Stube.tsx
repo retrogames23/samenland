@@ -195,13 +195,15 @@ export function figOf(pl: StubePlace): Fig | null {
     ? { url: sleepChildUrl, x: 0.1, y: slot ? 0.497 : 0.677, h: 0.03, flip: false, anim: "sleep", ph }
     : { url: sleepUrl, x: 0.12, y: slot ? 0.497 : 0.677, h: 0.043 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
   if (spot === "hearth") return { url: figure ?? stirUrl, x: 0.35, y: 0.82, h: 0.3 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
-  if (spot === "fire") return { url: figure ?? elderUrl, x: 0.455, y: 0.82, h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
+  if (spot === "fire") return { url: figure ?? elderUrl, x: 0.455, y: 0.82, h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph, adultH: 0.22 };
   if (spot === "table") {
     const left = slot % 2 === 0;
     const url = figure ?? manUrl;
     const flip = left ? f : !f; // males face right, females face left in the art
     const x = [0.56, 0.715, 0.525, 0.75][slot] ?? 0.56;
-    return { url, x, y: slot < 2 ? 0.8 : 0.83, h: kid ? 0.2 * Math.min(1, 0.6 + p.age / 30) : 0.26, flip, anim: "eat", ph };
+    // everyone sits on the painted benches (0/2 left, 1/3 right); children are lifted so their seat meets the bench top
+    const h = kid ? 0.2 * Math.min(1, 0.6 + p.age / 30) : 0.26;
+    return { url, x, y: 0.8 - 0.37 * (0.26 - h), h, flip, anim: "eat", ph, bench: true };
   }
   return null;
 }
@@ -248,10 +250,11 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
         const w = f.anim === "sleep" ? 0.115 * 1536 * (f.h / 0.043) : f.h * H * im.naturalWidth / im.naturalHeight;
         const hh = w * im.naturalHeight / im.naturalWidth;
         const px = f.x * W, py = f.y * H;
-        if ((f.anim === "eat" || f.anim === "warm") && !OWN_SEAT.has(f.url)) {
+        if ((f.anim === "eat" || f.anim === "warm") && !OWN_SEAT.has(f.url) && !f.bench) {
           const seat = img(seatUrl);
           if (seat.complete && seat.naturalWidth) {
-            const sh = hh * 0.37, sw = sh * seat.naturalWidth / seat.naturalHeight;
+            // a stool keeps its real height; a child's feet simply dangle
+            const sh = (f.adultH ?? f.h) * H * 0.37, sw = sh * seat.naturalWidth / seat.naturalHeight;
             g.drawImage(seat, px - sw / 2, py - sh, sw, sh);
           }
         }
