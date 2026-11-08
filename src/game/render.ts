@@ -930,8 +930,8 @@ function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], n
     if (fr && pk && rt && sl && ic) {
       c.strokeStyle = fr; c.globalAlpha = 0.55 * fresh; c.lineWidth = 7.4; c.stroke(rb.path);
       c.strokeStyle = pk; c.globalAlpha = 0.7 * fresh + 0.15; c.lineWidth = 5.4; c.stroke(rb.path);
-      c.strokeStyle = rt; c.lineWidth = 1.5; c.globalAlpha = 0.85 * fresh; c.stroke(rb.rutA!);
-      c.lineWidth = 1.2; c.globalAlpha = 0.6 * fresh; c.stroke(rb.rutB!);
+      c.strokeStyle = rt; c.lineWidth = 2.1; c.globalAlpha = 0.6 * fresh; c.stroke(rb.rutA!);
+      c.lineWidth = 1.7; c.globalAlpha = 0.4 * fresh; c.stroke(rb.rutB!);
       c.strokeStyle = sl; c.lineWidth = 4.8; c.globalAlpha = (ws === 1 ? 0.95 : ws === 2 ? 0.7 : 0.35); c.stroke(rb.path);
       c.strokeStyle = ic; c.lineWidth = 4.4; c.globalAlpha = 0.8; c.stroke(rb.path);
       c.globalAlpha = 1;
@@ -3471,7 +3471,7 @@ function winterTrack(c: C, x: number, y: number, cx: number, cy: number, con: [n
   if (!con.length) { line.moveTo(cx - 0.01, cy); line.lineTo(cx + 0.01, cy); }
   for (const [i, j] of con) { const m = pp(i * 0.5, j * 0.5); line.moveTo(cx, cy); line.lineTo(m[0], m[1]); }
   c.strokeStyle = fr; c.globalAlpha = 0.6 * fresh; c.lineWidth = wBase * 1.25; c.stroke(line);
-  c.strokeStyle = pk; c.globalAlpha = 0.55 * fresh + 0.15; c.lineWidth = wBase * 0.85; c.stroke(line);
+  c.strokeStyle = pk; c.globalAlpha = 0.65 * fresh + 0.2; c.lineWidth = wBase * 0.9; c.stroke(line);
   c.strokeStyle = sl; c.globalAlpha = ws === 1 ? 0.8 : ws === 2 ? 0.5 : 0.2; c.lineWidth = wBase * 0.7; c.stroke(line);
   c.globalAlpha = 1;
 }

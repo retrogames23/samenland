@@ -42,13 +42,13 @@ function paint(kind: WayTex): HTMLCanvasElement | null {
       a = kind === "pack" ? 0.82 + (h - 0.5) * 0.3 : smooth(0.42, 0.62, 0.6 * l + 0.4 * h) * 0.75; // fringe: ragged, broken verge
     } else if (kind === "slush") {
       // earth and churned slush showing through only in scattered, irregular patches
-      const m = smooth(0.6, 0.74, 0.7 * patch(x, y) + 0.3 * h);
+      const m = smooth(0.5, 0.68, 0.7 * patch(x, y) + 0.3 * h);
       const wet = f;
       r = 92 + wet * 40; gg = 76 + wet * 30; b = 58 + wet * 24;
       a = m * (0.55 + f * 0.45);
     } else if (kind === "rut") {
       // darker, deeper-pressed snow with brown water in it — varies in strength, often breaks off
-      const m = smooth(0.32, 0.6, 0.65 * l + 0.35 * h);
+      const m = smooth(0.4, 0.75, 0.65 * l + 0.35 * h);
       r = 128 + f * 30; gg = 116 + f * 26; b = 100 + f * 22;
       a = m * (0.45 + 0.4 * f);
     } else {
