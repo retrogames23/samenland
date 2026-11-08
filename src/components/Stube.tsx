@@ -183,8 +183,8 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
           <div className="relative max-h-[70dvh] overflow-y-auto overscroll-contain">
             <div className="relative">
               <canvas ref={ref} width={W} height={H} className="block aspect-[2/3] w-full" dir="ltr" />
-              {L0.floors.map(([k, top]) => (
-                <span key={k} className="pointer-events-none absolute start-2 rounded bg-card/80 px-1.5 font-['Caveat'] text-base leading-tight text-foreground" style={{ top: `${top * 100}%` }}>{T.floors[k]}</span>
+              {L0.floors.map(([k, at]) => (
+                <span key={k} className="pointer-events-none absolute start-2 rounded bg-card/80 px-1.5 font-['Caveat'] text-base leading-tight text-foreground" style={{ top: `${Math.round(at * 1000) / 10}%` }}>{T.floors[k]}</span>
               ))}
             </div>
           </div>
