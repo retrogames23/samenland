@@ -3474,39 +3474,25 @@ function drawPond(c: C, x: number, y: number, cx: number, cy: number) {
  * the heavier the snowfall, the more the ruts fill in again. Pure tile hash, same on every client.
  */
 function winterTrack(c: C, x: number, y: number, cx: number, cy: number, con: [number, number][], pp: (i: number, j: number) => [number, number], wBase: number, col: string | CanvasPattern, ws: 1 | 2 | 3) {
-  const earth = ws === 1 ? 0.62 : ws === 2 ? 0.48 : 0.22;
+  // footpath in winter: trodden snow as one union of lumpy blots (edge wanders, width breathes), a few
+  // churned slush blots and wet earth where feet bite; heavier snow leaves fewer, smaller holes
+  const earth = ws === 1 ? 0.6 : ws === 2 ? 0.45 : 0.22;
+  const pack = new Path2D(), mud = new Path2D();
+  pack.addPath(blot(cx + (hash(x, y, 450) - 0.5), cy, wBase * (0.42 + hash(x, y, 451) * 0.16), wBase * 0.42, hash(x, y, 452) * 3, hash(x, y, 453)));
   for (const [i, j] of con) {
-    const m = pp(i * 0.5, j * 0.5), dx = m[0] - cx, dy = m[1] - cy, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d;
-    // trodden snow: two half-strokes of differing width so the edge wanders instead of running parallel
-    const mid: [number, number] = [cx + dx * 0.5 + nx * (hash(x + i, y + j, 391) - 0.5) * 0.8, cy + dy * 0.5 + ny * (hash(x + i, y + j, 391) - 0.5) * 0.5];
-    c.strokeStyle = ws === 3 ? "rgba(214,218,220,0.7)" : "rgba(186,184,176,0.62)";
-    c.lineWidth = wBase * (0.85 + hash(x, y, 392 + i) * 0.35); c.beginPath(); c.moveTo(cx, cy); c.lineTo(mid[0], mid[1]); c.stroke();
-    c.lineWidth = wBase * (0.8 + hash(x + i, y + j, 393) * 0.4); c.beginPath(); c.moveTo(mid[0], mid[1]); c.lineTo(m[0], m[1]); c.stroke();
-    // two ruts: earth shows through in patches (split into broken pieces), offset jittered per tile
-    c.strokeStyle = col; c.lineWidth = wBase * 0.2;
-    for (const s of [-1, 1]) {
-      const o = wBase * (0.22 + hash(x, y, 395 + s) * 0.06) * s;
-      for (let k = 0; k < 3; k++) {
-        const a = k / 3 + hash(x * 2 + i, y * 2 + j, 400 + k + s * 5) * 0.08, b = a + 0.2 + hash(x + i, y + j, 410 + k + s * 5) * 0.12;
-        if (hash(x + i, y + j, 420 + k + s * 7) > 0.35 + ws * 0.15) continue;
-        c.globalAlpha = earth * (0.7 + hash(x, y, 430 + k + s) * 0.3);
-        c.beginPath(); c.moveTo(cx + dx * a + nx * o, cy + dy * a + ny * o * 0.6); c.lineTo(cx + dx * b + nx * o, cy + dy * b + ny * o * 0.6); c.stroke();
-      }
-    }
-    c.globalAlpha = 1;
-    // footprints on the crown after fresh snow: a few dark dimples
-    if (ws >= 2) {
-      c.fillStyle = "rgba(92,86,78,0.28)";
-      for (let k = 0; k < 3; k++) {
-        if (hash(x + i, y + j, 440 + k) > 0.55) continue;
-        const u = 0.15 + k * 0.28, o = (k % 2 ? 0.6 : -0.6);
-        c.beginPath(); c.ellipse(cx + dx * u + nx * o, cy + dy * u + ny * o * 0.6, 0.38, 0.2, 0, 0, 7); c.fill();
+    const m = pp(i * 0.5, j * 0.5), dx = m[0] - cx, dy = m[1] - cy, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d, ang = Math.atan2(dy, dx);
+    for (let k = 0; k < 4; k++) {
+      const r1 = hash(x * 3 + i, y * 3 + j, 460 + k), r2 = hash(x + i, y + j, 470 + k), u = (k + 0.5) / 4;
+      const o = (r1 - 0.5) * wBase * 0.35, w = wBase * (0.3 + r2 * 0.22);
+      pack.addPath(blot(cx + dx * u + nx * o, cy + dy * u + ny * o * 0.6, d * 0.2 + w * 0.5, w, ang, r1 * r2 + k));
+      if (hash(x + i, y + j, 480 + k) < 0.55 - ws * 0.1) {
+        const o2 = (r2 - 0.5) * wBase * 0.5;
+        mud.addPath(blot(cx + dx * u + nx * o2, cy + dy * u + ny * o2 * 0.6, wBase * (0.12 + r1 * 0.16), wBase * (0.07 + r2 * 0.07), ang + (r1 - 0.5) * 0.8, r2 + k));
       }
     }
   }
-  // the junction: a trodden patch, not a perfect disc
-  c.fillStyle = ws === 3 ? "rgba(214,218,220,0.7)" : "rgba(186,184,176,0.62)";
-  c.beginPath(); c.ellipse(cx + (hash(x, y, 450) - 0.5), cy, wBase * (0.42 + hash(x, y, 451) * 0.14), wBase * 0.28, 0, 0, 7); c.fill();
+  c.fillStyle = ws === 3 ? "rgba(208,210,208,0.45)" : "rgba(178,172,160,0.45)"; c.fill(pack);
+  c.fillStyle = col; c.globalAlpha = earth; c.fill(mud); c.globalAlpha = 1;
 }
 /** Flat ground dressing of one tile (turf, ore rocks, paths, squares, acres) — drawn live or baked into a flat chunk. */
 function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number) {
