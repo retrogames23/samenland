@@ -127,7 +127,7 @@ import type { Lang } from "@/game/i18n";
 import type { Person } from "@/game/people";
 import type { Seed } from "@/game/world";
 
-type Fig = { url: string; layers?: [string, string, string]; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep" | "write"; ph: number };
+type Fig = { url: string; layers?: [string, string, string]; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep" | "write"; ph: number; rate?: number };
 /** Whole-pose layers: unchanged lower body, painted upper body in pose A and pose B. */
 const LAYERS: Record<string, [string, string, string]> = {
   [patWarmBoy]: [patWarmBoyBase, patWarmBoyTop, patWarmBoyAlt],
@@ -232,7 +232,8 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
   const L0 = layoutOf(kind), W = L0.w, H = L0.h;
   const [places, setPlaces] = useState<StubePlace[]>(() => stubeOf(residents, seed, seeds, clock(), L0.slots));
   useEffect(() => { const id = setInterval(() => setPlaces(stubeOf(residents, seed, seeds, clock(), L0.slots)), 2000); return () => clearInterval(id); }, [residents, seed, seeds, L0]);
-  const figs = useMemo(() => places.map(L0.seat).filter((f): f is Fig => !!f).sort((a, b) => a.y - b.y), [places, L0]);
+  // never in lockstep: housemates have neighbouring ids, so each figure gets a hashed tempo and a golden-ratio phase offset in the room
+  const figs = useMemo(() => places.map((pl, i): Fig | null => { const f = L0.seat(pl); if (!f) return null; const u = (Math.imul(pl.p.id | 0, 2654435761) >>> 0) / 4294967296; return { ...f, ph: f.ph + u * 9 + i * 2.618, rate: 0.82 + ((u * 7.31) % 1) * 0.36 }; }).filter((f): f is Fig => !!f).sort((a, b) => a.y - b.y), [places, L0]);
   useEffect(() => {
     const cv = ref.current; if (!cv) return;
     const g = cv.getContext("2d"); if (!g) return;
@@ -256,14 +257,14 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
         }
         g.save(); g.translate(px, py);
         if (f.flip) g.scale(-1, 1);
-        const s = Math.sin(t * 0.8 + f.ph), L = LAYERS[f.url];
+        const tr = t * (f.rate ?? 1), s = Math.sin(tr * 0.8 + f.ph), L = LAYERS[f.url];
         if (f.anim === "sleep" || !L) { g.scale(1, 1 + 0.025 * s); g.drawImage(im, -w / 2, -hh, w, hh); } // breathing under the blanket
         else {
-          const [hA, mv, hB] = GESTURE[f.anim], k = poseMix(t + f.ph, hA, mv, hB);
+          const [hA, mv, hB] = GESTURE[f.anim], k = poseMix(tr + f.ph, hA, mv, hB);
           const [base, top, alt] = L.map(img) as [HTMLImageElement, HTMLImageElement, HTMLImageElement];
           g.drawImage(base, -w / 2, -hh, w, hh);
           // the upper body breathes gently and leans into each gesture
-          g.translate(0, -hh * 0.4); g.scale(1, 1 + 0.006 * Math.sin(t * 1.6 + f.ph)); g.translate(0, hh * 0.4);
+          g.translate(0, -hh * 0.4); g.scale(1, 1 + 0.006 * Math.sin(tr * 1.6 + f.ph)); g.translate(0, hh * 0.4);
           // the nearer pose stays opaque, the other blends over it — the body never turns see-through mid-gesture
           const [first, second, a2] = k <= 0.5 ? [top, alt, 2 * k] : [alt, top, 2 * (1 - k)];
           g.drawImage(first, -w / 2, -hh, w, hh);
