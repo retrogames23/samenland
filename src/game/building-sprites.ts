@@ -1,4 +1,8 @@
 import { seasonalImage } from "./season-art";
+import { isLab } from "./time";
+import draftHut from "@/assets/sprites/cohesive/drafts/grain-hut-draft-v3.webp";
+import draftCottage from "@/assets/sprites/cohesive/drafts/grain-cottage-draft-v3.webp";
+import draftFachwerk from "@/assets/sprites/cohesive/drafts/grain-fachwerk-draft-v3.webp";
 import waterWheelUrl from "@/assets/sprites/water-wheel.webp";
 import campfire from "@/assets/sprites/campfire.webp";
 import hut from "@/assets/sprites/cohesive/grain-hut.webp";
@@ -308,6 +312,23 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   library: { url: library, crop: [0, 0, 429, 480], width: 26, base: 4 },
   dairy: { url: dairy, crop: [0, 0, 480, 391], width: 24, base: 4 },
 };
+
+/** Test map only (realm "lab" + localStorage samenland-draft-houses=1 or ?drafts): plain-style hut/cottage/fachwerk show the
+ * reworked draft paintings for in-game comparison. Production art and all other maps stay untouched. */
+const DRAFTS: Partial<Record<Kind, Sprite>> = {
+  hut: { url: draftHut, crop: [0, 0, 480, 338], width: 18, base: 7.2 },
+  cottage: { url: draftCottage, crop: [0, 0, 480, 339], width: 24, base: 7 },
+  fachwerk: { url: draftFachwerk, crop: [0, 0, 480, 410], width: 26, base: 6.7 },
+};
+let draftFlag: boolean | undefined;
+const draftsOn = () => {
+  if (!isLab()) return false;
+  if (draftFlag === undefined) {
+    try { draftFlag = localStorage.getItem("samenland-draft-houses") === "1" || new URLSearchParams(location.search).has("drafts"); } catch { draftFlag = false; }
+  }
+  return draftFlag;
+};
+const spriteOf = (kind: Kind, style?: HouseStyle) => (!style && DRAFTS[kind] && draftsOn() ? DRAFTS[kind] : sprites[kind]);
 
 /** Town-character house styles (stone hill towns, brick harbour towns); same width, base and night framing as the base kind,
  * purely visual: households, taxes and rank use the base kind. Plains (grain) keep the classic art. */
