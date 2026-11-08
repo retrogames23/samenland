@@ -3019,9 +3019,9 @@ function labEntries(): LabEntry[] {
     R("Händler mit Last", "Wandert", 5, 4, (c, ph) => drawWanderer(c, 0, 0, 1, 0.3, tw(ph), 17, "bundle")),
     R("Ochsenkarren", "Fährt hin", 9, 14, (c, ph) => drawCart(c, 0, 0, 1, 0.3, 0, 21, "", tw(ph) * 0.6, "lab-cart-a")),
     R("Ochsenkarren", "Fährt fort", 9, 14, (c, ph) => drawCart(c, 0, 0, 1, -1, 0, 21, "", tw(ph) * 0.6, "lab-cart-b")),
-    R("Ochsenkarren", "Steil zu", 13, 8, (c, ph) => drawCart(c, 0, 0, 0.1, 1, 0, 21, "", tw(ph) * 0.6, "lab-cart-c")),
-    R("Ochsenkarren", "Steil fort", 13, 8, (c, ph) => drawCart(c, 0, 0, 0.1, -1, 0, 21, "", tw(ph) * 0.6, "lab-cart-d")),
-    R("Ochsenkarren", "Größenvergleich", 13, 56, (c, ph) => {
+    R("Ochsenkarren", "Steil zu", 16, 8, (c, ph) => drawCart(c, 0, 0, 0.1, 1, 0, 21, "", tw(ph) * 0.6, "lab-cart-c")),
+    R("Ochsenkarren", "Steil fort", 16, 8, (c, ph) => drawCart(c, 0, 0, 0.1, -1, 0, 21, "", tw(ph) * 0.6, "lab-cart-d")),
+    R("Ochsenkarren", "Größenvergleich", 16, 56, (c, ph) => {
       // all four cart views beside the pasture cow; dashed lines: ox shoulder 5.0, adult head 5.2
       const t = tw(ph) * 0.6;
       drawCart(c, -20, 0, 1, 0.3, 0, 21, "", t, "lab-cmp-a"); drawCart(c, -5, 0, 1, -1, 0, 21, "", t, "lab-cmp-b");
