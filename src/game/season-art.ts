@@ -41,7 +41,7 @@ export function seasonalImage(image: HTMLImageElement, role: "building" | "leaf"
     else {
       // Bright upward-facing surfaces retain snow; dark walls remain legible.
       let snow=0;
-      if (role==="ground"||role==="flower"||role==="field") snow=sc*0.8; if (sc<0.5) { const f=w.winter*(1-sc*2)*0.35; r=r*(1-f)+lum*0.95*f+f*14; green=green*(1-f)+lum*0.9*f; b=b*(1-f)+lum*0.85*f; } // bare winter: dun grass with rime
+      if (role==="ground"||role==="flower"||role==="field") { snow=sc*0.8; if (sc<0.5) { const f=w.winter*(1-sc*2)*0.35; r=r*(1-f)+lum*0.95*f+f*14; green=green*(1-f)+lum*0.9*f; b=b*(1-f)+lum*0.85*f; } } // bare winter: dun grass with rime
       else if (role==="track") { snow=sc*0.12; const wet=1-w.winter*0.22; r*=wet; green*=wet; b*=wet*1.02; } // trodden earth: damp and darker, barely snowed
       else if (role==="leaf"||role==="fir") snow=sc*(lum>55?0.65:0.15);
       else if (y<cv.height*0.65 && lum>65 && r>b*0.8) snow=sc*0.78;

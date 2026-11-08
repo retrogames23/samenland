@@ -2,7 +2,7 @@
  * Seasonal traces on the tiles (sheaves, firewood, ice, straw mantles, laundry, fresh wattle): pure
  * functions of tile hash, shared calendar and realm clock — never stored, so every client sees the same.
  */
-import { seasonAt } from "./season";
+import { seasonAt, snowCoverAt } from "./season";
 import { worldHour, isSunday } from "./time";
 import { wetness, snowiness } from "./weather";
 
