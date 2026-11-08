@@ -724,6 +724,8 @@ export function Game() {
       const loadRealm = async (r: Realm) => {
       if (!uid) uid = (await supabase.auth.getSession()).data.session?.user.id ?? null;
       setRealm(r);
+      // a chronicle belongs to one village: never leave it open over another map
+      if (realmRef.current !== r) { setChronOpen(false); setChron(null); setChronBanner(false); chronDone.current = null; }
       realmRef.current = r;
       setRealmState(r);
       if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
@@ -3158,7 +3160,7 @@ export function Game() {
         </Parchment>
       )}
       {chronOpen && chron && my && (
-        <Parchment title={t.chron.title} later={t.chron.close} onLater={() => setChronOpen(false)}>
+        <Parchment title={`${t.chron.title} · ${my.name}`} later={t.chron.close} onLater={() => setChronOpen(false)}>
           <p className="text-center text-sm text-ink/70">{t.chron.away(Math.max(1, Math.round((chron.to - chron.from) / 864e5)))}</p>
           <p className="mt-3 text-center font-display text-xl leading-snug text-ink">{scribe === undefined ? <span className="animate-pulse text-ink/60">{t.chron.writing}</span> : scribe ?? addr(t.chron.greet)}</p>
           <div className="mt-4 flex justify-center gap-4 font-display text-lg text-ink">
