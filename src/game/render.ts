@@ -71,7 +71,7 @@ import castleU from "@/assets/sprites/court/castle.webp";
 import stableU from "@/assets/sprites/court/stable.webp";
 import fountainU from "@/assets/sprites/court/fountain.webp";
 import pavilionU from "@/assets/sprites/court/pavilion.webp";
-import parterreU from "@/assets/sprites/court/parterre.webp";
+import parterreU from "@/assets/sprites/court/rosegarden.webp";
 import princeU from "@/assets/sprites/court/prince.webp";
 import princessU from "@/assets/sprites/court/princess.webp";
 import princeStandU from "@/assets/sprites/court/prince-stand.webp";
