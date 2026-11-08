@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import roomUrl from "@/assets/sprites/stube/farmhouse-room.webp";
+import hutRoomUrl from "@/assets/sprites/stube/hut-room.webp";
 import manUrl from "@/assets/sprites/stube/eat-man.webp";
 import womanUrl from "@/assets/sprites/stube/eat-woman.webp";
 import sleepUrl from "@/assets/sprites/stube/sleeper.webp";
@@ -81,7 +82,7 @@ function figOf(pl: StubePlace): Fig | null {
 }
 
 /** Farmhouse diorama: the painted room with exactly those residents the derived routine keeps at home. */
-export function Stube({ seed, seeds, residents, family, lang, onClose }: { seed: Seed; seeds: Seed[]; residents: Person[]; family: string; lang: Lang; onClose: () => void }) {
+export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang, onClose }: { seed: Seed; seeds: Seed[]; residents: Person[]; family: string; lang: Lang; onClose: () => void; kind?: "farmhouse" | "hut" }) {
   const T = STUBE[lang];
   const ref = useRef<HTMLCanvasElement>(null);
   const [places, setPlaces] = useState<StubePlace[]>(() => stubeOf(residents, seed, seeds, clock()));
@@ -92,7 +93,7 @@ export function Stube({ seed, seeds, residents, family, lang, onClose }: { seed:
     const g = cv.getContext("2d"); if (!g) return;
     let raf = 0;
     const draw = () => {
-      const t = performance.now() / 1000, room = img(roomUrl);
+      const t = performance.now() / 1000, room = img(kind === "hut" ? hutRoomUrl : roomUrl);
       g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
       if (room.complete && room.naturalWidth) g.drawImage(room, 0, 0, W, H);
       for (const f of figs) {
@@ -130,10 +131,10 @@ export function Stube({ seed, seeds, residents, family, lang, onClose }: { seed:
       g.globalCompositeOperation = "source-over";
       raf = requestAnimationFrame(draw);
     };
-    for (const u of [roomUrl, manUrl, womanUrl, sleepUrl, stirUrl, elderUrl, elderWomanUrl, boyUrl, girlUrl, sleepChildUrl, ...Object.values(LAYERS).flat()]) img(u);
+    for (const u of [roomUrl, hutRoomUrl, manUrl, womanUrl, sleepUrl, stirUrl, elderUrl, elderWomanUrl, boyUrl, girlUrl, sleepChildUrl, ...Object.values(LAYERS).flat()]) img(u);
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [figs]);
+  }, [figs, kind]);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose]);
   const home = places.filter((p) => p.spot !== "out"), away = places.filter((p) => p.spot === "out");
   return (
