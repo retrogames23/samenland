@@ -2,7 +2,7 @@ import { seasonAt } from "./season";
 import { townCharacter } from "./character";
 import { dwellingSlots } from "./density";
 import { leaversOf } from "./wander";
-import { hash, structureAt, reachOf, radiusOf, effAge, townDist, specialSites, twinSites, MAP, type Seed, type Kind } from "./world";
+import { hash, structureAt, reachOf, radiusOf, effAge, townDist, specialSites, twinSites, roadOwnerAt, MAP, type Seed, type Kind } from "./world";
 
 export type HomeTile = [number, number];
 export const HOME_SIZES: Partial<Record<Kind, readonly [number, number]>> = { hut: [2, 2], suburb: [2, 4], farmhouse: [2, 4], cottage: [2, 3], townhouse: [2, 4], townhouse2: [2, 4], fachwerk: [2, 5], steinhaus: [2, 5], handwerker: [2, 4], patrician: [2, 5], villa: [2, 4], tenement: [4, 8], inn: [2, 2], bakery: [2, 2] };
