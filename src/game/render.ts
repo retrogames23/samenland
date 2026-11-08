@@ -1060,7 +1060,7 @@ function drawStall(c: C, x: number, y: number, flip: boolean) {
 /** Painted ox cart: ox-less wagon + separate 4-frame ox walk cycle, both standing on the ground line. */
 // layout measured in sprite pixels: wagon bottom-left origin, ox bottom-centre offset, ox scale, combo centre
 // ox y = hoof line (sprite pixels below the wheel line); feet sit at FOOT·frame height inside the sheet
-const CART_LAYOUT = { front: { k: 0.04, cx: 200, ox: [290, 18], os: 1.07, foot: 139 / 140 }, back: { k: 0.042, cx: 150, ox: [216, -44], os: 0.89, foot: 156 / 160 } } as const;
+const CART_LAYOUT = { front: { k: 0.04, cx: 200, ox: [305, 18], os: 1.07, foot: 139 / 140 }, back: { k: 0.042, cx: 150, ox: [216, -44], os: 0.89, foot: 156 / 160 } } as const;
 const WAGON_RES = 2;
 /** Vertical shear that tilts the painted team (drawn for the 2:1 diagonal) onto the real road slope, so ox and wagon follow steep roads. */
 export function cartShear(dx: number, dy: number, away: boolean): number {
