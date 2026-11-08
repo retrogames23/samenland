@@ -37,8 +37,8 @@ export function useModeCursor(ref: RefObject<HTMLCanvasElement | null>, lens: bo
     let id = 0, dead = false;
     void walkFrames().then((f) => {
       if (dead || !f.length) return;
-      let i = 0; el.style.cursor = f[0];
-      id = window.setInterval(() => { i = (i + 1) % f.length; el.style.cursor = f[i]; }, 180);
+      let i = 0; el.style.cursor = f[0] ?? "";
+      id = window.setInterval(() => { i = (i + 1) % f.length; el.style.cursor = f[i] ?? ""; }, 180);
     });
     return () => { dead = true; clearInterval(id); el.style.cursor = ""; };
   }, [ref, lens, walk]);
