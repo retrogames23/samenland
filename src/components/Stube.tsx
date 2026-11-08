@@ -294,13 +294,13 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
   const home = places.filter((p) => p.spot !== "out"), away = places.filter((p) => p.spot === "out");
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-3 backdrop-blur-[2px]" onClick={onClose}>
-      <div className={`w-full ${L0.floors ? "max-w-md" : "max-w-4xl"} overflow-hidden rounded-xl border-4 border-[hsl(25_35%_25%)] bg-card shadow-2xl`} onClick={(e) => e.stopPropagation()}>
+      <div style={L0.floors ? { width: "min(100%, calc((100dvh - 8.5rem) * 2 / 3))" } : undefined} className={`${L0.floors ? "" : "w-full max-w-4xl"} overflow-hidden rounded-xl border-4 border-[hsl(25_35%_25%)] bg-card shadow-2xl`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3 px-3 py-1.5">
           <div className="font-['Caveat'] text-2xl leading-tight">{T.title(family)}</div>
           <button type="button" aria-label={T.close} className="hit relative p-1 text-2xl leading-none text-muted-foreground hover:text-foreground" onClick={onClose}>×</button>
         </div>
         {L0.floors ? (
-          <div className="relative max-h-[70dvh] overflow-y-auto overscroll-contain">
+          <div ref={(el) => { if (el && !el.dataset["s"]) { el.dataset["s"] = "1"; requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; }); } }} className="relative max-h-[calc(100dvh-8.5rem)] overflow-y-auto overscroll-contain">
             <div className="relative">
               <canvas ref={ref} width={W} height={H} className="block aspect-[2/3] w-full" dir="ltr" />
               {L0.floors.map(([k, at]) => (
