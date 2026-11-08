@@ -69,14 +69,14 @@ export function stubeOf(residents: Person[], seed: Seed, seeds: Seed[], now: num
 /** dx: horizontal offset of the seat contact from the sprite centre (share of sprite height, unflipped art). */
 export type BodyAnchor = { on: "seat" | "feet" | "bed"; at: number; dx?: number };
 export const BODY_ANCHORS: Record<string, BodyAnchor> = {
-  "eat-man": { on: "seat", at: 0.37, dx: -0.187 }, "eat-woman": { on: "seat", at: 0.36, dx: 0.175 }, "eat-girl": { on: "seat", at: 0.37, dx: 0.159 },
+  "eat-man": { on: "seat", at: 0.37, dx: -0.107 }, "eat-woman": { on: "seat", at: 0.36, dx: 0.095 }, "eat-girl": { on: "seat", at: 0.37, dx: 0.079 },
   "eat-boy": { on: "feet", at: 0 }, // painted on his own stool
-  "pat-eat-man": { on: "seat", at: 0.38, dx: -0.198 }, "pat-eat-woman": { on: "seat", at: 0.35, dx: 0.151 }, "pat-eat-boy": { on: "seat", at: 0.4, dx: -0.204 }, "pat-eat-girl": { on: "seat", at: 0.37, dx: 0.154 },
-  "warm-man": { on: "seat", at: 0.31, dx: 0.249 }, "warm-woman": { on: "seat", at: 0.3, dx: 0.171 }, "warm-boy": { on: "seat", at: 0.3, dx: 0.245 }, "warm-girl": { on: "seat", at: 0.3, dx: 0.132 }, "warm-elder": { on: "seat", at: 0.29, dx: 0.256 },
+  "pat-eat-man": { on: "seat", at: 0.38, dx: -0.117 }, "pat-eat-woman": { on: "seat", at: 0.35, dx: 0.071 }, "pat-eat-boy": { on: "seat", at: 0.4, dx: -0.124 }, "pat-eat-girl": { on: "seat", at: 0.37, dx: 0.074 },
+  "warm-man": { on: "seat", at: 0.31, dx: 0.169 }, "warm-woman": { on: "seat", at: 0.3, dx: 0.091 }, "warm-boy": { on: "seat", at: 0.3, dx: 0.165 }, "warm-girl": { on: "seat", at: 0.3, dx: 0.052 }, "warm-elder": { on: "seat", at: 0.29, dx: 0.176 },
   "elder-woman": { on: "feet", at: 0 }, // painted on her own stool
-  "pat-warm-man": { on: "seat", at: 0.33, dx: 0.249 }, "pat-warm-woman": { on: "seat", at: 0.33, dx: 0.258 }, "pat-warm-boy": { on: "seat", at: 0.33, dx: 0.232 }, "pat-warm-girl": { on: "seat", at: 0.31, dx: 0.181 },
-  "pat-elder-man": { on: "seat", at: 0.3, dx: 0.257 }, "pat-elder-woman": { on: "seat", at: 0.3, dx: 0.205 },
-  "pat-write-man": { on: "seat", at: 0.36, dx: -0.204 }, "pat-write-woman": { on: "seat", at: 0.35, dx: -0.180 },
+  "pat-warm-man": { on: "seat", at: 0.33, dx: 0.169 }, "pat-warm-woman": { on: "seat", at: 0.33, dx: 0.178 }, "pat-warm-boy": { on: "seat", at: 0.33, dx: 0.152 }, "pat-warm-girl": { on: "seat", at: 0.31, dx: 0.101 },
+  "pat-elder-man": { on: "seat", at: 0.3, dx: 0.177 }, "pat-elder-woman": { on: "seat", at: 0.3, dx: 0.125 },
+  "pat-write-man": { on: "seat", at: 0.36, dx: -0.124 }, "pat-write-woman": { on: "seat", at: 0.35, dx: -0.100 },
   "stir": { on: "feet", at: 0 }, "stir-man": { on: "feet", at: 0 },
   "sleep": { on: "bed", at: 0 }, "sleep-child": { on: "bed", at: 0 },
 };
