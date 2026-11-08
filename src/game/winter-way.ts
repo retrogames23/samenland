@@ -38,17 +38,17 @@ function paint(kind: WayTex): HTMLCanvasElement | null {
     if (kind === "pack" || kind === "fringe") {
       // compacted snow: grey-beige, cloudy tone shifts, fine grain of trampled crystals
       const t = 0.55 * l + 0.3 * h + 0.15 * f;
-      r = 168 + t * 42; gg = 164 + t * 42; b = 154 + t * 46;
+      r = 150 + t * 75; gg = 146 + t * 75; b = 138 + t * 80;
       a = kind === "pack" ? 0.82 + (h - 0.5) * 0.3 : smooth(0.42, 0.62, 0.6 * l + 0.4 * h) * 0.75; // fringe: ragged, broken verge
     } else if (kind === "slush") {
       // earth and churned slush showing through only in scattered, irregular patches
-      const m = smooth(0.5, 0.68, 0.7 * patch(x, y) + 0.3 * h);
+      const m = smooth(0.44, 0.62, 0.6 * patch(x, y) + 0.4 * h);
       const wet = f;
       r = 92 + wet * 40; gg = 76 + wet * 30; b = 58 + wet * 24;
       a = m * (0.55 + f * 0.45);
     } else if (kind === "rut") {
       // darker, deeper-pressed snow with brown water in it — varies in strength, often breaks off
-      const m = smooth(0.4, 0.75, 0.65 * l + 0.35 * h);
+      const m = smooth(0.48, 0.72, 0.5 * l + 0.5 * h);
       r = 128 + f * 30; gg = 116 + f * 26; b = 100 + f * 22;
       a = m * (0.45 + 0.4 * f);
     } else {
@@ -64,7 +64,7 @@ function paint(kind: WayTex): HTMLCanvasElement | null {
 }
 
 /** World units covered by one repeat — large enough that no grid shows along a road. */
-const SPAN: Record<WayTex, number> = { pack: 64, fringe: 46, slush: 90, rut: 38, ice: 110 };
+const SPAN: Record<WayTex, number> = { pack: 40, fringe: 30, slush: 44, rut: 26, ice: 110 };
 const ANG: Record<WayTex, number> = { pack: 45, fringe: 63, slush: 21, rut: 45, ice: 72 };
 const pats = new Map<WayTex, CanvasPattern>();
 const M = typeof DOMMatrix !== "undefined" ? new DOMMatrix() : (null as unknown as DOMMatrix);
