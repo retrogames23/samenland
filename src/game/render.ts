@@ -848,7 +848,7 @@ export function chaikin(p: Pt[], rounds = 2): Pt[] {
   }
   return a;
 }
-type Ribbon = { path: Path2D; tufts: [number, number, number][]; blades?: Path2D; pebbles?: Path2D };
+type Ribbon = { path: Path2D; tufts: [number, number, number][]; blades?: Path2D; pebbles?: Path2D; pack?: Path2D; mud?: Path2D; dark?: Path2D; drift?: Path2D };
 // deterministic depth order with hysteresis: near-ties keep last frame's order, exact ties break by id
 const DEPTH_HYST = 0.75;
 const depthWas = new Map<string, number>();
@@ -903,8 +903,24 @@ function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], n
         const side = hash(hx, hy, 611) < 0.5 ? -1 : 1, off = 2.5 + hash(hx, hy, 612) * 0.9;
         tufts.push([x1 + nx * off * side, y1 + ny * off * side * 0.6, hash(hx, hy, 613)]);
       }
+      // winter wear, as irregular overlapping blots (never dashes): packed snow of wandering width,
+      // churned slush where wheels and hooves bite, darker wet earth, and snow tongues reaching in from the verge
+      for (let k = 1; k < seg.length; k++) {
+        const [x0, y0] = seg[k - 1]!, [x1, y1] = seg[k]!, d = Math.hypot(x1 - x0, y1 - y0) || 1;
+        const tx = (x1 - x0) / d, ty = (y1 - y0) / d, nx = -ty, ny = tx, ang = Math.atan2(ty, tx);
+        for (let u = 0; u < d; u += 1.1) {
+          const px = x0 + tx * u, py = y0 + ty * u, hx = Math.round(px * 4), hy = Math.round(py * 4);
+          const r1 = hash(hx, hy, 700), r2 = hash(hx, hy, 701), r3 = hash(hx, hy, 702), r4 = hash(hx, hy, 703);
+          const wob = (r1 - 0.5) * 1.1, w = 2.1 + r2 * 1.1;
+          winterPack.addPath(blot(px + nx * wob, py + ny * wob * 0.6, w * 1.15, w * 0.62, ang, r3));
+          if (r4 < 0.62) { const o = (r3 < 0.5 ? -1 : 1) * (0.4 + r1 * 1.3); winterMud.addPath(blot(px + nx * o, py + ny * o * 0.6, 0.7 + r2 * 1.5, 0.35 + r4 * 0.55, ang + (r1 - 0.5) * 0.6, r2)); }
+          if (r4 > 0.86) winterDark.addPath(blot(px + nx * (r2 - 0.5) * 1.6, py + ny * (r2 - 0.5), 0.5 + r3 * 0.8, 0.28 + r1 * 0.3, ang, r4));
+          if (r1 > 0.72) { const s = r2 < 0.5 ? -1 : 1, o = s * (1.6 + r3 * 0.9); winterDrift.addPath(blot(px + nx * o, py + ny * o * 0.6, 0.8 + r4 * 1.6, 0.4 + r3 * 0.5, ang + (r2 - 0.5), r1)); }
+        }
+      }
     }
-    rb = { path, tufts }; byKey.set(key, rb);
+    rb = { path, tufts, pack: winterPack, mud: winterMud, dark: winterDark, drift: winterDrift };
+    winterPack = new Path2D(); winterMud = new Path2D(); winterDark = new Path2D(); winterDrift = new Path2D(); byKey.set(key, rb);
     if (byKey.size > 250) byKey.delete(byKey.keys().next().value!);
   }
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
