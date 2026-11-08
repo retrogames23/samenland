@@ -190,7 +190,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
             ))}
           </aside>
           <div className="relative flex min-w-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 overflow-auto px-3 pb-2 pt-3 font-mono [mask-image:linear-gradient(to_bottom,transparent,black_1.25rem)] text-[13px] leading-snug">
+            <div className="selectable min-h-0 flex-1 overflow-auto px-3 pb-2 pt-3 font-mono [mask-image:linear-gradient(to_bottom,transparent,black_1.25rem)] text-[13px] leading-snug">
               {!userId && <div className="text-ink/60">{t.tavern.signIn}</div>}
               {userId && !shown.length && <div className="text-ink/60">{chan === "tavern" ? t.tavern.empty : t.tavern.emptyLetter}</div>}
               {shown.map((m) => (
