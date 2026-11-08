@@ -1777,6 +1777,42 @@ function skyTint(c: C, w: number, h: number): number {
   return night;
 }
 
+/** Display-only bitmap cache of each town's overview buildings: rebaked when its look can change (radius, step, resolution, purchases, season, coarse clock). */
+const OV_TICK = 30_000, OV_MAX = 48, OV_PX = 2048, OV_WARM = 15_000;
+const ovCache = new Map<string, { key: string; cv: HTMLCanvasElement | OffscreenCanvas; ox: number; oy: number; k: number }>();
+let ovT0 = -1;
+export function overviewKey(s: Pick<Seed, "id" | "bought">, Ri: number, step: number, k: number, now: number, warm = 0): string {
+  return `${s.id}|${Ri}|${step}|${k}|${s.bought?.length ?? 0}|${seasonKey(now)}|${Math.floor(now / OV_TICK)}|${warm}`;
+}
+function drawOverviewTown(c: C, s: Seed, Ri: number, step: number, z: number, ix: number, iy: number, now: number, paint: (g: C) => void): boolean {
+  if (typeof document === "undefined" && typeof OffscreenCanvas === "undefined") return false;
+  const pn = performance.now(); if (ovT0 < 0) ovT0 = pn;
+  const warm = pn - ovT0 < OV_WARM ? Math.floor(pn / 2000) : 0; // sprites still arriving: rebake every 2 s at first
+  const k = Math.min(4, 2 ** Math.ceil(Math.log2(Math.max(z, 1 / 64))));
+  const ox = ix - (Ri + 1) * TW, oy = iy - Ri * TH - 160;
+  const ww = 2 * (Ri + 1) * TW, hh = 2 * Ri * TH + 200;
+  const kk = Math.min(k, OV_PX / ww, OV_PX / hh);
+  const key = overviewKey(s, Ri, step, kk, now, warm);
+  let e = ovCache.get(s.id);
+  if (!e || e.key !== key) {
+    const W = Math.max(1, Math.ceil(ww * kk)), H = Math.max(1, Math.ceil(hh * kk));
+    let cv = e?.cv;
+    if (!cv || cv.width !== W || cv.height !== H) {
+      if (typeof document !== "undefined") { const el = document.createElement("canvas"); el.width = W; el.height = H; cv = el; }
+      else cv = new OffscreenCanvas(W, H);
+    }
+    const g = cv.getContext("2d") as C | null; if (!g) return false;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
+    g.setTransform(kk, 0, 0, kk, -ox * kk, -oy * kk);
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+    paint(g);
+    e = { key, cv, ox, oy, k: kk };
+    ovCache.delete(s.id); ovCache.set(s.id, e);
+    while (ovCache.size > OV_MAX) ovCache.delete(ovCache.keys().next().value!);
+  } else { ovCache.delete(s.id); ovCache.set(s.id, e); }
+  c.drawImage(e.cv as CanvasImageSource, e.ox, e.oy, e.cv.width / e.k, e.cv.height / e.k);
+  return true;
+}
 function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seeds: Seed[], now: number) {
   const z = cam.zoom * dpr;
   c.setTransform(1, 0, 0, 1, 0, 0);
@@ -1813,17 +1849,20 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
     // settled ground under the town
     c.beginPath(); c.ellipse(ix, iy, rr * 1.05, rr * 0.55, 0, 0, 7);
     c.fillStyle = "rgba(70,55,35,0.25)"; c.fill();
-    // the real buildings, at true scale, back to front
+    // the real buildings, at true scale, back to front — baked per town into a reusable bitmap
     const Ri = Math.ceil(R) + 1, step = cam.zoom < 0.12 && Ri > 14 ? 2 : 1;
-    for (let d = -2 * Ri; d <= 2 * Ri; d++) for (let x = s.x - Ri; x <= s.x + Ri; x += step) {
-      const y = s.x + s.y + d - x; if (y < s.y - Ri || y > s.y + Ri) continue;
-      const st = structureAt(x, y, seeds, now); if (!st) continue;
-      const [cx, cy] = iso(x, y);
-      if (st.kind === "field") { c.fillStyle = texture(c, fieldTex(x, y, st.seed, now)) ?? "#c9b46a"; diamond(c, cx, cy, step); c.fill(); }
-      else if (PATHLIKE.has(st.kind) || st.kind === "square") { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#bfa47a"; diamond(c, cx, cy, step * 0.8); c.fill(); }
-      else if (st.build !== undefined) drawSite(c, st, cx, cy, 0, false);
-      else if (!FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, FOOT2.has(st.kind) ? cy - TH / 2 : cy, st.v);
-    }
+    const paint = (g: C) => {
+      for (let d = -2 * Ri; d <= 2 * Ri; d++) for (let x = s.x - Ri; x <= s.x + Ri; x += step) {
+        const y = s.x + s.y + d - x; if (y < s.y - Ri || y > s.y + Ri) continue;
+        const st = structureAt(x, y, seeds, now); if (!st) continue;
+        const [cx, cy] = iso(x, y);
+        if (st.kind === "field") { g.fillStyle = texture(g, fieldTex(x, y, st.seed, now)) ?? "#c9b46a"; diamond(g, cx, cy, step); g.fill(); }
+        else if (PATHLIKE.has(st.kind) || st.kind === "square") { g.fillStyle = texture(g, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#bfa47a"; diamond(g, cx, cy, step * 0.8); g.fill(); }
+        else if (st.build !== undefined) drawSite(g, st, cx, cy, 0, false);
+        else if (!FLAT.has(st.kind)) drawBuildingSprite(g, st.kind, cx, FOOT2.has(st.kind) ? cy - TH / 2 : cy, st.v);
+      }
+    };
+    if (!drawOverviewTown(c, s, Ri, step, z, ix, iy, now, paint)) paint(c);
   }
   { // the prince's seat, at true scale like the towns
     const cs0 = courtSite();
@@ -3637,18 +3676,20 @@ export function draw(
     if (best < 0) f(); else addProp(best, () => f());
   };
   if (detail) for (const l of worldLinks) {
+    // off-screen road: none of its bridges can show (same margin as the span test below)
+    { const bx = roadBox(l); if (bx[2] < cs0x - 60 || bx[0] > cs1x + 60 || bx[3] < cs0y - 60 || bx[1] > cs1y + 60) continue; }
     const n = l.tiles.length;
     for (let i = 0; i < n; i++) {
       if (!l.water[i]) continue;
       let j = i; while (j + 1 < n && l.water[j + 1]) j++;
       const s0 = Math.max(0, i - 1), s1 = Math.min(n - 1, j + 1);
       const A = l.tiles[s0]!, B = l.tiles[s1]!;
-      const built = [s0, s1].every((k) => { const st = structureAt(l.tiles[k]![0], l.tiles[k]![1], seeds, now); return !!st && PATHLIKE.has(st.kind); })
-        && structureAt(l.tiles[i]![0], l.tiles[i]![1], seeds, now)?.kind === "bridge";
-      if (built) {
-        const [ax, ay] = iso(A[0], A[1]), [bx, by] = iso(B[0], B[1]);
-        if (Math.max(ax, bx) > cs0x - 60 && Math.min(ax, bx) < cs1x + 60 && Math.max(ay, by) > cs0y - 60 && Math.min(ay, by) < cs1y + 60)
-          bridgeInDepth(l.tiles.slice(i, j + 1), () => drawBridgeSpan(c, [ax, ay], [bx, by], A[0] * 31 + A[1], t));
+      const [ax, ay] = iso(A[0], A[1]), [bx, by] = iso(B[0], B[1]);
+      // cheap screen test first; the costly build-state lookups only run for visible crossings
+      if (Math.max(ax, bx) > cs0x - 60 && Math.min(ax, bx) < cs1x + 60 && Math.max(ay, by) > cs0y - 60 && Math.min(ay, by) < cs1y + 60) {
+        const built = [s0, s1].every((k) => { const st = structureAt(l.tiles[k]![0], l.tiles[k]![1], seeds, now); return !!st && PATHLIKE.has(st.kind); })
+          && structureAt(l.tiles[i]![0], l.tiles[i]![1], seeds, now)?.kind === "bridge";
+        if (built) bridgeInDepth(l.tiles.slice(i, j + 1), () => drawBridgeSpan(c, [ax, ay], [bx, by], A[0] * 31 + A[1], t));
       }
       i = j;
     }
