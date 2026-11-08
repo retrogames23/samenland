@@ -2728,7 +2728,7 @@ export function Game() {
         </Panel>
       </div>
       <Survey userId={userId} lang={lang} />
-      {stube && <Stube seed={stube.seed} seeds={seeds} residents={stube.residents} family={stube.residents.find((p) => p.role === "head")?.last ?? stube.residents[0]?.last ?? stube.seed.name} lang={lang} onClose={() => setStube(null)} />
+      {stube && <Stube seed={stube.seed} seeds={seeds} residents={stube.residents} family={stube.residents.find((p) => p.role === "head")?.last ?? stube.residents[0]?.last ?? stube.seed.name} lang={lang} onClose={() => setStube(null)} />}
 
       {plantAsk && (() => {
         const [px, py] = plantAsk;
