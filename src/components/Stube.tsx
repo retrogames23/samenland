@@ -233,7 +233,7 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
   const [places, setPlaces] = useState<StubePlace[]>(() => stubeOf(residents, seed, seeds, clock(), L0.slots));
   useEffect(() => { const id = setInterval(() => setPlaces(stubeOf(residents, seed, seeds, clock(), L0.slots)), 2000); return () => clearInterval(id); }, [residents, seed, seeds, L0]);
   // never in lockstep: housemates have neighbouring ids, so each figure gets a hashed tempo and a golden-ratio phase offset in the room
-  const figs = useMemo(() => places.map((pl, i) => { const f = L0.seat(pl); if (!f) return null; const u = (Math.imul(pl.p.id | 0, 2654435761) >>> 0) / 4294967296; return { ...f, ph: f.ph + u * 9 + i * 2.618, rate: 0.82 + ((u * 7.31) % 1) * 0.36 }; }).filter((f): f is Fig => !!f).sort((a, b) => a.y - b.y), [places, L0]);
+  const figs = useMemo(() => places.map((pl, i): Fig | null => { const f = L0.seat(pl); if (!f) return null; const u = (Math.imul(pl.p.id | 0, 2654435761) >>> 0) / 4294967296; return { ...f, ph: f.ph + u * 9 + i * 2.618, rate: 0.82 + ((u * 7.31) % 1) * 0.36 }; }).filter((f): f is Fig => !!f).sort((a, b) => a.y - b.y), [places, L0]);
   useEffect(() => {
     const cv = ref.current; if (!cv) return;
     const g = cv.getContext("2d"); if (!g) return;
