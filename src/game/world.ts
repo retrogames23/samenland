@@ -1101,6 +1101,10 @@ export function effAge(s: Seed, seeds: Seed[], now: number) {
   if (v === undefined) { v = effAgeBase(s, seeds, now) + twinHours(s, seeds, now) * GROWTH_PACE; c.m.set(s.id, v); }
   return v;
 }
+/** Display-only age for drawing (culling radius, overview, robber path): the clock rounded to VIEW_AGE_STEP so every frame
+ *  in the window hits the effAge memo. Never use it for growth, tax, rank or anything mirrored by the server. */
+export const VIEW_AGE_STEP = 2000;
+export const viewAge = (s: Seed, seeds: Seed[], now: number) => effAge(s, seeds, Math.floor(now / VIEW_AGE_STEP) * VIEW_AGE_STEP);
 function effAgeBase(s: Seed, seeds: Seed[], now: number) {
   let h = ageHours(s, now) + blessHours(s, now) + boonHours(s.decisions ?? [], now);
   if (s.charter?.path === "farm" && now > s.charter.at) h += (now - s.charter.at) / 3.6e6 * FARM_BONUS;
