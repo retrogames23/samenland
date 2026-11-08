@@ -930,10 +930,10 @@ function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], n
     if (fr && pk && rt && sl && ic) {
       c.strokeStyle = fr; c.globalAlpha = 0.85 * fresh + 0.1; c.lineWidth = 7.6; c.stroke(rb.path);
       c.strokeStyle = pk; c.globalAlpha = 0.85 * fresh + 0.15; c.lineWidth = 5.6; c.stroke(rb.path);
-      c.strokeStyle = rt; c.lineWidth = 2.2; c.globalAlpha = 0.85 * fresh; c.stroke(rb.rutA!);
-      c.lineWidth = 1.8; c.globalAlpha = 0.65 * fresh; c.stroke(rb.rutB!);
-      c.strokeStyle = sl; c.lineWidth = 4.4; c.globalAlpha = (ws === 1 ? 1 : ws === 2 ? 0.85 : 0.5); c.stroke(rb.path);
-      c.strokeStyle = ic; c.lineWidth = 4.4; c.globalAlpha = 0.7; c.stroke(rb.path);
+      c.strokeStyle = sl; c.lineWidth = 4.4; c.globalAlpha = (ws === 1 ? 1 : ws === 2 ? 0.8 : 0.45); c.stroke(rb.path);
+      c.strokeStyle = rt; c.lineWidth = 1.6; c.globalAlpha = 0.9 * fresh; c.stroke(rb.rutA!);
+      c.lineWidth = 1.4; c.globalAlpha = 0.75 * fresh; c.stroke(rb.rutB!);
+      c.strokeStyle = ic; c.lineWidth = 4.4; c.globalAlpha = 0.4; c.stroke(rb.path);
       c.globalAlpha = 1;
     }
   } else {
@@ -3472,7 +3472,7 @@ function winterTrack(c: C, x: number, y: number, cx: number, cy: number, con: [n
   for (const [i, j] of con) { const m = pp(i * 0.5, j * 0.5); line.moveTo(cx, cy); line.lineTo(m[0], m[1]); }
   c.strokeStyle = fr; c.globalAlpha = 0.85 * fresh + 0.1; c.lineWidth = wBase * 1.35; c.stroke(line);
   c.strokeStyle = pk; c.globalAlpha = 0.8 * fresh + 0.2; c.lineWidth = wBase * 0.9; c.stroke(line);
-  c.strokeStyle = sl; c.globalAlpha = ws === 1 ? 0.95 : ws === 2 ? 0.7 : 0.35; c.lineWidth = wBase * 0.6; c.stroke(line);
+  c.strokeStyle = sl; c.globalAlpha = ws === 1 ? 0.9 : ws === 2 ? 0.65 : 0.3; c.lineWidth = wBase * 0.6; c.stroke(line);
   c.globalAlpha = 1;
 }
 /** Flat ground dressing of one tile (turf, ore rocks, paths, squares, acres) — drawn live or baked into a flat chunk. */
