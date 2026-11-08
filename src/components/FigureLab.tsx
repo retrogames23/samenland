@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { drawLabFigure, labCatalog, type LabCat } from "@/game/render";
 import { clock, worldHour } from "@/game/time";
 import type { WeatherKind } from "@/game/weather";
+import NightMaskLab from "./NightMaskLab";
 
 const CATS: { k: LabCat | "all"; label: string }[] = [
   { k: "all", label: "Alle" }, { k: "mayor", label: "Schulzen" }, { k: "court", label: "Hofstaat" },
   { k: "folk", label: "Männer" }, { k: "robe", label: "Frauen & Gewänder" }, { k: "kids", label: "Kinder" }, { k: "animal", label: "Tiere & Jagd" }, { k: "feast", label: "Feste" }, { k: "road", label: "Straße & Werkstatt" },
 ];
+const MASKS = "masks" as const;
 const WEATHERS: { k: WeatherKind | null; label: string }[] = [{ k: null, label: "Trocken" }, { k: "drizzle", label: "Regen" }, { k: "storm", label: "Sturm" }, { k: "snow", label: "Schnee" }];
 const SPEEDS = [0, 0.25, 0.5, 1, 2];
 const CYCLE = 4 * Math.PI; // two full leg cycles on the scrubber
@@ -14,7 +16,7 @@ const CYCLE = 4 * Math.PI; // two full leg cycles on the scrubber
 /** Dev overlay (key P in dev or with ?figs): scrollable gallery of every figure and animal, click one to inspect it with free zoom/pan. */
 export default function FigureLab({ onClose }: { onClose: () => void }) {
   const all = useMemo(() => labCatalog().map((e, i) => ({ ...e, i })), []);
-  const [cat, setCat] = useState<LabCat | "all">("all"), [q, setQ] = useState("");
+  const [cat, setCat] = useState<LabCat | "all" | typeof MASKS>("all"), [q, setQ] = useState("");
   const [boxes, setBoxes] = useState(false), [lines, setLines] = useState(true);
   const [speed, setSpeed] = useState(1), [card, setCard] = useState(130), [sel, setSel] = useState<number | null>(null);
   const [phase, setPhase] = useState(0), [weather, setWeather] = useState<WeatherKind | null>(null);
@@ -98,6 +100,7 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
         {sel == null && CATS.map((c) => (
           <button key={c.k} className={`${btn} ${cat === c.k ? on : ""}`} onClick={() => setCat(c.k)}>{c.label}</button>
         ))}
+        {sel == null && <button className={`${btn} ${cat === MASKS ? on : ""}`} onClick={() => setCat(MASKS)}>Nachtmasken</button>}
         {sel == null && <input className="w-36 rounded-md border border-border bg-card px-2 py-1 text-card-foreground" placeholder="Suchen…" value={q} onChange={(e) => setQ(e.target.value)} />}
         {sel != null && <>
           <button className={btn} onClick={() => open(null)}>← Übersicht</button>
@@ -119,7 +122,7 @@ export default function FigureLab({ onClose }: { onClose: () => void }) {
         </span>
       </header>
 
-      {sel == null ? (
+      {cat === MASKS && sel == null ? <NightMaskLab /> : sel == null ? (
         <div className="flex-1 overflow-y-auto p-3">
           {rows.map((r) => (
             <section key={r.row} className="mb-4">
