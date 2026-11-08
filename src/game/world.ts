@@ -1015,6 +1015,11 @@ function buildLink(a: Seed, b: Seed, d: number): Link | null {
 /** 0..1 how much of the road exists. */
 export const roadProgress = (l: Link, now: number) => Math.max(0, Math.min(1, (now - l.since) / (l.build ?? ROAD_BUILD * 3.6e6)));
 
+/** Seed a road tile is credited to (link.a), regardless of build progress — for exact pre-filters only. */
+export function roadOwnerAt(x: number, y: number, seeds: Seed[]): string | null {
+  links(seeds);
+  return roadIdx.get(y * MAP + x)?.link.a.id ?? null;
+}
 function roadAt(x: number, y: number, seeds: Seed[], now: number) {
   links(seeds);
   const r = roadIdx.get(y * MAP + x);

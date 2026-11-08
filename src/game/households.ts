@@ -36,10 +36,10 @@ export function townTiles(s: Seed, seeds: Seed[], now: number) {
   const x0 = Math.floor(s.x - r - 2), x1 = Math.ceil(s.x + r + 2), y0 = Math.floor(s.y - r - 2), y1 = Math.ceil(s.y + r + 2);
   const byKind = new Map<Kind, HomeTile[]>(), sites: HomeTile[] = [];
   // Exact pre-filter: structureAt only gives this town a tile inside townDist <= rad + 0.5,
-  // unless the tile is one of its bought sites or a twin-town site — those are always checked.
+  // unless the tile is one of its bought sites, a twin-town site or a trade-road tile credited to it — those are always checked.
   const own = specialSites(s), twins = twinSites(seeds, now);
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    if (townDist(x, y, s) > rad + 0.5) { const k = y * MAP + x; if (!own.has(k) && twins.get(k)?.seed.id !== s.id) continue; }
+    if (townDist(x, y, s) > rad + 0.5) { const k = y * MAP + x; if (!own.has(k) && twins.get(k)?.seed.id !== s.id && roadOwnerAt(x, y, seeds) !== s.id) continue; }
     const st = structureAt(x, y, seeds, now);
     if (!st || st.seed.id !== s.id) continue;
     if (st.build !== undefined) { sites.push([x, y]); continue; }
