@@ -1813,17 +1813,20 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
     // settled ground under the town
     c.beginPath(); c.ellipse(ix, iy, rr * 1.05, rr * 0.55, 0, 0, 7);
     c.fillStyle = "rgba(70,55,35,0.25)"; c.fill();
-    // the real buildings, at true scale, back to front
+    // the real buildings, at true scale, back to front — baked per town into a reusable bitmap
     const Ri = Math.ceil(R) + 1, step = cam.zoom < 0.12 && Ri > 14 ? 2 : 1;
-    for (let d = -2 * Ri; d <= 2 * Ri; d++) for (let x = s.x - Ri; x <= s.x + Ri; x += step) {
-      const y = s.x + s.y + d - x; if (y < s.y - Ri || y > s.y + Ri) continue;
-      const st = structureAt(x, y, seeds, now); if (!st) continue;
-      const [cx, cy] = iso(x, y);
-      if (st.kind === "field") { c.fillStyle = texture(c, fieldTex(x, y, st.seed, now)) ?? "#c9b46a"; diamond(c, cx, cy, step); c.fill(); }
-      else if (PATHLIKE.has(st.kind) || st.kind === "square") { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#bfa47a"; diamond(c, cx, cy, step * 0.8); c.fill(); }
-      else if (st.build !== undefined) drawSite(c, st, cx, cy, 0, false);
-      else if (!FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, FOOT2.has(st.kind) ? cy - TH / 2 : cy, st.v);
-    }
+    const paint = (g: C) => {
+      for (let d = -2 * Ri; d <= 2 * Ri; d++) for (let x = s.x - Ri; x <= s.x + Ri; x += step) {
+        const y = s.x + s.y + d - x; if (y < s.y - Ri || y > s.y + Ri) continue;
+        const st = structureAt(x, y, seeds, now); if (!st) continue;
+        const [cx, cy] = iso(x, y);
+        if (st.kind === "field") { g.fillStyle = texture(g, fieldTex(x, y, st.seed, now)) ?? "#c9b46a"; diamond(g, cx, cy, step); g.fill(); }
+        else if (PATHLIKE.has(st.kind) || st.kind === "square") { g.fillStyle = texture(g, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#bfa47a"; diamond(g, cx, cy, step * 0.8); g.fill(); }
+        else if (st.build !== undefined) drawSite(g, st, cx, cy, 0, false);
+        else if (!FLAT.has(st.kind)) drawBuildingSprite(g, st.kind, cx, FOOT2.has(st.kind) ? cy - TH / 2 : cy, st.v);
+      }
+    };
+    if (!drawOverviewTown(c, s, Ri, step, z, ix, iy, now, paint)) paint(c);
   }
   { // the prince's seat, at true scale like the towns
     const cs0 = courtSite();
