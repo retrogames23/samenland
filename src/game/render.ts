@@ -19,6 +19,7 @@ import pigWalkUrl from "@/assets/sprites/pig-walk.webp";
 import pigRootUrl from "@/assets/sprites/pig-root.webp";
 import boarRootUrl from "@/assets/sprites/boar-root.webp";
 import pondUrl from "@/assets/sprites/pond.webp";
+import pondWinterUrl from "@/assets/sprites/pond-winter.webp";
 import flowerTuftUrl from "@/assets/sprites/flower-tuft.webp";
 import pastureCloverUrl from "@/assets/sprites/pasture-clover.webp";
 import gardenCabbageUrl from "@/assets/sprites/garden-cabbage.webp";
@@ -3380,13 +3381,18 @@ function sparePlanted(x: number, y: number, st: Structure | null): Structure | n
   if (!st || KEEP_KINDS.has(st.kind)) return st;
   return isPlantedRare(plantedNow, x, y) ? null : st;
 }
-/** Dug carp pond beside a dry-land fishery: earthen rim, still water, lily pads and reeds. */
+/** Dug carp pond beside a dry-land fishery: earthen dam rim, sluice board, reeds, carp; frozen with snow in winter.
+ *  The art is a 2:1 footprint (480x239) drawn exactly one tile wide, so the rim never leaves its tile. */
 function drawPond(c: C, x: number, y: number, cx: number, cy: number) {
   const im = huntIm("pond", pondUrl);
-  if (im) { // painted pond, mirrored per tile so neighbouring ponds differ
-    const w = TW * 0.98, h = (w * im.naturalHeight) / im.naturalWidth, fl = hash(x, y, 91) < 0.5;
-    if (!fl) { c.drawImage(im, cx - w / 2, cy - h * 0.55, w, h); return; }
-    const B = c.getTransform(); c.translate(cx, 0); c.scale(-1, 1); c.drawImage(im, -w / 2, cy - h * 0.55, w, h); c.setTransform(B); return;
+  if (im) {
+    const w = TW, h = (w * im.naturalHeight) / im.naturalWidth, fl = hash(x, y, 91) < 0.5, top = cy - h * 0.56;
+    const sw = seasonAt(renderNow), ice = huntIm("pondWinter", pondWinterUrl);
+    const B = c.getTransform();
+    if (fl) { c.translate(cx * 2, 0); c.scale(-1, 1); }
+    c.drawImage(seasonalImage(im, "ground"), cx - w / 2, top, w, h);
+    if (ice && sw.winter > 0.02) { const a = c.globalAlpha; c.globalAlpha = a * Math.min(1, sw.winter * 1.4); c.drawImage(ice, cx - w / 2, top, w, h); c.globalAlpha = a; }
+    c.setTransform(B); return;
   }
   const rx = TW * 0.4, ry = TH * 0.4;
   c.fillStyle = "rgba(92,72,44,0.55)"; c.beginPath(); c.ellipse(cx, cy + 0.6, rx + 1.6, ry + 1.1, 0, 0, 7); c.fill();
