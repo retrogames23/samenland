@@ -31,7 +31,7 @@ export function Parchment({ image, title, later, onLater, wide, action, children
           </button>
         </div>
         {image && (
-          <img src={image} alt="" width={768} height={480} className="parchment-art mx-auto block aspect-[16/10] max-h-[22dvh] w-full object-cover sm:max-h-[36vh]" />
+          <img src={image} alt="" width={768} height={480} className="parchment-art mx-auto block aspect-[16/10] max-h-[22dvh] w-full object-cover object-[50%_15%] sm:max-h-[36vh]" />
         )}
         <div className="px-5 pb-5 pt-2 sm:px-8">
           <h2 className="text-center font-display text-4xl leading-none text-ink max-md:text-3xl">{title}</h2>
