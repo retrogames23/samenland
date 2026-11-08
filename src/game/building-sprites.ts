@@ -247,9 +247,9 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   seat1: { url: seat1, crop: [0, 0, 480, 439], width: 22, base: 4 },
   seat2: { url: seat2, crop: [0, 0, 480, 446], width: 26, base: 4 },
   seat3: { url: seat3, crop: [0, 0, 372, 480], width: 26, base: 4 },
-  manufactory: { url: manufactory, crop: [0, 0, 480, 479], width: 31, base: 4 },
+  manufactory: { url: manufactory, crop: [0, 0, 480, 480], width: 31, base: 4 },
   steamworks: { url: steamworks, crop: [0, 0, 480, 480], width: 27, base: 4 },
-  station: { url: station, crop: [0, 0, 418, 480], width: 27, base: 4 },
+  station: { url: station, crop: [0, 0, 416, 480], width: 27, base: 4 },
   suburb: { url: patrician, crop: [0, 0, 340, 480], width: 20, base: 4 },
   farmhouse: { url: farmhouse, crop: [0, 0, 480, 326], width: 22, base: 6.5 },
   cottage: { url: cottage, crop: [0, 0, 480, 385], width: 21.5, base: 4.4 },
@@ -367,7 +367,7 @@ export function spriteBox(kind: Kind, variant: number, style?: HouseStyle): { w:
 /** Paintings that already carry painted ground (yard, paving, garden, stacks) — every other building gets a soft contact
  * shadow derived from its own silhouette, so hard-cut plinths never float. Keys: kind, `<style>-<kind>`, `<style>-<kind>-<slot>`. */
 const GROUNDED = new Set(["campfire", "coop", "fence", "chapel", "barn", "villa", "tenement", "sawmill", "beginenhof", "orangery", "stonemason", "saltquay", "herbhut", "woodcamp",
-  "infirmary", "firehouse", "guardhouse", "school", "university", "exchange", "lighthouse", "hay", "well", "market", "steinhaus", "steamworks",
+  "infirmary", "firehouse", "guardhouse", "school", "university", "exchange", "lighthouse", "hay", "well", "market", "steinhaus",
   "workshop-cottage", "workshop-farmhouse", "workshop-villa", "workshop-steinhaus",
   "gateway-cottage", "gateway-villa", "gateway-steinhaus", "gateway-farmhouse-3"]);
 const paintingKey = (kind: Kind, style: HouseStyle | undefined, variant: number) => {
