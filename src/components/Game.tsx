@@ -309,6 +309,7 @@ export function Game() {
   const [hover, setHover] = useState<[number, number] | null>(null);
   const tileInfoRef = useRef<HTMLDivElement>(null);
   const tileInfoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openCard = useRef(false);
   // tile facts are written straight into the fixed bottom-left strip, so pointer moves never re-render the HUD
   const showTileInfo = (nt: [number, number], fade?: number) => {
     const box = tileInfoRef.current; if (!box || openCard.current) return;
@@ -458,6 +459,7 @@ export function Game() {
   useEffect(() => setEditMayor(false), [who?.id]);
   const [place, setPlace] = useState<Inspect | null>(null);
   // an open person/house card owns the bottom edge: the tile strip must never cover its buttons
+  openCard.current = !!(who || place);
   useEffect(() => { if (who || place) hideTileInfo(); }, [who, place]);
   /** Schaukasten: lens toggle and the opened farmhouse diorama (local only, nothing stored). */
   const [lens, setLens] = useState(false);
