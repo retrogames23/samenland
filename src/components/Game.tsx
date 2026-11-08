@@ -1783,12 +1783,10 @@ export function Game() {
   const quest = heads.find((h) => h.track === questTrack) ?? [...heads].sort((a, b) => a.index - b.index).find((h) => h.ready) ?? [...heads].sort((a, b) => a.index - b.index)[0] ?? null;
   const questText = quest && my ? (t.quests.list[questKey(quest.quest, wayOf(my))] ?? t.quests.list[quest.quest]!).map((x) => addr(x)) as typeof t.quests.list[string] : null;
   const petition = quest && my ? petitionOf(quest.quest, lang, questKey(quest.quest, wayOf(my)) !== quest.quest, myTown?.people, addr) : null;
-  const questHow = () => {
-    if (!quest || !my) return;
-    const tabs: Partial<Record<Quest, Tab>> = { bless: "rituals", bless7: "rituals", build: "build", buy3: "build", buy6: "build", metro: "build", sign: "signs", gift: "towns", gifts5: "towns", road: "build", roads2: "build" };
-    const tb = tabs[quest.quest];
-    if (tb) setTab(tb); else { focus(my.x, my.y); setMsg(questText![1]); }
-  };
+  // only quests with a menu that actually helps get a "show me how" button; others would just repeat the card text
+  const QUEST_TAB: Partial<Record<Quest, Tab>> = { bless: "rituals", bless7: "rituals", build: "build", buy3: "build", buy6: "build", metro: "build", sign: "signs", gift: "towns", gifts5: "towns", road: "build", roads2: "build" };
+  const questTab = quest ? QUEST_TAB[quest.quest] : undefined;
+  const questHow = () => { if (questTab) setTab(questTab); };
   const claimQuest = async () => {
     if (!my || !userId || !quest?.ready) return;
     setQuestOpen(false); jingle("fanfare");
@@ -3059,7 +3057,7 @@ export function Game() {
                 <div className="text-end text-xs opacity-70">{t.quests.reward(quest.reward)}</div>
                 {quest.ready
                   ? <Button size="sm" className="h-7 w-full" onClick={() => setQuestOpen(true)}>{t.quests.claim}</Button>
-                  : <Button size="sm" variant="outline" className="h-7 w-full" onClick={questHow}>{t.quests.how}</Button>}
+                  : questTab ? <Button size="sm" variant="outline" className="h-7 w-full" onClick={questHow}>{t.quests.how}</Button> : null}
               </div>
             )}
           </div>
