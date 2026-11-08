@@ -37,7 +37,7 @@ export function LoadingScreen({ title, lines, onDone }: { title: string; lines: 
   return (
     <div className={`absolute inset-0 z-50 grid place-items-center bg-background p-4 transition-opacity duration-500 ${fade ? "pointer-events-none opacity-0" : "opacity-100"}`}>
       <div className="parchment w-full max-w-md overflow-hidden">
-        {ART["guide"] && <img src={ART["guide"]} alt="" width={768} height={480} className="parchment-art block aspect-[16/10] w-full object-cover" />}
+        {ART["guide"] && <img src={ART["guide"]} alt="" width={768} height={480} className="parchment-art block aspect-[16/10] w-full object-cover object-[50%_15%]" />}
         <div className="px-6 pb-6 pt-3 text-center text-ink">
           <h1 className="font-display text-5xl leading-none">{title}</h1>
           <p className="mt-2 min-h-[1.5em] italic opacity-80">{lines[line % lines.length]}</p>
