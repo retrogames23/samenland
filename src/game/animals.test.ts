@@ -38,3 +38,16 @@ describe("animal night rest", () => {
     expect(poses.every(p => !p.sleeping)).toBe(true);
   });
 });
+import { herdAt, COW_SHARE } from "./animals";
+import { terrain } from "./world";
+describe("pasture herds", () => {
+  it("hill pastures keep sheep, lowland pastures are mostly cattle", () => {
+    let low = 0, cows = 0;
+    for (let x = 100; x < 400; x += 3) for (let y = 100; y < 400; y += 3) {
+      const t = terrain(x, y);
+      if (t === "hill") expect(herdAt(x, y)).toBe("sheep");
+      if (t === "meadow" || t === "grass" || t === "fertile") { low++; if (herdAt(x, y) === "cow") cows++; }
+    }
+    expect(Math.abs(cows / low - COW_SHARE)).toBeLessThan(0.05);
+  });
+});

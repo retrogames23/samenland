@@ -1,3 +1,4 @@
+import { herdAt } from "./animals";
 // Pure hover facts for one tile: what is there, which animals live on it, and its effect on play.
 import { terrain, isWater, riverDistAt, resourceAt, structureAt, acreOf, specialTile, type Seed, type Terrain } from "./world";
 import { roleOf } from "./rotation";

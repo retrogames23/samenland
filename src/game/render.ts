@@ -9,7 +9,7 @@ import hunterCarryUrl from "@/assets/sprites/folk/hunter-carry.webp";
 import henUrl from "@/assets/sprites/hen.webp";
 import gullUrl from "@/assets/sprites/gull.webp";
 import crowUrl from "@/assets/sprites/crow.webp";
-import { animalsSleeping } from "./animals";
+import { animalsSleeping, herdAt } from "./animals";
 import { drawParchment } from "./parchment";
 import cowUrl from "@/assets/sprites/cow.webp";
 import cowWalkUrl from "@/assets/sprites/cow-walk.webp";
