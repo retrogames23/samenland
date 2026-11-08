@@ -17,6 +17,7 @@
 - Inaugurations (inauguration() in people.ts): villagers gather before a landmark for FETE_SECS after effAge passes its `at`; derived from clock, never stored.
 - Personal space (src/game/space.ts): footprints + a pure separation pass at draw time (people vs. people/sheep, keep-right on roads); collisions are derived per frame, never stored — all clients agree.
 
+- Lying snow (snowCover in weather.ts, read via snowCoverAt in season.ts) is derived from the past five days of weather slots and drives snow on ground, trees, roofs and ways; never stored, so all clients see the same snow.
 - Calendar weights live in season.ts using UTC; season-art.ts caches alpha-preserving recolored images and nature/overview caches include the season key, so seasonal changes remain consistent without per-frame pixel processing.
 - Goods hauling (Person.haul in people.ts) is derived from jobs and nearby buildings and animated as a pure clock cycle; never store goods or stock — all clients see the same carriers.
 - Traffic and villagers use pure motion.ts headings and N-1 road segments to prevent facing flicker and overshoot.
@@ -29,7 +30,7 @@
 - Feast props (door greenery, egg baskets, masks, torches, Corpus Christi canopy) and feast banter (lang/banter-feast.ts) derive from feastOn + realm hour in render.ts/banter.ts; only the per-account overlay receipt (feast_reads, merged with localStorage) is stored.
 - Hofstellen (world.ts barnOfYard): a roadside barn stays only beside a farmhouse and never next to another barn, otherwise it becomes a dwelling; a farmhouse with a yard barn gets YARD_HAND extra resident in households.ts — only ever adds homes, so no town loses residents.
 - Organic house sites use the fixed HOUSE_BUILD phase (world.ts), never age-scaled buildTime: big towns slow by building less often, not by slower sites; landmarks keep buildTime.
-- Admin control desk (lab-ctl.ts + hud/LabDesk.tsx): local localStorage overrides/triggers for weather, feast, wedding, fire, flood, raid; every getter returns null outside realm "lab", so public maps and DB mirrors are never touched.
+- Admin control desk (lab-ctl.ts + hud/LabDesk.tsx): local localStorage overrides/triggers for weather, season, feast, wedding, fire, flood, raid; every getter returns null outside realm "lab", so public maps and DB mirrors are never touched.
 - Map overflow: realm europe-2 (Elbwerder) shares Altenland's flora (biome elbe, LOOK null) with its own heightElbe; uninvited newcomers without a village land there once europe holds EUROPE_FULL seeds (time.ts, checked in Game.tsx) — invites and existing homes always win.
 - Display-only age: render.ts reads town radius via viewAge (world.ts, clock rounded to VIEW_AGE_STEP) so frames hit the effAge memo; mechanics, tax and rank always call exact effAge. townTiles skips tiles beyond townDist > radius+0.5 unless they are own bought sites, own twin sites or roads credited to the town (roadOwnerAt) — exact, keeps results identical.
 - Overview town bitmaps (drawOverviewTown/overviewKey in render.ts) are display-only caches keyed by radius, step, resolution, purchases, season and a 30 s tick; bridge checks cull by roadBox and screen span before structureAt — never inputs to mechanics.
