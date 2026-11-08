@@ -228,86 +228,87 @@ import gatewayPatrician2Light from "@/assets/sprites/cohesive/night/gateway-patr
 import gatewayPatrician3 from "@/assets/sprites/cohesive/gateway-patrician-3.webp";
 import gatewayPatrician3Light from "@/assets/sprites/cohesive/night/gateway-patrician-3.webp";
 
-const nightUrls: Partial<Record<Kind, string>> = { badestube: badestubeLight, bakery: bakeryLight, barn: barnLight, chapel: chapelLight, church: churchLight, cottage: cottageLight, dairy: dairyLight, factory: factoryLight, farmhouse: farmhouseLight, fishery: fisheryLight, lodge: lodgeLight, herbhut: herbhutLight, woodcamp: woodcampLight, granary: granaryLight, guildhall: guildhallLight, harbor: harborLight, hut: hutLight, infirmary: infirmaryLight, firehouse: firehouseLight, guardhouse: guardhouseLight, inn: innLight, library: libraryLight, manufactory: manufactoryLight, markethall: markethallLight, mill: millLight, sawmill: sawmillLight, school: schoolLight, belfry: belfryLight, theater: theaterLight, opera: operaLight, university: universityLight, exchange: exchangeLight, orangery: orangeryLight, harvesthall: harvesthallLight, guildtower: guildtowerLight, lighthouse: lighthouseLight, smithy: smithyLight, station: stationLight, steamworks: steamworksLight, suburb: patricianLight, townhall: townhallLight, seat1: seat1Light, seat2: seat2Light, seat3: seat3Light, townhouse: townhouseLight, townhouse2: townhouse2Light, fachwerk: fachwerkLight, steinhaus: steinhausLight, handwerker: handwerkerLight, patrician: patricianLight, villa: villaLight, tenement: tenementLight, gatehouse: gatehouseLight, warehouse: warehouseLight, watermill: watermillLight, workshop: workshopLight, bigstore: bigstoreLight, millrow: millrowLight, stonemason: stonemasonLight, hammerworks: hammerworksLight, smokehouse: smokehouseLight, saltquay: saltquayLight, backhaus: backhausLight, herberge: herbergeLight, beginenhof: beginenhofLight };
-const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
-export const hasNightSprite = (kind: Kind) => Boolean(nightUrls[kind]);
 
-type Sprite = { url: string; crop: [number, number, number, number]; width: number; base: number; image?: HTMLImageElement };
+/** `night`: aligned light-only mask (same crop) or null = deliberately unlit. Single source of day/night pairs. */
+type Sprite = { url: string; night: string | null; crop: [number, number, number, number]; width: number; base: number; image?: HTMLImageElement };
 // Alpha bounds remove unequal transparent margins. Width is in world pixels, not screen pixels.
 const sprites: Partial<Record<Kind, Sprite>> = {
-  campfire: { url: campfire, crop: [0, 0, 480, 346], width: 7, base: 2.4 },
-  hut: { url: hut, crop: [0, 0, 480, 392], width: 17, base: 4.6 },
-  coop: { url: coop, crop: [0, 0, 480, 450], width: 10, base: 4 },
-  fence: { url: fence, crop: [0, 0, 480, 236], width: 11, base: 3 },
-  chapel: { url: chapel, crop: [0, 0, 474, 480], width: 21, base: 4 },
-  watermill: { url: watermill, crop: [0, 0, 480, 478], width: 28, base: 4 },
-  harbor: { url: harbor, crop: [0, 0, 480, 427], width: 26, base: 4 },
-  stall: { url: stall, crop: [0, 0, 480, 480], width: 10, base: 4 },
-  townhall: { url: townhall, crop: [0, 0, 423, 480], width: 31, base: 4 },
-  seat1: { url: seat1, crop: [0, 0, 480, 439], width: 22, base: 4 },
-  seat2: { url: seat2, crop: [0, 0, 480, 446], width: 26, base: 4 },
-  seat3: { url: seat3, crop: [0, 0, 372, 480], width: 26, base: 4 },
-  manufactory: { url: manufactory, crop: [0, 0, 480, 480], width: 31, base: 4 },
-  steamworks: { url: steamworks, crop: [0, 0, 480, 480], width: 27, base: 4 },
-  station: { url: station, crop: [0, 0, 416, 480], width: 27, base: 4 },
-  suburb: { url: patrician, crop: [0, 0, 340, 480], width: 20, base: 4 },
-  farmhouse: { url: farmhouse, crop: [0, 0, 480, 326], width: 22, base: 6.5 },
-  cottage: { url: cottage, crop: [0, 0, 480, 385], width: 21.5, base: 4.4 },
-  barn: { url: barn, crop: [0, 0, 475, 480], width: 15, base: 5 },
-  church: { url: church, crop: [0, 0, 428, 480], width: 32, base: 5 },
-  mill: { url: mill, crop: [0, 0, 477, 779], width: 16, base: 4 },
-  inn: { url: inn, crop: [0, 0, 480, 427], width: 26, base: 5 },
-  bakery: { url: bakery, crop: [0, 0, 480, 422], width: 23, base: 5 },
-  townhouse: { url: townhouse, crop: [0, 0, 252, 480], width: 17, base: 4 },
-  townhouse2: { url: townhouse2, crop: [0, 0, 291, 480], width: 17, base: 4 },
-  fachwerk: { url: fachwerk, crop: [0, 0, 480, 413], width: 23, base: 4 },
-  steinhaus: { url: steinhaus, crop: [0, 0, 334, 480], width: 19, base: 4 },
-  handwerker: { url: handwerker, crop: [0, 0, 480, 445], width: 21, base: 4 },
-  patrician: { url: patrician, crop: [0, 0, 340, 480], width: 23, base: 4 },
-  villa: { url: villa, crop: [0, 0, 480, 406], width: 26, base: 4 },
-  tenement: { url: tenement, crop: [0, 0, 480, 461], width: 26, base: 4 },
-  workshop: { url: workshop, crop: [0, 0, 480, 433], width: 23, base: 5 },
-  smithy: { url: smithy, crop: [0, 0, 480, 379], width: 23, base: 5 },
-  warehouse: { url: warehouse, crop: [0, 0, 480, 343], width: 29, base: 5 },
-  factory: { url: factory, crop: [0, 0, 480, 474], width: 62, base: 4 },
-  sawmill: { url: sawmill, crop: [0, 0, 480, 382], width: 28, base: 5 },
-  well: { url: well, crop: [0, 0, 349, 480], width: 6, base: 3.8 },
-  market: { url: market, crop: [0, 0, 990, 665], width: 26, base: 5 },
-  hay: { url: hay, crop: [0, 0, 966, 827], width: 13, base: 3 },
-  fishery: { url: fishery, crop: [0, 0, 480, 391], width: 22, base: 4 },
-  lodge: { url: lodge, crop: [0, 0, 480, 400], width: 21, base: 4 },
-  backhaus: { url: backhausImg, crop: [0, 0, 480, 389], width: 18, base: 4 },
-  herberge: { url: herbergeImg, crop: [0, 0, 470, 480], width: 22, base: 4 },
-  beginenhof: { url: beginenhofImg, crop: [0, 0, 480, 374], width: 64, base: 4 },
-  badestube: { url: badestubeImg, crop: [0, 0, 480, 376], width: 22, base: 4 },
-  bigstore: { url: bigstoreImg, crop: [0, 0, 459, 480], width: 24, base: 4 },
-  millrow: { url: millrowImg, crop: [0, 0, 480, 377], width: 27, base: 4 },
-  stonemason: { url: stonemasonImg, crop: [0, 0, 480, 456], width: 24, base: 4 },
-  hammerworks: { url: hammerworksImg, crop: [0, 0, 414, 480], width: 23, base: 4 },
-  smokehouse: { url: smokehouseImg, crop: [0, 0, 480, 418], width: 25, base: 4 },
-  saltquay: { url: saltquayImg, crop: [0, 0, 472, 480], width: 26, base: 4 },
-  herbhut: { url: herbhut, crop: [0, 0, 480, 463], width: 19, base: 4 },
-  woodcamp: { url: woodcamp, crop: [0, 0, 480, 427], width: 24, base: 4 },
-  granary: { url: granary, crop: [0, 0, 408, 480], width: 25, base: 4 },
-  infirmary: { url: infirmary, crop: [0, 0, 442, 480], width: 25, base: 4 },
-  firehouse: { url: firehouse, crop: [0, 0, 446, 480], width: 22, base: 4 },
-  guardhouse: { url: guardhouse, crop: [0, 0, 429, 480], width: 21, base: 4 },
-  school: { url: school, crop: [0, 0, 474, 480], width: 25, base: 4 },
-  belfry: { url: belfry, crop: [0, 0, 195, 480], width: 13, base: 3 },
-  theater: { url: theater, crop: [0, 0, 466, 480], width: 31, base: 4 },
-  opera: { url: opera, crop: [0, 0, 463, 480], width: 35, base: 4 },
-  university: { url: university, crop: [0, 0, 480, 454], width: 66, base: 4 },
-  exchange: { url: exchange, crop: [0, 0, 472, 480], width: 33, base: 4 },
-  orangery: { url: orangery, crop: [0, 0, 480, 468], width: 60, base: 4 },
-  harvesthall: { url: harvesthall, crop: [0, 0, 480, 419], width: 28, base: 4 },
-  guildtower: { url: guildtower, crop: [0, 0, 293, 480], width: 17, base: 3 },
-  lighthouse: { url: lighthouse, crop: [0, 0, 352, 480], width: 20, base: 4 },
-  gatehouse: { url: gatehouse, crop: [0, 0, 295, 480], width: 24, base: 4 },
-  markethall: { url: markethall, crop: [0, 0, 480, 429], width: 30, base: 4 },
-  guildhall: { url: guildhall, crop: [0, 0, 339, 480], width: 21, base: 4 },
-  library: { url: library, crop: [0, 0, 429, 480], width: 26, base: 4 },
-  dairy: { url: dairy, crop: [0, 0, 480, 391], width: 24, base: 4 },
+  campfire: { url: campfire, night: null, crop: [0, 0, 480, 346], width: 7, base: 2.4 },
+  hut: { url: hut, night: hutLight, crop: [0, 0, 480, 392], width: 17, base: 4.6 },
+  coop: { url: coop, night: null, crop: [0, 0, 480, 450], width: 10, base: 4 },
+  fence: { url: fence, night: null, crop: [0, 0, 480, 236], width: 11, base: 3 },
+  chapel: { url: chapel, night: chapelLight, crop: [0, 0, 474, 480], width: 21, base: 4 },
+  watermill: { url: watermill, night: watermillLight, crop: [0, 0, 480, 478], width: 28, base: 4 },
+  harbor: { url: harbor, night: harborLight, crop: [0, 0, 480, 427], width: 26, base: 4 },
+  stall: { url: stall, night: null, crop: [0, 0, 480, 480], width: 10, base: 4 },
+  townhall: { url: townhall, night: townhallLight, crop: [0, 0, 423, 480], width: 31, base: 4 },
+  seat1: { url: seat1, night: seat1Light, crop: [0, 0, 480, 439], width: 22, base: 4 },
+  seat2: { url: seat2, night: seat2Light, crop: [0, 0, 480, 446], width: 26, base: 4 },
+  seat3: { url: seat3, night: seat3Light, crop: [0, 0, 372, 480], width: 26, base: 4 },
+  manufactory: { url: manufactory, night: manufactoryLight, crop: [0, 0, 480, 480], width: 31, base: 4 },
+  steamworks: { url: steamworks, night: steamworksLight, crop: [0, 0, 480, 480], width: 27, base: 4 },
+  station: { url: station, night: stationLight, crop: [0, 0, 416, 480], width: 27, base: 4 },
+  suburb: { url: patrician, night: patricianLight, crop: [0, 0, 340, 480], width: 20, base: 4 },
+  farmhouse: { url: farmhouse, night: farmhouseLight, crop: [0, 0, 480, 326], width: 22, base: 6.5 },
+  cottage: { url: cottage, night: cottageLight, crop: [0, 0, 480, 385], width: 21.5, base: 4.4 },
+  barn: { url: barn, night: barnLight, crop: [0, 0, 475, 480], width: 15, base: 5 },
+  church: { url: church, night: churchLight, crop: [0, 0, 428, 480], width: 32, base: 5 },
+  mill: { url: mill, night: millLight, crop: [0, 0, 477, 779], width: 16, base: 4 },
+  inn: { url: inn, night: innLight, crop: [0, 0, 480, 427], width: 26, base: 5 },
+  bakery: { url: bakery, night: bakeryLight, crop: [0, 0, 480, 422], width: 23, base: 5 },
+  townhouse: { url: townhouse, night: townhouseLight, crop: [0, 0, 252, 480], width: 17, base: 4 },
+  townhouse2: { url: townhouse2, night: townhouse2Light, crop: [0, 0, 291, 480], width: 17, base: 4 },
+  fachwerk: { url: fachwerk, night: fachwerkLight, crop: [0, 0, 480, 413], width: 23, base: 4 },
+  steinhaus: { url: steinhaus, night: steinhausLight, crop: [0, 0, 334, 480], width: 19, base: 4 },
+  handwerker: { url: handwerker, night: handwerkerLight, crop: [0, 0, 480, 445], width: 21, base: 4 },
+  patrician: { url: patrician, night: patricianLight, crop: [0, 0, 340, 480], width: 23, base: 4 },
+  villa: { url: villa, night: villaLight, crop: [0, 0, 480, 406], width: 26, base: 4 },
+  tenement: { url: tenement, night: tenementLight, crop: [0, 0, 480, 461], width: 26, base: 4 },
+  workshop: { url: workshop, night: workshopLight, crop: [0, 0, 480, 433], width: 23, base: 5 },
+  smithy: { url: smithy, night: smithyLight, crop: [0, 0, 480, 379], width: 23, base: 5 },
+  warehouse: { url: warehouse, night: warehouseLight, crop: [0, 0, 480, 343], width: 29, base: 5 },
+  factory: { url: factory, night: factoryLight, crop: [0, 0, 480, 474], width: 62, base: 4 },
+  sawmill: { url: sawmill, night: sawmillLight, crop: [0, 0, 480, 382], width: 28, base: 5 },
+  well: { url: well, night: null, crop: [0, 0, 349, 480], width: 6, base: 3.8 },
+  market: { url: market, night: null, crop: [0, 0, 990, 665], width: 26, base: 5 },
+  hay: { url: hay, night: null, crop: [0, 0, 966, 827], width: 13, base: 3 },
+  fishery: { url: fishery, night: fisheryLight, crop: [0, 0, 480, 391], width: 22, base: 4 },
+  lodge: { url: lodge, night: lodgeLight, crop: [0, 0, 480, 400], width: 21, base: 4 },
+  backhaus: { url: backhausImg, night: backhausLight, crop: [0, 0, 480, 389], width: 18, base: 4 },
+  herberge: { url: herbergeImg, night: herbergeLight, crop: [0, 0, 470, 480], width: 22, base: 4 },
+  beginenhof: { url: beginenhofImg, night: beginenhofLight, crop: [0, 0, 480, 374], width: 64, base: 4 },
+  badestube: { url: badestubeImg, night: badestubeLight, crop: [0, 0, 480, 376], width: 22, base: 4 },
+  bigstore: { url: bigstoreImg, night: bigstoreLight, crop: [0, 0, 459, 480], width: 24, base: 4 },
+  millrow: { url: millrowImg, night: millrowLight, crop: [0, 0, 480, 377], width: 27, base: 4 },
+  stonemason: { url: stonemasonImg, night: stonemasonLight, crop: [0, 0, 480, 456], width: 24, base: 4 },
+  hammerworks: { url: hammerworksImg, night: hammerworksLight, crop: [0, 0, 414, 480], width: 23, base: 4 },
+  smokehouse: { url: smokehouseImg, night: smokehouseLight, crop: [0, 0, 480, 418], width: 25, base: 4 },
+  saltquay: { url: saltquayImg, night: saltquayLight, crop: [0, 0, 472, 480], width: 26, base: 4 },
+  herbhut: { url: herbhut, night: herbhutLight, crop: [0, 0, 480, 463], width: 19, base: 4 },
+  woodcamp: { url: woodcamp, night: woodcampLight, crop: [0, 0, 480, 427], width: 24, base: 4 },
+  granary: { url: granary, night: granaryLight, crop: [0, 0, 408, 480], width: 25, base: 4 },
+  infirmary: { url: infirmary, night: infirmaryLight, crop: [0, 0, 442, 480], width: 25, base: 4 },
+  firehouse: { url: firehouse, night: firehouseLight, crop: [0, 0, 446, 480], width: 22, base: 4 },
+  guardhouse: { url: guardhouse, night: guardhouseLight, crop: [0, 0, 429, 480], width: 21, base: 4 },
+  school: { url: school, night: schoolLight, crop: [0, 0, 474, 480], width: 25, base: 4 },
+  belfry: { url: belfry, night: belfryLight, crop: [0, 0, 195, 480], width: 13, base: 3 },
+  theater: { url: theater, night: theaterLight, crop: [0, 0, 466, 480], width: 31, base: 4 },
+  opera: { url: opera, night: operaLight, crop: [0, 0, 463, 480], width: 35, base: 4 },
+  university: { url: university, night: universityLight, crop: [0, 0, 480, 454], width: 66, base: 4 },
+  exchange: { url: exchange, night: exchangeLight, crop: [0, 0, 472, 480], width: 33, base: 4 },
+  orangery: { url: orangery, night: orangeryLight, crop: [0, 0, 480, 468], width: 60, base: 4 },
+  harvesthall: { url: harvesthall, night: harvesthallLight, crop: [0, 0, 480, 419], width: 28, base: 4 },
+  guildtower: { url: guildtower, night: guildtowerLight, crop: [0, 0, 293, 480], width: 17, base: 3 },
+  lighthouse: { url: lighthouse, night: lighthouseLight, crop: [0, 0, 352, 480], width: 20, base: 4 },
+  gatehouse: { url: gatehouse, night: gatehouseLight, crop: [0, 0, 295, 480], width: 24, base: 4 },
+  markethall: { url: markethall, night: markethallLight, crop: [0, 0, 480, 429], width: 30, base: 4 },
+  guildhall: { url: guildhall, night: guildhallLight, crop: [0, 0, 339, 480], width: 21, base: 4 },
+  library: { url: library, night: libraryLight, crop: [0, 0, 429, 480], width: 26, base: 4 },
+  dairy: { url: dairy, night: dairyLight, crop: [0, 0, 480, 391], width: 24, base: 4 },
 };
+
+const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
+export const hasNightSprite = (kind: Kind) => Boolean(sprites[kind]?.night);
 
 const spriteOf = (kind: Kind, _style?: HouseStyle) => sprites[kind];
 const draftStyle = (_kind: Kind, style: HouseStyle | undefined, _variant: number) => style;
@@ -461,11 +462,21 @@ export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: nu
   c.restore();
 }
 
+/** Every day painting with its night mask (or null = deliberately unlit) — read by the mask audit test and the Figure-Lab. */
+export type NightPair = { key: string; kind: Kind; style: "grain" | HouseStyle; slot: number; day: string; night: string | null; crop: [number, number, number, number]; mirror: boolean };
+export function nightPairs(): NightPair[] {
+  const out: NightPair[] = [];
+  for (const [k, sp] of Object.entries(sprites)) if (sp) out.push({ key: k, kind: k as Kind, style: "grain", slot: 0, day: sp.url, night: sp.night, crop: sp.crop, mirror: false });
+  for (const [style, set] of Object.entries(styled)) for (const [k, v] of Object.entries(set)) out.push({ key: `${style}-${k}`, kind: k as Kind, style: style as HouseStyle, slot: 0, day: v.day, night: v.night, crop: v.crop, mirror: !!v.mirror });
+  for (const [k, sets] of Object.entries(variants)) for (const [style, list] of Object.entries(sets)) list.forEach((v, i) => out.push({ key: `${style}-${k}-${i + 2}`, kind: k as Kind, style: style as "grain" | HouseStyle, slot: i + 1, day: v.day, night: v.night, crop: v.crop, mirror: !!v.mirror }));
+  return out;
+}
+
 /** Starts loading every building image right away so towns appear complete. */
 export function preloadBuildingSprites() {
   if (typeof Image === "undefined") return;
-  for (const [kind, url] of Object.entries(nightUrls)) {
-    const k = kind as Kind;
+  for (const [kind, sp] of Object.entries(sprites)) {
+    const k = kind as Kind, url = sp?.night; if (!url) continue;
     if (!nightImages[k]) { const im = new Image(); im.decoding = "async"; im.src = url; nightImages[k] = im; }
   }
   for (const set of Object.values(styled)) for (const v of Object.values(set)) { v.image ??= load(v.day); v.light ??= load(v.night); }
