@@ -1060,7 +1060,7 @@ function drawStall(c: C, x: number, y: number, flip: boolean) {
 /** Painted ox cart: ox-less wagon + separate 4-frame ox walk cycle, both standing on the ground line. */
 // layout measured in sprite pixels: wagon bottom-left origin, ox bottom-centre offset, ox scale, combo centre
 // ox y = hoof line (sprite pixels below the wheel line); feet sit at FOOT·frame height inside the sheet
-const CART_LAYOUT = { front: { k: 0.04, cx: 200, ox: [315, 18], os: 1.35, foot: 139 / 140 }, back: { k: 0.042, cx: 150, ox: [235, -34], os: 1.45, foot: 156 / 160 } } as const;
+const CART_LAYOUT = { front: { k: 0.04, cx: 200, ox: [305, 18], os: 1.07, foot: 139 / 140 }, back: { k: 0.042, cx: 150, ox: [216, -44], os: 0.89, foot: 156 / 160 } } as const;
 const WAGON_RES = 2;
 /** Vertical shear that tilts the painted team (drawn for the 2:1 diagonal) onto the real road slope, so ox and wagon follow steep roads. */
 export function cartShear(dx: number, dy: number, away: boolean): number {
@@ -1094,14 +1094,15 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
   if (axis) {
     const back = dy < 0, im = cartAxisImage(back);
     if (im) {
-      const iw = im.naturalWidth, ih = im.naturalHeight, h = 17, k = h / ih, w = iw * k;
+      // fixed scale (17 units per 480 px of the original painting) so the wagon keeps its size; the smaller ox shortened the sheet
+      const iw = im.naturalWidth, ih = im.naturalHeight, k = 17 / 480, h = ih * k, w = iw * k;
       // gait clock: 0.6 s per stride, legs alternate (left lifts while right plants)
       const g = (t / 300 + sd * 0.731) % 1, ph = g * Math.PI * 2;
       const liftL = Math.max(0, Math.sin(ph)) * 0.55, liftR = Math.max(0, -Math.sin(ph)) * 0.55;
       const dip = Math.abs(Math.sin(ph)) * 0.12; // body settles a hair on each hoof contact
       c.save(); c.translate(x, y); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
       // two ground contacts: wheels (row of their rim bottoms) and hooves (front only)
-      const wheelRow = back ? 474 : 322, wy = -(ih - wheelRow) * k;
+      const wheelRow = back ? 425 : 322, wy = -(ih - wheelRow) * k;
       c.fillStyle = "rgba(20,15,10,0.36)";
       c.beginPath(); c.ellipse(-w * 0.4, wy, w * 0.11, 0.55, 0, 0, 7); c.fill();
       c.beginPath(); c.ellipse(w * 0.4, wy, w * 0.11, 0.55, 0, 0, 7); c.fill();
@@ -1109,7 +1110,7 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
       const x0 = -w / 2, y0 = -h;
       if (back) {
         // ox seen from behind: its forequarters (rows 0..140) nod with the stride, wagon stays put
-        const cut = 140;
+        const cut = 91;
         c.drawImage(im, 0, cut, iw, ih - cut, x0, y0 + cut * k, w, (ih - cut) * k);
         c.drawImage(im, 0, 0, iw, cut, x0, y0 + dip * 1.5, w, cut * k);
       } else {
@@ -3017,6 +3018,18 @@ function labEntries(): LabEntry[] {
     R("Händler mit Last", "Wandert", 5, 4, (c, ph) => drawWanderer(c, 0, 0, 1, 0.3, tw(ph), 17, "bundle")),
     R("Ochsenkarren", "Fährt hin", 9, 14, (c, ph) => drawCart(c, 0, 0, 1, 0.3, 0, 21, "", tw(ph) * 0.6, "lab-cart-a")),
     R("Ochsenkarren", "Fährt fort", 9, 14, (c, ph) => drawCart(c, 0, 0, 1, -1, 0, 21, "", tw(ph) * 0.6, "lab-cart-b")),
+    R("Ochsenkarren", "Steil zu", 13, 8, (c, ph) => drawCart(c, 0, 0, 0.1, 1, 0, 21, "", tw(ph) * 0.6, "lab-cart-c")),
+    R("Ochsenkarren", "Steil fort", 13, 8, (c, ph) => drawCart(c, 0, 0, 0.1, -1, 0, 21, "", tw(ph) * 0.6, "lab-cart-d")),
+    R("Ochsenkarren", "Größenvergleich", 13, 56, (c, ph) => {
+      // all four cart views beside the pasture cow; dashed lines: ox shoulder 5.0, adult head 5.2
+      const t = tw(ph) * 0.6;
+      drawCart(c, -20, 0, 1, 0.3, 0, 21, "", t, "lab-cmp-a"); drawCart(c, -5, 0, 1, -1, 0, 21, "", t, "lab-cmp-b");
+      drawCart(c, 7, 0, 0.1, 1, 0, 21, "", t, "lab-cmp-c"); drawCart(c, 15, 0, 0.1, -1, 0, 21, "", t, "lab-cmp-d");
+      const cw = huntIm("cow", cowUrl); if (cw) { const W = 5.6, H = (cw.naturalHeight / cw.naturalWidth) * W; c.drawImage(cw, 22, -H, W, H); }
+      c.lineWidth = 0.08; c.setLineDash([0.4, 0.3]);
+      for (const [yy, col] of [[-5, "rgba(200,30,30,0.9)"], [-5.2, "rgba(30,90,200,0.9)"]] as const) { c.strokeStyle = col; c.beginPath(); c.moveTo(-28, yy); c.lineTo(28, yy); c.stroke(); }
+      c.setLineDash([]);
+    }),
     R("Kahn", "Treibt", 6, 13, (c, _ph, now) => drawBoat(c, 0, -1, false, now, 3)),
     R("Böttcher", "Biegt Dauben", 7, 9, (c, _ph, now) => { prop(c, "cooper", 0, 0, 7); smoke(c, -1, -4, now, 3, 0.3);
       }),
