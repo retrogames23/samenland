@@ -3079,6 +3079,34 @@ function labEntries(): LabEntry[] {
   );
   return out;
 }
+/**
+ * Dev only (Figure-Lab "Boden"): a 5×5 pasture patch drawn through the real layer functions,
+ * cumulatively: 0 base texture, 1 + textureAlt, 2 + wildTurf, 3 + pasture plants (agriDetail).
+ * A 5-px scale bar marks villager height. Nothing here feeds the map.
+ */
+export function drawGroundLab(c: C, stage: number, W: number, H: number, z: number, now: number) {
+  const rn = renderNow; renderNow = now;
+  c.save(); c.translate(W / 2, H / 2 - 2.5 * TH * z); c.scale(z, z);
+  const N = 5, winter = seasonAt(now).winter >= 0.6;
+  for (let s = 0; s < N * 2 - 1; s++) for (let x = 0; x < N; x++) {
+    const y = s - x; if (y < 0 || y >= N) continue;
+    const cx = (x - y) * TW / 2, cy = (x + y) * TH / 2, wx = 300 + x, wy = 300 + y;
+    const pp = P(cx, cy), d = [pp(-0.5, -0.5), pp(0.5, -0.5), pp(0.5, 0.5), pp(-0.5, 0.5)];
+    c.beginPath(); c.moveTo(d[0]![0], d[0]![1]); for (const q of d.slice(1)) c.lineTo(q[0], q[1]); c.closePath();
+    c.fillStyle = texture(c, "grass") ?? "#6b7a3a"; c.fill();
+    if (stage >= 1) { const alt = textureAlt(c, "grass"); if (alt) { c.globalAlpha = 0.42; c.fillStyle = alt; c.fill(); c.globalAlpha = 1; } }
+    if (stage >= 2) wildTurf(c, wx, wy, cx, cy, "grass");
+  }
+  if (stage >= 3) for (let s = 0; s < N * 2 - 1; s++) for (let x = 0; x < N; x++) {
+    const y = s - x; if (y < 0 || y >= N) continue;
+    const cx = (x - y) * TW / 2, cy = (x + y) * TH / 2, v = Math.floor(hash(300 + x, 300 + y, 661) * AGRI_VARIANTS);
+    const a: AgriSpec = { kind: "pasture", ripe: false, along: false, outer: [], winter, hx: 7001 + v * 3, hy: 5003, k2: 0.5 };
+    const sp = agriSprite(a, `p0.5|${v}${seasonKey(now)}`); if (sp) c.drawImage(sp, cx - AGRI_W / 2, cy - AGRI_UP, AGRI_W, AGRI_H);
+  }
+  // scale bar: villager height (5 world px)
+  c.fillStyle = "rgba(200,30,30,0.85)"; c.fillRect(-1 * TW, 2 * TH, 0.6, -5);
+  c.restore(); renderNow = rn;
+}
 let labCache: LabEntry[] | null = null;
 const labList = () => (labCache ??= labEntries());
 /** Names and groups of every lab entry, in display order. */
