@@ -3116,6 +3116,11 @@ export function drawGroundLab(c: C, stage: number, W: number, H: number, z: numb
     const a: AgriSpec = { kind: "pasture", ripe: false, along: false, outer: [], winter, hx: 7001 + v * 3, hy: 5003, k2: 0.5 };
     const sp = agriSprite(a, `p0.5|${v}${seasonKey(now)}`); if (sp) c.drawImage(sp, cx - AGRI_W / 2, cy - AGRI_UP, AGRI_W, AGRI_H);
   }
+  if (stage >= 4) { // scale references: sheep and a cow on the patch
+    const t = now / 1000;
+    drawSheep(c, -10, 30, false, t, false, true, false); drawSheep(c, 14, 38, true, t, false, true, false); drawSheep(c, 4, 26, false, t, false, false, false);
+    drawCow(c, -2, 46, now, 77, 0);
+  }
   // scale bar: villager height (5 world px)
   c.fillStyle = "rgba(200,30,30,0.85)"; c.fillRect(-1 * TW, 2 * TH, 0.6, -5);
   c.restore(); renderNow = rn;
