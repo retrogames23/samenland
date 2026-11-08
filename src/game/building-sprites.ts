@@ -238,7 +238,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   campfire: { url: campfire, crop: [0, 0, 480, 346], width: 7, base: 2.4 },
   hut: { url: hut, crop: [0, 0, 480, 392], width: 17, base: 4.6 },
   coop: { url: coop, crop: [0, 0, 480, 450], width: 10, base: 4 },
-  fence: { url: fence, crop: [0, 0, 480, 253], width: 11, base: 3 },
+  fence: { url: fence, crop: [0, 0, 480, 236], width: 11, base: 3 },
   chapel: { url: chapel, crop: [0, 0, 474, 480], width: 21, base: 4 },
   watermill: { url: watermill, crop: [0, 0, 480, 478], width: 28, base: 4 },
   harbor: { url: harbor, crop: [0, 0, 480, 427], width: 26, base: 4 },
