@@ -122,7 +122,7 @@ export const fr: Dict = {
   signFrom: (n) => `Pancarte venue de ${n}`,
   signUi: { placed: "Pancartes plantées", open: "Pas encore de pancarte", stands: "se dresse à l'orée du village", edit: "Modifier le texte", town: "Aller au village", look: "Voir la pancarte", theirs: (n) => `Le salut de ${n} pour nous`, cancel: "Annuler" },
   signTitle: "Pancarte",
-  noNeighbours: "Nulle route marchande vers d'autres villages pour l'heure.",
+  noNeighbours: "Nulle route marchande vers d'autres villages pour l'heure. Un poteau indicateur se dresse sur une route achevée : décidez-en une dans le menu de construction dès qu'un voisin est à portée.",
   treasury: "Trésor du village",
   taxInfo: (n) => `${n} citoyens paient chaque jour l'impôt selon leur état`,
   taler: (n) => `${n.toLocaleString("fr-FR")} marcs`,

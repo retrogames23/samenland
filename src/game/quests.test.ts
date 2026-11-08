@@ -38,7 +38,7 @@ describe("mayor's tasks", () => {
   it("the devout village needs three blessings, the good neighbour three gifts", () => {
     expect(questProgress("bless7", { ...ctx, blessings: 2 })).toEqual([2, 3]);
     expect(questState(["bless"].map(claim), "s", { ...ctx, blessings: 3 })).toMatchObject({ quest: "bless7", ready: true });
-    expect(questState(["sign", "meet", "gift"].map(claim), "s", { ...ctx, giftsSent: 3 })).toMatchObject({ quest: "gifts5", ready: true });
+    expect(questState(["meet", "sign", "gift"].map(claim), "s", { ...ctx, giftsSent: 3 })).toMatchObject({ quest: "gifts5", ready: true });
   });
   it("the next task only opens after the previous is claimed", () => {
     expect(questState([claim("bless")], "s", { ...ctx, purchases: 1 })).toMatchObject({ quest: "build", ready: true });
