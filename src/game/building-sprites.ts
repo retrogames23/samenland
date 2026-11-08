@@ -1,8 +1,8 @@
 import { seasonalImage } from "./season-art";
 import { isLab } from "./time";
-import draftHut from "@/assets/sprites/cohesive/drafts/grain-hut-draft-v3.webp";
-import draftCottage from "@/assets/sprites/cohesive/drafts/grain-cottage-draft-v3.webp";
-import draftFachwerk from "@/assets/sprites/cohesive/drafts/grain-fachwerk-draft-v3.webp";
+import draftHut from "@/assets/sprites/cohesive/drafts/grain-hut-draft-v4.webp";
+import draftCottage from "@/assets/sprites/cohesive/drafts/grain-cottage-draft-v4.webp";
+import draftFachwerk from "@/assets/sprites/cohesive/drafts/grain-fachwerk-draft-v4.webp";
 import waterWheelUrl from "@/assets/sprites/water-wheel.webp";
 import campfire from "@/assets/sprites/campfire.webp";
 import hut from "@/assets/sprites/cohesive/grain-hut.webp";
@@ -316,9 +316,9 @@ const sprites: Partial<Record<Kind, Sprite>> = {
 /** Test map only (realm "lab" + localStorage samenland-draft-houses=1 or ?drafts): plain-style hut/cottage/fachwerk show the
  * reworked draft paintings for in-game comparison. Production art and all other maps stay untouched. */
 const DRAFTS: Partial<Record<Kind, Sprite>> = {
-  hut: { url: draftHut, crop: [0, 0, 480, 338], width: 18, base: 7.2 },
-  cottage: { url: draftCottage, crop: [0, 0, 480, 339], width: 24, base: 7 },
-  fachwerk: { url: draftFachwerk, crop: [0, 0, 480, 410], width: 26, base: 6.7 },
+  hut: { url: draftHut, crop: [0, 0, 480, 392], width: 17, base: 4.6 },
+  cottage: { url: draftCottage, crop: [0, 0, 480, 385], width: 21.5, base: 4.4 },
+  fachwerk: { url: draftFachwerk, crop: [0, 0, 480, 413], width: 23, base: 4 },
 };
 let draftFlag: boolean | undefined;
 const draftsOn = () => {
@@ -396,7 +396,7 @@ const paintingKey = (kind: Kind, style: HouseStyle | undefined, variant: number)
   if (slot > 0) return `${style ?? "grain"}-${kind}-${slot + 1}`;
   return style && STYLE_OF[kind] ? `${style}-${kind}` : kind;
 };
-export const needsGroundShadow = (kind: Kind, style: HouseStyle | undefined, variant: number) => (style = draftStyle(kind, style, variant), true) && !GROUNDED.has(paintingKey(kind, style, variant)) && !(paintingKey(kind, style, variant) === kind && spriteOf(kind, style) !== sprites[kind]);
+export const needsGroundShadow = (kind: Kind, style: HouseStyle | undefined, variant: number) => (style = draftStyle(kind, style, variant), true) && !GROUNDED.has(paintingKey(kind, style, variant));
 const shadows = new WeakMap<HTMLImageElement, HTMLCanvasElement | null>();
 /** Blurred dark copy of the painting's lowest band (its footing), cached per image. */
 function shadowOf(im: HTMLImageElement): HTMLCanvasElement | null {
