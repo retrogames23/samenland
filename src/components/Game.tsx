@@ -532,6 +532,14 @@ export function Game() {
     cam.current.x = ix;
     cam.current.y = iy;
   };
+  const placeBox = useRef<HTMLDivElement | null>(null);
+  /** Placement on touch: centre the site in the free map strip above the placement panel, not behind it. */
+  const placeFocus = (x: number, y: number) => {
+    focus(x, y);
+    // screen shift = viewport centre minus centre of the strip between top bar (~120 px) and panel top
+    const vh = window.innerHeight, top = placeBox.current?.getBoundingClientRect().top ?? vh * 0.55;
+    cam.current.y += Math.max(0, vh / 2 - (120 + top) / 2) / Math.max(0.1, cam.current.zoom);
+  };
   /** Entering seed mode: if the view centre is unplantable (mountain, water), glide to the nearest free valley. */
   const startSeedMode = () => {
     if (home) { setMsg(t.alreadyHave); return; }
@@ -959,9 +967,11 @@ export function Game() {
         // 2×2 ensembles: show the whole four-tile footprint and draw at the same lifted anchor as the finished building
         const big = FOOT2.has(SPECIAL_KIND[s.placing]!), ay = big ? gy - 8 : gy, hw = big ? 32 : 16, hh = big ? 16 : 8;
         ctx.beginPath(); ctx.moveTo(gx, ay - hh); ctx.lineTo(gx + hw, ay); ctx.lineTo(gx, ay + hh); ctx.lineTo(gx - hw, ay); ctx.closePath();
-        ctx.fillStyle = good ? "rgba(90,190,90,0.45)" : "rgba(210,70,60,0.45)"; ctx.fill();
-        ctx.lineWidth = 1 / Math.max(0.5, c.zoom); ctx.strokeStyle = good ? "rgba(40,120,40,0.9)" : "rgba(150,30,25,0.9)"; ctx.stroke();
-        ctx.globalAlpha = good ? 0.8 : 0.45;
+        const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 320);
+        ctx.fillStyle = good ? `rgba(90,190,90,${0.3 + 0.15 * pulse})` : `rgba(210,70,60,${0.3 + 0.15 * pulse})`; ctx.fill();
+        // a bold rim (constant ~2.5 screen px) so the footprint reads even under roofs
+        ctx.lineWidth = 2.5 / Math.max(0.5, c.zoom); ctx.strokeStyle = good ? "rgba(30,110,30,0.95)" : "rgba(150,30,25,0.95)"; ctx.stroke();
+        ctx.globalAlpha = good ? 0.55 + 0.15 * pulse : 0.4;
         drawBuildingSprite(ctx, SPECIAL_KIND[s.placing]!, gx, ay, 0.5);
         ctx.restore();
       }
@@ -1878,7 +1888,10 @@ export function Game() {
     if (!placing || !coarse) { setGhost(null); return; }
     const own = seeds.find((x) => x.id === mine); if (!own) return;
     const g = firstFreeSite(placing, own, seeds, clock()) ?? [own.x, own.y];
-    setGhost(g); focus(g[0], g[1]); target.current = { ...target.current, zoom: Math.max(target.current.zoom, 6) };
+    // close enough to read the building, far enough to see its neighbours
+    const z = Math.min(Math.max(target.current.zoom, 2.5), 3.5);
+    target.current = { ...target.current, zoom: z }; cam.current.zoom = z;
+    setGhost(g); placeFocus(g[0], g[1]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placing, coarse]);
   const zoomBy = (f: number) => {
@@ -3192,10 +3205,10 @@ export function Game() {
         {placing && coarse && ghost && (() => {
           const own = seeds.find((s) => s.id === mine);
           const err = own ? canPlaceSpecial(placing, ghost[0], ghost[1], own, seeds, clock()) as keyof typeof t.place | null : "ground";
-          const nudge = (dx: number, dy: number) => { const g: [number, number] = [ghost[0] + dx, ghost[1] + dy]; setGhost(g); focus(g[0], g[1]); };
+          const nudge = (dx: number, dy: number) => { const g: [number, number] = [ghost[0] + dx, ghost[1] + dy]; setGhost(g); placeFocus(g[0], g[1]); };
           const price = MONUMENT_PRICE[placing] ?? ITEMS[placing as Item];
           return (
-            <div className="pointer-events-auto w-full space-y-2 rounded-md border-2 border-wood bg-card p-2 text-foreground shadow-[var(--shadow-panel)]">
+            <div ref={placeBox} className="pointer-events-auto w-full space-y-2 rounded-md border-2 border-wood bg-card p-2 text-foreground shadow-[var(--shadow-panel)]">
               <div className="flex items-center gap-2">
                 {spriteUrl(SPECIAL_KIND[placing]!) && <img src={spriteUrl(SPECIAL_KIND[placing]!)} alt="" className="h-10 w-10 shrink-0 object-contain" />}
                 <div className="min-w-0 flex-1 text-xs"><div className="truncate font-semibold">{t.items[placing]![0]}</div>
