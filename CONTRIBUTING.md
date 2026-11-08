@@ -25,7 +25,7 @@ npm run lint
 
 ## Pull requests
 
-This project is developed with [Lovable](https://lovable.dev), which keeps `main` in two-way sync with this repository.
+This project is developed with [Lovable](https://lovable.dev/invite/LN0I260), which keeps `main` in two-way sync with this repository.
 
 - **Target `main`** with a normal pull request from a fork or feature branch. Never force-push, rebase or rewrite the history of `main`.
 - **No large files.** Keep every file under 10 MB; compress images (WebP) and audio (MP3) before committing.
