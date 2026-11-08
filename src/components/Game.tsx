@@ -42,7 +42,8 @@ import { useTreasurySync } from "@/components/hooks/useTreasurySync";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText, MoreHorizontal } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
-import { QUESTS, questState, questKey, WAY_SMALL, WAY_BIG, type Quest, type QuestClaim } from "@/game/quests";
+import { TRACK_NAMES, TRACK_ICONS } from "@/game/lang/tracks";
+import { QUESTS, questHeads, questKey, WAY_SMALL, WAY_BIG, type Quest, type QuestClaim } from "@/game/quests";
 import { petitionOf, feastTitle } from "@/game/lang/petitions";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { splashDone } from "@/game/splash";
@@ -1764,7 +1765,8 @@ export function Game() {
   // the fold choice sticks until the player opens it again; phones start folded
   useEffect(() => { let v: string | null = null; try { v = localStorage.getItem("questFold"); } catch { /* storage off */ } setQuestFold(v != null ? v === "1" : coarse && window.innerWidth < 768); }, [coarse]);
   const foldQuest = (f: boolean) => { setQuestFold(f); try { localStorage.setItem("questFold", f ? "1" : "0"); } catch { /* storage off */ } };
-  const quest = my ? questState(claims, my.id, {
+  const [questTrack, setQuestTrack] = useState<number | null>(null);
+  const heads = my ? questHeads(claims, my.id, {
     blessings: blessings.filter((b) => b.seed_id === my.id).length,
     purchases: purchases.filter((p) => p.seed_id === my.id).length,
     signposts: signs.filter((s) => s.seed_id === my.id).length,
@@ -1773,7 +1775,9 @@ export function Game() {
     residents, stage: myRank, roads: firstRoads.filter((f) => f.seed_id === my.id).length,
     waySmall: purchases.some((p) => p.seed_id === my.id && WAY_SMALL.includes(p.item)),
     wayBig: purchases.some((p) => p.seed_id === my.id && WAY_BIG.includes(p.item)),
-  }) : null;
+  }) : [];
+  // the chosen track tab, else a ready one, else the earliest open quest
+  const quest = heads.find((h) => h.track === questTrack) ?? [...heads].sort((a, b) => a.index - b.index).find((h) => h.ready) ?? [...heads].sort((a, b) => a.index - b.index)[0] ?? null;
   const questText = quest && my ? (t.quests.list[questKey(quest.quest, wayOf(my))] ?? t.quests.list[quest.quest]!).map((x) => addr(x)) as typeof t.quests.list[string] : null;
   const petition = quest && my ? petitionOf(quest.quest, lang, questKey(quest.quest, wayOf(my)) !== quest.quest, myTown?.people, addr) : null;
   const questHow = () => {
@@ -3017,9 +3021,9 @@ export function Game() {
       )}
       {owner && quest && claimsReady && !panelOpen && questFold && (
         <button type="button" aria-expanded={false} aria-label={petition!.header} title={petition!.header} onClick={() => foldQuest(false)}
-          className={`parchment hit absolute right-16 z-30 grid h-10 w-10 place-items-center rounded-full text-lg shadow ${quest.ready ? "ring-2 ring-brass ring-offset-1 ring-offset-transparent" : "opacity-80"}`} style={{ top: barH + 8 }}>
+          className={`parchment hit absolute right-16 z-30 grid h-10 w-10 place-items-center rounded-full text-lg shadow ${heads.some((h) => h.ready) ? "ring-2 ring-brass ring-offset-1 ring-offset-transparent" : "opacity-80"}`} style={{ top: barH + 8 }}>
           <span aria-hidden>📜</span>
-          {quest.ready && <span aria-hidden className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border border-background bg-brass" />}
+          {heads.some((h) => h.ready) && <span aria-hidden className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border border-background bg-brass" />}
         </button>
       )}
       {owner && quest && claimsReady && !panelOpen && !questFold && (
@@ -3032,6 +3036,18 @@ export function Game() {
               </button>
               {petition!.person && <button type="button" aria-label={petition!.find} title={petition!.find} className="hit relative shrink-0 rounded p-0.5 text-wood hover:bg-ink/10" onClick={() => { const nw = clock(), tw = townOf(my!, seeds, nw), p = tw.people.find((q) => q.id === petition!.person!.id); const z = p ? poseOf(p, tw, seeds, nw) : null; if (z) focus(z.x, z.y); if (p) setWho(p); }}><MapPin className="h-4 w-4" /></button>}
             </div>
+            {!questFold && heads.length > 1 && (
+              <div role="tablist" className="mt-1 flex gap-1">
+                {heads.map((h) => (
+                  <button key={h.track} type="button" role="tab" aria-selected={h.track === quest.track} aria-label={TRACK_NAMES[lang][h.track]} title={TRACK_NAMES[lang][h.track]}
+                    onClick={() => setQuestTrack(h.track)}
+                    className={`hit relative grid h-7 w-8 place-items-center rounded border text-sm ${h.track === quest.track ? "border-wood bg-ink/10" : "border-transparent opacity-60 hover:opacity-100"}`}>
+                    <span aria-hidden>{TRACK_ICONS[h.track]}</span>
+                    {h.ready && <span aria-hidden className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-background bg-brass" />}
+                  </button>
+                ))}
+              </div>
+            )}
             {!questFold && (
               <div className="mt-1 space-y-1">
                 <div className="font-semibold">{questText![0]}</div>
