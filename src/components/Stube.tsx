@@ -119,7 +119,7 @@ import patWarmWomanBase from "@/assets/sprites/stube/pat-warm-woman-base.webp";
 import patWarmWomanTop from "@/assets/sprites/stube/pat-warm-woman-top.webp";
 import patWarmWomanAlt from "@/assets/sprites/stube/pat-warm-woman-b.webp";
 import seatUrl from "@/assets/sprites/stube/seat.webp";
-import { stubeFigureKey, stubeOf, SWADDLE_AGE, STUBE_SLOTS, PATRICIAN_SLOTS, BODY_ANCHORS, FURNITURE, anchorBottom, furnitureY, type StubePlace, type StubeLayoutKey, type Furniture, type BodyAnchor } from "@/game/stube";
+import { stubeFigureKey, stubeOf, SWADDLE_AGE, STUBE_SLOTS, PATRICIAN_SLOTS, BODY_ANCHORS, FURNITURE, anchorBottom, anchorX, furnitureY, type StubePlace, type StubeLayoutKey, type Furniture, type BodyAnchor } from "@/game/stube";
 import { clock } from "@/game/time";
 import { nightLevel } from "@/game/sun";
 import { STUBE } from "@/game/lang/stube";
@@ -192,7 +192,7 @@ function place(lay: StubeLayoutKey, pl: StubePlace, key: string, url: string, h:
   const furn = FURNITURE[lay][pl.spot as Exclude<StubePlace["spot"], "out">]?.[pl.slot];
   const body = BODY_ANCHORS[key];
   if (!furn || !body) return null;
-  return { url, x: furn.x, y: anchorBottom(furn, body, h), h, flip, anim, ph, furn, body };
+  return { url, x: anchorX(furn, body, h, flip, lay === "tall" ? 1.5 : 2 / 3), y: anchorBottom(furn, body, h), h, flip, anim, ph, furn, body };
 }
 const ageH = (adult: number, kidH: number, p: Person) => (p.age < 14 ? kidH * Math.min(1, 0.6 + p.age / 30) : adult);
 
@@ -284,11 +284,11 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
         g.restore();
       }
       if (DEBUG_ANCHORS) for (const f of figs) {
-        const fy = furnitureY(f.furn, f.body) * H, by = (f.y - (f.body.on === "seat" ? f.body.at * f.h : 0)) * H, x = f.x * W;
-        g.strokeStyle = "#ffff00"; g.lineWidth = 2; g.beginPath(); g.moveTo(x, fy); g.lineTo(x + 6, by); g.stroke();
+        const fy = furnitureY(f.furn, f.body) * H, by = (f.y - (f.body.on === "seat" ? f.body.at * f.h : 0)) * H, x = f.furn.x * W, bx = (f.x + (f.body.on === "seat" && f.furn.kind === "stool" ? (f.body.dx ?? 0) * f.h * (H / W) * (f.flip ? -1 : 1) : 0)) * W;
+        g.strokeStyle = "#ffff00"; g.lineWidth = 2; g.beginPath(); g.moveTo(x, fy); g.lineTo(bx, by); g.stroke();
         g.fillStyle = "#00c000"; g.beginPath(); g.arc(x, fy, 6, 0, 7); g.fill();
-        g.fillStyle = "#e00000"; g.beginPath(); g.arc(x + 6, by, 5, 0, 7); g.fill();
-        g.font = "20px monospace"; g.fillText(`${Math.round(by - fy)} px`, x + 12, fy - 8);
+        g.fillStyle = "#e00000"; g.beginPath(); g.arc(bx, by, 5, 0, 7); g.fill();
+        g.font = "20px monospace"; g.fillText(`${Math.round(Math.hypot(bx - x, by - fy))} px`, x + 12, fy - 8);
       }
       // dusk and night: the room darkens, the hearth keeps glowing
       const n = nightLevel(clock());
