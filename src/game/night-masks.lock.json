@@ -2,685 +2,913 @@
  "backhaus": {
   "day": "d993aba5d239e597",
   "night": "1a8407ef78d0f28b",
-  "status": "approved",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "approved",
   "note": "2026-11-08: Flächen schlicht, aber auf Fenstern und Ofenloch"
  },
  "badestube": {
   "day": "6a6c7de94ecdc403",
   "night": "fb1a5269faf7fb66",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "bakery": {
   "day": "0339041964b8613a",
   "night": "4f2a61f3c16dfb82",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "barn": {
   "day": "b1fa924922eb649f",
   "night": "7445b52e13be60ad",
-  "status": "unlit",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "unlit",
   "note": "2026-11-08: visuell geprüft: Speicher ohne Fenster"
  },
  "beginenhof": {
   "day": "5431b832a7649735",
   "night": "6af9cf87cc1288a2",
-  "status": "approved",
-  "note": "2026-11-08: Scheiben einzeln, Lab 4x und Spielkarte nachts"
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-08: Scheiben einzeln; Lab 4x, Spielkarte nachts, vom Nutzer auf eigenem Gerät freigegeben"
  },
  "belfry": {
   "day": "5a90d279aa6680e9",
   "night": "1d048b15cc882103",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "bigstore": {
   "day": "4ca2c8562c2c5b91",
   "night": "4992f5a6b2759ef7",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "campfire": {
   "day": "38f675cf1ab332ca",
   "night": null,
-  "status": "unlit",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "unlit",
   "note": "2026-11-08: Bestand gesichtet (Prüfansicht + Lichtflächen-Analyse)"
  },
  "chapel": {
   "day": "41662317fc3dd190",
   "night": "f9697e570121f7b5",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "church": {
   "day": "bda876baa6f7ec72",
   "night": "ed159990e13ed3ba",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "coop": {
   "day": "5bff76978057bc1b",
   "night": null,
-  "status": "unlit",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "unlit",
   "note": "2026-11-08: Bestand gesichtet (Prüfansicht + Lichtflächen-Analyse)"
  },
  "cottage": {
   "day": "677da7c626d0a6fc",
   "night": "d2a1f82c815e32d9",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "dairy": {
   "day": "ad003b7dda95e1ef",
   "night": "14a793aac20b0410",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "exchange": {
   "day": "5eb45f51370c23c7",
   "night": "cefb5020feb9785e",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "fachwerk": {
   "day": "ec082358a512f8c1",
   "night": "2601478e778314ba",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "factory": {
   "day": "511a7abcfef7b553",
   "night": "881d34ad2552ccfa",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "farmhouse": {
   "day": "8957647d990af398",
   "night": "5ea86ed74d788069",
-  "status": "approved",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "approved",
   "note": "2026-11-08: Fenster sitzen"
  },
  "fence": {
   "day": "4ba7f92c0b9e0480",
   "night": null,
-  "status": "unlit",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "unlit",
   "note": "2026-11-08: Bestand gesichtet (Prüfansicht + Lichtflächen-Analyse)"
  },
  "firehouse": {
   "day": "df2411ecfeba9681",
   "night": "4cdc78dd2495ce8f",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "fishery": {
   "day": "45301e33b5e4c188",
   "night": "2897a2b5bcdc9b07",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gatehouse": {
   "day": "b5bee30fca4e788f",
   "night": "1d23c368ef1f347f",
-  "status": "approved",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "approved",
   "note": "2026-11-08: neu: Wachstube (5 Bogenfenster) und Mittelfenster beleuchtet"
  },
  "gateway-barn": {
   "day": "d8f9d8d9f1f6a2f9",
   "night": "f5f14d1ba132a57d",
-  "status": "unlit",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "unlit",
   "note": "2026-11-08: visuell geprüft: Scheune ohne Fenster"
  },
  "gateway-cottage": {
   "day": "575d52c3e9ef885e",
   "night": "43993b6ab38453a0",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-cottage-2": {
   "day": "8af1b02bee9135a2",
   "night": "adbddab819f5abdc",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-cottage-3": {
   "day": "14a798fabe4a6d6f",
   "night": "5988fc8d8ccc8efd",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-fachwerk": {
   "day": "47b6019297905fd8",
   "night": "1db5be78e339bda5",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-farmhouse": {
   "day": "43aa449ab5ba14d4",
   "night": "b40388ba68b6c6f5",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-farmhouse-2": {
   "day": "7b8142ed61cf9310",
   "night": "df3eb94965a0e154",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-farmhouse-3": {
   "day": "3bbf6fdffb4d77c9",
   "night": "6e15f26e8d0374d4",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-handwerker": {
   "day": "4b94b14c93d50c64",
   "night": "1586f03a27b443d6",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-handwerker-2": {
   "day": "a5bee090ce9e07eb",
   "night": "1de9ed052201f0e5",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-handwerker-3": {
   "day": "1de4505a2aafeeb3",
   "night": "54bd598b5e042149",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-hut": {
   "day": "5a3991b4a2c1a1b8",
   "night": "3a2c2581d0f81c8d",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-patrician": {
   "day": "fe93ed68c96f158a",
   "night": "af0cf463d5b6463c",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-patrician-2": {
   "day": "2c0a5576d524d5d0",
   "night": "2b51c232eaf29e9e",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-patrician-3": {
   "day": "bb0cc2a4ac3831e7",
   "night": "df217258b13f0662",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-steinhaus": {
   "day": "0c9889f4cf6a79a9",
   "night": "cf01480755020150",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "gateway-villa": {
   "day": "9214f15c740f12e0",
   "night": "801ed6ca94b70fcc",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "grain-cottage-2": {
   "day": "ecf6092611476939",
   "night": "f1b4d8fbe39275a2",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "grain-cottage-3": {
   "day": "d5986c8e3a2dc5f7",
   "night": "4281acac7bc6c727",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "grain-farmhouse-2": {
   "day": "938af2e5885285ec",
   "night": "88621b35b38d7dac",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "grain-farmhouse-3": {
   "day": "caad523c5e5ee24c",
   "night": "f3c2026a583a6022",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "grain-handwerker-2": {
   "day": "a92c8ee256c4d0d1",
   "night": "52783128ec06b25b",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "grain-handwerker-3": {
   "day": "232b82768b275396",
   "night": "b8a85a85ac09d034",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "grain-patrician-2": {
   "day": "7cdb248de401eea5",
   "night": "e8647b04ef19124a",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "grain-patrician-3": {
   "day": "f5c883971ab46334",
   "night": "5625b16ae9c28d33",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "granary": {
   "day": "1f842f3b3e46a911",
   "night": "a61a8b012631cf3f",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "guardhouse": {
   "day": "e52e635fcbb88328",
   "night": "ce197be0b4620f1b",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "guildhall": {
   "day": "9405e5311e26ed81",
   "night": "bb7b4b41859ef46f",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "guildtower": {
   "day": "166f5dc32b84ad3b",
   "night": "3750b5ba675895c4",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "hammerworks": {
   "day": "0aac9d3501ef5c7a",
   "night": "5a22814486ae960c",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "handwerker": {
   "day": "1c1f9d1568dadf3c",
   "night": "eed6c583e60f57a7",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "harbor": {
   "day": "20a92edd2e483370",
   "night": "db7154b20ebf7da0",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "harvesthall": {
   "day": "8cfec076f2e4c20a",
   "night": "dcef486e5d7b8085",
-  "status": "approved",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "approved",
   "note": "2026-11-08: neu: Wandfenster auf echte Fenster gesetzt, Tor als weicher Schein statt Block"
  },
  "hay": {
   "day": "1ea84acd0676a3d7",
   "night": null,
-  "status": "unlit",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "unlit",
   "note": "2026-11-08: Bestand gesichtet (Prüfansicht + Lichtflächen-Analyse)"
  },
  "herberge": {
   "day": "752ff704335d3215",
   "night": "ca66a9a0ea2bf053",
-  "status": "reviewed",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "rework",
   "note": "2026-11-08: Flächen liegen auf den Fenstern, sind aber flache Blöcke und überdecken teils Läden – Nacharbeit offen"
  },
  "herbhut": {
   "day": "8dbadd65bf3aa367",
   "night": "236a3b586dcc8ff9",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "hut": {
   "day": "905b691d99b43060",
   "night": "3b54c3ec3e837fd8",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "infirmary": {
   "day": "faee81d13a714ff0",
   "night": "30950ffc714ecea4",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "inn": {
   "day": "e1a584523125c84d",
   "night": "bf95cd8f04b957af",
-  "status": "approved",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "approved",
   "note": "2026-11-08: Fenster mit Sprossen sitzen"
  },
  "library": {
   "day": "7613255a21e2ad44",
   "night": "2ed033db5a70eb73",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "lighthouse": {
   "day": "aca470a72a9e2780",
   "night": "e76f31e74f7cf8f7",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "lodge": {
   "day": "1bf0587ca42d8573",
   "night": "5ebf6eb99053fdb8",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "manufactory": {
   "day": "ff9c4b151f9e58d7",
   "night": "589fa64a61596676",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "market": {
   "day": "794bf2a89aabdce2",
   "night": null,
-  "status": "unlit",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "unlit",
   "note": "2026-11-08: Bestand gesichtet (Prüfansicht + Lichtflächen-Analyse)"
  },
  "markethall": {
   "day": "50260d3e2dc7ba83",
   "night": "1df68cbbf7488246",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "mill": {
   "day": "56d03afb4f07be41",
   "night": "4bdce96202c7ad58",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "millrow": {
   "day": "f2a7499b0aa82aaf",
   "night": "ca604594a0df9bdb",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "opera": {
   "day": "ca93e2461f54c381",
   "night": "2acde306e33994b8",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "orangery": {
   "day": "2e3b3a6d26ff7b5b",
   "night": "983d935dd53e6baa",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "patrician": {
   "day": "fca8ff2935f07287",
   "night": "b50993e5f3dfc4cd",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "saltquay": {
   "day": "d4d2cae0b4620a66",
   "night": "54527ca30b5e21a4",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "sawmill": {
   "day": "42d55d19e1c86e18",
   "night": "251f7ec3ee00452c",
-  "status": "unlit",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "unlit",
   "note": "2026-11-08: visuell geprüft: offener Schuppen ohne Fenster"
  },
  "school": {
   "day": "f94e3656d555f90c",
   "night": "87dd707604cc9f1d",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "seat1": {
   "day": "b0667b35d011ac5d",
   "night": "d7e25053e10bf2dc",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "seat2": {
   "day": "86a131f9cde3486b",
   "night": "e93c3e548eba2d11",
-  "status": "approved",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "approved",
   "note": "2026-11-08: Fenster sitzen"
  },
  "seat3": {
   "day": "cf606655c8546592",
   "night": "ef63d8bd0cdf1f46",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "smithy": {
   "day": "856c78a1220c8803",
   "night": "1fec0064fbce98df",
-  "status": "approved",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "approved",
   "note": "2026-11-08: Fenster und Essenglut sitzen"
  },
  "smokehouse": {
   "day": "1e3bf1ff7962b3cc",
   "night": "de45ee312482e23d",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "stall": {
   "day": "4a1224973338f020",
   "night": null,
-  "status": "unlit",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "unlit",
   "note": "2026-11-08: Bestand gesichtet (Prüfansicht + Lichtflächen-Analyse)"
  },
  "station": {
   "day": "cc6ff85ed7467f87",
   "night": "9eff2fcfaabcf628",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "steamworks": {
   "day": "5f40720eeb6800a2",
   "night": "b4754765e60a89d7",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "steinhaus": {
   "day": "62be7601369bde67",
   "night": "0770267297fdd851",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "stonemason": {
   "day": "6bccec6f53957620",
   "night": "b96d184ca4bae626",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "suburb": {
   "day": "fca8ff2935f07287",
   "night": "b50993e5f3dfc4cd",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "tenement": {
   "day": "1c56b1f2f9d0cf74",
   "night": "3b77200cf96d36de",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "theater": {
   "day": "dfe7fd9073df7d8c",
   "night": "f0cdc5f1d3045777",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "townhall": {
   "day": "e0a8b01d43cbad21",
   "night": "01ef0d89f201e8f7",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "townhouse": {
   "day": "212ad17a2a7c1b30",
   "night": "1d3c1adc660a3694",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "townhouse2": {
   "day": "95ba22ba1b667d71",
   "night": "9290c5e0abf4f25d",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "university": {
   "day": "600e0fd248ab9fef",
   "night": "d62157da340d26a6",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "villa": {
   "day": "b196ec3f76841dbc",
   "night": "93df9c107e76c135",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "warehouse": {
   "day": "631badada0b91302",
   "night": "de542dfdaf1f10b0",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "watermill": {
   "day": "1f230240d57573dd",
   "night": "61242949ea0a8d15",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "well": {
   "day": "92e74f66dd218c67",
   "night": null,
-  "status": "unlit",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "unlit",
   "note": "2026-11-08: Bestand gesichtet (Prüfansicht + Lichtflächen-Analyse)"
  },
  "woodcamp": {
   "day": "83d865d0a303c6e3",
   "night": "a3be2772cf92236b",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop": {
   "day": "8652b3b03cd3acad",
   "night": "4c18fe418e2fb50d",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-barn": {
   "day": "0e3f9e6579df4930",
   "night": "baa3642de15ce0e3",
-  "status": "unlit",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "unlit",
   "note": "2026-11-08: visuell geprüft: Scheune ohne Fenster, nur Tore"
  },
  "workshop-cottage": {
   "day": "9e3b3954e50ebb4a",
   "night": "c38fb70f0cbcf5a4",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-cottage-2": {
   "day": "fb71b7b23127448d",
   "night": "996689a49ed421fd",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-cottage-3": {
   "day": "337167a08908c05d",
   "night": "c9fe125f250b3239",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-fachwerk": {
   "day": "fc2de0f989ed22f3",
   "night": "02280f50a2bf341d",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-farmhouse": {
   "day": "9fb15dcc80febe2f",
   "night": "83f1cb5c24c3cc2f",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-farmhouse-2": {
   "day": "98958a168d686eb4",
   "night": "60636b57d36212bc",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-farmhouse-3": {
   "day": "1a611d762acfe1ac",
   "night": "417cfd4bb431070b",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-handwerker": {
   "day": "1b9dc914448990b7",
   "night": "3d501cb93309b06e",
-  "status": "approved",
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "approved",
   "note": "2026-11-08: neu: Scheiben in Fensterrahmen statt Klecksen"
  },
  "workshop-handwerker-2": {
   "day": "c487e8dcbbed59b5",
   "night": "615c5b3df120792c",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-handwerker-3": {
   "day": "c7070c2979e9c59e",
   "night": "84ad76c9d77e149e",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-hut": {
   "day": "ab2bfedd3976e868",
   "night": "7e5915068804c6f0",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-patrician": {
   "day": "3251ecfb4c99ad98",
   "night": "d1e9677cedc97fc7",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-patrician-2": {
   "day": "856227e58e19cca8",
   "night": "f471e4fd9d6f6fee",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-patrician-3": {
   "day": "d7c44731838aecda",
   "night": "1f35d3508c720244",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-steinhaus": {
   "day": "bd5121cef82e98c0",
   "night": "88d26d1ccae3d88c",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "workshop-villa": {
   "day": "89aace950cdd2934",
   "night": "4e03ed5aaf2ddea4",
-  "status": "unchecked",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  }
 }
