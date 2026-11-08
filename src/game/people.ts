@@ -317,10 +317,22 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   // Easter / St John's fire: on the meadow at the edge of the village, else beside the square
   const bonfire: Tile | null = feast && FEASTS[feast].scene === "fire" ? nearFree(plays.length ? plays[Math.floor(hash(s.x, s.y, 1411) * plays.length)]! : meet, s.x * 11 + s.y * 3) : null;
   const cows: Tile[] = [];
+  // a cow never stands on ploughland or in a garden: open meadow first, else woodland pasture (Waldweide) at the forest edge
+  const cowOpen = (x: number, y: number, wood: boolean) => {
+    const t = terrain(x, y); if (!buildable(t) || (t === "forest") !== wood) return false;
+    const st = structureAt(x, y, seeds, now); return !st || st.kind === "pasture" || st.kind === "square" || st.kind === "market";
+  };
+  const cowSpot = (c: Tile, k: number): Tile => {
+    for (const wood of [false, true]) for (let i = 0; i < 24; i++) {
+      const a = hash(k, i, 1401) * Math.PI * 2, d = 1 + hash(k, i, 1402) * (wood ? 3 : 2.2);
+      const x = Math.round(c[0] + Math.cos(a) * d), y = Math.round(c[1] + Math.sin(a) * d);
+      if (cowOpen(x, y, wood)) return [x, y];
+    }
+    return c;
+  };
   for (let i = 0, n = cowsOf(decs, now); i < n && i < 3; i++) {
-    // pastures belong to the sheep: the cow grazes on free ground beside one, never inside the fence
     const pas = byKind.get("pasture") ?? [];
-    cows.push(nearFree(pas.length ? pas[i % pas.length]! : meet, s.x * 13 + s.y + i * 101));
+    cows.push(cowSpot(pas.length ? pas[i % pas.length]! : meet, s.x * 13 + s.y + i * 101));
   }
   // raising the maypole / maypole games: half the village gathers on the square for an hour
   const mp = decs.filter((d) => d.event === "maypole" && now >= d.at && now - d.at < 2 * 3600e3).pop();
