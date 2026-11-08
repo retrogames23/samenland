@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stubePlaces, PATRICIAN_SLOTS } from "./stube";
+import { stubePlaces, stubeFigureKey, PATRICIAN_SLOTS, type StubePlace } from "./stube";
 import type { Pose } from "./people";
 
 const pose = (id: number, act: string, visible: boolean, extra: Record<string, unknown> = {}) =>
@@ -29,6 +29,34 @@ describe("stube gestures", () => {
     expect(poseMix(0.5, 1, 0.3, 1.5)).toBe(0);
     expect(poseMix(2, 1, 0.3, 1.5)).toBe(1);
     expect(poseMix(1.15, 1, 0.3, 1.5)).toBeCloseTo(0.5);
+  });
+});
+
+describe("resident identity in the diorama", () => {
+  const resident = (age: number, sex: string, spot: StubePlace["spot"]): StubePlace => ({ p: pose(1, "home", false, { age, sex }).p, spot, slot: 0 });
+  it("children warming themselves remain children of the correct sex", () => {
+    expect(stubeFigureKey(resident(9, "m", "fire"))).toBe("warm-boy");
+    expect(stubeFigureKey(resident(9, "f", "fire"))).toBe("warm-girl");
+  });
+  it("young adults at the fire are not painted as elders", () => {
+    expect(stubeFigureKey(resident(28, "m", "fire"))).toBe("warm-man");
+    expect(stubeFigureKey(resident(28, "f", "fire"))).toBe("warm-woman");
+    expect(stubeFigureKey(resident(68, "m", "fire"))).toBe("warm-elder");
+    expect(stubeFigureKey(resident(68, "f", "fire"))).toBe("elder-woman");
+  });
+  it("a man cooking or caring remains a man", () => {
+    expect(stubeFigureKey(resident(35, "m", "hearth"))).toBe("stir-man");
+    expect(stubeFigureKey(resident(35, "f", "hearth"))).toBe("stir");
+  });
+  it("both merchants write rather than eat at the counting desk", () => {
+    expect(stubeFigureKey(resident(35, "m", "desk"), true)).toBe("pat-write-man");
+    expect(stubeFigureKey(resident(35, "f", "desk"), true)).toBe("pat-write-woman");
+  });
+  it("patrician dress applies to children, adults and elders at table and fire", () => {
+    expect(stubeFigureKey(resident(9, "f", "table"), true)).toBe("pat-eat-girl");
+    expect(stubeFigureKey(resident(35, "f", "table"), true)).toBe("pat-eat-woman");
+    expect(stubeFigureKey(resident(9, "m", "fire"), true)).toBe("pat-warm-boy");
+    expect(stubeFigureKey(resident(68, "f", "fire"), true)).toBe("pat-elder-woman");
   });
 });
 

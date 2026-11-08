@@ -50,7 +50,76 @@ import elderAlt from "@/assets/sprites/stube/warm-elder-b.webp";
 import elderWomanBase from "@/assets/sprites/stube/elder-woman-base.webp";
 import elderWomanTop from "@/assets/sprites/stube/elder-woman-top.webp";
 import elderWomanAlt from "@/assets/sprites/stube/elder-woman-b.webp";
-import { stubeOf, STUBE_SLOTS, PATRICIAN_SLOTS, type StubePlace } from "@/game/stube";
+import newFig0 from "@/assets/sprites/stube/pat-eat-boy.webp";
+import newFig0Base from "@/assets/sprites/stube/pat-eat-boy-base.webp";
+import newFig0Top from "@/assets/sprites/stube/pat-eat-boy-top.webp";
+import newFig0Alt from "@/assets/sprites/stube/pat-eat-boy-b.webp";
+import newFig1 from "@/assets/sprites/stube/pat-eat-girl.webp";
+import newFig1Base from "@/assets/sprites/stube/pat-eat-girl-base.webp";
+import newFig1Top from "@/assets/sprites/stube/pat-eat-girl-top.webp";
+import newFig1Alt from "@/assets/sprites/stube/pat-eat-girl-b.webp";
+import newFig2 from "@/assets/sprites/stube/pat-eat-man.webp";
+import newFig2Base from "@/assets/sprites/stube/pat-eat-man-base.webp";
+import newFig2Top from "@/assets/sprites/stube/pat-eat-man-top.webp";
+import newFig2Alt from "@/assets/sprites/stube/pat-eat-man-b.webp";
+import newFig3 from "@/assets/sprites/stube/pat-eat-woman.webp";
+import newFig3Base from "@/assets/sprites/stube/pat-eat-woman-base.webp";
+import newFig3Top from "@/assets/sprites/stube/pat-eat-woman-top.webp";
+import newFig3Alt from "@/assets/sprites/stube/pat-eat-woman-b.webp";
+import newFig4 from "@/assets/sprites/stube/pat-elder-man.webp";
+import newFig4Base from "@/assets/sprites/stube/pat-elder-man-base.webp";
+import newFig4Top from "@/assets/sprites/stube/pat-elder-man-top.webp";
+import newFig4Alt from "@/assets/sprites/stube/pat-elder-man-b.webp";
+import newFig5 from "@/assets/sprites/stube/pat-elder-woman.webp";
+import newFig5Base from "@/assets/sprites/stube/pat-elder-woman-base.webp";
+import newFig5Top from "@/assets/sprites/stube/pat-elder-woman-top.webp";
+import newFig5Alt from "@/assets/sprites/stube/pat-elder-woman-b.webp";
+import newFig6 from "@/assets/sprites/stube/pat-write-man.webp";
+import newFig6Base from "@/assets/sprites/stube/pat-write-man-base.webp";
+import newFig6Top from "@/assets/sprites/stube/pat-write-man-top.webp";
+import newFig6Alt from "@/assets/sprites/stube/pat-write-man-b.webp";
+import newFig7 from "@/assets/sprites/stube/pat-write-woman.webp";
+import newFig7Base from "@/assets/sprites/stube/pat-write-woman-base.webp";
+import newFig7Top from "@/assets/sprites/stube/pat-write-woman-top.webp";
+import newFig7Alt from "@/assets/sprites/stube/pat-write-woman-b.webp";
+import newFig8 from "@/assets/sprites/stube/stir-man.webp";
+import newFig8Base from "@/assets/sprites/stube/stir-man-base.webp";
+import newFig8Top from "@/assets/sprites/stube/stir-man-top.webp";
+import newFig8Alt from "@/assets/sprites/stube/stir-man-b.webp";
+import newFig9 from "@/assets/sprites/stube/warm-boy.webp";
+import newFig9Base from "@/assets/sprites/stube/warm-boy-base.webp";
+import newFig9Top from "@/assets/sprites/stube/warm-boy-top.webp";
+import newFig9Alt from "@/assets/sprites/stube/warm-boy-b.webp";
+import newFig10 from "@/assets/sprites/stube/warm-girl.webp";
+import newFig10Base from "@/assets/sprites/stube/warm-girl-base.webp";
+import newFig10Top from "@/assets/sprites/stube/warm-girl-top.webp";
+import newFig10Alt from "@/assets/sprites/stube/warm-girl-b.webp";
+import newFig11 from "@/assets/sprites/stube/warm-man.webp";
+import newFig11Base from "@/assets/sprites/stube/warm-man-base.webp";
+import newFig11Top from "@/assets/sprites/stube/warm-man-top.webp";
+import newFig11Alt from "@/assets/sprites/stube/warm-man-b.webp";
+import newFig12 from "@/assets/sprites/stube/warm-woman.webp";
+import newFig12Base from "@/assets/sprites/stube/warm-woman-base.webp";
+import newFig12Top from "@/assets/sprites/stube/warm-woman-top.webp";
+import newFig12Alt from "@/assets/sprites/stube/warm-woman-b.webp";
+import patWarmBoy from "@/assets/sprites/stube/pat-warm-boy.webp";
+import patWarmBoyBase from "@/assets/sprites/stube/pat-warm-boy-base.webp";
+import patWarmBoyTop from "@/assets/sprites/stube/pat-warm-boy-top.webp";
+import patWarmBoyAlt from "@/assets/sprites/stube/pat-warm-boy-b.webp";
+import patWarmGirl from "@/assets/sprites/stube/pat-warm-girl.webp";
+import patWarmGirlBase from "@/assets/sprites/stube/pat-warm-girl-base.webp";
+import patWarmGirlTop from "@/assets/sprites/stube/pat-warm-girl-top.webp";
+import patWarmGirlAlt from "@/assets/sprites/stube/pat-warm-girl-b.webp";
+import patWarmMan from "@/assets/sprites/stube/pat-warm-man.webp";
+import patWarmManBase from "@/assets/sprites/stube/pat-warm-man-base.webp";
+import patWarmManTop from "@/assets/sprites/stube/pat-warm-man-top.webp";
+import patWarmManAlt from "@/assets/sprites/stube/pat-warm-man-b.webp";
+import patWarmWoman from "@/assets/sprites/stube/pat-warm-woman.webp";
+import patWarmWomanBase from "@/assets/sprites/stube/pat-warm-woman-base.webp";
+import patWarmWomanTop from "@/assets/sprites/stube/pat-warm-woman-top.webp";
+import patWarmWomanAlt from "@/assets/sprites/stube/pat-warm-woman-b.webp";
+import seatUrl from "@/assets/sprites/stube/seat.webp";
+import { stubeFigureKey, stubeOf, STUBE_SLOTS, PATRICIAN_SLOTS, type StubePlace } from "@/game/stube";
 import { clock } from "@/game/time";
 import { nightLevel } from "@/game/sun";
 import { STUBE } from "@/game/lang/stube";
@@ -61,8 +130,45 @@ import type { Seed } from "@/game/world";
 type Fig = { url: string; layers?: [string, string, string]; x: number; y: number; h: number; flip: boolean; anim: "eat" | "stir" | "warm" | "sleep" | "write"; ph: number };
 /** Whole-pose layers: unchanged lower body, painted upper body in pose A and pose B. */
 const LAYERS: Record<string, [string, string, string]> = {
+  [patWarmBoy]: [patWarmBoyBase, patWarmBoyTop, patWarmBoyAlt],
+  [patWarmGirl]: [patWarmGirlBase, patWarmGirlTop, patWarmGirlAlt],
+  [patWarmMan]: [patWarmManBase, patWarmManTop, patWarmManAlt],
+  [patWarmWoman]: [patWarmWomanBase, patWarmWomanTop, patWarmWomanAlt],
   [manUrl]: [manBase, manTop, manAlt], [writeUrl]: [writeBase, writeTop, writeAlt], [womanUrl]: [womanBase, womanTop, womanAlt], [boyUrl]: [boyBase, boyTop, boyAlt], [girlUrl]: [girlBase, girlTop, girlAlt],
+  [newFig0]: [newFig0Base, newFig0Top, newFig0Alt],
+  [newFig1]: [newFig1Base, newFig1Top, newFig1Alt],
+  [newFig2]: [newFig2Base, newFig2Top, newFig2Alt],
+  [newFig3]: [newFig3Base, newFig3Top, newFig3Alt],
+  [newFig4]: [newFig4Base, newFig4Top, newFig4Alt],
+  [newFig5]: [newFig5Base, newFig5Top, newFig5Alt],
+  [newFig6]: [newFig6Base, newFig6Top, newFig6Alt],
+  [newFig7]: [newFig7Base, newFig7Top, newFig7Alt],
+  [newFig8]: [newFig8Base, newFig8Top, newFig8Alt],
+  [newFig9]: [newFig9Base, newFig9Top, newFig9Alt],
+  [newFig10]: [newFig10Base, newFig10Top, newFig10Alt],
+  [newFig11]: [newFig11Base, newFig11Top, newFig11Alt],
+  [newFig12]: [newFig12Base, newFig12Top, newFig12Alt],
   [stirUrl]: [stirBase, stirTop, stirAlt], [elderUrl]: [elderBase, elderTop, elderAlt], [elderWomanUrl]: [elderWomanBase, elderWomanTop, elderWomanAlt],
+};
+const FIGURES: Record<string, string> = {
+  "pat-warm-boy": patWarmBoy,
+  "pat-warm-girl": patWarmGirl,
+  "pat-warm-man": patWarmMan,
+  "pat-warm-woman": patWarmWoman,
+  "eat-man": manUrl, "eat-woman": womanUrl, "eat-boy": boyUrl, "eat-girl": girlUrl, "stir": stirUrl, "warm-elder": elderUrl, "elder-woman": elderWomanUrl,
+  "pat-eat-boy": newFig0,
+  "pat-eat-girl": newFig1,
+  "pat-eat-man": newFig2,
+  "pat-eat-woman": newFig3,
+  "pat-elder-man": newFig4,
+  "pat-elder-woman": newFig5,
+  "pat-write-man": newFig6,
+  "pat-write-woman": newFig7,
+  "stir-man": newFig8,
+  "warm-boy": newFig9,
+  "warm-girl": newFig10,
+  "warm-man": newFig11,
+  "warm-woman": newFig12,
 };
 const ease = (x: number) => x * x * (3 - 2 * x);
 /** Weight of pose B over one gesture cycle: hold A, move, hold B, move back (seconds). */
@@ -79,36 +185,36 @@ const imgs = new Map<string, HTMLImageElement>();
 const img = (u: string) => { let i = imgs.get(u); if (!i) { i = new Image(); i.src = u; imgs.set(u, i); } return i; };
 
 /** Painted seat for each place in the room (fractions of the room picture). */
-function figOf(pl: StubePlace): Fig | null {
+export function figOf(pl: StubePlace): Fig | null {
   const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < 4, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
+  const figure = FIGURES[stubeFigureKey(pl)];
   // the picture always matches the resident's real age and sex
   if (spot === "bed") return small
     ? { url: sleepChildUrl, x: 0.1, y: slot ? 0.497 : 0.677, h: 0.03, flip: false, anim: "sleep", ph }
     : { url: sleepUrl, x: 0.12, y: slot ? 0.497 : 0.677, h: 0.043 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
-  if (spot === "hearth") return { url: stirUrl, x: 0.35, y: 0.79, h: 0.3 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
-  if (spot === "fire") return f
-    ? { url: elderWomanUrl, x: 0.505, y: 0.8, h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph }
-    : { url: elderUrl, x: 0.505, y: 0.8, h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
+  if (spot === "hearth") return { url: figure ?? stirUrl, x: 0.35, y: 0.82, h: 0.3 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
+  if (spot === "fire") return { url: figure ?? elderUrl, x: 0.455, y: 0.82, h: 0.22 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
   if (spot === "table") {
     const left = slot % 2 === 0;
-    const url = kid ? (f ? girlUrl : boyUrl) : (f ? womanUrl : manUrl);
+    const url = figure ?? manUrl;
     const flip = left ? f : !f; // males face right, females face left in the art
-    const x = [0.56, 0.715, 0.525, 0.75][slot]!;
+    const x = [0.56, 0.715, 0.525, 0.75][slot] ?? 0.56;
     return { url, x, y: slot < 2 ? 0.8 : 0.83, h: kid ? 0.2 * Math.min(1, 0.6 + p.age / 30) : 0.26, flip, anim: "eat", ph };
   }
   return null;
 }
 
 /** Merchant's town house, cut open top to bottom (fractions of the 1024×1536 picture): bedchamber, Dornse, Diele. */
-function tallFigOf(pl: StubePlace): Fig | null {
+export function tallFigOf(pl: StubePlace): Fig | null {
   const { p, spot, slot } = pl, kid = p.age < 14, small = p.age < 4, f = p.sex === "f", ph = (p.id % 97) / 97 * 6.28;
+  const figure = FIGURES[stubeFigureKey(pl, true)] ?? manUrl;
   if (spot === "bed") return { url: small ? sleepChildUrl : sleepUrl, x: slot ? 0.405 : 0.235, y: 0.398, h: small ? 0.028 : 0.04 * (kid ? 0.8 : 1), flip: false, anim: "sleep", ph };
-  if (spot === "hearth") return { url: stirUrl, x: 0.4, y: 0.895, h: 0.12 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
-  if (spot === "fire") return { url: f ? elderWomanUrl : elderUrl, x: 0.31, y: 0.655, h: 0.09 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
-  if (spot === "desk") return f ? { url: womanUrl, x: 0.6, y: 0.895, h: 0.1, flip: true, anim: "eat", ph } : { url: writeUrl, x: 0.6, y: 0.895, h: 0.1, flip: false, anim: "write", ph };
+  if (spot === "hearth") return { url: figure, x: 0.4, y: 0.895, h: 0.12 * (kid ? 0.7 : 1), flip: false, anim: "stir", ph };
+  if (spot === "fire") return { url: figure, x: 0.31, y: 0.655, h: 0.09 * (kid ? 0.75 : 1), flip: false, anim: "warm", ph };
+  if (spot === "desk") return { url: figure, x: 0.6, y: 0.895, h: 0.1, flip: false, anim: "write", ph };
   if (spot === "table") {
-    const left = slot % 2 === 0, url = kid ? (f ? girlUrl : boyUrl) : (f ? womanUrl : manUrl);
-    return { url, x: [0.6, 0.745, 0.565, 0.785][slot]!, y: slot < 2 ? 0.635 : 0.655, h: kid ? 0.08 * Math.min(1, 0.6 + p.age / 30) : 0.1, flip: left ? f : !f, anim: "eat", ph };
+    const left = slot % 2 === 0, url = figure;
+    return { url, x: ([0.6, 0.745, 0.565, 0.785][slot] ?? 0.6), y: slot < 2 ? 0.635 : 0.655, h: kid ? 0.08 * Math.min(1, 0.6 + p.age / 30) : 0.1, flip: !left, anim: "eat", ph };
   }
   return null;
 }
@@ -139,6 +245,13 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
         const w = f.anim === "sleep" ? 0.115 * 1536 * (f.h / 0.043) : f.h * H * im.naturalWidth / im.naturalHeight;
         const hh = w * im.naturalHeight / im.naturalWidth;
         const px = f.x * W, py = f.y * H;
+        if (f.anim === "eat" || f.anim === "warm" || f.anim === "write") {
+          const seat = img(seatUrl);
+          if (seat.complete && seat.naturalWidth) {
+            const sh = hh * 0.37, sw = sh * seat.naturalWidth / seat.naturalHeight;
+            g.drawImage(seat, px - sw / 2, py - sh, sw, sh);
+          }
+        }
         g.save(); g.translate(px, py);
         if (f.flip) g.scale(-1, 1);
         const s = Math.sin(t * 0.8 + f.ph), L = LAYERS[f.url];
@@ -170,7 +283,7 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
       g.globalCompositeOperation = "source-over";
       raf = requestAnimationFrame(draw);
     };
-    for (const u of [roomUrl, hutRoomUrl, manUrl, womanUrl, sleepUrl, stirUrl, elderUrl, elderWomanUrl, boyUrl, girlUrl, sleepChildUrl, ...Object.values(LAYERS).flat()]) img(u);
+    for (const u of [seatUrl, ...Object.values(FIGURES), roomUrl, hutRoomUrl, manUrl, womanUrl, sleepUrl, stirUrl, elderUrl, elderWomanUrl, boyUrl, girlUrl, sleepChildUrl, ...Object.values(LAYERS).flat()]) img(u);
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
   }, [figs, kind, seed, L0, W, H]);
