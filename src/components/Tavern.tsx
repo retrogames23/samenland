@@ -168,7 +168,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
             </button>
         </div>
         <div className="relative flex min-h-0 flex-1">
-          <aside className={`${side ? "absolute inset-0 z-10 block bg-card/95" : "hidden"} space-y-2 overflow-auto border-e border-ink/25 p-3 text-sm sm:static sm:block sm:w-44 sm:shrink-0 sm:bg-transparent sm:p-2 sm:text-xs`}>
+          <aside className={`${side ? "absolute inset-0 z-10 block bg-card/95" : "hidden"} space-y-2 overflow-y-auto overflow-x-hidden border-e border-ink/25 p-3 text-sm sm:static sm:block sm:w-44 sm:shrink-0 sm:bg-transparent sm:p-2 sm:text-xs`}>
             {chanBtn("tavern", `# ${t.tavern.room}`)}
             <div>
               <div className="px-1.5 pt-1 font-semibold uppercase tracking-wide text-ink/60">{t.tavern.letters}</div>
@@ -190,7 +190,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
             ))}
           </aside>
           <div className="relative flex min-w-0 flex-1 flex-col">
-            <div className="selectable min-h-0 flex-1 overflow-auto px-3 pb-2 pt-3 font-mono [mask-image:linear-gradient(to_bottom,transparent,black_1.25rem)] text-[13px] leading-snug">
+            <div className="selectable min-h-0 flex-1 overflow-y-auto overflow-x-hidden break-words px-3 pb-2 pt-3 font-mono [mask-image:linear-gradient(to_bottom,transparent,black_1.25rem)] text-[13px] leading-snug">
               {!userId && <div className="text-ink/60">{t.tavern.signIn}</div>}
               {userId && !shown.length && <div className="text-ink/60">{chan === "tavern" ? t.tavern.empty : t.tavern.emptyLetter}</div>}
               {shown.map((m) => (

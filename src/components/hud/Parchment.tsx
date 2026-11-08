@@ -21,7 +21,7 @@ export function Parchment({ image, title, later, onLater, wide, action, children
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => { y0.current = e.currentTarget.scrollTop <= 0 && e.target === e.currentTarget.querySelector("img") ? e.touches[0]!.clientY : null; }}
         onTouchEnd={(e) => { if (y0.current != null && e.changedTouches[0]!.clientY - y0.current > 80) onLater(); y0.current = null; }}
-        className={`parchment relative max-h-full w-full overflow-auto overscroll-contain max-md:max-h-[88dvh] max-md:rounded-b-none max-md:pb-[env(safe-area-inset-bottom)] max-md:animate-in max-md:slide-in-from-bottom ${wide ? "max-w-2xl" : "max-w-xl"} max-md:max-w-none`}>
+        className={`parchment relative max-h-full w-full overflow-y-auto overflow-x-hidden overscroll-contain max-md:max-h-[88dvh] max-md:rounded-b-none max-md:pb-[env(safe-area-inset-bottom)] max-md:animate-in max-md:slide-in-from-bottom ${wide ? "max-w-2xl" : "max-w-xl"} max-md:max-w-none`}>
         <div aria-hidden className="sticky top-0 z-10 mx-auto h-0 md:hidden"><div className="mx-auto mt-1.5 h-1 w-12 rounded-full bg-ink/30" /></div>
         {/* zero-height sticky rail keeps the close cross in reach while the parchment scrolls */}
         <div className="sticky top-0 z-20 h-0">

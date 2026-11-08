@@ -38,7 +38,7 @@ export function LabDesk({ lang, onChange, onClose, onTrigger }: { lang: Lang; on
     const j = labJump() + d; setLabJump(j); localStorage.setItem("samenland-lab-jump", String(j)); done();
   };
   return (
-    <div className="pointer-events-auto fixed inset-x-2 top-16 z-50 mx-auto max-h-[75vh] max-w-sm overflow-y-auto rounded-lg border border-border bg-card/95 p-3 text-sm shadow-lg backdrop-blur" role="dialog" aria-label={t.title}>
+    <div className="pointer-events-auto fixed inset-x-2 top-16 z-50 mx-auto max-h-[75vh] max-w-sm overflow-y-auto overflow-x-hidden rounded-lg border border-border bg-card/95 p-3 text-sm shadow-lg backdrop-blur" role="dialog" aria-label={t.title}>
       <div className="mb-1 flex items-center justify-between"><b>🎛 {t.title}</b><button className="text-xs text-muted-foreground hit" onClick={onClose} aria-label={t.close}>✕</button></div>
       <div className="mb-2 text-[10px] text-muted-foreground">{t.note}</div>
       <div className="text-xs text-muted-foreground">{t.time}</div>
