@@ -77,7 +77,7 @@ import guardU from "@/assets/sprites/court/guard.webp";
 import gardenerU from "@/assets/sprites/court/gardener.webp";
 import courtGroomU from "@/assets/sprites/court/groom.webp";
 import { heraldVisit, HERALD_RIDE_S, type PrincelyRow } from "./princely";
-import { SEAT_KINDS, onGeoChange, hash, vnoise, structureAt, soloSeeds, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, FOOT2, links, roadProgress, isTwin, acreOf, ageHours, effAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { SEAT_KINDS, onGeoChange, hash, vnoise, structureAt, soloSeeds, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, FOOT2, links, roadProgress, isTwin, acreOf, ageHours, viewAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -452,7 +452,7 @@ function drawRobber(c: C, X: number, Y: number, flip: boolean, t: number) {
 const DECK_M = typeof DOMMatrix !== "undefined" ? new DOMMatrix() : (null as unknown as DOMMatrix); // reused per frame, no GC churn
 export function robberAt(s: Seed, now: number): [number, number, boolean] | null {
   const r = activeRaid(s, now); if (!r) return null;
-  const ph = (now - r.at) / RAID_LEN, R = Math.max(3, radiusOf(effAge(s, renderSeeds, now)) * 0.8), a = hash(s.x, s.y, Math.floor(r.at / 864e5)) * 6.28;
+  const ph = (now - r.at) / RAID_LEN, R = Math.max(3, radiusOf(viewAge(s, renderSeeds, now)) * 0.8), a = hash(s.x, s.y, Math.floor(r.at / 864e5)) * 6.28;
   const d = ph < 0.5 ? R * (1 - ph * 2) + 1.2 : R * (ph - 0.5) * 2 + 1.2, b = a + (ph < 0.5 ? 0 : 0.9);
   return [s.x + Math.cos(b) * d, s.y + Math.sin(b) * d, ph >= 0.5];
 }
@@ -1807,7 +1807,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
   const vx0 = cam.x - w / 2 / z, vx1 = cam.x + w / 2 / z, vy0 = cam.y - h / 2 / z, vy1 = cam.y + h / 2 / z;
   for (const s of seeds) {
     const [ix, iy] = iso(s.x, s.y);
-    const R = radiusOf(effAge(s, seeds, now));
+    const R = radiusOf(viewAge(s, seeds, now));
     const rr = Math.max(R * TW * 0.5, 3 * dpr * px);
     if (ix + rr < vx0 || ix - rr > vx1 || iy + rr < vy0 || iy - rr > vy1) continue;
     // settled ground under the town
@@ -1838,7 +1838,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
     for (const s of seeds) {
       const [ix, iy] = iso(s.x, s.y);
       const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2;
-      const r = Math.max(6 * dpr, radiusOf(effAge(s, seeds, now)) * TW * 0.5 * z);
+      const r = Math.max(6 * dpr, radiusOf(viewAge(s, seeds, now)) * TW * 0.5 * z);
       if (sx < -r || sy < -r || sx > w + r || sy > h + r) continue;
       const g = c.createRadialGradient(sx, sy, 0, sx, sy, r);
       g.addColorStop(0, `rgba(255,170,80,${0.22 * night})`); g.addColorStop(1, "rgba(255,140,60,0)");
@@ -1850,10 +1850,10 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
   const placed: [number, number][] = [];
   const cl = drawCourtLabel(c, cam, w, h, z, dpr, 7 * TH * z + 12 * dpr, 18); if (cl) placed.push(cl);
   c.font = `700 ${Math.round(18 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`;
-  const order = [...seeds].sort((a, b) => effAge(b, seeds, now) - effAge(a, seeds, now));
+  const order = [...seeds].sort((a, b) => viewAge(b, seeds, now) - viewAge(a, seeds, now));
   for (const s of order) {
     const [ix, iy] = iso(s.x, s.y);
-    const R = radiusOf(effAge(s, seeds, now)) * TH * 0.5 * z;
+    const R = radiusOf(viewAge(s, seeds, now)) * TH * 0.5 * z;
     const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2 - R - 12 * dpr;
     const tw = c.measureText(s.name).width;
     if (placed.some(([px2, py2]) => Math.abs(px2 - sx) < tw && Math.abs(py2 - sy) < 22 * dpr)) continue; // biggest town keeps its name
@@ -3526,12 +3526,12 @@ export function draw(
   lanternFolk.clear();
   if (folkOn) for (const sd of seeds) {
     // generous margin: strollers and the steered mayor wander well beyond the built-up edge — never cull them at the border
-    const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 24;
+    const r = reachOf(sd, radiusOf(viewAge(sd, seeds, now))) + 24;
     const mine = steer && steer.sid === sd.id && steer.x >= x0 - 2 && steer.x <= x1 + 2 && steer.y >= y0 - 2 && steer.y <= y1 + 2;
     const rm = mine ? null : remoteMayor(sd.id);
     const live = !!rm && rm.x >= x0 - 2 && rm.x <= x1 + 2 && rm.y >= y0 - 2 && rm.y <= y1 + 2;
     if (!mine && !live && (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1)) continue;
-    const r0 = reachOf(sd, radiusOf(effAge(sd, seeds, now)));
+    const r0 = reachOf(sd, radiusOf(viewAge(sd, seeds, now)));
     const darkOut = nightLevel(now) > 0.35;
     for (const q of townPosesSmooth(sd, seeds, now)) {
       const k = Math.round(q.y) * MAP + Math.round(q.x);
@@ -3574,7 +3574,7 @@ export function draw(
   fzNow = fz; fzHour = worldHour(now); fzStars.clear();
   if (detail) for (const sd of seeds) {
     if (!sd.decisions?.length && !fzProps) continue;
-    const r = reachOf(sd, radiusOf(effAge(sd, seeds, now))) + 2;
+    const r = reachOf(sd, radiusOf(viewAge(sd, seeds, now))) + 2;
     if (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1) continue;
     const tw = townOf(sd, seeds, now);
     if (tw.maypole) addProp(tw.maypole[1] * MAP + tw.maypole[0], (cx, cy) => drawMaypole(c, cx, cy, t));

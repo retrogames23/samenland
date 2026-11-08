@@ -884,9 +884,12 @@ function cachedLink(a: Seed, b: Seed, d: number): Link | null {
   return p ? { a, b, d, since: p.since, tiles: p.tiles, water: p.water } : null;
 }
 
+/** links() key per seeds array (same immutability assumption as seedsKey): building it was most of structureAt's cost. */
+const lkMemo = new WeakMap<Seed[], string>();
 export function links(seeds: Seed[]): Link[] {
   syncGeo();
-  const key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.roads ?? []).map((r) => `${r.target}@${r.at}`).join("+")}`).join("|");
+  let key = lkMemo.get(seeds);
+  if (key === undefined) { key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.roads ?? []).map((r) => `${r.target}@${r.at}`).join("+")}`).join("|"); lkMemo.set(seeds, key); }
   if (key === linkKey) return linkCache;
   const hit = linkSets.get(key);
   if (hit) { linkKey = key; linkCache = hit.links; roadIdx = hit.idx; return linkCache; }
@@ -1015,6 +1018,11 @@ function buildLink(a: Seed, b: Seed, d: number): Link | null {
 /** 0..1 how much of the road exists. */
 export const roadProgress = (l: Link, now: number) => Math.max(0, Math.min(1, (now - l.since) / (l.build ?? ROAD_BUILD * 3.6e6)));
 
+/** Seed a road tile is credited to (link.a), regardless of build progress — for exact pre-filters only. */
+export function roadOwnerAt(x: number, y: number, seeds: Seed[]): string | null {
+  links(seeds);
+  return roadIdx.get(y * MAP + x)?.link.a.id ?? null;
+}
 function roadAt(x: number, y: number, seeds: Seed[], now: number) {
   links(seeds);
   const r = roadIdx.get(y * MAP + x);
@@ -1101,6 +1109,10 @@ export function effAge(s: Seed, seeds: Seed[], now: number) {
   if (v === undefined) { v = effAgeBase(s, seeds, now) + twinHours(s, seeds, now) * GROWTH_PACE; c.m.set(s.id, v); }
   return v;
 }
+/** Display-only age for drawing (culling radius, overview, robber path): the clock rounded to VIEW_AGE_STEP so every frame
+ *  in the window hits the effAge memo. Never use it for growth, tax, rank or anything mirrored by the server. */
+export const VIEW_AGE_STEP = 2000;
+export const viewAge = (s: Seed, seeds: Seed[], now: number) => effAge(s, seeds, Math.floor(now / VIEW_AGE_STEP) * VIEW_AGE_STEP);
 function effAgeBase(s: Seed, seeds: Seed[], now: number) {
   let h = ageHours(s, now) + blessHours(s, now) + boonHours(s.decisions ?? [], now);
   if (s.charter?.path === "farm" && now > s.charter.at) h += (now - s.charter.at) / 3.6e6 * FARM_BONUS;
