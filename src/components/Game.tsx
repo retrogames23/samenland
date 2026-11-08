@@ -3083,7 +3083,7 @@ export function Game() {
               <div className="mt-1 space-y-1">
                 <div className="font-semibold">{questText![0]}</div>
                 <div className={`text-xs opacity-80 ${petition!.plea ? "italic" : ""}`}>{petition!.plea ?? questText![1]}</div>
-                {quest.need > 1 && <div className="h-1 overflow-hidden rounded bg-ink/10"><div className="h-full bg-brass/70" style={{ width: `${(100 * quest.have) / quest.need}%` }} /></div>}
+                {quest.need > 1 && <div className="flex items-center gap-2"><div className="h-1 flex-1 overflow-hidden rounded bg-ink/10"><div className="h-full bg-brass/70" style={{ width: `${(100 * quest.have) / quest.need}%` }} /></div><span dir="ltr" className="shrink-0 text-xs tabular-nums opacity-80">{quest.have} / {quest.need}</span></div>}
                 <div className="text-end text-xs opacity-70">{t.quests.reward(quest.reward)}</div>
                 {quest.ready
                   ? <Button size="sm" className="h-7 w-full" onClick={() => setQuestOpen(true)}>{t.quests.claim}</Button>
