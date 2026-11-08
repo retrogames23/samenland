@@ -742,11 +742,20 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
           fp = [new Path2D(), new Path2D(), new Path2D(), new Path2D()];
           for (const [ei, [, , a, b]] of edges.entries()) {
             if (!(mask & (1 << ei))) continue;
-            const posts = 3;
-            for (const hgt of [0.8, 1.5]) for (let n = 0; n < posts; n++) {
-              const f0 = n / posts, f1 = (n + 1) / posts, sag = 0.12 + hash(sd, n, 77) * 0.12;
-              const A = lp(a, b, f0), B = lp(a, b, f1), M = lp(a, b, (f0 + f1) / 2);
-              fp[0]!.moveTo(A[0], A[1] - hgt); fp[0]!.quadraticCurveTo(M[0], M[1] - hgt + sag, B[0], B[1] - hgt);
+            // Schafhürden (c. 1500): dense hazel/willow wattle woven round stakes, no sawn rails
+            const posts = 3, rods = 7;
+            for (let n = 0; n < posts; n++) {
+              const f0 = n / posts, f1 = (n + 1) / posts, tilt = (hash(sd, n, 79) - 0.5) * 0.15;
+              for (let r = 0; r < rods; r++) {
+                const hgt = 0.15 + (r / (rods - 1)) * 1.25 + (hash(sd, n * 9 + r, 76) - 0.5) * 0.08 + tilt * (r / rods);
+                // woven over-under: each rod bows out between sail stakes, alternating phase per row
+                const ph = (r + n) & 1 ? 1 : -1, sag = 0.06 + hash(sd, n * 9 + r, 77) * 0.06;
+                const A = lp(a, b, f0), B = lp(a, b, f1), Q1 = lp(a, b, f0 + (f1 - f0) / 3), Q2 = lp(a, b, f0 + (2 * (f1 - f0)) / 3);
+                fp[0]!.moveTo(A[0], A[1] - hgt);
+                fp[0]!.bezierCurveTo(Q1[0], Q1[1] - hgt + sag * ph, Q2[0], Q2[1] - hgt - sag * ph, B[0], B[1] - hgt);
+              }
+              // thin intermediate sail stakes the rods are woven round
+              for (const f of [1 / 3, 2 / 3]) { const S = lp(a, b, f0 + (f1 - f0) * f); fp[3]!.moveTo(S[0], S[1] - 0.05); fp[3]!.lineTo(S[0], S[1] - 1.45); }
             }
             for (let n = 0; n <= posts; n++) {
               const A = lp(a, b, n / posts), lean = (hash(sd, n, 78) - 0.5) * 0.3;
