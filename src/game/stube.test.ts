@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stubePlaces } from "./stube";
+import { stubePlaces, PATRICIAN_SLOTS } from "./stube";
 import type { Pose } from "./people";
 
 const pose = (id: number, act: string, visible: boolean, extra: Record<string, unknown> = {}) =>
@@ -29,5 +29,21 @@ describe("stube gestures", () => {
     expect(poseMix(0.5, 1, 0.3, 1.5)).toBe(0);
     expect(poseMix(2, 1, 0.3, 1.5)).toBe(1);
     expect(poseMix(1.15, 1, 0.3, 1.5)).toBeCloseTo(0.5);
+  });
+});
+
+describe("Schaukasten: merchant's house storeys", () => {
+  it("an awake adult at home sits at the counting desk", () => {
+    expect(stubePlaces([pose(1, "home", false)], PATRICIAN_SLOTS)[0]!.spot).toBe("desk");
+  });
+  it("sleepers still go to the bedchamber, eaters to the Dornse table", () => {
+    const r = stubePlaces([pose(1, "sleep", false), pose(2, "lunch", false)], PATRICIAN_SLOTS);
+    expect(r.map((x) => x.spot)).toEqual(["bed", "table"]);
+  });
+  it("farmhouses have no desk", () => {
+    expect(stubePlaces([pose(1, "home", false)])[0]!.spot).toBe("table");
+  });
+  it("children never take the desk", () => {
+    expect(stubePlaces([pose(1, "home", false, { age: 9 })], PATRICIAN_SLOTS)[0]!.spot).toBe("table");
   });
 });
