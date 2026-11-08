@@ -708,6 +708,13 @@
       "when": 1794140839942,
       "tag": "0100_quest_roads_both_sides",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1794160900912,
+      "tag": "0101_quest_meet_first_again",
+      "breakpoints": true
     }
   ]
 }
