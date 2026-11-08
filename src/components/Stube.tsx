@@ -111,8 +111,10 @@ export function Stube({ seed, seeds, residents, family, lang, onClose }: { seed:
           g.drawImage(base, -w / 2, -hh, w, hh);
           // the upper body breathes gently and leans into each gesture
           g.translate(0, -hh * 0.4); g.scale(1, 1 + 0.006 * Math.sin(t * 1.6 + f.ph)); g.translate(0, hh * 0.4);
-          if (k < 1) { g.globalAlpha = 1 - k; g.drawImage(top, -w / 2, -hh, w, hh); }
-          if (k > 0) { g.globalAlpha = k; g.drawImage(alt, -w / 2, -hh, w, hh); }
+          // the nearer pose stays opaque, the other blends over it — the body never turns see-through mid-gesture
+          const [first, second, a2] = k <= 0.5 ? [top, alt, 2 * k] : [alt, top, 2 * (1 - k)];
+          g.drawImage(first, -w / 2, -hh, w, hh);
+          if (a2 > 0) { g.globalAlpha = a2; g.drawImage(second, -w / 2, -hh, w, hh); }
           g.globalAlpha = 1;
         }
         g.restore();
