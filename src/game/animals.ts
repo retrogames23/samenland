@@ -1,5 +1,14 @@
 import { worldHour } from "./time";
-import { hash } from "./world";
+import { hash, terrain } from "./world";
+
+/** Share of lowland pastures grazed by cattle (Hallenhaus country c. 1500); the rest keep sheep. */
+export const COW_SHARE = 0.65;
+/** Which herd grazes a pasture tile: slopes and lean sand keep sheep, lowland mostly cattle. Display only. */
+export function herdAt(x: number, y: number): "cow" | "sheep" {
+  const t = terrain(x, y);
+  if (t === "hill" || t === "sand" || t === "mountain") return "sheep";
+  return hash(x, y, 1509) < COW_SHARE ? "cow" : "sheep";
+}
 
 /** Shared realm night: sheep rest from 21:00 through 05:59, never the viewer's local time. */
 export function animalsSleeping(now: number): boolean {
