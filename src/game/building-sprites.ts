@@ -392,7 +392,7 @@ const paintingKey = (kind: Kind, style: HouseStyle | undefined, variant: number)
   if (slot > 0) return `${style ?? "grain"}-${kind}-${slot + 1}`;
   return style && STYLE_OF[kind] ? `${style}-${kind}` : kind;
 };
-export const needsGroundShadow = (kind: Kind, style: HouseStyle | undefined, variant: number) => !GROUNDED.has(paintingKey(kind, style, variant));
+export const needsGroundShadow = (kind: Kind, style: HouseStyle | undefined, variant: number) => !GROUNDED.has(paintingKey(kind, style, variant)) && !(paintingKey(kind, style, variant) === kind && spriteOf(kind, style) !== sprites[kind]);
 const shadows = new WeakMap<HTMLImageElement, HTMLCanvasElement | null>();
 /** Blurred dark copy of the painting's lowest band (its footing), cached per image. */
 function shadowOf(im: HTMLImageElement): HTMLCanvasElement | null {
@@ -463,6 +463,7 @@ export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: nu
   const st = styledOf(kind, style, variant);
   if (st && !st.light) st.light = load(st.night);
   const own = !!st && ready(st.image) && ready(st.light);
+  if (!st && spriteOf(kind, style) !== sprites[kind]) return; // test drafts have no night layer yet
   if (st && !own) return; // never pair a variant's walls with another painting's windows
   const image = own ? st?.light : nightImages[kind], box = spriteBox(kind, variant, own ? style : undefined);
   if (!image?.complete || !image.naturalWidth || !box) return;
