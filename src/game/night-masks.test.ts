@@ -8,7 +8,8 @@ import { nightPairs } from "./building-sprites";
 import { audit, sha } from "./night-audit";
 
 const file = (u: string) => path.resolve(process.cwd(), u.replace(/^\//, "").split("?")[0]!);
-type Lock = Record<string, { day: string; night: string | null; approved: string; allowEmpty?: boolean }>;
+/** status: unchecked = technically checked only; reviewed = seen, rework open; approved = seen + released; unlit = seen, deliberately dark */
+type Lock = Record<string, { day: string; night: string | null; status: "unchecked" | "reviewed" | "approved" | "unlit"; note: string }>;
 const lock: Lock = JSON.parse(readFileSync(path.resolve(__dirname, "night-masks.lock.json"), "utf8"));
 const pairs = nightPairs();
 
@@ -28,6 +29,8 @@ describe("night masks", () => {
   for (const p of pairs) it(`${p.key}`, async () => {
     const entry = lock[p.key]!;
     expect(entry, `${p.key}: not in night-masks.lock.json`).toBeTruthy();
+    expect(["unchecked", "reviewed", "approved", "unlit"]).toContain(entry.status);
+    if (!p.night) expect(entry.status, `${p.key}: no mask must be marked unlit`).toBe("unlit");
     const day = file(p.day);
     expect(existsSync(day)).toBe(true);
     if (!p.night) { expect(entry.night, `${p.key}: lock expects a mask`).toBeNull(); expect(entry.day, `${p.key}: day painting changed — review`).toBe(sha(day)); return; }
@@ -38,7 +41,7 @@ describe("night masks", () => {
     expect([a.w, a.h], `${p.key}: registry crop differs from file`).toEqual(p.crop.slice(2));
     expect(a.hasAlpha, `${p.key}: mask without alpha`).toBe(true);
     expect(a.opaque, `${p.key}: mask is opaque`).toBe(false);
-    if (!entry.allowEmpty) expect(a.lit, `${p.key}: mask is empty (approve as allowEmpty or set night: null)`).toBeGreaterThan(0);
+    if (entry.status !== "unlit") expect(a.lit, `${p.key}: mask is empty (approve as allowEmpty or set night: null)`).toBeGreaterThan(0);
     expect(a.outside, `${p.key}: light outside the silhouette`).toBeLessThanOrEqual(Math.max(4, a.lit * 0.01));
     // fingerprints: a changed day painting makes the mask due for review
     expect(entry.day, `${p.key}: day painting changed — review mask, then run scripts/night-masks-approve.ts`).toBe(sha(day));
