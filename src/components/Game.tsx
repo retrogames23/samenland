@@ -3021,9 +3021,9 @@ export function Game() {
       )}
       {owner && quest && claimsReady && !panelOpen && questFold && (
         <button type="button" aria-expanded={false} aria-label={petition!.header} title={petition!.header} onClick={() => foldQuest(false)}
-          className={`parchment hit absolute right-16 z-30 grid h-10 w-10 place-items-center rounded-full text-lg shadow ${quest.ready ? "ring-2 ring-brass ring-offset-1 ring-offset-transparent" : "opacity-80"}`} style={{ top: barH + 8 }}>
+          className={`parchment hit absolute right-16 z-30 grid h-10 w-10 place-items-center rounded-full text-lg shadow ${heads.some((h) => h.ready) ? "ring-2 ring-brass ring-offset-1 ring-offset-transparent" : "opacity-80"}`} style={{ top: barH + 8 }}>
           <span aria-hidden>📜</span>
-          {quest.ready && <span aria-hidden className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border border-background bg-brass" />}
+          {heads.some((h) => h.ready) && <span aria-hidden className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border border-background bg-brass" />}
         </button>
       )}
       {owner && quest && claimsReady && !panelOpen && !questFold && (
