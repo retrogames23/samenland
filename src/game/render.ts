@@ -2299,7 +2299,7 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
     if (L >= 3 && L <= 5) { // grassland: break the tiling with a rotated second layer + soft macro light patches
       c.save(); c.clip(path);
       const alt = textureAlt(c, tx);
-      if (alt) { c.globalAlpha = 0.42; c.fillStyle = alt; c.fill(path); }
+      if (alt) { c.globalAlpha = VEG.altAlpha; c.fillStyle = alt; c.fill(path); }
       const M = 7;
       for (let gy = Math.floor(y0 / M); gy <= Math.ceil(y1 / M); gy++) for (let gx = Math.floor(x0 / M); gx <= Math.ceil(x1 / M); gx++) {
         const h = hash(gx, gy, 311), mx = (gx + hash(gx, gy, 312)) * M, my = (gy + hash(gx, gy, 313)) * M;
@@ -3107,7 +3107,7 @@ export function drawGroundLab(c: C, stage: number, W: number, H: number, z: numb
     const pp = P(cx, cy), d = [pp(-0.5, -0.5), pp(0.5, -0.5), pp(0.5, 0.5), pp(-0.5, 0.5)];
     c.beginPath(); c.moveTo(d[0]![0], d[0]![1]); for (const q of d.slice(1)) c.lineTo(q[0], q[1]); c.closePath();
     c.fillStyle = texture(c, "grass") ?? "#6b7a3a"; c.fill();
-    if (stage >= 1) { const alt = textureAlt(c, "grass"); if (alt) { c.globalAlpha = 0.42; c.fillStyle = alt; c.fill(); c.globalAlpha = 1; } }
+    if (stage >= 1) { const alt = textureAlt(c, "grass"); if (alt) { c.globalAlpha = VEG.altAlpha; c.fillStyle = alt; c.fill(); c.globalAlpha = 1; } }
     if (stage >= 2) wildTurf(c, wx, wy, cx, cy, "grass");
   }
   if (stage >= 3) for (let s = 0; s < N * 2 - 1; s++) for (let x = 0; x < N; x++) {
