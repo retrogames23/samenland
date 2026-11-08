@@ -39,8 +39,9 @@ function paint(kind: WayTex): HTMLCanvasElement | null {
       // compacted snow: grey-beige, cloudy tone shifts, fine grain of trampled crystals
       // crisp-edged: the snow itself is pressed (opaque grain), loose snow remains in hard-edged islands
       // compacted snow: one closed surface; character only from gentle tone and fine grain, never holes
-      const t = 0.55 * l + 0.3 * h + 0.15 * f, grain = (f - 0.5) * 12;
-      r = 176 + t * 34 + grain; gg = 172 + t * 32 + grain; b = 166 + t * 30 + grain;
+      const t = 0.55 * l + 0.3 * h + 0.15 * f, grain = (f - 0.5) * 16 + (h - 0.5) * 6;
+      // slightly darker, cooler grey than fresh snow (aged, trodden crystals)
+      r = 162 + t * 32 + grain; gg = 166 + t * 31 + grain; b = 168 + t * 30 + grain;
       a = kind === "pack" ? 0.82 + 0.12 * l
         : smooth(0.3, 0.62, 0.6 * l + 0.3 * h + 0.1 * f) * 0.75; // verge: broad soft drift edge
     } else if (kind === "slush") {
@@ -51,8 +52,8 @@ function paint(kind: WayTex): HTMLCanvasElement | null {
       a = m * 0.55;
     } else if (kind === "rut") {
       // continuous wheel track: slightly damper, denser snow, only its moisture breathes along the length
-      r = 150 + l * 22; gg = 144 + l * 20; b = 136 + l * 18;
-      a = 0.4 + 0.25 * smooth(0.3, 0.7, 0.7 * l + 0.3 * h);
+      r = 132 + l * 22; gg = 132 + l * 20; b = 130 + l * 18;
+      a = 0.42 + 0.26 * smooth(0.3, 0.7, 0.7 * l + 0.3 * h);
     } else {
       // icy glaze: pale, slightly blue, sparse
       const m = smooth(0.66, 0.78, 0.6 * patch(x + 97, y + 41) + 0.4 * l);
