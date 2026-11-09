@@ -29,7 +29,7 @@ import pastureTussockUrl from "@/assets/sprites/pasture-tussock.webp";
 import pastureTroughUrl from "@/assets/sprites/pasture-trough.webp";
 import maypoleUrl from "@/assets/sprites/maypole.webp";
 import { worldHour, clock } from "./time";
-import { forestExtra } from "./forest-edge";
+import { forestExtra, forestShape } from "./forest-edge";
 import { labEdge } from "./lab-ctl";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
 import { huntScene, lodgeDens, denOk, denBeast, denFate, startle, DEN_R, type Den, type Beast } from "./wildlife";
@@ -2180,7 +2180,7 @@ const geomCache = new Map<string, GroundGeom>();
 /** Terrain never changes, so the contour geometry of a tile block is built once and reused as Path2D. */
 function groundGeom(x0: number, x1: number, y0: number, y1: number): GroundGeom {
   const ed = labEdge();
-  const key = `${x0},${x1},${y0},${y1}${ed ? `|e${ed.core},${ed.grain}` : ""}`;
+  const key = `${x0},${x1},${y0},${y1}${ed ? `|e${ed.core},${ed.grain}${ed.v2 ? "v2" : ""}` : ""}`;
   const hit = geomCache.get(key);
   if (hit) { geomCache.delete(key); geomCache.set(key, hit); return hit; }
   const nearWater = (x: number, y: number) => { if (isWater(terrain(x, y))) return true; for (const [dx, dy] of NB8) if (isWater(terrain(x + dx, y + dy))) return true; return false; };
@@ -2252,7 +2252,12 @@ function groundGeom(x0: number, x1: number, y0: number, y1: number): GroundGeom 
   if (shore.length) { shoreLines = new Path2D(); for (const s of shore) { shoreLines.moveTo(s.a[0], s.a[1]); shoreLines.lineTo(s.b[0], s.b[1]); } }
   // Pilot 3 prototype (test map only): forest core diamonds + organic fringe, baked with the chunk
   let forestX: Path2D | null = null;
-  if (ed) {
+  if (ed?.v2) {
+    // iteration 2: the combined outline REPLACES the hard layer-6 contour (never drawn on top of it)
+    const polys = forestShape(gx0, gx0 + GW - 1, gy0, gy0 + GH - 1, terrain, ed);
+    const fp = new Path2D(); for (const q of polys) { fp.moveTo(q[0]![0], q[0]![1]); for (let k = 1; k < q.length; k++) fp.lineTo(q[k]![0], q[k]![1]); fp.closePath(); }
+    layers[6] = polys.length ? fp : null;
+  } else if (ed) {
     const polys = forestExtra(gx0, gx0 + GW - 1, gy0, gy0 + GH - 1, terrain, ed);
     if (polys.length) { forestX = new Path2D(); for (const q of polys) { forestX.moveTo(q[0]![0], q[0]![1]); for (let k = 1; k < q.length; k++) forestX.lineTo(q[k]![0], q[k]![1]); forestX.closePath(); } }
   }
@@ -2667,7 +2672,7 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   return cv;
 }
 function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false): number {
-  const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow) + (labEdge() ? `|e${labEdge()!.core},${labEdge()!.grain}` : "");
+  const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow) + (labEdge() ? `|e${labEdge()!.core},${labEdge()!.grain}${labEdge()!.v2 ? "v2" : ""}` : "");
   let baked = 0, drawn = 0;
   const cx0 = Math.floor(x0 / CH), cx1 = Math.floor(x1 / CH), cy0 = Math.floor(y0 / CH), cy1 = Math.floor(y1 / CH);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {

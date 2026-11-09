@@ -7,7 +7,7 @@ import type { Terrain } from "./world";
 
 export const TW = 32, TH = 16;
 export type Pt = [number, number];
-export type EdgeParams = { core: number; grain: number };
+export type EdgeParams = { core: number; grain: number; v2?: boolean };
 const iso = (x: number, y: number): Pt => [(x - y) * (TW / 2), (x + y) * (TH / 2)];
 /** inverse of iso: world pixel -> fractional tile */
 export const tileAt = (px: number, py: number): Pt => [py / TH + px / TW, py / TH - px / TW];
@@ -58,6 +58,59 @@ export function forestExtra(x0: number, x1: number, y0: number, y1: number, ter:
         out.push(poly);
       }
     }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Iteration 2: one combined forest outline replacing the hard contour of layer 6 (test map only).
+// Every forest tile contributes a star-shaped polygon around its centre: toward forest neighbours it
+// overlaps them (so the area is one connected surface), toward grassland its radius follows a
+// world-anchored smooth noise (2–4 lobes per edge = tongues + grass bays), toward water/sand/rock it
+// stays inside its own tile. Because each lobe grows out of its tile's centre, no fringe piece can
+// ever be isolated, and tree feet (≤ 0.69 diamond distance) always lie inside (radius ≥ core + 0.05).
+const vn = (x: number, y: number, s: number) => {
+  const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi;
+  const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  const a = h(xi, yi, s), b = h(xi + 1, yi, s), c = h(xi, yi + 1, s), d = h(xi + 1, yi + 1, s);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+};
+export const SHAPE_ANG = 48;
+/** grain (2.5 fine … 6 coarse) -> how far tongues may reach beyond the tile edge, in tile-diamond units */
+export const reachOf = (grain: number) => Math.min(0.42, 0.18 + grain * 0.04);
+const dirOf = (k: number): Pt => { const th = (k / SHAPE_ANG) * Math.PI * 2, c = Math.cos(th), s = Math.sin(th), n = Math.abs(c) + Math.abs(s); return [(c / n) * (TW / 2), (s / n) * (TH / 2)]; };
+const DIRS: Pt[] = Array.from({ length: SHAPE_ANG }, (_, k) => dirOf(k));
+const tileOf = (px: number, py: number) => { const [a, b] = tileAt(px, py); return [Math.round(a), Math.round(b)] as const; };
+
+/** Star polygons forming the whole forest surface for tiles x0..x1 / y0..y1 (inclusive). */
+export function forestShape(x0: number, x1: number, y0: number, y1: number, ter: (x: number, y: number) => Terrain, p: EdgeParams): Pt[][] {
+  const out: Pt[][] = [], reach = reachOf(p.grain), base = p.core + 0.08;
+  const R = new Float32Array(SHAPE_ANG), kind = new Int8Array(SHAPE_ANG); // 0 forest, 1 grass, 2 forbidden
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    if (ter(x, y) !== "forest") continue;
+    const [cx, cy] = iso(x, y);
+    for (let k = 0; k < SHAPE_ANG; k++) {
+      const [dx, dy] = DIRS[k]!, [nx, ny] = tileOf(cx + dx * 1.04, cy + dy * 1.04), t = ter(nx, ny);
+      if (t === "forest") { kind[k] = 0; R[k] = 1.12; continue; }
+      // world-anchored noise sampled at the tile border point: neighbouring tiles agree on positions
+      const [bx, by] = tileAt(cx + dx, cy + dy);
+      const n = vn(bx * 2.6, by * 2.6, 811) * 0.7 + vn(bx * 6.1, by * 6.1, 812) * 0.3;
+      if (fringeOk(t)) { kind[k] = 1; R[k] = base + (1 + reach - base) * Math.pow(n, 1.3); }
+      else { kind[k] = 2; R[k] = 0.9 + 0.08 * n; }
+    }
+    // circular smoothing removes radial steps (no spikes, no straight diamond facets)
+    for (let pass = 0; pass < 2; pass++) { const c = R.slice(); for (let k = 0; k < SHAPE_ANG; k++) R[k] = (c[(k + SHAPE_ANG - 1) % SHAPE_ANG]! + 2 * c[k]! + c[(k + 1) % SHAPE_ANG]!) / 4; }
+    const poly: Pt[] = [];
+    for (let k = 0; k < SHAPE_ANG; k++) {
+      let r = Math.max(R[k]!, p.core + 0.05);
+      if (kind[k] === 0) r = Math.max(r, 1.06);
+      if (kind[k] === 2) r = Math.min(r, 0.98);
+      const [dx, dy] = DIRS[k]!;
+      // never reach onto forbidden ground anywhere along the ray
+      for (let f = 0.9; f <= r; f += 0.04) { const [tx, ty] = tileOf(cx + dx * f, cy + dy * f), t = ter(tx, ty); if (t !== "forest" && !fringeOk(t)) { r = Math.min(r, Math.max(p.core + 0.05, f - 0.04)); break; } }
+      poly.push([cx + dx * r, cy + dy * r]);
+    }
+    out.push(poly);
   }
   return out;
 }
