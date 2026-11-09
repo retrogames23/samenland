@@ -29,6 +29,8 @@ import pastureTussockUrl from "@/assets/sprites/pasture-tussock.webp";
 import pastureTroughUrl from "@/assets/sprites/pasture-trough.webp";
 import maypoleUrl from "@/assets/sprites/maypole.webp";
 import { worldHour, clock } from "./time";
+import { forestExtra } from "./forest-edge";
+import { labEdge } from "./lab-ctl";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
 import { huntScene, lodgeDens, denOk, denBeast, denFate, startle, DEN_R, type Den, type Beast } from "./wildlife";
 import { roadMotion, screenFacing } from "./motion";
@@ -2173,11 +2175,12 @@ function drawSurf(c: C, shore: { a: Pt; b: Pt; w: Pt }[], t: number, live: boole
   }
   c.restore();
 }
-type GroundGeom = { water: Path2D; deep: Pt[]; layers: (Path2D | null)[]; shoreLines: Path2D | null; shore: { a: Pt; b: Pt; w: Pt }[]; edges: GroundEdge[] };
+type GroundGeom = { forestX: Path2D | null; water: Path2D; deep: Pt[]; layers: (Path2D | null)[]; shoreLines: Path2D | null; shore: { a: Pt; b: Pt; w: Pt }[]; edges: GroundEdge[] };
 const geomCache = new Map<string, GroundGeom>();
 /** Terrain never changes, so the contour geometry of a tile block is built once and reused as Path2D. */
 function groundGeom(x0: number, x1: number, y0: number, y1: number): GroundGeom {
-  const key = `${x0},${x1},${y0},${y1}`;
+  const ed = labEdge();
+  const key = `${x0},${x1},${y0},${y1}${ed ? `|e${ed.core},${ed.grain}` : ""}`;
   const hit = geomCache.get(key);
   if (hit) { geomCache.delete(key); geomCache.set(key, hit); return hit; }
   const nearWater = (x: number, y: number) => { if (isWater(terrain(x, y))) return true; for (const [dx, dy] of NB8) if (isWater(terrain(x + dx, y + dy))) return true; return false; };
@@ -2247,7 +2250,13 @@ function groundGeom(x0: number, x1: number, y0: number, y1: number): GroundGeom 
   }
   let shoreLines: Path2D | null = null;
   if (shore.length) { shoreLines = new Path2D(); for (const s of shore) { shoreLines.moveTo(s.a[0], s.a[1]); shoreLines.lineTo(s.b[0], s.b[1]); } }
-  const g = { water, deep, layers, shoreLines, shore, edges };
+  // Pilot 3 prototype (test map only): forest core diamonds + organic fringe, baked with the chunk
+  let forestX: Path2D | null = null;
+  if (ed) {
+    const polys = forestExtra(gx0, gx0 + GW - 1, gy0, gy0 + GH - 1, terrain, ed);
+    if (polys.length) { forestX = new Path2D(); for (const q of polys) { forestX.moveTo(q[0]![0], q[0]![1]); for (let k = 1; k < q.length; k++) forestX.lineTo(q[k]![0], q[k]![1]); forestX.closePath(); } }
+  }
+  const g = { forestX, water, deep, layers, shoreLines, shore, edges };
   geomCache.set(key, g);
   while (geomCache.size > 12) geomCache.delete(geomCache.keys().next().value!);
   return g;
@@ -2276,6 +2285,7 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
   }
   // ---- pass 1: land as stacked layers (sand < fields < meadow < grass < hill < forest < rock).
   for (let L = 1; L <= 7; L++) {
+    if (L === 6 && G.forestX) { c.fillStyle = texture(c, "forest") ?? "#7a8a50"; c.fill(G.forestX); }
     const path = G.layers[L]; if (!path) continue;
     if (L === 1 && G.shoreLines) {
       // shallow water: the sandy bed shimmers through before the bank begins
@@ -2657,7 +2667,7 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   return cv;
 }
 function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false): number {
-  const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow);
+  const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow) + (labEdge() ? `|e${labEdge()!.core},${labEdge()!.grain}` : "");
   let baked = 0, drawn = 0;
   const cx0 = Math.floor(x0 / CH), cx1 = Math.floor(x1 / CH), cy0 = Math.floor(y0 / CH), cy1 = Math.floor(y1 / CH);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
