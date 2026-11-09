@@ -395,6 +395,33 @@ function drawFeastKit(c: C, X: number, Y: number, q: Pose, t: number, figH?: num
   }
   c.restore();
 }
+/** Chimneys, kiln vents and fire bowls in sprite pixels (crop width cw): smoke [u, v, size], flame [u, v, height]. */
+const VENTS: Partial<Record<Kind, { cw: number; smoke: [number, number, number][]; fire?: [number, number, number][] }>> = {
+  smithy: { cw: 480, smoke: [[334, 8, 0.6]], fire: [[316, 268, 0.5]] },
+  bakery: { cw: 480, smoke: [[251, 10, 0.5], [411, 112, 0.55]], fire: [[386, 300, 0.4]] },
+  backhaus: { cw: 480, smoke: [[377, 130, 0.6]], fire: [[310, 298, 0.45]] },
+  badestube: { cw: 480, smoke: [[140, 6, 0.55]] },
+  hammerworks: { cw: 414, smoke: [[288, 12, 0.65]] },
+  smokehouse: { cw: 480, smoke: [[340, 18, 0.7], [338, 20, 0.5]] },
+  woodcamp: { cw: 480, smoke: [[322, 318, 0.55], [326, 316, 0.4]] },
+  lighthouse: { cw: 352, smoke: [[120, 4, 0.7]], fire: [[118, 40, 1.4]] },
+};
+/** Small living flame (forge, oven mouth, fire bowl): warm amber tongues added with light, never pink. */
+function glowFlame(c: C, x: number, y: number, h: number, t: number, sd: number) {
+  const op = c.globalCompositeOperation; c.globalCompositeOperation = "lighter";
+  const fl = 0.8 + 0.12 * Math.sin(t / 120 + sd) + 0.08 * Math.sin(t / 53 + sd * 2);
+  const g = c.createRadialGradient(x, y - h * 0.3, 0, x, y - h * 0.3, h * 1.1);
+  g.addColorStop(0, `rgba(255,170,70,${0.35 * fl})`); g.addColorStop(1, "rgba(255,140,40,0)");
+  c.fillStyle = g; c.fillRect(x - h * 1.1, y - h * 1.4, h * 2.2, h * 2.2);
+  for (let i = 0; i < 4; i++) {
+    const ph = t / (95 + i * 27) + i * 1.9 + sd, hx = x + (i - 1.5) * h * 0.16;
+    const tall = h * (0.55 + 0.3 * Math.abs(Math.sin(ph))), w = h * 0.16, sway = Math.sin(ph * 1.3) * h * 0.1;
+    const fg = c.createLinearGradient(hx, y, hx, y - tall);
+    fg.addColorStop(0, "rgba(255,120,30,0.6)"); fg.addColorStop(0.5, "rgba(255,190,80,0.45)"); fg.addColorStop(1, "rgba(255,230,150,0)");
+    c.fillStyle = fg; c.beginPath(); c.moveTo(hx - w, y); c.quadraticCurveTo(hx - w, y - tall * 0.5, hx + sway, y - tall); c.quadraticCurveTo(hx + w, y - tall * 0.5, hx + w, y); c.closePath(); c.fill();
+  }
+  c.globalCompositeOperation = op;
+}
 function drawFire(c: C, cx: number, cy: number, t: number, sd: number, L: Light[]) {
   smoke(c, cx + 2, cy - 22, t * 2.5, sd, 1.6); smoke(c, cx - 3, cy - 18, t * 2, sd + 7, 1.2);
   for (let i = 0; i < 7; i++) {
@@ -721,9 +748,15 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
       const im = folkImage("breadBasket");
       if (im) { const hh = 2, ww = (hh * im.naturalWidth) / im.naturalHeight; c.drawImage(im, cx + (flip ? 6 : -6) - ww / 2, cy + 3.5 - hh, ww, hh); }
     }
-    if (["steamworks", "smithy", "bakery", "inn"].includes(s.kind)) {
-      smoke(c, cx + 4, cy - 18, t, sd, 0.6);
-    }
+    const vents = !style ? VENTS[s.kind] : undefined;
+    if (vents) {
+      const b = spriteBox(s.kind, s.v);
+      if (b) {
+        const k = b.w / vents.cw, at = (u: number, v: number): [number, number] => [cx + (flip ? -1 : 1) * (u * k - b.w / 2), cy + b.base - b.h + v * k];
+        for (const [u, v, big] of vents.smoke) { const [px, py] = at(u, v); smoke(c, px, py, t, sd + u, big); }
+        for (const [u, v, h] of vents.fire ?? []) { const [px, py] = at(u, v); glowFlame(c, px, py, h * k * 40, t, sd + u); L.push({ x: px, y: py - 1, r: 8 }); }
+      }
+    } else if (s.kind === "steamworks" || s.kind === "inn") smoke(c, cx + 4, cy - 18, t, sd, 0.6);
     return;
   }
   const v = s.v;
