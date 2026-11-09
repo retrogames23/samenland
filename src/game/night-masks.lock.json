@@ -707,9 +707,9 @@
   "day": "212ad17a2a7c1b30",
   "night": "1d3c1adc660a3694",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Referenzmaske – Referenzstil"
  },
  "townhouse2": {
   "day": "95ba22ba1b667d71",
