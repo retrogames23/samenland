@@ -1,0 +1,6 @@
+{'file': 'forest_ausgang_A.jpg', 'size': (816, 816), 'mean_rgb': [71.8, 55.5, 29.0], 'seam_x': np.float64(1.34), 'seam_y': np.float64(1.36), 'sharp': np.float64(23.7), 'macro': np.float64(0.07), 'motif_px': 5, 'motif_in_figures': 0.14}
+  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
+{'file': 'forest_fein_B.jpg', 'size': (816, 816), 'mean_rgb': [71.3, 55.1, 28.4], 'seam_x': np.float64(1.43), 'seam_y': np.float64(1.39), 'sharp': np.float64(22.1), 'macro': np.float64(0.13), 'motif_px': 6, 'motif_in_figures': 0.17}
+  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
+{'file': 'forest_ursprung_alt.jpg', 'size': (816, 816), 'mean_rgb': [75.6, 61.8, 30.2], 'seam_x': np.float64(1.04), 'seam_y': np.float64(1.4), 'sharp': np.float64(19.9), 'macro': np.float64(0.16), 'motif_px': 12, 'motif_in_figures': 0.33}
+  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
