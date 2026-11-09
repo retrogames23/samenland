@@ -402,6 +402,8 @@ export function wayLandmark(kind: Kind, way: TownWay, wet: boolean): Kind {
   return kind;
 }
 const lmCache = new Map<string, Map<string, number[]>>();
+/** Landmarks that may (or must) touch water: watermill, and barn/warehouse sites that become fishery/harbor. */
+const SHORE_LANDMARKS: ReadonlySet<Kind> = new Set<Kind>(["watermill", "barn", "warehouse", "coop"]);
 /**
  * Landmarks keep their nominal offset when the ground is dry; otherwise they move to the nearest
  * buildable tile (pure function of seed position), so coastal and mountain towns get them too.
@@ -409,7 +411,9 @@ const lmCache = new Map<string, Map<string, number[]>>();
 export function landmarkSpots(s: Seed): Map<string, number[]> {
   const ck = `${s.id}:${s.x}:${s.y}`; const hit = lmCache.get(ck); if (hit) return hit;
   const out = new Map<string, number[]>(), used = new Set<string>(Object.keys(CORE)); used.add("0,0");
-  const ok = (dx: number, dy: number) => !used.has(`${dx},${dy}`) && buildable(terrain(s.x + dx, s.y + dy)) && Math.hypot(dx, dy) >= 1.6;
+  // ordinary landmarks need dry neighbours so wide sprites never hang over water; shore kinds keep the old rule
+  const dry = (dx: number, dy: number) => { for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (isWater(terrain(s.x + dx + i, s.y + dy + j))) return false; return true; };
+  const ok = (dx: number, dy: number, strict = false) => !used.has(`${dx},${dy}`) && buildable(terrain(s.x + dx, s.y + dy)) && Math.hypot(dx, dy) >= 1.6 && (!strict || dry(dx, dy));
   // the same nominal tile can host successive landmarks (chapel -> church): share its relocation
   const moved = new Map<string, string>();
   LANDMARKS.forEach((l, i) => {
@@ -417,10 +421,11 @@ export function landmarkSpots(s: Seed): Map<string, number[]> {
     let key = moved.get(nom);
     if (!key) {
       key = nom;
-      if (!ok(l.dx, l.dy)) {
+      const strict = !SHORE_LANDMARKS.has(l.kind);
+      if (!ok(l.dx, l.dy, strict)) {
         let best = "", bs = Infinity;
         for (let j = -6; j <= 6; j++) for (let k = -6; k <= 6; k++) {
-          const dx = l.dx + k, dy = l.dy + j; if (!ok(dx, dy)) continue;
+          const dx = l.dx + k, dy = l.dy + j; if (!ok(dx, dy, strict)) continue;
           const sc = Math.hypot(k, j) + Math.hypot(dx, dy) * 0.15; if (sc < bs) { bs = sc; best = `${dx},${dy}`; }
         }
         if (best) key = best;
