@@ -1058,7 +1058,6 @@ export function Game() {
     };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
     const onBlur = () => keys.clear();
-    const camLooseRef = { current: false };
     let lastPan = performance.now(), walkDriven = false, liveSent = 0, liveOn = false, liveW = false;
     panStep = () => {
       const now = performance.now(), dt = Math.min(50, now - lastPan); lastPan = now;
@@ -1524,6 +1523,7 @@ export function Game() {
   const camFree = useRef(false);
   /** Mirrors camFree for the HUD: shows the "follow mayor" button while the camera roams freely. */
   const [camLoose, setCamLoose] = useState(false);
+  const camLooseRef = useRef(false);
   const [nearCourt, setNearCourt] = useState(false);
   const [audience, setAudience] = useState<AudienceHost | null>(null);
   const princelyRows = useRef<PrincelyRow[]>([]);
