@@ -1,0 +1,127 @@
+saison	szene	kachel	zoom	variante	parameter	bake	frames	hud
+autumn	1_einzelkachel	319:423	z=2.4	0_bisher	null	bake_vollstaendig=ja	4	5 fps · render 98.7 ms (max 206.0) · tiles 1239 · folk 95 · chunks 12 · zoom 2.40
+autumn	1_einzelkachel	319:423	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	1 fps · render 82.0 ms (max 181.0) · tiles 1239 · folk 96 · chunks 12 · zoom 2.40
+autumn	1_einzelkachel	319:423	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	1 fps · render 41.5 ms (max 44.0) · tiles 1239 · folk 224 · chunks 11 · zoom 2.40
+autumn	1_einzelkachel	319:423	z=4.5	0_bisher	null	bake_vollstaendig=ja	3	1 fps · render 86.5 ms (max 115.0) · tiles 486 · folk 157 · chunks 6 · zoom 4.50
+autumn	1_einzelkachel	319:423	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	0 fps · render 94.0 ms (max 94.0) · tiles 486 · folk 159 · chunks 6 · zoom 4.50
+autumn	1_einzelkachel	319:423	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	1 fps · render 26.5 ms (max 35.0) · tiles 486 · folk 158 · chunks 6 · zoom 4.50
+autumn	2_insel_klein	321.5:424	z=2.4	0_bisher	null	bake_vollstaendig=ja	3	3 fps · render 72.0 ms (max 77.0) · tiles 1219 · folk 230 · chunks 10 · zoom 2.40
+autumn	2_insel_klein	321.5:424	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	4 fps · render 98.5 ms (max 145.0) · tiles 1219 · folk 227 · chunks 10 · zoom 2.40
+autumn	2_insel_klein	321.5:424	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	0 fps · render 37.0 ms (max 37.0) · tiles 1219 · folk 224 · chunks 10 · zoom 2.40
+autumn	2_insel_klein	321.5:424	z=4.5	0_bisher	null	bake_vollstaendig=ja	4	3 fps · render 77.0 ms (max 134.0) · tiles 461 · folk 159 · chunks 6 · zoom 4.50
+autumn	2_insel_klein	321.5:424	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	6 fps · render 34.7 ms (max 65.0) · tiles 461 · folk 157 · chunks 6 · zoom 4.50
+autumn	2_insel_klein	321.5:424	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	0 fps · render 75.5 ms (max 125.0) · tiles 461 · folk 156 · chunks 6 · zoom 4.50
+autumn	3_zunge_schmal	300:411	z=2.4	0_bisher	null	bake_vollstaendig=ja	4	0 fps · render 74.0 ms (max 74.0) · tiles 1239 · folk 95 · chunks 12 · zoom 2.40
+autumn	3_zunge_schmal	300:411	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	1 fps · render 35.0 ms (max 35.0) · tiles 1239 · folk 96 · chunks 13 · zoom 2.40
+autumn	3_zunge_schmal	300:411	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	0 fps · render 76.0 ms (max 76.0) · tiles 1239 · folk 94 · chunks 13 · zoom 2.40
+autumn	3_zunge_schmal	300:411	z=4.5	0_bisher	null	bake_vollstaendig=ja	3	3 fps · render 36.5 ms (max 37.0) · tiles 486 · folk 96 · chunks 6 · zoom 4.50
+autumn	3_zunge_schmal	300:411	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	0 fps · render 73.0 ms (max 124.0) · tiles 486 · folk 94 · chunks 6 · zoom 4.50
+autumn	3_zunge_schmal	300:411	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	1 fps · render 70.0 ms (max 103.0) · tiles 486 · folk 94 · chunks 6 · zoom 4.50
+autumn	4_saum_gerade	298:437	z=2.4	0_bisher	null	bake_vollstaendig=ja	3	0 fps · render 33.0 ms (max 33.0) · tiles 1239 · folk 169 · chunks 10 · zoom 2.40
+autumn	4_saum_gerade	298:437	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	2 fps · render 60.0 ms (max 60.0) · tiles 1239 · folk 167 · chunks 10 · zoom 2.40
+autumn	4_saum_gerade	298:437	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	0 fps · render 90.5 ms (max 129.0) · tiles 1239 · folk 166 · chunks 10 · zoom 2.40
+autumn	4_saum_gerade	298:437	z=4.5	0_bisher	null	bake_vollstaendig=ja	3	1 fps · render 23.3 ms (max 34.0) · tiles 486 · folk 94 · chunks 6 · zoom 4.50
+autumn	4_saum_gerade	298:437	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	3 fps · render 74.5 ms (max 86.0) · tiles 486 · folk 93 · chunks 6 · zoom 4.50
+autumn	4_saum_gerade	298:437	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	6	1 fps · render 44.6 ms (max 73.0) · tiles 486 · folk 93 · chunks 6 · zoom 4.50
+autumn	5_saum_unregelmaessig	288:421	z=2.4	0_bisher	null	bake_vollstaendig=ja	5	0 fps · render 65.0 ms (max 65.0) · tiles 1239 · folk 93 · chunks 12 · zoom 2.40
+autumn	5_saum_unregelmaessig	288:421	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	0 fps · render 65.3 ms (max 174.0) · tiles 1239 · folk 93 · chunks 12 · zoom 2.40
+autumn	5_saum_unregelmaessig	288:421	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	4 fps · render 172.0 ms (max 224.0) · tiles 1239 · folk 92 · chunks 12 · zoom 2.40
+autumn	5_saum_unregelmaessig	288:421	z=4.5	0_bisher	null	bake_vollstaendig=ja	3	1 fps · render 61.5 ms (max 74.0) · tiles 486 · folk 93 · chunks 5 · zoom 4.50
+autumn	5_saum_unregelmaessig	288:421	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	1 fps · render 230.5 ms (max 422.0) · tiles 486 · folk 91 · chunks 5 · zoom 4.50
+autumn	5_saum_unregelmaessig	288:421	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	5	1 fps · render 28.3 ms (max 77.0) · tiles 486 · folk 93 · chunks 5 · zoom 4.50
+autumn	6_wald_gras_wasser	284:437	z=2.4	0_bisher	null	bake_vollstaendig=ja	3	0 fps · render 61.0 ms (max 84.0) · tiles 1239 · folk 94 · chunks 10 · zoom 2.40
+autumn	6_wald_gras_wasser	284:437	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	0 fps · render 98.0 ms (max 114.0) · tiles 1239 · folk 90 · chunks 10 · zoom 2.40
+autumn	6_wald_gras_wasser	284:437	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	0 fps · render 73.0 ms (max 73.0) · tiles 1239 · folk 92 · chunks 10 · zoom 2.40
+autumn	6_wald_gras_wasser	284:437	z=4.5	0_bisher	null	bake_vollstaendig=ja	3	0 fps · render 52.0 ms (max 84.0) · tiles 486 · folk 92 · chunks 7 · zoom 4.50
+autumn	6_wald_gras_wasser	284:437	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	1 fps · render 40.4 ms (max 95.0) · tiles 486 · folk 93 · chunks 7 · zoom 4.50
+autumn	6_wald_gras_wasser	284:437	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	5	1 fps · render 32.5 ms (max 110.0) · tiles 486 · folk 90 · chunks 7 · zoom 4.50
+summer	1_einzelkachel	319:423	z=1.0	0_bisher	null	bake_vollstaendig=ja	3	0 fps · render 188.0 ms (max 255.0) · tiles 5536 · folk 226 · chunks 38 · zoom 1.00
+summer	1_einzelkachel	319:423	z=1.0	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	6 fps · render 135.3 ms (max 163.0) · tiles 5536 · folk 226 · chunks 38 · zoom 1.00
+summer	1_einzelkachel	319:423	z=1.0	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	6 fps · render 113.7 ms (max 116.0) · tiles 5536 · folk 225 · chunks 38 · zoom 1.00
+summer	1_einzelkachel	319:423	z=2.4	0_bisher	null	bake_vollstaendig=ja	3	1 fps · render 100.0 ms (max 100.0) · tiles 1239 · folk 224 · chunks 11 · zoom 2.40
+summer	1_einzelkachel	319:423	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	1 fps · render 60.0 ms (max 60.0) · tiles 1239 · folk 96 · chunks 12 · zoom 2.40
+summer	1_einzelkachel	319:423	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	0 fps · render 80.0 ms (max 80.0) · tiles 1239 · folk 224 · chunks 11 · zoom 2.40
+summer	1_einzelkachel	319:423	z=4.5	0_bisher	null	bake_vollstaendig=ja	3	2 fps · render 64.0 ms (max 64.0) · tiles 486 · folk 157 · chunks 6 · zoom 4.50
+summer	1_einzelkachel	319:423	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	1 fps · render 136.7 ms (max 186.0) · tiles 486 · folk 157 · chunks 6 · zoom 4.50
+summer	1_einzelkachel	319:423	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	0 fps · render 45.0 ms (max 62.0) · tiles 486 · folk 157 · chunks 6 · zoom 4.50
+summer	2_insel_klein	321.5:424	z=1.0	0_bisher	null	bake_vollstaendig=ja	4	4 fps · render 167.7 ms (max 186.0) · tiles 5536 · folk 225 · chunks 33 · zoom 1.00
+summer	2_insel_klein	321.5:424	z=1.0	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	0 fps · render 126.5 ms (max 127.0) · tiles 5604 · folk 228 · chunks 31 · zoom 1.00
+summer	2_insel_klein	321.5:424	z=1.0	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	5 fps · render 146.3 ms (max 165.0) · tiles 5604 · folk 225 · chunks 31 · zoom 1.00
+summer	2_insel_klein	321.5:424	z=2.4	0_bisher	null	bake_vollstaendig=ja	3	0 fps · render 19.0 ms (max 19.0) · tiles 1219 · folk 222 · chunks 10 · zoom 2.40
+summer	2_insel_klein	321.5:424	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	1 fps · render 29.3 ms (max 36.0) · tiles 1219 · folk 223 · chunks 10 · zoom 2.40
+summer	2_insel_klein	321.5:424	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	5	1 fps · render 34.0 ms (max 48.0) · tiles 1219 · folk 222 · chunks 10 · zoom 2.40
+summer	2_insel_klein	321.5:424	z=4.5	0_bisher	null	bake_vollstaendig=ja	4	0 fps · render 59.0 ms (max 59.0) · tiles 461 · folk 146 · chunks 6 · zoom 4.50
+summer	2_insel_klein	321.5:424	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	2 fps · render 22.0 ms (max 22.0) · tiles 461 · folk 148 · chunks 6 · zoom 4.50
+summer	2_insel_klein	321.5:424	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	0 fps · render 284.0 ms (max 284.0) · tiles 461 · folk 149 · chunks 6 · zoom 4.50
+summer	3_zunge_schmal	300:411	z=1.0	0_bisher	null	bake_vollstaendig=ja	3	0 fps · render 139.0 ms (max 139.0) · tiles 5536 · folk 221 · chunks 34 · zoom 1.00
+summer	3_zunge_schmal	300:411	z=1.0	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	5	0 fps · render 145.0 ms (max 145.0) · tiles 5536 · folk 221 · chunks 34 · zoom 1.00
+summer	3_zunge_schmal	300:411	z=1.0	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	0 fps · render 222.0 ms (max 222.0) · tiles 5536 · folk 221 · chunks 34 · zoom 1.00
+summer	3_zunge_schmal	300:411	z=2.4	0_bisher	null	bake_vollstaendig=ja	3	0 fps · render 55.3 ms (max 119.0) · tiles 1239 · folk 91 · chunks 13 · zoom 2.40
+summer	3_zunge_schmal	300:411	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	1 fps · render 44.2 ms (max 79.0) · tiles 1239 · folk 91 · chunks 13 · zoom 2.40
+summer	3_zunge_schmal	300:411	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	5	1 fps · render 43.8 ms (max 103.0) · tiles 1239 · folk 91 · chunks 13 · zoom 2.40
+summer	3_zunge_schmal	300:411	z=4.5	0_bisher	null	bake_vollstaendig=ja	4	3 fps · render 63.5 ms (max 103.0) · tiles 486 · folk 91 · chunks 6 · zoom 4.50
+summer	3_zunge_schmal	300:411	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	6	2 fps · render 49.2 ms (max 99.0) · tiles 486 · folk 90 · chunks 6 · zoom 4.50
+summer	3_zunge_schmal	300:411	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	2 fps · render 42.4 ms (max 67.0) · tiles 486 · folk 91 · chunks 6 · zoom 4.50
+summer	4_saum_gerade	298:437	z=1.0	0_bisher	null	bake_vollstaendig=ja	3	0 fps · render 127.0 ms (max 127.0) · tiles 5536 · folk 221 · chunks 31 · zoom 1.00
+summer	4_saum_gerade	298:437	z=1.0	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	0 fps · render 184.7 ms (max 263.0) · tiles 5536 · folk 220 · chunks 31 · zoom 1.00
+summer	4_saum_gerade	298:437	z=1.0	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	0 fps · render 217.0 ms (max 217.0) · tiles 5536 · folk 219 · chunks 31 · zoom 1.00
+summer	4_saum_gerade	298:437	z=2.4	0_bisher	null	bake_vollstaendig=ja	4	1 fps · render 64.0 ms (max 98.0) · tiles 1239 · folk 161 · chunks 10 · zoom 2.40
+summer	4_saum_gerade	298:437	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	5	1 fps · render 27.8 ms (max 49.0) · tiles 1239 · folk 163 · chunks 10 · zoom 2.40
+summer	4_saum_gerade	298:437	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	1 fps · render 72.5 ms (max 111.0) · tiles 1239 · folk 163 · chunks 10 · zoom 2.40
+summer	4_saum_gerade	298:437	z=4.5	0_bisher	null	bake_vollstaendig=ja	4	1 fps · render 60.8 ms (max 139.0) · tiles 486 · folk 91 · chunks 6 · zoom 4.50
+summer	4_saum_gerade	298:437	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	5	1 fps · render 27.6 ms (max 44.0) · tiles 486 · folk 90 · chunks 6 · zoom 4.50
+summer	4_saum_gerade	298:437	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	1 fps · render 38.5 ms (max 49.0) · tiles 486 · folk 91 · chunks 6 · zoom 4.50
+summer	5_saum_unregelmaessig	288:421	z=1.0	0_bisher	null	bake_vollstaendig=ja	3	0 fps · render 99.0 ms (max 108.0) · tiles 5536 · folk 217 · chunks 34 · zoom 1.00
+summer	5_saum_unregelmaessig	288:421	z=1.0	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	0 fps · render 107.8 ms (max 143.0) · tiles 5536 · folk 217 · chunks 34 · zoom 1.00
+summer	5_saum_unregelmaessig	288:421	z=1.0	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	0 fps · render 314.0 ms (max 314.0) · tiles 5536 · folk 219 · chunks 34 · zoom 1.00
+summer	5_saum_unregelmaessig	288:421	z=2.4	0_bisher	null	bake_vollstaendig=ja	4	1 fps · render 35.3 ms (max 59.0) · tiles 1239 · folk 88 · chunks 12 · zoom 2.40
+summer	5_saum_unregelmaessig	288:421	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	5	2 fps · render 24.6 ms (max 36.0) · tiles 1239 · folk 89 · chunks 12 · zoom 2.40
+summer	5_saum_unregelmaessig	288:421	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	6	1 fps · render 24.0 ms (max 32.0) · tiles 1239 · folk 87 · chunks 12 · zoom 2.40
+summer	5_saum_unregelmaessig	288:421	z=4.5	0_bisher	null	bake_vollstaendig=ja	10	4 fps · render 10.0 ms (max 21.0) · tiles 486 · folk 89 · chunks 5 · zoom 4.50
+summer	5_saum_unregelmaessig	288:421	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	12	5 fps · render 14.2 ms (max 30.0) · tiles 486 · folk 89 · chunks 5 · zoom 4.50
+summer	5_saum_unregelmaessig	288:421	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	7	4 fps · render 24.0 ms (max 38.0) · tiles 486 · folk 88 · chunks 5 · zoom 4.50
+summer	6_wald_gras_wasser	284:437	z=1.0	0_bisher	null	bake_vollstaendig=ja	4	0 fps · render 106.3 ms (max 124.0) · tiles 5536 · folk 216 · chunks 36 · zoom 1.00
+summer	6_wald_gras_wasser	284:437	z=1.0	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	0 fps · render 124.0 ms (max 149.0) · tiles 5536 · folk 215 · chunks 36 · zoom 1.00
+summer	6_wald_gras_wasser	284:437	z=1.0	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	5	0 fps · render 106.0 ms (max 169.0) · tiles 5536 · folk 215 · chunks 36 · zoom 1.00
+summer	6_wald_gras_wasser	284:437	z=2.4	0_bisher	null	bake_vollstaendig=ja	3	1 fps · render 33.3 ms (max 40.0) · tiles 1239 · folk 89 · chunks 10 · zoom 2.40
+summer	6_wald_gras_wasser	284:437	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	1 fps · render 61.0 ms (max 76.0) · tiles 1239 · folk 88 · chunks 10 · zoom 2.40
+summer	6_wald_gras_wasser	284:437	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	1 fps · render 32.8 ms (max 61.0) · tiles 1239 · folk 87 · chunks 10 · zoom 2.40
+summer	6_wald_gras_wasser	284:437	z=4.5	0_bisher	null	bake_vollstaendig=ja	8	3 fps · render 29.2 ms (max 58.0) · tiles 486 · folk 87 · chunks 7 · zoom 4.50
+summer	6_wald_gras_wasser	284:437	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	6	2 fps · render 33.5 ms (max 53.0) · tiles 486 · folk 89 · chunks 7 · zoom 4.50
+summer	6_wald_gras_wasser	284:437	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	5	2 fps · render 42.6 ms (max 61.0) · tiles 486 · folk 88 · chunks 7 · zoom 4.50
+winter	1_einzelkachel	319:423	z=2.4	0_bisher	null	bake_vollstaendig=ja	3	1 fps · render 37.5 ms (max 44.0) · tiles 1239 · folk 220 · chunks 11 · zoom 2.40
+winter	1_einzelkachel	319:423	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	1 fps · render 51.0 ms (max 51.0) · tiles 1239 · folk 221 · chunks 11 · zoom 2.40
+winter	1_einzelkachel	319:423	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	1 fps · render 54.5 ms (max 63.0) · tiles 1239 · folk 221 · chunks 11 · zoom 2.40
+winter	1_einzelkachel	319:423	z=4.5	0_bisher	null	bake_vollstaendig=ja	4	4 fps · render 60.5 ms (max 91.0) · tiles 486 · folk 154 · chunks 6 · zoom 4.50
+winter	1_einzelkachel	319:423	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	1 fps · render 253.3 ms (max 570.0) · tiles 486 · folk 92 · chunks 5 · zoom 4.50
+winter	1_einzelkachel	319:423	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	0 fps · render 71.0 ms (max 71.0) · tiles 486 · folk 155 · chunks 6 · zoom 4.50
+winter	2_insel_klein	321.5:424	z=2.4	0_bisher	null	bake_vollstaendig=ja	3	1 fps · render 30.0 ms (max 30.0) · tiles 1239 · folk 92 · chunks 12 · zoom 2.40
+winter	2_insel_klein	321.5:424	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	7 fps · render 64.0 ms (max 86.0) · tiles 1239 · folk 93 · chunks 12 · zoom 2.40
+winter	2_insel_klein	321.5:424	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	0 fps · render 315.0 ms (max 416.0) · tiles 1219 · folk 227 · chunks 10 · zoom 2.40
+winter	2_insel_klein	321.5:424	z=4.5	0_bisher	null	bake_vollstaendig=ja	3	0 fps · render 30.7 ms (max 45.0) · tiles 461 · folk 154 · chunks 6 · zoom 4.50
+winter	2_insel_klein	321.5:424	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	2 fps · render 140.0 ms (max 140.0) · tiles 461 · folk 154 · chunks 6 · zoom 4.50
+winter	2_insel_klein	321.5:424	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	3	5 fps · render 41.0 ms (max 68.0) · tiles 461 · folk 155 · chunks 6 · zoom 4.50
+winter	3_zunge_schmal	300:411	z=2.4	0_bisher	null	bake_vollstaendig=ja	5	1 fps · render 35.5 ms (max 46.0) · tiles 1239 · folk 93 · chunks 13 · zoom 2.40
+winter	3_zunge_schmal	300:411	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	1 fps · render 51.0 ms (max 51.0) · tiles 1239 · folk 93 · chunks 12 · zoom 2.40
+winter	3_zunge_schmal	300:411	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	1 fps · render 52.3 ms (max 103.0) · tiles 1239 · folk 92 · chunks 13 · zoom 2.40
+winter	3_zunge_schmal	300:411	z=4.5	0_bisher	null	bake_vollstaendig=ja	3	1 fps · render 29.0 ms (max 29.0) · tiles 486 · folk 90 · chunks 6 · zoom 4.50
+winter	3_zunge_schmal	300:411	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	1 fps · render 14.5 ms (max 20.0) · tiles 486 · folk 89 · chunks 6 · zoom 4.50
+winter	3_zunge_schmal	300:411	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	6	2 fps · render 104.0 ms (max 104.0) · tiles 486 · folk 90 · chunks 6 · zoom 4.50
+winter	4_saum_gerade	298:437	z=2.4	0_bisher	null	bake_vollstaendig=ja	5	0 fps · render 42.8 ms (max 84.0) · tiles 1239 · folk 163 · chunks 10 · zoom 2.40
+winter	4_saum_gerade	298:437	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	4 fps · render 103.0 ms (max 106.0) · tiles 1239 · folk 162 · chunks 10 · zoom 2.40
+winter	4_saum_gerade	298:437	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	5	0 fps · render 93.0 ms (max 129.0) · tiles 1239 · folk 164 · chunks 10 · zoom 2.40
+winter	4_saum_gerade	298:437	z=4.5	0_bisher	null	bake_vollstaendig=ja	4	0 fps · render 86.3 ms (max 241.0) · tiles 486 · folk 88 · chunks 6 · zoom 4.50
+winter	4_saum_gerade	298:437	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	0 fps · render 383.0 ms (max 383.0) · tiles 486 · folk 88 · chunks 6 · zoom 4.50
+winter	4_saum_gerade	298:437	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	3 fps · render 70.5 ms (max 77.0) · tiles 486 · folk 89 · chunks 6 · zoom 4.50
+winter	5_saum_unregelmaessig	288:421	z=2.4	0_bisher	null	bake_vollstaendig=ja	3	1 fps · render 49.0 ms (max 49.0) · tiles 1239 · folk 90 · chunks 12 · zoom 2.40
+winter	5_saum_unregelmaessig	288:421	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	3	1 fps · render 82.0 ms (max 124.0) · tiles 1239 · folk 90 · chunks 12 · zoom 2.40
+winter	5_saum_unregelmaessig	288:421	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	0 fps · render 94.4 ms (max 321.0) · tiles 1239 · folk 89 · chunks 12 · zoom 2.40
+winter	5_saum_unregelmaessig	288:421	z=4.5	0_bisher	null	bake_vollstaendig=ja	3	2 fps · render 44.0 ms (max 76.0) · tiles 486 · folk 87 · chunks 5 · zoom 4.50
+winter	5_saum_unregelmaessig	288:421	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	4	0 fps · render 59.0 ms (max 59.0) · tiles 486 · folk 88 · chunks 5 · zoom 4.50
+winter	5_saum_unregelmaessig	288:421	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	0 fps · render 80.0 ms (max 106.0) · tiles 486 · folk 90 · chunks 5 · zoom 4.50
+winter	6_wald_gras_wasser	284:437	z=2.4	0_bisher	null	bake_vollstaendig=ja	3	0 fps · render 242.0 ms (max 242.0) · tiles 1239 · folk 87 · chunks 10 · zoom 2.40
+winter	6_wald_gras_wasser	284:437	z=2.4	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	5	0 fps · render 54.0 ms (max 54.0) · tiles 1239 · folk 87 · chunks 10 · zoom 2.40
+winter	6_wald_gras_wasser	284:437	z=2.4	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	4	0 fps · render 86.0 ms (max 167.0) · tiles 1239 · folk 90 · chunks 10 · zoom 2.40
+winter	6_wald_gras_wasser	284:437	z=4.5	0_bisher	null	bake_vollstaendig=ja	6	2 fps · render 52.6 ms (max 124.0) · tiles 486 · folk 88 · chunks 7 · zoom 4.50
+winter	6_wald_gras_wasser	284:437	z=4.5	B_proto1	{"core": 0.75, "grain": 2.5}	bake_vollstaendig=ja	8	1 fps · render 40.4 ms (max 64.0) · tiles 486 · folk 89 · chunks 7 · zoom 4.50
+winter	6_wald_gras_wasser	284:437	z=4.5	N_iteration2	{"core": 0.75, "grain": 2.5, "v2": true}	bake_vollstaendig=ja	5	0 fps · render 29.0 ms (max 29.0) · tiles 486 · folk 90 · chunks 7 · zoom 4.50

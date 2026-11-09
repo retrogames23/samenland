@@ -1,0 +1,3 @@
+[22m[39mchunk 288:416  prototyp1 63.742 ms  iteration2 2.343 ms
+chunk 304:400  prototyp1 0.038 ms  iteration2 0.052 ms
+chunk 272:432  prototyp1 0.613 ms  iteration2 14.659 ms
