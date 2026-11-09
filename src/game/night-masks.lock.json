@@ -275,9 +275,9 @@
   "day": "2c0a5576d524d5d0",
   "night": "b1bf14afe5abdde6",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Blumenkästen und Pflanzen verdecken Fensterlicht, Abnahme offen"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Blumenkaesten ausgespart, visuell abgenommen"
  },
  "gateway-patrician-3": {
   "day": "bb0cc2a4ac3831e7",
