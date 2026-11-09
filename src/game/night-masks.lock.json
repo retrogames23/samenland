@@ -233,11 +233,11 @@
  },
  "gateway-handwerker": {
   "day": "4b94b14c93d50c64",
-  "night": "1586f03a27b443d6",
+  "night": "8833e4ff2065f15d",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
  },
  "gateway-handwerker-2": {
   "day": "a5bee090ce9e07eb",
@@ -289,19 +289,19 @@
  },
  "gateway-steinhaus": {
   "day": "0c9889f4cf6a79a9",
-  "night": "cf01480755020150",
+  "night": "515bf766f5558746",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
  },
  "gateway-villa": {
   "day": "9214f15c740f12e0",
-  "night": "801ed6ca94b70fcc",
+  "night": "25814e2b2b23dd01",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
  },
  "grain-cottage-2": {
   "day": "ecf6092611476939",
@@ -657,11 +657,11 @@
  },
  "steinhaus": {
   "day": "62be7601369bde67",
-  "night": "0770267297fdd851",
+  "night": "384a4496078940db",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
  },
  "stonemason": {
   "day": "6bccec6f53957620",
@@ -729,11 +729,11 @@
  },
  "villa": {
   "day": "b196ec3f76841dbc",
-  "night": "93df9c107e76c135",
+  "night": "b0a22f76d3947f5d",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
  },
  "warehouse": {
   "day": "631badada0b91302",
@@ -841,11 +841,11 @@
  },
  "workshop-handwerker": {
   "day": "1b9dc914448990b7",
-  "night": "3d501cb93309b06e",
+  "night": "a18e5755c3196709",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-08: neu: Scheiben in Fensterrahmen statt Klecksen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
  },
  "workshop-handwerker-2": {
   "day": "c487e8dcbbed59b5",
@@ -905,10 +905,10 @@
  },
  "workshop-villa": {
   "day": "89aace950cdd2934",
-  "night": "4e03ed5aaf2ddea4",
+  "night": "869cf1f8e8b32411",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
  }
 }
