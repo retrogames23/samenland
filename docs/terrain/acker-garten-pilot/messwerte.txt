@@ -1,0 +1,9 @@
+var/fertile_acker.jpg
+{'file': '/tmp/p2/fertile.jpg', 'size': (816, 816), 'mean_rgb': [76.6, 60.4, 42.6], 'seam_x': np.float64(1.28), 'seam_y': np.float64(1.35), 'sharp': np.float64(19.7), 'macro': np.float64(0.09), 'motif_px': 5, 'motif_in_figures': 0.24}
+  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
+var/fertile_garten.jpg
+{'file': '/tmp/p2/fertile.jpg', 'size': (816, 816), 'mean_rgb': [55.5, 39.5, 27.6], 'seam_x': np.float64(1.48), 'seam_y': np.float64(1.32), 'sharp': np.float64(16.1), 'macro': np.float64(0.09), 'motif_px': 4, 'motif_in_figures': 0.19}
+  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
+var/fertile_niederung.jpg
+{'file': '/tmp/p2/fertile.jpg', 'size': (816, 816), 'mean_rgb': [59.5, 57.5, 31.4], 'seam_x': np.float64(1.4), 'seam_y': np.float64(1.35), 'sharp': np.float64(21.5), 'macro': np.float64(0.11), 'motif_px': 3, 'motif_in_figures': 0.14}
+  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
