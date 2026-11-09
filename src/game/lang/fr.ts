@@ -206,6 +206,7 @@ export const fr: Dict = {
   haveAccount: "Déjà un compte ? Se connecter",
   checkMail: "Encore un pas : confirmez votre adresse grâce au lien que nous venons de vous faire parvenir.",
   authFail: "Échec de connexion. Vérifiez votre courriel et votre mot de passe.",
+  account: { forgot: "Mot de passe oublié ?", resetTitle: "Réinitialiser le mot de passe", sendLink: "Envoyer le lien", back: "Retour à la connexion", resetSent: "Nous vous avons envoyé un lien. Vérifiez votre boîte de réception.", newTitle: "Choisir un nouveau mot de passe", newPw: "Nouveau mot de passe", repeatPw: "Répéter le mot de passe", save: "Enregistrer", mismatch: "Les mots de passe ne correspondent pas.", short: "Au moins 6 caractères.", pwChanged: "Mot de passe modifié.", changePw: "Changer le mot de passe", currentPw: "Mot de passe actuel", changeMail: "Changer l'adresse courriel", currentMail: "Adresse actuelle", newMail: "Nouvelle adresse courriel", sendConfirm: "Envoyer le lien de confirmation", mailSent: "Nous avons envoyé un lien à votre nouvelle adresse. Le changement prend effet dès que vous cliquez dessus.", fail: "Cela n'a pas fonctionné. Veuillez réessayer.", oauthHint: "Vous vous connectez via Google ou Apple. Vous pouvez aussi définir un mot de passe ici." },
   or: "ou",
   collapse: "Replier",
   expand: "Déplier",

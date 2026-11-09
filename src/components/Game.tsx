@@ -154,6 +154,7 @@ import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { ForgotForm, RecoveryDialog, ChangePasswordDialog, ChangeEmailDialog } from "@/components/dialogs/AccountDialogs";
 import { firstFreeSite, placeTap } from "@/game/placement";
 import { saplingSpots } from "@/game/saplings";
 import FigureLab from "@/components/FigureLab";
@@ -367,6 +368,8 @@ export function Game() {
   const [walk, setWalk] = useState(false);
   const stick = useRef({ dx: 0, dy: 0 });
   const [authOpen, setAuthOpen] = useState(false);
+  const [forgot, setForgot] = useState(false);
+  const [acct, setAcct] = useState<null | "recovery" | "pw" | "mail">(null);
   const [settings, setSettings] = useState(false);
   const [imprint, setImprint] = useState(false);
   const [thanks, setThanks] = useState(false);
@@ -677,6 +680,7 @@ export function Game() {
     // late over the editor handshake, and an empty INITIAL_SESSION must not look like a logout
     const { data: sub } = supabase.auth.onAuthStateChange((ev, session) => {
       if (ev === "SIGNED_OUT") { setUserId(null); return; }
+      if (ev === "PASSWORD_RECOVERY") { setAuthOpen(false); setAcct("recovery"); }
       if (session?.user.id) setUserId(session.user.id);
     });
     // Safari pauses timers in background tabs: refresh the token as soon as the page is visible again
@@ -2711,6 +2715,7 @@ export function Game() {
             <Button size="sm" variant="secondary" className="w-full" onClick={() => { setSettings(false); if (userId) setSupportOpen(true); else setAuthOpen(true); }}>🌱 {SUPPORT[lang].button}</Button>
             {userId && home && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setInviteOpen(true); setSettings(false); }}>✉ {t.invite.button}</Button>}
             {userId && home && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setQuitOpen(true); setSettings(false); }}>{t.quit.button}</button>}
+            {userId && <div className="flex gap-2"><Button size="sm" variant="secondary" className="flex-1" onClick={() => { setAcct("pw"); setSettings(false); }}>🔑 {t.account.changePw}</Button><Button size="sm" variant="secondary" className="flex-1" onClick={() => { setAcct("mail"); setSettings(false); }}>✉ {t.account.changeMail}</Button></div>}
             {userId && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setDelOpen(true); setSettings(false); }}>{t.delAcc.button}</button>}
             {userId ? <Button size="sm" variant="secondary" className="w-full" onClick={() => { supabase.auth.signOut(); setSettings(false); }}>{t.signOut}</Button>
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
@@ -3215,6 +3220,9 @@ export function Game() {
         </div>
       )}
 
+      {acct === "recovery" && <RecoveryDialog a={t.account} closeLabel={t.hud.close} close={() => setAcct(null)} />}
+      {acct === "pw" && userId && <ChangePasswordDialog a={t.account} closeLabel={t.hud.close} close={() => setAcct(null)} />}
+      {acct === "mail" && userId && <ChangeEmailDialog a={t.account} closeLabel={t.hud.close} close={() => setAcct(null)} />}
       {authOpen && !userId && (
         <div className="absolute inset-0 z-40 grid place-items-center bg-foreground/30 p-4" onClick={() => setAuthOpen(false)}>
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm">
@@ -3224,7 +3232,7 @@ export function Game() {
                 <button type="button" aria-label={t.hud.close} onClick={() => setAuthOpen(false)} className="hit absolute end-0 top-0 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{t.tagline}</p>
-              <form className="mt-3 space-y-2" onSubmit={(e) => { e.preventDefault(); emailAuth(); }}>
+              {forgot ? <ForgotForm a={t.account} initialEmail={auth.email} emailLabel={t.email} back={() => setForgot(false)} /> : <form className="mt-3 space-y-2" onSubmit={(e) => { e.preventDefault(); emailAuth(); }}>
                 <div className="flex gap-2">
                   <Button type="button" size="sm" variant="secondary" className="flex-1" onClick={() => oauth("google")}>{t.google}</Button>
                   <Button type="button" size="sm" variant="secondary" className="flex-1" onClick={() => oauth("apple")}>{t.apple}</Button>
@@ -3233,9 +3241,10 @@ export function Game() {
                 <Input type="email" required placeholder={t.email} value={auth.email} onChange={(e) => setAuth({ ...auth, email: e.target.value })} />
                 <Input type="password" required minLength={6} placeholder={t.password} value={auth.password} onChange={(e) => setAuth({ ...auth, password: e.target.value })} />
                 <Button type="submit" size="sm" className="w-full">{auth.signup ? t.signUp : t.signIn}</Button>
+                {!auth.signup && <button type="button" className="w-full text-xs text-muted-foreground underline" onClick={() => { setForgot(true); setMsg(null); }}>{t.account.forgot}</button>}
                 <button type="button" className="w-full text-xs text-muted-foreground underline" onClick={() => setAuth({ ...auth, signup: !auth.signup })}>{auth.signup ? t.haveAccount : t.noAccount}</button>
                 {msg && <p className="text-xs text-destructive">{msg}</p>}
-              </form>
+              </form>}
             </Panel>
           </div>
         </div>
