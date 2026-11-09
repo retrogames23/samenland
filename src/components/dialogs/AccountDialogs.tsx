@@ -36,7 +36,7 @@ export function ForgotForm({ a, initialEmail, emailLabel, back }: { a: A; initia
   const [state, setState] = useState<"idle" | "busy" | "sent" | "fail">("idle");
   const send = async () => {
     setState("busy");
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
     setState(error ? "fail" : "sent");
   };
   return (
