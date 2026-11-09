@@ -1,11 +1,11 @@
 {
  "backhaus": {
   "day": "d993aba5d239e597",
-  "night": "756119792dd36583",
+  "night": "5cbcc93610647804",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "badestube": {
   "day": "6a6c7de94ecdc403",
@@ -17,11 +17,11 @@
  },
  "bakery": {
   "day": "0339041964b8613a",
-  "night": "11991bb432767674",
+  "night": "bb2facba555000c2",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "barn": {
   "day": "b1fa924922eb649f",
@@ -41,11 +41,11 @@
  },
  "belfry": {
   "day": "5a90d279aa6680e9",
-  "night": "10033c0bf016a362",
+  "night": "b17ef185bf75d525",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "bigstore": {
   "day": "4ca2c8562c2c5b91",
@@ -73,11 +73,11 @@
  },
  "church": {
   "day": "bda876baa6f7ec72",
-  "night": "eda00f3e86d574b5",
+  "night": "480465ba268c8d78",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "coop": {
   "day": "8a69c93322d7a0c7",
@@ -97,11 +97,11 @@
  },
  "dairy": {
   "day": "ad003b7dda95e1ef",
-  "night": "1e4a6f0415adc993",
+  "night": "6789d4784d4bdd4c",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "exchange": {
   "day": "5eb45f51370c23c7",
@@ -233,19 +233,19 @@
  },
  "gateway-handwerker": {
   "day": "4b94b14c93d50c64",
-  "night": "7e189a3ba17127b1",
+  "night": "f66891cfcab635b5",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "gateway-handwerker-2": {
   "day": "a5bee090ce9e07eb",
-  "night": "78e22a87ce8aeca7",
+  "night": "52bf1c00b8f74d45",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "gateway-handwerker-3": {
   "day": "1de4505a2aafeeb3",
@@ -273,35 +273,35 @@
  },
  "gateway-patrician-2": {
   "day": "2c0a5576d524d5d0",
-  "night": "896c53dbfd762614",
+  "night": "a091d7a1871c58ed",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "gateway-patrician-3": {
   "day": "bb0cc2a4ac3831e7",
-  "night": "4a37f9495c4870f0",
+  "night": "5477a18206fee806",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "gateway-steinhaus": {
   "day": "0c9889f4cf6a79a9",
-  "night": "904fcb068fb10b39",
+  "night": "c4362e7caf2787d8",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "gateway-villa": {
   "day": "9214f15c740f12e0",
-  "night": "0b5b42334292e8ad",
+  "night": "93f5ea8948f2e12b",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "grain-cottage-2": {
   "day": "ecf6092611476939",
@@ -321,11 +321,11 @@
  },
  "grain-farmhouse-2": {
   "day": "938af2e5885285ec",
-  "night": "9cd07453971aca9e",
+  "night": "36d07a8a40f95550",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "grain-farmhouse-3": {
   "day": "caad523c5e5ee24c",
@@ -345,27 +345,27 @@
  },
  "grain-handwerker-3": {
   "day": "232b82768b275396",
-  "night": "fd661d378c7c23ba",
+  "night": "3cfe31ea04dde3b8",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "grain-patrician-2": {
   "day": "7cdb248de401eea5",
-  "night": "7d413f437b4b133b",
+  "night": "e0a650e66cd8626c",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "grain-patrician-3": {
   "day": "f5c883971ab46334",
-  "night": "2e7a226e189f64c0",
+  "night": "15ebb4adbd997158",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "granary": {
   "day": "1f842f3b3e46a911",
@@ -377,27 +377,27 @@
  },
  "guardhouse": {
   "day": "e52e635fcbb88328",
-  "night": "98ca6b194d5346c0",
+  "night": "bbef32f67a8fe91f",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "guildhall": {
   "day": "9405e5311e26ed81",
-  "night": "a3c7adb92425d817",
+  "night": "677fba7a0e4ea61a",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "guildtower": {
   "day": "166f5dc32b84ad3b",
-  "night": "4b1282dd81d58cb8",
+  "night": "6f028be5cafbdff8",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "hammerworks": {
   "day": "0aac9d3501ef5c7a",
@@ -441,11 +441,11 @@
  },
  "herberge": {
   "day": "752ff704335d3215",
-  "night": "dcf8ed2e54101b6f",
+  "night": "74d71d8ad130887d",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "herbhut": {
   "day": "8dbadd65bf3aa367",
@@ -465,11 +465,11 @@
  },
  "infirmary": {
   "day": "faee81d13a714ff0",
-  "night": "f3f542dcf27185bb",
+  "night": "c890ff11977bb53a",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "inn": {
   "day": "e1a584523125c84d",
@@ -481,11 +481,11 @@
  },
  "library": {
   "day": "7613255a21e2ad44",
-  "night": "6036511b8ccfbd2a",
+  "night": "4323a97eff1119e2",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "lighthouse": {
   "day": "aca470a72a9e2780",
@@ -529,11 +529,11 @@
  },
  "mill": {
   "day": "56d03afb4f07be41",
-  "night": "931a2951585957c6",
+  "night": "89abd6a328b63c35",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "millrow": {
   "day": "f2a7499b0aa82aaf",
@@ -545,11 +545,11 @@
  },
  "opera": {
   "day": "ca93e2461f54c381",
-  "night": "a241dc5a89bc774b",
+  "night": "c9067fe39cd58977",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "orangery": {
   "day": "2e3b3a6d26ff7b5b",
@@ -585,35 +585,35 @@
  },
  "school": {
   "day": "f94e3656d555f90c",
-  "night": "800d32d305a23f71",
+  "night": "2b4d29ce1b97b9f7",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "seat1": {
   "day": "b0667b35d011ac5d",
-  "night": "d5a2bb711d5aa701",
+  "night": "41ee86034ada5c98",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "seat2": {
   "day": "86a131f9cde3486b",
-  "night": "407d736d9977c779",
+  "night": "090dd67550f6330e",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "seat3": {
   "day": "cf606655c8546592",
-  "night": "03ae107eff746b21",
+  "night": "e6f5c0caaf814e90",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "smithy": {
   "day": "856c78a1220c8803",
@@ -657,11 +657,11 @@
  },
  "steinhaus": {
   "day": "62be7601369bde67",
-  "night": "a088d5b523e9f1fe",
+  "night": "8bf418cd6d849689",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "stonemason": {
   "day": "6bccec6f53957620",
@@ -697,11 +697,11 @@
  },
  "townhall": {
   "day": "e0a8b01d43cbad21",
-  "night": "eafb1a3e38a6fa3e",
+  "night": "ffbabeb1678f4d1d",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "townhouse": {
   "day": "212ad17a2a7c1b30",
@@ -729,11 +729,11 @@
  },
  "villa": {
   "day": "b196ec3f76841dbc",
-  "night": "bdf57313f9b382ad",
+  "night": "198a5ac5e58de83a",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "warehouse": {
   "day": "631badada0b91302",
@@ -841,11 +841,11 @@
  },
  "workshop-handwerker": {
   "day": "1b9dc914448990b7",
-  "night": "7fbd080ff1a3fb2c",
+  "night": "19a5e545f44322f8",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "workshop-handwerker-2": {
   "day": "c487e8dcbbed59b5",
@@ -857,11 +857,11 @@
  },
  "workshop-handwerker-3": {
   "day": "c7070c2979e9c59e",
-  "night": "dae1b25cbba6da59",
+  "night": "bd4b0fd51f55c47a",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  },
  "workshop-hut": {
   "day": "ab2bfedd3976e868",
@@ -905,10 +905,10 @@
  },
  "workshop-villa": {
   "day": "89aace950cdd2934",
-  "night": "4c31ef990934c2be",
+  "night": "981c76c18a2930d6",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
+  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
  }
 }
