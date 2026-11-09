@@ -659,7 +659,7 @@ function processions(ws: Wedding[], people: Person[], church: Tile, now: number)
     for (const q of people) if (!q.proc && (q.role === "head" || q.role === "spouse") && (q.hh === birth(g) || q.hh === birth(b)) && q.spouse !== g.id && q.spouse !== b.id && q !== g && q !== b)
       if (now - w.at <= 3 * 3600e3) q.proc = { at: w.at, from: q.home, to, lag: 6 + 5 * k++, role: "guest" };
     // a priest of the village steps out before the portal to marry them (fixed per wedding by hash)
-    const pr = people.filter((q) => q.job === "priest" && !q.proc && !q.sick && q.age >= 16);
+    const pr = people.filter((q) => q.job === "priest" && q !== g && q !== b && !q.sick && q.age >= 16);
     if (pr.length && now - w.at <= 3 * 3600e3) pr[Math.floor(hash(w.at % 1e9, 7, 1531) * pr.length)]!.proc = { ...g.proc, role: "priest" };
     void church;
   }
