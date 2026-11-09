@@ -1,11 +1,11 @@
 {
  "backhaus": {
   "day": "d993aba5d239e597",
-  "night": "5cbcc93610647804",
+  "night": "4e103ef3718e51c2",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "badestube": {
   "day": "6a6c7de94ecdc403",
@@ -17,11 +17,11 @@
  },
  "bakery": {
   "day": "0339041964b8613a",
-  "night": "bb2facba555000c2",
+  "night": "d124ef89109089a0",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "barn": {
   "day": "b1fa924922eb649f",
@@ -43,9 +43,9 @@
   "day": "5a90d279aa6680e9",
   "night": "67aaab31a83c6622",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe A nach Pilotverfahren neu aufgebaut"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe A visuell abgenommen (Opern-Giebel: Blendnischen, dunkel)"
  },
  "bigstore": {
   "day": "4ca2c8562c2c5b91",
@@ -75,9 +75,9 @@
   "day": "bda876baa6f7ec72",
   "night": "93d087f79792e651",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe A nach Pilotverfahren neu aufgebaut"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe A visuell abgenommen (Opern-Giebel: Blendnischen, dunkel)"
  },
  "coop": {
   "day": "8a69c93322d7a0c7",
@@ -97,11 +97,11 @@
  },
  "dairy": {
   "day": "ad003b7dda95e1ef",
-  "night": "6789d4784d4bdd4c",
+  "night": "655ac01941f0c63c",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "exchange": {
   "day": "5eb45f51370c23c7",
@@ -377,27 +377,27 @@
  },
  "guardhouse": {
   "day": "e52e635fcbb88328",
-  "night": "bbef32f67a8fe91f",
+  "night": "8f7aa5e673b66844",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "guildhall": {
   "day": "9405e5311e26ed81",
   "night": "6027c4eb090f799f",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe A nach Pilotverfahren neu aufgebaut"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe A visuell abgenommen (Opern-Giebel: Blendnischen, dunkel)"
  },
  "guildtower": {
   "day": "166f5dc32b84ad3b",
   "night": "280d0b0e58f44017",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe A nach Pilotverfahren neu aufgebaut"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe A visuell abgenommen (Opern-Giebel: Blendnischen, dunkel)"
  },
  "hammerworks": {
   "day": "0aac9d3501ef5c7a",
@@ -441,11 +441,11 @@
  },
  "herberge": {
   "day": "752ff704335d3215",
-  "night": "74d71d8ad130887d",
+  "night": "452c5ac8ef6a74b1",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "herbhut": {
   "day": "8dbadd65bf3aa367",
@@ -465,11 +465,11 @@
  },
  "infirmary": {
   "day": "faee81d13a714ff0",
-  "night": "c890ff11977bb53a",
+  "night": "a2772cb027c21d7c",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "inn": {
   "day": "e1a584523125c84d",
@@ -483,9 +483,9 @@
   "day": "7613255a21e2ad44",
   "night": "916baabe627f271d",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe A nach Pilotverfahren neu aufgebaut"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe A visuell abgenommen (Opern-Giebel: Blendnischen, dunkel)"
  },
  "lighthouse": {
   "day": "aca470a72a9e2780",
@@ -529,11 +529,11 @@
  },
  "mill": {
   "day": "56d03afb4f07be41",
-  "night": "89abd6a328b63c35",
+  "night": "4537e3ce956828c9",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "millrow": {
   "day": "f2a7499b0aa82aaf",
@@ -547,9 +547,9 @@
   "day": "ca93e2461f54c381",
   "night": "717d6ea94694336b",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe A nach Pilotverfahren neu aufgebaut"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe A visuell abgenommen (Opern-Giebel: Blendnischen, dunkel)"
  },
  "orangery": {
   "day": "2e3b3a6d26ff7b5b",
@@ -585,35 +585,35 @@
  },
  "school": {
   "day": "f94e3656d555f90c",
-  "night": "2b4d29ce1b97b9f7",
+  "night": "6ac6062d1eaff4c4",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "seat1": {
   "day": "b0667b35d011ac5d",
   "night": "7071b6ad4e888fc5",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe A nach Pilotverfahren neu aufgebaut"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe A visuell abgenommen (Opern-Giebel: Blendnischen, dunkel)"
  },
  "seat2": {
   "day": "86a131f9cde3486b",
   "night": "d6d841bbdce6480e",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe A nach Pilotverfahren neu aufgebaut"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe A visuell abgenommen (Opern-Giebel: Blendnischen, dunkel)"
  },
  "seat3": {
   "day": "cf606655c8546592",
   "night": "b4a321c2ee825f01",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe A nach Pilotverfahren neu aufgebaut"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe A visuell abgenommen (Opern-Giebel: Blendnischen, dunkel)"
  },
  "smithy": {
   "day": "856c78a1220c8803",
@@ -699,17 +699,17 @@
   "day": "e0a8b01d43cbad21",
   "night": "ec0392f9e53f4ac9",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe A nach Pilotverfahren neu aufgebaut"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe A visuell abgenommen (Opern-Giebel: Blendnischen, dunkel)"
  },
  "townhouse": {
   "day": "212ad17a2a7c1b30",
   "night": "1d3c1adc660a3694",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Referenzmaske – Referenzstil"
  },
  "townhouse2": {
   "day": "95ba22ba1b667d71",
