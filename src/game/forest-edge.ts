@@ -94,17 +94,17 @@ export function forestShape(x0: number, x1: number, y0: number, y1: number, ter:
       if (t === "forest") { kind[k] = 0; R[k] = 1.12; continue; }
       // world-anchored noise sampled at the tile border point: neighbouring tiles agree on positions
       const [bx, by] = tileAt(cx + dx, cy + dy);
-      const n = vn(bx * 2.6, by * 2.6, 811) * 0.7 + vn(bx * 6.1, by * 6.1, 812) * 0.3;
-      if (fringeOk(t)) { kind[k] = 1; R[k] = base + (1 + reach - base) * Math.pow(n, 1.3); }
+      const n = vn(bx * 0.9, by * 0.9, 811) * 0.75 + vn(bx * 2.4, by * 2.4, 812) * 0.25; // few large tongues/bays
+      if (fringeOk(t)) { kind[k] = 1; R[k] = 0.74 + (1 + reach - 0.74) * Math.min(1, Math.max(0, (n - 0.25) * 1.9)); } // bays cut into the old edge down to the tree zone
       else { kind[k] = 2; R[k] = 0.9 + 0.08 * n; }
     }
     // circular smoothing removes radial steps (no spikes, no straight diamond facets)
     for (let pass = 0; pass < 2; pass++) { const c = R.slice(); for (let k = 0; k < SHAPE_ANG; k++) R[k] = (c[(k + SHAPE_ANG - 1) % SHAPE_ANG]! + 2 * c[k]! + c[(k + 1) % SHAPE_ANG]!) / 4; }
     const poly: Pt[] = [];
     for (let k = 0; k < SHAPE_ANG; k++) {
-      let r = Math.max(R[k]!, p.core + 0.05);
+      let r = Math.max(R[k]!, 0.72); // tree feet ≤ 0.69 stay on forest floor
       if (kind[k] === 0) r = Math.max(r, 1.06);
-      if (kind[k] === 2) r = Math.min(r, 0.98);
+      if (kind[k] === 2 || kind[(k + 1) % SHAPE_ANG] === 2 || kind[(k + SHAPE_ANG - 1) % SHAPE_ANG] === 2) r = Math.min(r, 0.98);
       const [dx, dy] = DIRS[k]!;
       // never reach onto forbidden ground anywhere along the ray
       for (let f = 0.9; f <= r; f += 0.04) { const [tx, ty] = tileOf(cx + dx * f, cy + dy * f), t = ter(tx, ty); if (t !== "forest" && !fringeOk(t)) { r = Math.min(r, Math.max(p.core + 0.05, f - 0.04)); break; } }

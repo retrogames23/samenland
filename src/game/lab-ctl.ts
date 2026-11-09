@@ -27,6 +27,10 @@ export const labEvent = (e: LabEvent): number | null => (isLab() && st.ev[e]) ||
 
 /** Pilot 3 prototype: forest core + fringe, test map only (null = current production look). */
 export const labEdge = (): { core: number; grain: number; v2?: boolean } | null => (isLab() && st.edge) || null;
+/** Production forest outline (Pilot 3). Safety fallback: localStorage "samenland:forest-edge" = "off" restores the old hard contour. */
+export const PROD_EDGE = { core: 0.75, grain: 6, v2: true } as const;
+const edgeOff = () => { try { return typeof localStorage !== "undefined" && localStorage.getItem("samenland:forest-edge") === "off"; } catch { return false; } };
+export const forestEdge = (): { core: number; grain: number; v2?: boolean } | null => labEdge() ?? (edgeOff() ? null : PROD_EDGE);
 export function setLabEdge(e: { core: number; grain: number; v2?: boolean } | null) { st.edge = e ?? undefined; save(); }
 export function setLabWeather(w: WeatherKind | null) { st.weather = w ?? undefined; save(); }
 export function setLabSeason(x: Season | null) { st.season = x ?? undefined; save(); }

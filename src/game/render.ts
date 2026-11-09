@@ -30,7 +30,7 @@ import pastureTroughUrl from "@/assets/sprites/pasture-trough.webp";
 import maypoleUrl from "@/assets/sprites/maypole.webp";
 import { worldHour, clock } from "./time";
 import { forestExtra, forestShape } from "./forest-edge";
-import { labEdge } from "./lab-ctl";
+import { forestEdge as labEdge } from "./lab-ctl";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
 import { huntScene, lodgeDens, denOk, denBeast, denFate, startle, DEN_R, type Den, type Beast } from "./wildlife";
 import { roadMotion, screenFacing } from "./motion";
