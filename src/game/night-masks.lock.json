@@ -243,9 +243,9 @@
   "day": "a5bee090ce9e07eb",
   "night": "141704b2afa088d0",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe D visuell abgenommen"
  },
  "gateway-handwerker-3": {
   "day": "1de4505a2aafeeb3",
@@ -283,9 +283,9 @@
   "day": "bb0cc2a4ac3831e7",
   "night": "d165d45291196a2f",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe D visuell abgenommen"
  },
  "gateway-steinhaus": {
   "day": "0c9889f4cf6a79a9",
@@ -323,9 +323,9 @@
   "day": "938af2e5885285ec",
   "night": "89326feadd9bba37",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe D visuell abgenommen"
  },
  "grain-farmhouse-3": {
   "day": "caad523c5e5ee24c",
@@ -347,9 +347,9 @@
   "day": "232b82768b275396",
   "night": "1fa06569ad3dbc75",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe D visuell abgenommen"
  },
  "grain-patrician-2": {
   "day": "7cdb248de401eea5",
@@ -363,9 +363,9 @@
   "day": "f5c883971ab46334",
   "night": "43b85d2e35b4c161",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe D visuell abgenommen"
  },
  "granary": {
   "day": "1f842f3b3e46a911",
@@ -859,9 +859,9 @@
   "day": "c7070c2979e9c59e",
   "night": "19e065bdc7c9858b",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Gruppe D visuell abgenommen"
  },
  "workshop-hut": {
   "day": "ab2bfedd3976e868",
