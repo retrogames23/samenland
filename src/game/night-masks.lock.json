@@ -411,9 +411,9 @@
     "day": "1c1f9d1568dadf3c",
     "night": "9101c9c43a178605",
     "technical": "pass",
-    "visual": "uninspected",
-    "decision": "open",
-    "note": "2026-11-09: nach Pilotverfahren neu belichtet, Abnahme offen"
+    "visual": "inspected",
+    "decision": "approved",
+    "note": "2026-11-09: nach Pilotverfahren neu belichtet, visuell abgenommen"
   },
   "harbor": {
     "day": "20a92edd2e483370",
