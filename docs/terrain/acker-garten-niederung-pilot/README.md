@@ -56,3 +56,13 @@ mit eigener SPAN, Zuordnung in render.ts `LOOK_TEX.ploughed` und `drawAgri` Gart
 10. Mittelfarbe gegen die bisherige Rolle prüfen (grüne Aue ≠ braune Erde) – Messwerte erkennen keine Rollenfehler.
 
 Dateien: `textur/` (Original + drei Varianten), `messwerte_*.txt`, `seamless.py`, `tune.py`. Bilder und Spielaufnahmen nur im ZIP.
+
+## Umsetzung (09.11.2026) – Entscheidung des Nutzers
+- Gepflügter Acker → `src/assets/terrain/fertile_acker.jpg` (= Variante A, md5 614d8f89de8575325e77a6685aa73579), Tex-Schlüssel `fertileAcker`
+- Garten → `src/assets/terrain/fertile_garten.jpg` (= Variante B, md5 8578a44a80e435d391dc049608e58bca), Tex-Schlüssel `fertileGarten`
+- Aue/Niederung → unverändert `src/assets/terrain/fertile.jpg` (md5 cc2c2353400dc2825fa36255e0dffb0d); Variante C nicht aktiviert
+
+Geänderte Dateien: `src/game/nature-sprites.ts` (zwei Importe, Tex-Typ, TEX-Liste, SPAN je 70 wie bisher), `src/game/render.ts` (LOOK_TEX.ploughed, Gartenfüllung in drawAgri), zwei neue Bilddateien, diese README, `umsetzung/` (Aufnahmen), `src/assets/sprites/AGENTS.md`.
+Unverändert: Spielmechanik, Gelände, Steuern, Erträge, Kachelgröße (SPAN 70), Saisonrolle („ground“ wie zuvor), Chunk-Schlüssel (Textur wird beim Backen über denselben Pfad gelesen).
+
+Prüfung: Typecheck fehlerfrei; 138 Testdateien / 771 Tests bestanden. Aufnahmen Testwiek (lab) Sommer/Herbst, Nah/Normal/Übersicht, vorher (neue Dateien per Netzwerk durch Original ersetzt) / nachher. Pixelabweichung Aue vorher↔nachher 0,3–1,7 % (Wasser-/Tieranimation, keine Texturänderung). Einschränkung: Die Testkarte stand zur Aufnahmezeit auf Abend (20 Uhr), Bilder sind dunkel; aufgehellte Vergleiche liegen bei. Im Sommer zeigt Testwiek keine gepflügten Äcker – Acker-Wirkung ist erst in Pflugzeit sichtbar und im echten Spiel zu beurteilen.

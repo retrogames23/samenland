@@ -97,7 +97,7 @@ type Pt = [number, number];
 
 const INK = "rgba(34,26,18,0.72)";
 /** Base texture of a field tile under the three-field rotation. */
-const LOOK_TEX: Record<Look, Tex> = { green: "crops", ripe: "wheat", stubble: "wheat", ploughed: "fertile", fallow: "grass" };
+const LOOK_TEX: Record<Look, Tex> = { green: "crops", ripe: "wheat", stubble: "wheat", ploughed: "fertileAcker", fallow: "grass" };
 /** Scythe only on ripe grain; gardens and pastures keep their usual work cycle. */
 const farmReaps = (p: { work: [number, number] | null; seed: Seed }, now: number) => { const w = p.work!, st = structureAt(w[0], w[1], soloSeeds(p.seed), now); return st?.kind !== "field" || farmTask(fieldLook(acreOf(w[0], w[1], p.seed).id, now)) === "reap"; };
 const fieldTex = (x: number, y: number, s: Seed, now: number): Tex => LOOK_TEX[fieldLook(acreOf(x, y, s).id, now)];
@@ -2590,7 +2590,7 @@ function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Struct
     const outer = NS4.map(([i, j]) => !sameA(i, j));
     acrePath(c, cx, cy, hx, hy, outer);
     if (st.kind === "garden") {
-      c.fillStyle = texture(c, "fertile") ?? hsl(25, 35, 30); c.fill();
+      c.fillStyle = texture(c, "fertileGarten") ?? hsl(25, 35, 30); c.fill();
       c.globalAlpha = 0.5; c.fillStyle = texture(c, "dirt") ?? hsl(30, 35, 55); c.fill(); c.globalAlpha = 1;
     } else { c.fillStyle = texture(c, LOOK_TEX[look!]) ?? hsl(ripe ? 44 : 80, 50, 60); c.fill(); if (look === "stubble") { c.globalAlpha = 0.35; c.fillStyle = texture(c, "dirt") ?? hsl(30, 35, 55); c.fill(); c.globalAlpha = 1; } }
     a = { kind: st.kind as "field" | "garden", ripe, look, along: ac.along, outer, winter, hx, hy, k2: 0 };
