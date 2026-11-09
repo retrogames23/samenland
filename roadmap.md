@@ -10,4 +10,6 @@
 - [ ] Live-Updates und Kamera/Steuerung aus Game.tsx auslagern
 - [ ] Große Fenster (Baumenü, Begegnungen, Fürstenhof, Post) auslagern
 - [x] Waldboden-Pilot: Variante A final, Regeln und Prüfgrenzen dokumentiert
+- [x] Acker/Garten-Pilot (Pilot 2): Acker und Garten freigegeben, Aue als geprüfter Bestand
+- [ ] Pilot 3 wählen: Gebirge/Fels oder Wald-Gras-Übergang (wartet auf Entscheidung)
 - [ ] Wald-Gras-Übergang überarbeiten (vorgemerkt, wartet auf Freigabe zum Start)
