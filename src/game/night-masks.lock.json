@@ -1,11 +1,11 @@
 {
  "backhaus": {
   "day": "d993aba5d239e597",
-  "night": "5cbcc93610647804",
+  "night": "4e103ef3718e51c2",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "badestube": {
   "day": "6a6c7de94ecdc403",
@@ -17,11 +17,11 @@
  },
  "bakery": {
   "day": "0339041964b8613a",
-  "night": "bb2facba555000c2",
+  "night": "d124ef89109089a0",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "barn": {
   "day": "b1fa924922eb649f",
@@ -97,11 +97,11 @@
  },
  "dairy": {
   "day": "ad003b7dda95e1ef",
-  "night": "6789d4784d4bdd4c",
+  "night": "655ac01941f0c63c",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "exchange": {
   "day": "5eb45f51370c23c7",
@@ -377,11 +377,11 @@
  },
  "guardhouse": {
   "day": "e52e635fcbb88328",
-  "night": "bbef32f67a8fe91f",
+  "night": "8f7aa5e673b66844",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "guildhall": {
   "day": "9405e5311e26ed81",
@@ -441,11 +441,11 @@
  },
  "herberge": {
   "day": "752ff704335d3215",
-  "night": "74d71d8ad130887d",
+  "night": "452c5ac8ef6a74b1",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "herbhut": {
   "day": "8dbadd65bf3aa367",
@@ -465,11 +465,11 @@
  },
  "infirmary": {
   "day": "faee81d13a714ff0",
-  "night": "c890ff11977bb53a",
+  "night": "a2772cb027c21d7c",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "inn": {
   "day": "e1a584523125c84d",
@@ -529,11 +529,11 @@
  },
  "mill": {
   "day": "56d03afb4f07be41",
-  "night": "89abd6a328b63c35",
+  "night": "4537e3ce956828c9",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "millrow": {
   "day": "f2a7499b0aa82aaf",
@@ -585,11 +585,11 @@
  },
  "school": {
   "day": "f94e3656d555f90c",
-  "night": "2b4d29ce1b97b9f7",
+  "night": "6ac6062d1eaff4c4",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe B nach Pilotverfahren neu aufgebaut"
  },
  "seat1": {
   "day": "b0667b35d011ac5d",
