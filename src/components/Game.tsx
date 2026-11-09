@@ -1,5 +1,6 @@
 import { WalkStick } from "./WalkStick";
 import { maxZoom } from "@/game/camera";
+import { personHit } from "@/game/hit";
 import { CharacterBadge, CharacterDetails } from "./hud/CharacterBadge";
 import { tileHits } from "@/game/disasters";
 import { BOOK } from "@/game/lang/book";
@@ -1161,10 +1162,7 @@ export function Game() {
   const personAt = (e: { clientX: number; clientY: number }): Person | null => {
     const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
     const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
-    let best: Person | null = null, bd = Math.max(3, (coarse ? 34 : 16) / c.zoom);
-    // distance to the figure's whole height (feet to just above head/tools), not just its belly
-    for (const f of lastPeople) { const vy = Math.min(f.y, Math.max(f.y - 11, wy)); const dd = Math.hypot(f.x - wx, vy - wy); if (dd < bd) { bd = dd; best = f.q.p; } }
-    return best;
+    return personHit(lastPeople, wx, wy, c.zoom, coarse);
   };
   useEffect(() => { peopleFocus.sel = who ? pkey(who) : null; }, [who]);
   // ---- talking: tap a villager, court servant or house for a fitting local speech bubble ----
@@ -2517,7 +2515,12 @@ export function Game() {
           }
           const hp = mode === "look" && !placing && !drag.current?.moved ? personAt(e) : null;
           peopleFocus.hover = hp ? pkey(hp) : null;
-          (e.target as HTMLElement).style.cursor = hp ? "pointer" : "";
+          let hb = false;
+          if (!hp && !walk && mode === "look" && !placing && !drag.current?.moved && e.pointerType === "mouse") {
+            const [bx, by] = tileAt(e), bi = inspectAt(bx, by, seeds, clock());
+            hb = !!bi && bi.kind !== "pasture" && bi.kind !== "field";
+          }
+          (e.target as HTMLElement).style.cursor = hp || hb ? "pointer" : "";
         }}
         onPointerCancel={(e) => { touches.current.delete(e.pointerId); pinch.current = null; drag.current = null; }}
         onPointerUp={(e) => {
