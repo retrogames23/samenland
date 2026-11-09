@@ -14,7 +14,7 @@ summer	1_einzelkachel	319:423	z=2.4	P_produktion	null	bake_vollstaendig=ja	5	1 f
 summer	1_einzelkachel	319:423	z=4.5	P_produktion	null	bake_vollstaendig=ja	5	1 fps · render 21.0 ms (max 21.0) · tiles 486 · folk 158 · chunks 6 · zoom 4.50
 summer	2_insel_klein	321.5:424	z=2.4	P_produktion	null	bake_vollstaendig=ja	3	1 fps · render 53.8 ms (max 87.0) · tiles 1219 · folk 224 · chunks 10 · zoom 2.40
 summer	2_insel_klein	321.5:424	z=4.5	P_produktion	null	bake_vollstaendig=ja	5	1 fps · render 24.4 ms (max 62.0) · tiles 461 · folk 159 · chunks 6 · zoom 4.50
-summer	3_zunge_schmal	300:411	z=2.4	P_produktion	null	bake_vollstaendig=ja	3	1 fps · render 70.0 ms (max 112.0) · tiles 1071 · folk 94 · chunks 9 · zoom 2.60
+summer	3_zunge_schmal	300:411	z=2.4	P_produktion	null	bake_vollstaendig=ja	6	1 fps · render 28.0 ms (max 28.0) · tiles 1239 · folk 96 · chunks 13 · zoom 2.40 · neu aufgenommen 2026-11-09 (vorher Fehlziel Testwiek, zoom 2.60)
 summer	3_zunge_schmal	300:411	z=4.5	P_produktion	null	bake_vollstaendig=ja	11	3 fps · render 23.2 ms (max 50.0) · tiles 486 · folk 96 · chunks 6 · zoom 4.50
 summer	4_saum_gerade	298:437	z=2.4	P_produktion	null	bake_vollstaendig=ja	5	2 fps · render 34.6 ms (max 45.0) · tiles 1239 · folk 163 · chunks 10 · zoom 2.40
 summer	4_saum_gerade	298:437	z=4.5	P_produktion	null	bake_vollstaendig=ja	3	1 fps · render 18.3 ms (max 24.0) · tiles 486 · folk 97 · chunks 6 · zoom 4.50
