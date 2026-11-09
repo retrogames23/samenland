@@ -518,6 +518,19 @@ export function Game() {
   // start over the settled heartland, never the empty ocean at tile (0,0)
   const cam = useRef<Camera>((() => { const [x, y] = iso(500, 500); return { x, y, zoom: 2.6 }; })());
   const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
+  // terrain QA only: window.__labCam(tileX, tileY, zoom?) jumps the camera, exists solely while realm "lab" is loaded
+  useEffect(() => {
+    const w = window as unknown as { __labCam?: (x: number, y: number, z?: number) => boolean };
+    w.__labCam = (x, y, z) => {
+      if (realmRef.current !== "lab") return false;
+      const [px, py] = iso(x, y);
+      const zoom = z ?? cam.current.zoom;
+      cam.current = { x: px, y: py, zoom };
+      target.current = { ...target.current, zoom };
+      return true;
+    };
+    return () => { delete w.__labCam; };
+  }, []);
   const sapCache = useRef<{ key: string; spots: [number, number][] }>({ key: "", spots: [] });
   const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, ghost: null as [number, number] | null, walk: false });
   st.current.walk = walk;
