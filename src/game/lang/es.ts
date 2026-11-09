@@ -206,6 +206,7 @@ export const es: Dict = {
   haveAccount: "¿Ya tienes cuenta? Inicia sesión",
   checkMail: "Casi a punto: confirma tu correo mediante el enlace que te hemos enviado.",
   authFail: "Error al iniciar sesión. Comprueba tu correo y contraseña.",
+  account: { forgot: "¿Olvidaste tu contraseña?", resetTitle: "Restablecer contraseña", sendLink: "Enviar enlace", back: "Volver a iniciar sesión", resetSent: "Te hemos enviado un enlace. Revisa tu bandeja de entrada.", newTitle: "Establecer nueva contraseña", newPw: "Nueva contraseña", repeatPw: "Repetir contraseña", save: "Guardar", mismatch: "Las contraseñas no coinciden.", short: "Al menos 6 caracteres.", pwChanged: "Contraseña cambiada.", changePw: "Cambiar contraseña", currentPw: "Contraseña actual", changeMail: "Cambiar correo electrónico", currentMail: "Dirección actual", newMail: "Nuevo correo electrónico", sendConfirm: "Enviar enlace de confirmación", mailSent: "Hemos enviado un enlace a tu nueva dirección. El cambio se aplica al hacer clic en él.", fail: "No ha funcionado. Inténtalo de nuevo.", oauthHint: "Inicias sesión con Google o Apple. Aquí también puedes establecer una contraseña." },
   or: "o",
   collapse: "Plegar",
   expand: "Desplegar",
