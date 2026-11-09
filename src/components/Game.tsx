@@ -3129,6 +3129,19 @@ export function Game() {
                   : questTab ? <Button size="sm" variant="outline" className="h-7 w-full" onClick={questHow}>{t.quests.how}</Button> : null}
               </div>
             )}
+            {!questFold && my && (() => {
+              const o = openTaskOf(princelyRows.current, my.id); if (!o) return null;
+              const P = PRINCELY[lang], k = o.task as PrincelyKind;
+              const flavour = k !== "court" ? edictText(lang, o.step) : null;
+              return (
+                <div className="mt-2 space-y-0.5 border-t border-ink/20 pt-1.5">
+                  <div className="font-display text-sm leading-tight">👑 {DECREE_HEAD[lang]} <span dir="ltr" className="text-xs opacity-60">· {o.step}/{PRINCELY_COUNT}</span></div>
+                  {flavour && <div className="text-xs italic opacity-80">{flavour}</div>}
+                  <div className="text-xs font-semibold">{P.task[k] ?? k}</div>
+                  <div className="text-end text-xs opacity-70">{t.quests.reward(o.reward)}</div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
