@@ -35,9 +35,9 @@
   "day": "5431b832a7649735",
   "night": "6b6f4190d9642a89",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Pilot Lichtoptik: warmer Ton, geometrisch: ruhige Glasflächen, Sprossen als Geometrie, Rand geglättet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Pilot visuell abgenommen – Referenzstil"
  },
  "belfry": {
   "day": "5a90d279aa6680e9",
@@ -355,9 +355,9 @@
   "day": "7cdb248de401eea5",
   "night": "088d3a92e1a3a2ca",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Pilot Lichtoptik: warmer Ton, geometrisch: ruhige Glasflächen, Sprossen als Geometrie, Rand geglättet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Pilot visuell abgenommen – Referenzstil"
  },
  "grain-patrician-3": {
   "day": "f5c883971ab46334",
