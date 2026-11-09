@@ -74,7 +74,7 @@ import { tileFacts } from "@/game/tile-info";
 import { RENAME } from "@/game/lang/rename";
 import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
-import { HERALD, edictText } from "@/game/lang/edicts";
+import { HERALD, edictText, DECREE_HEAD } from "@/game/lang/edicts";
 import { princelyClaims, favourOf, openTaskOf, heraldVisit, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { courtPoses, courtCenter, atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
@@ -774,7 +774,7 @@ export function Game() {
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("wonder_finds").select("id, seed_id, site, realm, first, reward, created_at"),
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("princely_tasks").select("id, seed_id, step, task, reward, accepted_at, done_at"),
       ]).then(([q, m, rf, vv, wf, pt]) => {
-        princelyRows.current = (pt.data ?? []) as PrincelyRow[]; setHeraldRows(princelyRows.current);
+        princelyRows.current = (pt.data ?? []) as PrincelyRow[]; setHeraldRows(princelyRows.current); bumpPrince((n) => n + 1);
         loadErrands();
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: { seed_id: string }[] | null }> } }).from("knighthoods").select("seed_id").then(({ data }) => { knights.current = new Set((data ?? []).map((k) => k.seed_id)); });
         // only this player's own visits mark a town as seen — other players' visits must not block the welcome gift
@@ -1527,6 +1527,8 @@ export function Game() {
   const [nearCourt, setNearCourt] = useState(false);
   const [audience, setAudience] = useState<AudienceHost | null>(null);
   const princelyRows = useRef<PrincelyRow[]>([]);
+  // the rows live in a ref (shared with the renderer); this bump re-renders the HUD decree card whenever they change
+  const [, bumpPrince] = useState(0);
   // Hofdienst: errands done for the open "court" decree (owner-only rows, mirrors DB princely_errand)
   const errandDone = useRef<{ task_id: string; errand: string }[]>([]);
   const errNear = useRef<Errand | null>(null);
@@ -1597,7 +1599,7 @@ export function Game() {
     const sel = (supabase as unknown as { from: (t: string) => { select: (c: string) => { eq: (k: string, v: string) => PromiseLike<{ data: unknown[] | null }> } } }).from("princely_tasks").select("id, seed_id, step, task, reward, accepted_at, done_at").eq("seed_id", seedId);
     const rows = ((await sel).data ?? []) as PrincelyRow[];
     const prevDone = new Set(princelyRows.current.filter((r) => r.done_at).map((r) => r.id));
-    princelyRows.current = [...princelyRows.current.filter((r) => r.seed_id !== seedId), ...rows]; setHeraldRows(princelyRows.current);
+    princelyRows.current = [...princelyRows.current.filter((r) => r.seed_id !== seedId), ...rows]; setHeraldRows(princelyRows.current); bumpPrince((n) => n + 1);
     const fresh = rows.filter((r) => r.done_at && !prevDone.has(r.id));
     if (fresh.length) { setClaims((c) => [...c, ...princelyClaims(fresh)]); jingle("coins"); }
     const open = openTaskOf(rows, seedId), last = [...rows].sort((a, b) => b.step - a.step)[0];
@@ -1610,7 +1612,7 @@ export function Game() {
     const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: string | null; error: unknown }>;
     const { data, error } = await rpc("princely_swap", { _seed: seedId });
     if (error || !data) { setDecree(P.fail); return; }
-    if (data === "swapped") { princelyRows.current = princelyRows.current.map((r) => r.seed_id === seedId && !r.done_at ? { ...r, task: "court", accepted_at: new Date().toISOString() } : r); errNear.current = null; bumpErrand((n) => n + 1); setHeraldRows(princelyRows.current); }
+    if (data === "swapped") { princelyRows.current = princelyRows.current.map((r) => r.seed_id === seedId && !r.done_at ? { ...r, task: "court", accepted_at: new Date().toISOString() } : r); errNear.current = null; bumpErrand((n) => n + 1); setHeraldRows(princelyRows.current); bumpPrince((n) => n + 1); }
     setDecree(data === "swapped" ? P.swapped : data === "wait" ? P.wait : P.open(P.task.court));
   };
   useEffect(() => { if (!audience && !herald) setDecree(null); }, [audience, herald]);
@@ -3127,6 +3129,19 @@ export function Game() {
                   : questTab ? <Button size="sm" variant="outline" className="h-7 w-full" onClick={questHow}>{t.quests.how}</Button> : null}
               </div>
             )}
+            {!questFold && my && (() => {
+              const o = openTaskOf(princelyRows.current, my.id); if (!o) return null;
+              const P = PRINCELY[lang], k = o.task as PrincelyKind;
+              const flavour = k !== "court" ? edictText(lang, o.step) : null;
+              return (
+                <div className="mt-2 space-y-0.5 border-t border-ink/20 pt-1.5">
+                  <div className="font-display text-sm leading-tight">👑 {DECREE_HEAD[lang]} <span dir="ltr" className="text-xs opacity-60">· {o.step}/{PRINCELY_COUNT}</span></div>
+                  {flavour && <div className="text-xs italic opacity-80">{flavour}</div>}
+                  <div className="text-xs font-semibold">{P.task[k] ?? k}</div>
+                  <div className="text-end text-xs opacity-70">{t.quests.reward(o.reward)}</div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

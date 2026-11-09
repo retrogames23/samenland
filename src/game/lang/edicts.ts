@@ -13,6 +13,12 @@ export const HERALD: Record<Lang, Chrome> = {
   ja: { title: "領主の使者", arrive: "宮廷の色をまとった騎手が村長の家の前で馬を止め、封印された書状を取り出す。", button: "領主の使者", ask: "書状を受け取る", read: "「ご報告は私が宮廷へお届けします。」", leave: "使者を見送る" },
 };
 
+/** HUD label for the open decree shown in the quest panel. */
+export const DECREE_HEAD: Record<Lang, string> = {
+  de: "Erlass des Fürsten", en: "The Prince's decree", fr: "Décret du prince", es: "Decreto del Príncipe",
+  ar: "مرسوم الأمير", hi: "राजकुमार का आदेश", zh: "亲王的敕令", ja: "領主の布告",
+};
+
 const DE = [
   "Unsere Landkarten zeigen weiße Flecken. Erkundet ein Naturwunder oder eine Landmarke und bringt Uns Kunde davon.",
   "Eintracht hält ein Land zusammen. Schreibt im Namen der Krone einen Brief an ein anderes Dorf.",
