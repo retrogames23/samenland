@@ -1,0 +1,12 @@
+autumn	3_insel_klein	321.5:424	0echtnah	z=4.50	sprung=True	bake_vollstaendig=ja	6	1 fps · render 35.0 ms (max 53.0) · tiles 461 · folk 158 · chunks 6 · zoom 4.50
+autumn	4_zunge_schmal	300:411	2normal	z=2.40	sprung=True	bake_vollstaendig=ja	4	1 fps · render 47.0 ms (max 62.0) · tiles 1239 · folk 96 · chunks 13 · zoom 2.40
+autumn	4_zunge_schmal	300:411	0echtnah	z=4.50	sprung=True	bake_vollstaendig=ja	6	3 fps · render 18.4 ms (max 39.0) · tiles 486 · folk 95 · chunks 6 · zoom 4.50
+autumn	3_insel_klein	321.5:424	2normal	z=2.40	sprung=True	bake_vollstaendig=ja	3	1 fps · render 93.0 ms (max 93.0) · tiles 1219 · folk 223 · chunks 10 · zoom 2.40
+summer	3_insel_klein	321.5:424	2normal	z=2.40	sprung=True	bake_vollstaendig=ja	3	1 fps · render 77.0 ms (max 77.0) · tiles 1239 · folk 96 · chunks 12 · zoom 2.40
+summer	3_insel_klein	321.5:424	0echtnah	z=4.50	sprung=True	bake_vollstaendig=ja	6	2 fps · render 69.5 ms (max 112.0) · tiles 461 · folk 158 · chunks 6 · zoom 4.50
+summer	4_zunge_schmal	300:411	2normal	z=2.40	sprung=True	bake_vollstaendig=ja	4	1 fps · render 18.8 ms (max 20.0) · tiles 1239 · folk 95 · chunks 13 · zoom 2.40
+summer	4_zunge_schmal	300:411	0echtnah	z=4.50	sprung=True	bake_vollstaendig=ja	6	4 fps · render 26.6 ms (max 50.0) · tiles 486 · folk 95 · chunks 6 · zoom 4.50
+winter	3_insel_klein	321.5:424	0echtnah	z=4.50	sprung=True	bake_vollstaendig=ja	6	1 fps · render 24.0 ms (max 24.0) · tiles 461 · folk 156 · chunks 6 · zoom 4.50
+winter	4_zunge_schmal	300:411	2normal	z=2.40	sprung=True	bake_vollstaendig=ja	3	1 fps · render 25.0 ms (max 25.0) · tiles 1239 · folk 92 · chunks 13 · zoom 2.40
+winter	4_zunge_schmal	300:411	0echtnah	z=4.50	sprung=True	bake_vollstaendig=ja	10	5 fps · render 15.7 ms (max 33.0) · tiles 486 · folk 92 · chunks 6 · zoom 4.50
+winter	3_insel_klein	321.5:424	2normal	z=2.40	sprung=True	bake_vollstaendig=ja	5	1 fps · render 27.0 ms (max 27.0) · tiles 1219 · folk 221 · chunks 10 · zoom 2.40
