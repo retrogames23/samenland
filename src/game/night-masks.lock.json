@@ -1,11 +1,11 @@
 {
  "backhaus": {
   "day": "d993aba5d239e597",
-  "night": "90162376bd51003e",
+  "night": "756119792dd36583",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "badestube": {
   "day": "6a6c7de94ecdc403",
@@ -17,11 +17,11 @@
  },
  "bakery": {
   "day": "0339041964b8613a",
-  "night": "45cafebbcc23e99f",
+  "night": "11991bb432767674",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "barn": {
   "day": "b1fa924922eb649f",
@@ -41,11 +41,11 @@
  },
  "belfry": {
   "day": "5a90d279aa6680e9",
-  "night": "fa1140884a898e95",
+  "night": "10033c0bf016a362",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "bigstore": {
   "day": "4ca2c8562c2c5b91",
@@ -73,11 +73,11 @@
  },
  "church": {
   "day": "bda876baa6f7ec72",
-  "night": "367d63a8f535699c",
+  "night": "eda00f3e86d574b5",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "coop": {
   "day": "8a69c93322d7a0c7",
@@ -97,11 +97,11 @@
  },
  "dairy": {
   "day": "ad003b7dda95e1ef",
-  "night": "a419faa83864b896",
+  "night": "1e4a6f0415adc993",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "exchange": {
   "day": "5eb45f51370c23c7",
@@ -233,19 +233,19 @@
  },
  "gateway-handwerker": {
   "day": "4b94b14c93d50c64",
-  "night": "8833e4ff2065f15d",
+  "night": "7e189a3ba17127b1",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "gateway-handwerker-2": {
   "day": "a5bee090ce9e07eb",
-  "night": "babe5c28a0ee5ec5",
+  "night": "78e22a87ce8aeca7",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "gateway-handwerker-3": {
   "day": "1de4505a2aafeeb3",
@@ -273,35 +273,35 @@
  },
  "gateway-patrician-2": {
   "day": "2c0a5576d524d5d0",
-  "night": "75b14923d97f0d4a",
+  "night": "896c53dbfd762614",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "gateway-patrician-3": {
   "day": "bb0cc2a4ac3831e7",
-  "night": "1892f4ccc2967d20",
+  "night": "4a37f9495c4870f0",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "gateway-steinhaus": {
   "day": "0c9889f4cf6a79a9",
-  "night": "515bf766f5558746",
+  "night": "904fcb068fb10b39",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "gateway-villa": {
   "day": "9214f15c740f12e0",
-  "night": "25814e2b2b23dd01",
+  "night": "0b5b42334292e8ad",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "grain-cottage-2": {
   "day": "ecf6092611476939",
@@ -321,11 +321,11 @@
  },
  "grain-farmhouse-2": {
   "day": "938af2e5885285ec",
-  "night": "c5658f71ed0d5aab",
+  "night": "9cd07453971aca9e",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "grain-farmhouse-3": {
   "day": "caad523c5e5ee24c",
@@ -345,27 +345,27 @@
  },
  "grain-handwerker-3": {
   "day": "232b82768b275396",
-  "night": "a34fa7493ee250b1",
+  "night": "fd661d378c7c23ba",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "grain-patrician-2": {
   "day": "7cdb248de401eea5",
-  "night": "58ab4922580e5e8d",
+  "night": "7d413f437b4b133b",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "grain-patrician-3": {
   "day": "f5c883971ab46334",
-  "night": "9a0eaf5e7bc6d836",
+  "night": "2e7a226e189f64c0",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "granary": {
   "day": "1f842f3b3e46a911",
@@ -377,27 +377,27 @@
  },
  "guardhouse": {
   "day": "e52e635fcbb88328",
-  "night": "3b807380a7d7c151",
+  "night": "98ca6b194d5346c0",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "guildhall": {
   "day": "9405e5311e26ed81",
-  "night": "eef8c6e3a18a418c",
+  "night": "a3c7adb92425d817",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "guildtower": {
   "day": "166f5dc32b84ad3b",
-  "night": "9e39c90a397d377f",
+  "night": "4b1282dd81d58cb8",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "hammerworks": {
   "day": "0aac9d3501ef5c7a",
@@ -441,11 +441,11 @@
  },
  "herberge": {
   "day": "752ff704335d3215",
-  "night": "f6c63cc9639ed42d",
+  "night": "dcf8ed2e54101b6f",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "herbhut": {
   "day": "8dbadd65bf3aa367",
@@ -465,11 +465,11 @@
  },
  "infirmary": {
   "day": "faee81d13a714ff0",
-  "night": "5cef0a78176ca331",
+  "night": "f3f542dcf27185bb",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "inn": {
   "day": "e1a584523125c84d",
@@ -481,11 +481,11 @@
  },
  "library": {
   "day": "7613255a21e2ad44",
-  "night": "c13c292499756015",
+  "night": "6036511b8ccfbd2a",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "lighthouse": {
   "day": "aca470a72a9e2780",
@@ -529,11 +529,11 @@
  },
  "mill": {
   "day": "56d03afb4f07be41",
-  "night": "1685755ad77ac895",
+  "night": "931a2951585957c6",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "millrow": {
   "day": "f2a7499b0aa82aaf",
@@ -545,11 +545,11 @@
  },
  "opera": {
   "day": "ca93e2461f54c381",
-  "night": "22eade36c3a60498",
+  "night": "a241dc5a89bc774b",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "orangery": {
   "day": "2e3b3a6d26ff7b5b",
@@ -585,35 +585,35 @@
  },
  "school": {
   "day": "f94e3656d555f90c",
-  "night": "b8a9ad6b754c300a",
+  "night": "800d32d305a23f71",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "seat1": {
   "day": "b0667b35d011ac5d",
-  "night": "523729a088127cba",
+  "night": "d5a2bb711d5aa701",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "seat2": {
   "day": "86a131f9cde3486b",
-  "night": "18627cad135e3e66",
+  "night": "407d736d9977c779",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "seat3": {
   "day": "cf606655c8546592",
-  "night": "5a39e5829bc3533b",
+  "night": "03ae107eff746b21",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "smithy": {
   "day": "856c78a1220c8803",
@@ -657,11 +657,11 @@
  },
  "steinhaus": {
   "day": "62be7601369bde67",
-  "night": "384a4496078940db",
+  "night": "a088d5b523e9f1fe",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "stonemason": {
   "day": "6bccec6f53957620",
@@ -697,11 +697,11 @@
  },
  "townhall": {
   "day": "e0a8b01d43cbad21",
-  "night": "45a2228feb8996dd",
+  "night": "eafb1a3e38a6fa3e",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "townhouse": {
   "day": "212ad17a2a7c1b30",
@@ -729,11 +729,11 @@
  },
  "villa": {
   "day": "b196ec3f76841dbc",
-  "night": "b0a22f76d3947f5d",
+  "night": "bdf57313f9b382ad",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "warehouse": {
   "day": "631badada0b91302",
@@ -841,11 +841,11 @@
  },
  "workshop-handwerker": {
   "day": "1b9dc914448990b7",
-  "night": "a18e5755c3196709",
+  "night": "7fbd080ff1a3fb2c",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "workshop-handwerker-2": {
   "day": "c487e8dcbbed59b5",
@@ -857,11 +857,11 @@
  },
  "workshop-handwerker-3": {
   "day": "c7070c2979e9c59e",
-  "night": "14dfa86980ea5f16",
+  "night": "dae1b25cbba6da59",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  },
  "workshop-hut": {
   "day": "ab2bfedd3976e868",
@@ -905,10 +905,10 @@
  },
  "workshop-villa": {
   "day": "89aace950cdd2934",
-  "night": "869cf1f8e8b32411",
+  "night": "4c31ef990934c2be",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-09: Visuell abgenommen"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Lichtoptik wie Gasthaus: warm, Sprossen sichtbar"
  }
 }
