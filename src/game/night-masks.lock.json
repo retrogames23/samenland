@@ -41,11 +41,11 @@
  },
  "belfry": {
   "day": "5a90d279aa6680e9",
-  "night": "1d048b15cc882103",
+  "night": "fa1140884a898e95",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
  },
  "bigstore": {
   "day": "4ca2c8562c2c5b91",
@@ -73,11 +73,11 @@
  },
  "church": {
   "day": "bda876baa6f7ec72",
-  "night": "ed159990e13ed3ba",
+  "night": "367d63a8f535699c",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
  },
  "coop": {
   "day": "8a69c93322d7a0c7",
@@ -385,19 +385,19 @@
  },
  "guildhall": {
   "day": "9405e5311e26ed81",
-  "night": "bb7b4b41859ef46f",
+  "night": "eef8c6e3a18a418c",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
  },
  "guildtower": {
   "day": "166f5dc32b84ad3b",
-  "night": "3750b5ba675895c4",
+  "night": "9e39c90a397d377f",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
  },
  "hammerworks": {
   "day": "0aac9d3501ef5c7a",
@@ -481,11 +481,11 @@
  },
  "library": {
   "day": "7613255a21e2ad44",
-  "night": "2ed033db5a70eb73",
+  "night": "c13c292499756015",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
  },
  "lighthouse": {
   "day": "aca470a72a9e2780",
@@ -545,11 +545,11 @@
  },
  "opera": {
   "day": "ca93e2461f54c381",
-  "night": "2acde306e33994b8",
+  "night": "22eade36c3a60498",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
  },
  "orangery": {
   "day": "2e3b3a6d26ff7b5b",
@@ -593,27 +593,27 @@
  },
  "seat1": {
   "day": "b0667b35d011ac5d",
-  "night": "d7e25053e10bf2dc",
+  "night": "523729a088127cba",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
  },
  "seat2": {
   "day": "86a131f9cde3486b",
-  "night": "e93c3e548eba2d11",
-  "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-08: Fenster sitzen"
- },
- "seat3": {
-  "day": "cf606655c8546592",
-  "night": "ef63d8bd0cdf1f46",
+  "night": "18627cad135e3e66",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
+ },
+ "seat3": {
+  "day": "cf606655c8546592",
+  "night": "5a39e5829bc3533b",
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
  },
  "smithy": {
   "day": "856c78a1220c8803",
@@ -697,11 +697,11 @@
  },
  "townhall": {
   "day": "e0a8b01d43cbad21",
-  "night": "01ef0d89f201e8f7",
+  "night": "45a2228feb8996dd",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
  },
  "townhouse": {
   "day": "212ad17a2a7c1b30",
