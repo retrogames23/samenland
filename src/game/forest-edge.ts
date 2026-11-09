@@ -104,7 +104,7 @@ export function forestShape(x0: number, x1: number, y0: number, y1: number, ter:
     for (let k = 0; k < SHAPE_ANG; k++) {
       let r = Math.max(R[k]!, 0.72); // tree feet ≤ 0.69 stay on forest floor
       if (kind[k] === 0) r = Math.max(r, 1.06);
-      if (kind[k] === 2) r = Math.min(r, 0.98);
+      if (kind[k] === 2 || kind[(k + 1) % SHAPE_ANG] === 2 || kind[(k + SHAPE_ANG - 1) % SHAPE_ANG] === 2) r = Math.min(r, 0.98);
       const [dx, dy] = DIRS[k]!;
       // never reach onto forbidden ground anywhere along the ray
       for (let f = 0.9; f <= r; f += 0.04) { const [tx, ty] = tileOf(cx + dx * f, cy + dy * f), t = ter(tx, ty); if (t !== "forest" && !fringeOk(t)) { r = Math.min(r, Math.max(p.core + 0.05, f - 0.04)); break; } }
