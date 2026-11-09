@@ -17,7 +17,7 @@ import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, last
 const MEET_TILES = 4;
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townRank, rankInput, nextRankNeed } from "@/game/rank";
-import { townOf, poseOf, weddingFocus, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, parkMayor, mayorAway, setMounted, setStrollHold, setOwnMayor, citizensOf, isHomeKind, setRemoteMayor, clearRemoteMayors, type Person } from "@/game/people";
+import { townOf, poseOf, jobKey, weddingFocus, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, parkMayor, mayorAway, setMounted, setStrollHold, setOwnMayor, citizensOf, isHomeKind, setRemoteMayor, clearRemoteMayors, type Person } from "@/game/people";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { banter } from "@/game/banter";

@@ -6,7 +6,7 @@ import type { DecisionKind } from "@/game/decision-order";
 import { DICT, TOWN_CHARACTER, type Lang } from "@/game/i18n";
 import { clock } from "@/game/time";
 import { townRank } from "@/game/rank";
-import { townOf, poseOf, type Person } from "@/game/people";
+import { townOf, poseOf, jobKey, type Person } from "@/game/people";
 import { ENCOUNTERS, choiceOf } from "@/game/encounters";
 import { pendingAll, isCommons, commonsVoices, adviceIdx, bakeCost } from "@/game/commons";
 import { COMMONS_TEXT } from "@/game/lang/commons";

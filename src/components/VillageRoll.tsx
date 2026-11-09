@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Parchment } from "@/components/hud/Parchment";
 import { Input } from "@/components/ui/input";
 import { rollOf, matches } from "@/game/roll";
-import type { Person, Town } from "@/game/people";
+import { jobKey, type Person, type Town } from "@/game/people";
 import type { DICT, Lang } from "@/game/i18n";
 import { censusOf } from "@/game/census";
 import { CENSUS } from "@/game/lang/census";
