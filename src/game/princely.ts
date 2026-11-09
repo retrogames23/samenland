@@ -48,3 +48,21 @@ export function heraldVisit(rows: PrincelyRow[], seedId: string, now: number): H
   const t = now - arrive;
   return t < ride ? { phase: "arrive", p: t / ride, t } : { phase: "wait", p: 1, t };
 }
+
+/** Client mirror of DB princely_task_met (0081) for display only — the DB still decides at hand-in. */
+export type DecreeFacts = { purchases: string[]; letters: string[]; visits: string[]; gifts: string[]; wonders: string[]; roadsOwn: string[]; roadsAll: number; errands: number };
+export function decreeMet(task: string, since: string, f: DecreeFacts): boolean {
+  const s = Date.parse(since), after = (l: string[]) => l.some((t) => Date.parse(t) > s);
+  switch (task) {
+    case "wonder": return after(f.wonders) || f.wonders.length >= 6;
+    case "letter": return after(f.letters);
+    case "visit": return after(f.visits);
+    case "build": return after(f.purchases) || f.purchases.length >= 8;
+    case "gift": return after(f.gifts);
+    case "road": return after(f.roadsOwn) || f.roadsAll >= 2;
+    case "court": return f.errands >= 2;
+    default: return false;
+  }
+}
+/** When the messenger reaches the village for the open decree (ms), mirrors heraldVisit. */
+export const heraldArrives = (open: PrincelyRow) => Date.parse(open.accepted_at) + HERALD_RETURN_H * 3600e3;

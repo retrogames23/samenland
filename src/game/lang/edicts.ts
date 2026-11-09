@@ -55,3 +55,15 @@ const ZH = ["本王的地图上仍有空白。去探访一处自然奇观或地�
 const JA = ["我らの地図にはまだ空白がある。自然の驚異か名所を訪れ、その知らせを持ち帰れ。", "和こそ国をひとつにする。王冠の名において、他の村へ手紙を書け。", "領主は村長たちの様子を知らねばならぬ。隣人を訪ね、自らの目で確かめよ。", "栄える村は国の誉れを高める。新たな建物を建てさせよ。", "友情は贈り物で育つ。領主の恩寵のしるしとして、隣村に贈り物を送れ。", "交易は王国の血潮である。そなたの村を王冠の街道網につなげ。", "姫が国の驚異について聞きたがっておる。まだ足を踏み入れたことのない地を探せ。", "宮廷が気にかけていると隣人に知らせよ。我らの挨拶を添えた手紙を届けよ。", "若い集落が苦しんでおる。他の村長を訪ね、助言で支えてやれ。", "狩りに高貴な客人を迎える。そなたの村がふさわしくもてなせることを示せ――建てよ。", "助けのない冬は厳しい。国の誰も飢えぬよう、隣人に贈り物を送れ。", "我らの最後の願い：ひとつにつながった国。村々を結ぶ道を定めよ――そして騎士叙任のため我らの前に参れ。"];
 const ALL: Record<Lang, string[]> = { de: DE, en: EN, fr: FR, es: ES, ar: AR, hi: HI, zh: ZH, ja: JA };
 export const edictText = (lang: Lang, step: number): string | null => ALL[lang]?.[step - 1] ?? null;
+
+/** Quest-panel status of a fulfilled decree (display only). */
+export const DECREE_STATUS: Record<Lang, { done: string; coming: (h: number) => string; waiting: string }> = {
+  de: { done: "✓ Erfüllt", coming: (h) => `Der Bote trifft in etwa ${h} Std. ein – oder sprich gleich am Fürstensitz vor.`, waiting: "Der Bote wartet am Schulzensitz auf deinen Bericht." },
+  en: { done: "✓ Fulfilled", coming: (h) => `The messenger arrives in about ${h} h – or report at the prince's seat right away.`, waiting: "The messenger is waiting at the mayor's seat for your report." },
+  fr: { done: "✓ Accompli", coming: (h) => `Le messager arrive dans environ ${h} h – ou présentez-vous tout de suite au siège du prince.`, waiting: "Le messager attend votre rapport devant la maison du maire." },
+  es: { done: "✓ Cumplido", coming: (h) => `El mensajero llega en unas ${h} h, o preséntate ya en la residencia del príncipe.`, waiting: "El mensajero espera tu informe ante la casa del alcalde." },
+  ar: { done: "✓ أُنجز", coming: (h) => `يصل الرسول بعد نحو ${h} ساعة، أو قدّم تقريرك فورًا في مقر الأمير.`, waiting: "الرسول ينتظر تقريرك عند بيت العمدة." },
+  hi: { done: "✓ पूरा हुआ", coming: (h) => `दूत लगभग ${h} घंटे में पहुँचेगा – या अभी राजकुमार के दरबार में जाएँ।`, waiting: "दूत मुखिया के घर पर आपकी रिपोर्ट की प्रतीक्षा कर रहा है।" },
+  zh: { done: "✓ 已完成", coming: (h) => `信使约 ${h} 小时后到达——或立即前往亲王府邸禀报。`, waiting: "信使正在村长家门前等候你的回报。" },
+  ja: { done: "✓ 達成", coming: (h) => `使者は約${h}時間後に到着します。すぐ領主の館へ報告に行くこともできます。`, waiting: "使者が村長の家の前で報告を待っています。" },
+};
