@@ -9,3 +9,5 @@
 - [x] Kassen-Abgleich aus Game.tsx ausgelagert
 - [ ] Live-Updates und Kamera/Steuerung aus Game.tsx auslagern
 - [ ] Große Fenster (Baumenü, Begegnungen, Fürstenhof, Post) auslagern
+- [x] Waldboden-Pilot: Variante A final, Regeln und Prüfgrenzen dokumentiert
+- [ ] Wald-Gras-Übergang überarbeiten (vorgemerkt, wartet auf Freigabe zum Start)
