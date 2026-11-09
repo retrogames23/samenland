@@ -233,11 +233,11 @@
  },
  "gateway-handwerker": {
   "day": "4b94b14c93d50c64",
-  "night": "f66891cfcab635b5",
+  "night": "672f353ae69ce0f9",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe C nach Pilotverfahren neu belichtet, Glanzlicht-Kompensation"
  },
  "gateway-handwerker-2": {
   "day": "a5bee090ce9e07eb",
@@ -289,19 +289,19 @@
  },
  "gateway-steinhaus": {
   "day": "0c9889f4cf6a79a9",
-  "night": "c4362e7caf2787d8",
+  "night": "f7ce1f84eb1760bd",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe C nach Pilotverfahren neu belichtet, Glanzlicht-Kompensation"
  },
  "gateway-villa": {
   "day": "9214f15c740f12e0",
-  "night": "93f5ea8948f2e12b",
+  "night": "d5ab049e58bfc7db",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe C nach Pilotverfahren neu belichtet, Glanzlicht-Kompensation"
  },
  "grain-cottage-2": {
   "day": "ecf6092611476939",
@@ -657,11 +657,11 @@
  },
  "steinhaus": {
   "day": "62be7601369bde67",
-  "night": "8bf418cd6d849689",
+  "night": "f03596bda2fe88eb",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe C nach Pilotverfahren neu belichtet, Glanzlicht-Kompensation"
  },
  "stonemason": {
   "day": "6bccec6f53957620",
@@ -729,11 +729,11 @@
  },
  "villa": {
   "day": "b196ec3f76841dbc",
-  "night": "198a5ac5e58de83a",
+  "night": "e203dad7addba4e3",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe C nach Pilotverfahren neu belichtet, Glanzlicht-Kompensation"
  },
  "warehouse": {
   "day": "631badada0b91302",
@@ -841,11 +841,11 @@
  },
  "workshop-handwerker": {
   "day": "1b9dc914448990b7",
-  "night": "19a5e545f44322f8",
+  "night": "7123f88a9d62cb36",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe C nach Pilotverfahren neu belichtet, Glanzlicht-Kompensation"
  },
  "workshop-handwerker-2": {
   "day": "c487e8dcbbed59b5",
@@ -905,10 +905,10 @@
  },
  "workshop-villa": {
   "day": "89aace950cdd2934",
-  "night": "981c76c18a2930d6",
+  "night": "819e448e58c8ac12",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe C nach Pilotverfahren neu belichtet, Glanzlicht-Kompensation"
  }
 }
