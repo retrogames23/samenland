@@ -33,11 +33,11 @@
  },
  "beginenhof": {
   "day": "5431b832a7649735",
-  "night": "51d3ac8bac7b856e",
+  "night": "6b6f4190d9642a89",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Pilot Lichtoptik: warmer Ton, Kern-Alpha, Sprossen als Alpha-Aussparung, Kanten geglättet"
+  "note": "2026-11-09: Pilot Lichtoptik: warmer Ton, geometrisch: ruhige Glasflächen, Sprossen als Geometrie, Rand geglättet"
  },
  "belfry": {
   "day": "5a90d279aa6680e9",
@@ -353,11 +353,11 @@
  },
  "grain-patrician-2": {
   "day": "7cdb248de401eea5",
-  "night": "645077bf0bb1f7a1",
+  "night": "088d3a92e1a3a2ca",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Pilot Lichtoptik: warmer Ton, Kern-Alpha, Sprossen als Alpha-Aussparung, Kanten geglättet"
+  "note": "2026-11-09: Pilot Lichtoptik: warmer Ton, geometrisch: ruhige Glasflächen, Sprossen als Geometrie, Rand geglättet"
  },
  "grain-patrician-3": {
   "day": "f5c883971ab46334",
