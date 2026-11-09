@@ -74,8 +74,8 @@ import { tileFacts } from "@/game/tile-info";
 import { RENAME } from "@/game/lang/rename";
 import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
-import { HERALD, edictText, DECREE_HEAD } from "@/game/lang/edicts";
-import { princelyClaims, favourOf, openTaskOf, heraldVisit, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
+import { HERALD, edictText, DECREE_HEAD, DECREE_STATUS } from "@/game/lang/edicts";
+import { princelyClaims, favourOf, openTaskOf, heraldVisit, decreeMet, heraldArrives, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { courtPoses, courtCenter, atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
 import { Beer, ChevronDown, MapPin, Dices, Music, Wheat, Heart, Coins } from "lucide-react";
@@ -1512,6 +1512,7 @@ export function Game() {
   const [fest, setFest] = useState<ChronEvent[]>([]);
   // mayor visits: the first walk into a neighbour town brings a welcome gift scaled by its size
   const visitSeen = useRef(new Set<string>());
+  const repeatVisits = useRef<string[]>([]);
   const visitFn = useRef<(o: Seed, my: Seed) => void>(() => {});
   const [visitNote, setVisitNote] = useState<string | null>(null);
   // audience at the prince's seat: offered while the strolling mayor stands on the estate
@@ -1625,7 +1626,7 @@ export function Game() {
       if (error) return;
       if (!data) {
         const op = openTaskOf(princelyRows.current, my.id);
-        if (op && op.task === "visit" && Date.parse(op.accepted_at) < Date.now()) { jingle("fanfare"); setVisitNote(PRINCELY[lang].visited(o.name)); }
+        if (op && op.task === "visit" && Date.parse(op.accepted_at) < Date.now()) { repeatVisits.current.push(new Date().toISOString()); jingle("fanfare"); setVisitNote(PRINCELY[lang].visited(o.name)); }
         return;
       }
       const now0 = new Date().toISOString();
@@ -3138,6 +3139,25 @@ export function Game() {
                   <div className="font-display text-sm leading-tight">👑 {DECREE_HEAD[lang]} <span dir="ltr" className="text-xs opacity-60">· {o.step}/{PRINCELY_COUNT}</span></div>
                   {flavour && <div className="text-xs italic opacity-80">{flavour}</div>}
                   <div className="text-xs font-semibold">{P.task[k] ?? k}</div>
+                  {(() => {
+                    const mineC = claims.filter((c) => c.seed_id === my.id);
+                    const met = decreeMet(o.task, o.accepted_at, {
+                      purchases: purchases.filter((x) => x.seed_id === my.id).map((x) => x.created_at),
+                      letters: letters.filter((x) => x.from_seed === my.id).map((x) => x.created_at),
+                      visits: [...mineC.filter((c) => c.quest.startsWith("visit:")).map((c) => c.created_at), ...repeatVisits.current],
+                      gifts: gifts.filter((x) => x.from_seed === my.id).map((x) => x.created_at),
+                      wonders: mineC.filter((c) => c.quest.startsWith("wonder:")).map((c) => c.created_at),
+                      roadsOwn: firstRoads.filter((x) => x.seed_id === my.id).map((x) => x.created_at),
+                      roadsAll: firstRoads.filter((x) => x.seed_id === my.id || x.target_id === my.id).length,
+                      errands: new Set(errandDone.current.filter((e) => e.task_id === o.id).map((e) => e.errand)).size,
+                    });
+                    if (!met) return null;
+                    const S = DECREE_STATUS[lang], left = heraldArrives(o) - Date.now();
+                    return (<>
+                      <div className="text-xs font-bold text-primary">{S.done}</div>
+                      <div className="text-xs italic opacity-80">{left > 0 ? S.coming(Math.max(1, Math.ceil(left / 3600e3))) : S.waiting}</div>
+                    </>);
+                  })()}
                   <div className="text-end text-xs opacity-70">{t.quests.reward(o.reward)}</div>
                 </div>
               );
