@@ -6,6 +6,8 @@ import forest from "@/assets/terrain/forest.jpg";
 import sand from "@/assets/terrain/sand.jpg";
 import water from "@/assets/terrain/water.jpg";
 import fertile from "@/assets/terrain/fertile.jpg";
+import fertileAcker from "@/assets/terrain/fertile_acker.jpg";
+import fertileGarten from "@/assets/terrain/fertile_garten.jpg";
 import rock from "@/assets/terrain/rock.jpg";
 import dirt from "@/assets/terrain/dirt.jpg";
 import cobble from "@/assets/terrain/cobble.jpg";
@@ -21,12 +23,12 @@ import oreRock from "@/assets/sprites/ore-rock.webp";
 import coalRock from "@/assets/sprites/coal-rock.webp";
 
 type C = CanvasRenderingContext2D;
-export type Tex = "grass" | "meadow" | "forest" | "sand" | "water" | "fertile" | "rock" | "dirt" | "cobble" | "wheat" | "crops";
-const TEX: Record<Tex, string> = { grass, meadow, forest, sand, water, fertile, rock, dirt, cobble, wheat, crops };
+export type Tex = "grass" | "meadow" | "forest" | "sand" | "water" | "fertile" | "fertileAcker" | "fertileGarten" | "rock" | "dirt" | "cobble" | "wheat" | "crops";
+const TEX: Record<Tex, string> = { grass, meadow, forest, sand, water, fertile, fertileAcker, fertileGarten, rock, dirt, cobble, wheat, crops };
 /** World pixels covered by one texture repeat (before iso projection). */
 // scaled to the 5-px villager: clover, flowers and cobbles stay smaller than a window or a sheep
 // grass/meadow repeat wide enough that the eye never catches the wallpaper grid
-const SPAN: Record<Tex, number> = { grass: 150, meadow: 140, forest: 120, sand: 110, water: 170, fertile: 70, rock: 130, dirt: 56, cobble: 34, wheat: 38, crops: 38 };
+const SPAN: Record<Tex, number> = { grass: 150, meadow: 140, forest: 120, sand: 110, water: 170, fertile: 70, fertileAcker: 70, fertileGarten: 70, rock: 130, dirt: 56, cobble: 34, wheat: 38, crops: 38 };
 
 const imgs = new Map<string, HTMLImageElement>();
 function img(url: string) {
