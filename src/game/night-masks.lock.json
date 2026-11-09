@@ -241,11 +241,11 @@
  },
  "gateway-handwerker-2": {
   "day": "a5bee090ce9e07eb",
-  "night": "52bf1c00b8f74d45",
+  "night": "141704b2afa088d0",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
  },
  "gateway-handwerker-3": {
   "day": "1de4505a2aafeeb3",
@@ -273,19 +273,19 @@
  },
  "gateway-patrician-2": {
   "day": "2c0a5576d524d5d0",
-  "night": "a091d7a1871c58ed",
+  "night": "3a49cfe8f655df84",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
  },
  "gateway-patrician-3": {
   "day": "bb0cc2a4ac3831e7",
-  "night": "5477a18206fee806",
+  "night": "d165d45291196a2f",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
  },
  "gateway-steinhaus": {
   "day": "0c9889f4cf6a79a9",
@@ -321,11 +321,11 @@
  },
  "grain-farmhouse-2": {
   "day": "938af2e5885285ec",
-  "night": "36d07a8a40f95550",
+  "night": "89326feadd9bba37",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
  },
  "grain-farmhouse-3": {
   "day": "caad523c5e5ee24c",
@@ -345,11 +345,11 @@
  },
  "grain-handwerker-3": {
   "day": "232b82768b275396",
-  "night": "3cfe31ea04dde3b8",
+  "night": "1fa06569ad3dbc75",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
  },
  "grain-patrician-2": {
   "day": "7cdb248de401eea5",
@@ -361,11 +361,11 @@
  },
  "grain-patrician-3": {
   "day": "f5c883971ab46334",
-  "night": "15ebb4adbd997158",
+  "night": "43b85d2e35b4c161",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
  },
  "granary": {
   "day": "1f842f3b3e46a911",
@@ -857,11 +857,11 @@
  },
  "workshop-handwerker-3": {
   "day": "c7070c2979e9c59e",
-  "night": "bd4b0fd51f55c47a",
+  "night": "19e065bdc7c9858b",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Gruppe D nach Pilotverfahren neu belichtet"
  },
  "workshop-hut": {
   "day": "ab2bfedd3976e868",
