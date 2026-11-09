@@ -1,0 +1,118 @@
+diff --git a/src/game/forest-edge.ts b/src/game/forest-edge.ts
+new file mode 100644
+index 00000000..9d130452
+--- /dev/null
++++ b/src/game/forest-edge.ts
+@@ -0,0 +1,63 @@
++/**
++ * PROTOTYPE (Pilot 3, test map only): forest core + organic forest fringe.
++ * Pure geometry from world tile coordinates — identical in every chunk and camera, computed
++ * only while a ground chunk is baked. render.ts uses it solely when labEdge() is set (realm "lab").
++ */
++import type { Terrain } from "./world";
++
++export const TW = 32, TH = 16;
++export type Pt = [number, number];
++export type EdgeParams = { core: number; grain: number };
++const iso = (x: number, y: number): Pt => [(x - y) * (TW / 2), (x + y) * (TH / 2)];
++/** inverse of iso: world pixel -> fractional tile */
++export const tileAt = (px: number, py: number): Pt => [py / TH + px / TW, py / TH - px / TW];
++const h = (x: number, y: number, s: number) => {
++  let n = (x * 374761393 + y * 668265263 + s * 1442695041) | 0;
++  n = Math.imul(n ^ (n >>> 13), 1274126177); n ^= n >>> 16; return (n >>> 0) / 4294967296;
++};
++/** fringe may only lie on grassland/field/hill — never water, sand or rock */
++export const fringeOk = (t: Terrain) => t === "grass" || t === "meadow" || t === "fertile" || t === "hill";
++/** diamond "distance" of a point from a tile centre: 1 = tile corner/edge */
++export const diamondDist = (dx: number, dy: number) => Math.abs(dx) / (TW / 2) + Math.abs(dy) / (TH / 2);
++
++/** Core diamond of a forest tile scaled by `core` (0.85 = 85 % of the tile diamond). */
++export function coreDiamond(x: number, y: number, core: number): Pt[] {
++  const [cx, cy] = iso(x, y), a = (TW / 2) * core, b = (TH / 2) * core;
++  return [[cx, cy - b], [cx + a, cy], [cx, cy + b], [cx - a, cy]];
++}
++
++/** All extra forest polygons (cores + fringe blobs) for tiles x0..x1 / y0..y1 (inclusive). */
++export function forestExtra(x0: number, x1: number, y0: number, y1: number, ter: (x: number, y: number) => Terrain, p: EdgeParams): Pt[][] {
++  const out: Pt[][] = [];
++  const N4: Pt[] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
++  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
++    if (ter(x, y) !== "forest") continue;
++    out.push(coreDiamond(x, y, p.core));
++    if (p.grain <= 0) continue;
++    for (const [dx, dy] of N4) {
++      if (!fringeOk(ter(x + dx, y + dy))) continue;
++      // shared edge between the two tiles, in tile space
++      const ex = x + dx * 0.5, ey = y + dy * 0.5, tx = dy !== 0 ? 1 : 0, ty = dx !== 0 ? 1 : 0;
++      const n = Math.max(2, Math.round(TW * 0.56 / (p.grain * 1.6)));
++      const s = 17 + (dx + 1) * 3 + (dy + 1);
++      for (let i = 0; i < n; i++) {
++        const k = h(x, y, s * 31 + i);
++        if (k < 0.3) continue; // gaps: grass bays between tongues
++        const u = (i + 0.5) / n - 0.5 + (h(x, y, s * 37 + i) - 0.5) * 0.6 / n;
++        const out1 = 0.05 + h(x, y, s * 41 + i) * 0.22; // reach into the grass tile
++        const cxT = ex + tx * u + dx * out1, cyT = ey + ty * u + dy * out1;
++        const ct = [Math.round(cxT), Math.round(cyT)] as const;
++        if (!fringeOk(ter(ct[0], ct[1])) && ter(ct[0], ct[1]) !== "forest") continue;
++        const [px, py] = iso(cxT, cyT), r = p.grain * (0.6 + h(x, y, s * 43 + i) * 0.7);
++        const poly: Pt[] = [];
++        for (let v = 0; v < 6; v++) {
++          const ang = (v / 6) * Math.PI * 2 + h(x, y, s * 47 + i) * 1.2, rr = r * (0.65 + h(x, y, s * 53 + i * 7 + v) * 0.6);
++          poly.push([px + Math.cos(ang) * rr, py + Math.sin(ang) * rr * 0.55]);
++        }
++        if (poly.some(([a, b]) => { const [qx, qy] = tileAt(a, b), t = ter(Math.round(qx), Math.round(qy)); return t !== "forest" && !fringeOk(t); })) continue;
++        out.push(poly);
++      }
++    }
++  }
++  return out;
++}
+diff --git a/src/game/forest-edge.test.ts b/src/game/forest-edge.test.ts
+new file mode 100644
+index 00000000..95f27c88
+--- /dev/null
++++ b/src/game/forest-edge.test.ts
+@@ -0,0 +1,43 @@
++import { describe, it, expect } from "vitest";
++import { forestExtra, coreDiamond, diamondDist, tileAt, fringeOk, type Pt } from "./forest-edge";
++import type { Terrain } from "./world";
++
++// natureAt places tree feet at (+6,-1) and (-5,+3) px from the tile centre
++const FEET: Pt[] = [[6, -1], [-5, 3]];
++const inPoly = (p: Pt, poly: Pt[]) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i]!, [xj, yj] = poly[j]!; if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) c = !c; } return c; };
++const map = (rows: string[]) => (x: number, y: number): Terrain => {
++  const ch = rows[y]?.[x]; return ch === "F" ? "forest" : ch === "~" ? "water" : ch === "s" ? "sand" : ch === "m" ? "mountain" : "grass";
++};
++
++describe("forest core (Pilot 3 prototype)", () => {
++  for (const core of [0.75, 0.85, 0.9]) it(`tree feet lie inside the core at ${core}`, () => {
++    const d = coreDiamond(0, 0, core);
++    for (const f of FEET) { expect(diamondDist(f[0], f[1])).toBeLessThan(core); expect(inPoly(f, d)).toBe(true); }
++  });
++  it("a single forest tile and a one-tile strip keep forest ground", () => {
++    const one = forestExtra(0, 4, 0, 4, map(["ggggg", "ggggg", "ggFgg", "ggggg", "ggggg"]), { core: 0.85, grain: 0 });
++    expect(one.length).toBe(1);
++    const strip = forestExtra(0, 6, 0, 2, map(["ggggggg", "FFFFFFF", "ggggggg"]), { core: 0.85, grain: 0 });
++    expect(strip.length).toBe(7);
++  });
++});
++
++describe("forest fringe", () => {
++  const rows = ["gggggg~~", "gFFFFg~~", "gFFFFgss", "gFFFFggg", "gggggmmm", "gggggggg"];
++  const ter = map(rows);
++  it("is deterministic across chunk ranges", () => {
++    const k = (p: Pt[]) => p.map((q) => q.join(",")).join(";");
++    const a = new Set(forestExtra(0, 7, 0, 5, ter, { core: 0.85, grain: 4 }).map(k));
++    const b = forestExtra(2, 7, 0, 5, ter, { core: 0.85, grain: 4 }).map(k);
++    for (const x of b) expect(a.has(x)).toBe(true);
++  });
++  it("never touches water, sand or rock", () => {
++    for (const grain of [2.5, 4, 6]) for (const poly of forestExtra(0, 7, 0, 5, ter, { core: 0.85, grain })) for (const [px, py] of poly) {
++      const [tx, ty] = tileAt(px, py), t = ter(Math.round(tx), Math.round(ty));
++      expect(t === "forest" || fringeOk(t)).toBe(true);
++    }
++  });
++  it("adds nothing where there is no forest (other layers untouched)", () => {
++    expect(forestExtra(0, 7, 0, 5, map(["gg~~ss", "mmgg"]), { core: 0.85, grain: 4 })).toEqual([]);
++  });
++});

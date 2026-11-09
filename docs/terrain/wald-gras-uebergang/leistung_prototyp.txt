@@ -1,0 +1,3 @@
+{"core":0.85,"grain":4} chunks 30 polys/chunk 130 ms/chunk 26.75
+{"core":0.75,"grain":2.5} chunks 30 polys/chunk 148 ms/chunk 0.47
+{"core":0.9,"grain":6} chunks 30 polys/chunk 113 ms/chunk 0.06
