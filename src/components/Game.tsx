@@ -3331,7 +3331,7 @@ export function Game() {
                 <div className="font-['Caveat'] text-xl leading-tight">{who.first} {who.last}</div>
                 <button type="button" aria-label={t.close} className="hit relative -m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
               </div>
-              <div className="text-sm">{t.personAge(who.age)} · {who.job === "mayor" ? <>{mayorWord(lang, who.seed.mayor_gender as "m" | "w" | "d" | null, townRank(who.seed, seeds, slow))}{honour(who.seed) && <span className="text-primary"> · {honour(who.seed)}</span>}</> : t.job[who.job]![who.sex === "f" ? 0 : 1]}</div>
+              <div className="text-sm">{t.personAge(who.age)} · {who.job === "mayor" ? <>{mayorWord(lang, who.seed.mayor_gender as "m" | "w" | "d" | null, townRank(who.seed, seeds, slow))}{honour(who.seed) && <span className="text-primary"> · {honour(who.seed)}</span>}</> : (t.job[jobKey(who)] ?? t.job[who.job]!)[who.sex === "f" ? 0 : 1]}</div>
               {who.estate && <div className="mt-1 text-xs"><div>{PROSPERITY[lang].estates[who.estate]}</div><div className="text-muted-foreground">{PROSPERITY[lang].tax(who.sick ? 0 : ESTATE_TAX[who.estate])}</div></div>}
               {(kin.spouse || kin.parents.length || kin.children.length || kin.siblings.length || who.maiden) && (
                 <div className="mt-1 space-y-0.5 text-xs">
@@ -3373,7 +3373,7 @@ export function Game() {
               {ps.slice(0, 6).map((p) => (
                 <li key={p.id}>
                   <button type="button" className="text-left underline-offset-2 hover:underline" onClick={() => { setPlace(null); setWho(p); }}>
-                    {p.first} {p.last} · {t.job[p.job]![p.sex === "f" ? 0 : 1]}
+                    {p.first} {p.last} · {(t.job[jobKey(p)] ?? t.job[p.job]!)[p.sex === "f" ? 0 : 1]}
                   </button>
                 </li>
               ))}
