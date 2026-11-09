@@ -1058,6 +1058,7 @@ export function Game() {
     };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
     const onBlur = () => keys.clear();
+    const camLooseRef = { current: false };
     let lastPan = performance.now(), walkDriven = false, liveSent = 0, liveOn = false, liveW = false;
     panStep = () => {
       const now = performance.now(), dt = Math.min(50, now - lastPan); lastPan = now;
@@ -1089,6 +1090,7 @@ export function Game() {
             { const ct = courtTask(my.id); const e = ct ? errandNear(worldHour(nw), nw, q.x, q.y, new Set(errandDone.current.filter((r) => r.task_id === ct.id).map((r) => r.errand))) : null; if (e !== errNear.current) { errNear.current = e; setNearErrand(e); } }
             { const gl = courtGoal.current; if (gl && (gl === "audience" ? courtNear.current : errNear.current === gl)) { courtGoal.current = null; courtArrive.current(gl); } }
             if (drag.current?.moved) camFree.current = true;
+            if (camFree.current !== camLooseRef.current) { camLooseRef.current = camFree.current; setCamLoose(camFree.current); }
             if (!camFree.current) { cam.current.x += (ix - cam.current.x) * k; cam.current.y += (iy - 10 - cam.current.y) * k; }
             else {
               // map scrolled freely during the stroll: keep the glide, don't snap back to the mayor
@@ -1520,6 +1522,8 @@ export function Game() {
   const courtArrive = useRef<(g: Errand | "audience") => void>(() => {});
   /** Stroll mode: the player scrolled the map away; the camera stops following until the mayor is sent off again. */
   const camFree = useRef(false);
+  /** Mirrors camFree for the HUD: shows the "follow mayor" button while the camera roams freely. */
+  const [camLoose, setCamLoose] = useState(false);
   const [nearCourt, setNearCourt] = useState(false);
   const [audience, setAudience] = useState<AudienceHost | null>(null);
   const princelyRows = useRef<PrincelyRow[]>([]);
@@ -2430,6 +2434,7 @@ export function Game() {
           <WoodButton label={t.hud.walkExit} onClick={() => { stick.current = { dx: 0, dy: 0 }; setWalk(false); }} className="pointer-events-auto h-11 gap-1.5 px-4">
             <X className="h-4 w-4" /><span className="text-xs">{t.hud.walkExit}</span>
           </WoodButton>
+          {camLoose && <WoodButton label={t.hud.walkFollow} onClick={() => { fling.current = { vx: 0, vy: 0, t: performance.now() }; camFree.current = false; }} className="pointer-events-auto h-9 gap-1.5 px-3"><Crown className="h-4 w-4" /><span className="text-xs">{t.hud.walkFollow}</span></WoodButton>}
           {mayorAway() && <WoodButton label={t.hud.walkHome} onClick={() => { stick.current = { dx: 0, dy: 0 }; clearMayorOrder(); setWalk(false); }} className="pointer-events-auto h-9 px-3"><span className="text-xs">🏠 {t.hud.walkHome}</span></WoodButton>}
         </div>
       )}
