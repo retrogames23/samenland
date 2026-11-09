@@ -33,11 +33,11 @@
  },
  "beginenhof": {
   "day": "5431b832a7649735",
-  "night": "6af9cf87cc1288a2",
+  "night": "51d3ac8bac7b856e",
   "technical": "pass",
-  "visual": "inspected",
-  "decision": "approved",
-  "note": "2026-11-08: Scheiben einzeln; Lab 4x, Spielkarte nachts, vom Nutzer auf eigenem Gerät freigegeben"
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-09: Pilot Lichtoptik: warmer Ton, Kern-Alpha, Sprossen als Alpha-Aussparung, Kanten geglättet"
  },
  "belfry": {
   "day": "5a90d279aa6680e9",
@@ -353,11 +353,11 @@
  },
  "grain-patrician-2": {
   "day": "7cdb248de401eea5",
-  "night": "e0a650e66cd8626c",
+  "night": "645077bf0bb1f7a1",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Lichtoptik wie Wirtshaus/Bürgerhaus: Goldkern, dunkle Sprossen"
+  "note": "2026-11-09: Pilot Lichtoptik: warmer Ton, Kern-Alpha, Sprossen als Alpha-Aussparung, Kanten geglättet"
  },
  "grain-patrician-3": {
   "day": "f5c883971ab46334",
