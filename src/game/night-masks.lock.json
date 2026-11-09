@@ -56,12 +56,12 @@
   "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
  },
  "campfire": {
-  "day": "38f675cf1ab332ca",
+  "day": "d35ff8ebeea3d8b3",
   "night": null,
   "technical": "pass",
   "visual": "inspected",
   "decision": "unlit",
-  "note": "2026-11-08: Bestand gesichtet (Prüfansicht + Lichtflächen-Analyse)"
+  "note": "2026-11-09: Tagesbild: gemalte Flammen entfernt, Feuer nur animiert"
  },
  "chapel": {
   "day": "41662317fc3dd190",
@@ -488,12 +488,12 @@
   "note": "2026-11-09: Gruppe A visuell abgenommen (Opern-Giebel: Blendnischen, dunkel)"
  },
  "lighthouse": {
-  "day": "aca470a72a9e2780",
-  "night": "e76f31e74f7cf8f7",
+  "day": "1918b71efb69bec1",
+  "night": "83c18e191196c473",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "2026-11-09: Tagesbild: gemalte Flamme/Rauch im Feuerkorb entfernt, Feuer nur animiert"
  },
  "lodge": {
   "day": "1bf0587ca42d8573",
