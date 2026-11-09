@@ -11,5 +11,5 @@
 - [ ] Große Fenster (Baumenü, Begegnungen, Fürstenhof, Post) auslagern
 - [x] Waldboden-Pilot: Variante A final, Regeln und Prüfgrenzen dokumentiert
 - [x] Acker/Garten-Pilot (Pilot 2): Acker und Garten freigegeben, Aue als geprüfter Bestand
-- [ ] Pilot 3 wählen: Gebirge/Fels oder Wald-Gras-Übergang (wartet auf Entscheidung)
-- [ ] Wald-Gras-Übergang überarbeiten (vorgemerkt, wartet auf Freigabe zum Start)
+- [x] Pilot 3 gewählt: Wald-Gras-Übergang; Bestandsaufnahme fertig (docs/terrain/wald-gras-uebergang)
+- [ ] Wald-Gras-Übergang umsetzen (Variante 1) – wartet auf Freigabe
