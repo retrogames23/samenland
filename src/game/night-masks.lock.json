@@ -1,11 +1,11 @@
 {
  "backhaus": {
   "day": "d993aba5d239e597",
-  "night": "b6926f3e11805b72",
+  "night": "90162376bd51003e",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Batch 2: Scheiben neu nachgezeichnet"
+  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
  },
  "badestube": {
   "day": "6a6c7de94ecdc403",
@@ -17,11 +17,11 @@
  },
  "bakery": {
   "day": "0339041964b8613a",
-  "night": "32ac7559260f3dc4",
+  "night": "45cafebbcc23e99f",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Batch 2: Scheiben neu nachgezeichnet"
+  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
  },
  "barn": {
   "day": "b1fa924922eb649f",
@@ -97,11 +97,11 @@
  },
  "dairy": {
   "day": "ad003b7dda95e1ef",
-  "night": "7fb0412e45d00efc",
+  "night": "a419faa83864b896",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Batch 2: Scheiben neu nachgezeichnet"
+  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
  },
  "exchange": {
   "day": "5eb45f51370c23c7",
@@ -377,11 +377,11 @@
  },
  "guardhouse": {
   "day": "e52e635fcbb88328",
-  "night": "418490d1cc82808b",
+  "night": "3b807380a7d7c151",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Batch 2: Scheiben neu nachgezeichnet"
+  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
  },
  "guildhall": {
   "day": "9405e5311e26ed81",
@@ -441,11 +441,11 @@
  },
  "herberge": {
   "day": "752ff704335d3215",
-  "night": "9322d43d65534245",
+  "night": "f6c63cc9639ed42d",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Batch 2: Scheiben neu nachgezeichnet"
+  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
  },
  "herbhut": {
   "day": "8dbadd65bf3aa367",
@@ -465,11 +465,11 @@
  },
  "infirmary": {
   "day": "faee81d13a714ff0",
-  "night": "ed74dae0ffb332bc",
+  "night": "5cef0a78176ca331",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Batch 2: Scheiben neu nachgezeichnet"
+  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
  },
  "inn": {
   "day": "e1a584523125c84d",
@@ -529,11 +529,11 @@
  },
  "mill": {
   "day": "56d03afb4f07be41",
-  "night": "013361bf8e85bbe7",
+  "night": "1685755ad77ac895",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Batch 2: Scheiben neu nachgezeichnet"
+  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
  },
  "millrow": {
   "day": "f2a7499b0aa82aaf",
@@ -585,11 +585,11 @@
  },
  "school": {
   "day": "f94e3656d555f90c",
-  "night": "e0f6aac3d78c3e44",
+  "night": "b8a9ad6b754c300a",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-09: Batch 2: Scheiben neu nachgezeichnet"
+  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
  },
  "seat1": {
   "day": "b0667b35d011ac5d",
