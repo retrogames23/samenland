@@ -1,0 +1,60 @@
+diff --git a/src/assets/sprites/AGENTS.md b/src/assets/sprites/AGENTS.md
+index fb8c591e..1b86f50a 100644
+--- a/src/assets/sprites/AGENTS.md
++++ b/src/assets/sprites/AGENTS.md
+@@ -32,3 +32,4 @@
+ - Night-mask lock entries keep three independent dimensions (technical / visual / decision: open, approved, rework, unlit); only a person sets visual+decision via scripts/night-masks-approve.ts, and scripts/night-mask-sheets.py only prints contact sheets and hints for open masks — so a passing audit never counts as a visual approval.
+ - Ground vs vegetation (grass/meadow/pasture first): ground textures show only ground material (fine turf, earth, moss), seamless, without perspective or single plants; every standing plant is a separately placed sprite with a foot anchor, upper-left light and a renderer contact shadow, sized in world px against the 5-px villager and the sheep. Sizes/frequencies live only in VEG (render.ts); textureAlt stays a weak overlay (VEG.altAlpha). The dev Figure-Lab "Boden" tab (drawGroundLab) shows the reference pasture — check it after every ground change.
+ - Terrain textures follow the forest-floor pilot standard (docs/terrain/waldboden-pilot/README.md): back up the old file first, plain material with no painted single plants, scripts/terrain_qa.py gives hints only and never replaces visual approval of 3×3/5×5 tilings and in-game shots — one terrain type per work package.
++- Ploughed acres, gardens and the fertile floodplain use separate textures (fertileAcker, fertileGarten, fertile in nature-sprites.ts) so each soil can be tuned alone; all share SPAN 70.
+diff --git a/src/game/nature-sprites.ts b/src/game/nature-sprites.ts
+index 91a6b993..fc328921 100644
+--- a/src/game/nature-sprites.ts
++++ b/src/game/nature-sprites.ts
+@@ -6,6 +6,8 @@ import forest from "@/assets/terrain/forest.jpg";
+ import sand from "@/assets/terrain/sand.jpg";
+ import water from "@/assets/terrain/water.jpg";
+ import fertile from "@/assets/terrain/fertile.jpg";
++import fertileAcker from "@/assets/terrain/fertile_acker.jpg";
++import fertileGarten from "@/assets/terrain/fertile_garten.jpg";
+ import rock from "@/assets/terrain/rock.jpg";
+ import dirt from "@/assets/terrain/dirt.jpg";
+ import cobble from "@/assets/terrain/cobble.jpg";
+@@ -21,12 +23,12 @@ import oreRock from "@/assets/sprites/ore-rock.webp";
+ import coalRock from "@/assets/sprites/coal-rock.webp";
+ 
+ type C = CanvasRenderingContext2D;
+-export type Tex = "grass" | "meadow" | "forest" | "sand" | "water" | "fertile" | "rock" | "dirt" | "cobble" | "wheat" | "crops";
+-const TEX: Record<Tex, string> = { grass, meadow, forest, sand, water, fertile, rock, dirt, cobble, wheat, crops };
++export type Tex = "grass" | "meadow" | "forest" | "sand" | "water" | "fertile" | "fertileAcker" | "fertileGarten" | "rock" | "dirt" | "cobble" | "wheat" | "crops";
++const TEX: Record<Tex, string> = { grass, meadow, forest, sand, water, fertile, fertileAcker, fertileGarten, rock, dirt, cobble, wheat, crops };
+ /** World pixels covered by one texture repeat (before iso projection). */
+ // scaled to the 5-px villager: clover, flowers and cobbles stay smaller than a window or a sheep
+ // grass/meadow repeat wide enough that the eye never catches the wallpaper grid
+-const SPAN: Record<Tex, number> = { grass: 150, meadow: 140, forest: 120, sand: 110, water: 170, fertile: 70, rock: 130, dirt: 56, cobble: 34, wheat: 38, crops: 38 };
++const SPAN: Record<Tex, number> = { grass: 150, meadow: 140, forest: 120, sand: 110, water: 170, fertile: 70, fertileAcker: 70, fertileGarten: 70, rock: 130, dirt: 56, cobble: 34, wheat: 38, crops: 38 };
+ 
+ const imgs = new Map<string, HTMLImageElement>();
+ function img(url: string) {
+diff --git a/src/game/render.ts b/src/game/render.ts
+index 1d127ddc..cf40f249 100644
+--- a/src/game/render.ts
++++ b/src/game/render.ts
+@@ -97,7 +97,7 @@ type Pt = [number, number];
+ 
+ const INK = "rgba(34,26,18,0.72)";
+ /** Base texture of a field tile under the three-field rotation. */
+-const LOOK_TEX: Record<Look, Tex> = { green: "crops", ripe: "wheat", stubble: "wheat", ploughed: "fertile", fallow: "grass" };
++const LOOK_TEX: Record<Look, Tex> = { green: "crops", ripe: "wheat", stubble: "wheat", ploughed: "fertileAcker", fallow: "grass" };
+ /** Scythe only on ripe grain; gardens and pastures keep their usual work cycle. */
+ const farmReaps = (p: { work: [number, number] | null; seed: Seed }, now: number) => { const w = p.work!, st = structureAt(w[0], w[1], soloSeeds(p.seed), now); return st?.kind !== "field" || farmTask(fieldLook(acreOf(w[0], w[1], p.seed).id, now)) === "reap"; };
+ const fieldTex = (x: number, y: number, s: Seed, now: number): Tex => LOOK_TEX[fieldLook(acreOf(x, y, s).id, now)];
+@@ -2590,7 +2590,7 @@ function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Struct
+     const outer = NS4.map(([i, j]) => !sameA(i, j));
+     acrePath(c, cx, cy, hx, hy, outer);
+     if (st.kind === "garden") {
+-      c.fillStyle = texture(c, "fertile") ?? hsl(25, 35, 30); c.fill();
++      c.fillStyle = texture(c, "fertileGarten") ?? hsl(25, 35, 30); c.fill();
+       c.globalAlpha = 0.5; c.fillStyle = texture(c, "dirt") ?? hsl(30, 35, 55); c.fill(); c.globalAlpha = 1;
+     } else { c.fillStyle = texture(c, LOOK_TEX[look!]) ?? hsl(ripe ? 44 : 80, 50, 60); c.fill(); if (look === "stubble") { c.globalAlpha = 0.35; c.fillStyle = texture(c, "dirt") ?? hsl(30, 35, 55); c.fill(); c.globalAlpha = 1; } }
+     a = { kind: st.kind as "field" | "garden", ripe, look, along: ac.along, outer, winter, hx, hy, k2: 0 };
