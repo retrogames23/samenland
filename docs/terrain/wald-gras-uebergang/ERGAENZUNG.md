@@ -66,4 +66,7 @@ Zusätzliche Tests: Baumfuß-im-Pfad (4.1), fallbackfreie Aufnahmen (Abschnitt 2
 ## 6. Einschränkungen
 - Testbrowser ohne Grafikkarte (1–5 Bilder/s); Aufnahmen 12:00 Berlin, klares Wetter, Saison per Admin-Steuerpult erzwungen.
 - Liegender Schnee im Winter stammt aus der Wetterberechnung der letzten Tage und kann an anderen Tagen anders aussehen.
-- Bildausschnitte der Situationen 2–5 sind über Mauszoom angesteuert; die Situation liegt im Bild, nicht immer genau mittig.
+- Bildausschnitte sind über Mauszoom angesteuert. **Situationen 1, 2 und 5 sind bei Zoom ≥ 4 getroffen und abnahmefähig.**
+  **Situationen 3 (kleine Waldinsel) und 4 (schmale Zunge) wurden bei Zoom ≥ 4 trotz zweier Zielversuche verfehlt** – die Bilder zeigen Wiese, Äcker und Fluss neben dem Ziel. Sie sind vollständig gebacken, aber inhaltlich **nicht abnahmefähig**.
+  Ursache: Ohne Kamera-Sprungpunkt driftet die Mausführung bei 1–5 Bildern/s. Abhilfe vorgeschlagen: ein reiner Labor-Kameraparameter (nur Karte „lab“); das wäre eine Codeänderung und wartet auf Freigabe.
+- Neben dem Wald fällt in mehreren Aufnahmen (Wiese, Wasser, alle Jahreszeiten) eine einzelne hellere Kachelraute auf – eigener Prüfpunkt außerhalb dieses Piloten.

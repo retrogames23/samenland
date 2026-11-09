@@ -145,3 +145,7 @@ Sparsame Strauch-Akzente aus V2 können später als eigener Schritt folgen.
 - SwiftShader rendert sehr langsam. Die Chunk-Prüfung wartet auf eine stabile Zahl, dennoch einzelne Bilder prüfen.
 - Die Bildstellen wurden per Mauszoom aus einer Übersicht angesteuert. Die Kachelkoordinate jeder Stelle ist daher nur ungefähr bekannt.
 - Winter wurde nicht aufgenommen, die Bewertung dazu stammt aus dem Code.
+
+
+## 10. Ergänzung
+Siehe ERGAENZUNG.md: echte Nahaufnahmen (Zoom ≥ 4), Bake-Nachweis per Testinstrumentierung, Winter, Präzisierung Kern/Baumfüße und Partikelgröße, aktualisierte Empfehlung.
