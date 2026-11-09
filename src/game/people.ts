@@ -208,6 +208,8 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const households = occupiedHomes(s, seeds, now, byKind);
   const homes = households.map(h => h.home);
 
+  const hofs = byKind.get("beginenhof") ?? [];
+  const begine = (at: Tile) => hofs.some((b) => Math.abs(at[0] - b[0]) + Math.abs(at[1] - b[1]) <= 3);
   const workTiles = (["workshop", "warehouse", "market", "markethall", "manufactory", "guildhall", "smithy", "sawmill"] as Kind[]).flatMap((k) => byKind.get(k) ?? []);
   const people: Person[] = [];
   const anvils = new Set<string>();
@@ -244,7 +246,9 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       let job: Job = "child", work: Tile | null = null;
       if (age >= 66) job = "retired";
       else if (age >= 16) {
-        const slot = h(5) < 0.82 ? slots.shift() : undefined;
+        // the Beginenhof houses a women's community: men never take its posts
+        const si = h(5) < 0.82 ? slots.findIndex((sl) => sex === "f" || !begine(sl.at)) : -1;
+        const slot = si >= 0 ? slots.splice(si, 1)[0] : undefined;
         if (slot) { job = slot.job; work = slot.at; }
         else if ((byKind.get("field")?.length || byKind.get("garden")?.length || byKind.get("pasture")?.length) && h(6) < farmShare(r)) {
           job = "farmer";
@@ -611,7 +615,7 @@ const hhTile = dwellingTile;
 function falls(s: Seed, people: Person[], now: number, hof: Tile | null = null) {
   // beguines of a finished Beginenhof walk out to nurse the sick, so the housemate can go to work
   const begs = hof && s.bought?.some((b) => b.item === "beginen" && b.at <= now)
-    ? people.filter((q) => q.job === "herbalist" && q.work && Math.abs(q.work[0] - hof[0]) + Math.abs(q.work[1] - hof[1]) <= 3) : [];
+    ? people.filter((q) => q.job === "herbalist" && q.sex === "f" && q.work && Math.abs(q.work[0] - hof[0]) + Math.abs(q.work[1] - hof[1]) <= 3) : [];
   let bi = 0;
   const homes = new Map<number, Person[]>();
   for (const p of people) {
