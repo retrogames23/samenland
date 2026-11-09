@@ -147,9 +147,9 @@
   "day": "df2411ecfeba9681",
   "night": "67999aa3935528c5",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Batch 2: Scheiben neu nachgezeichnet"
+  "visual": "inspected",
+  "decision": "unlit",
+  "note": "2026-11-09: Offener Schuppen ohne Glasfenster"
  },
  "fishery": {
   "day": "45301e33b5e4c188",
