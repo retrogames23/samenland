@@ -1,5 +1,6 @@
 import { WalkStick } from "./WalkStick";
 import { maxZoom } from "@/game/camera";
+import { personHit } from "@/game/hit";
 import { CharacterBadge, CharacterDetails } from "./hud/CharacterBadge";
 import { tileHits } from "@/game/disasters";
 import { BOOK } from "@/game/lang/book";
