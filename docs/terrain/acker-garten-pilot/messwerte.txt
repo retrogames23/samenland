@@ -1,9 +1,42 @@
-var/fertile_acker.jpg
-{'file': '/tmp/p2/fertile.jpg', 'size': (816, 816), 'mean_rgb': [76.6, 60.4, 42.6], 'seam_x': np.float64(1.28), 'seam_y': np.float64(1.35), 'sharp': np.float64(19.7), 'macro': np.float64(0.09), 'motif_px': 5, 'motif_in_figures': 0.24}
-  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
-var/fertile_garten.jpg
-{'file': '/tmp/p2/fertile.jpg', 'size': (816, 816), 'mean_rgb': [55.5, 39.5, 27.6], 'seam_x': np.float64(1.48), 'seam_y': np.float64(1.32), 'sharp': np.float64(16.1), 'macro': np.float64(0.09), 'motif_px': 4, 'motif_in_figures': 0.19}
-  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
-var/fertile_niederung.jpg
-{'file': '/tmp/p2/fertile.jpg', 'size': (816, 816), 'mean_rgb': [59.5, 57.5, 31.4], 'seam_x': np.float64(1.4), 'seam_y': np.float64(1.35), 'sharp': np.float64(21.5), 'macro': np.float64(0.11), 'motif_px': 3, 'motif_in_figures': 0.14}
-  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
+QA-Messprotokoll: Pilotprojekt 2 (Ackerkrume, Garten, Niederung)
+Werkzeug: scripts/terrain_qa.py
+Datum: 09.11.2026
+
+HINWEIS ZUR VORHERIGEN DOKUMENTATION:
+In der vorangegangenen Zwischenmessung hatte das Testskript jede Datei vorübergehend nach
+/tmp/p2/fertile.jpg kopiert, weshalb in der Ausgabe fälschlicherweise dreimal derselbe Pfad
+ausgewiesen wurde. Die nachfolgende Messung liest direkt und unabhängig die echten Dateien ein.
+
+1. AUE / NIEDERUNG (ORIGINAL, UNVERÄNDERT)
+Datei: src/assets/terrain/fertile.jpg (MD5: cc2c2353400dc2825fa36255e0dffb0d)
+Größe: 816 x 816 px (Kachel-SPAN 70)
+- Mittelfarbe RGB: [47.9, 63.6, 20.8]
+- Nahtgüte seam_x: 1.13  (Grenze <= 1.6: BESTANDEN)
+- Nahtgüte seam_y: 1.42  (Grenze <= 1.6: BESTANDEN)
+- Schärfe:         21.0  (Grenze 15-40:  BESTANDEN)
+- Makro (Fleck.):  0.13  (Grenze <= 0.2: BESTANDEN)
+- Größtes Motiv:   8 px = 0.38 Figurenhöhen (Grenze <= 0.35: HINWEIS, eingemalte Blätter)
+
+2. GEPFLÜGTER ACKER (VARIANTE A, AKTIV)
+Datei: src/assets/terrain/fertile_acker.jpg (MD5: 614d8f89de8575325e77a6685aa73579)
+Größe: 816 x 816 px (Kachel-SPAN 70)
+- Mittelfarbe RGB: [76.6, 60.4, 42.6]
+- Nahtgüte seam_x: 1.28  (Grenze <= 1.6: BESTANDEN)
+- Nahtgüte seam_y: 1.35  (Grenze <= 1.6: BESTANDEN)
+- Schärfe:         19.7  (Grenze 15-40:  BESTANDEN)
+- Makro (Fleck.):  0.09  (Grenze <= 0.2: BESTANDEN)
+- Größtes Motiv:   5 px = 0.14 Figurenhöhen (Grenze <= 0.35: BESTANDEN)
+
+3. GARTEN (VARIANTE B, AKTIV)
+Datei: src/assets/terrain/fertile_garten.jpg (MD5: 8578a44a80e435d391dc049608e58bca)
+Größe: 816 x 816 px (Kachel-SPAN 70)
+- Mittelfarbe RGB: [55.5, 39.5, 27.6]
+- Nahtgüte seam_x: 1.48  (Grenze <= 1.6: BESTANDEN)
+- Nahtgüte seam_y: 1.32  (Grenze <= 1.6: BESTANDEN)
+- Schärfe:         16.1  (Grenze 15-40:  BESTANDEN)
+- Makro (Fleck.):  0.09  (Grenze <= 0.2: BESTANDEN)
+- Größtes Motiv:   4 px = 0.11 Figurenhöhen (Grenze <= 0.35: BESTANDEN)
+
+AUFFÄLLIGKEIT AUE (dokumentiert, nicht korrigiert):
+Größtes Motiv 0,38 Figurenhöhen > Grenzwert 0,35. Ursache: eingemalte Farne/Blätter
+der historischen Textur. Entscheidung des Nutzers (09.11.2026): Aue bleibt unverändert.
