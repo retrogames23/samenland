@@ -1948,6 +1948,25 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
     c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(s.name, sx, sy);
     c.fillStyle = INK; c.fillText(s.name, sx, sy);
   }
+  // own steered mayor: same constant-size diamond as in the close view, so he stays findable on the whole map
+  const steer = steeredMayor();
+  if (steer) {
+    const sd = seeds.find((s) => s.id === steer.sid);
+    const q = sd ? townPosesSmooth(sd, seeds, now).find((p) => p.p.role === "mayor") : null;
+    if (q) drawMayorDiamond(c, q, cam, z, w, h, dpr, performance.now());
+  }
+}
+/** Screen-space golden diamond over the own mayor's actual position; size never scales with zoom. */
+function drawMayorDiamond(c: C, q: Pose, cam: Camera, z: number, w: number, h: number, dpr: number, t: number) {
+  const [px, py] = iso(q.x, q.y);
+  const sx = (px - cam.x) * z + w / 2, sy = (py - (q.mounted ? 15 : 9.5) - cam.y) * z + h / 2 - 6 * dpr + Math.sin(t / 380) * 1.5 * dpr;
+  if (sx < -20 || sx > w + 20 || sy < -20 || sy > h + 20) return;
+  const rx = 5 * dpr, ry = 7 * dpr;
+  c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 0.92; c.lineJoin = "round";
+  c.beginPath(); c.moveTo(sx, sy - ry); c.lineTo(sx + rx, sy); c.lineTo(sx, sy + ry); c.lineTo(sx - rx, sy); c.closePath();
+  c.fillStyle = "#e8b84a"; c.fill(); c.lineWidth = 1.5 * dpr; c.strokeStyle = "rgba(60,40,18,0.85)"; c.stroke();
+  c.beginPath(); c.moveTo(sx, sy - ry * 0.6); c.lineTo(sx + rx * 0.45, sy); c.lineTo(sx, sy); c.closePath(); c.fillStyle = "rgba(255,240,200,0.7)"; c.fill();
+  c.restore();
 }
 function diamond(c: C, cx: number, cy: number, k: number) {
   c.beginPath(); c.moveTo(cx, cy - TH / 2 * k); c.lineTo(cx + TW / 2 * k, cy); c.lineTo(cx, cy + TH / 2 * k); c.lineTo(cx - TW / 2 * k, cy); c.closePath();
@@ -4306,18 +4325,7 @@ export function draw(
 
   // own steered mayor: a small golden diamond floats above his actual position (not his goal), constant screen size
   // so it stays findable when zoomed out; drawn above roofs and the night mask. The goal is a ground ellipse — never confused.
-  if (steer && ownPose) {
-    const [px, py] = iso(ownPose.x, ownPose.y);
-    const sx = (px - cam.x) * z + w / 2, sy = (py - (ownPose.mounted ? 15 : 9.5) - cam.y) * z + h / 2 - 6 * dpr + Math.sin(t / 380) * 1.5 * dpr;
-    if (sx > -20 && sx < w + 20 && sy > -20 && sy < h + 20) {
-      const rx = 5 * dpr, ry = 7 * dpr;
-      c.save(); c.globalAlpha = 0.92; c.lineJoin = "round";
-      c.beginPath(); c.moveTo(sx, sy - ry); c.lineTo(sx + rx, sy); c.lineTo(sx, sy + ry); c.lineTo(sx - rx, sy); c.closePath();
-      c.fillStyle = "#e8b84a"; c.fill(); c.lineWidth = 1.5 * dpr; c.strokeStyle = "rgba(60,40,18,0.85)"; c.stroke();
-      c.beginPath(); c.moveTo(sx, sy - ry * 0.6); c.lineTo(sx + rx * 0.45, sy); c.lineTo(sx, sy); c.closePath(); c.fillStyle = "rgba(255,240,200,0.7)"; c.fill();
-      c.restore();
-    }
-  }
+  if (steer && ownPose) drawMayorDiamond(c, ownPose, cam, z, w, h, dpr, t);
 
   c.font = `700 ${Math.round(22 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`; c.textAlign = "center";
   c.lineJoin = "round";
