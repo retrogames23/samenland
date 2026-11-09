@@ -54,6 +54,7 @@ export function forestExtra(x0: number, x1: number, y0: number, y1: number, ter:
           const ang = (v / 6) * Math.PI * 2 + h(x, y, s * 47 + i) * 1.2, rr = r * (0.65 + h(x, y, s * 53 + i * 7 + v) * 0.6);
           poly.push([px + Math.cos(ang) * rr, py + Math.sin(ang) * rr * 0.55]);
         }
+        if (poly.some(([a, b]) => { const [qx, qy] = tileAt(a, b), t = ter(Math.round(qx), Math.round(qy)); return t !== "forest" && !fringeOk(t); })) continue;
         out.push(poly);
       }
     }
