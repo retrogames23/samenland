@@ -513,7 +513,8 @@ function drawHens(c: C, cx: number, cy: number, sd: number) {
   const hr = localHour(); if (hr < 6 || hr > 20) return;
   for (let i = 0; i < 3; i++) {
     const n = renderNow + hash(sd, i, 7) * 1e5, g = n / 7000 + i * 2.1;
-    const X = cx - 8 + i * 6 + Math.sin(g) * 3, Y = cy + 5 + Math.sin(g * 0.7 + i) * 1.5, moving = Math.abs(Math.cos(g)) > 0.8;
+    // spots in front of the raised coop: by the trough, under the floor, at the ladder foot
+    const X = cx + (i - 1) * 5 + Math.sin(g) * 2.5, Y = cy + (i === 1 ? -0.5 : 1.2) + Math.sin(g * 0.7 + i) * 1.2, moving = Math.abs(Math.cos(g)) > 0.8;
     const f = moving ? (Math.floor(n / 160) & 1) : (Math.floor(n / 900 + i) % 3 === 0 ? 3 : 2);
     shadow(c, X, Y, 1.1, 0.22);
     sheetFrame(c, im, f, X, Y, 1.3, Math.cos(g) < 0);
