@@ -11,7 +11,7 @@ Der freigegebene Waldboden (Pilot 1, `forest.jpg` Variante A) bleibt unberührt.
 | Uhrzeit | 12:00 Spielzeit (Europe/Berlin), Systemuhr fest auf 2026-11-09 11:00 UTC |
 | Wetter | klar (`samenland-lab-ctl.weather = "clear"`) |
 | Jahreszeiten | Sommer, Herbst (`samenland-lab-ctl.season`) |
-| Zoom | Übersicht ≈ 1,1 · Normal ≈ 2,6 · Nah ≈ 4,1 (exakter Wert je Bild in `aufnahmen.tsv`) |
+| Zoom (gemessen) | Übersicht 0,7 · Mittel 1,5 · Normal 2,4 (Wert je Bild in `aufnahmen.tsv`) – eine echte Nahstufe ≥ 4 wurde **nicht** erreicht |
 | Kamera | Ausgangsansicht über Kachel 296:440, dann Mauszoom auf die jeweilige Stelle (Bildpunkt in `scripts_aufnahme.py`, Tabelle `S`) |
 | Chunk-Prüfung | Aufnahme erst, wenn die Chunk-Zahl im Lab-HUD 8 × 0,5 s unverändert ist, danach weitere 1,5 s |
 | Renderer | Headless Chromium mit SwiftShader (≈1–5 fps) |
@@ -139,6 +139,9 @@ Sparsame Strauch-Akzente aus V2 können später als eigener Schritt folgen.
 5. **Bild-Regression (manuell ausgelöst)**: Die fünf Szenen dieses Berichts mit `scripts_aufnahme.py` neu aufnehmen. Abweichung außerhalb einer Waldrandmaske < 0,5 %.
 
 ## 9. Einschränkungen dieser Aufnahme
+- **Herbst-Übersicht unvollständig**: In `autumn_1_saum_gerade_uebersicht_z0.7.png` sind mehrere Chunks noch nicht gebacken (flache Rauten). Das liegt an der Aufnahme, nicht am Spiel. Die Sommer-Übersicht ist vollständig.
+- Der Mauszoom glättet die Bewegung und verschiebt dabei den Ankerpunkt. Die Szenen 2–5 zeigen deshalb überlappende Ausschnitte desselben Gebiets. Jede Situation ist darin sichtbar, aber nicht immer in der Bildmitte.
+- Es gibt keine echte Nahaufnahme (Zoom ≥ 4). Für die Umsetzung soll sie im Boden-Labor nachgeholt werden.
 - SwiftShader rendert sehr langsam. Die Chunk-Prüfung wartet auf eine stabile Zahl, dennoch einzelne Bilder prüfen.
 - Die Bildstellen wurden per Mauszoom aus einer Übersicht angesteuert. Die Kachelkoordinate jeder Stelle ist daher nur ungefähr bekannt.
 - Winter wurde nicht aufgenommen, die Bewertung dazu stammt aus dem Code.
