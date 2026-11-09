@@ -1,0 +1,16 @@
+{'file': 'fertile_original.jpg', 'size': (816, 816), 'mean_rgb': [47.9, 63.6, 20.8], 'seam_x': np.float64(1.13), 'seam_y': np.float64(1.42), 'sharp': np.float64(21.0), 'macro': np.float64(0.13), 'motif_px': 8, 'motif_in_figures': 0.38}
+  -> Einzelmotive zu groß gegenüber Figur
+{'file': '/dev-server/src/assets/terrain/grass.jpg', 'size': (816, 816), 'mean_rgb': [91.7, 97.9, 43.5], 'seam_x': np.float64(1.47), 'seam_y': np.float64(1.48), 'sharp': np.float64(30.3), 'macro': np.float64(0.12), 'motif_px': 4, 'motif_in_figures': 0.09}
+  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
+{'file': 'var/fertile_acker.jpg', 'size': (816, 816), 'mean_rgb': [98.9, 65.9, 41.8], 'seam_x': np.float64(1.2), 'seam_y': np.float64(1.28), 'sharp': np.float64(15.5), 'macro': np.float64(0.11), 'motif_px': 5, 'motif_in_figures': 0.24}
+  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
+{'file': '/dev-server/src/assets/terrain/grass.jpg', 'size': (816, 816), 'mean_rgb': [91.7, 97.9, 43.5], 'seam_x': np.float64(1.47), 'seam_y': np.float64(1.48), 'sharp': np.float64(30.3), 'macro': np.float64(0.12), 'motif_px': 4, 'motif_in_figures': 0.09}
+  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
+{'file': 'var/fertile_garten.jpg', 'size': (816, 816), 'mean_rgb': [58.5, 39.6, 26.4], 'seam_x': np.float64(1.28), 'seam_y': np.float64(1.18), 'sharp': np.float64(5.8), 'macro': np.float64(0.14), 'motif_px': 2, 'motif_in_figures': 0.1}
+  -> zu weich/aquarellig
+{'file': '/dev-server/src/assets/terrain/grass.jpg', 'size': (816, 816), 'mean_rgb': [91.7, 97.9, 43.5], 'seam_x': np.float64(1.47), 'seam_y': np.float64(1.48), 'sharp': np.float64(30.3), 'macro': np.float64(0.12), 'motif_px': 4, 'motif_in_figures': 0.09}
+  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
+{'file': 'var/fertile_niederung.jpg', 'size': (816, 816), 'mean_rgb': [65.3, 54.0, 32.6], 'seam_x': np.float64(1.35), 'seam_y': np.float64(1.34), 'sharp': np.float64(10.7), 'macro': np.float64(0.25), 'motif_px': 2, 'motif_in_figures': 0.1}
+  -> zu weich/aquarellig; große Flecken -> Wiederholung sichtbar
+{'file': '/dev-server/src/assets/terrain/grass.jpg', 'size': (816, 816), 'mean_rgb': [91.7, 97.9, 43.5], 'seam_x': np.float64(1.47), 'seam_y': np.float64(1.48), 'sharp': np.float64(30.3), 'macro': np.float64(0.12), 'motif_px': 4, 'motif_in_figures': 0.09}
+  -> keine Auffälligkeit (Sichtprüfung trotzdem nötig)
