@@ -26,8 +26,8 @@ export const labSeason = (): Season | null => (isLab() && st.season) || null;
 export const labEvent = (e: LabEvent): number | null => (isLab() && st.ev[e]) || null;
 
 /** Pilot 3 prototype: forest core + fringe, test map only (null = current production look). */
-export const labEdge = (): { core: number; grain: number } | null => (isLab() && st.edge) || null;
-export function setLabEdge(e: { core: number; grain: number } | null) { st.edge = e ?? undefined; save(); }
+export const labEdge = (): { core: number; grain: number; v2?: boolean } | null => (isLab() && st.edge) || null;
+export function setLabEdge(e: { core: number; grain: number; v2?: boolean } | null) { st.edge = e ?? undefined; save(); }
 export function setLabWeather(w: WeatherKind | null) { st.weather = w ?? undefined; save(); }
 export function setLabSeason(x: Season | null) { st.season = x ?? undefined; save(); }
 export function setLabFeast(f: FeastCode | null) { st.feast = f ?? undefined; save(); }
