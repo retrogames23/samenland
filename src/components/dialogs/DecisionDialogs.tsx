@@ -6,7 +6,7 @@ import type { DecisionKind } from "@/game/decision-order";
 import { DICT, TOWN_CHARACTER, type Lang } from "@/game/i18n";
 import { clock } from "@/game/time";
 import { townRank } from "@/game/rank";
-import { townOf, poseOf, type Person } from "@/game/people";
+import { townOf, poseOf, jobKey, type Person } from "@/game/people";
 import { ENCOUNTERS, choiceOf } from "@/game/encounters";
 import { pendingAll, isCommons, commonsVoices, adviceIdx, bakeCost } from "@/game/commons";
 import { COMMONS_TEXT } from "@/game/lang/commons";
@@ -49,7 +49,7 @@ export function EncounterDialog({ t, lang, my, seeds, slow, cash, later, decide,
                 const ct = COMMONS_TEXT[lang], nw = clock(), tw = townOf(my, seeds, nw);
                 const n = (my.decisions ?? []).filter((d) => isCommons(d.event)).length;
                 const v = commonsVoices(ev, tw.people, n);
-                const jobOf = (p: Person) => t.job[p.job]?.[p.sex === "f" ? 0 : 1] ?? p.job;
+                const jobOf = (p: Person) => t.job[jobKey(p)]?.[p.sex === "f" ? 0 : 1] ?? p.job;
                 const show = (p: Person) => { const tw2 = townOf(my, seeds, clock()), q = tw2.people.find((x) => x.id === p.id); const z = q ? poseOf(q, tw2, seeds, clock()) : null; later("encounter", 6e4); if (z) focus(z.x, z.y); if (q) setWho(q); };
                 return <>
                   {v.asker && <p className="mt-2 text-center text-xs text-muted-foreground">{ct.asks(`${v.asker.first} ${v.asker.last}`, jobOf(v.asker))} <button type="button" className="hit relative underline decoration-dotted" onClick={() => show(v.asker!)}>{ct.find}</button></p>}

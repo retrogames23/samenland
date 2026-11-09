@@ -52,6 +52,8 @@ export type Person = {
   sick?: boolean; carer?: number;
   /** A beguine's sick call today: the home she nurses (derived from the Beginenhof and sickness calendar). */
   nurse?: Tile;
+  /** Member of the Beginenhof community (herbalist post there); only changes the shown trade name. */
+  beguine?: boolean;
   /** Wedding procession: birth home → church → new home, starting at `at` (world ms); lag = seconds behind the couple. */
   proc?: { at: number; from: Tile; to: Tile; lag: number; role: "bride" | "groom" | "guest" | "priest"; via?: Tile; wait?: Tile };
   /** Inauguration of a just-finished landmark: walk there at `at` (+lag s) and gather at `spot` facing `face`. */
@@ -243,13 +245,14 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       else if (m >= 3 && h(4) < 0.5) { age = 16 + Math.floor(h(2) ** 1.5 * 20); sex = h(1) < 0.5 ? "f" : "m"; role = "lodger"; } // farmhand, journeyman, maid
       else { age = Math.max(1, Math.min(pa - 18, 1 + Math.floor(h(2) * 17))); sex = h(1) < 0.5 ? "f" : "m"; role = "child"; }
       age += Math.floor(yrs);
-      let job: Job = "child", work: Tile | null = null;
+      let job: Job = "child", work: Tile | null = null, beguine = false;
       if (age >= 66) job = "retired";
       else if (age >= 16) {
         // the Beginenhof houses a women's community: men never take its posts
-        const si = h(5) < 0.82 ? slots.findIndex((sl) => sex === "f" || !begine(sl.at)) : -1;
+        // 1500: priests are ordained men and the civic watch is a men's duty
+        const si = h(5) < 0.82 ? slots.findIndex((sl) => sex === "f" ? sl.job !== "priest" && sl.job !== "watchman" : !begine(sl.at)) : -1;
         const slot = si >= 0 ? slots.splice(si, 1)[0] : undefined;
-        if (slot) { job = slot.job; work = slot.at; }
+        if (slot) { job = slot.job; work = slot.at; if (job === "herbalist" && begine(slot.at)) beguine = true; }
         else if ((byKind.get("field")?.length || byKind.get("garden")?.length || byKind.get("pasture")?.length) && h(6) < farmShare(r)) {
           job = "farmer";
           const farms = [...(byKind.get("field") ?? []), ...(byKind.get("garden") ?? []), ...(byKind.get("pasture") ?? [])];
@@ -261,7 +264,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
       }
       const kid = age < 14, old = age >= 65;
       people.push({
-        id, seed: s, first: "", last, sex, age, job, home, work,
+        id, seed: s, first: "", last, sex, age, job, home, work, ...(beguine ? { beguine } : {}),
         // only one smith per forge hammers outside at the anvil; the journeymen work at the indoor hearth
         workIndoor: job === "smith" && work ? !anvilOut(work) : !OUTDOOR_WORK.has(job) && job !== "homemaker",
         speed: (kid ? 0.3 : old ? 0.15 : 0.22) * (0.85 + h(11) * 0.3),
@@ -656,7 +659,7 @@ function processions(ws: Wedding[], people: Person[], church: Tile, now: number)
     for (const q of people) if (!q.proc && (q.role === "head" || q.role === "spouse") && (q.hh === birth(g) || q.hh === birth(b)) && q.spouse !== g.id && q.spouse !== b.id && q !== g && q !== b)
       if (now - w.at <= 3 * 3600e3) q.proc = { at: w.at, from: q.home, to, lag: 6 + 5 * k++, role: "guest" };
     // a priest of the village steps out before the portal to marry them (fixed per wedding by hash)
-    const pr = people.filter((q) => q.job === "priest" && !q.proc && !q.sick && q.age >= 16);
+    const pr = people.filter((q) => q.job === "priest" && q !== g && q !== b && !q.sick && q.age >= 16);
     if (pr.length && now - w.at <= 3 * 3600e3) pr[Math.floor(hash(w.at % 1e9, 7, 1531) * pr.length)]!.proc = { ...g.proc, role: "priest" };
     void church;
   }
@@ -1516,3 +1519,6 @@ export function talkState(ia: number, ib: number, now: number): { a: boolean; ic
   if (within < start || within > start + len) return null;
   return { a: r < 0.675, icon: Math.floor(hash(k, c, 908) * 6) };
 }
+
+/** Translation key for a villager's trade name (beguines are herbalists by job, named as beguines). */
+export const jobKey = (p: Pick<Person, "job"> & { beguine?: boolean }): string => (p.beguine ? "beguine" : p.job);
