@@ -657,11 +657,11 @@
  },
  "steinhaus": {
   "day": "62be7601369bde67",
-  "night": "0770267297fdd851",
+  "night": "384a4496078940db",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
  },
  "stonemason": {
   "day": "6bccec6f53957620",
@@ -729,11 +729,11 @@
  },
  "villa": {
   "day": "b196ec3f76841dbc",
-  "night": "93df9c107e76c135",
+  "night": "b0a22f76d3947f5d",
   "technical": "pass",
   "visual": "uninspected",
   "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
  },
  "warehouse": {
   "day": "631badada0b91302",
