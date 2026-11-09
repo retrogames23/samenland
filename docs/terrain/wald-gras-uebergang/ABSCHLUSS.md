@@ -19,5 +19,9 @@ Stand: 2026-11-09. Status: im regulären Spiel aktiv.
 ## Nachkorrektur Aufnahme
 - `summer_3_zunge_schmal_z2.4_P_produktion.png` zeigte Testwiek (Kamera auf Zoom 2,60 zurückgesprungen). Neu aufgenommen: Kamera 300:411, Zoom 2,40 im HUD bestätigt, 6 fallbackfreie Frames, Bildausschnitt deckungsgleich mit `_0_bisher`.
 
+## Nachkorrektur 2 (2026-11-09 18:00 UTC)
+- Ursache: Bei der ersten Nachkorrektur wurde nur das Bild getauscht, die Zeile in `log_summer_P_produktion.tsv` blieb auf Zoom 2,60 stehen. Jetzt beides neu: Kamerasprung 300:411 dreimal bestätigt, HUD Zoom 2,40, 13 Bodenstücke (wie `_0_bisher`), Bake vollständig.
+- Hinweis: Die Waldzunge liegt direkt nördlich von Testwiek; der Ortsname am unteren Bildrand erscheint deshalb auch im Vorher-Bild derselben Szene.
+
 ## Versionsstand
 - Commit der Produktionsüberführung: `39d0eacfab09aa7d46219a209f7278f4b2d1f651`. Die Live-Seite enthielt am 2026-11-09 17:34 UTC den neuen Waldrand noch nicht (nicht veröffentlicht). GitHub-Ankunft aus der Arbeitsumgebung nicht nachweisbar.
