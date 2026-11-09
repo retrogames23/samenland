@@ -3,9 +3,9 @@
   "day": "d993aba5d239e597",
   "night": "90162376bd51003e",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "badestube": {
   "day": "6a6c7de94ecdc403",
@@ -19,9 +19,9 @@
   "day": "0339041964b8613a",
   "night": "45cafebbcc23e99f",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "barn": {
   "day": "b1fa924922eb649f",
@@ -43,9 +43,9 @@
   "day": "5a90d279aa6680e9",
   "night": "fa1140884a898e95",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "bigstore": {
   "day": "4ca2c8562c2c5b91",
@@ -75,9 +75,9 @@
   "day": "bda876baa6f7ec72",
   "night": "367d63a8f535699c",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "coop": {
   "day": "8a69c93322d7a0c7",
@@ -99,9 +99,9 @@
   "day": "ad003b7dda95e1ef",
   "night": "a419faa83864b896",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "exchange": {
   "day": "5eb45f51370c23c7",
@@ -235,17 +235,17 @@
   "day": "4b94b14c93d50c64",
   "night": "8833e4ff2065f15d",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "gateway-handwerker-2": {
   "day": "a5bee090ce9e07eb",
   "night": "babe5c28a0ee5ec5",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: 2026-11-09: Scheiben von Hand nachgezeichnet (Runde 4)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "gateway-handwerker-3": {
   "day": "1de4505a2aafeeb3",
@@ -275,33 +275,33 @@
   "day": "2c0a5576d524d5d0",
   "night": "75b14923d97f0d4a",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: 2026-11-09: Scheiben von Hand nachgezeichnet (Runde 4)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "gateway-patrician-3": {
   "day": "bb0cc2a4ac3831e7",
   "night": "1892f4ccc2967d20",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: 2026-11-09: Scheiben von Hand nachgezeichnet (Runde 4)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "gateway-steinhaus": {
   "day": "0c9889f4cf6a79a9",
   "night": "515bf766f5558746",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "gateway-villa": {
   "day": "9214f15c740f12e0",
   "night": "25814e2b2b23dd01",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "grain-cottage-2": {
   "day": "ecf6092611476939",
@@ -323,9 +323,9 @@
   "day": "938af2e5885285ec",
   "night": "c5658f71ed0d5aab",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: 2026-11-09: Scheiben von Hand nachgezeichnet (Runde 4)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "grain-farmhouse-3": {
   "day": "caad523c5e5ee24c",
@@ -347,25 +347,25 @@
   "day": "232b82768b275396",
   "night": "a34fa7493ee250b1",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: 2026-11-09: Scheiben von Hand nachgezeichnet (Runde 4)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "grain-patrician-2": {
   "day": "7cdb248de401eea5",
   "night": "58ab4922580e5e8d",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: 2026-11-09: Scheiben von Hand nachgezeichnet (Runde 4)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "grain-patrician-3": {
   "day": "f5c883971ab46334",
   "night": "9a0eaf5e7bc6d836",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: 2026-11-09: Scheiben von Hand nachgezeichnet (Runde 4)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "granary": {
   "day": "1f842f3b3e46a911",
@@ -379,25 +379,25 @@
   "day": "e52e635fcbb88328",
   "night": "3b807380a7d7c151",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "guildhall": {
   "day": "9405e5311e26ed81",
   "night": "eef8c6e3a18a418c",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "guildtower": {
   "day": "166f5dc32b84ad3b",
   "night": "9e39c90a397d377f",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "hammerworks": {
   "day": "0aac9d3501ef5c7a",
@@ -443,9 +443,9 @@
   "day": "752ff704335d3215",
   "night": "f6c63cc9639ed42d",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "herbhut": {
   "day": "8dbadd65bf3aa367",
@@ -467,9 +467,9 @@
   "day": "faee81d13a714ff0",
   "night": "5cef0a78176ca331",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "inn": {
   "day": "e1a584523125c84d",
@@ -483,9 +483,9 @@
   "day": "7613255a21e2ad44",
   "night": "c13c292499756015",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "lighthouse": {
   "day": "aca470a72a9e2780",
@@ -531,9 +531,9 @@
   "day": "56d03afb4f07be41",
   "night": "1685755ad77ac895",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "millrow": {
   "day": "f2a7499b0aa82aaf",
@@ -547,9 +547,9 @@
   "day": "ca93e2461f54c381",
   "night": "22eade36c3a60498",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "orangery": {
   "day": "2e3b3a6d26ff7b5b",
@@ -587,33 +587,33 @@
   "day": "f94e3656d555f90c",
   "night": "b8a9ad6b754c300a",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Scheiben von Hand nachgezeichnet (Runde 2)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "seat1": {
   "day": "b0667b35d011ac5d",
   "night": "523729a088127cba",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "seat2": {
   "day": "86a131f9cde3486b",
   "night": "18627cad135e3e66",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "seat3": {
   "day": "cf606655c8546592",
   "night": "5a39e5829bc3533b",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "smithy": {
   "day": "856c78a1220c8803",
@@ -659,9 +659,9 @@
   "day": "62be7601369bde67",
   "night": "384a4496078940db",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "stonemason": {
   "day": "6bccec6f53957620",
@@ -699,9 +699,9 @@
   "day": "e0a8b01d43cbad21",
   "night": "45a2228feb8996dd",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "Glass panes individually traced against unchanged day painting; final user review pending."
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "townhouse": {
   "day": "212ad17a2a7c1b30",
@@ -731,9 +731,9 @@
   "day": "b196ec3f76841dbc",
   "night": "b0a22f76d3947f5d",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "warehouse": {
   "day": "631badada0b91302",
@@ -843,9 +843,9 @@
   "day": "1b9dc914448990b7",
   "night": "a18e5755c3196709",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "workshop-handwerker-2": {
   "day": "c487e8dcbbed59b5",
@@ -859,9 +859,9 @@
   "day": "c7070c2979e9c59e",
   "night": "14dfa86980ea5f16",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: 2026-11-09: Scheiben von Hand nachgezeichnet (Runde 4)"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  },
  "workshop-hut": {
   "day": "ab2bfedd3976e868",
@@ -907,8 +907,8 @@
   "day": "89aace950cdd2934",
   "night": "869cf1f8e8b32411",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Fensterscheiben von Hand nachgezeichnet"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-09: Visuell abgenommen"
  }
 }
