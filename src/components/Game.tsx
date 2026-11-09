@@ -866,6 +866,9 @@ export function Game() {
     };
     resize();
     window.addEventListener("resize", resize);
+    // iOS preview iframes can mount at 0×0 and never fire window.resize: watch the element itself
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => resize()) : null;
+    ro?.observe(cv);
     let lastScene = 0;
     let panStep = () => {};
     const loop = () => {
@@ -886,7 +889,11 @@ export function Game() {
       const h = s.hover;
       const ok = h && s.mode === "seed" ? canPlant(h[0], h[1], s.seeds) === null : null;
       const t0 = performance.now();
-      draw(ctx, cv.width, cv.height, dpr.current, c, s.seeds, s.plantings, clock(), h, ok);
+      // no layout yet (0×0): wait for the next frame instead of drawing into nothing
+      if (cv.clientWidth > 0 && (cv.width === 0 || cv.height === 0 || cv.width !== Math.ceil(cv.clientWidth * dpr.current))) resize();
+      if (cv.width === 0 || cv.height === 0) { raf = document.hidden ? 0 : requestAnimationFrame(loop); return; }
+      try { draw(ctx, cv.width, cv.height, dpr.current, c, s.seeds, s.plantings, clock(), h, ok); }
+      catch (err) { console.error("draw failed", err); } // one bad frame must never stop the loop
       if (import.meta.env.DEV || isLab()) {
         const ms = performance.now() - t0, p = perf.current;
         p.sum += ms; p.n++; p.max = Math.max(p.max, ms);
@@ -1104,6 +1111,7 @@ export function Game() {
     return () => {
       cancelAnimationFrame(raf); document.removeEventListener("visibilitychange", onHide);
       window.removeEventListener("resize", resize);
+      ro?.disconnect();
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", onBlur);
