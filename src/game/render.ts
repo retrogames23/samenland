@@ -4206,15 +4206,8 @@ export function draw(
     }
   }
   for (const [bx, by, gull, sd] of birds) drawBird(c, bx, by, gull === 1, sd);
-  // own strolling mayor: a small golden pennant mark floats above his head on top of trees and roofs, so he is always found
-  if (steer && ownPose && ownPose.act === "stroll") {
-    const [px, py] = iso(ownPose.x, ownPose.y), hy = py - (ownPose.mounted ? 15 : 9.5) + Math.sin(t / 380) * 0.5;
-    c.save(); c.globalAlpha = 0.9;
-    c.fillStyle = "rgba(60,40,18,0.55)"; c.beginPath(); c.moveTo(px - 1.6, hy - 1.9); c.lineTo(px + 1.6, hy - 1.9); c.lineTo(px, hy + 0.9); c.closePath(); c.fill();
-    c.fillStyle = "#e8b84a"; c.beginPath(); c.moveTo(px - 1.2, hy - 1.6); c.lineTo(px + 1.2, hy - 1.6); c.lineTo(px, hy + 0.4); c.closePath(); c.fill();
-    c.restore();
-    L.push({ x: px, y: hy - 0.6, r: 1.6 });
-  }
+  // own steered mayor: located even when villagers are culled at far zoom, marked in screen space below
+  if (steer && !ownPose) { const sd = seeds.find((s) => s.id === steer.sid); if (sd) ownPose = townPosesSmooth(sd, seeds, now).find((q) => q.p.role === "mayor") ?? null; }
   // parchment silhouette: key figures (own strolling mayor, hovered/selected folk, robbers, messengers) shine faintly through buildings in front
   // only where a building drawn later actually covers the figure, clipped to that roof: in the open the figure stays crisp
   for (const v of vip) {
@@ -4309,6 +4302,21 @@ export function draw(
     // the post itself stays readable above roofs in front and the night mask while pointed at
     c.save(); c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z); c.globalAlpha = 0.92;
     drawSignpost(c, ix, iy, fx * 13 + fy); c.restore();
+  }
+
+  // own steered mayor: a small golden diamond floats above his actual position (not his goal), constant screen size
+  // so it stays findable when zoomed out; drawn above roofs and the night mask. The goal is a ground ellipse — never confused.
+  if (steer && ownPose) {
+    const [px, py] = iso(ownPose.x, ownPose.y);
+    const sx = (px - cam.x) * z + w / 2, sy = (py - (ownPose.mounted ? 15 : 9.5) - cam.y) * z + h / 2 - 6 * dpr + Math.sin(t / 380) * 1.5 * dpr;
+    if (sx > -20 && sx < w + 20 && sy > -20 && sy < h + 20) {
+      const rx = 5 * dpr, ry = 7 * dpr;
+      c.save(); c.globalAlpha = 0.92; c.lineJoin = "round";
+      c.beginPath(); c.moveTo(sx, sy - ry); c.lineTo(sx + rx, sy); c.lineTo(sx, sy + ry); c.lineTo(sx - rx, sy); c.closePath();
+      c.fillStyle = "#e8b84a"; c.fill(); c.lineWidth = 1.5 * dpr; c.strokeStyle = "rgba(60,40,18,0.85)"; c.stroke();
+      c.beginPath(); c.moveTo(sx, sy - ry * 0.6); c.lineTo(sx + rx * 0.45, sy); c.lineTo(sx, sy); c.closePath(); c.fillStyle = "rgba(255,240,200,0.7)"; c.fill();
+      c.restore();
+    }
   }
 
   c.font = `700 ${Math.round(22 * dpr)}px Georgia, 'Times New Roman', 'Songti SC', 'Noto Serif CJK SC', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif`; c.textAlign = "center";
