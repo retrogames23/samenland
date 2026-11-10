@@ -85,7 +85,7 @@ export type SnowStep = { kind: WeatherKind; amount: number; temp: number; day?: 
 export function snowStep(d: number, s: SnowStep): number {
   if (s.kind === "snow") {
     const cold = s.temp <= 0 ? 1 : Math.max(0, 1 - s.temp / 2);
-    d += Math.pow(s.amount, 3) * 3 * cold; // light shower ~0.8 cm, heavy ~2.8 cm per 3 h
+    d += Math.pow(s.amount, 3) * 5 * cold; // light shower ~1.4 cm, heavy ~5 cm per 3 h (fewer but snowier falls)
   }
   if (s.temp > 0) d -= s.temp * 0.35 * (s.day ? 1.4 : 1); // degree-slots, sun helps by day
   if (s.kind === "drizzle" || s.kind === "storm") d -= 1.2 + Math.max(0, s.temp) * 0.4;
