@@ -84,7 +84,7 @@ import guardU from "@/assets/sprites/court/guard.webp";
 import gardenerU from "@/assets/sprites/court/gardener.webp";
 import courtGroomU from "@/assets/sprites/court/groom.webp";
 import { heraldVisit, HERALD_RIDE_S, type PrincelyRow } from "./princely";
-import { pBegin, pEnd, pCount, pEvict, pCache, canvasBytes } from "./perf-probe";
+import { pBegin, pEnd, pCount, pEvict, pCache, canvasBytes, pFB, pFE, pOps, perfFine } from "./perf-probe";
 import { SEAT_KINDS, onGeoChange, hash, vnoise, structureAt, soloSeeds, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, FOOT2, links, roadProgress, isTwin, acreOf, ageHours, viewAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
@@ -3529,10 +3529,11 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     else { flatCache.delete(key); flatCache.set(key, e); }
     // art still loading: bake anyway, but refresh that chunk every 2 s until it is complete
     const stale = e.dirty || e.q !== q || e.sk !== sk || (!e.full && t - e.baked > 2000);
+    pCount("flat.chunksVisible"); if (stale) pCount("flat.chunksStale"); if (e.dirty) pCount("flat.chunksDirty");
     if (stale && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false; }
     if (e.empty && e.q === q) { flatSet.add(key); continue; }
     // soft fallback: while a re-bake is pending, keep showing the previous bake scaled (never live-draw the whole chunk)
-    if (e.cv && (e.q === q && e.sk === sk || e.q !== q && e.sk === sk)) { c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
+    if (e.cv && (e.q === q && e.sk === sk || e.q !== q && e.sk === sk)) { pCount("flat.chunksBlit"); c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
   }
   // lookahead: in frames with no bake yet, prepare one chunk just off-screen so panning finds it ready
   if (frameBakes < 1) {
@@ -3548,6 +3549,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
       break outer;
     }
   }
+  if (flatCache.size > FLAT_KEEP) pCount("flat.chunksDropped", flatCache.size - FLAT_KEEP);
   while (flatCache.size > FLAT_KEEP) dropFlat(flatCache.keys().next().value!);
   return flatSet;
 }
@@ -3785,14 +3787,15 @@ export function draw(
 
   pEnd(); pBegin("near.flat");
   // ---- pass 1c: flat things on the ground ----
-  const flatDone = drawFlatChunks(c, x0, x1, y0, y1, z, seeds, now, t);
+  pFB("flat.chunks"); const flatDone = drawFlatChunks(c, x0, x1, y0, y1, z, seeds, now, t); pFE();
+  pFB("flat.loop");
   for (let s = x0 + y0; s <= x1 + y1; s++) {
     for (let x = Math.max(x0, s - y1); x <= Math.min(x1, s - y0); x++) {
       const y = s - x;
       const [cx, cy] = iso(x, y);
       // diamond culling: the tile rectangle's corners lie off-canvas; tall sprites rise from below, so keep a deep bottom margin
       if (cx < cs0x - 56 || cx > cs1x + 56 || cy < cs0y - 28 || cy > cs1y + 96) continue; // margins: widest sprite half-width / tallest sprite height
-      const st = sparePlanted(x, y, structureAt(x, y, seeds, now));
+      pFB("flat.structureAt"); const st = sparePlanted(x, y, structureAt(x, y, seeds, now)); pFE();
       { const slot = tiles[nTiles] ?? (tiles[nTiles] = { x: 0, y: 0, cx: 0, cy: 0, st: null }); slot.x = x; slot.y = y; slot.cx = cx; slot.cy = cy; slot.st = st; nTiles++; }
       if (!detail) {
         if (st && !FLAT.has(st.kind)) { /* drawn in pass 2 */ }
@@ -3800,8 +3803,9 @@ export function draw(
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square")) { c.fillStyle = texture(c, st.kind === "street" || st.kind === "square" ? "cobble" : "dirt") ?? "#cdb084"; diamond(c, cx, cy, 0.85); c.fill(); }
         continue;
       }
-      flatCheck(x, y, st);
+      pFB("flat.check"); flatCheck(x, y, st); pFE();
       if (!flatDone.has(((y / FC) | 0) * 4096 + ((x / FC) | 0))) {
+        pCount("flat.unbakedTiles");
         // chunk not baked yet: on touch draw only a cheap base fill for the frame or two until the bake lands
         if (!TOUCH) flatTile(c, x, y, cx, cy, st, seeds, now, t);
         else if (st?.kind === "field" || st?.kind === "garden") { c.fillStyle = texture(c, st.kind === "field" ? fieldTex(x, y, st.seed, now) : "dirt") ?? hsl(44, 45, 66); diamond(c, cx, cy, 1.0); c.fill(); }
@@ -3809,6 +3813,7 @@ export function draw(
       }
     }
   }
+  pFE();
   pEnd(); pBegin("near.roads");
   // ---- trade roads as one continuous ribbon each (the tile steps stay logic only) ----
   for (const l of worldLinks) {
@@ -3832,10 +3837,14 @@ export function draw(
     const mine = steer && steer.sid === sd.id && steer.x >= x0 - 2 && steer.x <= x1 + 2 && steer.y >= y0 - 2 && steer.y <= y1 + 2;
     const rm = mine ? null : remoteMayor(sd.id);
     const live = !!rm && rm.x >= x0 - 2 && rm.x <= x1 + 2 && rm.y >= y0 - 2 && rm.y <= y1 + 2;
+    pCount("folk.townsChecked");
     if (!mine && !live && (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1)) continue;
+    pCount("folk.townsUsed");
     const r0 = reachOf(sd, radiusOf(viewAge(sd, seeds, now)));
     const darkOut = nightLevel(now) > 0.35;
-    for (const q of townPosesSmooth(sd, seeds, now)) {
+    pFB("folk.poses"); const poses = townPosesSmooth(sd, seeds, now); pFE(); pCount("folk.poses", poses.length);
+    pFB("folk.bucket");
+    for (const q of poses) {
       const k = Math.round(q.y) * MAP + Math.round(q.x);
       // out in the open at dusk: a small lantern glow keeps the figure readable on dark fields
       // only night walkers on far paths (and the strolling mayor) carry a visible hand lantern; the light comes from it
@@ -3851,6 +3860,7 @@ export function draw(
       if (q.p.role === "mayor" && sd.id === ownMayorSid()) ownPose = q;
       if (q.p.role === "mayor" && supportOwned.get(sd.id)?.has("dog")) dogMayors.set(sd.id, q);
     }
+    pFE();
   }
   const robbers = framePool.robbers; robbers.clear();
   if (detail) for (const sd of seeds) { const r = robberAt(sd, now); if (r) robbers.set(Math.round(r[1]) * MAP + Math.round(r[0]), r); }
@@ -4137,14 +4147,20 @@ export function draw(
   // supporter decorations: one lookup per frame instead of a fresh cache key per empty tile
   const decor = supportOwned.size ? decorMap(seeds, supportOwned, now, MAP) : null, decorNight = worldHour(now) >= 19 || worldHour(now) < 7;
   type Item = Body & { q?: Pose; sh?: { k: number; m: ReturnType<typeof sheepSpots>[number]["m"] } };
+  const fineP = perfFine();
   for (let ti = 0; ti < nTiles; ti++) {
     const { x, y, cx, cy, st: original } = tiles[ti]!;
+    const ops0 = fineP ? pOps() : 0;
+    if (fineP) pCount(original ? "p2.tilesStruct" : "p2.tilesEmpty");
+    pFB("p2.streetHouse");
     // Change only the paint used by this depth pass, never the simulation's tile.
     const st = original ? streetHouse(original, x, y, (rx, ry) => {
       const k = structureAt(rx, ry, seeds, now)?.kind;
       return !!k && PATHLIKE.has(k);
     }) : original;
+    pFE(); pFB("p2.sort");
     ord.set(y * MAP + x, ti);
+    pFE(); pFB("p2.nature");
     if (st?.kind === "avenue" && hash(x,y,92)>0.5) drawNature(c,"oak",cx+9,cy+2,0.22);
     if (!detail) {
       if (st?.build !== undefined) drawSite(c, st, cx, cy, t, false);
@@ -4152,17 +4168,20 @@ export function draw(
       continue; // forests and crags are baked into the ground chunks
     }
     if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true, false); // turf already lies in the flat pass
+    pFE(); pFB("p2.animals");
     if (!original && !floodWild.get(y * MAP + x)?.flood && !inCourt(x, y)) {
       const animal = farmAnimalsAt(x, y, seeds, now, pondsNow);
       if (animal) drawFarmAnimal(c, animal, cx, cy, now, x * 31 + y);
     }
     if (st?.kind === "coop" && st.build === undefined) drawHens(c, cx, cy, x * 31 + y);
+    pFE(); pFB("p2.birdsTerrainFx");
     if (hash(x, y, 501) < 0.006) { const tr = st ? null : terrain(x, y); if (tr === "water" || (tr === "sand" && hash(x, y, 502) < 0.5)) birds.push([cx, cy, 1, x * 7 + y]); }
     if (st?.kind === "field" && hash(x, y, 503) < 0.02) birds.push([cx, cy, 0, x * 7 + y]);
     const wh = st ?? floodWild.get(y * MAP + x);
     if (wh?.silt && !wh.flood) drawSilt(c, cx, cy, x * 7 + y, wh.silt);
     if (wh?.flood) { drawFlood(c, cx, cy, t, x * 7 + y, wh.wet ?? 1); if ((x + y) % 3 === 0 && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: "flood" }); }
     if (wh?.levee && !wh.flood) drawLevee(c, cx, cy + 4, x * 7 + y, wh.levee);
+    pFE(); pFB("p2.folkSheep");
     const fk = folk.get(y * MAP + x);
     const sdT = x * 1000 + y, flock = fk && st?.kind === "pasture" && st.build === undefined && !st.flood && herdAt(x, y) === "sheep" ? sheepSpots(sdT, st.v, now) : [];
     if (flock.length) sharedPasture.add(sdT); else sharedPasture.delete(sdT);
@@ -4228,11 +4247,13 @@ export function draw(
       folkCtx = c;
       if (st && st.build === undefined && !FLAT.has(st.kind)) for (const it of items) if (it.y < cy - 1.5) { behindSet.add(it); drawItem(it); }
     }
+    pFE(); pFB("p2.structure");
     if (st) {
       drawStructure(c, st, cx, cy, x, y, t, L);
       if (st.build === undefined && SEAT_KINDS.includes(st.kind) && supportOwned.get(st.seed.id)?.has("vane")) { const b = spriteBox(st.kind, st.v, houseStyle(st)); if (b) drawVane(c, cx, cy + b.base - b.h); }
       if (st.build === undefined && !FLAT.has(st.kind)) { const b = spriteBox(st.kind, st.v, houseStyle(st)); if (b && b.h > 8) { const oy = FOOT2.has(st.kind) ? cy - TH / 2 : cy; occ.push(ti, cx - b.w / 2, oy + b.base - b.h, cx + b.w / 2, oy + b.base - 2); } }
     }
+    pFE(); pFB("p2.propsMisc");
     for (const f of hunt.get(y * MAP + x) ?? []) f();
     for (const f of props.get(y * MAP + x) ?? []) f(cx, cy);
     const rb = robbers.get(y * MAP + x);
@@ -4261,10 +4282,13 @@ export function draw(
       c.beginPath(); c.ellipse(cx, cy, 9 * pu, 4.5 * pu, 0, 0, Math.PI * 2); c.stroke();
       c.globalAlpha = 0.35; c.fillStyle = "#f3d27a"; c.beginPath(); c.ellipse(cx, cy, 5, 2.5, 0, 0, Math.PI * 2); c.fill(); c.restore();
     }
+    pFE(); pFB("p2.folkSheep");
     if (fk) {
       for (const it of items) if (!behindSet.has(it)) drawItem(it);
       folkCtx = null;
     }
+    pFE();
+    if (fineP && pOps() > ops0) pCount("p2.tilesDrawn");
     if (hover && hover[0] === x && hover[1] === y) {
       c.beginPath(); c.moveTo(cx, cy - TH / 2); c.lineTo(cx + TW / 2, cy); c.lineTo(cx, cy + TH / 2); c.lineTo(cx - TW / 2, cy); c.closePath();
       c.fillStyle = ghostOk === false ? "rgba(180,80,60,0.18)" : "rgba(255,240,200,0.14)"; c.fill();
