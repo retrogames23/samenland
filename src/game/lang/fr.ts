@@ -76,6 +76,7 @@ export const fr: Dict = {
   builders: "Charpentiers sur le chantier",
   nobody: "personne pour l'heure",
   tavern: {
+    tooLong: (n: number) => `Trop long de ${n} caractères`,
     menu: "Taverne", title: "La Taverne", room: "salle commune", letters: "Missives", mayors: "Bourgmestres",
     stranger: "Étranger", alone: "nul n'est encore ici", signIn: "Connectez-vous pour prendre part aux devis de l'auberge.",
     empty: "La taverne est paisible. Soyez le premier à lever la voix !", emptyLetter: "Aucune lettre échangée pour l'instant.",

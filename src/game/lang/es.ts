@@ -76,6 +76,7 @@ export const es: Dict = {
   builders: "Carpinteros en la obra",
   nobody: "nadie en este momento",
   tavern: {
+    tooLong: (n: number) => `${n} caracteres de más`,
     menu: "Taberna", title: "La Taberna", room: "taberna", letters: "Cartas", mayors: "Alcaldes",
     stranger: "Forastero", alone: "aún no hay nadie aquí", signIn: "Inicia sesión para unirte a las charlas de la taberna.",
     empty: "La taberna está en silencio. ¡Sé el primero en alzar la voz!", emptyLetter: "Aún no se han cruzado cartas.",

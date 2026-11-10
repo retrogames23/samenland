@@ -8,6 +8,8 @@ import { X } from "lucide-react";
 import { toast } from "sonner";
 
 const SEEN = "samenland-chat-seen";
+/** Must equal the DB chat_guard limit. */
+export const CHAT_MAX = 500;
 const seenKey = (uid: string | null) => `${SEEN}:${uid ?? "anon"}`;
 const readSeen = (uid: string | null): Record<string, number> => { try { return JSON.parse(localStorage.getItem(seenKey(uid)) ?? localStorage.getItem(SEEN) ?? "{}"); } catch { return {}; } };
 
@@ -119,7 +121,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
   const [sending, setSending] = useState(false);
   const send = async () => {
     const body = text.trim();
-    if (!body || !userId || !my || sendingRef.current) return;
+    if (!body || body.length > CHAT_MAX || !userId || !my || sendingRef.current) return;
     sendingRef.current = true; setSending(true); setText("");
     const { data, error } = await supabase.from("chat_messages").insert({ body, sender_id: userId, sender_seed: my.id, realm, recipient_id: chan === "tavern" ? null : chan.peer }).select().single();
     sendingRef.current = false; setSending(false);
@@ -210,11 +212,16 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
               </div>
             )}
             <form className="flex gap-2 border-t border-ink/25 p-2" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-              <textarea dir="auto" rows={3} value={text} maxLength={300} disabled={!userId || !my} onChange={(e) => setText(e.target.value)}
+              <textarea dir="auto" rows={3} value={text} disabled={!userId || !my} onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }}
                 placeholder={!my ? t.tavern.needVillage : chan === "tavern" ? t.tavern.say : t.tavern.sayLetter(people.get(chan.peer)?.owner ?? "")}
                 className="min-w-0 flex-1 resize-none rounded border border-ink/30 bg-parchment/60 px-2 py-1 font-mono text-base outline-none sm:text-sm focus:border-ink/60" />
-              <button type="submit" disabled={!text.trim() || !my || sending} className="min-h-11 rounded bg-primary px-3 text-sm text-primary-foreground disabled:opacity-40 sm:min-h-0">{t.tavern.send}</button>
+              <div className="flex shrink-0 flex-col items-end justify-between gap-1">
+              <span aria-live="polite" className={`text-[11px] tabular-nums ${text.trim().length > CHAT_MAX ? "font-semibold text-destructive" : text.trim().length > CHAT_MAX - 40 ? "text-primary" : "text-ink/50"}`}>
+                {text.trim().length > CHAT_MAX ? t.tavern.tooLong(text.trim().length - CHAT_MAX) : `${text.trim().length} / ${CHAT_MAX}`}
+              </span>
+              <button type="submit" disabled={!text.trim() || text.trim().length > CHAT_MAX || !my || sending} className="min-h-11 rounded bg-primary px-3 text-sm text-primary-foreground disabled:opacity-40 sm:min-h-0">{t.tavern.send}</button>
+              </div>
             </form>
           </div>
         </div>
