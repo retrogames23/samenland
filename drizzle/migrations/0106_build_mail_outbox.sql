@@ -18,7 +18,6 @@ GRANT ALL ON public.build_mail_outbox TO service_role;
 ALTER TABLE public.build_mail_outbox ENABLE ROW LEVEL SECURITY;
 CREATE INDEX build_mail_outbox_open ON public.build_mail_outbox (status) WHERE status <> 'sent';
 
--- Enqueue: duplicate calls (repeated or parallel cron) collapse on the primary key. Returns true only for the new row.
 CREATE OR REPLACE FUNCTION public.build_mail_enqueue(_purchase uuid, _seed uuid, _user uuid, _item text, _done timestamptz)
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE n integer;
@@ -29,9 +28,6 @@ BEGIN
   RETURN n = 1;
 END $$;
 
--- Claim: atomically moves claimable rows to 'sending' with a fresh token. SKIP LOCKED + the status condition
--- guarantee that two parallel callers never receive the same row. Claimable: pending, failed below max attempts,
--- or a 'sending' row whose lease expired (worker crashed mid-send). 'sent' is never claimable.
 CREATE OR REPLACE FUNCTION public.build_mail_claim(_limit integer DEFAULT 50, _max_attempts integer DEFAULT 5, _lease_minutes integer DEFAULT 10)
 RETURNS SETOF public.build_mail_outbox LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 BEGIN
@@ -46,7 +42,6 @@ BEGIN
   RETURNING o.*;
 END $$;
 
--- Finish: only the holder of the current claim token may settle the row; a stale worker cannot overwrite 'sent'.
 CREATE OR REPLACE FUNCTION public.build_mail_finish(_purchase uuid, _token uuid, _ok boolean, _error text DEFAULT NULL)
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE n integer;
@@ -60,7 +55,6 @@ BEGIN
   RETURN n = 1;
 END $$;
 
--- Manual retry of a row that ran out of attempts (support tool): resets to pending, never touches 'sent'.
 CREATE OR REPLACE FUNCTION public.build_mail_retry(_purchase uuid)
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE n integer;

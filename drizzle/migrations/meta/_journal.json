@@ -743,6 +743,13 @@
       "when": 1794343692070,
       "tag": "0105_monument_steps_no_wait_apply",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1794344973595,
+      "tag": "0106_build_mail_outbox",
+      "breakpoints": true
     }
   ]
 }
