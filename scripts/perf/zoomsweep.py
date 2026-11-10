@@ -42,6 +42,7 @@ async def run():
                         await page.evaluate("()=>window.__perf.reset('settle')"); await page.wait_for_timeout(2500)
                         c = (await page.evaluate("()=>window.__perf.summary()"))["countsPerFrame"]
                         if c.get("flat.chunksStale", 0) == 0 and c.get("cache.ground.miss", 0) == 0: settle = round(asyncio.get_event_loop().time() - t0, 1); break
+                        if c.get("flat.chunksDropped", 0) > 0: settle = "never (flat cache smaller than visible chunks)"; break
                 else: await page.wait_for_timeout(60000)
                 if MODE != "off": await page.evaluate("n=>window.__perf.reset(n)", f"z{z}")
                 await page.evaluate("()=>window.__raf.start()"); await page.wait_for_timeout(MEAS*1000)
