@@ -161,7 +161,7 @@ import { saplingSpots } from "@/game/saplings";
 import FigureLab from "@/components/FigureLab";
 import { feastOn, feastKey, type FeastCode } from "@/game/feasts";
 import { FEAST_TEXT } from "@/game/lang/feasts";
-import { pBegin, pEnd, pFrame, perfOn } from "@/game/perf-probe";
+import { pBegin, pEnd, pFrame, perfCamOn } from "@/game/perf-probe";
 
 /** Painted scene per feast; feasts without their own picture borrow a fitting encounter scene. */
 const FEAST_ART: Record<FeastCode, string> = { christmas: "feast-christmas", easter: "feast-easter", midsummer: "feast-midsummer", pentecost: "maypole", michaelmas: "harvest", martinmas: "tithe", shrovetide: "minstrel", palm: "pilgrims", ascension: "pilgrims", corpus: "pilgrims", epiphany: "monk", candlemas: "monk", ashwed: "monk", goodfriday: "monk", allsaints: "monk" };
@@ -890,7 +890,7 @@ export function Game() {
     ro?.observe(cv);
     let lastScene = 0;
     // diagnostics only (?perf=1): place the camera at a fixed tile + zoom for reproducible benchmark scenes
-    if (perfOn()) (window as unknown as { __perfCam: unknown }).__perfCam = (tx: number, ty: number, zoom: number) => {
+    if (perfCamOn()) (window as unknown as { __perfCam: unknown }).__perfCam = (tx: number, ty: number, zoom: number) => {
       const [x, y] = iso(tx, ty); cam.current = { x, y, zoom }; target.current = { zoom, ax: cv.width / 2, ay: cv.height / 2 }; camFree.current = true;
     };
     let panStep = () => {};

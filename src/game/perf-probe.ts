@@ -15,6 +15,8 @@ const on: boolean = (() => {
   try { return typeof location !== "undefined" && new URLSearchParams(location.search).get("perf") === "1"; } catch { return false; }
 })();
 export const perfOn = () => on;
+/** ?perf=0 keeps the probe off but still exposes the benchmark camera hook, so overhead can be compared at the same scene. */
+export const perfCamOn = (): boolean => { try { return on || (typeof location !== "undefined" && new URLSearchParams(location.search).get("perf") === "0"); } catch { return false; } };
 
 const now = () => performance.now();
 // span stack
