@@ -4336,7 +4336,9 @@ export function draw(
   c.fillStyle = vignette.g; c.fillRect(0, 0, w, h);
 
   const night = skyTint(c, w, h);
+  pEnd(); pBegin("near.weather");
   drawWeather(c, w, h, dpr, performance.now(), night);
+  pEnd(); pBegin("near.nightLights"); pCount("lights", L.length);
   if (night > 0.02) {
     c.globalCompositeOperation = "lighter";
     if (lit) { c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = night; c.drawImage(lit.cv, 0, 0); c.restore(); }
@@ -4363,6 +4365,7 @@ export function draw(
     }
     c.globalCompositeOperation = "source-over";
   }
+  pEnd(); pBegin("near.labels");
   // focused signpost: bright ring above the night mask so it is never swallowed by darkness
   if (Date.now() < signFocus.until && signMap.has(signFocus.k)) {
     const fx = signFocus.k % MAP, fy = Math.floor(signFocus.k / MAP);
@@ -4399,4 +4402,14 @@ export function draw(
     c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(txt, sx, sy);
     c.fillStyle = hsl(20, 45, 38); c.fillText(txt, sx, sy);
   }
+  pEnd();
 }
+// diagnostics only (?perf=1): estimated uncompressed size of every render cache
+const cvSum = (it: Iterable<{ width: number; height: number } | null | undefined>) => { let b = 0; for (const v of it) b += canvasBytes(v); return b; };
+pCache("ground", () => ({ entries: chunkCache.size, bytes: cvSum(chunkCache.values()) }));
+pCache("flat", () => ({ entries: flatCache.size, bytes: cvSum([...flatCache.values()].map((e) => e.cv)) + cvSum([...flatCache.values()].map((e) => e.bm)) }));
+pCache("ovTown", () => ({ entries: ovCache.size, bytes: cvSum([...ovCache.values()].map((e) => e.cv)) }));
+pCache("turf", () => ({ entries: turfSprites.size, bytes: cvSum(turfSprites.values()) }));
+pCache("agri", () => ({ entries: agriSprites.size, bytes: cvSum(agriSprites.values()) }));
+pCache("geom", () => ({ entries: geomCache.size, bytes: 0 }));
+pCache("lit", () => ({ entries: litStore ? 1 : 0, bytes: canvasBytes(litStore?.cv) }));
