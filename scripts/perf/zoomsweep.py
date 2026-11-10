@@ -34,11 +34,20 @@ async def run():
                 await page.goto(f"http://localhost:8080/?{Q}&weather=clear&season=autumn", wait_until="domcontentloaded")
                 await page.wait_for_function("()=>window.__perfCam", timeout=90000); await page.wait_for_timeout(6000)
                 await page.evaluate("([x,y,z])=>window.__perfCam(x,y,z)", [*CENTER, z]); await page.wait_for_timeout(WARM*1000)
+                # steady state: wait until no ground/flat chunk is still pending (bake budget is one per frame), max 180 s
+                settle = None
+                if MODE != "off":
+                    t0 = asyncio.get_event_loop().time()
+                    while asyncio.get_event_loop().time() - t0 < 180:
+                        await page.evaluate("()=>window.__perf.reset('settle')"); await page.wait_for_timeout(2500)
+                        c = (await page.evaluate("()=>window.__perf.summary()"))["countsPerFrame"]
+                        if c.get("flat.chunksStale", 0) == 0 and c.get("cache.ground.miss", 0) == 0: settle = round(asyncio.get_event_loop().time() - t0, 1); break
+                else: await page.wait_for_timeout(60000)
                 if MODE != "off": await page.evaluate("n=>window.__perf.reset(n)", f"z{z}")
                 await page.evaluate("()=>window.__raf.start()"); await page.wait_for_timeout(MEAS*1000)
                 raf = await page.evaluate("()=>window.__raf.stop()")
                 iv = [raf[i+1]-raf[i] for i in range(len(raf)-1)]
-                row = {"world": WORLD, "mode": MODE, "zoom": z, "rep": rep, "time": DAY, "weather": "clear", "cam": CENTER, "viewport": [1280, 800], "raf": dist(iv)}
+                row = {"world": WORLD, "mode": MODE, "zoom": z, "rep": rep, "time": DAY, "weather": "clear", "cam": CENTER, "viewport": [1280, 800], "raf": dist(iv), "settleSec": settle}
                 if MODE != "off":
                     sm = await page.evaluate("()=>window.__perf.summary()")
                     row["spans"] = sm["spans"]; row["counts"] = sm["countsPerFrame"]; row["drawTime"] = sm["drawTime"]; row["frames"] = sm["frameInterval"]["n"]
