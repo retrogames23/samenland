@@ -538,10 +538,12 @@ function yardKind(x: number, y: number, s: Seed, age: number, r: number, stage: 
   const h = hash(x, y, 4);
   return stage <= 1 ? weighted(h, [["farmhouse",50],["barn",25],["garden",15],["coop",10]]) : weighted(h, [["cottage",40],["handwerker",20],["farmhouse",15],["barn",10],["garden",15]]);
 }
+/** Share of roadside tiles that carry a house (rest: gardens/open) and radius of the free village green. */
+export const PLOT_SHARE = 0.78, SQUARE_R = 2.6;
 function roadsideLot(x: number, y: number, s: Seed, age: number, r: number): boolean {
-  if (!buildable(terrain(x, y)) || hash(x, y, 2) > 0.82 || pathAt(x, y, s, age, r)) return false;
+  if (!buildable(terrain(x, y)) || hash(x, y, 2) > PLOT_SHARE || pathAt(x, y, s, age, r)) return false;
   const d = townDist(x, y, s);
-  if (d > r + 0.5 || d < 1.6) return false;
+  if (d > r + 0.5 || d < SQUARE_R) return false;
   for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if ((i || j) && pathAt(x + i, y + j, s, age, r)) return true;
   return false;
 }
@@ -582,7 +584,7 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
     if (!raw && !keptPaths(s, age, r).has(y * MAP + x)) return null;
     return stage >= 4 && d > r * 0.55 ? "avenue" : stage >= 3 && d < r * 0.6 ? "street" : "path";
   }
-  if (stage >= 2 && d < 1.6) return "square";
+  if (stage >= 2 && d < SQUARE_R) return "square";
   const birth = tileBirth(d) * (0.75 + 0.5 * hash(x,y,3));
   if (age < birth - HOUSE_BUILD) return null;
   if (age < birth) { buildP = 1 - (birth - age) / HOUSE_BUILD; buildAt = birth; }
@@ -597,7 +599,7 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
     if (terrain(x, y) === "hill") return weighted(a.h, [["pasture",45],["garden",35],["fence",20]]);
     return weighted(a.h, [["field",72],["pasture",22],["garden",6]]);
   }
-  if (hash(x,y,2)>0.82) return h<0.5?"garden":null;
+  if (hash(x,y,2)>PLOT_SHARE) return h<0.5?"garden":null;
   if (stage <= 2) {
     const k = yardKind(x, y, s, age, r, stage);
     // Hofstelle: a barn only stands beside a farmhouse it belongs to, never two barns side by side
