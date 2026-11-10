@@ -171,7 +171,7 @@ function summary() {
     const ex = fr.map((f) => f.spans[k]?.[1] ?? 0);
     spans[k] = { inclTotal: a.incl, exclTotal: a.excl, calls: a.calls, inclPerFrame: a.incl / Math.max(1, fr.length), exclPerFrame: a.excl / Math.max(1, fr.length), exclP95: pct(ex, 95) };
   }
-  const counts: Record<string, number> = {}; for (const [k, v] of countTotals) counts[k] = v / Math.max(1, fr.length);
+  const counts: Record<string, number> = {}; for (const [k, v] of countTotals) counts[k] = v / Math.max(1, frames.length); // totals include frame 0
   return { scenario, seconds: dur, fps: dur ? fr.length / dur : 0, frameInterval: dist(iv), drawTime: dist(dr), spans, countsPerFrame: counts, evictions: Object.fromEntries(evictions), graphics: census(), ...cacheSnap() };
 }
 function reset(name = "") {
@@ -193,21 +193,28 @@ if (on && typeof window !== "undefined") {
  * Camera tile and world come from ?benchtile=306,420 (default: Testwiek on the lab map).
  */
 const BENCH_SCENES: [string, number][] = [["near", 2.6], ["mid", 0.8], ["overview", 0.12], ["maxout", 0.025]];
+/** ?bench=flat: the audit-3 zoom band around the flat cache problem (0.449 overview edge up to 1.0). */
+const FLAT_SCENES: [string, number][] = [["z0.449", 0.449], ["z0.46", 0.46], ["z0.5", 0.5], ["z0.6", 0.6], ["z0.7", 0.7], ["z0.8", 0.8], ["z0.89", 0.89], ["z1.0", 1.0]];
 async function bench() {
   const q = new URLSearchParams(location.search), [tx, ty] = (q.get("benchtile") ?? "306,420").split(",").map(Number);
   const camF = (window as unknown as { __perfCam?: (x: number, y: number, z: number) => void }).__perfCam;
   if (!camF) return null;
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-  const out: unknown[] = [];
-  for (const [name, z] of BENCH_SCENES) {
-    camF(tx!, ty!, z); await sleep(4000); reset(name); await sleep(8000);
-    out.push({ ...summary(), ua: navigator.userAgent, dpr: devicePixelRatio, screen: [innerWidth, innerHeight], params: location.search });
+  const out: unknown[] = [], flat = q.get("bench") === "flat";
+  const flatState = () => (window as unknown as { __flatState?: () => unknown }).__flatState?.();
+  for (const [name, z] of flat ? FLAT_SCENES : BENCH_SCENES) {
+    camF(tx!, ty!, z); await sleep(4000);
+    // ?bench=flat: wait (max 180 s) until no visible flat chunk inside the budget is still waiting for its bake
+    let settle: number | null = null;
+    if (flat) for (let i = 0; i < 72; i++) { reset("settle"); await sleep(2500); if ((summary().countsPerFrame["flat.chunksStale"] ?? 0) === 0) { settle = (i + 1) * 2.5; break; } }
+    reset(name); await sleep(8000);
+    out.push({ ...summary(), settleSec: settle, flat: flatState(), ua: navigator.userAgent, dpr: devicePixelRatio, screen: [innerWidth, innerHeight], params: location.search });
   }
   const blob = new Blob([JSON.stringify(out, null, 1)], { type: "application/json" }), a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = `samenland-perf-${Date.now()}.json`; a.click();
   return out;
 }
-if (on && typeof window !== "undefined" && new URLSearchParams(location.search).get("bench") === "1") {
+if (on && typeof window !== "undefined" && new URLSearchParams(location.search).get("bench") === "1" || on && typeof window !== "undefined" && new URLSearchParams(location.search).get("bench") === "flat") {
   const go = () => { if ((window as unknown as { __perfCam?: unknown }).__perfCam) setTimeout(() => void bench(), 8000); else setTimeout(go, 1000); };
   go();
 }

@@ -84,7 +84,7 @@ import guardU from "@/assets/sprites/court/guard.webp";
 import gardenerU from "@/assets/sprites/court/gardener.webp";
 import courtGroomU from "@/assets/sprites/court/groom.webp";
 import { heraldVisit, HERALD_RIDE_S, type PrincelyRow } from "./princely";
-import { pBegin, pEnd, pCount, pEvict, pCache, canvasBytes, pFB, pFE, pOps, perfFine } from "./perf-probe";
+import { pBegin, pEnd, pCount, pEvict, pCache, canvasBytes, pFB, pFE, pOps, perfFine, perfOn } from "./perf-probe";
 import { SEAT_KINDS, onGeoChange, hash, vnoise, structureAt, soloSeeds, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, FOOT2, links, roadProgress, isTwin, acreOf, ageHours, viewAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
@@ -3513,30 +3513,75 @@ function bakeFlatInner(e: FlatChunk, ix: number, iy: number, q: number, seeds: S
   // snapshot into an immutable bitmap: blitting it is a plain texture copy, not a replay of the recorded sprite draws
   if (typeof createImageBitmap === "function") void createImageBitmap(cv).then((bm) => { if (e.cv === cv) e.bm = bm; else bm.close(); }, () => {});
 }
-// touch devices: cap bake resolution and cache size (4x chunks at DPR 2-3 exceed mobile canvas memory)
+// touch devices: cap bake resolution (4x chunks at DPR 2-3 exceed mobile canvas memory)
 const TOUCH = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
-const FLAT_QMAX = TOUCH ? 2 : 4, FLAT_KEEP = TOUCH ? 80 : 96;
+const FLAT_QMAX = TOUCH ? 2 : 4;
+/** Flat cache budget in estimated pixel-buffer bytes (canvas + bitmap counted separately, both may coexist);
+ *  ?flatbudget=<MB> overrides it for measurements. An estimate of buffer sizes, not measured RAM/GPU use. */
+const FLAT_BUDGET = (() => {
+  let mb = TOUCH ? 96 : 256;
+  try { const v = Number(new URLSearchParams(location.search).get("flatbudget")); if (v > 0) mb = v; } catch { /* ssr */ }
+  return mb * 1024 * 1024;
+})();
+/** Upper bound on bookkeeping entries (empty chunks hold no buffer, only 1 KB of tokens). */
+const FLAT_MAX_ENTRIES = 1024;
+const bufBytes = (e: FlatChunk) => (e.cv ? e.cv.width * e.cv.height * 4 : 0);
+/** Bytes a baked chunk holds once its bitmap snapshot exists (canvas + bitmap). */
+const heldBytes = (e: FlatChunk) => (e.cv ? bufBytes(e) * (typeof createImageBitmap === "function" ? 2 : 1) : 0);
+const flatEst = new Map<number, number>();
+/** Upper-bound bytes of a full 16x16 chunk at bake quality q (same geometry as bakeFlatInner, both buffers). */
+function flatEstBytes(q: number): number {
+  let b = flatEst.get(q);
+  if (b === undefined) {
+    const w = iso(FC - 1, 0)[0] - iso(0, FC - 1)[0] + TW * 3, h = iso(FC - 1, FC - 1)[1] - iso(0, 0)[1] + TH * 2 + 42;
+    b = Math.ceil(w * q) * Math.ceil(h * q) * 4 * (typeof createImageBitmap === "function" ? 2 : 1); flatEst.set(q, b);
+  }
+  return b;
+}
+const newFlat = (): FlatChunk => ({ cv: null, q: 0, sk: "", tok: new Int32Array(FC * FC), dirty: true, full: false, baked: -1e9, empty: false });
+let flatSnap: Record<string, number> = {};
+if (perfOn() && typeof window !== "undefined") (window as unknown as { __flatState: () => Record<string, number> }).__flatState = () => ({ ...flatSnap });
+const visKeys: number[] = [], visPrio = new Map<number, number>(), admitted = new Set<number>();
 function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
   flatSet.clear();
   // near zoom: bake farmland/paths at screen resolution so acres stay as crisp as the buildings
   const q = Math.min(FLAT_QMAX, z > 3.2 ? 4 : z > 1.6 ? 2.5 : z > 0.6 ? 1 : 0.5), sk = seasonKey(now) + ":" + waySnow(now), ready = allTexturesReady() && natureReady();
-  let bakes = 0;
   const cx0 = Math.floor(x0 / FC), cx1 = Math.floor(x1 / FC), cy0 = Math.floor(y0 / FC), cy1 = Math.floor(y1 / FC);
+  const est = flatEstBytes(q);
+  // 1. admission: visible chunks sorted by distance to the view centre (tie: key) fill the budget in that fixed
+  //    order; the rest is drawn live. Deterministic for a fixed camera, so nothing is baked only to be evicted.
+  const mx = (cx0 + cx1) / 2, my = (cy0 + cy1) / 2;
+  visKeys.length = 0; visPrio.clear(); admitted.clear();
+  for (let iy = cy0; iy <= cy1; iy++) for (let ix = cx0; ix <= cx1; ix++) { const key = iy * 4096 + ix; visKeys.push(key); visPrio.set(key, (ix - mx) ** 2 + (iy - my) ** 2); }
+  visKeys.sort((a, b) => visPrio.get(a)! - visPrio.get(b)! || a - b);
+  let need = 0;
+  for (const key of visKeys) {
+    const e = flatCache.get(key);
+    // baked at the current quality: its real size (0 for empty chunks); otherwise the upper-bound estimate
+    const b = e && e.q === q && e.baked > -1e9 ? (e.empty ? 0 : heldBytes(e)) : est;
+    if (need + b > FLAT_BUDGET) break;
+    need += b; admitted.add(key);
+  }
+  let bakes = 0, staleAdmitted = 0, vBaked = 0;
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
-    const iy = s - ix, key = iy * 4096 + ix;
+    const iy = s - ix, key = iy * 4096 + ix, adm = admitted.has(key);
     let e = flatCache.get(key);
-    if (!e) { e = { cv: null, q: 0, sk: "", tok: new Int32Array(FC * FC), dirty: true, full: false, baked: -1e9, empty: false }; flatCache.set(key, e); }
+    if (!e) { if (!adm) continue; e = newFlat(); flatCache.set(key, e); }
     else { flatCache.delete(key); flatCache.set(key, e); }
     // art still loading: bake anyway, but refresh that chunk every 2 s until it is complete
     const stale = e.dirty || e.q !== q || e.sk !== sk || (!e.full && t - e.baked > 2000);
-    pCount("flat.chunksVisible"); if (stale) pCount("flat.chunksStale"); if (e.dirty) pCount("flat.chunksDirty");
-    if (stale && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false; }
-    if (e.empty && e.q === q) { flatSet.add(key); continue; }
+    if (stale && adm) staleAdmitted++;
+    if (stale && adm && perfOn()) pCount(e.baked <= -1e9 ? "flat.staleNew" : e.dirty ? "flat.staleDirty" : e.q !== q ? "flat.staleQ" : e.sk !== sk ? "flat.staleSeason" : "flat.staleArt");
+    if (perfOn()) { pCount("flat.chunksVisible"); if (stale && adm) pCount("flat.chunksStale"); if (e.dirty) pCount("flat.chunksDirty"); }
+    if (stale && adm && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; pCount("flat.bakeCount"); bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false; staleAdmitted--; }
+    if (e.empty && e.q === q) { flatSet.add(key); vBaked++; continue; }
     // soft fallback: while a re-bake is pending, keep showing the previous bake scaled (never live-draw the whole chunk)
-    if (e.cv && (e.q === q && e.sk === sk || e.q !== q && e.sk === sk)) { pCount("flat.chunksBlit"); c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); }
+    if (e.cv && e.sk === sk) { pCount("flat.chunksBlit"); c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); if (e.q === q) vBaked++; }
   }
-  // lookahead: in frames with no bake yet, prepare one chunk just off-screen so panning finds it ready
-  if (frameBakes < 1) {
+  // 2. lookahead: only once every admitted visible chunk is current and one more chunk fits the budget
+  let total = 0;
+  for (const e of flatCache.values()) total += heldBytes(e);
+  if (frameBakes < 1 && staleAdmitted === 0 && admitted.size === visKeys.length && total + est <= FLAT_BUDGET) {
     const ax0 = cx0 - 1, ax1 = cx1 + 1, ay0 = cy0 - 1, ay1 = cy1 + 1;
     outer: for (let iy = ay0; iy <= ay1; iy++) for (let ix = ax0; ix <= ax1; ix++) {
       if (ix >= cx0 && ix <= cx1 && iy >= cy0 && iy <= cy1) continue;
@@ -3544,13 +3589,38 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
       const key = iy * 4096 + ix;
       let e = flatCache.get(key);
       if (e && !e.dirty && e.q === q && e.sk === sk) continue;
-      if (!e) { e = { cv: null, q: 0, sk: "", tok: new Int32Array(FC * FC), dirty: true, full: false, baked: -1e9, empty: false }; flatCache.set(key, e); }
-      frameBakes++; bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false;
+      if (!e) { e = newFlat(); flatCache.set(key, e); }
+      frameBakes++; pCount("flat.bakeCount"); pCount("flat.lookaheadBakes");
+      bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false;
+      total += heldBytes(e);
       break outer;
     }
   }
-  if (flatCache.size > FLAT_KEEP) pCount("flat.chunksDropped", flatCache.size - FLAT_KEEP);
-  while (flatCache.size > FLAT_KEEP) dropFlat(flatCache.keys().next().value!);
+  // 3. eviction: oldest non-visible chunks first (visible ones were just moved to the end); only if that is not
+  //    enough, buffers of visible chunks outside the admitted set (lowest priority first) — never admitted ones
+  let dropped = 0, vDropped = 0;
+  if (total > FLAT_BUDGET || flatCache.size > FLAT_MAX_ENTRIES) {
+    for (const [key, e] of flatCache) {
+      if (total <= FLAT_BUDGET && flatCache.size <= FLAT_MAX_ENTRIES) break;
+      if (visPrio.has(key)) continue;
+      total -= heldBytes(e); dropFlat(key); dropped++;
+    }
+    for (let i = visKeys.length - 1; i >= 0 && total > FLAT_BUDGET; i--) {
+      const key = visKeys[i]!; if (admitted.has(key)) break;
+      const e = flatCache.get(key); if (!e) continue;
+      total -= heldBytes(e); dropFlat(key); vDropped++;
+    }
+  }
+  if (perfOn()) {
+    let cvB = 0, bmB = 0, look = 0;
+    for (const [key, e] of flatCache) { const b = bufBytes(e); cvB += b; if (e.bm) bmB += b; if (b && !visPrio.has(key)) look++; }
+    pCount("flat.visibleChunks", visKeys.length); pCount("flat.visibleAdmitted", admitted.size);
+    pCount("flat.visibleBaked", vBaked); pCount("flat.visibleUnbaked", visKeys.length - vBaked);
+    pCount("flat.lookaheadChunks", look); pCount("flat.cacheEntries", flatCache.size);
+    pCount("flat.cacheBytes", cvB + bmB); pCount("flat.canvasBytes", cvB); pCount("flat.bitmapBytes", bmB); pCount("flat.cacheBudgetBytes", FLAT_BUDGET);
+    if (dropped) pCount("flat.chunksDropped", dropped); if (vDropped) pCount("flat.visibleChunksDropped", vDropped);
+    flatSnap = { estHeldBytes: total, budget: FLAT_BUDGET, canvasBytes: cvB, bitmapBytes: bmB, entries: flatCache.size, visible: visKeys.length, admitted: admitted.size, baked: vBaked, q };
+  }
   return flatSet;
 }
 /** Planted rare trees keep their tile: no field, house or workshop is ever drawn over them (display only — household capacity is unchanged). Roads keep their ribbon. */
