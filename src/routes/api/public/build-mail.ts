@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
 
 // Scheduled every 15 min: writes a parchment letter to opted-in mayors whose bought building just finished.
-// Completion is derived from purchase time + specialBuild(seed) in builders' work hours (specialDone), exactly as the game computes it; nothing is stored.
+// Completion is derived from purchase time + specialBuild(seed) in builders' work hours (specialDone), exactly as the game computes it. Once-only delivery: DB outbox build_mail_outbox (src/lib/build-mail-outbox.ts).
 const WINDOW = 3 * 3600000;
 
 export const Route = createFileRoute("/api/public/build-mail")({
