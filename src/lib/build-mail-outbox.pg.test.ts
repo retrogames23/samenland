@@ -126,7 +126,7 @@ d("build-mail outbox (real PostgreSQL)", () => {
 
   it("cron down 6 h: every building finished meanwhile gets exactly one job afterwards", async () => {
     const H = 3.6e6, base = Math.max(MAIL_SINCE, Date.parse("2026-11-12T00:00:00Z"));
-    const items = ["granary", "school", "granary", "school"].map((k, i) => (i < 2 ? k : k)); const kinds = ["granary", "school", "backhaus", "herberge"]; items.splice(0, 4, ...kinds);
+    const items = ["granary", "school", "backhaus", "herberge"];
     const s: Seed = { id: "c", name: "P", owner: "o", x: 300, y: 300, hue: 0, created_at: "2026-04-24T00:00:00Z",
       bought: items.map((item, i) => ({ item, at: base + i * 2 * H, x: 303 + i * 2, y: 302 })) };
     const placed = new Set([...specialSites(s).values()].map((v) => v.at));
