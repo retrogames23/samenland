@@ -92,6 +92,7 @@ const de = {
   builders: "Zimmerleute vor Ort",
   nobody: "niemand gerade",
   tavern: {
+    tooLong: (n: number) => `Um ${n} Zeichen zu lang`,
     menu: "Taverne", title: "Zur Taverne", room: "Taverne", letters: "Briefe", mayors: "Dorfschulzen",
     stranger: "Fremder", alone: "noch niemand hier", signIn: "Melde dich an, um in der Taverne mitzureden.",
     empty: "Noch ist es still in der Taverne. Sag als Erste·r etwas!", emptyLetter: "Noch kein Brief gewechselt.",
@@ -470,6 +471,7 @@ const en: typeof de = {
   builders: "Carpenters on site",
   nobody: "nobody right now",
   tavern: {
+    tooLong: (n: number) => `${n} characters too long`,
     menu: "Tavern", title: "The Tavern", room: "tavern", letters: "Letters", mayors: "Mayors",
     stranger: "Stranger", alone: "nobody here yet", signIn: "Sign in to join the tavern talk.",
     empty: "The tavern is quiet. Be the first to speak!", emptyLetter: "No letters exchanged yet.",
@@ -848,6 +850,7 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
   builders: "工地上的木匠",
   nobody: "眼下无人",
   tavern: {
+    tooLong: (n: number) => `超出 ${n} 个字符`,
     menu: "酒馆", title: "酒馆", room: "酒馆", letters: "书信", mayors: "村长们",
     stranger: "陌生人", alone: "还没有人在这里", signIn: "登录后，便可加入酒馆闲谈。",
     empty: "酒馆里静悄悄的，先开口聊聊吧！", emptyLetter: "还没有往来书信。",
@@ -1227,6 +1230,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   builders: "現場の大工",
   nobody: "今は誰もいません",
   tavern: {
+    tooLong: (n: number) => `${n} 文字オーバー`,
     menu: "酒場", title: "酒場", room: "酒場", letters: "手紙", mayors: "村長たち",
     stranger: "旅人", alone: "まだ誰もいません", signIn: "酒場の語らいに加わるには、ログインしてください。",
     empty: "酒場は静かです。最初に声をかけてみましょう。", emptyLetter: "まだ手紙のやり取りはありません。",

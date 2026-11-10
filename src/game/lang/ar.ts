@@ -76,6 +76,7 @@ export const ar: Dict = {
   builders: "نجارون في الموقع",
   nobody: "لا أحد في الوقت الراهن",
   tavern: {
+    tooLong: (n: number) => `أطول من اللازم بـ ${n} حرفًا`,
     menu: "الحانة", title: "الحانة", room: "صدر الحانة", letters: "الرسائل", mayors: "العُمد",
     stranger: "غريب", alone: "لا أحد هنا بعد", signIn: "سجل الدخول لتشارك في مسامرة الحانة.",
     empty: "الحانة ساكنة. كن أول من يكسر الصمت!", emptyLetter: "لم يُتبادل أي رسائل بعد.",
