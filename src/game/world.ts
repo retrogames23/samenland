@@ -539,7 +539,7 @@ function yardKind(x: number, y: number, s: Seed, age: number, r: number, stage: 
   return stage <= 1 ? weighted(h, [["farmhouse",50],["barn",25],["garden",15],["coop",10]]) : weighted(h, [["cottage",40],["handwerker",20],["farmhouse",15],["barn",10],["garden",15]]);
 }
 /** Share of roadside tiles that carry a house (rest: gardens/open) and radius of the free village green. */
-export const PLOT_SHARE = 0.82, SQUARE_R = 2.6;
+export const PLOT_SHARE = 0.78, SQUARE_R = 2.6;
 function roadsideLot(x: number, y: number, s: Seed, age: number, r: number): boolean {
   if (!buildable(terrain(x, y)) || hash(x, y, 2) > PLOT_SHARE || pathAt(x, y, s, age, r)) return false;
   const d = townDist(x, y, s);
