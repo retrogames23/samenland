@@ -30,7 +30,9 @@ export const Route = createFileRoute("/api/public/build-mail")({
           supabaseAdmin.from("charters").select("seed_id, path, created_at").in("seed_id", ids),
         ]);
 
-        let sent = 0;
+        const { buildMailDoneAt } = await import("@/game/build-mail");
+        const { runOutbox, rpcStore } = await import("@/lib/build-mail-outbox");
+        const due: import("@/lib/build-mail-outbox").Due[] = [];
         for (const s0 of seeds) {
           const mine = (buys ?? []).filter((b) => b.seed_id === s0.id);
           if (!mine.length) continue;
@@ -43,26 +45,28 @@ export const Route = createFileRoute("/api/public/build-mail")({
           // night rest follows the village's own realm clock
           setRealm((s0.realm ?? "europe") as import("@/game/time").Realm);
           const placed = new Set([...specialSites(s).values()].map((v) => v.at));
-          const lang = (opts.find((o) => o.user_id === s0.user_id)?.lang ?? "de") as keyof typeof DICT;
           for (const b of mine) {
             if (!buildMailDue(s, b.item, Date.parse(b.created_at), placed, now, WINDOW)) continue;
-            const { data: u } = await supabaseAdmin.auth.admin.getUserById(s0.user_id!);
-            const email = u.user?.email;
-            if (!email) continue;
-            const mk = monumentOf(b.item);
-            const building = DICT[lang].items[(mk ? `${mk}1` : b.item) as keyof (typeof DICT)["de"]["items"]]?.[0] ?? b.item;
-            try {
-              const r = await sendTemplateEmail("building-done", email, {
-                templateData: { lang, mayor: s0.owner, town: s0.name, building },
-                idempotencyKey: `building-done-${b.id}`,
-              });
-              if (r.sent) sent++;
-            } catch (e) {
-              console.error("build-mail", e);
-            }
+            due.push({ purchaseId: b.id, seedId: s0.id, userId: s0.user_id!, item: b.item, doneAt: buildMailDoneAt(s, b.item, Date.parse(b.created_at), placed)! });
           }
         }
-        return Response.json({ sent });
+        const rpc = (fn: string, args: Record<string, unknown>) =>
+          (supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient).rpc(fn, args) as unknown as Promise<{ data: unknown; error: { message: string } | null }>;
+        const result = await runOutbox(rpcStore(rpc), due, async (row) => {
+          const s0 = seeds.find((x) => x.id === row.seed_id);
+          const { data: u } = await supabaseAdmin.auth.admin.getUserById(row.user_id);
+          const email = u.user?.email;
+          if (!email || !s0) return false; // nothing deliverable; settle as done so it is not retried forever
+          const lang = (opts.find((o) => o.user_id === row.user_id)?.lang ?? "de") as keyof typeof DICT;
+          const mk = monumentOf(row.item);
+          const building = DICT[lang].items[(mk ? `${mk}1` : row.item) as keyof (typeof DICT)["de"]["items"]]?.[0] ?? row.item;
+          const r = await sendTemplateEmail("building-done", email, {
+            templateData: { lang, mayor: s0.owner, town: s0.name, building },
+            idempotencyKey: `building-done-${row.purchase_id}`, // second, external guard layer
+          });
+          return r.sent;
+        });
+        return Response.json(result);
       },
     },
   },
