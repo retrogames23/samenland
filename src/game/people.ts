@@ -169,13 +169,15 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   // gathering spots sit in front of the inn / on market and squares, never on a roof
   const open = (x: number, y: number) => { const st = structureAt(x, y, seeds, now); return buildable(terrain(x, y)) && (!st || FLAT.has(st.kind)); };
   const front = (tl: Tile): Tile | null => { for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]] as const) if (open(tl[0] + dx, tl[1] + dy)) return [tl[0] + dx, tl[1] + dy]; return null; };
+  // meeting/play spots stay on the inner green (old 1.6 radius), clear of the houses ringing the wider square
+  const green = (byKind.get("square") ?? []).filter(([x, y]) => Math.hypot(x - s.x, y - s.y) < 1.6);
   const meets: Tile[] = [];
   for (const k of ["inn", "church", "chapel", "townhall", "seat2", "seat3", "stall", "bakery"] as Kind[]) for (const tl of byKind.get(k) ?? []) { const f = front(tl); if (f) meets.push(f); }
-  meets.push(...(byKind.get("market") ?? []), ...(byKind.get("square") ?? []).slice(0, 6));
+  meets.push(...(byKind.get("market") ?? []), ...green.slice(0, 6));
   if (!meets.length) meets.push([s.x + 1, s.y + 1]);
   const school = byKind.get("school")?.[0] ?? byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
   const meet = meets[0]!;
-  const plays: Tile[] = [...(byKind.get("pasture") ?? []), ...(byKind.get("square") ?? [])].slice(0, 8);
+  const plays: Tile[] = [...(byKind.get("pasture") ?? []), ...green].slice(0, 8);
   if (!plays.length) plays.push([s.x + 1, s.y - 2]);
   const play = plays[0]!;
 
