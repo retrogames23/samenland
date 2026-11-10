@@ -23,10 +23,25 @@ describe("shared occupied households", () => {
     expect(householdsOf(s, [s], at).length).toBeGreaterThanOrEqual(24);
     expect(stageOf(effAge(s, [s], at))).toBe(2);
   });
-  it("winter lowers the same supply ceiling for both views without wiping out families", () => {
+  it("winter keeps the same household ceiling as autumn", () => {
     const s = seed(), land = new Map<Kind, unknown[]>([["field", Array(200).fill(null)]]);
     expect(foodCapacity(s, land, Date.parse("2026-07-01"))).toBe(32);
     expect(foodCapacity(s, land, Date.parse("2026-12-15"))).toBe(32);
+  });
+  it("households keep count and identity through autumn, winter and spring", () => {
+    const s = seed(["fisher", "granary"]), key = (at: number) => householdsOf(s, [s], at).map(h => `${h.home}:${h.unit ?? 0}:${h.size}`);
+    const autumn = Date.parse("2026-11-20T12:00:00Z"), winter = Date.parse("2026-12-20T12:00:00Z"), spring = Date.parse("2027-03-20T12:00:00Z");
+    const a = key(autumn), w = key(winter), sp = key(spring);
+    expect(w.length).toBeGreaterThanOrEqual(a.length);
+    for (const h of a) expect(w).toContain(h);
+    // No artificial spring bounce: spring only adds what ordinary growth adds over the same span.
+    for (const h of w) expect(sp).toContain(h);
+    expect(new Set(w).size).toBe(w.length);
+  }, 20000);
+  it("winter still raises sickness independently of housing", async () => {
+    const { sickRate } = await import("./people");
+    const s = seed();
+    expect(sickRate(s, Date.parse("2026-12-20T12:00:00Z"))).toBeGreaterThan(sickRate(s, Date.parse("2026-07-01T12:00:00Z")));
   });
   it("ordinary, skilled and wealthy residents are assessed at 1, 2 and 3 Taler", () => {
     // Stable estate rolls .53 and .24 at wealth 100: skilled and wealthy respectively.
