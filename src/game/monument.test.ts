@@ -29,16 +29,16 @@ describe("prestige belfry", () => {
 describe("further prestige monuments", () => {
   it("cathedral: 5 steps of 800/1000/1200/1400/1600 from Handelsstadt", () => {
     expect(MONUMENTS.cathedral.prices).toEqual([800, 1000, 1200, 1400, 1600]);
-    expect(MONUMENTS.cathedral.stage).toBe(4);
+    expect(MONUMENTS.cathedral.rank).toBe(4);
     expect(MONUMENT_PRICE["cathedral5"]).toBe(1600);
   });
   it("cathedral is no longer an automatic landmark", () => expect(LANDMARKS.some((l) => l.kind === "factory")).toBe(false));
   it("theater from Kleinstadt, opera from Metropole", () => {
-    expect(MONUMENTS.theater.stage).toBe(3);
-    expect(MONUMENTS.opera.stage).toBe(5);
+    expect(MONUMENTS.theater.rank).toBe(3);
+    expect(MONUMENTS.opera.rank).toBe(5);
   });
   it("university, exchange and orangery exist from Handelsstadt", () => {
-    for (const k of ["university", "exchange", "orangery"] as const) expect(MONUMENTS[k].stage).toBe(4);
+    for (const k of ["university", "exchange", "orangery"] as const) expect(MONUMENTS[k].rank).toBe(4);
   });
   it("steps parse to their monument", () => {
     expect(monumentOf("opera4")).toBe("opera");

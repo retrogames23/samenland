@@ -1,7 +1,7 @@
 import { RANK_NEED, rankInput } from "@/game/rank";
 import { LANDMARKS, STAGES, careMissing, type Seed } from "@/game/world";
 import { ITEMS, MONUMENTS, canBuy, canBuyWay, type Item } from "@/game/economy";
-import { ITEM_STAGE } from "@/game/disasters";
+import { ITEM_RANK } from "@/game/disasters";
 import { OUTLOOK } from "@/game/lang/outlook";
 import type { DICT, Lang } from "@/game/i18n";
 import type { TownWay } from "@/game/character";
@@ -12,8 +12,8 @@ type T = (typeof DICT)["de"];
 export function stageUnlocks(stage: number, charter: string | null | undefined, way: TownWay | undefined) {
   const lo = STAGES[stage]?.from ?? Infinity, hi = STAGES[stage + 1]?.from ?? Infinity;
   const grows = [...new Set(LANDMARKS.filter((l) => l.at >= lo && l.at < hi && (stage === 0 ? true : l.at > 0)).map((l) => l.kind))];
-  const items = (Object.keys(ITEMS) as Item[]).filter((it) => (ITEM_STAGE[it] ?? 0) === stage && canBuy(it, charter as never) && canBuyWay(it, way));
-  const monuments = (Object.keys(MONUMENTS) as (keyof typeof MONUMENTS)[]).filter((k) => MONUMENTS[k].stage === stage && (!MONUMENTS[k].way || MONUMENTS[k].way === way));
+  const items = (Object.keys(ITEMS) as Item[]).filter((it) => (ITEM_RANK[it] ?? 0) === stage && canBuy(it, charter as never) && canBuyWay(it, way));
+  const monuments = (Object.keys(MONUMENTS) as (keyof typeof MONUMENTS)[]).filter((k) => MONUMENTS[k].rank === stage && (!MONUMENTS[k].way || MONUMENTS[k].way === way));
   return { grows, items, monuments };
 }
 

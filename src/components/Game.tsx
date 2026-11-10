@@ -31,7 +31,7 @@ import { Panel, WoodButton } from "@/components/hud/Panel";
 import { Parchment, WaxSeal, buzz } from "@/components/hud/Parchment";
 import { EncounterDialog, RoadDialog, PactDialog, CharterDialog } from "@/components/dialogs/DecisionDialogs";
 import { ART, pickDecision } from "@/game/decisions";
-import { ITEM_STAGE } from "@/game/disasters";
+import { ITEM_RANK } from "@/game/disasters";
 import type { DecisionKind } from "@/game/decision-order";
 import { Minimap } from "@/components/hud/Minimap";
 import { rideTime, letterArrives } from "@/game/wander";
@@ -1813,7 +1813,7 @@ export function Game() {
   const [waitShut, setWaitShut] = useState(false);
   const waitDone = (() => {
     if (!owner || !my || !at) return null;
-    const cheapest = Math.min(...(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && canBuyWay(it, my ? wayOf(my) : undefined) && !at.has(it) && (ITEM_STAGE[it] ?? 0) <= myStage).map((it) => ITEMS[it]));
+    const cheapest = Math.min(...(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && canBuyWay(it, my ? wayOf(my) : undefined) && !at.has(it) && (ITEM_RANK[it] ?? 0) <= myStage).map((it) => ITEMS[it]));
     if (cash >= cheapest) return null;
     const ends = [...specialSites(my).values()].map((s) => specialDone(my, seeds, s.at)).filter((e) => e > slow);
     return ends.length ? Math.min(...ends) : null;
@@ -1933,7 +1933,7 @@ export function Game() {
     const rollback = (m: string) => { setPurchases((s) => s.filter((p) => p.id !== tmpId)); setMsg(m); };
     if (!await prepareSpend()) return rollback(t.buyFail);
     // rank-gated items: the server counts citizens, homes and roads itself before the guard accepts the row
-    const needRank = monumentOf(item) && /1$/.test(item) ? MONUMENTS[monumentOf(item)!].stage : ({ ...TITLE_STAGE, ...CHEST_STAGE, ...RANK_STAGE } as Record<string, number>)[item] ?? (ITEM_STAGE[item] ?? 0);
+    const needRank = monumentOf(item) && /1$/.test(item) ? MONUMENTS[monumentOf(item)!].rank : ({ ...TITLE_STAGE, ...CHEST_STAGE, ...RANK_STAGE } as Record<string, number>)[item] ?? (ITEM_RANK[item] ?? 0);
     if (needRank > 0) { try { await certifyFn({ data: { seed: my.id } }); } catch { return rollback(t.buyFail); } }
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) return rollback(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
@@ -2108,9 +2108,9 @@ export function Game() {
             </div>
           )}
           {(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && canBuyWay(it, my ? wayOf(my) : undefined) && !at.has(it))
-            .sort((a, b) => ((ITEM_STAGE[a] ?? 0) > myStage ? 1 : 0) - ((ITEM_STAGE[b] ?? 0) > myStage ? 1 : 0) || (ITEM_STAGE[a] ?? 0) - (ITEM_STAGE[b] ?? 0) || ITEMS[a] - ITEMS[b])
+            .sort((a, b) => ((ITEM_RANK[a] ?? 0) > myStage ? 1 : 0) - ((ITEM_RANK[b] ?? 0) > myStage ? 1 : 0) || (ITEM_RANK[a] ?? 0) - (ITEM_RANK[b] ?? 0) || ITEMS[a] - ITEMS[b])
             .map((it) => {
-            const lockedIt = (ITEM_STAGE[it] ?? 0) > myStage;
+            const lockedIt = (ITEM_RANK[it] ?? 0) > myStage;
             return (
               <div key={it} className={`rounded-md border border-border bg-secondary/60 p-2 ${lockedIt ? "opacity-60" : ""}`}>
                 <div className="flex items-center gap-2">
@@ -2121,24 +2121,24 @@ export function Game() {
                 <div className="text-xs text-muted-foreground">{t.items[it]![1]}</div>
                 <div className="mt-1.5">
                   {at.has(it) ? <span className="text-xs font-semibold text-primary">{t.owned}</span> : (
-                    (ITEM_STAGE[it] ?? 0) > myStage ? <span className="text-xs text-muted-foreground">🔒 {t.needStage(t.stages[ITEM_STAGE[it]!] ?? "")}{RANK_NEED[ITEM_STAGE[it]! - 1] ? ` (${RANK_NEED[ITEM_STAGE[it]! - 1]![0]} ${OUTLOOK[lang].cit}, ${RANK_NEED[ITEM_STAGE[it]! - 1]![1]} ${OUTLOOK[lang].homes}${RANK_NEED[ITEM_STAGE[it]! - 1]![2] ? `, ${RANK_NEED[ITEM_STAGE[it]! - 1]![2]} ${OUTLOOK[lang].roads}` : ""})` : ""}</span> :
+                    (ITEM_RANK[it] ?? 0) > myStage ? <span className="text-xs text-muted-foreground">🔒 {t.needStage(t.stages[ITEM_RANK[it]!] ?? "")}{RANK_NEED[ITEM_RANK[it]! - 1] ? ` (${RANK_NEED[ITEM_RANK[it]! - 1]![0]} ${OUTLOOK[lang].cit}, ${RANK_NEED[ITEM_RANK[it]! - 1]![1]} ${OUTLOOK[lang].homes}${RANK_NEED[ITEM_RANK[it]! - 1]![2] ? `, ${RANK_NEED[ITEM_RANK[it]! - 1]![2]} ${OUTLOOK[lang].roads}` : ""})` : ""}</span> :
                     <Button size="sm" className="h-7 w-full" disabled={cash < ITEMS[it]} onClick={() => { setPlacing(it); setTab(null); setMsg(t.place.pick(t.items[it]![0])); if (my) focus(my.x, my.y); }}>{t.hud.build}</Button>
                   )}
                 </div>
               </div>
             );
           })}
-          {my && MONUMENT_KEYS.filter((k) => myStage < MONUMENTS[k].stage && (!MONUMENTS[k].way || MONUMENTS[k].way === wayOf(my))).sort((a, b) => MONUMENTS[a].stage - MONUMENTS[b].stage).map((key) => (
+          {my && MONUMENT_KEYS.filter((k) => myStage < MONUMENTS[k].rank && (!MONUMENTS[k].way || MONUMENTS[k].way === wayOf(my))).sort((a, b) => MONUMENTS[a].rank - MONUMENTS[b].rank).map((key) => (
             <div key={`lock-${key}`} className="rounded-md border border-brass/40 bg-brass/5 p-2 opacity-60">
               <div className="flex items-center gap-2">
                 {spriteUrl(MONUMENT_DEFS[key].kind) && <img src={spriteUrl(MONUMENT_DEFS[key].kind)} alt="" loading="lazy" className="h-12 w-10 shrink-0 object-contain grayscale" />}
                 <span className="flex-1 font-semibold">{t.monuments[key]!.title}</span>
               </div>
               <div className="text-xs text-muted-foreground">{t.items[`${key}1`]![1]}</div>
-              <div className="mt-1 text-xs text-muted-foreground">🔒 {t.needStage(t.stages[MONUMENTS[key].stage] ?? "")}</div>
+              <div className="mt-1 text-xs text-muted-foreground">🔒 {t.needStage(t.stages[MONUMENTS[key].rank] ?? "")}</div>
             </div>
           ))}
-          {my && MONUMENT_KEYS.filter((k) => myStage >= MONUMENTS[k].stage && (!MONUMENTS[k].way || MONUMENTS[k].way === wayOf(my))).map((key) => {
+          {my && MONUMENT_KEYS.filter((k) => myStage >= MONUMENTS[k].rank && (!MONUMENTS[k].way || MONUMENTS[k].way === wayOf(my))).map((key) => {
             const steps = monumentSteps(key), mt = t.monuments[key]!;
             const paid = purchases.filter((p) => p.seed_id === my.id && steps.includes(p.item));
             const next = nextMonumentStep(paid.map((p) => p.item), key);
