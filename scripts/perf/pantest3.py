@@ -3,10 +3,12 @@ Logs flat.* counters per 1 s window; after each phase waits for settling and rec
 import asyncio, json, os
 from pathlib import Path
 from playwright.async_api import async_playwright
-OUT = Path("/tmp/browser/perf3/pan"); OUT.mkdir(parents=True, exist_ok=True)
+import sys
+BUD = sys.argv[1] if len(sys.argv) > 1 else ""
+OUT = Path("/tmp/browser/perf3/budget" + BUD if BUD else "/tmp/browser/perf3/pan"); OUT.mkdir(parents=True, exist_ok=True)
 C = (324, 442); DAY = "2026-11-10T11:00:00Z"
 FIXT = """(()=>{const T0=Date.parse('%s'),D=Date,off=T0-D.now();class FD extends D{constructor(...a){if(a.length)super(...a);else super(D.now()+off)}static now(){return D.now()+off}};window.Date=FD})();""" % DAY
-K = ["flat.visibleChunks","flat.visibleAdmitted","flat.visibleBaked","flat.visibleUnbaked","flat.chunksStale","flat.lookaheadChunks","flat.cacheEntries","flat.cacheBytes","flat.canvasBytes","flat.bitmapBytes","flat.chunksDropped","flat.visibleChunksDropped","flat.bakeCount"]
+K = ["flat.staleNew","flat.staleDirty","flat.staleQ","flat.staleSeason","flat.staleArt","flat.visibleChunks","flat.visibleAdmitted","flat.visibleBaked","flat.visibleUnbaked","flat.chunksStale","flat.lookaheadChunks","flat.cacheEntries","flat.cacheBytes","flat.canvasBytes","flat.bitmapBytes","flat.chunksDropped","flat.visibleChunksDropped","flat.bakeCount"]
 async def window(page, label, log):
     await page.evaluate("n=>window.__perf.reset(n)", label); await page.wait_for_timeout(1000)
     s = await page.evaluate("()=>window.__perf.summary()"); c = s["countsPerFrame"]
@@ -15,7 +17,7 @@ async def window(page, label, log):
 async def settle(page, label, log, maxs=120):
     for i in range(maxs):
         r = await window(page, f"{label}.settle{i}", log)
-        if r["flat.chunksStale"] == 0 and i > 1: return {"settled_s": i + 1, **r}
+        if (r["flat.chunksStale"] == 0 or (BUD and i > 30)) and i > 1: return {"settled_s": i + 1, **r}
     return {"settled_s": None, **r}
 async def main():
     sess = os.environ.get("LOVABLE_BROWSER_SUPABASE_SESSION_JSON", ""); key = os.environ.get("LOVABLE_BROWSER_SUPABASE_STORAGE_KEY", "x")
@@ -26,7 +28,7 @@ async def main():
         page = await ctx.new_page()
         await page.goto("http://localhost:8080/?nosplash", wait_until="domcontentloaded")
         await page.evaluate("([k,v])=>{localStorage.setItem(k,v);localStorage.setItem('samenland-realm','europe');localStorage.setItem('samenland-guide-seen','1')}", [key, sess])
-        await page.goto("http://localhost:8080/?perf=1&weather=clear&season=autumn", wait_until="domcontentloaded")
+        await page.goto("http://localhost:8080/?perf=1" + (f"&flatbudget={BUD}" if BUD else "") + "&weather=clear&season=autumn", wait_until="domcontentloaded")
         await page.wait_for_function("()=>window.__perfCam", timeout=90000); await page.wait_for_timeout(6000)
         for z in (0.8, 0.5):
             await page.evaluate("([x,y,z])=>window.__perfCam(x,y,z)", [*C, z]); res[f"start_z{z}"] = await settle(page, f"start_z{z}", log)
