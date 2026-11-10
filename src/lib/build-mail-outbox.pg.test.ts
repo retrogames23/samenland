@@ -6,16 +6,16 @@ import { runOutbox, type Due, type OutboxRow, type OutboxStore } from "./build-m
 import { buildMailDue } from "@/game/build-mail";
 import { monumentDone, specialDone, specialSites, type Seed } from "@/game/world";
 
-const URL = process.env.BUILD_MAIL_TEST_PG;
+const URL = process.env["BUILD_MAIL_TEST_PG"];
 const d = URL ? describe : describe.skip;
 const SQL = readFileSync(new globalThis.URL("../../db/pending/build_mail_outbox.sql", import.meta.url), "utf8");
 
 d("build-mail outbox (real PostgreSQL)", () => {
   const sql = postgres(URL!, { max: 4, onnotice: () => {} });
   const store = (db = sql): OutboxStore => ({
-    enqueue: async (x) => (await db`select public.build_mail_enqueue(${x.purchaseId}, ${x.seedId}, ${x.userId}, ${x.item}, ${new Date(x.doneAt)}) as r`)[0]!.r,
+    enqueue: async (x) => (await db`select public.build_mail_enqueue(${x.purchaseId}, ${x.seedId}, ${x.userId}, ${x.item}, ${new Date(x.doneAt)}) as r`)[0]!["r"],
     claim: async (n) => (await db`select * from public.build_mail_claim(${n})`) as unknown as OutboxRow[],
-    finish: async (p, t, ok, e) => (await db`select public.build_mail_finish(${p}, ${t}, ${ok}, ${e ?? null}) as r`)[0]!.r,
+    finish: async (p, t, ok, e) => (await db`select public.build_mail_finish(${p}, ${t}, ${ok}, ${e ?? null}) as r`)[0]!["r"],
   });
   const due = (id: string, item = "school"): Due => ({ purchaseId: id, seedId: "00000000-0000-0000-0000-00000000000a", userId: "00000000-0000-0000-0000-00000000000b", item, doneAt: Date.now() });
   const P1 = "00000000-0000-0000-0000-000000000001";
@@ -56,12 +56,12 @@ d("build-mail outbox (real PostgreSQL)", () => {
     expect(ra.enqueued + rb.enqueued).toBe(1);
     expect(ra.claimed + rb.claimed).toBe(1);
     expect(mails).toEqual([P1]);
-    expect((await rows()).map((x) => x.status)).toEqual(["sent"]);
+    expect((await rows()).map((x) => x["status"])).toEqual(["sent"]);
   });
 
   it("successful send: status sent, never claimed again", async () => {
     await runOutbox(store(), [due(P1)], ok);
-    expect((await rows())[0]!.status).toBe("sent");
+    expect((await rows())[0]!["status"]).toBe("sent");
     for (let i = 0; i < 5; i++) await runOutbox(store(), [due(P1)], ok);
     expect(mails).toEqual([P1]);
   });
@@ -79,10 +79,10 @@ d("build-mail outbox (real PostgreSQL)", () => {
     const boom = async () => { throw new Error("x"); };
     for (let i = 0; i < 7; i++) await runOutbox(store(), [due(P1)], boom);
     expect((await rows())[0]).toMatchObject({ status: "failed", attempts: 5 });
-    expect((await sql`select public.build_mail_retry(${P1}) as r`)[0]!.r).toBe(true);
+    expect((await sql`select public.build_mail_retry(${P1}) as r`)[0]!["r"]).toBe(true);
     await runOutbox(store(), [], ok);
-    expect((await rows())[0]!.status).toBe("sent");
-    expect((await sql`select public.build_mail_retry(${P1}) as r`)[0]!.r).toBe(false);
+    expect((await rows())[0]!["status"]).toBe("sent");
+    expect((await sql`select public.build_mail_retry(${P1}) as r`)[0]!["r"]).toBe(false);
   });
 
   it("crashed worker: expired 'sending' lease is reclaimed, stale token cannot settle", async () => {
@@ -91,7 +91,7 @@ d("build-mail outbox (real PostgreSQL)", () => {
     await sql`update public.build_mail_outbox set claimed_at = now() - interval '11 minutes'`;
     await runOutbox(store(), [], ok);
     expect(await store().finish(P1, stale!.claim_token, false, "late")).toBe(false);
-    expect((await rows())[0]!.status).toBe("sent");
+    expect((await rows())[0]!["status"]).toBe("sent");
   });
 
   it("monument: no job before the whole work stands; one job after", async () => {
