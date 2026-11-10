@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { structureAt, type Seed } from "./world";
 
 const start = Date.parse("2026-01-01T00:00:00Z"), day = 864e5;
-const town = (id: string, x = 436, y = 124): Seed => ({ id, x, y, name: "Q", owner: "L", hue: 1, user_id: "u", created_at: new Date(start).toISOString(), bought: [] });
+const town = (id: string, x = 436, y = 124): Seed => ({ id, x, y, name: "Q", owner: "L", hue: 1, user_id: "u", created_at: new Date(start).toISOString(), bought: ["fisher", "hunter", "granary", "dairy", "herbs", "healer"].map(item => ({ item, at: start })) });
 const kindsOf = (s: Seed, at: number) => {
   const out = new Map<string, string>();
   for (let y = s.y - 30; y <= s.y + 30; y++) for (let x = s.x - 30; x <= s.x + 30; x++) {
