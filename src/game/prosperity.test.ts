@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { civicWealth, estateShares, estateAssessment, estateAt, estateHouse, ESTATE_TAX } from "./prosperity";
 import { ITEMS, taxEarned, dailyTax } from "./economy";
 import { structureAt, type Seed } from "./world";
-import { ITEM_STAGE } from "./disasters";
+import { ITEM_RANK } from "./disasters";
 const t0 = Date.UTC(2026, 0, 1), day = 864e5;
 const seed: Seed = { id: "wealth-test", name: "Test", owner: "Test", x: 500, y: 500, hue: 50, created_at: new Date(t0).toISOString() };
 describe("civic prosperity", () => {
@@ -10,7 +10,7 @@ describe("civic prosperity", () => {
   it("skilled workers pay 2 Taler daily", () => expect(ESTATE_TAX.skilled).toBe(2));
   it("wealthy citizens pay 3 Taler daily", () => expect(ESTATE_TAX.wealthy).toBe(3));
   it("school costs 1200 Taler", () => expect(ITEMS.school).toBe(1200));
-  it("school opens in the small-town era", () => expect(ITEM_STAGE["school"]).toBe(3));
+  it("school opens in the small-town era", () => expect(ITEM_RANK["school"]).toBe(3));
   it("completed roads give 10 civic wealth, capped at 30", () => {
     expect(civicWealth({ ...seed, civicRoads: [{ at: t0 }] }, t0)).toBe(35);
     expect(civicWealth({ ...seed, civicRoads: Array.from({ length: 5 }, () => ({ at: t0 })) }, t0)).toBe(55);

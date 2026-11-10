@@ -3,9 +3,9 @@ import { giftBalance, type Gift } from "./gifts";
 import { civicWealth, estateAssessment, sickLoss, sickTaxRate } from "./prosperity";
 import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
-import { raidLoss, raids, floodFood } from "./disasters";
+import { raidLoss, raids, floodFood, ITEM_RANK } from "./disasters";
 import { dowryEarned, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
-import { speedParts, radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
+import { speedParts, radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, monumentOf, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
 
 /** Starting treasury and fixed prices (Mark). Prices mirror the database purchase guard. */
 export const START_TALER = 160;
@@ -15,24 +15,26 @@ export type Item = keyof typeof ITEMS;
  * Prestige monuments built in paid steps (prices mirror the database purchase guard).
  * stage = growth stage from which the build menu offers it; bonuses apply once every step is finished.
  */
-export const MONUMENTS: Record<MonumentKey, { stage: number; prices: number[]; food?: number; health?: number; wealth?: number; way?: TownWay }> = {
-  belfry: { stage: 3, prices: [400, 500, 600, 700], wealth: 15, health: 5 },
-  theater: { stage: 3, prices: [500, 700, 900], wealth: 15, health: 5 },
-  cathedral: { stage: 4, prices: [800, 1000, 1200, 1400, 1600], wealth: 20, health: 10 },
-  university: { stage: 4, prices: [700, 900, 1100, 1300], wealth: 15, health: 15 },
-  exchange: { stage: 4, prices: [700, 900, 1100, 1300], wealth: 20, food: 5 },
-  orangery: { stage: 4, prices: [500, 700, 900], health: 15, food: 5, wealth: 10 },
-  opera: { stage: 5, prices: [1200, 1500, 1800, 2100], wealth: 25 },
+export const MONUMENTS: Record<MonumentKey, { rank: number; prices: number[]; food?: number; health?: number; wealth?: number; way?: TownWay }> = {
+  belfry: { rank: 3, prices: [400, 500, 600, 700], wealth: 15, health: 5 },
+  theater: { rank: 3, prices: [500, 700, 900], wealth: 15, health: 5 },
+  cathedral: { rank: 4, prices: [800, 1000, 1200, 1400, 1600], wealth: 20, health: 10 },
+  university: { rank: 4, prices: [700, 900, 1100, 1300], wealth: 15, health: 15 },
+  exchange: { rank: 4, prices: [700, 900, 1100, 1300], wealth: 20, food: 5 },
+  orangery: { rank: 4, prices: [500, 700, 900], health: 15, food: 5, wealth: 10 },
+  opera: { rank: 5, prices: [1200, 1500, 1800, 2100], wealth: 25 },
   // Way monuments: one per town character, same price and same bonus total (25), so no founding site is favoured.
-  harvest: { stage: 3, prices: [450, 600, 750], food: 15, health: 5, wealth: 5, way: "grain" },
-  guildtower: { stage: 3, prices: [450, 600, 750], wealth: 15, health: 10, way: "workshop" },
-  lighthouse: { stage: 3, prices: [450, 600, 750], wealth: 10, food: 10, health: 5, way: "gateway" },
+  harvest: { rank: 3, prices: [450, 600, 750], food: 15, health: 5, wealth: 5, way: "grain" },
+  guildtower: { rank: 3, prices: [450, 600, 750], wealth: 15, health: 10, way: "workshop" },
+  lighthouse: { rank: 3, prices: [450, 600, 750], wealth: 10, food: 10, health: 5, way: "gateway" },
 };
 /** Flat price list per step item, e.g. { belfry1: 400, …, opera4: 2100 }. */
 export const MONUMENT_PRICE: Record<string, number> = Object.fromEntries(
   MONUMENT_KEYS.flatMap((k) => MONUMENTS[k].prices.map((p, i) => [`${k}${i + 1}`, p] as const)));
 export type MonumentStep = string;
-export const MONUMENT_STAGE = MONUMENTS.belfry.stage;
+/** Settlement rank each monument needs; all its steps are then buyable one after another without waiting. */
+export const MONUMENT_RANK = Object.fromEntries(MONUMENT_KEYS.map((k) => [k, MONUMENTS[k].rank])) as Record<MonumentKey, number>;
+export const MONUMENT_STAGE = MONUMENT_RANK.belfry;
 export const BELFRY_WEALTH = MONUMENTS.belfry.wealth!, BELFRY_HEALTH = MONUMENTS.belfry.health!;
 /** Next step of a monument to pay for, or null when all are paid. */
 export const nextMonumentStep = (paid: string[], key: MonumentKey = "belfry"): string | null =>
@@ -325,3 +327,12 @@ export function titleBoons(s: Seed, purchases: { seed_id: string; item: string }
   for (const b of TITLE_BONUS[s.charter.path].slice(0, n)) for (const k of ["food", "health", "wealth"] as const) out[k] += b[k] ?? 0;
   return out;
 }
+
+/** Settlement rank a purchase key needs before the server accepts it — mirrors DB purchase_guard need_rank exactly
+ *  (monuments: first step only; later steps need the previous one). Age or elapsed time is never part of it. */
+export function needRankOf(item: string): number {
+  const mk = monumentOf(item);
+  if (mk) return /1$/.test(item) ? MONUMENT_RANK[mk] : 0;
+  return ({ ...TITLE_STAGE, ...CHEST_STAGE, ...RANK_STAGE } as Record<string, number>)[item] ?? ITEM_RANK[item] ?? 0;
+}
+export const rankAllows = (item: string, townRank: number) => townRank >= needRankOf(item);

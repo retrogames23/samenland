@@ -17,7 +17,8 @@ export const FLOOD_LEN = 48 * H, FLOOD_REBUILD = 48 * H, FLOOD_RICH = 14 * DAY;
 export const FLOOD_FOOD_LOSS = 20, FLOOD_FOOD_GAIN = 20;
 export const RAID_FIRST = 10 * DAY, RAID_EVERY = 17 * DAY, RAID_LOSS = 25, RAID_LEN = 45 * 6e4;
 /** Stage (0–5) from which the fire house and the town guard can be bought. */
-export const ITEM_STAGE: Record<string, number> = { backhaus: 1, herberge: 1, beginen: 2, badestube: 3, woodcamp: 1, granary: 1, healer: 1, school: 3, firehouse: 3, guard: 4, bigstore: 1, stonemason: 1, smokehouse: 1, millrow: 3, hammerworks: 3, saltquay: 3 };
+/** Settlement rank (townRank 0 Siedlung … 5 Hansestadt) each shop building needs — the only general purchase gate, never time; mirrors DB purchase_guard need_rank. */
+export const ITEM_RANK: Record<string, number> = { herbs: 0, hunter: 0, fisher: 0, markethall: 0, guildhall: 0, library: 0, dairy: 0, backhaus: 1, herberge: 1, beginen: 2, badestube: 3, woodcamp: 1, granary: 1, healer: 1, school: 3, firehouse: 3, guard: 4, bigstore: 1, stonemason: 1, smokehouse: 1, millrow: 3, hammerworks: 3, saltquay: 3 };
 
 const AFFECTED = new Set(["hut", "suburb", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "barn", "workshop", "stall", "coop", "inn", "bakery"]);
 export const canBurn = (k: string) => AFFECTED.has(k);

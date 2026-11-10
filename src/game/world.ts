@@ -644,13 +644,15 @@ export const SPECIAL_KIND: Record<string, Kind> = { backhaus: "backhaus", herber
   ...Object.fromEntries(MONUMENT_KEYS.map((k) => [`${k}1`, MONUMENT_DEFS[k].kind])) };
 /** Belfry steps (kept for the guild-rank requirement). */
 export const MONUMENT_STEPS = ["belfry1", "belfry2", "belfry3", "belfry4"] as const;
-/** Construction progress 0…1 of a monument: each paid step adds 1/n, built over specialBuild. */
+/** Construction progress 0…1 of a monument. Paying a step is not building it: steps are built one after another,
+ *  each over specialBuild work time, starting when it is paid or the previous step is finished, whichever is later —
+ *  so buying all steps at once never makes the site jump ahead. */
 export function monumentProgress(s: Seed, now: number, key: MonumentKey = "belfry", mill = false): number {
-  const n = MONUMENT_DEFS[key].n;
-  const steps = (s.bought ?? []).filter((b) => monumentOf(b.item) === key && b.at <= now);
-  if (!steps.length) return 0;
-  const last = Math.max(...steps.map((b) => b.at));
-  return Math.min(n, steps.length - 1 + Math.min(1, (workClock(now) - workClock(last)) / specialBuild(s, mill))) / n;
+  const n = MONUMENT_DEFS[key].n, B = specialBuild(s, mill), w = workClock(now);
+  const steps = (s.bought ?? []).filter((b) => monumentOf(b.item) === key && b.at <= now).map((b) => b.at).sort((a, b) => a - b);
+  let end = -Infinity, sum = 0;
+  for (const at of steps) { const start = Math.max(workClock(at), end); end = start + B; sum += Math.min(1, Math.max(0, (w - start) / B)); }
+  return Math.min(n, sum) / n;
 }
 /** Craft charter halves the construction time of bought buildings. */
 /** Craft charter halves, a woodcutter's camp (ready timber) shortens build time by a quarter — both pure from purchases. */
@@ -672,7 +674,10 @@ export function specialDone(s: Seed, seeds: Seed[], at: number): number {
 export function monumentDone(s: Seed, seeds: Seed[], key: MonumentKey): number | null {
   const steps = (s.bought ?? []).filter((b) => monumentOf(b.item) === key);
   if (steps.length < MONUMENT_DEFS[key].n) return null;
-  return specialDone(s, seeds, Math.max(...steps.map((b) => b.at)));
+  // same sequential chain as monumentProgress: each step starts once paid and the previous one stands
+  let done = -Infinity;
+  for (const at of steps.map((b) => b.at).sort((a, b) => a - b)) done = specialDone(s, seeds, Math.max(at, done));
+  return done;
 }
 /** The tile of each bought building kind of a seed (pure). */
 export function specialTile(s: Seed, kind: Kind): [number, number] | null {
