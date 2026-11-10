@@ -1,6 +1,6 @@
 import { RANK_NEED, rankInput } from "@/game/rank";
-import { LANDMARKS, STAGES, careMissing, type Seed } from "@/game/world";
-import { ITEMS, MONUMENTS, canBuy, canBuyWay, type Item } from "@/game/economy";
+import { LANDMARKS, STAGES, MONUMENT_KEYS, careMissing, type Seed } from "@/game/world";
+import { ITEMS, MONUMENTS, MONUMENT_RANK, canBuy, canBuyWay, type Item } from "@/game/economy";
 import { ITEM_RANK } from "@/game/disasters";
 import { OUTLOOK } from "@/game/lang/outlook";
 import type { DICT, Lang } from "@/game/i18n";
@@ -8,13 +8,20 @@ import type { TownWay } from "@/game/character";
 
 type T = (typeof DICT)["de"];
 
-/** What a given stage brings: organic landmarks (by growth age) and build-menu unlocks (by stage). Pure. */
-export function stageUnlocks(stage: number, charter: string | null | undefined, way: TownWay | undefined) {
+/** What grows by itself in a growth era: organic landmarks follow the town's (time-driven) growth age. Display only, never a purchase gate. */
+export function growthUnlocks(stage: number) {
   const lo = STAGES[stage]?.from ?? Infinity, hi = STAGES[stage + 1]?.from ?? Infinity;
-  const grows = [...new Set(LANDMARKS.filter((l) => l.at >= lo && l.at < hi && (stage === 0 ? true : l.at > 0)).map((l) => l.kind))];
-  const items = (Object.keys(ITEMS) as Item[]).filter((it) => (ITEM_RANK[it] ?? 0) === stage && canBuy(it, charter as never) && canBuyWay(it, way));
-  const monuments = (Object.keys(MONUMENTS) as (keyof typeof MONUMENTS)[]).filter((k) => MONUMENTS[k].rank === stage && (!MONUMENTS[k].way || MONUMENTS[k].way === way));
-  return { grows, items, monuments };
+  return [...new Set(LANDMARKS.filter((l) => l.at >= lo && l.at < hi && (stage === 0 ? true : l.at > 0)).map((l) => l.kind))];
+}
+/** What a settlement rank opens in the build menu — rank alone (ITEM_RANK/MONUMENT_RANK), never time. Pure. */
+export function rankUnlocks(rank: number, charter: string | null | undefined, way: TownWay | undefined) {
+  const items = (Object.keys(ITEMS) as Item[]).filter((it) => (ITEM_RANK[it] ?? 0) === rank && canBuy(it, charter as never) && canBuyWay(it, way));
+  const monuments = MONUMENT_KEYS.filter((k) => MONUMENT_RANK[k] === rank && (!MONUMENTS[k].way || MONUMENTS[k].way === way));
+  return { items, monuments };
+}
+/** Both views side by side for one level: growth (time) and purchases (rank) are computed separately. */
+export function stageUnlocks(stage: number, charter: string | null | undefined, way: TownWay | undefined) {
+  return { grows: growthUnlocks(stage), ...rankUnlocks(stage, charter, way) };
 }
 
 export function Outlook({ t, lang, my, seeds, now, rank, charter, way }: { t: T; lang: Lang; my: Seed; seeds: Seed[]; now: number; rank: number; charter: string | null | undefined; way: TownWay | undefined }) {
@@ -24,9 +31,9 @@ export function Outlook({ t, lang, my, seeds, now, rank, charter, way }: { t: T;
   const care = careMissing(my, now);
   const kn = (k: string) => (t as unknown as { kind: Record<string, string> }).kind[k] ?? k;
   const names = (s: number) => {
-    const u = stageUnlocks(s, charter, way);
+    const u = rankUnlocks(s, charter, way);
     return {
-      grows: u.grows.map(kn),
+      grows: growthUnlocks(s).map(kn),
       unlocks: [...u.items.map((it) => t.items[it]?.[0] ?? it), ...u.monuments.map((k) => t.items[`${k}1`]?.[0] ?? k)],
     };
   };
