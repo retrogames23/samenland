@@ -1,4 +1,3 @@
-import { seasonAt } from "./season";
 import { townCharacter } from "./character";
 import { dwellingSlots } from "./density";
 import { leaversOf } from "./wander";
@@ -21,8 +20,9 @@ function capacityAt(s: Seed, byKind: Map<Kind, unknown[]>, now: number, r: numbe
   const own = new Set((s.bought ?? []).filter(b => b.at <= now).map(b => b.item));
   const food = ["fisher", "hunter", "granary", "dairy", "markethall", "guildhall"].filter(i => own.has(i)).length;
   const health = ["herbs", "healer", "library"].filter(i => own.has(i)).length;
-  // Plains store grain: the winter shortfall is a fifth smaller (character strength).
-  const w = 1 - FEED_WINTER * (townCharacter(s).main === "grain" ? GRAIN_WINTER : 1) * seasonAt(now).winter;
+  // Winter protection: housing capacity is year-round. Winter scarcity acts on larder, sickness and growth,
+  // never on how many established households exist (FEED_WINTER no longer caps homes).
+  const w = 1;
   // Different farming art must not silently reduce a town's household supply.
   const farm = FEED_FIELD * (byKind.get("field")?.length ?? 0) + FEED_GARDEN * (byKind.get("garden")?.length ?? 0) + FEED_PASTURE * (byKind.get("pasture")?.length ?? 0);
   // Founding terrain is never a penalty: hills, coasts and forests feed as many households as flat land of the same size.

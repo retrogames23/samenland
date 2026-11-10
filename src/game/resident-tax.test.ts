@@ -23,10 +23,27 @@ describe("shared occupied households", () => {
     expect(householdsOf(s, [s], at).length).toBeGreaterThanOrEqual(24);
     expect(stageOf(effAge(s, [s], at))).toBe(2);
   });
-  it("winter lowers the same supply ceiling for both views without wiping out families", () => {
+  it("winter keeps the same household ceiling as autumn", () => {
     const s = seed(), land = new Map<Kind, unknown[]>([["field", Array(200).fill(null)]]);
     expect(foodCapacity(s, land, Date.parse("2026-07-01"))).toBe(32);
-    expect(foodCapacity(s, land, Date.parse("2026-12-15"))).toBe(24);
+    expect(foodCapacity(s, land, Date.parse("2026-12-15"))).toBe(32);
+  });
+  it("households keep count and identity across the autumn→winter and winter→spring turns", () => {
+    const s = seed(["fisher", "granary"]), key = (at: number) => householdsOf(s, [s], at).map(h => `${h.home}:${h.unit ?? 0}:${h.size}`);
+    // Season blends over ~14 days; a few hours either side of each full turn isolates the season effect from growth.
+    for (const [a, b] of [["2026-11-15T12:00:00Z", "2026-12-08T12:00:00Z"], ["2027-02-20T12:00:00Z", "2027-03-10T12:00:00Z"]] as const) {
+      const before = key(Date.parse(a)), after = key(Date.parse(b));
+      const lost = before.filter(h => !after.includes(h)), gained = after.filter(h => !before.includes(h));
+      // Only ordinary growth/moves of a few homes over ~3 weeks; never a seasonal block of ~25 %.
+      expect(lost.length).toBeLessThanOrEqual(Math.ceil(before.length * 0.05));
+      expect(gained.length).toBeLessThanOrEqual(Math.ceil(before.length * 0.08));
+      expect(new Set(after).size).toBe(after.length);
+    }
+  }, 20000);
+  it("winter still raises sickness independently of housing", async () => {
+    const { sickRate } = await import("./people");
+    const s = seed();
+    expect(sickRate(s, Date.parse("2026-12-20T12:00:00Z"))).toBeGreaterThan(sickRate(s, Date.parse("2026-07-01T12:00:00Z")));
   });
   it("ordinary, skilled and wealthy residents are assessed at 1, 2 and 3 Taler", () => {
     // Stable estate rolls .53 and .24 at wealth 100: skilled and wealthy respectively.
@@ -50,7 +67,7 @@ describe("shared occupied households", () => {
   });
   it("mixed slope farming keeps the existing winter penalty and untended cap", () => {
     const land = new Map<Kind, unknown[]>([["field", Array(40).fill(null)], ["garden", Array(30).fill(null)], ["pasture", Array(30).fill(null)]]);
-    expect(foodCapacity(seed(["fisher"]), land, Date.parse("2026-12-15T00:00:00Z"))).toBe(27);
+    expect(foodCapacity(seed(["fisher"]), land, Date.parse("2026-12-15T00:00:00Z"))).toBe(foodCapacity(seed(["fisher"]), land, Date.parse("2026-10-15T00:00:00Z")));
     expect(foodCapacity(seed(), land, Date.parse("2026-07-01T00:00:00Z"))).toBe(32);
     expect(foodCapacity(seed(), new Map(), Date.parse("2026-12-15T00:00:00Z"))).toBe(24);
   });
