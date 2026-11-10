@@ -171,7 +171,7 @@ function summary() {
     const ex = fr.map((f) => f.spans[k]?.[1] ?? 0);
     spans[k] = { inclTotal: a.incl, exclTotal: a.excl, calls: a.calls, inclPerFrame: a.incl / Math.max(1, fr.length), exclPerFrame: a.excl / Math.max(1, fr.length), exclP95: pct(ex, 95) };
   }
-  const counts: Record<string, number> = {}; for (const [k, v] of countTotals) counts[k] = v / Math.max(1, fr.length);
+  const counts: Record<string, number> = {}; for (const [k, v] of countTotals) counts[k] = v / Math.max(1, frames.length); // totals include frame 0
   return { scenario, seconds: dur, fps: dur ? fr.length / dur : 0, frameInterval: dist(iv), drawTime: dist(dr), spans, countsPerFrame: counts, evictions: Object.fromEntries(evictions), graphics: census(), ...cacheSnap() };
 }
 function reset(name = "") {

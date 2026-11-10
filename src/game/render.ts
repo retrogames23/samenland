@@ -3539,6 +3539,8 @@ function flatEstBytes(q: number): number {
   return b;
 }
 const newFlat = (): FlatChunk => ({ cv: null, q: 0, sk: "", tok: new Int32Array(FC * FC), dirty: true, full: false, baked: -1e9, empty: false });
+let flatSnap: Record<string, number> = {};
+if (perfOn() && typeof window !== "undefined") (window as unknown as { __flatState: () => Record<string, number> }).__flatState = () => ({ ...flatSnap });
 const visKeys: number[] = [], visPrio = new Map<number, number>(), admitted = new Set<number>();
 function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
   flatSet.clear();
@@ -3617,6 +3619,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     pCount("flat.lookaheadChunks", look); pCount("flat.cacheEntries", flatCache.size);
     pCount("flat.cacheBytes", cvB + bmB); pCount("flat.canvasBytes", cvB); pCount("flat.bitmapBytes", bmB); pCount("flat.cacheBudgetBytes", FLAT_BUDGET);
     if (dropped) pCount("flat.chunksDropped", dropped); if (vDropped) pCount("flat.visibleChunksDropped", vDropped);
+    flatSnap = { estHeldBytes: total, budget: FLAT_BUDGET, canvasBytes: cvB, bitmapBytes: bmB, entries: flatCache.size, visible: visKeys.length, admitted: admitted.size, baked: vBaked, q };
   }
   return flatSet;
 }
