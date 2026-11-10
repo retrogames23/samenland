@@ -3,15 +3,12 @@ import type { Kind } from "./world";
 
 /** Extra dwellings are inside existing houses, never on invented land tiles. */
 const MULTI_HOME = new Set<Kind>(["cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "suburb"]);
-/** Plains add a lodger floor only to cottages and town houses, never to half-timbered houses, so they stay the widest-spread character. */
-const GRAIN_FLOORS = new Set<Kind>(["cottage", "townhouse", "townhouse2"]);
 export function dwellingSlots(way: TownWay, kind: Kind, radius: number) {
   if (!MULTI_HOME.has(kind)) return 1;
   // Staggered so no character pulls far ahead mid-game: hills densify first and highest,
-  // coasts and plains follow with a second floor once they are small towns.
+  // coasts and plains share the same floors once they are small towns.
   if (way === "workshop") return radius >= 24 ? 3 : radius >= 14 ? 2 : 1;
-  if (way === "gateway") return radius >= 26 ? 3 : radius >= 16 ? 2 : 1;
-  return radius >= 16 && GRAIN_FLOORS.has(kind) ? 2 : 1;
+  return radius >= 26 ? 3 : radius >= 16 ? 2 : 1;
 }
 // Keep every legacy family/member ID unchanged; new floors occupy disjoint ID blocks.
 export const HOME_KEY_SPACE = 1024 * 1024;

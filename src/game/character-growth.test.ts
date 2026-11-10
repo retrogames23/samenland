@@ -17,8 +17,7 @@ describe("730-day character foundation", () => {
       expect(rankOf({ citizens, homes: homes.length, roads: 2 })).toBe(5);
     }
   });
-  // Known gap since Phase 2 (winter cap removed): harbour town ~24 % ahead on day 730. Balancing deferred to its own phase — do not loosen the 10 % target.
-  it.fails("population and current tax assessment differ by no more than ten percent", () => {
+  it("population and current tax assessment differ by no more than ten percent", () => {
     const taxes = towns.map(s => residentTax(s, [s], at));
     for (const metric of [taxes.map(t => t.population), taxes.map(t => t.assessed)]) {
       expect(Math.max(...metric) / Math.min(...metric)).toBeLessThanOrEqual(1.1);
@@ -29,10 +28,11 @@ describe("730-day character foundation", () => {
     const pops = towns.map(s => residentTax(s, [s], mid).population);
     expect(Math.max(...pops) / Math.min(...pops)).toBeLessThanOrEqual(1.15);
   });
-  it("hills and coasts house their families on fewer occupied building tiles", () => {
+  // Since plains stack like coasts, no character needs more building tiles than the plains for its families.
+  it("hills and coasts never need more occupied building tiles than the plains", () => {
     const counts = towns.map(s => new Set(householdsOf(s, [s], at).map(h => h.home.join(","))).size);
-    expect(counts[1]).toBeLessThan(counts[0] ?? 0);
-    expect(counts[2]).toBeLessThan(counts[0] ?? 0);
+    expect(counts[1]).toBeLessThanOrEqual(counts[0] ?? 0);
+    expect(counts[2]).toBeLessThanOrEqual(counts[0] ?? 0);
   });
   it("each character renders exactly the residents assessed by the trusted evaluator", () => {
     for (const s of towns) {

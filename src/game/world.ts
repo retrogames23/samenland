@@ -607,7 +607,8 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
     return k;
   }
   // Stable sectors form residential, craft and market districts.
-  const sector = ((Math.atan2(dy,dx) + Math.PI + hash(seedNum(s),1,81)*2) % (2*Math.PI))/(2*Math.PI);
+  // Quarters are assigned per 3x3 block hash (angle-free), so coastlines never decide which quarter lands on dry ground.
+  const sector = hash(Math.floor(x / 3) * 73 + seedNum(s) % 10007, Math.floor(y / 3) * 97, 81);
   if (stage === 3) return weighted(h,[["townhouse",20],["townhouse2",16],["fachwerk",16],["handwerker",10],["workshop",18],["cottage",10],["stall",10]]);
   // Districts: patrician core, workers' quarter by the crafts sector, villas on the quiet green edge.
   if (d < r * 0.4) return weighted(h,[["patrician",22],["steinhaus",18],["suburb",8],["townhouse",14],["townhouse2",14],["fachwerk",8],["workshop",6],["stall",8],["garden",4]]);
