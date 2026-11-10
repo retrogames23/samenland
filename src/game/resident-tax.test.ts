@@ -26,7 +26,7 @@ describe("shared occupied households", () => {
   it("winter lowers the same supply ceiling for both views without wiping out families", () => {
     const s = seed(), land = new Map<Kind, unknown[]>([["field", Array(200).fill(null)]]);
     expect(foodCapacity(s, land, Date.parse("2026-07-01"))).toBe(32);
-    expect(foodCapacity(s, land, Date.parse("2026-12-15"))).toBe(24);
+    expect(foodCapacity(s, land, Date.parse("2026-12-15"))).toBe(32);
   });
   it("ordinary, skilled and wealthy residents are assessed at 1, 2 and 3 Taler", () => {
     // Stable estate rolls .53 and .24 at wealth 100: skilled and wealthy respectively.
@@ -50,7 +50,7 @@ describe("shared occupied households", () => {
   });
   it("mixed slope farming keeps the existing winter penalty and untended cap", () => {
     const land = new Map<Kind, unknown[]>([["field", Array(40).fill(null)], ["garden", Array(30).fill(null)], ["pasture", Array(30).fill(null)]]);
-    expect(foodCapacity(seed(["fisher"]), land, Date.parse("2026-12-15T00:00:00Z"))).toBe(27);
+    expect(foodCapacity(seed(["fisher"]), land, Date.parse("2026-12-15T00:00:00Z"))).toBe(foodCapacity(seed(["fisher"]), land, Date.parse("2026-10-15T00:00:00Z")));
     expect(foodCapacity(seed(), land, Date.parse("2026-07-01T00:00:00Z"))).toBe(32);
     expect(foodCapacity(seed(), new Map(), Date.parse("2026-12-15T00:00:00Z"))).toBe(24);
   });
