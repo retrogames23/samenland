@@ -9,11 +9,11 @@
  },
  "badestube": {
   "day": "6a6c7de94ecdc403",
-  "night": "fb1a5269faf7fb66",
+  "night": "8b89661944da3b2a",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "bakery": {
   "day": "0339041964b8613a",
@@ -49,11 +49,11 @@
  },
  "bigstore": {
   "day": "4ca2c8562c2c5b91",
-  "night": "4992f5a6b2759ef7",
+  "night": "1f2bc538ba22df56",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "campfire": {
   "day": "d35ff8ebeea3d8b3",
@@ -65,11 +65,11 @@
  },
  "chapel": {
   "day": "41662317fc3dd190",
-  "night": "f9697e570121f7b5",
+  "night": "c2d4b95a78acdff2",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "church": {
   "day": "bda876baa6f7ec72",
@@ -153,11 +153,11 @@
  },
  "fishery": {
   "day": "45301e33b5e4c188",
-  "night": "2897a2b5bcdc9b07",
+  "night": "0eda632fae24f5d8",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "gatehouse": {
   "day": "b5bee30fca4e788f",
@@ -369,11 +369,11 @@
  },
  "granary": {
   "day": "1f842f3b3e46a911",
-  "night": "a61a8b012631cf3f",
+  "night": "b857e52d02e15d1a",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "guardhouse": {
   "day": "e52e635fcbb88328",
@@ -403,9 +403,9 @@
   "day": "0aac9d3501ef5c7a",
   "night": "5a22814486ae960c",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: im echten Spiel-Renderpfad geprüft, unverändert"
  },
  "handwerker": {
   "day": "1c1f9d1568dadf3c",
@@ -417,11 +417,11 @@
  },
  "harbor": {
   "day": "20a92edd2e483370",
-  "night": "db7154b20ebf7da0",
+  "night": "3efe1a44ee4b9b13",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "harvesthall": {
   "day": "8cfec076f2e4c20a",
@@ -449,11 +449,11 @@
  },
  "herbhut": {
   "day": "8dbadd65bf3aa367",
-  "night": "236a3b586dcc8ff9",
+  "night": "9420bba691eb1f7f",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "hut": {
   "day": "905b691d99b43060",
@@ -497,19 +497,19 @@
  },
  "lodge": {
   "day": "1bf0587ca42d8573",
-  "night": "5ebf6eb99053fdb8",
+  "night": "18c3a8f8a23cf802",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "manufactory": {
   "day": "ff9c4b151f9e58d7",
   "night": "589fa64a61596676",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: im echten Spiel-Renderpfad geprüft, unverändert"
  },
  "market": {
   "day": "794bf2a89aabdce2",
@@ -521,11 +521,11 @@
  },
  "markethall": {
   "day": "50260d3e2dc7ba83",
-  "night": "1df68cbbf7488246",
+  "night": "ace1839923fcb931",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "mill": {
   "day": "56d03afb4f07be41",
@@ -537,11 +537,11 @@
  },
  "millrow": {
   "day": "f2a7499b0aa82aaf",
-  "night": "ca604594a0df9bdb",
+  "night": "7401b92062f5a6a1",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "opera": {
   "day": "ca93e2461f54c381",
@@ -571,9 +571,9 @@
   "day": "d4d2cae0b4620a66",
   "night": "54527ca30b5e21a4",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: im echten Spiel-Renderpfad geprüft, unverändert"
  },
  "sawmill": {
   "day": "42d55d19e1c86e18",
@@ -627,9 +627,9 @@
   "day": "1e3bf1ff7962b3cc",
   "night": "de45ee312482e23d",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: im echten Spiel-Renderpfad geprüft, unverändert"
  },
  "stall": {
   "day": "4a1224973338f020",
@@ -643,17 +643,17 @@
   "day": "cc6ff85ed7467f87",
   "night": "9eff2fcfaabcf628",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: im echten Spiel-Renderpfad geprüft, unverändert"
  },
  "steamworks": {
   "day": "5f40720eeb6800a2",
   "night": "b4754765e60a89d7",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: im echten Spiel-Renderpfad geprüft, unverändert"
  },
  "steinhaus": {
   "day": "62be7601369bde67",
@@ -667,9 +667,9 @@
   "day": "6bccec6f53957620",
   "night": "b96d184ca4bae626",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: im echten Spiel-Renderpfad geprüft, unverändert"
  },
  "suburb": {
   "day": "fca8ff2935f07287",
@@ -737,19 +737,19 @@
  },
  "warehouse": {
   "day": "631badada0b91302",
-  "night": "de542dfdaf1f10b0",
+  "night": "39687acedc9f71de",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "watermill": {
   "day": "1f230240d57573dd",
-  "night": "61242949ea0a8d15",
+  "night": "257b51d8684e3347",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "well": {
   "day": "92e74f66dd218c67",
@@ -761,19 +761,19 @@
  },
  "woodcamp": {
   "day": "a02f392207bf0841",
-  "night": "a3be2772cf92236b",
+  "night": "0694b9e28860203f",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Tagesbild: gemalter Meilerrauch entfernt, Rauch jetzt animiert"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "workshop": {
   "day": "8652b3b03cd3acad",
-  "night": "4c18fe418e2fb50d",
+  "night": "b128b3bfe76b08b8",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe F: auf echte Fensteröffnungen korrigiert, im echten Spiel-Renderpfad geprüft"
  },
  "workshop-barn": {
   "day": "0e3f9e6579df4930",

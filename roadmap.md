@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Nachtmasken Gruppe F: 21 Gebäude gezielt korrigieren, im Original-Renderer prüfen, Abnahmebilder und gezielten Test liefern
 - [x] Schaukasten: Alter/Geschlecht am Feuer und Herd korrekt abbilden
 - [x] Schaukasten: Patrizierfamilie und schreibende Kauffrau passend einkleiden
 - [x] Schaukasten: schwebende Sitzfiguren korrigieren; zwölf Vergleichsszenen geprüft, echter Karten-Durchlauf noch nicht verifiziert
