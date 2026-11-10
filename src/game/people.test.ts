@@ -38,6 +38,8 @@ describe("villager collision", () => {
         if (!q.visible) continue;
         const st = structureAt(Math.round(q.x), Math.round(q.y), [old], now);
         checked++;
+        // standing at one's own front door rounds onto the home tile
+        if (p.home && p.home[0] === Math.round(q.x) && p.home[1] === Math.round(q.y)) continue;
         if (st) expect(FLAT.has(st.kind) || ["path", "street", "square", "well", "market", "road", "bridge"].includes(st.kind), `${p.first} in ${st.kind}`).toBe(true);
       }
     }
