@@ -66,23 +66,48 @@ export const shelters = (act: string, indoor: boolean, id: number, wet: number) 
   !indoor && (act === "leisure" || act === "lunch" || act === "play" || act === "stroll") && wet > 0.15 && hash(id, 77) < wet * 1.3;
 
 /**
- * Lying snow 0..1, pure from the past five days of weather slots: each snowy slot adds, rain washes
- * it away and dry spells slowly thaw it (faster outside deep winter). Never stored — all clients agree.
+ * Air temperature °C per 3-h slot, display only: pure from realm zone + slot. A per-winter severity
+ * (mild / normal / hard winters) plus multi-day cold and thaw spells and a small day/night swing.
  */
-const COVER_SLOTS = 40;
+const smoothN = (z: number, x: number) => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return hash(z, i) * (1 - u) + hash(z, i + 1) * u; };
+export function tempAt(slot: number, t: number): number {
+  const w = seasonAt(t).winter, z = zoneId(worldTz()), day = slot / 8;
+  const yr = new Date(t - 60 * 864e5).getUTCFullYear(); // winter Dec–Feb counts to one year
+  const hard = hash(z + 5, yr); // 0 mild … 1 hard winter
+  const spell = smoothN(z + 11, day / 4) * 0.65 + smoothN(z + 13, day / 1.5) * 0.35; // 0 cold … 1 thaw
+  const hr = worldHour(t + SLOT / 2), diurnal = Math.cos(((hr - 14) / 24) * 6.283) * 1.8;
+  const winterT = 3.2 - hard * 4 + (spell - 0.5) * 9;
+  return (1 - w) * 7 + w * winterT + diurnal;
+}
+
+/** One 3-h step of snowpack (depth in cm): fall adds by intensity and cold, warmth/rain melt, dry frost keeps. */
+export type SnowStep = { kind: WeatherKind; amount: number; temp: number; day?: boolean };
+export function snowStep(d: number, s: SnowStep): number {
+  if (s.kind === "snow") {
+    const cold = s.temp <= 0 ? 1 : Math.max(0, 1 - s.temp / 2);
+    d += Math.pow(s.amount, 3) * 3 * cold; // light shower ~0.8 cm, heavy ~2.8 cm per 3 h
+  }
+  if (s.temp > 0) d -= s.temp * 0.35 * (s.day ? 1.4 : 1); // degree-slots, sun helps by day
+  if (s.kind === "drizzle" || s.kind === "storm") d -= 1.2 + Math.max(0, s.temp) * 0.4;
+  return Math.max(0, Math.min(40, d));
+}
+/** Visible cover 0..1 from depth: below 1.5 cm the ground shows through. */
+export const coverOf = (d: number) => Math.max(0, Math.min(1, (d - 1.5) / 4));
+
+/** Lying snow 0..1 from the past ten days of slots via snowStep. Never stored — all clients agree. */
+const COVER_SLOTS = 80;
 let coverCache: { key: string; v: number } | null = null;
 export function snowCover(now: number): number {
   const winter = seasonAt(now).winter; if (winter < 0.05) return 0;
   if ((preview ?? labWeather() ?? override) === "snow") return winter;
   const slot = Math.floor(now / SLOT), key = `${slot}:${worldTz()}:${labVersion()}`;
   if (coverCache?.key === key) return coverCache.v;
-  let c = 0;
+  let d = 0;
   for (let i = COVER_SLOTS; i >= 0; i--) {
-    const t = (slot - i) * SLOT + SLOT / 2, k = kindFor(slot - i, t), w = seasonAt(t).winter;
-    if (k === "snow") c = Math.min(1, c + 0.22);
-    else c = Math.max(0, c - (k === "drizzle" || k === "storm" ? 0.3 : 0.035) - (1 - w) * 0.12);
+    const n = slot - i, t = n * SLOT + SLOT / 2, hr = worldHour(t);
+    d = snowStep(d, { kind: kindFor(n, t), amount: 0.6 + 0.4 * hash(n, 9), temp: tempAt(n, t), day: hr >= 9 && hr < 16 });
   }
-  const v = Math.min(1, c / 0.6) * winter;
+  const v = coverOf(d);
   coverCache = { key, v };
   return v;
 }
