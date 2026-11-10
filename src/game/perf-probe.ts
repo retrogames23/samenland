@@ -28,6 +28,10 @@ const on: boolean = (() => {
   try { return typeof location !== "undefined" && new URLSearchParams(location.search).get("perf") === "1"; } catch { return false; }
 })();
 export const perfOn = () => on;
+/** ?perf=1&perfdetail=1: additional fine spans inside the depth/flat passes, structureAt call attribution
+ *  and canvas draw-op counting. Kept separate so the coarse audit-1 spans stay comparable without this overhead. */
+const fine: boolean = on && (() => { try { return new URLSearchParams(location.search).get("perfdetail") === "1"; } catch { return false; } })();
+export const perfFine = () => fine;
 /** ?perf=0 keeps the probe off but still exposes the benchmark camera hook, so overhead can be compared at the same scene. */
 export const perfCamOn = (): boolean => { try { return on || (typeof location !== "undefined" && new URLSearchParams(location.search).get("perf") === "0"); } catch { return false; } };
 
@@ -44,15 +48,37 @@ const MAX_FRAMES = 20000;
 let lastFrame = -1;
 let scenario = "";
 
+// current attribution area = innermost open span (structureAt calls and draw ops are booked there)
+let area = "-";
 export function pBegin(name: string) {
   if (!on) return;
-  sName.push(name); sT0.push(now()); sChild.push(0);
+  sName.push(name); sT0.push(now()); sChild.push(0); area = name;
+}
+/** fine-only span pair (perfdetail=1); no-ops otherwise */
+export function pFB(name: string) { if (fine) pBegin(name); }
+export function pFE() { if (fine) pEnd(); }
+/** structureAt call (miss = computed, not served from the per-tick cache), booked to the current area */
+export function pSA(miss: boolean) {
+  if (!fine) return;
+  frameCounts["sa." + area] = (frameCounts["sa." + area] ?? 0) + 1; countTotals.set("sa." + area, (countTotals.get("sa." + area) ?? 0) + 1);
+  if (miss) { frameCounts["saMiss." + area] = (frameCounts["saMiss." + area] ?? 0) + 1; countTotals.set("saMiss." + area, (countTotals.get("saMiss." + area) ?? 0) + 1); }
+}
+// canvas draw-op counter (drawImage/fill/stroke/fillRect/fillText on 2D contexts), booked to the current area
+let ops = 0;
+export const pOps = () => ops;
+if (fine && typeof CanvasRenderingContext2D !== "undefined") {
+  const P = CanvasRenderingContext2D.prototype as unknown as Record<string, (...a: unknown[]) => unknown>;
+  for (const m of ["drawImage", "fill", "stroke", "fillRect", "fillText", "strokeRect"]) {
+    const f = P[m]!;
+    P[m] = function (this: unknown, ...a: unknown[]) { ops++; const k = "ops." + area; frameCounts[k] = (frameCounts[k] ?? 0) + 1; countTotals.set(k, (countTotals.get(k) ?? 0) + 1); return f.apply(this, a); };
+  }
 }
 export function pEnd() {
   if (!on || !sName.length) return;
   const name = sName.pop()!, t0 = sT0.pop()!, child = sChild.pop()!;
   const incl = now() - t0, excl = incl - child;
   if (sChild.length) sChild[sChild.length - 1]! += incl;
+  area = sName.length ? sName[sName.length - 1]! : "-";
   const f = frameSpans[name] ?? (frameSpans[name] = [0, 0]); f[0] += incl; f[1] += excl;
   const a = totals.get(name) ?? { incl: 0, excl: 0, calls: 0 }; a.incl += incl; a.excl += excl; a.calls++; totals.set(name, a);
 }
