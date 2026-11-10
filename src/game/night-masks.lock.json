@@ -179,57 +179,57 @@
   "day": "575d52c3e9ef885e",
   "night": "43993b6ab38453a0",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "gateway-cottage-2": {
   "day": "8af1b02bee9135a2",
-  "night": "adbddab819f5abdc",
+  "night": "3290c33c64ad4a7a",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "gateway-cottage-3": {
   "day": "14a798fabe4a6d6f",
-  "night": "5988fc8d8ccc8efd",
+  "night": "c7632cfa3ed7ce1e",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "gateway-fachwerk": {
   "day": "47b6019297905fd8",
-  "night": "1db5be78e339bda5",
+  "night": "309b74a8c065cab5",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "gateway-farmhouse": {
   "day": "43aa449ab5ba14d4",
   "night": "b40388ba68b6c6f5",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "gateway-farmhouse-2": {
   "day": "7b8142ed61cf9310",
-  "night": "df3eb94965a0e154",
+  "night": "931f5d4c4c2efabd",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "gateway-farmhouse-3": {
   "day": "3bbf6fdffb4d77c9",
-  "night": "6e15f26e8d0374d4",
+  "night": "b96169cfdd411554",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "gateway-handwerker": {
   "day": "4b94b14c93d50c64",
@@ -249,27 +249,27 @@
  },
  "gateway-handwerker-3": {
   "day": "1de4505a2aafeeb3",
-  "night": "54bd598b5e042149",
+  "night": "9abda481826d1521",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "gateway-hut": {
   "day": "5a3991b4a2c1a1b8",
   "night": "3a2c2581d0f81c8d",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "gateway-patrician": {
   "day": "fe93ed68c96f158a",
-  "night": "af0cf463d5b6463c",
+  "night": "038ec8912c96605b",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "gateway-patrician-2": {
   "day": "2c0a5576d524d5d0",
@@ -307,17 +307,17 @@
   "day": "ecf6092611476939",
   "night": "f1b4d8fbe39275a2",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "grain-cottage-3": {
   "day": "d5986c8e3a2dc5f7",
   "night": "4281acac7bc6c727",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "grain-farmhouse-2": {
   "day": "938af2e5885285ec",
@@ -331,17 +331,17 @@
   "day": "caad523c5e5ee24c",
   "night": "f3c2026a583a6022",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "grain-handwerker-2": {
   "day": "a92c8ee256c4d0d1",
-  "night": "52783128ec06b25b",
+  "night": "f4cfe106d0534025",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "grain-handwerker-3": {
   "day": "232b82768b275396",
@@ -787,57 +787,57 @@
   "day": "9e3b3954e50ebb4a",
   "night": "c38fb70f0cbcf5a4",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "workshop-cottage-2": {
   "day": "fb71b7b23127448d",
-  "night": "996689a49ed421fd",
+  "night": "e44256f50c0424ad",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "workshop-cottage-3": {
   "day": "337167a08908c05d",
   "night": "c9fe125f250b3239",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "workshop-fachwerk": {
   "day": "fc2de0f989ed22f3",
   "night": "02280f50a2bf341d",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "workshop-farmhouse": {
   "day": "9fb15dcc80febe2f",
-  "night": "83f1cb5c24c3cc2f",
+  "night": "442d3ec8f8456caa",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "workshop-farmhouse-2": {
   "day": "98958a168d686eb4",
   "night": "60636b57d36212bc",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "workshop-farmhouse-3": {
   "day": "1a611d762acfe1ac",
-  "night": "417cfd4bb431070b",
+  "night": "7276b1b5d315d404",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "workshop-handwerker": {
   "day": "1b9dc914448990b7",
@@ -849,11 +849,11 @@
  },
  "workshop-handwerker-2": {
   "day": "c487e8dcbbed59b5",
-  "night": "615c5b3df120792c",
+  "night": "c078655432ef718d",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "workshop-handwerker-3": {
   "day": "c7070c2979e9c59e",
@@ -867,17 +867,17 @@
   "day": "ab2bfedd3976e868",
   "night": "7e5915068804c6f0",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "workshop-patrician": {
   "day": "3251ecfb4c99ad98",
-  "night": "d1e9677cedc97fc7",
+  "night": "9620c160e6c5ab83",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "workshop-patrician-2": {
   "day": "856227e58e19cca8",
@@ -897,11 +897,11 @@
  },
  "workshop-steinhaus": {
   "day": "bd5121cef82e98c0",
-  "night": "88d26d1ccae3d88c",
+  "night": "71b5be48fcf690f7",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe H: im echten Spiel-Renderpfad geprüft"
  },
  "workshop-villa": {
   "day": "89aace950cdd2934",
