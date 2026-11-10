@@ -13,7 +13,8 @@ export const Route = createFileRoute("/api/public/build-mail")({
         const denied = await authenticateCronRequest(request);
         if (denied) return denied;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { specialSites, specialDone } = await import("@/game/world");
+        const { specialSites, monumentOf } = await import("@/game/world");
+        const { buildMailDue } = await import("@/game/build-mail");
         const { setRealm } = await import("@/game/time");
         const { DICT } = await import("@/game/i18n");
         const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
@@ -44,12 +45,12 @@ export const Route = createFileRoute("/api/public/build-mail")({
           const placed = new Set([...specialSites(s).values()].map((v) => v.at));
           const lang = (opts.find((o) => o.user_id === s0.user_id)?.lang ?? "de") as keyof typeof DICT;
           for (const b of mine) {
-            const done = specialDone(s, [s], Date.parse(b.created_at));
-            if (!placed.has(Date.parse(b.created_at)) || done > now || done < now - WINDOW) continue;
+            if (!buildMailDue(s, b.item, Date.parse(b.created_at), placed, now, WINDOW)) continue;
             const { data: u } = await supabaseAdmin.auth.admin.getUserById(s0.user_id!);
             const email = u.user?.email;
             if (!email) continue;
-            const building = DICT[lang].items[b.item as keyof (typeof DICT)["de"]["items"]]?.[0] ?? b.item;
+            const mk = monumentOf(b.item);
+            const building = DICT[lang].items[(mk ? `${mk}1` : b.item) as keyof (typeof DICT)["de"]["items"]]?.[0] ?? b.item;
             try {
               const r = await sendTemplateEmail("building-done", email, {
                 templateData: { lang, mayor: s0.owner, town: s0.name, building },
