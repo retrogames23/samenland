@@ -21,10 +21,13 @@ if (typeof location !== "undefined") {
 
 function kindFor(slot: number, now: number): WeatherKind {
   const s = seasonAt(now), r = hash(zoneId(worldTz()), slot), hr = worldHour(now);
-  const rain = 0.4 * s.autumn + 0.25 * s.spring + 0.1 * s.summer + 0.2 * s.winter;
-  const snow = 0.3 * s.winter;
-  const mist = (0.3 * (s.autumn + s.winter) + 0.1 * s.spring) * (hr < 10 || hr > 17 ? 1 : 0.4);
-  const storm = s.summer * (hr >= 14 && hr < 20 ? 0.08 : 0);
+  // Share of 3-h slots with falling rain/snow, after North German station records (Hamburg/Bremen,
+  // ~1920–2020: precipitation ~8–11 % of all hours, wettest in autumn/winter); 1500 lay at the onset
+  // of the Little Ice Age — a bit cooler, so a touch more winter snow, otherwise similar.
+  const rain = 0.14 * s.autumn + 0.09 * s.spring + 0.08 * s.summer + 0.08 * s.winter;
+  const snow = 0.14 * s.winter;
+  const mist = (0.2 * (s.autumn + s.winter) + 0.06 * s.spring) * (hr < 10 || hr > 17 ? 1 : 0.4);
+  const storm = s.summer * (hr >= 14 && hr < 20 ? 0.05 : 0);
   let a = storm; if (r < a) return "storm";
   a += snow; if (r < a) return "snow";
   a += rain; if (r < a) return "drizzle";
