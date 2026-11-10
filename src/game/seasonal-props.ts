@@ -28,12 +28,14 @@ export function woodpileLevel(now: number): number {
 export const frost = (now: number) => seasonAt(now).winter >= 0.6;
 /**
  * Snow on the ways, quantised so baked ground chunks only refresh on real changes:
- * 0 = none, 1 = hard frost (thin crust, ruts dark), 2 = light snow (tracks clear), 3 = heavy snow (tracks half filled).
+ * 0 = none, 1 = thin crust, 2 = light snow (tracks clear), 3 = heavy snow (tracks half filled).
+ * Coupled to the real lying snow only: deep winter without cover or falling snow leaves the ways bare.
  */
 export function waySnow(now: number): 0 | 1 | 2 | 3 {
   const w = seasonAt(now).winter; if (w < 0.6) return 0;
   const s = snowiness(now), c = snowCoverAt(now);
-  if (c < 0.12 && s < 0.05) return 1;
+  if (c < 0.12 && s < 0.3) return 0;
+  if (c < 0.3 && s < 0.55) return 1;
   return s > 0.55 || c > 0.75 ? 3 : 2;
 }
 /** Straw mantles go round young fruit trees from November till March. */
