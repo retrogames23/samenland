@@ -38,4 +38,4 @@
 - Pasture herds (animals.ts herdAt): cow vs sheep per pasture tile from terrain + tile hash; display only, never touches food/tax.
 - Schaukasten anchors (stube.ts BODY_ANCHORS/FURNITURE, anchorBottom/anchorX): every new or changed diorama figure needs a body-contact anchor (seat/feet/bed) and every room picture needs furniture anchors (bench/stool/chair/floor/bed); figure positions are always derived from both — never free-estimated image positions or per-figure correction offsets. Dev overlay: ?anchors.
 - Forest outline (forest-edge.ts forestShape) replaces the hard layer-6 contour in production via forestEdge() (lab-ctl.ts PROD_EDGE; localStorage "samenland:forest-edge"="off" falls back); display only, tree feet stay inside radius 0.72 and the fringe never touches water/sand/rock.
-- Perf diagnostics: only perf-probe.ts (?perf=1; ?perf=0 = camera hook only), baseline docs/perf, scripts scripts/perf — never affects normal play.
+- Perf diagnostics: only perf-probe.ts (?perf=1; &perfdetail=1 adds fine spans, structureAt and draw-op counts; ?perf=0 = camera hook only), baselines docs/perf, scripts scripts/perf — never affects normal play.
