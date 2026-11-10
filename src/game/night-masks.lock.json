@@ -105,11 +105,11 @@
  },
  "exchange": {
   "day": "5eb45f51370c23c7",
-  "night": "cefb5020feb9785e",
+  "night": "4331ee88e4495bce",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe E: Maske korrigiert und visuell abgenommen"
  },
  "fachwerk": {
   "day": "ec082358a512f8c1",
@@ -123,9 +123,9 @@
   "day": "511a7abcfef7b553",
   "night": "881d34ad2552ccfa",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe E: unverändert, visuell abgenommen"
  },
  "farmhouse": {
   "day": "8957647d990af398",
@@ -489,11 +489,11 @@
  },
  "lighthouse": {
   "day": "1918b71efb69bec1",
-  "night": "83c18e191196c473",
+  "night": "4cd3aecdd1278098",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-09: Tagesbild: gemalte Flamme/Rauch im Feuerkorb entfernt, Feuer nur animiert"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe E: Maske korrigiert und visuell abgenommen"
  },
  "lodge": {
   "day": "1bf0587ca42d8573",
@@ -555,9 +555,9 @@
   "day": "2e3b3a6d26ff7b5b",
   "night": "983d935dd53e6baa",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe E: unverändert, visuell abgenommen"
  },
  "patrician": {
   "day": "fca8ff2935f07287",
@@ -691,9 +691,9 @@
   "day": "dfe7fd9073df7d8c",
   "night": "f0cdc5f1d3045777",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe E: unverändert, visuell abgenommen"
  },
  "townhall": {
   "day": "e0a8b01d43cbad21",
@@ -721,11 +721,11 @@
  },
  "university": {
   "day": "600e0fd248ab9fef",
-  "night": "d62157da340d26a6",
+  "night": "79d8b9dd021e5fa0",
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-08: nur technisch geprüft, visuell ungeprüft"
+  "visual": "inspected",
+  "decision": "approved",
+  "note": "2026-11-10: Gruppe E: Maske korrigiert und visuell abgenommen"
  },
  "villa": {
   "day": "b196ec3f76841dbc",
