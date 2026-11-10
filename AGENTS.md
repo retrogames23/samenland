@@ -48,3 +48,4 @@
 - Camera zoom limits live in src/game/camera.ts and apply to every realm and input path; wheel, pinch, buttons, double-tap and stroll exit all use maxZoom so their limits cannot diverge.
 - Church feasts (src/game/feasts.ts) are derived from the realm calendar (Julian Easter of the game year, snapped to the map's Sunday); rest days, bonfires, Whitsun tree, Christmas lights and the feast parchment all read feastOn() — never stored, so every player on a map keeps the same feast.
 - Split Game.tsx into src/components/hooks/ (e.g. useTreasurySync) without behaviour change; the monolith is hard to maintain.
+- Performance diagnostics live only in src/game/perf-probe.ts (active solely with ?perf=1; ?perf=0 exposes just the benchmark camera hook) with spans in render.ts/Game.tsx; baseline and replay scripts in docs/perf and scripts/perf — so any later optimisation is measured against the same scenes without affecting normal play.
