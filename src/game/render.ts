@@ -84,6 +84,7 @@ import guardU from "@/assets/sprites/court/guard.webp";
 import gardenerU from "@/assets/sprites/court/gardener.webp";
 import courtGroomU from "@/assets/sprites/court/groom.webp";
 import { heraldVisit, HERALD_RIDE_S, type PrincelyRow } from "./princely";
+import { pBegin, pEnd, pCount, pEvict, pCache, canvasBytes } from "./perf-probe";
 import { SEAT_KINDS, onGeoChange, hash, vnoise, structureAt, soloSeeds, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, FOOT2, links, roadProgress, isTwin, acreOf, ageHours, viewAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
@@ -1877,6 +1878,7 @@ function drawOverviewTown(c: C, s: Seed, Ri: number, step: number, z: number, ix
   const key = overviewKey(s, Ri, step, kk, now, warm);
   let e = ovCache.get(s.id);
   if (!e || e.key !== key) {
+    pCount("cache.ovTown.miss"); pBegin("overview.townBake");
     const W = Math.max(1, Math.ceil(ww * kk)), H = Math.max(1, Math.ceil(hh * kk));
     let cv = e?.cv;
     if (!cv || cv.width !== W || cv.height !== H) {
@@ -1887,11 +1889,11 @@ function drawOverviewTown(c: C, s: Seed, Ri: number, step: number, z: number, ix
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
     g.setTransform(kk, 0, 0, kk, -ox * kk, -oy * kk);
     g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
-    paint(g);
+    paint(g); pEnd();
     e = { key, cv, ox, oy, k: kk };
     ovCache.delete(s.id); ovCache.set(s.id, e);
-    while (ovCache.size > OV_MAX) ovCache.delete(ovCache.keys().next().value!);
-  } else { ovCache.delete(s.id); ovCache.set(s.id, e); }
+    while (ovCache.size > OV_MAX) { ovCache.delete(ovCache.keys().next().value!); pEvict("ovTown"); }
+  } else { ovCache.delete(s.id); ovCache.set(s.id, e); pCount("cache.ovTown.hit"); }
   c.drawImage(e.cv as CanvasImageSource, e.ox, e.oy, e.cv.width / e.k, e.cv.height / e.k);
   return true;
 }
@@ -2316,7 +2318,7 @@ function groundGeom(x0: number, x1: number, y0: number, y1: number): GroundGeom 
   }
   const g = { forestX, water, deep, layers, shoreLines, shore, edges };
   geomCache.set(key, g);
-  while (geomCache.size > 12) geomCache.delete(geomCache.keys().next().value!);
+  while (geomCache.size > 12) { geomCache.delete(geomCache.keys().next().value!); pEvict("geom"); }
   return g;
 }
 /** Water + layered land for a tile range; returns border tiles for frayed edges. */
@@ -2695,7 +2697,11 @@ function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number,
 function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasElement | null {
   const key = `${ix},${iy},${q},${sk}`;
   const hit = chunkCache.get(key);
-  if (hit) { chunkCache.delete(key); chunkCache.set(key, hit); return hit; }
+  if (hit) { chunkCache.delete(key); chunkCache.set(key, hit); pCount("cache.ground.hit"); return hit; }
+  pCount("cache.ground.miss"); pBegin("ground.bake");
+  try { return groundChunkBake(key, ix, iy, q); } finally { pEnd(); }
+}
+function groundChunkBake(key: string, ix: number, iy: number, q: number): HTMLCanvasElement | null {
   const X0 = ix * CH, Y0 = iy * CH, X1 = Math.min(MAP - 1, X0 + CH - 1), Y1 = Math.min(MAP - 1, Y0 + CH - 1);
   // bounding box of the chunk diamond in world pixels
   const left = iso(X0, Y1)[0] - TW, right = iso(X1, Y0)[0] + TW, top = iso(X0, Y0)[1] - TH - PAD_TOP, bottom = iso(X1, Y1)[1] + TH;
@@ -2721,7 +2727,7 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   (cv as HTMLCanvasElement & { ox?: number; oy?: number }).oy = top;
   if (missing) return cv; // not cached: re-bake once images have loaded
   chunkCache.set(key, cv);
-  while (chunkCache.size > 200) chunkCache.delete(chunkCache.keys().next().value!);
+  while (chunkCache.size > 200) { chunkCache.delete(chunkCache.keys().next().value!); pEvict("ground"); }
   return cv;
 }
 function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false): number {
@@ -3457,7 +3463,7 @@ const FC = 16;
 type FlatChunk = { bm?: ImageBitmap | null; cv: (HTMLCanvasElement & { ox: number; oy: number }) | null; q: number; sk: string; tok: Int32Array; dirty: boolean; full: boolean; baked: number; empty: boolean };
 const flatCache = new Map<number, FlatChunk>();
 /** Evicts a flat chunk and frees its GPU bitmap right away instead of waiting for garbage collection. */
-function dropFlat(key: number) { const e = flatCache.get(key); if (e) { e.bm?.close(); e.bm = null; e.cv = null; } flatCache.delete(key); }
+function dropFlat(key: number) { pEvict("flat"); const e = flatCache.get(key); if (e) { e.bm?.close(); e.bm = null; e.cv = null; } flatCache.delete(key); }
 function clearFlat() { for (const e of flatCache.values()) { e.bm?.close(); e.bm = null; } flatCache.clear(); }
 /** Bakes (ground or flat chunk) started this frame: one per frame keeps every frame short while panning. */
 let frameBakes = 0;
@@ -3480,6 +3486,10 @@ function flatCheck(x: number, y: number, st: Structure | null) {
   for (const [dx, dy] of NB8) { const n = flatCache.get((((y + dy) / FC) | 0) * 4096 + (((x + dx) / FC) | 0)); if (n) n.dirty = true; }
 }
 function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number) {
+  pBegin("flat.bake"); pCount("cache.flat.miss");
+  try { bakeFlatInner(e, ix, iy, q, seeds, now, t); } finally { pEnd(); }
+}
+function bakeFlatInner(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number) {
   agriMiss = false;
   const X0 = ix * FC, Y0 = iy * FC, X1 = Math.min(MAP - 1, X0 + FC - 1), Y1 = Math.min(MAP - 1, Y0 + FC - 1);
   let any = false;
@@ -3717,7 +3727,8 @@ export function draw(
   renderNow = now; renderSeeds = seeds; syncMask(seeds); setArtTime(now); setNatureTime(now); plantedNow = plantings; pondsNow = pondTiles(seeds);
   lastPeople.length = 0; lastTraders.length = 0; lastSources.length = 0;
   signpostMap(seeds);
-  if (cam.zoom < OVERVIEW_BELOW) return drawOverview(c, w, h, dpr, cam, seeds, now);
+  if (cam.zoom < OVERVIEW_BELOW) { pBegin("overview"); try { return drawOverview(c, w, h, dpr, cam, seeds, now); } finally { pEnd(); } }
+  pBegin("near.setup");
   const t = performance.now(); setSpriteTime(t);
   const worldLinks = links(seeds); // one lookup per frame: the cache key itself serialises every seed
   const z = cam.zoom * dpr;
@@ -3739,12 +3750,14 @@ export function draw(
   // pooled per-frame buffers: slots and maps are reused across frames to keep GC pauses out of the loop
   const tiles = framePool.tiles; let nTiles = 0;
   // flood water, fascines and silt also reach open meadow and the wild river bank (no structure there)
+  pEnd(); pBegin("near.floodHits");
   const floodWild = floodMap; floodWild.clear();
   for (const sd of seeds) { if (Math.abs(sd.x - (x0 + x1) / 2) > (x1 - x0) / 2 + 40 || Math.abs(sd.y - (y0 + y1) / 2) > (y1 - y0) / 2 + 40) continue;
     for (const [k, v] of tileHits(sd, now)) if ((v.flood || v.silt || v.levee) && !floodWild.has(k)) floodWild.set(k, v); }
 
   const edges: GroundEdge[] = [];
   frameBakes = 0;
+  pEnd(); pBegin("near.ground");
   renderStats.chunks = drawGroundChunks(c, x0, x1, y0, y1, z, cs0x, cs1x, cs0y, cs1y);
   // frayed edges: a few grass tufts and pebbles breaking up the borderline
   if (detail) {
@@ -3770,6 +3783,7 @@ export function draw(
     }
   }
 
+  pEnd(); pBegin("near.flat");
   // ---- pass 1c: flat things on the ground ----
   const flatDone = drawFlatChunks(c, x0, x1, y0, y1, z, seeds, now, t);
   for (let s = x0 + y0; s <= x1 + y1; s++) {
@@ -3795,6 +3809,7 @@ export function draw(
       }
     }
   }
+  pEnd(); pBegin("near.roads");
   // ---- trade roads as one continuous ribbon each (the tile steps stay logic only) ----
   for (const l of worldLinks) {
     const bx = roadBox(l); if (bx[2] < cs0x - 60 || bx[0] > cs1x + 60 || bx[3] < cs0y - 60 || bx[1] > cs1y + 60) continue;
@@ -3802,6 +3817,7 @@ export function draw(
     drawRoadRibbon(c, l, seeds, now);
   }
 
+  pEnd(); pBegin("near.folk");
   // ---- villagers, bucketed by tile for depth sorting ----
   const folk = framePool.folk; folk.clear();
   lastPeople.length = 0; lastTraders.length = 0;
@@ -3910,6 +3926,7 @@ export function draw(
     addProp(dogTile(sd.id, d.x, d.y, MAP), () => drawDog(c, d, px, py, t, sk));
   }
 
+  pEnd(); pBegin("near.bridgesTraffic");
   // ---- bridges: one straight span per water crossing, abutment to abutment ----
   // bridges join the tile depth order at their shallowest visible tile: the north bank stays behind the railing, the south bank in front
   const bridgeInDepth = (ts: readonly (readonly [number, number])[], f: () => void) => {
@@ -4098,9 +4115,11 @@ export function draw(
     }
   }
 
+  pEnd(); pBegin("near.pass2");
   // ---- pass 2: standing objects in depth order ----
   const hunt = framePool.hunt; hunt.clear();
   // lodges and dens just off-screen still send hunters and game into view (no popping at the screen edge)
+  pBegin("pass2.huntScan");
   if (detail) {
     const M = DEN_R + 2;
     for (let y = Math.max(0, y0 - M); y <= Math.min(MAP - 1, y1 + M); y++) for (let x = Math.max(0, x0 - M); x <= Math.min(MAP - 1, x1 + M); x++) {
@@ -4110,7 +4129,9 @@ export function draw(
       else if (!st && (inside || (x >= x0 - 4 && x <= x1 + 4 && y >= y0 - 4 && y <= y1 + 4))) wildFigures(x, y, hunt, c);
     }
   }
+  pEnd();
   renderStats.tiles = nTiles; { let n = 0; for (const v of folk.values()) n += v.length; renderStats.folk = n; }
+  pCount("tiles", nTiles); pCount("folk", renderStats.folk); pCount("seeds", seeds.length);
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
   const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
   // supporter decorations: one lookup per frame instead of a fresh cache key per empty tile
@@ -4306,6 +4327,7 @@ export function draw(
     prop(c, "stone", gx + 3.5, gy + 3, 3.4);
   }
 
+  pEnd(); pBegin("near.screen");
   // ---- paper, light, labels (screen space) ----
   c.setTransform(1, 0, 0, 1, 0, 0);
   // vignette gradient only rebuilt when the canvas size changes
@@ -4317,7 +4339,9 @@ export function draw(
   c.fillStyle = vignette.g; c.fillRect(0, 0, w, h);
 
   const night = skyTint(c, w, h);
+  pEnd(); pBegin("near.weather");
   drawWeather(c, w, h, dpr, performance.now(), night);
+  pEnd(); pBegin("near.nightLights"); pCount("lights", L.length);
   if (night > 0.02) {
     c.globalCompositeOperation = "lighter";
     if (lit) { c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = night; c.drawImage(lit.cv, 0, 0); c.restore(); }
@@ -4344,6 +4368,7 @@ export function draw(
     }
     c.globalCompositeOperation = "source-over";
   }
+  pEnd(); pBegin("near.labels");
   // focused signpost: bright ring above the night mask so it is never swallowed by darkness
   if (Date.now() < signFocus.until && signMap.has(signFocus.k)) {
     const fx = signFocus.k % MAP, fy = Math.floor(signFocus.k / MAP);
@@ -4380,4 +4405,14 @@ export function draw(
     c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(txt, sx, sy);
     c.fillStyle = hsl(20, 45, 38); c.fillText(txt, sx, sy);
   }
+  pEnd();
 }
+// diagnostics only (?perf=1): estimated uncompressed size of every render cache
+const cvSum = (it: Iterable<{ width: number; height: number } | null | undefined>) => { let b = 0; for (const v of it) b += canvasBytes(v); return b; };
+pCache("ground", () => ({ entries: chunkCache.size, bytes: cvSum(chunkCache.values()) }));
+pCache("flat", () => ({ entries: flatCache.size, bytes: cvSum([...flatCache.values()].map((e) => e.cv)) + cvSum([...flatCache.values()].map((e) => e.bm)) }));
+pCache("ovTown", () => ({ entries: ovCache.size, bytes: cvSum([...ovCache.values()].map((e) => e.cv)) }));
+pCache("turf", () => ({ entries: turfSprites.size, bytes: cvSum(turfSprites.values()) }));
+pCache("agri", () => ({ entries: agriSprites.size, bytes: cvSum(agriSprites.values()) }));
+pCache("geom", () => ({ entries: geomCache.size, bytes: 0 }));
+pCache("lit", () => ({ entries: litStore ? 1 : 0, bytes: canvasBytes(litStore?.cv) }));
