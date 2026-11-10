@@ -4129,6 +4129,7 @@ export function draw(
     }
   }
   renderStats.tiles = nTiles; { let n = 0; for (const v of folk.values()) n += v.length; renderStats.folk = n; }
+  pCount("tiles", nTiles); pCount("folk", renderStats.folk); pCount("seeds", seeds.length);
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
   const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
   // supporter decorations: one lookup per frame instead of a fresh cache key per empty tile
