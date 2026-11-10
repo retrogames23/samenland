@@ -3569,6 +3569,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     // art still loading: bake anyway, but refresh that chunk every 2 s until it is complete
     const stale = e.dirty || e.q !== q || e.sk !== sk || (!e.full && t - e.baked > 2000);
     if (stale && adm) staleAdmitted++;
+    if (stale && adm && perfOn()) pCount(e.baked <= -1e9 ? "flat.staleNew" : e.dirty ? "flat.staleDirty" : e.q !== q ? "flat.staleQ" : e.sk !== sk ? "flat.staleSeason" : "flat.staleArt");
     if (perfOn()) { pCount("flat.chunksVisible"); if (stale && adm) pCount("flat.chunksStale"); if (e.dirty) pCount("flat.chunksDirty"); }
     if (stale && adm && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; pCount("flat.bakeCount"); bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false; staleAdmitted--; }
     if (e.empty && e.q === q) { flatSet.add(key); vBaked++; continue; }
