@@ -4119,6 +4119,7 @@ export function draw(
   // ---- pass 2: standing objects in depth order ----
   const hunt = framePool.hunt; hunt.clear();
   // lodges and dens just off-screen still send hunters and game into view (no popping at the screen edge)
+  pBegin("pass2.huntScan");
   if (detail) {
     const M = DEN_R + 2;
     for (let y = Math.max(0, y0 - M); y <= Math.min(MAP - 1, y1 + M); y++) for (let x = Math.max(0, x0 - M); x <= Math.min(MAP - 1, x1 + M); x++) {
@@ -4128,6 +4129,7 @@ export function draw(
       else if (!st && (inside || (x >= x0 - 4 && x <= x1 + 4 && y >= y0 - 4 && y <= y1 + 4))) wildFigures(x, y, hunt, c);
     }
   }
+  pEnd();
   renderStats.tiles = nTiles; { let n = 0; for (const v of folk.values()) n += v.length; renderStats.folk = n; }
   pCount("tiles", nTiles); pCount("folk", renderStats.folk); pCount("seeds", seeds.length);
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
