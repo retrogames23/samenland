@@ -55,11 +55,15 @@ describe("integration: backwards compatibility", () => {
     expect(monumentDone(s, [s], "belfry")).toBeNull();
     expect(mails(s, T, now + 48 * H)).toEqual([]);
   });
-  it("B: old 3-hour-spaced steps still building keep their progress", () => {
-    const s = town([T, T + 7 * H, T + 30 * H]); const B = specialBuild(s);
-    const now = workDone(T, 2.5 * B);
-    const old = (workClock(now) - workClock(T)) / B; // legacy: one chain from the first step
-    expect(monumentProgress(s, now)).toBeCloseTo(Math.min(3, old) / 4, 2);
+  it("B: old steps (paid each after the previous stood, as the old button required) keep their progress", () => {
+    const s0 = town([T]); const B = specialBuild(s0);
+    const t2 = specialDone(s0, [s0], T) + 2 * H, t3 = specialDone(s0, [s0], t2) + 5 * H;
+    const s = town([T, t2, t3]); const now = workDone(t3, B / 2);
+    // legacy rule: every paid step counts from its own payment time
+    const old = [T, t2, t3].reduce((a, at) => a + Math.min(1, Math.max(0, (workClock(now) - workClock(at)) / B)), 0) / 4;
+    expect(old).toBeCloseTo(0.625, 2);
+    expect(monumentProgress(s, now)).toBeCloseTo(old, 6);
+    expect(mails(s, T, now)).toEqual([]);
   });
   it("C: finished monument keeps 100 % and its bonus, no new letter", () => {
     const s = town([T - 40 * 24 * H, T - 39 * 24 * H, T - 38 * 24 * H, T - 37 * 24 * H]);
