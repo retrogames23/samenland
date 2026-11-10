@@ -10,7 +10,7 @@ const URL = process.env["BUILD_MAIL_TEST_PG"];
 // In CI (CI or REQUIRE_PG set) a missing test DB is a failure, never a silent skip.
 if (!URL && (process.env["CI"] || process.env["REQUIRE_PG"])) throw new Error("BUILD_MAIL_TEST_PG missing: outbox DB tests must run");
 const d = URL ? describe : describe.skip;
-const SQL = readFileSync(new globalThis.URL("../../db/pending/build_mail_outbox.sql", import.meta.url), "utf8");
+const SQL = readFileSync(new globalThis.URL("../../drizzle/migrations/0106_build_mail_outbox.sql", import.meta.url), "utf8");
 
 d("build-mail outbox (real PostgreSQL)", () => {
   const sql = postgres(URL!, { max: 4, onnotice: () => {} });
