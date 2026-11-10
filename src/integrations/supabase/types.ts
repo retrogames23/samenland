@@ -100,6 +100,51 @@ export type Database = {
         }
         Relationships: []
       }
+      build_mail_outbox: {
+        Row: {
+          attempts: number
+          claim_token: string | null
+          claimed_at: string | null
+          created_at: string
+          done_at: string
+          item: string
+          last_error: string | null
+          purchase_id: string
+          seed_id: string
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          claim_token?: string | null
+          claimed_at?: string | null
+          created_at?: string
+          done_at: string
+          item: string
+          last_error?: string | null
+          purchase_id: string
+          seed_id: string
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          claim_token?: string | null
+          claimed_at?: string | null
+          created_at?: string
+          done_at?: string
+          item?: string
+          last_error?: string | null
+          purchase_id?: string
+          seed_id?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       charters: {
         Row: {
           created_at: string
@@ -1259,6 +1304,53 @@ export type Database = {
     }
     Functions: {
       abandon_village: { Args: { _seed: string }; Returns: undefined }
+      build_mail_claim: {
+        Args: {
+          _lease_minutes?: number
+          _limit?: number
+          _max_attempts?: number
+        }
+        Returns: {
+          attempts: number
+          claim_token: string | null
+          claimed_at: string | null
+          created_at: string
+          done_at: string
+          item: string
+          last_error: string | null
+          purchase_id: string
+          seed_id: string
+          sent_at: string | null
+          status: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "build_mail_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      build_mail_enqueue: {
+        Args: {
+          _done: string
+          _item: string
+          _purchase: string
+          _seed: string
+          _user: string
+        }
+        Returns: boolean
+      }
+      build_mail_finish: {
+        Args: {
+          _error?: string
+          _ok: boolean
+          _purchase: string
+          _token: string
+        }
+        Returns: boolean
+      }
+      build_mail_retry: { Args: { _purchase: string }; Returns: boolean }
       charter_tax: {
         Args: { _at: string; _charter: string; _created: string }
         Returns: number
