@@ -11,6 +11,19 @@
 type SpanAgg = { incl: number; excl: number; calls: number };
 type FrameRow = { t: number; interval: number; draw: number; spans: Record<string, [number, number]>; counts: Record<string, number> };
 
+// ?perf=1&perfclock=2026-11-10T11:00:00Z shifts the page clock to a fixed start moment (diagnostic URL only,
+// local to this tab, nothing stored) so a real phone measures the same time of day as the Playwright benchmark.
+(() => {
+  try {
+    if (typeof location === "undefined") return;
+    const q = new URLSearchParams(location.search), v = q.get("perfclock");
+    if (q.get("perf") !== "1" || !v) return;
+    const T0 = Date.parse(v); if (!Number.isFinite(T0)) return;
+    const D = Date, off = T0 - D.now();
+    class FD extends D { constructor(...a: []) { if (a.length) super(...(a as [])); else super(D.now() + off); } static override now() { return D.now() + off; } }
+    (globalThis as unknown as { Date: DateConstructor }).Date = FD as unknown as DateConstructor;
+  } catch { /* ignore */ }
+})();
 const on: boolean = (() => {
   try { return typeof location !== "undefined" && new URLSearchParams(location.search).get("perf") === "1"; } catch { return false; }
 })();
@@ -145,5 +158,30 @@ function framesCsv() {
   return [head, ...rows].join("\n");
 }
 if (on && typeof window !== "undefined") {
-  (window as unknown as { __perf: unknown }).__perf = { summary, reset, framesCsv, memRows: () => memRows, memSample, census, frames: () => frames };
+  (window as unknown as { __perf: unknown }).__perf = { summary, reset, framesCsv, memRows: () => memRows, memSample, census, frames: () => frames, bench };
+}
+
+/**
+ * Same scene list as the Playwright benchmark, runnable on a real phone: open
+ * /?perf=1&bench=1&weather=clear&season=autumn&perfclock=2026-11-10T11:00:00Z — afterwards a JSON file downloads.
+ * Camera tile and world come from ?benchtile=306,420 (default: Testwiek on the lab map).
+ */
+const BENCH_SCENES: [string, number][] = [["near", 2.6], ["mid", 0.8], ["overview", 0.12], ["maxout", 0.025]];
+async function bench() {
+  const q = new URLSearchParams(location.search), [tx, ty] = (q.get("benchtile") ?? "306,420").split(",").map(Number);
+  const camF = (window as unknown as { __perfCam?: (x: number, y: number, z: number) => void }).__perfCam;
+  if (!camF) return null;
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const out: unknown[] = [];
+  for (const [name, z] of BENCH_SCENES) {
+    camF(tx!, ty!, z); await sleep(4000); reset(name); await sleep(8000);
+    out.push({ ...summary(), ua: navigator.userAgent, dpr: devicePixelRatio, screen: [innerWidth, innerHeight], params: location.search });
+  }
+  const blob = new Blob([JSON.stringify(out, null, 1)], { type: "application/json" }), a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = `samenland-perf-${Date.now()}.json`; a.click();
+  return out;
+}
+if (on && typeof window !== "undefined" && new URLSearchParams(location.search).get("bench") === "1") {
+  const go = () => { if ((window as unknown as { __perfCam?: unknown }).__perfCam) setTimeout(() => void bench(), 8000); else setTimeout(go, 1000); };
+  go();
 }
