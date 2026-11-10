@@ -146,7 +146,7 @@ import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang 
 import { CHEST } from "@/game/lang/chest";
 import { FOUNDING } from "@/game/lang/founding";
 import { CHEST_STAGE, RANK_STAGE, CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
-import { titleOfSeed, TITLE_PRICE, TITLE_STAGE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
+import { titleOfSeed, TITLE_PRICE, TITLE_STAGE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, needRankOf, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, saplingsOwed, type Decision } from "@/game/encounters";
 import { pendingAll, isCommons, commonsVoices, adviceIdx, bakeCost } from "@/game/commons";
 import { COMMONS_TEXT } from "@/game/lang/commons";
@@ -1933,7 +1933,7 @@ export function Game() {
     const rollback = (m: string) => { setPurchases((s) => s.filter((p) => p.id !== tmpId)); setMsg(m); };
     if (!await prepareSpend()) return rollback(t.buyFail);
     // rank-gated items: the server counts citizens, homes and roads itself before the guard accepts the row
-    const needRank = monumentOf(item) && /1$/.test(item) ? MONUMENTS[monumentOf(item)!].rank : ({ ...TITLE_STAGE, ...CHEST_STAGE, ...RANK_STAGE } as Record<string, number>)[item] ?? (ITEM_RANK[item] ?? 0);
+    const needRank = needRankOf(item);
     if (needRank > 0) { try { await certifyFn({ data: { seed: my.id } }); } catch { return rollback(t.buyFail); } }
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) return rollback(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
@@ -2143,9 +2143,6 @@ export function Game() {
             const paid = purchases.filter((p) => p.seed_id === my.id && steps.includes(p.item));
             const next = nextMonumentStep(paid.map((p) => p.item), key);
             const mill = sawmillUp(my, seeds, now), prog = monumentProgress(my, now, key, mill), n = steps.length, i = paid.length;
-            const last = Math.max(0, ...paid.map((p) => Date.parse(p.created_at)));
-            const ready = i === 0 || (prog >= i / n && now - last >= 3 * 3600000);
-            const waitH = Math.max(Math.ceil((last + 3 * 3600000 - now) / 3.6e6), Math.ceil((workDone(now, Math.max(0, (i / n - prog) * n * specialBuild(my, mill))) - now) / 3.6e6));
             const kind = MONUMENT_DEFS[key].kind, first = `${key}1`;
             return (
               <div key={key} className="rounded-md border border-brass/60 bg-brass/10 p-2">
@@ -2161,7 +2158,6 @@ export function Game() {
                 </ol>
                 <div className="mt-1.5">
                   {!next ? <span className="text-xs font-semibold text-primary">{prog >= 1 ? mt.done : t.monument.building}</span>
-                    : !ready ? <span className="text-xs text-muted-foreground">{t.monument.wait(Math.max(1, waitH))}</span>
                     : <Button size="sm" className="h-7 w-full" disabled={cash < MONUMENT_PRICE[next]!} onClick={() => {
                         if (next === first) { setPlacing(first); setTab(null); setMsg(t.place.pick(t.items[first]![0])); focus(my.x, my.y); }
                         else void buy(next);
