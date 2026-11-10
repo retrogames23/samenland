@@ -31,7 +31,7 @@ describe("shared occupied households", () => {
   it("households keep count and identity across the autumn→winter and winter→spring turns", () => {
     const s = seed(["fisher", "granary"]), key = (at: number) => householdsOf(s, [s], at).map(h => `${h.home}:${h.unit ?? 0}:${h.size}`);
     // Season blends over ~14 days; a few hours either side of each full turn isolates the season effect from growth.
-    for (const [a, b] of [["2026-11-15T12:00:00Z", "2026-12-08T12:00:00Z"], ["2027-02-20T12:00:00Z", "2027-03-10T12:00:00Z"]]) {
+    for (const [a, b] of [["2026-11-15T12:00:00Z", "2026-12-08T12:00:00Z"], ["2027-02-20T12:00:00Z", "2027-03-10T12:00:00Z"]] as const) {
       const before = key(Date.parse(a)), after = key(Date.parse(b));
       const lost = before.filter(h => !after.includes(h)), gained = after.filter(h => !before.includes(h));
       // Only ordinary growth/moves of a few homes over ~3 weeks; never a seasonal block of ~25 %.
