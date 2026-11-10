@@ -25,7 +25,7 @@ function kindFor(slot: number, now: number): WeatherKind {
   // ~1920–2020: precipitation ~8–11 % of all hours, wettest in autumn/winter); 1500 lay at the onset
   // of the Little Ice Age — a bit cooler, so a touch more winter snow, otherwise similar.
   const rain = 0.14 * s.autumn + 0.09 * s.spring + 0.08 * s.summer + 0.08 * s.winter;
-  const snow = 0.14 * s.winter;
+  const snow = 0.055 * s.winter; // ~30–35 snowfall days per winter (DWD Hamburg 1961–90 ~29, a touch more for 1500)
   const mist = (0.2 * (s.autumn + s.winter) + 0.06 * s.spring) * (hr < 10 || hr > 17 ? 1 : 0.4);
   const storm = s.summer * (hr >= 14 && hr < 20 ? 0.05 : 0);
   let a = storm; if (r < a) return "storm";
@@ -85,7 +85,7 @@ export type SnowStep = { kind: WeatherKind; amount: number; temp: number; day?: 
 export function snowStep(d: number, s: SnowStep): number {
   if (s.kind === "snow") {
     const cold = s.temp <= 0 ? 1 : Math.max(0, 1 - s.temp / 2);
-    d += Math.pow(s.amount, 3) * 3 * cold; // light shower ~0.8 cm, heavy ~2.8 cm per 3 h
+    d += Math.pow(s.amount, 3) * 5 * cold; // light shower ~1.4 cm, heavy ~5 cm per 3 h (fewer but snowier falls)
   }
   if (s.temp > 0) d -= s.temp * 0.35 * (s.day ? 1.4 : 1); // degree-slots, sun helps by day
   if (s.kind === "drizzle" || s.kind === "storm") d -= 1.2 + Math.max(0, s.temp) * 0.4;

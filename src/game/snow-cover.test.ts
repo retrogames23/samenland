@@ -29,8 +29,8 @@ describe("snowpack model", () => {
   it("dry frost keeps the snow for days", () => { const d = run(Array(3).fill({ kind: "snow", amount: 0.8, temp: -3 })); expect(run(dry(-4, 40), d)).toBe(d); });
   it("mild air and rain thaw it", () => {
     const d = run(Array(4).fill({ kind: "snow", amount: 0.9, temp: -3 }));
-    expect(coverOf(run(dry(4, 8), d))).toBe(0);
-    expect(coverOf(run(Array(3).fill({ kind: "drizzle", amount: 0.8, temp: 3 }), d))).toBe(0);
+    expect(coverOf(run(dry(4, 16), d))).toBe(0); // two mild days
+    expect(coverOf(run(Array(5).fill({ kind: "drizzle", amount: 0.8, temp: 3 }), d))).toBe(0);
   });
 });
 describe("winter ways", () => {
@@ -48,6 +48,7 @@ describe("winter ways", () => {
 describe("snow-cover days vary by winter", () => {
   it("mild and hard winters both occur, around 15–20 days on average", async () => {
     const { weatherAt } = await import("./weather");
+    const falls: number[] = [];
     const days = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033].map((y) => {
       let cover = 0, fall = 0;
       for (let d = 0; d < 90; d++) {
@@ -55,11 +56,13 @@ describe("snow-cover days vary by winter", () => {
         for (let k = 0; k < 8; k++) { const t = Date.UTC(y, 11, 1) + d * 864e5 + k * 3 * 3600_000 + 5400_000; if (snowCover(t) > 0.05) c = true; if (weatherAt(t).kind === "snow") f = true; }
         if (c) cover++; if (f) fall++;
       }
-      expect(cover).toBeLessThan(fall); // snowfall days and lying-snow days are counted apart
+      expect(cover).toBeLessThanOrEqual(fall); falls.push(fall); // snowfall days and lying-snow days are counted apart
       return cover;
     });
     const mean = days.reduce((a, b) => a + b, 0) / days.length;
     expect(mean).toBeGreaterThan(12); expect(mean).toBeLessThan(26);
+    const fm = falls.reduce((a, b) => a + b, 0) / falls.length; // DWD Hamburg 1961–90: ~29 snowfall days Dec–Feb
+    expect(fm).toBeGreaterThan(25); expect(fm).toBeLessThan(40);
     expect(Math.min(...days)).toBeLessThan(10); expect(Math.max(...days)).toBeGreaterThan(30);
   });
 });
