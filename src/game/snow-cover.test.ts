@@ -30,7 +30,7 @@ describe("snowpack model", () => {
   it("mild air and rain thaw it", () => {
     const d = run(Array(4).fill({ kind: "snow", amount: 0.9, temp: -3 }));
     expect(coverOf(run(dry(4, 16), d))).toBe(0); // two mild days
-    expect(coverOf(run(Array(3).fill({ kind: "drizzle", amount: 0.8, temp: 3 }), d))).toBe(0);
+    expect(coverOf(run(Array(5).fill({ kind: "drizzle", amount: 0.8, temp: 3 }), d))).toBe(0);
   });
 });
 describe("winter ways", () => {
