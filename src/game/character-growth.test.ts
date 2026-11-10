@@ -17,8 +17,7 @@ describe("730-day character foundation", () => {
       expect(rankOf({ citizens, homes: homes.length, roads: 2 })).toBe(5);
     }
   });
-  // Known gap since Phase 2 (winter cap removed): harbour town ~24 % ahead on day 730. Balancing deferred to its own phase — do not loosen the 10 % target.
-  it.fails("population and current tax assessment differ by no more than ten percent", () => {
+  it("population and current tax assessment differ by no more than ten percent", () => {
     const taxes = towns.map(s => residentTax(s, [s], at));
     for (const metric of [taxes.map(t => t.population), taxes.map(t => t.assessed)]) {
       expect(Math.max(...metric) / Math.min(...metric)).toBeLessThanOrEqual(1.1);

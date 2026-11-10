@@ -14,11 +14,15 @@ describe("character dwellings", () => {
     expect(dwellingSlots("workshop", "steinhaus", 24)).toBe(3);
     expect(dwellingSlots("workshop", "hut", 40)).toBe(1);
   });
-  it("coasts and hills stack three floors, plains stop at two", () => {
-    expect(dwellingSlots("gateway", "townhouse", 16)).toBe(2);
-    expect(dwellingSlots("gateway", "townhouse", 26)).toBe(3);
-    expect(dwellingSlots("grain", "townhouse", 15)).toBe(1);
-    expect(dwellingSlots("grain", "townhouse", 40)).toBe(2);
+  it("plains and coasts share the same floors: second from radius 16, third from 26", () => {
+    for (const way of ["grain", "gateway"] as const) for (const kind of ["townhouse", "fachwerk", "steinhaus", "patrician", "tenement"] as Kind[]) {
+      expect(dwellingSlots(way, kind, 15)).toBe(1);
+      expect(dwellingSlots(way, kind, 16)).toBe(2);
+      expect(dwellingSlots(way, kind, 25)).toBe(2);
+      expect(dwellingSlots(way, kind, 26)).toBe(3);
+    }
+    expect(dwellingSlots("grain", "hut", 40)).toBe(1);
+    expect(dwellingSlots("grain", "farmhouse", 40)).toBe(1);
   });
   it("keeps old IDs and decodes every floor to the real ground tile", () => {
     expect(dwellingKey(306, 420)).toBe(313764);
