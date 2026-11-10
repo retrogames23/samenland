@@ -40,7 +40,7 @@ describe("villager collision", () => {
         checked++;
         // standing at one's own front door rounds onto the home tile
         if (p.home && p.home[0] === Math.round(q.x) && p.home[1] === Math.round(q.y)) continue;
-        if (st) expect(FLAT.has(st.kind) || ["path", "street", "square", "well", "market", "road", "bridge"].includes(st.kind), `${p.first} in ${st.kind}`).toBe(true);
+        if (st) expect(FLAT.has(st.kind) || ["path", "street", "square", "well", "market", "road", "bridge"].includes(st.kind), `${p.first} ${p.job} in ${st.kind} at ${q.x-old.x},${q.y-old.y} m${m} home ${p.home} seed ${old.x},${old.y} ${q.act}`).toBe(true);
       }
     }
     expect(checked).toBeGreaterThan(0);
