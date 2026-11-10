@@ -831,6 +831,8 @@ const PATHLIKE: ReadonlySet<Kind> = new Set(["path", "street", "square", "well",
 /** Whole map fits ~1000px wide at this zoom. */
 export const MIN_ZOOM = 0.025;
 const OVERVIEW_BELOW = 0.45;
+/** Free game figures are drawn from this zoom on (display only). */
+export const WILD_FIGS_FROM = 0.8;
 /** Between this zoom and OVERVIEW_BELOW the overview uses the baked ground chunks. */
 const CHUNKS_BELOW_OVERVIEW = 0.18;
 const smoothCache = new WeakMap<object, Pt[]>();
@@ -4201,12 +4203,19 @@ export function draw(
   // lodges and dens just off-screen still send hunters and game into view (no popping at the screen edge)
   pBegin("pass2.huntScan");
   if (detail) {
+    // lodges exist only as bought "hunter" sites (specialSites): look them up instead of scanning every tile;
+    // the same DEN_R + 2 margin keeps off-screen lodges sending hunters and game into view
     const M = DEN_R + 2;
-    for (let y = Math.max(0, y0 - M); y <= Math.min(MAP - 1, y1 + M); y++) for (let x = Math.max(0, x0 - M); x <= Math.min(MAP - 1, x1 + M); x++) {
-      const inside = x >= x0 && x <= x1 && y >= y0 && y <= y1;
+    for (const sd of seeds) for (const [k, v] of specialSites(sd)) {
+      if (v.kind !== "lodge") continue;
+      const x = k % MAP, y = (k - x) / MAP;
+      if (x < x0 - M || x > x1 + M || y < y0 - M || y > y1 + M) continue;
       const st = structureAt(x, y, seeds, now);
       if (st?.kind === "lodge" && st.build === undefined) huntFigures(x, y, hunt, c, L);
-      else if (!st && (inside || (x >= x0 - 4 && x <= x1 + 4 && y >= y0 - 4 && y <= y1 + 4))) wildFigures(x, y, hunt, c);
+    }
+    // free game is display only and about a pixel tall below this zoom; den stock and hunts are unaffected
+    if (cam.zoom >= WILD_FIGS_FROM) for (let y = Math.max(0, y0 - 4); y <= Math.min(MAP - 1, y1 + 4); y++) for (let x = Math.max(0, x0 - 4); x <= Math.min(MAP - 1, x1 + 4); x++) {
+      if (!structureAt(x, y, seeds, now)) wildFigures(x, y, hunt, c);
     }
   }
   pEnd();
