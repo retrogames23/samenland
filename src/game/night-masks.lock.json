@@ -96,12 +96,12 @@
   "note": "2026-11-10: Gruppe G: neu auf echte Fensteröffnungen aufgebaut, im echten Spiel-Renderpfad geprüft"
  },
  "dairy": {
-  "day": "ad003b7dda95e1ef",
+  "day": "f9a4f1344d42f412",
   "night": "655ac01941f0c63c",
   "technical": "pass",
   "visual": "inspected",
   "decision": "approved",
-  "note": "2026-11-09: Gruppe B visuell abgenommen"
+  "note": "2026-11-10: 2026-11-10: Blech-Milchkannen durch Holzgefäße ersetzt; Maske unverändert, Fenster deckungsgleich geprüft"
  },
  "exchange": {
   "day": "5eb45f51370c23c7",
@@ -512,12 +512,12 @@
   "note": "2026-11-10: Gruppe F: im echten Spiel-Renderpfad geprüft, unverändert"
  },
  "market": {
-  "day": "794bf2a89aabdce2",
+  "day": "918f64990cbd2be0",
   "night": null,
   "technical": "pass",
   "visual": "inspected",
   "decision": "unlit",
-  "note": "2026-11-08: Bestand gesichtet (Prüfansicht + Lichtflächen-Analyse)"
+  "note": "2026-11-10: 2026-11-10: Tomaten, Paprika, Kürbis, Chili ersetzt (historische Korrektur), unbeleuchtet"
  },
  "markethall": {
   "day": "50260d3e2dc7ba83",
@@ -632,12 +632,12 @@
   "note": "2026-11-10: Gruppe F: im echten Spiel-Renderpfad geprüft, unverändert"
  },
  "stall": {
-  "day": "4a1224973338f020",
+  "day": "7a38f874cc62ef48",
   "night": null,
   "technical": "pass",
   "visual": "inspected",
   "decision": "unlit",
-  "note": "2026-11-08: Bestand gesichtet (Prüfansicht + Lichtflächen-Analyse)"
+  "note": "2026-11-10: 2026-11-10: Tomaten durch Rüben ersetzt (historische Korrektur), unbeleuchtet"
  },
  "station": {
   "day": "cc6ff85ed7467f87",
