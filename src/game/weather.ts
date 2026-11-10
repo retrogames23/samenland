@@ -76,7 +76,7 @@ export function tempAt(slot: number, t: number): number {
   const hard = hash(z + 5, yr); // 0 mild … 1 hard winter
   const spell = smoothN(z + 11, day / 4) * 0.65 + smoothN(z + 13, day / 1.5) * 0.35; // 0 cold … 1 thaw
   const hr = worldHour(t + SLOT / 2), diurnal = Math.cos(((hr - 14) / 24) * 6.283) * 1.8;
-  const winterT = 3.2 - hard * 4 + (spell - 0.5) * 9;
+  const winterT = 4.2 - hard * 4.5 + (spell - 0.5) * 9;
   return (1 - w) * 7 + w * winterT + diurnal;
 }
 
