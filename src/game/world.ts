@@ -1,3 +1,4 @@
+import { pSA } from "./perf-probe";
 import { streetFront } from "./street-layout";
 import { worldDayStart } from "./time";
 import { nearCourt, resetCourt } from "./court";
@@ -767,7 +768,8 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
   }
   const ck = y * MAP + x;
   const c = scache.get(ck);
-  if (c !== undefined) return c;
+  if (c !== undefined) { pSA(false); return c; }
+  pSA(true);
   let best: Structure | null = null;
   const tw = twinSites(seeds, now).get(ck);
   if (tw) { best = { kind: tw.kind, seed: tw.seed, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
