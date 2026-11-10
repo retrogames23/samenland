@@ -12,7 +12,7 @@ const town = (ats: number[], extra: { item: string; at: number }[] = []): Seed =
 const rows = (s: Seed) => s.bought!.map((b, i) => ({ id: `${i}`, seed_id: s.id, item: b.item, cost: 0, created_at: new Date(b.at).toISOString() }));
 const wealth = (s: Seed, t: number) => attributes(s, [s], rows(s), t).wealth;
 const placed = (s: Seed) => new Set([...specialSites(s).values()].map((v) => v.at));
-/** All "finished" letters the 15-minute cron would send between from and to (idempotency key = row). */
+/** Which rows the 15-minute cron would enqueue between from and to (timing only; once-only delivery is proven in src/lib/build-mail-outbox.pg.test.ts). */
 function mails(s: Seed, from: number, to: number) {
   const sent = new Set<string>();
   for (let t = from; t <= to; t += 15 * 60000) for (const b of s.bought!) if (buildMailDue(s, b.item, b.at, placed(s), t, 3 * H)) sent.add(b.item);
