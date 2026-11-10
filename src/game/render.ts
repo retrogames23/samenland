@@ -643,8 +643,8 @@ function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y:
   if (behind) { const lv = woodpileLevel(renderNow), im = folkImage("woodpile"); if (im && hash(x, y, 81) < 0.7) {
     const w = 9, h = (w * im.naturalHeight) / im.naturalWidth, vis = 0.45 + 0.55 * lv, sx = cx - 7, sy = cy - 4;
     c.drawImage(im, 0, im.naturalHeight * (1 - vis), im.naturalWidth, im.naturalHeight * vis, sx - w / 2, sy - h * vis, w, h * vis); } }
-  drawStructureBase(c, s, cx, cy, x, y, t, L);
-  if (s.build === undefined) seasonalTrace(c, s, cx, cy, x, y, t, L);
+  pFB(s.build !== undefined ? "p2.s.site" : FLAT.has(s.kind) ? "p2.s.flatKind" : "p2.s.building"); drawStructureBase(c, s, cx, cy, x, y, t, L); pFE();
+  if (s.build === undefined) { pFB("p2.s.trace"); seasonalTrace(c, s, cx, cy, x, y, t, L); pFE(); }
 }
 /** Seasonal and craft traces in front of a finished structure (pure from tile, calendar and clock). */
 function seasonalTrace(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
