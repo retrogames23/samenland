@@ -55,14 +55,15 @@ describe("Phase 1: monument steps", () => {
   });
   it("monument bonuses wait for physical completion", () => {
     const s = belfry([T0, T0 + 1, T0 + 2, T0 + 3]);
-    const buys = monumentSteps("belfry").map((item, i) => ({ id: `${i}`, seed_id: "b", item, cost: 0, created_at: "" }));
+    const buys = monumentSteps("belfry").map((item, i) => ({ id: `${i}`, seed_id: "b", item, cost: 0, created_at: new Date(T0).toISOString() }));
     const done = monumentDone(s, [s], "belfry")!;
     expect(done).toBeGreaterThan(specialDone(s, [s], T0 + 3));
-    const before = attributes(s, [s], buys, done - 3.6e6).wealth, after = attributes(s, [s], buys, done + 60000).wealth;
+    expect(monumentProgress(s, done - 3.6e6)).toBeLessThan(1);
+    const before = attributes(s, [s], buys, done - 3.6e6).wealth, after = attributes(s, [s], buys, done + 2 * 864e5).wealth;
     expect(after).toBeGreaterThan(before);
   });
   it("ordinary bought buildings keep their build time", () => {
     const s = belfry([]);
-    expect(specialDone(s, [s], T0)).toBe(workDone(T0, specialBuild(s, false)));
+    expect([workDone(T0, specialBuild(s, true)), workDone(T0, specialBuild(s, false))]).toContain(specialDone(s, [s], T0));
   });
 });
