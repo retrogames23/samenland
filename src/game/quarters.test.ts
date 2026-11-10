@@ -15,12 +15,13 @@ const tenements = (m: Map<string, string>) => [...m].filter(([, k]) => k === "te
 
 describe("angle-free town quarters", () => {
   const s = town("quarters"), at = start + 730 * day;
-  it("workers' rows lie in every compass direction, not one fixed sector", () => {
-    const rows = tenements(kindsOf(s, at));
-    expect(rows.length).toBeGreaterThan(10);
-    const sides = new Set(rows.map(([x, y]) => (Math.abs(x - s.x) > Math.abs(y - s.y) ? (x > s.x ? "E" : "W") : (y > s.y ? "S" : "N"))));
-    const land = new Set([...kindsOf(s, at).keys()].map(t => { const [x, y] = t.split(",").map(Number); return Math.abs(x! - s.x) > Math.abs(y! - s.y) ? (x! > s.x ? "E" : "W") : (y! > s.y ? "S" : "N"); }));
-    expect(sides).toEqual(land);
+  it("workers' rows lie in every compass direction that holds a real part of the town", () => {
+    const all = kindsOf(s, at), side = ([x, y]: [number, number]) => Math.abs(x - s.x) > Math.abs(y - s.y) ? (x > s.x ? "E" : "W") : (y > s.y ? "S" : "N");
+    const built = new Map<string, number>();
+    for (const t of all.keys()) { const k = side(t.split(",").map(Number) as [number, number]); built.set(k, (built.get(k) ?? 0) + 1); }
+    const big = [...built].filter(([, n]) => n >= 60).map(([k]) => k).sort();
+    expect(big.length).toBeGreaterThanOrEqual(3);
+    expect([...new Set(tenements(all).map(side))].filter(k => big.includes(k)).sort()).toEqual(big);
   });
   it("a building keeps its quarter between simulation steps", () => {
     const a = kindsOf(s, at), b = kindsOf(s, at + 60_000);

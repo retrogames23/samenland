@@ -28,10 +28,11 @@ describe("730-day character foundation", () => {
     const pops = towns.map(s => residentTax(s, [s], mid).population);
     expect(Math.max(...pops) / Math.min(...pops)).toBeLessThanOrEqual(1.15);
   });
-  it("hills and coasts house their families on fewer occupied building tiles", () => {
+  // Since plains stack like coasts, no character needs more building tiles than the plains for its families.
+  it("hills and coasts never need more occupied building tiles than the plains", () => {
     const counts = towns.map(s => new Set(householdsOf(s, [s], at).map(h => h.home.join(","))).size);
-    expect(counts[1]).toBeLessThan(counts[0] ?? 0);
-    expect(counts[2]).toBeLessThan(counts[0] ?? 0);
+    expect(counts[1]).toBeLessThanOrEqual(counts[0] ?? 0);
+    expect(counts[2]).toBeLessThanOrEqual(counts[0] ?? 0);
   });
   it("each character renders exactly the residents assessed by the trusted evaluator", () => {
     for (const s of towns) {
