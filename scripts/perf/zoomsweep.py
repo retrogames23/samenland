@@ -19,7 +19,7 @@ def dist(a):
     s = sorted(a); n = len(s); p = lambda q: s[min(n-1, int(q*n))]
     return {"n": n, "p50": p(.5), "p95": p(.95), "p99": p(.99), "max": s[-1], "over33": sum(x > 33 for x in s), "over50": sum(x > 50 for x in s), "over100": sum(x > 100 for x in s), "fps": 1000*n/sum(s) if sum(s) else 0}
 async def run():
-    sess = os.environ["LOVABLE_BROWSER_SUPABASE_SESSION_JSON"]; key = os.environ["LOVABLE_BROWSER_SUPABASE_STORAGE_KEY"]
+    sess = os.environ.get("LOVABLE_BROWSER_SUPABASE_SESSION_JSON", ""); key = os.environ.get("LOVABLE_BROWSER_SUPABASE_STORAGE_KEY", "x-nosession")
     async with async_playwright() as pw:
         b = await pw.chromium.launch(headless=True)
         for z in ZOOMS:
@@ -43,6 +43,7 @@ async def run():
                     sm = await page.evaluate("()=>window.__perf.summary()")
                     row["spans"] = sm["spans"]; row["counts"] = sm["countsPerFrame"]; row["drawTime"] = sm["drawTime"]; row["frames"] = sm["frameInterval"]["n"]
                 f.write_text(json.dumps(row)); r = row["raf"]
+                if rep == 0: await page.screenshot(path=str(OUT / f"shot_{WORLD}_{MODE}_z{z}.png"))
                 print(WORLD, MODE, z, rep, f"fps {r.get('fps',0):.2f} p50 {r.get('p50',0):.0f} n {r.get('n')}", flush=True)
                 await ctx.close()
         await b.close()
