@@ -736,6 +736,13 @@
       "when": 1794300000000,
       "tag": "0104_monument_steps_no_wait",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1794343692070,
+      "tag": "0105_monument_steps_no_wait_apply",
+      "breakpoints": true
     }
   ]
 }
