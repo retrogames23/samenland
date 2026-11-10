@@ -18,3 +18,11 @@ export function buildMailDue(s: Seed, item: string, at: number, placed: Set<numb
   const done = buildMailDoneAt(s, item, at, placed);
   return done != null && done <= now && done >= now - window;
 }
+
+/** Outbox enqueue horizon: a cron outage up to CATCHUP is caught up (missing rows enqueued later, the
+ *  purchase_id key prevents duplicates); never before MAIL_SINCE, so pre-outbox finishes are not re-mailed. */
+export const MAIL_SINCE = Date.parse("2026-11-11T00:00:00Z");
+export const CATCHUP = 7 * 24 * 3600000;
+export function enqueueWindow(now: number): number {
+  return Math.max(0, now - Math.max(MAIL_SINCE, now - CATCHUP));
+}

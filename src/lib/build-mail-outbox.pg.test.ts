@@ -3,10 +3,12 @@ import { readFileSync } from "node:fs";
 import postgres from "postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { runOutbox, type Due, type OutboxRow, type OutboxStore } from "./build-mail-outbox";
-import { buildMailDue } from "@/game/build-mail";
+import { buildMailDue, enqueueWindow, MAIL_SINCE } from "@/game/build-mail";
 import { monumentDone, specialDone, specialSites, type Seed } from "@/game/world";
 
 const URL = process.env["BUILD_MAIL_TEST_PG"];
+// In CI (CI or REQUIRE_PG set) a missing test DB is a failure, never a silent skip.
+if (!URL && (process.env["CI"] || process.env["REQUIRE_PG"])) throw new Error("BUILD_MAIL_TEST_PG missing: outbox DB tests must run");
 const d = URL ? describe : describe.skip;
 const SQL = readFileSync(new globalThis.URL("../../db/pending/build_mail_outbox.sql", import.meta.url), "utf8");
 
@@ -120,5 +122,27 @@ d("build-mail outbox (real PostgreSQL)", () => {
       await runOutbox(store(), list, ok);
     }
     expect(mails).toEqual([P1]);
+  });
+
+  it("cron down 6 h: every building finished meanwhile gets exactly one job afterwards", async () => {
+    const H = 3.6e6, base = Math.max(MAIL_SINCE, Date.parse("2026-11-12T00:00:00Z"));
+    const items = ["granary", "school", "backhaus", "herberge"];
+    const s: Seed = { id: "c", name: "P", owner: "o", x: 300, y: 300, hue: 0, created_at: "2026-04-24T00:00:00Z",
+      bought: items.map((item, i) => ({ item, at: base + i * 2 * H, x: 303 + i * 2, y: 302 })) };
+    const placed = new Set([...specialSites(s).values()].map((v) => v.at));
+    const ids = items.map((_, i) => `00000000-0000-0000-0000-00000000020${i}`);
+    const dones = s.bought!.map((b) => specialDone(s, [s], b.at)!);
+    const tick = (t: number) => s.bought!.flatMap((b, i) => buildMailDue(s, b.item, b.at, placed, t, enqueueWindow(t)) ? [{ ...due(ids[i]!, b.item), doneAt: dones[i]! }] : []);
+    const first = Math.min(...dones), outFrom = first - H, outTo = outFrom + 6 * H;
+    let jobs = 0;
+    for (let t = base; t <= Math.max(...dones) + 24 * H; t += 15 * 60000) {
+      if (t > outFrom && t < outTo) continue; // outage
+      jobs += (await runOutbox(store(), tick(t), ok)).enqueued;
+    }
+    const inOutage = dones.filter((x) => x > outFrom && x < outTo).length;
+    expect(inOutage).toBeGreaterThan(0);
+    expect(jobs).toBe(items.length);
+    expect([...mails].sort()).toEqual([...ids].sort());
+    expect((await rows()).every((r) => r["status"] === "sent")).toBe(true);
   });
 });

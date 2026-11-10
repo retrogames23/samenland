@@ -3,7 +3,6 @@ import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
 
 // Scheduled every 15 min: writes a parchment letter to opted-in mayors whose bought building just finished.
 // Completion is derived from purchase time + specialBuild(seed) in builders' work hours (specialDone), exactly as the game computes it. Once-only delivery: DB outbox build_mail_outbox (src/lib/build-mail-outbox.ts).
-const WINDOW = 3 * 3600000;
 
 export const Route = createFileRoute("/api/public/build-mail")({
   staticData: { sitemap: false },
@@ -14,11 +13,12 @@ export const Route = createFileRoute("/api/public/build-mail")({
         if (denied) return denied;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { specialSites, monumentOf } = await import("@/game/world");
-        const { buildMailDue } = await import("@/game/build-mail");
+        const { buildMailDue, enqueueWindow } = await import("@/game/build-mail");
         const { setRealm } = await import("@/game/time");
         const { DICT } = await import("@/game/i18n");
         const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
         const now = Date.now();
+        const WINDOW = enqueueWindow(now); // catch-up after outages; outbox key dedupes
 
         const { data: opts } = (await await (supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient).from("build_mail").select("user_id, lang").eq("enabled", true)) as { data: { user_id: string; lang: string }[] | null };
         if (!opts?.length) return Response.json({ sent: 0 });
