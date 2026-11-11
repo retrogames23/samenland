@@ -64,7 +64,7 @@ import { COURT } from "@/game/lang/court";
 import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, heraldSpots, isPlantedRare } from "@/game/render";
 import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
-import { SUPPORT } from "@/game/lang/support";
+import { SUPPORT, UKRAINE_URL } from "@/game/lang/support";
 import { Survey } from "@/components/Survey";
 import { Stube, STUBE_KINDS, type StubeKind } from "@/components/Stube";
 import { STUBE } from "@/game/lang/stube";
