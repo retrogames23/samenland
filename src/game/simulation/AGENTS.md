@@ -1,0 +1,1 @@
+- model-c.ts replays engine.ts daily rows instead of re-simulating towns, so project strategies reuse real tax/chest results and stay fast; offline only, never imported by the game.
