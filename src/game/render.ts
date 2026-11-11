@@ -1223,12 +1223,6 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
 }
 
 // ---------------- villagers ----------------
-// Muted, earthy period palette (Commandos-like): no saturated toy colours.
-const SKIN = ["#e2bf9f", "#d3a985", "#bf9068", "#9c6d4a", "#74492f"];
-const HAIR = ["#2a1e16", "#4a3222", "#6e4a2c", "#a07a45", "#bfa36a", "#7f3c25"];
-const CLOTH = ["#6b7552", "#8a4a38", "#4e5d6c", "#9c8150", "#6a5a66", "#5a6e66", "#8a6650", "#525a40", "#a07a62", "#cfc3a5"];
-const PANTS = ["#3e362f", "#4b4e55", "#5a4736", "#363d47"];
-/** Villagers are drawn at this fraction of their modelled size so they match doors, fences and fields. */
 /** Screen-space people currently drawn (for clicking). */
 /** Screen-space traders on trade roads (for clicking). */
 export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean; walker?: Walker; stall?: boolean }[] = [];
@@ -1242,14 +1236,6 @@ export const lastSources: { x: number; y: number; k: string }[] = [];
 const PEAL_JOBS: ReadonlySet<string> = new Set(["farmer", "builder", "mason", "woodcutter", "sawyer", "crafter", "smith", "homemaker"]);
 const BELL_KINDS = new Set(["seat3", "townhall", "belfry", "church", "factory"]);
 const SOUND_KINDS = new Set(["campfire", "mill", "watermill", "smithy", "pasture", "church", "sawmill", "steamworks"]);
-function limb(c: C, pts: Pt[], col: string, w: number) {
-  c.lineCap = "round"; c.lineJoin = "round";
-  c.beginPath(); c.moveTo(pts[0]![0], pts[0]![1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i]![0], pts[i]![1]);
-  c.strokeStyle = "rgba(22,16,10,0.85)"; c.lineWidth = w + 0.45; c.stroke();
-  c.strokeStyle = col; c.lineWidth = w; c.stroke();
-  // soft top-left light, like painted sprite shading
-  c.strokeStyle = "rgba(255,235,200,0.16)"; c.lineWidth = w * 0.35; c.stroke();
-}
 function bubble(c: C, x: number, y: number, icon: number) {
   c.beginPath(); c.ellipse(x, y, 2.6, 1.9, 0, 0, 7);
   c.moveTo(x - 0.6, y + 1.6); c.lineTo(x - 1.4, y + 3); c.lineTo(x + 0.3, y + 1.8);
