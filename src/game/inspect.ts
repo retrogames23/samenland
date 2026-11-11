@@ -10,7 +10,9 @@ export function inspectAt(x: number, y: number, seeds: Seed[], now: number): Ins
   for (const [dx, dy] of [[0, 0], [1, 1], [1, 0], [0, 1], [2, 2]] as const) {
     const tx = x + dx, ty = y + dy;
     const st = structureAt(tx, ty, seeds, now);
-    if (!st || (FLAT.has(st.kind) && st.kind !== "market" && st.kind !== "field")) continue;
+    // a click on an own garden/pasture opens it, never the roof of a neighbour
+    const own = !dx && !dy && !!st && LOW.has(st.kind);
+    if (!st || (!own && FLAT.has(st.kind) && st.kind !== "market" && st.kind !== "field")) continue;
     // low things have no roof rising over tiles in front: only a click on their own tile counts
     if ((dx || dy) && LOW.has(st.kind)) continue;
     const people = townOf(st.seed, seeds, now).people;
