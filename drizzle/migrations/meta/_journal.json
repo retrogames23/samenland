@@ -750,6 +750,13 @@
       "when": 1794344973595,
       "tag": "0106_build_mail_outbox",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1794383225905,
+      "tag": "0107_chest_cap_all_income",
+      "breakpoints": true
     }
   ]
 }

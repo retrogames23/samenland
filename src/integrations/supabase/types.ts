@@ -1416,6 +1416,14 @@ export type Database = {
         Returns: undefined
       }
       village_balance: { Args: { _seed: string }; Returns: number }
+      village_balance_legacy: {
+        Args: { _at: string; _seed: string }
+        Returns: number
+      }
+      village_balance_walk: {
+        Args: { _at: string; _seed: string; _since: string }
+        Returns: number
+      }
       village_capped_tax: {
         Args: { _at: string; _seed: string }
         Returns: number
@@ -1440,6 +1448,13 @@ export type Database = {
         Args: { _at: string; _seed: string }
         Returns: number
       }
+      village_raid_list: {
+        Args: { _from: string; _seed: string; _to: string }
+        Returns: {
+          loss: number
+          t: string
+        }[]
+      }
       village_raids: {
         Args: { _at: string; _created: string; _seed: string }
         Returns: number
@@ -1450,6 +1465,13 @@ export type Database = {
         Args: { _at: string; _h: number; _seed: string }
         Returns: number
       }
+      village_wedding_list: {
+        Args: { _at: string; _food: string[]; _seed: string }
+        Returns: {
+          dowry: number
+          t: string
+        }[]
+      }
       village_weddings: {
         Args: { _at: string; _seed: string }
         Returns: {
@@ -1459,6 +1481,14 @@ export type Database = {
         }[]
       }
       village_weddings_fast: {
+        Args: { _at: string; _seed: string }
+        Returns: {
+          dowry: number
+          last_at: string
+          n: number
+        }[]
+      }
+      village_weddings_legacy: {
         Args: { _at: string; _seed: string }
         Returns: {
           dowry: number
