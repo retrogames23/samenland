@@ -98,3 +98,15 @@ export const SUPPORT: Record<Lang, Text> = {
     seal: "Samenland後援者",
   },
 };
+
+/** Ukraine aid link per UI language: a reputable relief page in that language. */
+export const UKRAINE_URL: Record<Lang, string> = {
+  de: "https://ua-de.info",
+  en: "https://www.icrc.org/en/donate/ukraine",
+  fr: "https://www.icrc.org/fr/don/crise-en-ukraine",
+  es: "https://www.icrc.org/es/donate/ucrania",
+  ar: "https://www.icrc.org/ar/where-we-work/ukraine",
+  hi: "https://www.icrc.org/en/donate/ukraine",
+  zh: "https://www.icrc.org/zh/donate/ukraine",
+  ja: "https://www.jrc.or.jp/contribute/help/ukraine/",
+};
