@@ -2533,7 +2533,7 @@ function groundChunkBake(key: string, ix: number, iy: number, q: number): HTMLCa
 // They were redrawn live every frame (p2.nature, the costliest span at mid zoom). Baked per CH chunk, keyed by the
 // current reach of nearby towns, their bought sites and the season; chunks not baked yet stay live — same look.
 const OUT_MARGIN = 3;
-const outCache = new Map<string, HTMLCanvasElement & { ox: number; oy: number }>();
+const outCache = new Map<string, HTMLCanvasElement & { ox: number; oy: number; bm?: ImageBitmap }>();
 const outDone = new Set<number>();
 let outR: { x: number; y: number; r2: number; tok: string }[] = [];
 function syncOutskirts(seeds: Seed[], now: number) {
@@ -2560,7 +2560,7 @@ function drawOutskirts(c: C, x0: number, x1: number, y0: number, y1: number, z: 
       outBaked++; pBegin("out.bake");
       try {
         const left = iso(X0, Y1)[0] - TW * 2, right = iso(X1, Y0)[0] + TW * 2, top = iso(X0, Y0)[1] - TH - PAD_TOP - 30, bottom = iso(X1, Y1)[1] + TH + 12;
-        const n = document.createElement("canvas") as HTMLCanvasElement & { ox: number; oy: number };
+        const n = document.createElement("canvas") as HTMLCanvasElement & { ox: number; oy: number; bm?: ImageBitmap };
         n.width = Math.ceil((right - left) * q); n.height = Math.ceil((bottom - top) * q);
         const g = n.getContext("2d")!; g.setTransform(q, 0, 0, q, -left * q, -top * q);
         for (let d = X0 + Y0; d <= X1 + Y1; d++) for (let x = Math.max(X0, d - Y1); x <= Math.min(X1, d - Y0); x++) {
@@ -2571,11 +2571,12 @@ function drawOutskirts(c: C, x0: number, x1: number, y0: number, y1: number, z: 
         n.ox = left; n.oy = top;
         if (!allTexturesReady() || !natureReady()) continue; // art loading: stay live, retry later
         cv = n; outCache.set(key, cv);
-        for (const k of outCache.keys()) { if (outCache.size <= 160) break; if (!k.startsWith(`${ix},${iy},`)) outCache.delete(k); }
-        for (const k of outCache.keys()) if (k !== key && k.startsWith(`${ix},${iy},${q},`)) outCache.delete(k);
+        if (typeof createImageBitmap === "function") void createImageBitmap(n).then((bm) => { n.bm = bm; }, () => {});
+        for (const k of outCache.keys()) { if (outCache.size <= 160) break; if (!k.startsWith(`${ix},${iy},`)) { outCache.get(k)?.bm?.close(); outCache.delete(k); } }
+        for (const k of outCache.keys()) if (k !== key && k.startsWith(`${ix},${iy},${q},`)) { outCache.get(k)?.bm?.close(); outCache.delete(k); }
       } finally { pEnd(); }
     }
-    c.drawImage(cv, cv.ox, cv.oy, cv.width / q, cv.height / q);
+    c.drawImage(cv.bm ?? cv, cv.ox, cv.oy, cv.width / q, cv.height / q);
     outDone.add(iy * 4096 + ix);
   }
 }
