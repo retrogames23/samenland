@@ -94,14 +94,15 @@ export const FURNITURE: Record<StubeLayoutKey, Partial<Record<Exclude<StubeSpot,
   },
   tall: {
     bed: [{ x: 0.235, floor: 0.398, kind: "bed" }, { x: 0.405, floor: 0.398, kind: "bed" }],
-    hearth: [{ x: 0.4, floor: 0.895, kind: "floor" }],
+    hearth: [{ x: 0.27, floor: 0.885, kind: "floor" }], // in front of the painted cauldron,
     fire: [stool(0.31, 0.655, 0.0333)],
     desk: [{ x: 0.6, floor: 0.895, kind: "chair", seat: 0.859 }],
-    table: [stool(0.6, 0.635, 0.037), stool(0.745, 0.635, 0.037), stool(0.565, 0.655, 0.037), stool(0.785, 0.655, 0.037)],
+    // painted benches of the Dornse: front bench (0.61–0.80), short side bench left of the table
+    table: [0.66, 0.76, 0.55, 0.71].map((x, i): Furniture => ({ x, floor: i === 2 ? 0.652 : 0.656, kind: "bench", seat: i === 2 ? 0.618 : 0.622 })),
   },
   coast: {
     bed: [{ x: 0.415, floor: 0.47, kind: "bed" }, { x: 0.455, floor: 0.47, kind: "bed" }],
-    hearth: [{ x: 0.585, floor: 0.86, kind: "floor" }],
+    hearth: [{ x: 0.495, floor: 0.86, kind: "floor" }],
     fire: [stool(0.67, 0.88, 0.0592)],
     table: [stool(0.44, 0.88, 0.0703), stool(0.6, 0.88, 0.0703), stool(0.41, 0.9, 0.0703), stool(0.63, 0.9, 0.0703)],
   },
