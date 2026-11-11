@@ -1223,13 +1223,6 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
 }
 
 // ---------------- villagers ----------------
-// Muted, earthy period palette (Commandos-like): no saturated toy colours.
-const SKIN = ["#e2bf9f", "#d3a985", "#bf9068", "#9c6d4a", "#74492f"];
-const HAIR = ["#2a1e16", "#4a3222", "#6e4a2c", "#a07a45", "#bfa36a", "#7f3c25"];
-const CLOTH = ["#6b7552", "#8a4a38", "#4e5d6c", "#9c8150", "#6a5a66", "#5a6e66", "#8a6650", "#525a40", "#a07a62", "#cfc3a5"];
-const PANTS = ["#3e362f", "#4b4e55", "#5a4736", "#363d47"];
-/** Villagers are drawn at this fraction of their modelled size so they match doors, fences and fields. */
-const PERSON_SCALE = 0.55;
 /** Screen-space people currently drawn (for clicking). */
 /** Screen-space traders on trade roads (for clicking). */
 export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean; walker?: Walker; stall?: boolean }[] = [];
@@ -1243,14 +1236,6 @@ export const lastSources: { x: number; y: number; k: string }[] = [];
 const PEAL_JOBS: ReadonlySet<string> = new Set(["farmer", "builder", "mason", "woodcutter", "sawyer", "crafter", "smith", "homemaker"]);
 const BELL_KINDS = new Set(["seat3", "townhall", "belfry", "church", "factory"]);
 const SOUND_KINDS = new Set(["campfire", "mill", "watermill", "smithy", "pasture", "church", "sawmill", "steamworks"]);
-function limb(c: C, pts: Pt[], col: string, w: number) {
-  c.lineCap = "round"; c.lineJoin = "round";
-  c.beginPath(); c.moveTo(pts[0]![0], pts[0]![1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i]![0], pts[i]![1]);
-  c.strokeStyle = "rgba(22,16,10,0.85)"; c.lineWidth = w + 0.45; c.stroke();
-  c.strokeStyle = col; c.lineWidth = w; c.stroke();
-  // soft top-left light, like painted sprite shading
-  c.strokeStyle = "rgba(255,235,200,0.16)"; c.lineWidth = w * 0.35; c.stroke();
-}
 function bubble(c: C, x: number, y: number, icon: number) {
   c.beginPath(); c.ellipse(x, y, 2.6, 1.9, 0, 0, 7);
   c.moveTo(x - 0.6, y + 1.6); c.lineTo(x - 1.4, y + 3); c.lineTo(x + 0.3, y + 1.8);
@@ -1519,185 +1504,8 @@ function drawPerson(c: C, X: number, Y: number, q: Pose, t: number, simple: bool
   if (fzNow) drawFeastKit(c, X, Y, q, t, sp?.[1]);
   if (sp && q.carry) drawCarryProp(c, X, Y, q, Y - sp[1]);
   if (sp && q.p.seed && lanternFolk.has(q.p.id * 7919 + q.p.seed.id.length)) drawHandLantern(c, X, Y, q, t);
-  if (sp) { if (q.talk !== null && q.talkTurn) bubble(c, sp[0] + 1.8, sp[1] + 0.6, q.talk); return; }
-  c.save(); c.translate(X, Y); c.scale(PERSON_SCALE, PERSON_SCALE); c.translate(-X, -Y);
-  const head = personBody(c, X, Y, q, t, simple);
-  c.restore();
-  if (head && q.talk !== null && q.talkTurn) bubble(c, X + (head[0] - X) * PERSON_SCALE + 1.8, Y + (head[1] - Y) * PERSON_SCALE - 2.6, q.talk);
+  if (sp && q.talk !== null && q.talkTurn) bubble(c, sp[0] + 1.8, sp[1] + 0.6, q.talk);
 }
-function personBody(c: C, X: number, Y: number, q: Pose, t: number, simple: boolean): Pt | null {
-  const p = q.p, L = p.looks;
-  const kid = p.age < 15, old = p.age >= 65;
-  const s = kid ? 0.52 + p.age * 0.03 : 1;
-  const sdx = (q.dir[0] - q.dir[1]), sdy = (q.dir[0] + q.dir[1]) * 0.5;
-  const dl = Math.hypot(sdx, sdy) || 1;
-  const fx = sdx / dl, fy = sdy / dl;
-  const face = fx >= 0 ? 1 : -1, side = 0.35 + 0.65 * Math.abs(fx), away = fy < -0.35;
-  const skin = SKIN[Math.floor(L.skin * SKIN.length)]!, shirt = CLOTH[Math.floor(L.shirt * CLOTH.length)]!;
-  const pants = PANTS[Math.floor(L.pants * PANTS.length)]!;
-  const hair = L.hair < 0 ? "#d8d4cc" : HAIR[Math.floor(L.hair * HAIR.length)]!;
-  const ph = q.phase + p.id;
-  const walk = q.walking ? 1 : 0;
-  const bounce = walk * Math.abs(Math.cos(ph)) * 0.12 * s + (kid && q.act === "play" ? Math.max(0, Math.sin(ph * 0.5)) * 0.5 : 0);
-  // shadow
-  // grounded: soft ambient shadow cast to the lower right + dark contact patch under the feet
-  c.fillStyle = "rgba(25,20,10,0.18)"; c.beginPath(); c.ellipse(X + 1.1 * s, Y + 0.25, 2.3 * s, 0.85 * s, 0.15, 0, 7); c.fill();
-  c.fillStyle = "rgba(20,15,8,0.38)"; c.beginPath(); c.ellipse(X, Y, 1.05 * s, 0.42 * s, 0, 0, 7); c.fill();
-  if (simple) {
-    // Cheap but proportioned figure for mid zoom: two striding legs, tapered torso, arms, hair/hat.
-    const sw = Math.sin(ph) * 0.9 * walk * s * Math.abs(fx), swy = Math.sin(ph) * 0.45 * walk * s * fy, hipY = Y - 3.5 * s - bounce, shY = hipY - 2.5 * s;
-    const fem = p.sex === "f" && !kid;
-    const lc = fem ? skin : pants;
-    limb(c, [[X - 0.3 * s, hipY], [X - 0.3 * s - sw * face, Y - 0.2 - swy]], lc, 0.75 * s);
-    limb(c, [[X + 0.3 * s, hipY], [X + 0.3 * s + sw * face, Y - 0.2 + swy]], lc, 0.75 * s);
-    limb(c, [[X - 0.85 * s, shY + 0.3], [X - 0.95 * s + sw * 0.5 * face, hipY + 0.3]], shirt, 0.6 * s);
-    c.beginPath(); c.moveTo(X - 0.85 * s, shY); c.lineTo(X + 0.85 * s, shY);
-    if (fem) { c.lineTo(X + 1.3 * s, hipY + 2.2 * s); c.lineTo(X - 1.3 * s, hipY + 2.2 * s); }
-    else { c.lineTo(X + 0.7 * s, hipY + 0.2); c.lineTo(X - 0.7 * s, hipY + 0.2); }
-    c.closePath(); c.fillStyle = fem ? CLOTH[(Math.floor(L.shirt * CLOTH.length) + 3) % CLOTH.length]! : shirt; c.fill();
-    c.strokeStyle = "rgba(22,16,10,0.85)"; c.lineWidth = 0.45; c.stroke();
-    if (fem) { c.beginPath(); c.moveTo(X - 0.85 * s, shY); c.lineTo(X + 0.85 * s, shY); c.lineTo(X + 0.75 * s, hipY); c.lineTo(X - 0.75 * s, hipY); c.closePath(); c.fillStyle = shirt; c.fill(); }
-    limb(c, [[X + 0.85 * s, shY + 0.3], [X + 0.95 * s - sw * 0.5 * face, hipY + 0.3]], shirt, 0.6 * s);
-    const hr = (kid ? 1.1 : 0.9) * s, hy = shY - hr - 0.2 * s;
-    c.beginPath(); c.arc(X, hy, hr, 0, 7); c.fillStyle = skin; c.fill(); c.strokeStyle = "rgba(22,16,10,0.85)"; c.lineWidth = 0.4; c.stroke();
-    c.fillStyle = hair; c.beginPath(); c.arc(X, hy - 0.1 * hr, hr * 1.02, Math.PI * 1.02, Math.PI * 1.98); c.fill();
-    if (L.hat && !kid) {
-      c.fillStyle = p.job === "farmer" ? "#b89a5e" : "#3e3028";
-      c.beginPath(); c.ellipse(X, hy - hr * 0.55, hr * 1.5, hr * 0.36, 0, 0, 7); c.fill(); c.stroke();
-      c.beginPath(); c.ellipse(X, hy - hr * 0.9, hr * 0.8, hr * 0.5, 0, Math.PI, 0); c.fill();
-    }
-    return [X, hy];
-  }
-  const leg = (old ? 1.65 : 1.8) * s;
-  const hip: Pt = [X, Y - leg * 2 - bounce];
-  const stoop = old ? 0.45 * face : 0;
-  const sh: Pt = [X + stoop, hip[1] - 2.5 * s];
-  const legPts = (l: number): Pt[] => {
-    const lp = ph + (l > 0 ? 0 : Math.PI);
-    const a = Math.sin(lp) * 0.5 * walk;
-    // knee bends only while the leg swings forward (cos>0); stance leg stays straight
-    const bend = walk * Math.max(0, Math.cos(lp)) * 0.8;
-    // swing along the real screen direction: sideways part for left/right, depth part for up/down
-    const kx = Math.sin(a) * leg * fx, ky = Math.sin(a) * leg * fy * 0.5;
-    const knee: Pt = [hip[0] + kx, hip[1] + Math.cos(a) * leg + ky];
-    const fa = a - bend;
-    const foot: Pt = [knee[0] + Math.sin(fa) * leg * fx, knee[1] + Math.cos(fa) * leg + Math.sin(fa) * leg * fy * 0.5 - walk * Math.max(0, Math.cos(lp)) * 0.35 * s];
-    return [[hip[0] + l * 0.28 * s * (1 - side * 0.6), hip[1]], knee, foot];
-  };
-  const dress = p.sex === "f" && !kid ? true : p.sex === "f" && L.pants > 0.4;
-  const legCol = dress ? skin : pants;
-  // back leg & arm
-  limb(c, legPts(-1), legCol, 0.75 * s);
-  const armPts = (l: number): Pt[] => {
-    const o: Pt = [sh[0] + l * 0.25 * s * (1 - side * 0.6), sh[1] + 0.3 * s];
-    if (q.working && (p.job === "farmer" || p.job === "homemaker")) {
-      const sw = Math.sin(t / 420 + p.id) * 0.6;
-      return [o, [o[0] + face * 1.0 * s, o[1] + 0.9 * s + sw * 0.4], [o[0] + face * 1.9 * s, o[1] + 0.6 * s + sw]];
-    }
-    if (q.talk !== null && q.talkTurn && l > 0) {
-      const g = Math.sin(t / 260 + p.id) * 0.3;
-      return [o, [o[0] + face * 0.9 * s, o[1] + 0.9 * s], [o[0] + face * 1.7 * s, o[1] + 0.2 * s + g]];
-    }
-    const a = Math.sin(ph + (l > 0 ? Math.PI : 0)) * 0.5 * walk;
-    const el: Pt = [o[0] + Math.sin(a) * 1.3 * s * side * face, o[1] + Math.cos(a) * 1.3 * s];
-    return [o, el, [el[0] + Math.sin(a + 0.3 * walk) * 1.2 * s * side * face, el[1] + Math.cos(a + 0.3) * 1.2 * s]];
-  };
-  limb(c, armPts(-1), shirt, 0.62 * s);
-  // torso
-  c.beginPath();
-  c.moveTo(sh[0] - 0.85 * s, sh[1]); c.lineTo(sh[0] + 0.85 * s, sh[1]);
-  c.lineTo(hip[0] + 0.75 * s, hip[1] + 0.2); c.lineTo(hip[0] - 0.75 * s, hip[1] + 0.2); c.closePath();
-  c.fillStyle = shirt; c.fill();
-  { const g = c.createLinearGradient(sh[0] - 0.85 * s, 0, sh[0] + 0.85 * s, 0); g.addColorStop(0, "rgba(255,240,210,0.18)"); g.addColorStop(1, "rgba(20,12,5,0.28)"); c.fillStyle = g; c.fill(); }
-  c.strokeStyle = "rgba(22,16,10,0.85)"; c.lineWidth = 0.45; c.stroke();
-  if (p.job === "mayor") {
-    // chain of office with a medallion
-    c.strokeStyle = "#d8b24a"; c.lineWidth = 0.32 * s; c.beginPath();
-    c.moveTo(sh[0] - 0.7 * s, sh[1] + 0.1); c.quadraticCurveTo(sh[0], sh[1] + 1.6 * s, sh[0] + 0.7 * s, sh[1] + 0.1); c.stroke();
-    c.fillStyle = "#f0cf68"; c.beginPath(); c.arc(sh[0], sh[1] + 0.95 * s, 0.32 * s, 0, 7); c.fill();
-  }
-  if (dress) {
-    const sk = CLOTH[(Math.floor(L.shirt * CLOTH.length) + 3) % CLOTH.length]!;
-    const fl = walk * Math.sin(ph) * 0.25;
-    c.beginPath(); c.moveTo(hip[0] - 0.8 * s, hip[1] - 0.3); c.lineTo(hip[0] + 0.8 * s, hip[1] - 0.3);
-    c.lineTo(hip[0] + 1.35 * s + fl, hip[1] + leg * 1.25); c.quadraticCurveTo(hip[0], hip[1] + leg * 1.4, hip[0] - 1.35 * s + fl, hip[1] + leg * 1.25); c.closePath();
-    c.fillStyle = sk; c.fill(); c.stroke();
-  }
-  limb(c, legPts(1), legCol, 0.75 * s);
-  if (dress) { /* front leg peeks out under the skirt */ }
-  // head
-  const hr = (kid ? 1.15 : 0.95) * s;
-  const hc: Pt = [sh[0] + face * 0.1 * s + stoop * 0.6, sh[1] - hr - 0.25 * s];
-  limb(c, [[sh[0], sh[1]], [hc[0], hc[1] + hr * 0.6]], skin, 0.5 * s);
-  c.beginPath(); c.arc(hc[0], hc[1], hr, 0, 7); c.fillStyle = skin; c.fill(); c.strokeStyle = "rgba(22,16,10,0.85)"; c.lineWidth = 0.4; c.stroke();
-  { const g = c.createRadialGradient(hc[0] - hr * 0.4, hc[1] - hr * 0.4, 0, hc[0], hc[1], hr * 1.1); g.addColorStop(0, "rgba(255,235,205,0.25)"); g.addColorStop(1, "rgba(40,20,10,0.3)"); c.fillStyle = g; c.fill(); }
-  // hair
-  c.fillStyle = hair; c.beginPath();
-  if (away) c.arc(hc[0], hc[1], hr * 1.02, 0, 7);
-  else c.arc(hc[0] - face * 0.15 * hr, hc[1] - 0.1 * hr, hr * 1.02, Math.PI * 1.05, Math.PI * 1.95 + face * 0.2);
-  c.fill();
-  if (p.sex === "f" && L.hair >= 0) { c.beginPath(); c.ellipse(hc[0] - face * hr * 0.75, hc[1] + hr * 0.6, hr * 0.35, hr * 0.9, 0, 0, 7); c.fill(); }
-  if (!away) { c.fillStyle = "rgba(30,20,12,0.55)"; c.beginPath(); c.arc(hc[0] + face * hr * 0.45, hc[1] - hr * 0.05, 0.12 * s, 0, 7); c.fill(); }
-  if (L.hat && !kid) {
-    c.fillStyle = p.job === "farmer" ? "#d9bf7a" : "#4a3a30";
-    c.beginPath(); c.ellipse(hc[0], hc[1] - hr * 0.55, hr * 1.55, hr * 0.38, 0, 0, 7); c.fill(); c.stroke();
-    c.beginPath(); c.ellipse(hc[0], hc[1] - hr * 0.9, hr * 0.85, hr * 0.55, 0, Math.PI, 0); c.fill(); c.stroke();
-  }
-  // front arm with tool / stick
-  const ap = armPts(1);
-  limb(c, ap, shirt, 0.62 * s);
-  const hand = ap[2]!;
-  c.fillStyle = skin; c.beginPath(); c.arc(hand[0], hand[1], 0.32 * s, 0, 7); c.fill();
-  if (q.working && (p.job === "builder" || p.job === "woodcutter" || p.job === "mason")) {
-    // hammer / axe / pick swinging down in a steady rhythm
-    const sw = Math.max(0, Math.sin(t / 230 + p.id)) * 1.3;
-    const tip: Pt = [hand[0] + face * (1.4 - sw * 0.4) * s, hand[1] - (1.6 - sw * 1.8) * s];
-    line(c, hand, tip, p.id, 0.38, "#6f533b");
-    c.fillStyle = p.job === "builder" ? "#4a4440" : "#8a8f94";
-    c.beginPath(); c.ellipse(tip[0], tip[1], (p.job === "builder" ? 0.45 : 0.75) * s, 0.35 * s, face * 0.6, 0, 7); c.fill();
-    c.strokeStyle = "rgba(22,16,10,0.8)"; c.lineWidth = 0.25; c.stroke();
-    if (sw < 0.15 && p.job !== "builder") { c.fillStyle = p.job === "mason" ? "rgba(220,215,205,0.8)" : "rgba(200,160,100,0.8)"; for (let i = 0; i < 3; i++) c.fillRect(tip[0] + (hash(p.id, i, Math.floor(t / 230)) - 0.5) * 3, tip[1] - hash(i, p.id, 7) * 2, 0.4, 0.4); }
-  }
-  if (q.carry) {
-    // the carried good, recognisable at a glance
-    const shp: Pt = [sh[0], sh[1] - 0.2 * s];
-    const ink = "rgba(22,16,10,0.8)";
-    c.lineWidth = 0.25;
-    if (q.carry === "log") {
-      c.strokeStyle = "#5e4229"; c.lineWidth = 1.15 * s; c.lineCap = "round";
-      c.beginPath(); c.moveTo(shp[0] - 2.6 * s * face, shp[1] + 0.4 * s); c.lineTo(shp[0] + 2.4 * s * face, shp[1] - 0.6 * s); c.stroke();
-      c.fillStyle = "#c9a26b"; c.beginPath(); c.ellipse(shp[0] + 2.4 * s * face, shp[1] - 0.6 * s, 0.45 * s, 0.55 * s, 0, 0, 7); c.fill();
-      c.lineCap = "butt";
-    } else if (q.carry === "stone") {
-      c.fillStyle = "#a9a49c"; c.fillRect(hand[0] - 0.9 * s, hand[1] - 1.1 * s, 1.8 * s, 1.2 * s);
-      c.fillStyle = "rgba(255,255,255,0.18)"; c.fillRect(hand[0] - 0.9 * s, hand[1] - 1.1 * s, 1.8 * s, 0.35 * s);
-      c.strokeStyle = ink; c.strokeRect(hand[0] - 0.9 * s, hand[1] - 1.1 * s, 1.8 * s, 1.2 * s);
-    } else if (q.carry === "planks") {
-      for (let i = 0; i < 3; i++) {
-        const o = -i * 0.35 * s;
-        c.strokeStyle = i % 2 ? "#c49a62" : "#b08a5a"; c.lineWidth = 0.4 * s;
-        c.beginPath(); c.moveTo(shp[0] - 3 * s * face, shp[1] + 0.5 * s + o); c.lineTo(shp[0] + 2.8 * s * face, shp[1] - 0.5 * s + o); c.stroke();
-      }
-    } else if (q.carry === "grain" || q.carry === "bundle") {
-      const g: Pt = [shp[0] - face * 0.6 * s, shp[1] - 0.6 * s];
-      c.fillStyle = q.carry === "bundle" ? "#8a6f52" : "#d4b25c"; c.beginPath(); c.ellipse(g[0], g[1], 0.8 * s, 1.7 * s, face * 0.5, 0, 7); c.fill(); c.strokeStyle = ink; c.stroke();
-      c.strokeStyle = "#8a6a2a"; c.lineWidth = 0.3 * s; c.beginPath(); c.moveTo(g[0] - 0.7 * s, g[1] + 0.2 * s); c.lineTo(g[0] + 0.7 * s, g[1]); c.stroke();
-    } else if (q.carry === "flour") {
-      const g: Pt = [shp[0] - face * 0.3 * s, shp[1] - 0.5 * s];
-      c.fillStyle = "#e6dcc4"; c.beginPath(); c.ellipse(g[0], g[1], 1.3 * s, 0.9 * s, face * 0.25, 0, 7); c.fill();
-      c.fillStyle = "rgba(90,70,40,0.25)"; c.beginPath(); c.ellipse(g[0], g[1] + 0.3 * s, 1.1 * s, 0.45 * s, 0, 0, Math.PI); c.fill();
-      c.strokeStyle = ink; c.beginPath(); c.ellipse(g[0], g[1], 1.3 * s, 0.9 * s, face * 0.25, 0, 7); c.stroke();
-    } else if (q.carry === "bread") {
-      const g: Pt = [hand[0] + face * 0.4 * s, hand[1] - 0.2 * s];
-      c.fillStyle = "#c79a5a"; c.beginPath(); c.moveTo(g[0] - 1.1 * s, g[1] - 0.4 * s); c.lineTo(g[0] + 1.1 * s, g[1] - 0.4 * s); c.lineTo(g[0] + 0.8 * s, g[1] + 0.5 * s); c.lineTo(g[0] - 0.8 * s, g[1] + 0.5 * s); c.closePath(); c.fill(); c.strokeStyle = ink; c.stroke();
-      c.fillStyle = "#9a5a26"; for (const dx of [-0.45, 0.4]) { c.beginPath(); c.ellipse(g[0] + dx * s, g[1] - 0.55 * s, 0.45 * s, 0.28 * s, 0, 0, 7); c.fill(); }
-    }
-  }
-  if (q.working && p.job === "farmer") line(c, [hand[0] - face * 1.2, hand[1] - 1.2], [hand[0] + face * 1.4, hand[1] + 2.6 + Math.sin(t / 420 + p.id) * 0.5], p.id, 0.4, "#7a5a3c");
-  if (L.stick) line(c, hand, [hand[0] + face * 0.5, Y], p.id + 1, 0.35, "#6f533b");
-  return hc;
-}
-
 let overview: HTMLCanvasElement | null = null;
 let renderNow = 0;
 let renderSeeds: Seed[] = [];
