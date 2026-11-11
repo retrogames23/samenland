@@ -27,7 +27,6 @@ import gardenCabbageUrl from "@/assets/sprites/garden-cabbage.webp";
 import gardenLeekUrl from "@/assets/sprites/garden-leek.webp";
 import gardenBeansUrl from "@/assets/sprites/garden-beans.webp";
 import pastureTussockUrl from "@/assets/sprites/pasture-tussock.webp";
-import pastureTroughUrl from "@/assets/sprites/pasture-trough.webp";
 import maypoleUrl from "@/assets/sprites/maypole.webp";
 import { worldHour, clock } from "./time";
 import { forestExtra, forestShape } from "./forest-edge";
@@ -639,7 +638,6 @@ function seasonalTrace(c: C, s: Structure, cx: number, cy: number, x: number, y:
   const sd = x * 1000 + y, now = renderNow, k = s.kind;
   if (k === "field") { const n = sheafDays(acreOf(x, y, s.seed).id, now) ? sheavesOn(sd, now) || 1 : 0; for (let i = 0; i < n; i++) prop(c, "sheaf", cx + (hash(x, y, 90 + i) - 0.5) * 12, cy + (hash(x, y, 95 + i) - 0.5) * 5, 3.2); return; }
   if (k === "garden" && springWork(now) && hash(x, y, 82) < 0.5) { prop(c, "wattle", cx + 5, cy + 3, 8); return; }
-  if (k === "pasture" && frost(now) && hash(x, y, 83) < 0.3) { prop(c, "iceTrough", cx + 2, cy + 1, 6); return; }
   if (k === "well" && frost(now)) { prop(c, "iceTrough", cx + 6, cy + 3, 5); return; }
   if (isHomeKind(k)) {
     if (laundryOut(sd, now) && hash(x, y, 84) < 0.5) prop(c, "laundry", cx + 8, cy + 4, 8);
@@ -2296,7 +2294,7 @@ function acrePath(c: C, cx: number, cy: number, hx: number, hy: number, outer: b
 type AgriSpec = { kind: "field" | "garden" | "pasture"; ripe: boolean; look?: Look | undefined; along: boolean; outer: boolean[]; winter: boolean; hx: number; hy: number; k2: number };
 /** Furrows, plants, wattle, bean poles, tufts and troughs — everything except the textured base fill. */
 let gCabbage: HTMLImageElement | null = null, gLeek: HTMLImageElement | null = null, gBeans: HTMLImageElement | null = null;
-let pastureClover: HTMLImageElement | null = null, pastureTussock: HTMLImageElement | null = null, pastureTrough: HTMLImageElement | null = null;
+let pastureClover: HTMLImageElement | null = null, pastureTussock: HTMLImageElement | null = null;
 function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
   const pp = P(cx, cy), { hx: x, hy: y, ripe, along, outer } = a;
   if (a.kind === "pasture") {
@@ -2321,11 +2319,6 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
     const Cl = VEG.clover, Tu = VEG.tussock;
     if (!a.winter) for (let n = 0; n < Cl.slots; n++) if (hash(x, y, 750 + n) < Cl.p) stamp(pastureClover, (hash(x, y, 752 + n) - 0.5) * 0.8, (hash(x, y, 754 + n) - 0.5) * 0.8, Cl.w + hash(x, y, 756 + n) * Cl.wx, 758 + n);
     if (hash(x, y, 760) < Tu.p) stamp(pastureTussock, (hash(x, y, 761) - 0.5) * 0.7, (hash(x, y, 762) - 0.5) * 0.7, Tu.w + hash(x, y, 763) * Tu.wx, 764);
-    if (hash(x, y, 740) > 0.8 && pastureTrough) { // hollowed log trough
-      const im = pastureTrough, wd = 7, h = wd * im.height / im.width, [ox, oy] = pp(0.15, -0.15);
-      c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(ox + 0.8, oy + 0.3, wd * 0.45, 1, 0, 0, 7); c.fill();
-      c.drawImage(im, ox - wd / 2, oy - h * 0.8, wd, h);
-    }
     return;
   }
   c.save(); const q = acrePath(c, cx, cy, x, y, outer); c.clip(); c.lineCap = "round";
@@ -2425,13 +2418,13 @@ const agriSprites = new Map<string, HTMLCanvasElement>();
 let agriMiss = false;
 function agriSprite(a: AgriSpec, key: string): HTMLCanvasElement | null {
   gCabbage = huntIm("gCab", gardenCabbageUrl); gLeek = huntIm("gLeek", gardenLeekUrl); gBeans = huntIm("gBeans", gardenBeansUrl);
-  pastureClover = huntIm("pClover", pastureCloverUrl); pastureTussock = huntIm("pTussock", pastureTussockUrl); pastureTrough = huntIm("pTrough", pastureTroughUrl);
+  pastureClover = huntIm("pClover", pastureCloverUrl); pastureTussock = huntIm("pTussock", pastureTussockUrl);
   let cv = agriSprites.get(key);
   if (cv) return cv;
   // plant art not loaded yet: draw nothing cached (the fill is still shown) and retry next frame
   if (a.kind !== "pasture" && !a.winter && !fieldRowImage(a.kind === "field" && a.ripe)) { agriMiss = true; return null; }
   if (a.kind === "garden" && !a.winter && !(gCabbage && gLeek && gBeans)) { agriMiss = true; return null; }
-  if (a.kind === "pasture" && !(pastureClover && pastureTussock && pastureTrough)) { agriMiss = true; return null; }
+  if (a.kind === "pasture" && !(pastureClover && pastureTussock)) { agriMiss = true; return null; }
   cv = document.createElement("canvas"); cv.width = AGRI_W * AGRI_S; cv.height = AGRI_H * AGRI_S;
   const g = cv.getContext("2d")!; g.setTransform(AGRI_S, 0, 0, AGRI_S, 0, 0);
   agriDetail(g, AGRI_W / 2, AGRI_UP, a);
