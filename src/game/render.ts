@@ -1229,7 +1229,6 @@ const HAIR = ["#2a1e16", "#4a3222", "#6e4a2c", "#a07a45", "#bfa36a", "#7f3c25"];
 const CLOTH = ["#6b7552", "#8a4a38", "#4e5d6c", "#9c8150", "#6a5a66", "#5a6e66", "#8a6650", "#525a40", "#a07a62", "#cfc3a5"];
 const PANTS = ["#3e362f", "#4b4e55", "#5a4736", "#363d47"];
 /** Villagers are drawn at this fraction of their modelled size so they match doors, fences and fields. */
-const PERSON_SCALE = 0.55;
 /** Screen-space people currently drawn (for clicking). */
 /** Screen-space traders on trade roads (for clicking). */
 export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean; walker?: Walker; stall?: boolean }[] = [];
