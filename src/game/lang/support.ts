@@ -2,7 +2,7 @@ import type { Lang } from "../i18n";
 import type { RewardKey } from "../supporter";
 
 type Text = {
-  button: string; title: string; intro: string; cosmetic: string;
+  button: string; ukraine: string; title: string; intro: string; cosmetic: string;
   tier3: string; tier5: string; tier10: string; owned: string; pick: string; amount: string; pay: (e: number) => string; two: string;
   needVillage: string; signIn: string; thanks: string; test: string; back: string; taken: string;
   names: Record<RewardKey, string>; desc: Record<RewardKey, string>; seal: string;
@@ -10,7 +10,7 @@ type Text = {
 
 export const SUPPORT: Record<Lang, Text> = {
   de: {
-    button: "Samenland unterstützen", title: "Samenland unterstützen",
+    ukraine: 'Ukraine unterstützen', button: "Samenland unterstützen", title: "Samenland unterstützen",
     intro: "Samenland ist ein privates Hobbyprojekt. Dein Beitrag hilft, Server und KI zu bezahlen. Als Dank darfst du für jeden Beitrag eine Verzierung für dein Dorf wählen.",
     cosmetic: "Alle Belohnungen sind reiner Schmuck. Sie bringen keine Mark, kein Wachstum und keinen anderen Vorteil im Spiel.",
     tier3: "Ab 3 €", tier5: "Ab 5 €", tier10: "Ab 10 €", owned: "Schon verliehen", two: "Mit 10 € darfst du bis zu zwei Verzierungen wählen.", pick: "1. Verzierung wählen", amount: "2. Betrag wählen", pay: (e) => `${e} € beitragen`,
@@ -21,7 +21,7 @@ export const SUPPORT: Record<Lang, Text> = {
     seal: "Stifter von Samenland",
   },
   en: {
-    button: "Support Samenland", title: "Support Samenland",
+    ukraine: 'Support Ukraine', button: "Support Samenland", title: "Support Samenland",
     intro: "Samenland is a private hobby project. Your contribution helps pay for servers and AI. As thanks, you can pick one decoration for your village per contribution.",
     cosmetic: "All rewards are purely decorative. They give no coins, no growth and no other advantage in the game.",
     tier3: "From €3", tier5: "From €5", tier10: "From €10", owned: "Already granted", two: "With €10 you may choose up to two decorations.", pick: "1. Choose a decoration", amount: "2. Choose an amount", pay: (e) => `Contribute €${e}`,
@@ -32,7 +32,7 @@ export const SUPPORT: Record<Lang, Text> = {
     seal: "Patron of Samenland",
   },
   fr: {
-    button: "Soutenir Samenland", title: "Soutenir Samenland",
+    ukraine: "Soutenir l'Ukraine", button: "Soutenir Samenland", title: "Soutenir Samenland",
     intro: "Samenland est un projet personnel. Ta contribution aide à payer les serveurs et l'IA. En remerciement, tu choisis une décoration pour ton village à chaque contribution.",
     cosmetic: "Toutes les récompenses sont purement décoratives. Elles n'apportent ni marks, ni croissance, ni aucun autre avantage en jeu.",
     tier3: "Dès 3 €", tier5: "Dès 5 €", tier10: "Dès 10 €", owned: "Déjà accordée", two: "Avec 10 € tu peux choisir jusqu'à deux décorations.", pick: "1. Choisis une décoration", amount: "2. Choisis un montant", pay: (e) => `Contribuer ${e} €`,
@@ -43,7 +43,7 @@ export const SUPPORT: Record<Lang, Text> = {
     seal: "Mécène de Samenland",
   },
   es: {
-    button: "Apoyar Samenland", title: "Apoyar Samenland",
+    ukraine: 'Apoyar a Ucrania', button: "Apoyar Samenland", title: "Apoyar Samenland",
     intro: "Samenland es un proyecto personal. Tu aporte ayuda a pagar servidores e IA. Como agradecimiento, eliges una decoración para tu aldea por cada aporte.",
     cosmetic: "Todas las recompensas son solo decorativas. No dan marcos, ni crecimiento, ni ninguna otra ventaja en el juego.",
     tier3: "Desde 3 €", tier5: "Desde 5 €", tier10: "Desde 10 €", owned: "Ya concedida", two: "Con 10 € puedes elegir hasta dos decoraciones.", pick: "1. Elige una decoración", amount: "2. Elige un importe", pay: (e) => `Aportar ${e} €`,
@@ -54,7 +54,7 @@ export const SUPPORT: Record<Lang, Text> = {
     seal: "Mecenas de Samenland",
   },
   ar: {
-    button: "ادعم سامنلاند", title: "ادعم سامنلاند",
+    ukraine: 'ادعم أوكرانيا', button: "ادعم سامنلاند", title: "ادعم سامنلاند",
     intro: "سامنلاند مشروع هواية شخصي. تساعد مساهمتك في دفع تكاليف الخوادم والذكاء الاصطناعي. شكرًا لك، تختار زينة واحدة لقريتك مقابل كل مساهمة.",
     cosmetic: "جميع المكافآت زينة فقط. لا تمنح نقودًا ولا نموًا ولا أي ميزة أخرى في اللعبة.",
     tier3: "من 3 €", tier5: "من 5 €", tier10: "من 10 €", owned: "مُنحت بالفعل", two: "بـ 10 € يمكنك اختيار زينتين.", pick: "1. اختر زينة", amount: "2. اختر المبلغ", pay: (e) => `ساهم بـ ${e} €`,
@@ -65,7 +65,7 @@ export const SUPPORT: Record<Lang, Text> = {
     seal: "راعي سامنلاند",
   },
   hi: {
-    button: "Samenland का समर्थन करें", title: "Samenland का समर्थन करें",
+    ukraine: 'यूक्रेन का समर्थन करें', button: "Samenland का समर्थन करें", title: "Samenland का समर्थन करें",
     intro: "Samenland एक निजी शौकिया परियोजना है। आपका योगदान सर्वर और AI का खर्च उठाने में मदद करता है। धन्यवाद स्वरूप, हर योगदान पर आप अपने गाँव के लिए एक सजावट चुनते हैं।",
     cosmetic: "सभी इनाम केवल सजावट हैं। इनसे कोई सिक्के, विकास या खेल में कोई और लाभ नहीं मिलता।",
     tier3: "3 € से", tier5: "5 € से", tier10: "10 € से", owned: "पहले से मिला", two: "10 € में आप दो सजावटें चुन सकते हैं।", pick: "1. सजावट चुनें", amount: "2. राशि चुनें", pay: (e) => `${e} € योगदान दें`,
@@ -76,7 +76,7 @@ export const SUPPORT: Record<Lang, Text> = {
     seal: "Samenland संरक्षक",
   },
   zh: {
-    button: "支持 Samenland", title: "支持 Samenland",
+    ukraine: '支持乌克兰', button: "支持 Samenland", title: "支持 Samenland",
     intro: "Samenland 是一个个人兴趣项目。你的支持帮助支付服务器和 AI 费用。作为感谢，每次支持你都可以为村庄选择一件装饰。",
     cosmetic: "所有奖励都只是装饰，不会带来金币、成长或任何其他游戏优势。",
     tier3: "3 € 起", tier5: "5 € 起", tier10: "10 € 起", owned: "已获得", two: "支持 10 € 可选择最多两件装饰。", pick: "1. 选择装饰", amount: "2. 选择金额", pay: (e) => `支持 ${e} €`,
@@ -87,7 +87,7 @@ export const SUPPORT: Record<Lang, Text> = {
     seal: "Samenland 赞助人",
   },
   ja: {
-    button: "Samenlandを応援", title: "Samenlandを応援",
+    ukraine: 'ウクライナを支援', button: "Samenlandを応援", title: "Samenlandを応援",
     intro: "Samenlandは個人の趣味のプロジェクトです。ご支援はサーバーとAIの費用に充てられます。お礼として、支援ごとに村の飾りをひとつ選べます。",
     cosmetic: "すべての特典は見た目だけの飾りです。マルクや成長など、ゲーム上の利点は一切ありません。",
     tier3: "3 €から", tier5: "5 €から", tier10: "10 € から", owned: "授与済み", two: "10 €なら飾りを2つまで選べます。", pick: "1. 飾りを選ぶ", amount: "2. 金額を選ぶ", pay: (e) => `${e} €で応援`,
