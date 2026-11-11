@@ -2738,7 +2738,8 @@ export function Game() {
             <Button size="sm" variant="secondary" className="w-full" onClick={() => { setSettings(false); if (userId) setSupportOpen(true); else setAuthOpen(true); }}>🌱 {SUPPORT[lang].button}</Button>
             {userId && home && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setInviteOpen(true); setSettings(false); }}>✉ {t.invite.button}</Button>}
             {userId && home && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setQuitOpen(true); setSettings(false); }}>{t.quit.button}</button>}
-            {userId && <div className="flex gap-2"><Button size="sm" variant="secondary" className="flex-1" onClick={() => { setAcct("pw"); setSettings(false); }}>🔑 {t.account.changePw}</Button><Button size="sm" variant="secondary" className="flex-1" onClick={() => { setAcct("mail"); setSettings(false); }}>✉ {t.account.changeMail}</Button></div>}
+            {userId && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setAcct("pw"); setSettings(false); }}>🔑 {t.account.changePw}</Button>}
+            {userId && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setAcct("mail"); setSettings(false); }}>✉ {t.account.changeMail}</Button>}
             {userId && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setDelOpen(true); setSettings(false); }}>{t.delAcc.button}</button>}
             {userId ? <Button size="sm" variant="secondary" className="w-full" onClick={() => { supabase.auth.signOut(); setSettings(false); }}>{t.signOut}</Button>
               : <Button size="sm" className="w-full" onClick={() => { setAuthOpen(true); setSettings(false); }}>{t.signIn}</Button>}
