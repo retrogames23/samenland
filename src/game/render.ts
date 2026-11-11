@@ -2195,9 +2195,16 @@ function syncMask(seeds: Seed[]) {
   const k = seeds.map((s) => s.id + s.x + "," + s.y).join("|");
   if (k !== maskKey) { maskKey = k; mask = seeds.map((s) => { const r = reachOf(s, radiusOf(30000)) + 4; return { x: s.x, y: s.y, r2: r * r }; }); chunkCache.clear(); }
 }
+// per-tile memo of the mask test (0 = unknown, 1 = no, 2 = yes); reset whenever the mask changes
+let nearMemo = new Uint8Array(0), nearMemoKey = "";
 function nearTown(x: number, y: number) {
-  for (const m of mask) { const dx = x - m.x, dy = y - m.y; if (dx * dx + dy * dy <= m.r2) return true; }
-  return false;
+  if (nearMemoKey !== maskKey) { nearMemoKey = maskKey; nearMemo = new Uint8Array(MAP * MAP); }
+  const i = y * MAP + x;
+  if (x >= 0 && y >= 0 && x < MAP && y < MAP) { const v = nearMemo[i]!; if (v) return v === 2; }
+  let r = false;
+  for (const m of mask) { const dx = x - m.x, dy = y - m.y; if (dx * dx + dy * dy <= m.r2) { r = true; break; } }
+  if (x >= 0 && y >= 0 && x < MAP && y < MAP) nearMemo[i] = r ? 2 : 1;
+  return r;
 }
 /**
  * Wild meadow in 2.5D: upright grass blades (vertical, lit from the upper left) and, on flower meadows,
