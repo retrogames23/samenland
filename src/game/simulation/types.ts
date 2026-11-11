@@ -2,7 +2,7 @@
 import type { CharterPath } from "../world";
 
 export type ProfileKey = "gelegenheit" | "regelmaessig" | "optimierer" | "vielspieler" | "sparsam";
-export type LocationKey = "coast" | "plain" | "hill";
+export type LocationKey = string;
 
 /** Behaviour assumptions of one player type — these are MODEL ASSUMPTIONS, not game rules. */
 export type Profile = {
@@ -38,14 +38,27 @@ export type Booking = {
   amount: number; booked: number; lost: number; balance: number; cap: number;
 };
 
-export type DayRow = { day: number; rank: number; balance: number; cap: number; income: number; tax: number; booked: number; lost: number; spent: number };
+export type DayRow = { day: number; rank: number; population: number; households: number; balance: number; cap: number; income: number; tax: number; booked: number; lost: number; spent: number; raid: number;
+  /** Cumulative Mark invested so far (wealth = balance + invested). */ invested: number;
+  /** Legal purchases still open / open among those unlocked at the current rank. */ open: number; openUnlocked: number };
 
 export type SimResult = {
   profile: ProfileKey; charter: CharterPath; location: LocationKey; way: string;
   days: number;
   hansestadtDay: number | null;
   rankDays: Record<number, number>;
+  /** State 1: last day the profile bought anything (its strategy buys nothing more afterwards). */
+  strategyDoneDay: number | null;
+  /** State 2: first day every purchase unlocked at the current rank was made (may be lost again on a rank-up). */
+  unlockedDoneDay: number | null;
+  /** State 3: first day every legally available investment of this town is made (null = never). */
   saturationDay: number | null;
+  /** Days from state 3 to the end of the run without any purchase option. */
+  idleDays: number;
+  /** Total legal investment volume of this town (charter + town way), optional twin works excluded. */
+  volume: number;
+  overflowDays: number;
+  population: number; households: number;
   firstOverflowDay: number | null;
   /** First day from which ≥ 50 % of the following 30 days overflowed. */
   regularOverflowDay: number | null;

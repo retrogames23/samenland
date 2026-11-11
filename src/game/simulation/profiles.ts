@@ -1,4 +1,5 @@
 import type { Profile, ProfileKey } from "./types";
+import type { TownWay } from "../character";
 
 /** Five explicit player strategies. All numbers here are assumptions about behaviour, not game rules. */
 export const PROFILES: Record<ProfileKey, Profile> = {
@@ -9,8 +10,26 @@ export const PROFILES: Record<ProfileKey, Profile> = {
   sparsam: { key: "sparsam", label: "Sparsam", loginEvery: 2, reserve: 400, chest: false, civic: false, titles: false, guildRanks: false, way: false, monumentsFrom: null, quests: true, princeEvery: null, wondersPerWeek: 0, visitsPerWeek: 0 },
 };
 
-/** Founding spots on the europe map with a known town character (checked via townCharacter). */
-export const LOCATIONS = { coast: [200, 200], plain: [120, 294], hill: [166, 613] } as const;
+/**
+ * Founding spots on the europe map (deterministic probes, chosen by scanning terrain).
+ * `base` spots form the 60-scenario matrix (one per town way); the others are location probes:
+ * free = open land, trap = dry founding centre with an outer water barrier, tight = little usable land.
+ */
+export const LOCATIONS: Record<string, { at: readonly [number, number]; way: TownWay; kind: "base" | "free" | "trap" | "tight" }> = {
+  grain: { at: [500, 340], way: "grain", kind: "base" },
+  workshop: { at: [166, 613], way: "workshop", kind: "base" },
+  gateway: { at: [200, 200], way: "gateway", kind: "base" },
+  "grain-free": { at: [440, 180], way: "grain", kind: "free" },
+  "grain-trap": { at: [120, 294], way: "grain", kind: "trap" },
+  "grain-trap2": { at: [440, 140], way: "grain", kind: "trap" },
+  "workshop-free": { at: [400, 200], way: "workshop", kind: "free" },
+  "workshop-tight": { at: [440, 420], way: "workshop", kind: "tight" },
+  "gateway-river": { at: [580, 340], way: "gateway", kind: "free" },
+  "gateway-trap": { at: [600, 920], way: "gateway", kind: "trap" },
+  "gateway-tight": { at: [520, 120], way: "gateway", kind: "tight" },
+};
+export const BASE_LOCATIONS = Object.keys(LOCATIONS).filter((k) => LOCATIONS[k]!.kind === "base");
+export const PROBE_LOCATIONS = Object.keys(LOCATIONS).filter((k) => LOCATIONS[k]!.kind !== "base");
 /** Assumed visit gift (game: 30–150 depending on the host town). */
 export const VISIT_GIFT = 60;
 export const WONDER_FIND = 50;
