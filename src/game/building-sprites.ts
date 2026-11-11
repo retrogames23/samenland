@@ -1,6 +1,7 @@
 import { seasonalImage } from "./season-art";
 import waterWheelUrl from "@/assets/sprites/water-wheel.webp";
 import campfire from "@/assets/sprites/campfire.webp";
+import flameUrl from "@/assets/sprites/flame.webp";
 import hut from "@/assets/sprites/cohesive/grain-hut.webp";
 import coop from "@/assets/sprites/coop.webp";
 import fence from "@/assets/sprites/fence.webp";
@@ -537,6 +538,24 @@ function waterWheel(c: CanvasRenderingContext2D, x: number, y: number, r: number
   }
 }
 
+let flameImg: HTMLImageElement | undefined;
+if (typeof Image !== "undefined") { flameImg = new Image(); flameImg.decoding = "async"; flameImg.src = flameUrl; }
+/** Painted flame (watercolour sprite): a few mirrored copies flicker in height and lean in the draught — no vector shapes. */
+export function paintedFlame(c: CanvasRenderingContext2D, x: number, y: number, h: number, t: number, sd: number, n = 3) {
+  const im = flameImg; if (!im?.complete || !im.naturalWidth) return;
+  const ar = im.naturalWidth / im.naturalHeight;
+  c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  for (let i = 0; i < n; i++) {
+    const ph = t / (110 + i * 37) + i * 2.1 + sd;
+    const k = (i === 0 ? 1 : 0.62 - i * 0.06) * (0.86 + 0.14 * Math.abs(Math.sin(ph)) + 0.05 * Math.sin(ph * 2.7));
+    const hh = h * k, ww = hh * ar * (0.92 + 0.08 * Math.sin(ph * 1.3)), off = n > 1 ? (i - (n - 1) / 2) * h * 0.18 * (i ? 1 : 0) : 0;
+    c.save(); c.translate(x + (i === 0 ? 0 : (i % 2 ? -1 : 1) * h * 0.16) + off * 0, y);
+    c.transform(i % 2 ? -1 : 1, 0, Math.sin(ph * 0.9) * 0.08, 1, 0, 0);
+    c.globalAlpha = i === 0 ? 1 : 0.9; c.drawImage(im, -ww / 2, -hh, ww, hh); c.restore();
+  }
+  c.restore();
+}
+
 function flames(c: CanvasRenderingContext2D, x: number, y: number, h: number, t: number, sd: number) {
   c.save();
   // breathing glow on stones and ground
@@ -544,19 +563,8 @@ function flames(c: CanvasRenderingContext2D, x: number, y: number, h: number, t:
   const g = c.createRadialGradient(x, y - h * 0.1, 0, x, y - h * 0.1, h * 0.9);
   g.addColorStop(0, `rgba(255,170,70,${0.28 * fl})`); g.addColorStop(1, "rgba(255,140,50,0)");
   c.globalCompositeOperation = "lighter"; c.fillStyle = g; c.fillRect(x - h, y - h, h * 2, h * 2);
-  // flickering tongues
-  for (let i = 0; i < 6; i++) {
-    const ph = t / (90 + i * 23) + i * 1.7 + sd;
-    const hx = x + (i - 2.5) * h * 0.07, tall = h * (0.42 + 0.22 * Math.abs(Math.sin(ph)) + 0.08 * Math.sin(ph * 2.7));
-    const sway = Math.sin(ph * 1.3) * h * 0.06, w = h * (0.1 + 0.03 * Math.sin(ph * 0.7));
-    const fg = c.createLinearGradient(hx, y, hx, y - tall);
-    fg.addColorStop(0, "rgba(255,120,30,0.55)"); fg.addColorStop(0.5, "rgba(255,190,70,0.4)"); fg.addColorStop(1, "rgba(255,230,140,0)");
-    c.fillStyle = fg; c.beginPath();
-    c.moveTo(hx - w, y);
-    c.quadraticCurveTo(hx - w * 0.9, y - tall * 0.5, hx + sway, y - tall);
-    c.quadraticCurveTo(hx + w * 0.9, y - tall * 0.5, hx + w, y);
-    c.closePath(); c.fill();
-  }
+  c.globalCompositeOperation = "source-over"; paintedFlame(c, x, y + h * 0.02, h * 0.62, t, sd);
+  c.globalCompositeOperation = "lighter";
   // sparks rising and drifting
   for (let i = 0; i < 7; i++) {
     const ph = (t / 1400 + i / 7 + (sd % 1)) % 1;
