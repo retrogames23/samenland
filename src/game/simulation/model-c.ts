@@ -6,6 +6,7 @@
  * project money is irrevocable; a new project is only chosen on a login day (no automatic switch mid-day).
  */
 import { bookCredit, simulate } from "./engine";
+import { START_TALER } from "../economy";
 import { PROFILES, BASE_LOCATIONS } from "./profiles";
 import type { DayRow, Profile, ProfileKey } from "./types";
 import type { CharterPath } from "../world";
@@ -89,7 +90,7 @@ if (import.meta.main) {
     const base = simulate({ profile: PROFILES[p], charter: c, location: l, days: Number(da) });
     for (const s of strategies) for (const t of s === "surplus_only" ? [0] : rates) {
       if (s === "hybrid" && t === 0) continue;
-      const m = modelC(base.daily, base.ledger[0] ? base.ledger[0].balance : 0, { profile: PROFILES[p], strategy: s, taxRate: t });
+      const m = modelC(base.daily, START_TALER, { profile: PROFILES[p], strategy: s, taxRate: t });
       const at = (d: number) => m.days[Math.min(d, m.days.length) - 1];
       const inv = (d: number) => m.days.slice(0, d).reduce((a, x) => a + x.taxToProjects + x.manual, 0);
       console.log([p, c, l, s, t, at(365)?.completed ?? 0, inv(365), at(730)?.completed ?? 0, inv(730), m.taxToProjects, m.manual, m.lost, m.finalBalance, m.idleDays, m.errors.length].join(";"));
