@@ -1,10 +1,11 @@
 import type { TownWay } from "./character";
 import { giftBalance, type Gift } from "./gifts";
+import { FOOD_CRAFTS } from "./food-crafts";
 import { civicWealth, estateAssessment, sickLoss, sickTaxRate } from "./prosperity";
 import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, raids, floodFood, ITEM_RANK } from "./disasters";
-import { dowryEarned, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
+import { dowryEarned, weddingDates, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
 import { speedParts, radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, monumentOf, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
 
 /** Starting treasury and fixed prices (Mark). Prices mirror the database purchase guard. */
@@ -64,7 +65,7 @@ export const popAt = (h: number) => Math.floor(3 + 0.9 * Math.pow(radiusOf(Math.
 
 /** Taxpayers follow the people the land can really feed (mirrors DB village_tax_pop): untended land feeds TAX_POP_BASE, each food/health craft opens more. Sample towns are never capped. */
 export const TAX_POP_BASE = 85, TAX_POP_FOOD = 25, TAX_POP_HEALTH = 15;
-export const TAX_FOOD = ["fisher", "hunter", "granary", "dairy"], TAX_HEALTH = ["herbs", "healer", "library"];
+export const TAX_FOOD: readonly string[] = FOOD_CRAFTS, TAX_HEALTH = ["herbs", "healer", "library"];
 export function taxPop(s: Seed, h: number, at: number) {
   const p = popAt(h);
   if (!s.user_id) return p;
@@ -177,19 +178,52 @@ export function cappedTax(s: Seed, purchases: Purchase[], now: number, gifts: Gi
   return tax;
 }
 
-export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = []) {
+/** Pre-rule balance formula: taxes capped day by day, dowries after CHEST_SINCE capped once, other income uncapped. */
+function legacyTreasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = []) {
   const spent = purchases.filter((p) => p.seed_id === s.id).reduce((a, p) => a + p.cost, 0);
   const ev = (s.decisions ?? []).reduce((a, d) => a + d.cost, 0);
   const tw = (s.works ?? []).reduce((a, w) => a + w.cost, 0);
   const base = START_TALER + cappedTax(s, purchases, now, gifts, claims) - spent - ev - tw + giftBalance(s.id, gifts) + questEarned(claims, s.id);
-  // dowries are passive too: those after CHEST_SINCE only fill the room left in the chest (mirrors DB village_balance)
   const dOld = Date.parse(s.created_at) < CHEST_SINCE ? dowryEarned(s, Math.min(now, CHEST_SINCE)) : 0;
   let dNew = dowryEarned(s, now) - dOld;
   if (s.user_id) dNew = Math.min(dNew, Math.max(0, chestCap(s.id, purchases, now) - base - dOld));
-  // robbers can never push the chest below zero (mirrors DB village_balance)
   return Math.max(0, base + dOld + dNew - raidLoss(s, now));
 }
 
+/**
+ * From CAP_ALL_SINCE on, the chest is walked booking by booking: every credit (tax, dowry, market, wonder,
+ * decree, quest, visit, referral, gift, encounter reward) only fills the room below the cap valid at that
+ * moment, the surplus is lost for good; spending makes room for later credits. The balance at
+ * CAP_ALL_SINCE is the unchanged legacy result, so no existing balance is touched. Mirrors DB village_balance.
+ * Same-time order: tax 0, dowry 1, other credits 2, debits 3, raids 4, then key.
+ */
+export const CAP_ALL_SINCE = Date.parse("2026-11-12T00:00:00Z");
+export type ChestEvent = { t: number; r: number; v: number; k: string };
+export function walkChest(start: number, events: ChestEvent[], capAt: (t: number) => number) {
+  let bal = start;
+  const sorted = [...events].sort((a, b) => a.t - b.t || a.r - b.r || (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
+  for (const e of sorted) {
+    if (e.r === 4) bal = Math.max(0, bal - e.v);
+    else if (e.v > 0) bal += Math.min(e.v, Math.max(0, capAt(e.t) - bal));
+    else bal += e.v;
+  }
+  return Math.max(0, bal);
+}
+
+export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = [], since = CAP_ALL_SINCE) {
+  if (!s.user_id || now < since) return legacyTreasury(s, purchases, now, gifts, claims);
+  const T = since, pre = (iso: string) => Date.parse(iso) < T;
+  const pre0 = { ...s, decisions: (s.decisions ?? []).filter((d) => d.at < T), works: (s.works ?? []).filter((w) => w.at < T) };
+  const start = legacyTreasury(pre0, purchases.filter((p) => pre(p.created_at)), T, gifts.filter((g) => pre(g.created_at)), claims.filter((c) => pre(c.created_at)));
+  const ev: ChestEvent[] = [];
+  const c0 = Date.parse(s.created_at);
+  for (let d = Math.max(1, Math.floor((T - c0) / 86400000) + 1); c0 + d * 86400000 <= now; d++) ev.push({ t: c0 + d * 86400000, r: 0, v: taxOnDay(s, d), k: `d${d}` });
+  for (const w of weddingDates(s, now)) if (w.at > T) ev.push({ t: w.at, r: 1, v: w.dowry, k: `w${w.k}` });
+  ledger(s, purchases, gifts, claims).forEach(([t, v], i) => { if (t >= T && t <= now && v !== 0) ev.push({ t, r: v > 0 ? 2 : 3, v, k: `l${i}` }); });
+  for (const r of raids(s, now)) if (r.at > T && r.loss > 0) ev.push({ t: r.at, r: 4, v: r.loss, k: `r${r.at}` });
+  const mine = purchases.filter((p) => p.seed_id === s.id);
+  return walkChest(start, ev, (t) => chestCap(s.id, mine, t));
+}
 
 const clamp = (v: number) => Math.round(Math.max(0, Math.min(100, v)));
 /** Soft ceiling: values count fully up to SOFT_KNEE, above that they approach 100 ever more slowly,
