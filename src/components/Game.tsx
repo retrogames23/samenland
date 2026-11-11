@@ -574,6 +574,14 @@ export function Game() {
       }
     }
   };
+  /** Sapling mode: glide the camera softly to the own village so the glowing meadows are in view. */
+  const startSapling = () => {
+    setMode("sapling"); setMsg(t.sapling.hint);
+    const me = seeds.find((x) => x.id === mine); if (!me) return;
+    const [gx, gy] = iso(me.x, me.y);
+    camFree.current = true; fling.current = { vx: 0, vy: 0, t: performance.now() }; glide.current = { x: gx, y: gy };
+    target.current = { ...target.current, zoom: Math.max(target.current.zoom, 1.4) };
+  };
   const [ptr, setPtr] = useState<[number, number] | null>(null);
   const ptrRef = useRef<[number, number] | null>(null), tipRef = useRef<HTMLDivElement | null>(null);
   const [plantAsk, setPlantAsk] = useState<[number, number] | null>(null);
@@ -1396,7 +1404,7 @@ export function Game() {
       return setMsg(error?.message?.includes("not enough money") ? t.poor : t.enc.fail);
     }
     setEncounters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
-    if (event === "nursery" && choice !== "pass") { setMode("sapling"); setMsg(t.sapling.hint); } else setMsg(t.enc.done);
+    if (event === "nursery" && choice !== "pass") { startSapling(); } else setMsg(t.enc.done);
   };
   const twinsOfMine = my ? twinLinks(my, seeds, clock()).map((l) => (l.a.id === my.id ? l.b : l.a)) : [];
   const pactPartner = twinsOfMine.find((o) => pactPending(my!, o, seeds, clock()) === "vote") ?? null;
@@ -3254,7 +3262,7 @@ export function Game() {
 
       {my && owner && !walk && saplingsOwed(my.decisions ?? [], plantings.filter((p) => p.seed_id === my.id)).length > 0 && (
         <div className="absolute left-1/2 z-30 -translate-x-1/2" style={{ top: barH + 8 }}>
-          <Button type="button" size="sm" variant={mode === "sapling" ? "default" : "outline"} onClick={() => { if (mode === "sapling") setMode("look"); else { setMode("sapling"); setMsg(t.sapling.hint); } }}>
+          <Button type="button" size="sm" variant={mode === "sapling" ? "default" : "outline"} onClick={() => { if (mode === "sapling") setMode("look"); else startSapling(); }}>
             🌱 {mode === "sapling" ? t.cancel : t.sapling.btn}
           </Button>
         </div>
