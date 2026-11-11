@@ -5,7 +5,7 @@ import { PROFILES, LOCATIONS } from "./profiles";
 import type { CharterPath } from "../world";
 const [p = "all", c = "all", l = "all", d = "730"] = process.argv.slice(2);
 const ps = p === "all" ? Object.keys(PROFILES) : [p], cs = c === "all" ? ["farm", "craft", "trade", "culture"] : [c], ls = l === "all" ? Object.keys(LOCATIONS) : [l];
-const out = process.env.SIM_OUT ?? "/tmp/sim-out";
+const out = process.env["SIM_OUT"] ?? "/tmp/sim-out";
 mkdirSync(out, { recursive: true });
 for (const pk of ps) for (const ck of cs) for (const lk of ls) {
   const t = Date.now();

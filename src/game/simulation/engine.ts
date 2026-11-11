@@ -132,7 +132,7 @@ export function simulate(cfg: SimConfig): SimResult {
   const h = hanse ?? days, s = saturation ?? days;
   return { profile: P.key, charter: cfg.charter, location: cfg.location, way, days, hansestadtDay: hanse, rankDays, saturationDay: saturation,
     firstOverflowDay: firstOverflow, regularOverflowDay: regular, gross, booked, lost, spent, finalBalance: balance,
-    taxShare: +(bySource.tax! / gross).toFixed(3), lostShare: +(lost / gross).toFixed(3), bySource, bought,
+    taxShare: +(bySource["tax"]! / gross).toFixed(3), lostShare: +(lost / gross).toFixed(3), bySource, bought,
     remaining: offer().map((o) => o.item),
     phases: [phase("bis Hansestadt", 1, h), phase("Hansestadt bis Sättigung", h + 1, Math.max(h, s)), phase("nach Sättigung", Math.max(h, s) + 1, days)],
     daily, ledger };
