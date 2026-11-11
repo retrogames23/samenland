@@ -48,4 +48,3 @@
 - Camera zoom limits live in src/game/camera.ts and apply to every realm and input path; wheel, pinch, buttons, double-tap and stroll exit all use maxZoom so their limits cannot diverge.
 - Church feasts (src/game/feasts.ts) are derived from the realm calendar (Julian Easter of the game year, snapped to the map's Sunday); rest days, bonfires, Whitsun tree, Christmas lights and the feast parchment all read feastOn() — never stored, so every player on a map keeps the same feast.
 - Split Game.tsx into src/components/hooks/ (e.g. useTreasurySync) without behaviour change; the monolith is hard to maintain.
-- Economy simulation (src/game/simulation/) is an offline analysis tool: it imports real game formulas but is never imported by the live game; behaviour assumptions live only in profiles.ts, so game rules and player models stay separable.
