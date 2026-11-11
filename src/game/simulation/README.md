@@ -10,3 +10,7 @@
 **Model assumptions (profiles.ts / engine.ts):** login rhythm, reserve, purchase order (chest → care → guild → ranks → titles → civic → way → monuments), quests paid once their milestone rank is reached, decrees from Dorf on, wonder finds 50 Mark, visit gift 60 Mark, roads to two neighbours founded 60 days earlier on days 14 and 45, rank recounted every 10 days until Hansestadt (Hansestadt day ±10), realm europe. Not modelled: gifts, markets, encounters, referrals, twin works (750 Mark, reported separately).
 
 **Saturation states:** 1 `strategyDoneDay` (profile's last purchase), 2 `unlockedDoneDay` (everything unlocked at the current rank bought), 3 `saturationDay` (every legal investment of the town bought) with `idleDays` until the end.
+
+## Model C (voluntary municipal projects)
+`bun src/game/simulation/model-c.ts <profile|all> <charter|all> <location|base> [tax_only|surplus_only|hybrid|all] [rate|all] [days]`
+Replays the base run's daily rows (real residentTax, chest caps) and adds a voluntary tax diversion (default 0 %, only from Handelsstadt, only while a project is chosen) and/or manual donations above the profile reserve. Prints CSV; the `errors` column counts days where a balance identity failed (must be 0). Catalog: 12 projects, 374,500 Mark local share, 490,000 Mark total value.
