@@ -40,3 +40,4 @@
 - Forest outline (forest-edge.ts forestShape) replaces the hard layer-6 contour in production via forestEdge() (lab-ctl.ts PROD_EDGE; localStorage "samenland:forest-edge"="off" falls back); display only, tree feet stay inside radius 0.72 and the fringe never touches water/sand/rock.
 - Perf diagnostics: only perf-probe.ts (?perf=1; &perfdetail=1 adds fine spans, structureAt and draw-op counts; ?perf=0 = camera hook only; &bench=flat = real-device flat-cache zoom run; window.__flatState exact flat cache snapshot), baselines docs/perf, scripts scripts/perf — never affects normal play.
 - Town quarters (workers', villa, mixed) are picked per 3x3 block hash in world.ts, never by compass angle — so coastline orientation cannot decide which quarter lands on dry ground.
+- Economy simulation (src/game/simulation/) is offline only: imports real formulas, never imported by the live game; behaviour assumptions live only in profiles.ts.
