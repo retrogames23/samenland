@@ -2544,8 +2544,8 @@ function outskirt(x: number, y: number) {
   return true;
 }
 function drawOutskirts(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number) {
-  outDone.clear();
-  const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow) + ":" + links(seeds, now).length;
+  outDone.clear(); let outBaked = 0;
+  const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow) + ":" + links(seeds).length;
   const cx0 = Math.floor(x0 / CH), cx1 = Math.floor(x1 / CH), cy0 = Math.floor(y0 / CH), cy1 = Math.floor(y1 / CH);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
     const iy = s - ix, X0 = ix * CH, Y0 = iy * CH, X1 = Math.min(MAP - 1, X0 + CH - 1), Y1 = Math.min(MAP - 1, Y0 + CH - 1);
@@ -2556,8 +2556,8 @@ function drawOutskirts(c: C, x0: number, x1: number, y0: number, y1: number, z: 
     const key = `${ix},${iy},${q},${sk},${near.join("|")}`;
     let cv = outCache.get(key);
     if (!cv) {
-      if (frameBakes >= 1) continue; // live this frame
-      frameBakes++; pBegin("out.bake");
+      if (outBaked >= 1) continue; // live this frame; own budget of one small bake (flat chunks may hold frameBakes)
+      outBaked++; pBegin("out.bake");
       try {
         const left = iso(X0, Y1)[0] - TW * 2, right = iso(X1, Y0)[0] + TW * 2, top = iso(X0, Y0)[1] - TH - PAD_TOP - 30, bottom = iso(X1, Y1)[1] + TH + 12;
         const n = document.createElement("canvas") as HTMLCanvasElement & { ox: number; oy: number };
