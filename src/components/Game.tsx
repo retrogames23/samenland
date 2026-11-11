@@ -1795,6 +1795,31 @@ export function Game() {
   }
   // heavy derivations refresh every 5 s of world time, not on every pointer move
   const slow = Math.floor(now / 5000) * 5000;
+  // Dörfer-Liste: Rang + Bonus je Dorf teuer (townRank) – im Leerlauf häppchenweise berechnen und 5 min cachen
+  const townsTick = Math.floor(now / 300000);
+  const townsCache = useRef(new Map<string, { k: string; rank: number; parts: ReturnType<typeof speedParts> }>());
+  const [, setTownsVer] = useState(0);
+  const townsKey = (s: Seed) => `${s.x},${s.y},${s.created_at},${seeds.length},${townsTick}`;
+  useEffect(() => {
+    if (tab !== "towns") return;
+    let dead = false, timer = 0;
+    const step = () => {
+      if (dead) return;
+      const t0 = performance.now();
+      let did = false;
+      for (const s of seeds) {
+        const c = townsCache.current.get(s.id);
+        if (c && c.k === townsKey(s)) continue;
+        const t = clock();
+        townsCache.current.set(s.id, { k: townsKey(s), rank: townRank(s, seeds, Math.floor(t / 5000) * 5000), parts: speedParts(s, seeds, t) });
+        did = true;
+        if (performance.now() - t0 > 30) break;
+      }
+      if (did) { setTownsVer((v) => v + 1); timer = window.setTimeout(step, 16); }
+    };
+    timer = window.setTimeout(step, 30);
+    return () => { dead = true; clearTimeout(timer); };
+  }, [tab, seeds, townsTick]);
   const { cash, myRank, myStage, myTown, at, pop, residents, season, nbs, larder, boons, rankHint } = useMemo(() => {
     const cash = my ? (accounting?.seed === my.id && accounting.active ? accounting.balance : treasury(my, purchases, slow, gifts, claims)) : 0;
     const myRank = my ? townRank(my, seeds, slow) : 0;
@@ -2329,13 +2354,15 @@ export function Game() {
       })()}
       {tab === "towns" && (
         <ul className="max-h-[50vh] space-y-1 overflow-y-auto overflow-x-hidden">
-          {seeds.map((s) => (
+          {seeds.map((s) => { const tc = townsCache.current.get(s.id); if (!tc) return (
+            <li key={s.id} className="animate-pulse px-2 py-1"><span className="text-foreground">{s.name}</span><span className="block text-xs text-muted-foreground">…</span></li>
+          ); const rk = tc.rank; return (
             <li key={s.id}>
               <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { setProfile(s); setTab(null); }}>
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[townRank(s, seeds, slow)]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{s.mayor_gender === "d" || townRank(s, seeds, slow) >= 3 ? mayorWord(lang, (s.mayor_gender ?? (f ? "w" : "m")) as "m" | "w" | "d", townRank(s, seeds, slow)) : t.roll.role["mayor"]![f ? 0 : 1]}{honour(s) && ` · ${honour(s)}`}: {s.owner}{support.get(s.id)?.has("seal") && <span title={SUPPORT[lang].seal} className="ms-1 text-primary">⚜️</span>}</>; })()} · {t.age(ageHours(s, now))}
-                  {(() => { const p = speedParts(s, seeds, now); const chips = [
+                  {TOWN_CHARACTER[lang].names[wayOf(s)]} · {t.stages[rk]} · {(() => { const f = s.mayor_gender === "w" ? true : s.mayor_gender === "m" ? false : hash(s.x, s.y, 880) < 0.5; return <>{s.mayor_gender === "d" || rk >= 3 ? mayorWord(lang, (s.mayor_gender ?? (f ? "w" : "m")) as "m" | "w" | "d", rk) : t.roll.role["mayor"]![f ? 0 : 1]}{honour(s) && ` · ${honour(s)}`}: {s.owner}{support.get(s.id)?.has("seal") && <span title={SUPPORT[lang].seal} className="ms-1 text-primary">⚜️</span>}</>; })()} · {t.age(ageHours(s, now))}
+                  {(() => { const p = tc.parts; const chips = [
                     p.bless > 0.005 && t.blessBonus(Math.round(p.bless * 100)),
                     p.trade > 0.005 && t.tradeBonus(Math.round(p.trade * 100)) + (p.raw - p.trade > 0.005 ? ` (${t.tradeCap(Math.round(p.raw * 100), Math.round(p.cap * 100))})` : ""),
                     p.toll > 0 && t.tollBonus(p.toll),
@@ -2354,7 +2381,7 @@ export function Game() {
                 {(used || cash < GIFT_TALER) && <span className="mb-1 ml-2 block text-[11px] italic text-muted-foreground">{used ? t.gifts.once : t.gifts.poor}</span>}
               </>); })()}
             </li>
-          ))}
+          ); })}
         </ul>
       )}
     </div>
