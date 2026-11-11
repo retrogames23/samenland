@@ -2734,7 +2734,7 @@ export function Game() {
                 ✉ {t.guide.notify.label}
               </label>
             )}
-            <Button asChild size="sm" variant="secondary" className="w-full"><a href="https://ua-de.info" target="_blank" rel="noopener noreferrer" onClick={() => setSettings(false)}>🇺🇦 {SUPPORT[lang].ukraine}</a></Button>
+            <Button asChild size="sm" variant="secondary" className="w-full"><a href={UKRAINE_URL[lang]} target="_blank" rel="noopener noreferrer" onClick={() => setSettings(false)}>🇺🇦 {SUPPORT[lang].ukraine}</a></Button>
             <Button size="sm" variant="secondary" className="w-full" onClick={() => { setSettings(false); if (userId) setSupportOpen(true); else setAuthOpen(true); }}>🌱 {SUPPORT[lang].button}</Button>
             {userId && home && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setInviteOpen(true); setSettings(false); }}>✉ {t.invite.button}</Button>}
             {userId && home && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setQuitOpen(true); setSettings(false); }}>{t.quit.button}</button>}
