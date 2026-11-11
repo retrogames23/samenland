@@ -275,10 +275,10 @@ export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang
           g.drawImage(base, -w / 2, -hh, w, hh);
           // the upper body breathes gently and leans into each gesture
           g.translate(0, -hh * 0.4); g.scale(1, 1 + 0.006 * Math.sin(tr * 1.6 + f.ph)); g.translate(0, hh * 0.4);
-          // the nearer pose stays opaque, the other blends over it — the body never turns see-through mid-gesture
-          const [first, second, a2] = k <= 0.5 ? [top, alt, 2 * k] : [alt, top, 2 * (1 - k)];
-          g.drawImage(first, -w / 2, -hh, w, hh);
-          if (a2 > 0) { g.globalAlpha = a2; g.drawImage(second, -w / 2, -hh, w, hh); }
+          // limbs and props swap in one short beat around mid-gesture, so two arm pairs never show at once
+          const a2 = Math.min(1, Math.max(0, (k - 0.44) / 0.12));
+          g.drawImage(a2 < 1 ? top : alt, -w / 2, -hh, w, hh);
+          if (a2 > 0 && a2 < 1) { g.globalAlpha = a2; g.drawImage(alt, -w / 2, -hh, w, hh); }
           g.globalAlpha = 1;
         }
         g.restore();
