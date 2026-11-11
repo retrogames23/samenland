@@ -42,7 +42,7 @@ export function LabDesk({ lang, onChange, onClose, onTrigger }: { lang: Lang; on
   };
   return (
     <div className="pointer-events-auto fixed inset-x-2 top-16 z-50 mx-auto max-h-[75vh] max-w-sm overflow-y-auto overflow-x-hidden rounded-lg border border-border bg-card/95 p-3 text-sm shadow-lg backdrop-blur" role="dialog" aria-label={t.title}>
-      <div className="mb-1 flex items-center justify-between"><b>🎛 {t.title}</b><button className="text-xs text-muted-foreground hit" onClick={onClose} aria-label={t.close}>✕</button></div>
+      <div className="sticky -top-3 z-10 -mx-3 mb-1 flex items-center justify-between bg-card px-3 pt-3"><b>🎛 {t.title}</b><button className="text-xs text-muted-foreground hit" onClick={onClose} aria-label={t.close}>✕</button></div>
       <div className="mb-2 text-[10px] text-muted-foreground">{t.note}</div>
       <div className="text-xs text-muted-foreground">{t.time}</div>
       <div className="mb-2 flex flex-wrap gap-1">{[6, 12, 17, 20, 0].map((h) => <button key={h} className={chip(false)} onClick={() => toHour(h)}>{t.hours[h]}</button>)}</div>

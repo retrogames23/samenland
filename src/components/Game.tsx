@@ -2024,8 +2024,8 @@ export function Game() {
     );
   })() : null;
   const drawer = tab && (
-    <div className="space-y-3 p-3 text-sm">
-      <div className="flex items-center justify-between">
+    <div className="space-y-3 p-3 pt-0 text-sm">
+      <div className="sticky top-0 z-10 -mx-3 flex items-center justify-between bg-card/95 px-3 pb-2 pt-3 backdrop-blur-[1px]">
         <Head>{tabs.find((x) => x.k === tab)?.label}</Head>
         <button type="button" aria-label={t.hud.close} onClick={() => setTab(null)} className="hit relative text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
       </div>
@@ -3373,7 +3373,7 @@ export function Game() {
           return (
             <div {...sheetSwipe(() => setWho(null))} className={SHEET}>
               <div aria-hidden className="mx-auto mb-1 h-1 w-10 rounded-full bg-muted-foreground/40 md:hidden" />
-              <div className="flex items-start justify-between gap-3">
+              <div className="sticky -top-2 z-10 -mx-3 flex items-start justify-between gap-3 bg-card/95 px-3 pt-2">
                 <div className="font-['Caveat'] text-xl leading-tight">{who.first} {who.last}</div>
                 <button type="button" aria-label={t.close} className="hit relative -m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setWho(null)}>×</button>
               </div>
@@ -3428,7 +3428,7 @@ export function Game() {
           return (
             <div {...sheetSwipe(() => setPlace(null))} className={SHEET}>
               <div aria-hidden className="mx-auto mb-1 h-1 w-10 rounded-full bg-muted-foreground/40 md:hidden" />
-              <div className="flex items-start justify-between gap-3">
+              <div className="sticky -top-2 z-10 -mx-3 flex items-start justify-between gap-3 bg-card/95 px-3 pt-2">
                 <div className="font-['Caveat'] text-xl leading-tight">{ins.build !== null ? t.site(name) : name}</div>
                 <button type="button" aria-label={t.close} className="hit relative -m-2 p-2 text-lg leading-none text-muted-foreground hover:text-foreground" onClick={() => setPlace(null)}>×</button>
               </div>
