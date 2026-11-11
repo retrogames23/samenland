@@ -2528,6 +2528,57 @@ function groundChunkBake(key: string, ix: number, iy: number, q: number): HTMLCa
   while (chunkCache.size > 200) { chunkCache.delete(chunkCache.keys().next().value!); pEvict("ground"); }
   return cv;
 }
+
+// ---- outskirts nature: wild trees inside a town's *possible* reach but outside its *current* reach (+margin) ----
+// They were redrawn live every frame (p2.nature, the costliest span at mid zoom). Baked per CH chunk, keyed by the
+// current reach of nearby towns, their bought sites and the season; chunks not baked yet stay live — same look.
+const OUT_MARGIN = 3;
+const outCache = new Map<string, HTMLCanvasElement & { ox: number; oy: number }>();
+const outDone = new Set<number>();
+let outR: { x: number; y: number; r2: number; tok: string }[] = [];
+function syncOutskirts(seeds: Seed[], now: number) {
+  outR = seeds.map((s) => { const r = Math.ceil(reachOf(s, radiusOf(viewAge(s, seeds, now)))) + OUT_MARGIN; return { x: s.x, y: s.y, r2: r * r, tok: `${s.id}:${r}:${s.bought?.length ?? 0}` }; });
+}
+function outskirt(x: number, y: number) {
+  for (const m of outR) { const dx = x - m.x, dy = y - m.y; if (dx * dx + dy * dy <= m.r2) return false; }
+  return true;
+}
+function drawOutskirts(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number) {
+  outDone.clear();
+  const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow) + ":" + links(seeds, now).length;
+  const cx0 = Math.floor(x0 / CH), cx1 = Math.floor(x1 / CH), cy0 = Math.floor(y0 / CH), cy1 = Math.floor(y1 / CH);
+  for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
+    const iy = s - ix, X0 = ix * CH, Y0 = iy * CH, X1 = Math.min(MAP - 1, X0 + CH - 1), Y1 = Math.min(MAP - 1, Y0 + CH - 1);
+    // towns whose possible reach touches this chunk decide its key
+    const mx = X0 + CH / 2, my = Y0 + CH / 2, near: string[] = [];
+    for (let i = 0; i < mask.length; i++) { const m = mask[i]!, rr = Math.sqrt(m.r2) + CH; if ((m.x - mx) ** 2 + (m.y - my) ** 2 <= rr * rr) near.push(outR[i]?.tok ?? ""); }
+    if (!near.length) continue; // fully wild: already in the ground chunk
+    const key = `${ix},${iy},${q},${sk},${near.join("|")}`;
+    let cv = outCache.get(key);
+    if (!cv) {
+      if (frameBakes >= 1) continue; // live this frame
+      frameBakes++; pBegin("out.bake");
+      try {
+        const left = iso(X0, Y1)[0] - TW * 2, right = iso(X1, Y0)[0] + TW * 2, top = iso(X0, Y0)[1] - TH - PAD_TOP - 30, bottom = iso(X1, Y1)[1] + TH + 12;
+        const n = document.createElement("canvas") as HTMLCanvasElement & { ox: number; oy: number };
+        n.width = Math.ceil((right - left) * q); n.height = Math.ceil((bottom - top) * q);
+        const g = n.getContext("2d")!; g.setTransform(q, 0, 0, q, -left * q, -top * q);
+        for (let d = X0 + Y0; d <= X1 + Y1; d++) for (let x = Math.max(X0, d - Y1); x <= Math.min(X1, d - Y0); x++) {
+          const y = d - x;
+          if (!nearTown(x, y) || !outskirt(x, y) || sparePlanted(x, y, structureAt(x, y, seeds, now))) continue;
+          const [px, py] = iso(x, y); natureAt(g, x, y, px, py, 0, true, false);
+        }
+        n.ox = left; n.oy = top;
+        if (!allTexturesReady() || !natureReady()) continue; // art loading: stay live, retry later
+        cv = n; outCache.set(key, cv);
+        for (const k of outCache.keys()) { if (outCache.size <= 160) break; if (!k.startsWith(`${ix},${iy},`)) outCache.delete(k); }
+        for (const k of outCache.keys()) if (k !== key && k.startsWith(`${ix},${iy},${q},`)) outCache.delete(k);
+      } finally { pEnd(); }
+    }
+    c.drawImage(cv, cv.ox, cv.oy, cv.width / q, cv.height / q);
+    outDone.add(iy * 4096 + ix);
+  }
+}
 function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false): number {
   const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow) + (labEdge() ? `|e${labEdge()!.core},${labEdge()!.grain}${labEdge()!.v2 ? "v2" : ""}` : "");
   let baked = 0, drawn = 0;
@@ -2556,7 +2607,7 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
 const WONDER_ART: Record<WonderKind, [string, number]> = { wreck: [wreckU, 36], cave: [caveU, 54], oak: [oakU, 74], ruin: [ruinU, 70], caravan: [caravanU, 24], spring: [springU, 46] };
 let wonderM: Map<number, WonderKind> | null = null;
 // realm switch: drop map-specific caches so no wonder or ground from the previous island lingers
-onGeoChange(() => { wonderM = null; overview = null; chunkCache.clear(); geomCache.clear(); clearFlat(); });
+onGeoChange(() => { wonderM = null; overview = null; chunkCache.clear(); outCache.clear(); geomCache.clear(); clearFlat(); });
 const wonderMap = () => wonderM ??= new Map(wonders().map((w) => [w.y * MAP + w.x, w.kind]));
 let wonderFound = new Set<string>();
 // ---------------- supporter decorations (src/game/supporter.ts): purely cosmetic ----------------
@@ -3682,6 +3733,7 @@ export function draw(
     }
   }
   pFE();
+  pEnd(); pBegin("near.outskirts"); syncOutskirts(seeds, now); drawOutskirts(c, x0, x1, y0, y1, z, seeds, now);
   pEnd(); pBegin("near.roads");
   // ---- trade roads as one continuous ribbon each (the tile steps stay logic only) ----
   for (const l of worldLinks) {
@@ -4042,7 +4094,7 @@ export function draw(
       else if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, FOOT2.has(st.kind) ? cy - TH / 2 : cy, st.v);
       continue; // forests and crags are baked into the ground chunks
     }
-    if (!st && (sharp || nearTown(x, y))) natureAt(c, x, y, cx, cy, t, true, false); // turf already lies in the flat pass
+    if (!st && (sharp || nearTown(x, y)) && !(outDone.has(((y / CH) | 0) * 4096 + ((x / CH) | 0)) && outskirt(x, y))) natureAt(c, x, y, cx, cy, t, true, false); // turf already lies in the flat pass
     pFE(); pFB("p2.animals");
     if (!original && !floodWild.get(y * MAP + x)?.flood && !inCourt(x, y)) {
       const animal = farmAnimalsAt(x, y, seeds, now, pondsNow);
