@@ -735,16 +735,10 @@ export function Game() {
           }
         }
       } catch { /* play as guest */ }
-      // invited newcomers land on their friend's map
-      const refId = localStorage.getItem("samenland-ref");
-      let refSeed: { id: string; realm: string; name: string } | null = null;
-      if (refId && !adminPick) {
-        const { data } = await supabase.from("seeds").select("id, realm, name").eq("id", refId).maybeSingle();
-        if (data) { refSeed = data; if (REALMS.includes(data.realm as Realm)) r = data.realm as Realm; }
-        else localStorage.removeItem("samenland-ref");
-      }
-      // Altenland is full from EUROPE_FULL villages on: newcomers without an invite settle on Elbwerder (Europa II)
-      if (r === "europe" && !adminPick && !refSeed && !hasHome) {
+      let refSeed: { id: string } | null = null; // invites never pick the map, so the friend may live elsewhere
+      { const refId = localStorage.getItem("samenland-ref"); if (refId && !hasHome) refSeed = { id: refId }; }
+      // an invite never picks the map (the bonus works across maps); Altenland is full from EUROPE_FULL villages on: every newcomer settles on Elbwerder (Europa II)
+      if (r === "europe" && !adminPick && !hasHome) {
         const { count } = await supabase.from("seeds").select("id", { count: "exact", head: true }).eq("realm", "europe");
         if ((count ?? 0) >= EUROPE_FULL) r = "europe-2";
       }
