@@ -25,6 +25,8 @@ const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]
 
 /** Whether a tile is a den (the animal's home); the caller still checks free ground around it. */
 export const isDen = (x: number, y: number) => hash(x, y, 311) < 0.018;
+/** Wild-scan order: the cheap den hash first, the costly structure lookup only for den tiles. */
+export const wildCandidate = (x: number, y: number, built: (x: number, y: number) => boolean) => isDen(x, y) && !built(x, y);
 export const isBoar = (x: number, y: number) => hash(x, y, 312) < 0.35;
 /** A den needs open ground around it so its animal can roam. */
 export function denOk(x: number, y: number, free: Free): boolean {

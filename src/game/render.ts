@@ -32,7 +32,7 @@ import { worldHour, clock } from "./time";
 import { forestExtra, forestShape } from "./forest-edge";
 import { forestEdge as labEdge } from "./lab-ctl";
 import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
-import { huntScene, lodgeDens, denOk, denBeast, denFate, startle, DEN_R, type Den, type Beast } from "./wildlife";
+import { huntScene, lodgeDens, denOk, wildCandidate, denBeast, denFate, startle, DEN_R, type Den, type Beast } from "./wildlife";
 import { roadMotion, screenFacing } from "./motion";
 import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
 import { houseLit, candleFlicker, lampStrength } from "./night";
@@ -4215,7 +4215,7 @@ export function draw(
     }
     // free game is display only and about a pixel tall below this zoom; den stock and hunts are unaffected
     if (cam.zoom >= WILD_FIGS_FROM) for (let y = Math.max(0, y0 - 4); y <= Math.min(MAP - 1, y1 + 4); y++) for (let x = Math.max(0, x0 - 4); x <= Math.min(MAP - 1, x1 + 4); x++) {
-      if (!structureAt(x, y, seeds, now)) wildFigures(x, y, hunt, c);
+      if (wildCandidate(x, y, (a, b) => !!structureAt(a, b, seeds, now))) wildFigures(x, y, hunt, c);
     }
   }
   pEnd();
