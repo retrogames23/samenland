@@ -27,7 +27,9 @@ export function farmAnimalsAt(x: number, y: number, seeds: Seed[], now: number, 
     // Only one possible goat tile per hut: its open southern neighbour, selected by the hut hash.
     hutBeside ||= dy === -1 && st?.kind === "hut" && st.build === undefined && !st.flood && hash(nx, ny, 1511) < 0.45;
   }
-  const oak = tr === "forest" && treeKind(hash(x, y, 18), 0.6) === "oak";
+  // mast pigs keep to the wood's edge near the village, never deep inside the forest
+  const edge = tr === "forest" && ([[1, 0], [0, 1], [-1, 0], [0, -1]] as const).some(([dx, dy]) => { const n = terrain(x + dx, y + dy); return n !== "forest" && !isWater(n) && n !== "mountain"; });
+  const oak = edge && treeKind(hash(x, y, 18), 0.6) === "oak";
   return farmAnimalKind({ free: true, nearVillage: true, oak, shore, hutBeside, autumn: mastSeason(now) });
 }
 

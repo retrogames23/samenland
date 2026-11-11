@@ -2545,6 +2545,7 @@ function outskirt(x: number, y: number) {
 }
 function drawOutskirts(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number) {
   outDone.clear(); let outBaked = 0;
+  if (!TOUCH) return; // desktop: outskirt trees stay live so they sway in the wind
   const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow) + ":" + links(seeds).length;
   const cx0 = Math.floor(x0 / CH), cx1 = Math.floor(x1 / CH), cy0 = Math.floor(y0 / CH), cy1 = Math.floor(y1 / CH);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
