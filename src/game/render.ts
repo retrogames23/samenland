@@ -1,4 +1,5 @@
 import { streetHouse } from "./street-layout";
+import { paintedFlame } from "./building-sprites";
 import { weatherAt, wetness, snowiness, stormDark, setWeatherPreview, type WeatherKind } from "./weather";
 import deerWalkUrl from "@/assets/sprites/deer-walk.webp";
 import deerGrazeUrl from "@/assets/sprites/deer-graze.webp";
@@ -414,24 +415,11 @@ function glowFlame(c: C, x: number, y: number, h: number, t: number, sd: number)
   const g = c.createRadialGradient(x, y - h * 0.3, 0, x, y - h * 0.3, h * 1.1);
   g.addColorStop(0, `rgba(255,170,70,${0.35 * fl})`); g.addColorStop(1, "rgba(255,140,40,0)");
   c.fillStyle = g; c.fillRect(x - h * 1.1, y - h * 1.4, h * 2.2, h * 2.2);
-  for (let i = 0; i < 4; i++) {
-    const ph = t / (95 + i * 27) + i * 1.9 + sd, hx = x + (i - 1.5) * h * 0.16;
-    const tall = h * (0.55 + 0.3 * Math.abs(Math.sin(ph))), w = h * 0.16, sway = Math.sin(ph * 1.3) * h * 0.1;
-    const fg = c.createLinearGradient(hx, y, hx, y - tall);
-    fg.addColorStop(0, "rgba(255,120,30,0.6)"); fg.addColorStop(0.5, "rgba(255,190,80,0.45)"); fg.addColorStop(1, "rgba(255,230,150,0)");
-    c.fillStyle = fg; c.beginPath(); c.moveTo(hx - w, y); c.quadraticCurveTo(hx - w, y - tall * 0.5, hx + sway, y - tall); c.quadraticCurveTo(hx + w, y - tall * 0.5, hx + w, y); c.closePath(); c.fill();
-  }
-  c.globalCompositeOperation = op;
+  c.globalCompositeOperation = op; paintedFlame(c, x, y, h * 0.9, t, sd, 2);
 }
 function drawFire(c: C, cx: number, cy: number, t: number, sd: number, L: Light[]) {
   smoke(c, cx + 2, cy - 22, t * 2.5, sd, 1.6); smoke(c, cx - 3, cy - 18, t * 2, sd + 7, 1.2);
-  for (let i = 0; i < 7; i++) {
-    const ph = (t / 380 + hash(sd, i, 3)) % 1, fx = cx + (hash(sd, i, 4) - 0.5) * 16, fy = cy - 10 - hash(sd, i, 5) * 8 - ph * 7;
-    const r = (2.4 + hash(sd, i, 6) * 2.2) * (1 - ph * 0.6);
-    const g = c.createRadialGradient(fx, fy, 0, fx, fy, r);
-    g.addColorStop(0, `rgba(255,236,170,${0.9 - ph * 0.5})`); g.addColorStop(0.45, `rgba(250,140,40,${0.75 - ph * 0.5})`); g.addColorStop(1, "rgba(200,50,10,0)");
-    c.fillStyle = g; c.beginPath(); c.ellipse(fx, fy, r * 0.7, r * 1.4, 0, 0, 7); c.fill();
-  }
+  paintedFlame(c, cx, cy - 2, 20, t, sd, 3);
   for (let i = 0; i < 4; i++) { const ph = (t / 900 + i / 4 + hash(sd, i, 8)) % 1; c.fillStyle = `rgba(255,190,90,${1 - ph})`; c.fillRect(cx + Math.sin(ph * 6 + i) * 6, cy - 16 - ph * 22, 0.6, 0.6); }
   L.push({ x: cx, y: cy - 10, r: 26 });
 }
