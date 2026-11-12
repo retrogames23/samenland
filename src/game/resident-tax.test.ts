@@ -143,3 +143,38 @@ describe("gated resident tax (Option A)", () => {
     expect(s.civicRoads ?? []).toEqual([]);
   });
 });
+
+describe("residentTax integration (real rank, school, infrastructure)", () => {
+  const at = start + 120 * day;
+  const infra = ["herbs", "hunter", "fisher", "dairy", "backhaus", "granary", "healer"];
+  const town = (extra: Seed["bought"] = [], roads: { at: number }[] = []): Seed =>
+    ({ ...seed(), bought: [...infra.map(item => ({ item, at: start })), ...(extra ?? [])], civicRoads: roads } as Seed);
+  it("residentTax equals the manual assessment from real rank, school and infrastructure", async () => {
+    const { townRank } = await import("./rank");
+    const { civicWealth, infraCount, sickLoss, sickTaxRate } = await import("./prosperity");
+    for (const s of [town(), town([{ item: "school", at: start }])]) {
+      const homes = householdsOf(s, [s], at), pop = homes.reduce((n, h) => n + h.size, 0);
+      const sh = gatedEstateShares(civicWealth(s, at), townRank(s, [s], at), s.bought!.some(b => b.item === "school"), infraCount(s, at));
+      const assessed = assessHomesWith(homes, sh);
+      const r = residentTax(s, [s], at);
+      expect(r.population).toBe(pop); expect(r.households).toBe(homes.length);
+      expect(r.assessed).toBe(assessed);
+      expect(r.income).toBe(assessed - sickLoss(assessed, Math.max(0.01, sickTaxRate(s, at))));
+      // Estates stay 1/2/3 Taler: assessed lies between pop×1 and pop×3.
+      expect(r.assessed).toBeGreaterThanOrEqual(pop); expect(r.assessed).toBeLessThanOrEqual(pop * 3);
+    }
+  }, 30000);
+  it("a road finished after `at` and a later purchase leave the historical tax unchanged", () => {
+    const base = residentTax(town(), [town()], at);
+    const later = town([{ item: "stonemason", at: at + 1 }, { item: "school", at: at + 1 }], [{ at: at + 1 }]);
+    expect(taxSharesAt(later, [later], at).infra).toBe(infra.length);
+    expect(residentTax(later, [later], at)).toEqual(base);
+    expect(taxSharesAt(later, [later], at + 1).infra).toBe(infra.length + 2);
+  }, 30000);
+  it("trade charter bonus stays 15 % of population, unchanged", () => {
+    const s = { ...town(), charter: { path: "trade", at: start } } as Seed, plain = town();
+    const r = residentTax(s, [s], at), p = residentTax(plain, [plain], at);
+    expect(r.income - p.income).toBe(Math.floor(0.15 * r.population));
+  }, 30000);
+  it("estate prices stay 1, 2 and 3 Taler", () => { expect(ESTATE_TAX).toEqual({ ordinary: 1, skilled: 2, wealthy: 3 }); });
+});
