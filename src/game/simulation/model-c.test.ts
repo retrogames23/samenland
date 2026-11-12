@@ -66,9 +66,9 @@ describe("Model C own purchases", () => {
   });
   it("own chest stage raises the cap only for later credits; cap is never exceeded", () => {
     const m = modelC(rows(400, 5, 2000), 0, { profile: P, ...base });
-    const up = m.days.findIndex((d) => d.chest === 1);
+    const up = m.days.findIndex((d) => d.chest >= 1);
     expect(up).toBeGreaterThanOrEqual(0);
-    expect(m.days[up]!.cap).toBe(1200); expect(m.days[up + 1]!.cap).toBe(4000);
+    expect(m.days[up]!.cap).toBe(1200); expect(m.days[up + 1]!.cap).toBe([1200, 4000, 10000, 25000][m.days[up]!.chest]);
     for (const d of m.days) expect(d.balance).toBeLessThanOrEqual(d.cap);
   });
   it("profile without chest upgrades stays at base cap", () => {
