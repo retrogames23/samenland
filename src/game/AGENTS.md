@@ -41,3 +41,4 @@
 - Perf diagnostics: only perf-probe.ts (?perf=1; &perfdetail=1 adds fine spans, structureAt and draw-op counts; ?perf=0 = camera hook only; &bench=flat = real-device flat-cache zoom run; window.__flatState exact flat cache snapshot), baselines docs/perf, scripts scripts/perf — never affects normal play.
 - Town quarters (workers', villa, mixed) are picked per 3x3 block hash in world.ts, never by compass angle — so coastline orientation cannot decide which quarter lands on dry ground.
 - Economy simulation (src/game/simulation/) is offline only: imports real formulas, never imported by the live game; behaviour assumptions live only in profiles.ts.
+- Watermill refuge (millRefuge in world.ts): when a finished bridge head takes the watermill's landmark tile, the mill is drawn on the nearest free shore tile instead — pure from seeds + clock, landmarkSpots unchanged so no other landmark moves.
