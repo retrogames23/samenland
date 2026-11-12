@@ -9,7 +9,8 @@ import { attemptPurchases, bookCredit, offerFor, simulate } from "./engine";
 import { CHEST_BASE, CHEST_CAP, START_TALER } from "../economy";
 import { PROFILES, BASE_LOCATIONS } from "./profiles";
 import type { DayRow, Profile, ProfileKey } from "./types";
-import type { CharterPath, TownWay } from "../world";
+import type { CharterPath } from "../world";
+import type { TownWay } from "../character";
 
 export type Stage = { name: string; cost: number; buildDays: number };
 export type Project = { key: string; name: string; scope: "municipal" | "regional"; total: number; local: number; stages: Stage[] };
