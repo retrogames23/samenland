@@ -236,7 +236,10 @@ describe("Model C half-surplus donations", () => {
   it("donates exactly half of the surplus above the reserve", () => { const d = run(500).days[0]!; expect(d.manual).toBe(200); expect(d.balance).toBe(300); });
   it("rounds an odd surplus down to whole Taler", () => { expect(run(105).days[0]!.manual).toBe(2); expect(run(101).days[0]!.manual).toBe(0); });
   it("keeps the reserve: no donation at or below it", () => { expect(run(100).days[0]!.manual).toBe(0); expect(run(60).days[0]!.balance).toBe(60); });
-  it("never exceeds the open local project amount", () => { const m = modelC([{ ...rows(1, 4, 0)[0]!, rank: 4 }], 1200, { profile: prof, strategy: "hybrid", taxRate: 0, order: ["fountain"] }); expect(m.days[0]!.manual).toBe(550);
-    const big = run(1200); expect(big.days[0]!.manual).toBeLessThanOrEqual(PROJECTS.find((p) => p.key === "fountain")!.local); });
+  it("never exceeds the open local project amount", () => {
+    const local = PROJECTS.find((p) => p.key === "fountain")!.local;
+    const m = modelC([{ ...rows(1, 4, local - 100)[0]!, rank: 4 }], 1200, { profile: prof, strategy: "hybrid", taxRate: 1, order: ["fountain"] });
+    expect(m.days[0]!.taxToProjects).toBe(local - 100); expect(m.days[0]!.manual).toBe(100); expect(m.days[0]!.balance).toBe(1100);
+  });
   it("no donation without a pick", () => { expect(run(500, []).days[0]!.manual).toBe(0); });
 });
