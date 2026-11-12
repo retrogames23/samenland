@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { raids, raidLoss, fires, floodFood, floods, nearRiver, RAID_LOSS } from "./disasters";
+import { raids, raidLoss, fires, floodFood, floods, nearRiver, RAID_LOSS, FIRE_CHANCE_ORDER, FIRE_DEAD_ORDER } from "./disasters";
+import { ITEMS, needRankOf } from "./economy";
 import { waterNearby, riverDistAt, MAP, type Seed } from "./world";
 
 const DAY = 864e5, c0 = Date.parse("2026-01-01T00:00:00Z");
