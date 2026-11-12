@@ -212,7 +212,7 @@ describe("gated shares across real ranks (Dorf, Handelsstadt, Hansestadt)", () =
     expect(many.infra).toBeGreaterThanOrEqual(7); expect(many.shares.skilled).toBeLessThanOrEqual(0.2); expect(many.shares.wealthy).toBe(0);
   }, 60000);
   it("Handelsstadt (rank 4, one road): school caps skilled at 45 %, wealthy at 15 %; without school wealthy 0", async () => {
-    const at = start + 250 * day;
+    const at = start + 300 * day;
     const v = await check(world(1, true), at, 4);
     expect(v.hasSchool).toBe(true);
     expect(v.shares.skilled).toBeCloseTo(Math.min(0.45, estateShares(v.wealth).skilled), 10);
