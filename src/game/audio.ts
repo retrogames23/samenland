@@ -71,10 +71,13 @@ function init() {
   }
   startTicker();
   // real sheep "Mäh!" (public-domain recording), played when a sheep is clicked
-  fetch("/sounds/sheep.mp3").then((r) => r.arrayBuffer()).then((b) => ctx!.decodeAudioData(b)).then((b) => { sheepBuf = b; }).catch(() => {});
+  for (const k of CALL_FILES) if (!callBufs.has(k)) fetch(`/sounds/${k}.mp3`).then((r) => r.arrayBuffer()).then((b) => ctx!.decodeAudioData(b)).then((b) => { callBufs.set(k, b); }).catch(() => {});
 }
 let noise: AudioBuffer;
-let sheepBuf: AudioBuffer | null = null;
+/** Recorded animal calls (Wikimedia Commons, see public/sounds/CREDITS.md); the boar reuses the pig, pitched down. */
+export type AnimalCall = "sheep" | "cow" | "pig" | "boar" | "hen" | "goose" | "goat" | "deer" | "dog";
+const CALL_FILES = ["sheep", "cow", "pig", "hen", "goose", "goat", "deer", "dog"] as const;
+const callBufs = new Map<string, AudioBuffer>();
 
 /** Short shaped sound helpers */
 function out(pan: number, vol: number) {
@@ -119,10 +122,14 @@ function syllable(pan: number, vol: number) {
   o.start(t); o.stop(t + d + 0.05); s.start(t, Math.random() * 2, d + 0.05);
 }
 /** Real sheep "Mäh!" (recorded sample) — only on click, never ambient. */
-export function baa(pan = 0) {
-  if (!ctx || !enabled || !sheepBuf) return;
-  const s = ctx.createBufferSource(); s.buffer = sheepBuf;
-  const g = ctx.createGain(); g.gain.value = 0.9;
+export function baa(pan = 0) { animalCall("sheep", pan); }
+/** Plays the clicked animal's own call (only on click, never ambient); slight pitch variation per click. */
+export function animalCall(kind: AnimalCall, pan = 0) {
+  const buf = callBufs.get(kind === "boar" ? "pig" : kind);
+  if (!ctx || !enabled || !buf) return;
+  const s = ctx.createBufferSource(); s.buffer = buf;
+  s.playbackRate.value = (kind === "boar" ? 0.72 : 1) * (0.94 + Math.random() * 0.12);
+  const g = ctx.createGain(); g.gain.value = kind === "hen" || kind === "goose" ? 0.6 : 0.85;
   s.connect(g).connect(out(pan, 1)); s.start();
 }
 export function hm(pan = 0) {

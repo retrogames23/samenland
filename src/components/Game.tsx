@@ -84,7 +84,7 @@ import { setMusic, setTavernMusic } from "@/game/music";
 import { MUSIC } from "@/game/lang/music";
 import { suggestTownName } from "@/game/town-names";
 import { seasonAt } from "@/game/season";
-import { setScene, setSound, unlock, baa, hm, tap, bell, jingle, disposeAudio } from "@/game/audio";
+import { setScene, setSound, unlock, animalCall, hm, tap, bell, jingle, disposeAudio } from "@/game/audio";
 import {
   canPlant,
   MIN_SEED_DISTANCE,
@@ -1239,7 +1239,7 @@ export function Game() {
     { const [tx, ty] = tileAt(e);
       for (const [sid, d] of dogSpots) if (Math.hypot(d.x - tx, d.y - ty) < 0.9) {
         const dt = DOG[lang], n = dogNames.get(sid) ?? dt.unnamed, ls = dt.lines(n), [wx, wy] = dogIso(d.x, d.y);
-        sayAt(isNight() ? dt.sleepy(n) : ls[Math.floor(Math.random() * ls.length)]!, wx, wy, 5); tap(); return true;
+        sayAt(isNight() ? dt.sleepy(n) : ls[Math.floor(Math.random() * ls.length)]!, wx, wy, 5); if (isNight()) tap(); else animalCall("dog"); return true;
       } }
     const p = personAt(e);
     if (p && p.role === "mayor" && p.seed.id !== mine && p.seed.user_id && userId) { setDmPeer(p.seed.user_id); setTavernOpen(true); return true; }
@@ -2622,9 +2622,14 @@ export function Game() {
                 const sp = sm.get((ty + dy) * MAP + tx + dx);
                 if (sp) { tap(pan); setWho(null); setPlace(null); return setMsg(`${t.signFrom(seeds.find((x) => x.id === sp.seed_id)?.name ?? "?")}: „${sp.message}“`); }
               }
-              // a click on a pasture means the flock, never a house whose roof rises over it
+              // the village dog barks when clicked
+              for (const d of dogSpots.values()) if (Math.hypot(d.x - tx, d.y - ty) < 0.9 && !isNight()) { animalCall("dog", pan); setWho(null); setPlace(null); return; }
+              // every animal standing here answers with its own call (cow moos, sheep bleat, hens cluck …)
+              const beasts = tileFacts(tx, ty, seeds, clock(), isPlantedRare(st.current.plantings, tx, ty)).animals;
+              // a click on a pasture means the herd, never a house whose roof rises over it
               { const here = structureAt(tx, ty, seeds, clock());
-                if (here?.kind === "pasture" && here.build === undefined) { baa(pan); setWho(null); setPlace(null); return; } }
+                if (here?.kind === "pasture" && here.build === undefined) { animalCall(beasts.includes("cow") ? "cow" : "sheep", pan); setWho(null); setPlace(null); return; } }
+              const beast = beasts[0];
               // send your mayor to a walkable tile of your own village; when he is selected this wins over nearby roofs
               const sendMayor = () => { const my = seeds.find((x) => x.id === mine); if (!my) return false;
                 const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor");
@@ -2633,7 +2638,7 @@ export function Game() {
               if (who?.role === "mayor" && who.seed.id === mine && sendMayor()) return;
               const ins0 = inspectAt(tx, ty, seeds, clock());
               const ins = ins0 && isPlantedRare(st.current.plantings, ins0.x, ins0.y) ? null : ins0;
-              if (ins) { if (ins.kind === "pasture") baa(pan); else tap(pan); setWho(null); knock(ins); return setPlace(ins); }
+              if (ins) { if (beast) animalCall(beast, pan); else tap(pan); setWho(null); knock(ins); return setPlace(ins); }
               const hadCard = !!who || !!place;
               setPlace(null); setWho(null);
               if (!hadCard && sendMayor()) return;
