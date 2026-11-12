@@ -19,33 +19,25 @@ Abgeschlossene Handelsstraße: ein Eintrag in `s.civicRoads`, also ein Partnerdo
 
 `n = gezählte Bauten + min(3, fertige Straßen)`.
 
-## 2. Progressionsregel
+## 2. Progressionsregel (verbindlich: Option A, umgesetzt in `gatedEstateShares`)
 
-Steuer je Kopf: `1 + s + 2w` (s = Anteil Gesellen, w = Anteil Wohlhabende). `L = estateShares(wealth)` ist die bisherige Verteilung; jede Stufe ist zusätzlich durch L nach oben begrenzt, sodass nie mehr gezahlt wird als heute.
+Steuer je Kopf: `1 + s + 2w` (s = Anteil Gesellen, w = Anteil Wohlhabende). `L = estateShares(wealth)` ist die bisherige Verteilung; jede Stufe ist zusätzlich durch L nach oben begrenzt.
 
-Rang `r` = derselbe Stadtrang, der heute die Kaufsperre nach ITEM_RANK steuert. `school = owns(s, "school", now)`.
+Rang `r = townRank(s, seeds, at)` (echte Bürger, bewohnte Haushalte, fertige Straßen), `school = Schulkauf mit at <= Bewertungszeitpunkt`, `n = infraCount(s, at)` (Abschnitt 1).
 
 ```text
-Weiler/Dorf (r <= 2), sowie Kleinstadt ohne Schule:
-  s = min(L.skilled, 0.04 + 0.025·n, 0.20)      w = 0
-  -> 1,04 bis höchstens 1,20 M/Kopf
-
-Kleinstadt mit Schule (r = 3):
-  s = min(L.skilled, 0.35)                        w = min(L.wealthy, 0.05)
-  -> höchstens 1 + 0,35 + 0,10 = 1,45 M/Kopf
-
-Handelsstadt (r >= 4), k = min(1, Tage seit Erreichen von r4 / 14):
-  s = min(L.skilled, 0.35 + k·(0.55 − 0.35))
-  w = school ? min(L.wealthy, 0.05 + k·(L.wealthy − 0.05)) : 0
-  -> nach 14 Tagen volle bisherige Verteilung L (max. ~2,08 M/Kopf)
+Ohne Schule (jeder Rang) oder r <= 2:
+  s = min(L.skilled, 0.04 + 0.025·n, 0.20)   w = 0      -> höchstens 1,20 M/Kopf
+r = 3 mit Schule:  s = min(L.skilled, 0.35)   w = min(L.wealthy, 0.05)   -> höchstens 1,45 M/Kopf
+r = 4 mit Schule:  s = min(L.skilled, 0.45)   w = min(L.wealthy, 0.15)   -> höchstens 1,75 M/Kopf
+r = 5 mit Schule:  s = L.skilled              w = L.wealthy              -> volle Verteilung (~2,08 M/Kopf)
 ```
 
-Übergänge rechnerisch:
-- Dorf -> Kleinstadt mit Schule: höchstens 1,20 -> 1,45 (+0,25 M, +20,8 %).
-- Kleinstadt -> Handelsstadt: über 14 Tage linear bis L; kein Sprung an einem Tag.
-- Ohne Schule bleibt w in jeder Stufe 0.
+Feste Obergrenzen je Rang statt Timer: Für den Rang-4-Zeitpunkt ist kein Zeitstempel gespeichert, ein Gründungszeitpunkt als Ersatz ist ausgeschlossen.
 
-Haushaltszuordnung: `estateAt` behält den festen Kachel-Wurf `roll`; wohlhabend wenn `roll < w`, Geselle wenn `roll < w + s`. Steigende Anteile befördern also nur Haushalte, nie zurück, solange die Anteile wachsen.
+**Überholt (nicht umgesetzt):** Der frühere Entwurf mit gleitendem 14-Tage-Übergang ab Handelsstadt (`k = min(1, Tage seit r4 / 14)`) ist durch Option A ersetzt.
+
+Haushaltszuordnung: fester Kachel-Wurf `estateRoll(x, y)` über `estateOf(shares, x, y)`; wohlhabend wenn `roll < w`, Geselle wenn `roll < w + s`. Steuer (`resident-tax.ts`), Bürgerstand (`people.ts`) und Hausdarstellung (`world.ts`) nutzen dieselben Anteile aus `sharesAt` in prosperity.ts.
 
 ## 3. SQL
 
@@ -59,15 +51,15 @@ Keine Migration.
 
 1. `src/game/prosperity.ts`: `ESTATE_INFRA`-Positivliste, `infraCount(s, now)`, `estateCaps(s, now)` (liefert s/w nach Abschnitt 2), `estateAt(shares, x, y)` und `estateAssessment(pop, shares)` nehmen die gedeckelten Anteile statt des Wohlstands. Wohlstandsanzeige bleibt `civicWealth`.
 2. `src/game/resident-tax.ts`: Anteile einmal je Seed/Stichtag über `estateCaps` und an `estateAt` übergeben.
-3. `src/game/people.ts` (`townOf`, Z. 285): dieselben Anteile für `p.estate`.
-4. `src/game/world.ts` (`structureAt`, Z. 837): dieselben Anteile für `estateHouse` – Haus, Bürgerrolle und Steuer bleiben deckungsgleich.
+3. `src/game/people.ts` (`townOf`): `estateSharesLive` (sharesAt + townRank, gemerkt je Minute) für `p.estate`. (umgesetzt)
+4. `src/game/world.ts` (`structureAt`): dieselben Anteile über einen Hook für `estateHouse` – Haus, Bürgerrolle und Steuer bleiben deckungsgleich. (umgesetzt)
 5. `src/game/economy.ts` (`taxOnDay`, `dailyTax`): nur für Tage nach dem Cutover die neuen Anteile; davor unverändert die bisherige Formel, damit lokale Altsalden zur Datenbank passen.
 6. Unverändert, erben automatisch: `src/lib/treasury.server.ts`, `src/game/simulation/engine.ts`, `model-c.ts`.
 7. `src/game/i18n.ts`/Sprachdateien: nur falls das Bürgerbuch einen Hinweis „Wohlhabende erst mit Schule" zeigen soll (optional, nicht Teil der Regel).
 
 ## 5. Tests
 
-- `prosperity.test.ts`: Positivliste exakt 13 Einträge und alle mit ITEM_RANK <= 2; ausgeschlossene Bauten zählen nicht; Kauf zählt erst ab `at`; Straße zählt erst ab Fertigstellung, max. 3; n=0 -> s=0,04; n=4 -> 0,14; n>=7 -> 0,20; w=0 ohne Schule in jedem Rang; Kleinstadt+Schule -> Kopfsteuer <= 1,45; Handelsstadt Tag 0 = Kleinstadtwerte, Tag 14 = L; nie über L.
+- `prosperity.test.ts`: Positivliste exakt 13 Einträge und alle mit ITEM_RANK <= 2; ausgeschlossene Bauten zählen nicht; Kauf zählt erst ab `at`; Straße zählt erst ab Fertigstellung, max. 3; n=0 -> s=0,04; n=4 -> 0,14; n>=7 -> 0,20; w=0 ohne Schule in jedem Rang; Obergrenzen je Rang 3/4/5 nach Abschnitt 2; nie über L.
 - `resident-tax.test.ts`: Summe der Haushaltsstände = aggregierte Steuer; vor Cutover unverändert.
 - `census.test.ts`: Bürgerbuch-Zählung = Steuerstände.
 - Konsistenztest: für dieselbe Kachel liefern people.ts, world.ts und resident-tax.ts denselben Stand.
