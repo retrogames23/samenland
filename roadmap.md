@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Model C Schritt 4: eigene deterministische Raubzüge mit Stadtgarde-Zeitpunkt und Kassenbegrenzung; gezielte Tests und zwei 730-Tage-Profile
+- [x] Model C Schritt 4: eigene Raubzüge mit Stadtgarde-Zeitpunkt und Kassenbegrenzung; alle 38 Tests und beide 730-Tage-Profile mit täglichen Bilanzprüfungen bestanden
 - [x] Model C Schritt 3: Projektkatalog und Bauphasen korrigiert; 374.500 lokal / 490.000 gesamt, alle 31 Simulationstests bestanden
 - [x] Nachtmasken Gruppe F: 21 Gebäude gezielt korrigieren, im Original-Renderer prüfen, Abnahmebilder und gezielten Test liefern
 - [x] Schaukasten: Alter/Geschlecht am Feuer und Herd korrekt abbilden
