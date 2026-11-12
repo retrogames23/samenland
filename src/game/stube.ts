@@ -70,7 +70,7 @@ export function stubeOf(residents: Person[], seed: Seed, seeds: Seed[], now: num
 export type BodyAnchor = { on: "seat" | "feet" | "bed"; at: number; dx?: number };
 export const BODY_ANCHORS: Record<string, BodyAnchor> = {
   "eat-man": { on: "seat", at: 0.37, dx: -0.107 }, "eat-woman": { on: "seat", at: 0.36, dx: 0.095 }, "eat-girl": { on: "seat", at: 0.37, dx: 0.079 },
-  "eat-boy": { on: "seat", at: 0.38, dx: -0.06 },
+  "eat-boy": { on: "seat", at: 0.4, dx: -0.08 },
   "pat-eat-man": { on: "seat", at: 0.38, dx: -0.117 }, "pat-eat-woman": { on: "seat", at: 0.35, dx: 0.071 }, "pat-eat-boy": { on: "seat", at: 0.4, dx: -0.124 }, "pat-eat-girl": { on: "seat", at: 0.37, dx: 0.074 },
   "warm-man": { on: "seat", at: 0.31, dx: 0.169 }, "warm-woman": { on: "seat", at: 0.3, dx: 0.091 }, "warm-boy": { on: "seat", at: 0.3, dx: 0.165 }, "warm-girl": { on: "seat", at: 0.3, dx: 0.052 }, "warm-elder": { on: "seat", at: 0.29, dx: 0.176 },
   "elder-woman": { on: "feet", at: 0 }, // painted on her own stool
