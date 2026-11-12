@@ -351,7 +351,7 @@ export type Kind =
   | "campfire" | "hut" | "coop" | "fence" | "chapel" | "watermill" | "harbor"
   | "stall" | "townhall" | "gatehouse" | "manufactory" | "steamworks" | "station" | "suburb" | "avenue"
   | "patrician" | "villa" | "tenement" | "townhouse2" | "fachwerk" | "steinhaus" | "handwerker"
-  | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "belfry"
+  | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "firerack" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "belfry"
   | "backhaus" | "herberge" | "beginenhof" | "badestube" | "bigstore" | "millrow" | "stonemason" | "hammerworks" | "smokehouse" | "saltquay"
   | "theater" | "opera" | "university" | "exchange" | "orangery" | "harvesthall" | "guildtower" | "lighthouse" | "seat1" | "seat2" | "seat3";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). doneAt: real ms when it stands (estimate for organic growth). */
@@ -642,7 +642,7 @@ export const monumentOf = (item: string): MonumentKey | null => {
   return k && k in MONUMENT_DEFS && +m![2]! >= 1 && +m![2]! <= MONUMENT_DEFS[k].n ? k : null;
 };
 export const MONUMENT_BY_KIND = new Map<Kind, MonumentKey>(MONUMENT_KEYS.map((k) => [MONUMENT_DEFS[k].kind, k]));
-export const SPECIAL_KIND: Record<string, Kind> = { backhaus: "backhaus", herberge: "herberge", badestube: "badestube", beginen: "beginenhof", fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", guard: "guardhouse", hunter: "lodge", herbs: "herbhut", woodcamp: "woodcamp", bigstore: "bigstore", millrow: "millrow", stonemason: "stonemason", hammerworks: "hammerworks", smokehouse: "smokehouse", saltquay: "saltquay",
+export const SPECIAL_KIND: Record<string, Kind> = { backhaus: "backhaus", herberge: "herberge", badestube: "badestube", beginen: "beginenhof", fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", fireorder: "firerack", guard: "guardhouse", hunter: "lodge", herbs: "herbhut", woodcamp: "woodcamp", bigstore: "bigstore", millrow: "millrow", stonemason: "stonemason", hammerworks: "hammerworks", smokehouse: "smokehouse", saltquay: "saltquay",
   ...Object.fromEntries(MONUMENT_KEYS.map((k) => [`${k}1`, MONUMENT_DEFS[k].kind])) };
 /** Belfry steps (kept for the guild-rank requirement). */
 export const MONUMENT_STEPS = ["belfry1", "belfry2", "belfry3", "belfry4"] as const;
@@ -789,6 +789,8 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     if (!s.bought?.length) continue;
     const sp = specialSites(s).get(ck);
     if (!sp || now < sp.at) continue;
+    // the fire-order rack gives way once the fire-hook shed is bought
+    if (sp.kind === "firerack" && s.bought.some((b) => b.item === "firehouse" && b.at <= now)) continue;
     if (sp.kind === "square") { best = { kind: "square", seed: s, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
     const mk = MONUMENT_BY_KIND.get(sp.kind);
     const mill = sawmillUp(s, seeds, now);
