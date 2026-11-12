@@ -11,7 +11,8 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         select: (_c: string, o?: { head?: boolean }) => { head = !!o?.head; return q; },
         eq: () => q,
         gte: (_c: string, v: number) => { min = v; return q; },
-        order: (_c: string, o: { ascending: boolean }) => { desc = !o.ascending; return q; },
+        order: (_c: string, o?: { ascending?: boolean }) => { desc = o?.ascending === false; return q; },
+        range: () => q,
         limit: (n: number) => { lim = n; return q; },
         maybeSingle: () => { const r = rows.filter(d => d >= min).sort((a, b) => desc ? b - a : a - b).slice(0, lim); return Promise.resolve({ data: r[0] !== undefined ? { day: r[0] } : null, error: null }); },
         then: (res: (v: unknown) => void) => {
