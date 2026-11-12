@@ -229,3 +229,14 @@ describe("Model C player project choice", () => {
     for (const m of [t, s, h]) expect(m.errors).toEqual([]);
   });
 });
+
+describe("Model C half-surplus donations", () => {
+  const prof = { ...PROFILES.sparsam, reserve: 100, loginEvery: 1, chest: false, titles: false, guildRanks: false, way: false, monumentsFrom: null, buildings: [] } as never;
+  const run = (start: number, order = ["fountain"]) => modelC([{ ...rows(1, 4, 0)[0]!, rank: 4 }], start, { profile: prof, strategy: "surplus_only", order });
+  it("donates exactly half of the surplus above the reserve", () => { const d = run(500).days[0]!; expect(d.manual).toBe(200); expect(d.balance).toBe(300); });
+  it("rounds an odd surplus down to whole Taler", () => { expect(run(105).days[0]!.manual).toBe(2); expect(run(101).days[0]!.manual).toBe(0); });
+  it("keeps the reserve: no donation at or below it", () => { expect(run(100).days[0]!.manual).toBe(0); expect(run(60).days[0]!.balance).toBe(60); });
+  it("never exceeds the open local project amount", () => { const m = modelC([{ ...rows(1, 4, 0)[0]!, rank: 4 }], 1200, { profile: prof, strategy: "hybrid", taxRate: 0, order: ["fountain"] }); expect(m.days[0]!.manual).toBe(550);
+    const big = run(1200); expect(big.days[0]!.manual).toBeLessThanOrEqual(PROJECTS.find((p) => p.key === "fountain")!.local); });
+  it("no donation without a pick", () => { expect(run(500, []).days[0]!.manual).toBe(0); });
+});

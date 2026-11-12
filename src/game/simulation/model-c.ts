@@ -95,7 +95,7 @@ export function modelC(base: DayRow[], start: number, cfg: ModelCConfig): ModelC
     sumSpent += spend;
     let manual = 0;
     if (active && login && cfg.strategy !== "tax_only" && r.rank >= hanse) {
-      manual = Math.max(0, Math.min(active.local - funded, balance - P.reserve)); balance -= manual; funded += manual; sumManual += manual;
+      manual = Math.max(0, Math.min(active.local - funded, Math.floor(Math.max(0, balance - P.reserve) / 2))); balance -= manual; funded += manual; sumManual += manual;
     }
     let raid = 0;
     // Like raids(seed, now): purchases occur at integer day timestamps; the event's hour
