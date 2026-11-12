@@ -3,17 +3,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db: { tables: any; fail?: { table: string; from: number }; ranges: string[] } = { tables: {}, ranges: [] };
+const db: { tables: any; fail?: { table: string; from: number } | undefined; ranges: string[] } = { tables: {}, ranges: [] };
 
 // Minimal PostgREST stand-in: eq/in/gte filters, multi-key order, range slicing, upsert with unique key.
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
-    rpc: (fn: string) => Promise.resolve({ data: fn === "village_balance" ? 0 : (db.tables.tax_receipts ?? []).reduce((a, r) => a + (r.income as number), 0), error: null }),
+    rpc: (fn: string) => Promise.resolve({ data: fn === "village_balance" ? 0 : (db.tables.tax_receipts ?? []).reduce((a: number, r: Row) => a + (r.income as number), 0), error: null }),
     from: (table: string) => {
       const filters: ((r: Row) => boolean)[] = [], orders: [string, boolean][] = [];
       let range: [number, number] | null = null, lim = Infinity, head = false;
       const rows = () => {
-        let r = (db.tables[table] ?? []).filter(x => filters.every(f => f(x)));
+        let r = (db.tables[table] ?? []).filter((x: Row) => filters.every(f => f(x)));
         r = [...r].sort((a, b) => { for (const [k, asc] of orders) { const c = String(a[k]).localeCompare(String(b[k]), undefined, { numeric: true }); if (c) return asc ? c : -c; } return 0; });
         return r;
       };
@@ -35,7 +35,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         limit: (n: number) => { lim = n; return q; },
         range: (a: number, z: number) => { range = [a, z]; return q; },
         maybeSingle: () => { const d = run() as { data: Row[] | null; error: unknown }; return Promise.resolve({ data: table === "tax_cutover" ? (db.tables.tax_cutover ?? [])[0] ?? null : d.data?.[0] ?? null, error: d.error }); },
-        upsert: (ins: Row[]) => { const t = (db.tables[table] ??= []); for (const r of ins) if (!t.some(x => x.seed_id === r.seed_id && x.day === r.day)) t.push(r); return Promise.resolve({ error: null }); },
+        upsert: (ins: Row[]) => { const t = (db.tables[table] ??= []); for (const r of ins) if (!t.some((x: Row) => x.seed_id === r.seed_id && x.day === r.day)) t.push(r); return Promise.resolve({ error: null }); },
         then: (res: (v: unknown) => void, rej?: (e: unknown) => void) => Promise.resolve(run()).then(res, rej),
       };
       return q;
@@ -95,7 +95,7 @@ describe("treasury pagination", () => {
     db.tables.tax_receipts = Array.from({ length: 1210 }, (_, i) => i + 1).filter(d => d !== 1100).map(day => ({ seed_id: "a", day, income: 1 }));
     await calculateTreasury("a", "europe");
     await calculateTreasury("a", "europe");
-    const days = db.tables.tax_receipts.map(r => r.day as number);
+    const days = db.tables.tax_receipts.map((r: Row) => r.day as number);
     expect(days.length).toBe(1210);
     expect(new Set(days).size).toBe(1210);
     expect(days).toContain(1100);
