@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Model C Schritt 3: Projektkatalog und Bauphasen korrigieren, Summen und Simulationstests prüfen
+- [x] Model C Schritt 3: Projektkatalog und Bauphasen korrigiert; 374.500 lokal / 490.000 gesamt, alle 31 Simulationstests bestanden
 - [x] Nachtmasken Gruppe F: 21 Gebäude gezielt korrigieren, im Original-Renderer prüfen, Abnahmebilder und gezielten Test liefern
 - [x] Schaukasten: Alter/Geschlecht am Feuer und Herd korrekt abbilden
 - [x] Schaukasten: Patrizierfamilie und schreibende Kauffrau passend einkleiden
