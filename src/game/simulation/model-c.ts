@@ -7,6 +7,7 @@
  */
 import { attemptPurchases, bookCredit, offerFor, simulate } from "./engine";
 import { CHEST_BASE, CHEST_CAP, START_TALER } from "../economy";
+import { raidPlan } from "../disasters";
 import { PROFILES, BASE_LOCATIONS } from "./profiles";
 import type { DayRow, Profile, ProfileKey } from "./types";
 import type { CharterPath } from "../world";
@@ -39,7 +40,8 @@ export const LOCAL_VOLUME = PROJECTS.reduce((a, p) => a + p.local, 0);
 export const TOTAL_VALUE = PROJECTS.reduce((a, p) => a + p.total, 0);
 
 export type Strategy = "tax_only" | "surplus_only" | "hybrid";
-export type ModelCConfig = { profile: Profile; strategy: Strategy; taxRate?: number; order?: string[]; hanseRank?: number; charter?: CharterPath; way?: TownWay };
+export type ModelCConfig = { profile: Profile; strategy: Strategy; taxRate?: number; order?: string[]; hanseRank?: number; charter?: CharterPath; way?: TownWay;
+  /** Seed identity for raidPlan; default matches engine.ts's zero-hash simulation seeds. */ seedId?: string };
 export type CDay = { day: number; rank: number; grossTax: number; otherIncome: number; taxToProjects: number; toChestGross: number;
   booked: number; lost: number; spent: number; chest: number; cap: number; manual: number; raid: number; balance: number; project: string | null; funded: number; completed: number; open: number; openUnlocked: number };
 export type ModelCResult = { days: CDay[]; completed: { key: string; fundedDay: number; doneDay: number }[];
@@ -48,7 +50,7 @@ export type ModelCResult = { days: CDay[]; completed: { key: string; fundedDay: 
 
 /** Replays base daily rows with Model C and its OWN purchases (attemptPurchases from engine.ts), own chest stage and cap.
  *  Order per day: credits (against the cap valid at day start) → login purchases → manual donation → raid. Pure and deterministic.
- *  Raid loss uses the base row's raid amount, capped by Model C's own balance. */
+ *  Raids use raidPlan and the guard purchase timestamp, never the base row's raid loss. */
 export function modelC(base: DayRow[], start: number, cfg: ModelCConfig): ModelCResult {
   const P = cfg.profile, rate = cfg.strategy === "surplus_only" ? 0 : (cfg.taxRate ?? 0), hanse = cfg.hanseRank ?? 4;
   const charter = cfg.charter ?? "trade", way = cfg.way ?? "grain", all = offerFor(charter, way);
@@ -57,6 +59,10 @@ export function modelC(base: DayRow[], start: number, cfg: ModelCConfig): ModelC
   let balance = start, chest = 0, active: Project | null = null, funded = 0, next = 0, sumTax = 0, sumManual = 0, sumLost = 0, completedCost = 0, idle = 0, sumSpent = 0;
   const owned = new Set<string>(), bought: ModelCResult["bought"] = [];
   const completed: ModelCResult["completed"] = [], days: CDay[] = [], errors: string[] = [];
+  const seedId = cfg.seedId ?? "00000000-sim";
+  let raidIndex = 0, raidDay = 4, guardAt = Infinity;
+  let nextRaid = raidPlan(seedId, raidIndex);
+  raidDay += nextRaid.gap;
   let buildUntil = 0;
   for (const r of base) {
     const login = (r.day - 1) % P.loginEvery === 0, cap = caps[chest]!;
@@ -70,6 +76,7 @@ export function modelC(base: DayRow[], start: number, cfg: ModelCConfig): ModelC
     if (login) {
       const buy = (item: string, cost: number, reserve = P.reserve) => {
         if (owned.has(item) || balance < cost + reserve) return false;
+        if (item === "guard") guardAt = r.day;
         balance -= cost; spend += cost; owned.add(item); bought.push({ item, day: r.day, cost }); return true;
       };
       chest = attemptPurchases({ day: r.day, rank: r.rank, chest, profile: P, charter, way, owned, buy });
@@ -79,7 +86,15 @@ export function modelC(base: DayRow[], start: number, cfg: ModelCConfig): ModelC
     if (active && login && cfg.strategy !== "tax_only" && r.rank >= hanse) {
       manual = Math.max(0, Math.min(active.local - funded, balance - P.reserve)); balance -= manual; funded += manual; sumManual += manual;
     }
-    const raid = Math.min(balance, r.raid); balance -= raid;
+    let raid = 0;
+    // Like raids(seed, now): purchases occur at integer day timestamps; the event's hour
+    // still decides whether a guard bought during this booking day existed at the attack.
+    while (raidDay + nextRaid.hour / 24 <= r.day) {
+      const at = raidDay + nextRaid.hour / 24;
+      const loss = guardAt <= at ? 0 : Math.min(balance, nextRaid.loss);
+      balance -= loss; raid += loss;
+      nextRaid = raidPlan(seedId, ++raidIndex); raidDay += nextRaid.gap;
+    }
     if (active && funded >= active.local) {
       const build = active.stages.reduce((a, s) => a + s.buildDays, 0);
       buildUntil = Math.max(buildUntil, r.day) + build;
