@@ -13,7 +13,7 @@
 
 ## Model C (voluntary municipal projects)
 `bun src/game/simulation/model-c.ts <profile|all> <charter|all> <location|base> [tax_only|surplus_only|hybrid|all] [rate|all] [days]`
-Replays the base run's daily rows (real residentTax, chest caps) and adds a voluntary tax diversion (default 0 %, only from Handelsstadt, only while a project is chosen) and/or manual donations above the profile reserve. Prints CSV; the `errors` column counts days where a balance identity failed (must be 0). Catalog: 12 projects, 374,500 Mark local share, 490,000 Mark total value.
+Replays the base run's daily rows (real residentTax, chest caps) and adds a voluntary tax diversion (default 0 %, only from Handelsstadt, only while a project is chosen) and/or manual donations: on login days from Handelsstadt, 50 % of the balance above the profile reserve after regular purchases (rounded down), capped by the open local project amount. Prints CSV; the `errors` column counts days where a balance identity failed (must be 0). Catalog: 12 projects, 374,500 Mark local share, 490,000 Mark total value.
 
 Each stage stores `totalCost`, `localCost`, and `buildDays`; project and catalog sums are derived from these stages. Only the local share is funded by Model C. Existing regional projects retain their financing ratio, apportioned proportionally across stages.
 
