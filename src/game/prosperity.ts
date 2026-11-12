@@ -36,6 +36,11 @@ export function estateShares(wealth: number) {
   const wealthy = w <= 30 ? 0 : w <= 55 ? (w - 30) * 0.003 : w <= 80 ? 0.075 + (w - 55) * 0.007 : 0.25 + (w - 80) * 0.0025;
   return { ordinary: 1 - skilled - wealthy, skilled, wealthy };
 }
+/** One source for gated shares at `at` given the real rank: used by resident tax, villagers (people.ts) and house paint (world.ts). */
+export function sharesAt(s: Seed, at: number, rank: number) {
+  const wealth = civicWealth(s, at), hasSchool = (s.bought ?? []).some((b) => b.item === "school" && b.at <= at), infra = infraCount(s, at);
+  return { wealth, rank, hasSchool, infra, shares: gatedEstateShares(wealth, rank, hasSchool, infra) };
+}
 /** Fixed household roll by home tile. Own integer hash, mirrored by PostgreSQL if individual assessments are queried later. */
 export const estateRoll = (x: number, y: number) => (((x * 7381 + y * 19391 + 7919) % 10000) + 10000) % 10000 / 10000;
 /** Places a home tile into given shares using the fixed roll (shared by estateAt and gated tax). */

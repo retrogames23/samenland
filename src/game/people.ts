@@ -4,7 +4,7 @@ import { setChosenTraits } from "./traits";
 import { cacheTick } from "./time";
 import { feastOn, isRestDay, realmDate, FEASTS, type FeastCode } from "./feasts";
 import { pickStarSingers, starRound, STAR_FROM, STAR_STOP } from "./feast-walkers";
-import { civicWealth, estateAt, CULTURE_SICK, BEGINEN_SICK, type Estate } from "./prosperity";
+import { estateOf, sharesAt, CULTURE_SICK, BEGINEN_SICK, type Estate } from "./prosperity";
 import { weddingDates, weddingJoy } from "./weddings";
 import { hasTrait } from "./traits";
 import { pathHeading } from "./motion";
@@ -149,6 +149,9 @@ export function townOf(s: Seed, seeds: Seed[], now: number): Town {
   for (const k of towns.keys()) if (k.startsWith(s.id + "|")) towns.delete(k);
   const t = buildTown(s, seeds, now);
   towns.set(key, t);
+  // estates after memoizing: the real rank (needed for the gated shares) reads this very town
+  const sh = estateSharesLive(s, seeds, now);
+  if (sh) for (const p of t.people) p.estate = estateOf(sh, p.home[0], p.home[1]);
   return t;
 }
 
@@ -281,8 +284,6 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const order = people.map((p) => ({ p, b: bornAt(p.home[0], p.home[1], s) })).sort((a, b) => a.b - b.b || a.p.id - b.p.id);
   for (const { p } of order) p.first = pickFree(p.sex === "f" ? F : M, hash(p.id, 77, 10), taken);
   const weddings = marry(s, people, seeds, now);
-  const wealth = civicWealth(s, now);
-  for (const p of people) p.estate = estateAt(wealth, p.home[0], p.home[1]);
   falls(s, people, now, byKind.get("beginenhof")?.[0] ?? null);
   const chT = byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
   const church: Tile | null = chT ? (front(chT) ?? null) : null;
@@ -675,6 +676,17 @@ const FETE_WIN = 2.5 * 3600e3;
 let rankHook: ((s: Seed, seeds: Seed[], t: number) => number) | null = null;
 export const setRankHook = (f: typeof rankHook) => { rankHook = f; };
 let inRank = false;
+/** Gated estate shares at `now` — the same sharesAt + townRank as resident tax; null while the rank itself is being derived. */
+let inShares = false;
+const sharesMemo = new Map<string, { skilled: number; wealthy: number }>();
+export function estateSharesLive(s: Seed, seeds: Seed[], now: number) {
+  if (!rankHook || inShares) return null;
+  const k = `${s.id}|${cacheTick(now)}|${seedsKey(seeds)}`;
+  let sh = sharesMemo.get(k);
+  if (!sh) { inShares = true; try { sh = sharesAt(s, now, rankHook(s, seeds, now)).shares; } finally { inShares = false; } if (sharesMemo.size > 4000) sharesMemo.clear(); sharesMemo.set(k, sh); }
+  return sh;
+}
+setEstateHook(estateSharesLive);
 const RANK_STEP = 15 * 60e3, rankMemo = new Map<string, number>();
 const SEAT_OF = (r: number) => (r >= 4 ? "townhall" : r === 3 ? "seat3" : r === 2 ? "seat2" : "seat1") as Kind;
 function rankAtStep(s: Seed, seeds: Seed[], t: number) {

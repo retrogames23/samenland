@@ -9,7 +9,7 @@ import { biomeKey, type Biome } from "./biome";
 import { clock, cacheTick, worldHour, worldWeekday, workClock, workDone, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
-import { civicWealth, estateAt, estateHouse, RESIDENTIAL } from "./prosperity";
+import { estateOf, estateHouse, RESIDENTIAL } from "./prosperity";
 // Pure, deterministic world + town growth logic (shared by every player).
 const ROAD_YIELDS: ReadonlySet<string> = new Set(["field", "garden", "pasture", "hay", "fence"]);
 export const MAP = 1024;
@@ -765,6 +765,9 @@ let lastSeeds: Seed[] | null = null, lastTick = -1, lastCache: Map<number, Struc
 const soloMemo = new WeakMap<Seed, Seed[]>();
 /** Stable one-element seed list, so per-village queries hit the same cache every frame. */
 export const soloSeeds = (s: Seed): Seed[] => { let a = soloMemo.get(s); if (!a) { a = [s]; soloMemo.set(s, a); } return a; };
+/** Gated estate shares (people.ts estateSharesLive, same rule as resident tax); registered there to avoid an import cycle. */
+let estateHook: ((s: Seed, seeds: Seed[], now: number) => { skilled: number; wealthy: number } | null) | null = null;
+export const setEstateHook = (f: typeof estateHook) => { estateHook = f; };
 export function structureAt(x: number, y: number, seeds: Seed[], now: number): Structure | null {
   const tick = cacheTick(now);
   let scache: Map<number, Structure | null>;
@@ -834,7 +837,10 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
   }
   // Paint prosperity without changing household capacity or construction history.
   if (best && best.build === undefined && !best.fire && RESIDENTIAL.has(best.kind) && best.seed.user_id) {
-    const kind = estateHouse(best.kind, estateAt(civicWealth(best.seed, now), x, y));
+    const sh = estateHook?.(best.seed, seeds, now);
+    // shares unknown while the rank is being derived: return the unpainted house without caching it
+    if (!sh) return best;
+    const kind = estateHouse(best.kind, estateOf(sh, x, y));
     if (kind !== best.kind) best = { ...best, homeKind: best.kind, kind };
   }
   if (!best) {
