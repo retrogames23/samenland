@@ -70,7 +70,7 @@ export function stubeOf(residents: Person[], seed: Seed, seeds: Seed[], now: num
 export type BodyAnchor = { on: "seat" | "feet" | "bed"; at: number; dx?: number };
 export const BODY_ANCHORS: Record<string, BodyAnchor> = {
   "eat-man": { on: "seat", at: 0.37, dx: -0.107 }, "eat-woman": { on: "seat", at: 0.36, dx: 0.095 }, "eat-girl": { on: "seat", at: 0.37, dx: 0.079 },
-  "eat-boy": { on: "feet", at: 0 }, // painted on his own stool
+  "eat-boy": { on: "seat", at: 0.4, dx: -0.08 },
   "pat-eat-man": { on: "seat", at: 0.38, dx: -0.117 }, "pat-eat-woman": { on: "seat", at: 0.35, dx: 0.071 }, "pat-eat-boy": { on: "seat", at: 0.4, dx: -0.124 }, "pat-eat-girl": { on: "seat", at: 0.37, dx: 0.074 },
   "warm-man": { on: "seat", at: 0.31, dx: 0.169 }, "warm-woman": { on: "seat", at: 0.3, dx: 0.091 }, "warm-boy": { on: "seat", at: 0.3, dx: 0.165 }, "warm-girl": { on: "seat", at: 0.3, dx: 0.052 }, "warm-elder": { on: "seat", at: 0.29, dx: 0.176 },
   "elder-woman": { on: "feet", at: 0 }, // painted on her own stool
@@ -90,7 +90,7 @@ export const FURNITURE: Record<StubeLayoutKey, Partial<Record<Exclude<StubeSpot,
     bed: [{ x: 0.12, floor: 0.677, kind: "bed" }, { x: 0.12, floor: 0.497, kind: "bed" }],
     hearth: [{ x: 0.35, floor: 0.82, kind: "floor" }],
     fire: [stool(0.455, 0.82, 0.0814)],
-    table: [0.56, 0.715, 0.525, 0.75].map((x): Furniture => ({ x, floor: 0.8, kind: "bench", seat: 0.7038 })),
+    table: [0.54, 0.675, 0.575, 0.71].map((x): Furniture => ({ x, floor: 0.8, kind: "bench", seat: 0.7038 })),
   },
   tall: {
     bed: [{ x: 0.235, floor: 0.398, kind: "bed" }, { x: 0.405, floor: 0.398, kind: "bed" }],
