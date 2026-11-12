@@ -1,7 +1,8 @@
 import type { TownWay } from "./character";
 import { giftBalance, type Gift } from "./gifts";
 import { FOOD_CRAFTS } from "./food-crafts";
-import { civicWealth, estateAssessment, sickLoss, sickTaxRate } from "./prosperity";
+import { civicWealth, estateAssessment, sharesAt, sickLoss, sickTaxRate } from "./prosperity";
+import { townRank } from "./rank";
 import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, raids, floodFood, ITEM_RANK } from "./disasters";
@@ -74,12 +75,22 @@ export function taxPop(s: Seed, h: number, at: number) {
   return Math.min(p, cap);
 }
 
+/** Estate assessment of an estimated population: before CAP_ALL_SINCE the unchanged legacy shares (frozen balances),
+ *  from then on the gated V3 shares of sharesAt with the real rank — same rule as resident-tax receipts. */
+const gatedMemo = new Map<string, { skilled: number; wealthy: number }>();
+export function assessAt(s: Seed, p: number, at: number) {
+  if (at < CAP_ALL_SINCE || !s.user_id) return estateAssessment(p, civicWealth(s, at));
+  const k = `${s.id}|${at}|${(s.bought ?? []).length}`;
+  let sh = gatedMemo.get(k);
+  if (!sh) { sh = sharesAt(s, at, townRank(s, [s], at)).shares; if (gatedMemo.size > 2000) gatedMemo.clear(); gatedMemo.set(k, sh); }
+  return p + Math.floor(p * sh.skilled + 1e-9) + 2 * Math.floor(p * sh.wealthy + 1e-9);
+}
 /** One settlement day's tax (day d after founding): estate assessment minus sick loss plus trade bonus. Mirrors DB village_estate_tax. */
 export function taxOnDay(s: Seed, d: number) {
   const c0 = Date.parse(s.created_at), at = c0 + d * 86400000;
   const trade = s.charter?.path === "trade" ? s.charter.at : null;
   const p = taxPop(s, d * 24, at);
-  const a = estateAssessment(p, civicWealth(s, at));
+  const a = assessAt(s, p, at);
   return a - sickLoss(a, sickTaxRate(s, at)) + (trade != null && at >= trade ? Math.floor(TRADE_TAX * p) : 0);
 }
 /** Historical estate assessments (1/2/3 Mark), plus the existing +15% base trade-charter bonus — uncapped. */
@@ -90,7 +101,7 @@ export function taxEarned(s: Seed, now: number) {
   return t;
 }
 /** Today's income per day, including the trade charter bonus. */
-export const dailyTax = (s: Seed, h: number) => { const at = Date.parse(s.created_at) + h * 3.6e6, p = taxPop(s, h, at); const a = estateAssessment(p, civicWealth(s, at)); return a - sickLoss(a, sickTaxRate(s, at)) + (s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(TRADE_TAX * p) : 0); };
+export const dailyTax = (s: Seed, h: number) => { const at = Date.parse(s.created_at) + h * 3.6e6, p = taxPop(s, h, at); const a = assessAt(s, p, at); return a - sickLoss(a, sickTaxRate(s, at)) + (s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(TRADE_TAX * p) : 0); };
 
 
 /** Friend-invite bonus (mirrors DB referrals in village_balance): both villages get the reward. */
