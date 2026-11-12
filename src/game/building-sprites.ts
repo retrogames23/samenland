@@ -310,6 +310,11 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   dairy: { url: dairy, night: dairyLight, crop: [0, 0, 480, 391], width: 24, base: 4 },
 };
 
+/** Placement preview sizing: a thin prop (the fire rack) would disappear over the pulsing footprint
+ *  at its painted size, so its ghost floats a little larger. Paint-only — the finished building keeps
+ *  the width in the registry above. */
+export const GHOST_WIDTH: Partial<Record<Kind, number>> = { firerack: 15 };
+
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
 export const hasNightSprite = (kind: Kind) => Boolean(sprites[kind]?.night);
 

@@ -137,7 +137,7 @@ const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", cult
 const CHAR_ICON: Record<TownWay, string> = { grain: "🌾", workshop: "⚒", gateway: "⚓" };
 const WAY_BUILDS: Record<TownWay, string[]> = { grain: ["bigstore", "millrow", "harvesthall"], workshop: ["stonemason", "hammerworks", "guildtower"], gateway: ["smokehouse", "saltquay", "lighthouse"] };
 const wayOf = (p: { x: number; y: number }) => townCharacter(p).main;
-import { drawBuildingSprite, spriteUrl } from "@/game/building-sprites";
+import { drawBuildingSprite, spriteUrl, GHOST_WIDTH } from "@/game/building-sprites";
 import { TOWN_CHARACTER } from "@/game/i18n";
 import { onIsland } from "@/game/islands";
 import { townCharacter, type TownWay } from "@/game/character";
@@ -1012,8 +1012,10 @@ export function Game() {
         ctx.fillStyle = good ? `rgba(90,190,90,${0.3 + 0.15 * pulse})` : `rgba(210,70,60,${0.3 + 0.15 * pulse})`; ctx.fill();
         // a bold rim (constant ~2.5 screen px) so the footprint reads even under roofs
         ctx.lineWidth = 2.5 / Math.max(0.5, c.zoom); ctx.strokeStyle = good ? "rgba(30,110,30,0.95)" : "rgba(150,30,25,0.95)"; ctx.stroke();
-        ctx.globalAlpha = good ? 0.55 + 0.15 * pulse : 0.4;
-        drawBuildingSprite(ctx, SPECIAL_KIND[s.placing]!, gx, ay, 0.5);
+        const kind = SPECIAL_KIND[s.placing]!, gw = GHOST_WIDTH[kind];
+        // a thin prop (the fire rack) is painted almost opaque so its buckets and ladder read over the footprint
+        ctx.globalAlpha = gw ? (good ? 0.95 : 0.8) : good ? 0.55 + 0.15 * pulse : 0.4;
+        drawBuildingSprite(ctx, kind, gx, ay, 0.5, 1, false, undefined, gw);
         ctx.restore();
       }
       const nowMs = performance.now();
