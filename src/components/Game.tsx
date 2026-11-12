@@ -42,7 +42,7 @@ import { deleteAccount } from "@/lib/account.functions";
 import { certifyMyRank } from "@/lib/treasury.functions";
 import { useTreasurySync } from "@/components/hooks/useTreasurySync";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen, ScrollText, MoreHorizontal } from "lucide-react";
+import { BookOpen, ScrollText, MoreHorizontal, Feather } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
 import { TRACK_NAMES, TRACK_ICONS } from "@/game/lang/tracks";
 import { ORPHAN_FAREWELL } from "@/game/lang/orphan";
@@ -2794,6 +2794,11 @@ export function Game() {
               <ScrollText className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.menu}</span>
             </WoodButton>
           )}
+          {owner && (
+            <WoodButton label={t.chron.title} active={chronOpen} onClick={openChron} className="max-md:hidden h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 [@media(min-width:768px)_and_(max-height:760px)]:md:h-11 [@media(min-width:768px)_and_(max-height:760px)]:md:mt-0 md:flex-none">
+              <Feather className="h-5 w-5" /><span className="text-[10px] leading-none">{t.chron.open}</span>
+            </WoodButton>
+          )}
           {userId && (
             <WoodButton label={t.tavern.menu} active={tavernOpen} onClick={() => setTavernOpen(true)} className="relative h-11 flex-1 flex-col gap-0.5 md:mt-2 md:h-14 md:w-14 [@media(min-width:768px)_and_(max-height:760px)]:md:h-11 [@media(min-width:768px)_and_(max-height:760px)]:md:mt-0 md:flex-none">
               <Beer className="h-5 w-5" /><span className="text-[10px] leading-none">{t.tavern.menu}</span>
@@ -2820,6 +2825,7 @@ export function Game() {
             <Panel className="absolute bottom-full end-0 mb-2 w-56 md:hidden" inner="!bg-wood !border-0 grid grid-cols-3 gap-1 p-1">
               <WoodButton label={t.hud.rituals} active={tab === "rituals"} onClick={() => { setMoreOpen(false); pick("rituals"); }} className="h-14 flex-col gap-0.5"><Bell className="h-5 w-5" /><span className="text-[10px] leading-none">{t.hud.rituals}</span></WoodButton>
               <WoodButton label={t.hud.signs} active={tab === "signs"} onClick={() => { setMoreOpen(false); pick("signs"); }} className="h-14 flex-col gap-0.5"><SignIcon className="h-5 w-5" /><span className="text-[10px] leading-none">{t.hud.signs}</span></WoodButton>
+              {owner && <WoodButton label={t.chron.title} onClick={() => { setMoreOpen(false); openChron(); }} className="h-14 flex-col gap-0.5"><Feather className="h-5 w-5" /><span className="text-[10px] leading-none">{t.chron.open}</span></WoodButton>}
               <WoodButton label={t.mayorFind} onClick={() => { setMoreOpen(false); findMayor(); }} className="h-14 flex-col gap-0.5"><Crown className="h-5 w-5" /><span className="text-[10px] leading-none">{t.roll.role["mayor"]![1]}</span></WoodButton>
             </Panel>
           </>
@@ -3225,7 +3231,7 @@ export function Game() {
       )}
       {owner && !panelOpen && !chronBanner && (
         <button type="button" onClick={openChron} title={t.chron.open} aria-label={t.chron.open} className="absolute right-3 z-30 grid h-10 w-10 place-items-center rounded-full border-2 border-border bg-card/90 text-foreground shadow" style={{ top: barH + 8 }}>
-          <BookOpen className="h-5 w-5" />
+          <Feather className="h-5 w-5" />
         </button>
       )}
 
@@ -3280,8 +3286,8 @@ export function Game() {
             <ul className="mt-3 space-y-1 border-l-2 border-ink/20 pl-3">
               {chron.events.slice(-14).map((e, i) => (
                 <li key={i}>
-                  <button type="button" className="text-left text-sm text-ink hover:underline" onClick={() => { if (e.code === "letter") setFest((q) => [e, ...q]); else { const p = e as { x?: number; y?: number }; if (p.x != null && p.y != null) focus(p.x, p.y); else focus(my.x, my.y); } setChronOpen(false); }}>
-                    <span className="mr-2 text-ink/60">{new Date(e.at).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "short" })}</span>{chronLine(e)}
+                  <button type="button" className="flex w-full items-start gap-1 text-left text-sm text-ink hover:underline" onClick={() => { if (e.code === "letter") setFest((q) => [e, ...q]); else { const p = e as { x?: number; y?: number }; if (p.x != null && p.y != null) focus(p.x, p.y); else focus(my.x, my.y); } setChronOpen(false); }}>
+                    <span className="mr-2 text-ink/60">{new Date(e.at).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "short" })}</span><span className="flex-1">{chronLine(e)}</span>{"x" in e && <MapPin aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-50" />}
                   </button>
                 </li>
               ))}
