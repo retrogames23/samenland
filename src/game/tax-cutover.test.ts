@@ -73,3 +73,26 @@ describe("client fallback equals server receipts (residentTax) with the full net
     expect(r.assessed).not.toBe(aggregate);
   }, 120000);
 });
+
+describe("treasury walks the same tax as residentTax with the network", () => {
+  const start = Date.parse("2026-01-01T00:00:00Z");
+  const items = ["herbs", "hunter", "fisher", "dairy", "backhaus", "granary", "healer", "herberge", "woodcamp", "bigstore", "stonemason", "smokehouse", "beginen", "markethall", "guildhall", "school", "chest2", "chest3", "chest4"];
+  const mk = (roadAt: number | null): Seed[] => {
+    const r = roadAt == null ? [] : [{ target: "nb1", at: roadAt }];
+    const s = { id: "tw", name: "t", owner: "L", hue: 1, x: 306, y: 420, user_id: "u", created_at: new Date(start).toISOString(), bought: items.map((item) => ({ item, at: start })), roads: r, civicRoads: r.map((x) => ({ at: x.at })) } as unknown as Seed;
+    return [s, { id: "nb1", name: "n", owner: "nb", hue: 0, x: 321, y: 420, created_at: new Date(start - 60 * DAY).toISOString() } as unknown as Seed];
+  };
+  const purchases = items.map((item, i) => ({ id: `p${i}`, seed_id: "tw", item, cost: 0, created_at: new Date(start).toISOString() }));
+  const d = Math.floor((CAP_ALL_SINCE - start) / DAY) + 1, at = start + d * DAY;
+  it("the cutover day's booking equals residentTax with the trade road", () => {
+    const seeds = mk(start + 14 * DAY), s = seeds[0]!;
+    const inc = treasury(s, purchases, at, [], [], CAP_ALL_SINCE, seeds) - treasury(s, purchases, at - 1, [], [], CAP_ALL_SINCE, seeds);
+    expect(inc).toBe(residentTax(s, seeds, at).income);
+    expect(residentTax(s, seeds, at).income).not.toBe(residentTax(s, [s], at).income);
+  }, 120000);
+  it("changing a road's completion time (same counts) re-assesses instead of reusing the memo", () => {
+    const a = mk(start + 14 * DAY), b = mk(at + DAY);
+    expect(taxOnDay(a[0]!, d, a)).toBe(residentTax(a[0]!, a, at).income);
+    expect(taxOnDay(b[0]!, d, b)).toBe(residentTax(b[0]!, b, at).income);
+  }, 120000);
+});

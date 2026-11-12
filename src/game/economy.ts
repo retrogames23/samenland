@@ -86,7 +86,9 @@ const worldAt = (s: Seed, seeds: Seed[] | undefined, at: number) => {
 };
 /** Past settlement days are stable for identical inputs: memo keyed by day plus a fingerprint of the network. */
 const taxMemo = new Map<string, number>();
-const netKey = (seeds: Seed[]) => seeds.reduce((k, o) => k + (o.bought?.length ?? 0) + (o.roads?.length ?? 0) * 31 + (o.blessed?.length ?? 0) * 7, seeds.length * 1e6);
+/** Fingerprint of every tax-relevant network input (ids, positions, founding, purchases, roads, civic roads, blessings, charter, twin votes/works, aid) — content, not counts, so any change re-assesses. */
+const h32 = (k: string, v: string) => { let h = 2166136261; for (let i = 0; i < v.length; i++) h = Math.imul(h ^ v.charCodeAt(i), 16777619); return k + (h >>> 0).toString(36); };
+const netKey = (seeds: Seed[]) => h32("", seeds.map((o) => JSON.stringify([o.id, o.x, o.y, o.created_at, o.user_id ?? null, o.bought ?? null, o.roads ?? null, o.civicRoads ?? null, o.blessed ?? null, o.charter ?? null, (o as { twins?: unknown }).twins ?? null, o.works ?? null, (o as { aid?: unknown }).aid ?? null])).join("|")) + ":" + seeds.length;
 /** From CAP_ALL_SINCE the one trusted assessment: residentTax (real households, tile rolls, real rank with trade roads). */
 function residentIncome(s: Seed, seeds: Seed[] | undefined, at: number) {
   const w = worldAt(s, seeds, at);
