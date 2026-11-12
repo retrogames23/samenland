@@ -36,11 +36,15 @@ export function estateShares(wealth: number) {
   const wealthy = w <= 30 ? 0 : w <= 55 ? (w - 30) * 0.003 : w <= 80 ? 0.075 + (w - 55) * 0.007 : 0.25 + (w - 80) * 0.0025;
   return { ordinary: 1 - skilled - wealthy, skilled, wealthy };
 }
-export function estateAt(wealth: number, x: number, y: number): Estate {
-  // Own integer hash, mirrored by PostgreSQL if individual assessments are queried later.
-  const roll = (((x * 7381 + y * 19391 + 7919) % 10000) + 10000) % 10000 / 10000;
-  const sh = estateShares(wealth);
+/** Fixed household roll by home tile. Own integer hash, mirrored by PostgreSQL if individual assessments are queried later. */
+export const estateRoll = (x: number, y: number) => (((x * 7381 + y * 19391 + 7919) % 10000) + 10000) % 10000 / 10000;
+/** Places a home tile into given shares using the fixed roll (shared by estateAt and gated tax). */
+export function estateOf(sh: { skilled: number; wealthy: number }, x: number, y: number): Estate {
+  const roll = estateRoll(x, y);
   return roll < sh.wealthy ? "wealthy" : roll < sh.wealthy + sh.skilled ? "skilled" : "ordinary";
+}
+export function estateAt(wealth: number, x: number, y: number): Estate {
+  return estateOf(estateShares(wealth), x, y);
 }
 /** Aggregate assessment retains the game's existing tax-population estimate. */
 export function estateAssessment(pop: number, wealth: number) {
