@@ -808,7 +808,12 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
       const r = radiusOf(age);
       if (d > r + 0.5 || d >= bestD) continue;
       buildP = 1;
-      const k = forSeed(x, y, s, age, r, d);
+      let k = forSeed(x, y, s, age, r, d);
+      // watermill displaced by a bridge head moves to its refuge tile on the same shore
+      const mr = millRefuge(s, seeds, now);
+      if (mr && mr.x === x && mr.y === y && age >= mr.at - buildTime(mr.at)) {
+        buildP = age < mr.at ? 1 - (mr.at - age) / buildTime(mr.at) : 1; buildAt = mr.at; k = "watermill";
+      }
       if (k && buildP < 1 && (FLAT.has(k) || k === "hay" || k === "fence")) continue;
       if (k) {
         let doneAt: number | undefined;
@@ -1062,6 +1067,32 @@ function roadAt(x: number, y: number, seeds: Seed[], now: number) {
 function bridgeHead(x: number, y: number, seeds: Seed[], now: number): boolean {
   const r = roadAt(x, y, seeds, now); if (!r || r.bridge) return false;
   const w = r.link.water; return !!(w[r.i - 1] || w[r.i + 1]);
+}
+
+const MILL_IDX = LANDMARKS.findIndex((l) => l.kind === "watermill");
+const refugeMemo = new Map<string, { x: number; y: number; at: number } | null>();
+/**
+ * When a finished bridge head occupies the watermill's landmark tile, the mill moves to the nearest
+ * free shore tile (dry, buildable, near water, no road, no other landmark). Pure from seeds + clock.
+ */
+export function millRefuge(s: Seed, seeds: Seed[], now: number): { x: number; y: number; at: number } | null {
+  const spots = landmarkSpots(s);
+  let key = ""; for (const [k, a] of spots) if (a.includes(MILL_IDX)) { key = k; break; }
+  if (!key) return null;
+  const [dx, dy] = key.split(",").map(Number) as [number, number];
+  const mx = s.x + dx, my = s.y + dy;
+  if (!waterNearby(mx, my) || !bridgeHead(mx, my, seeds, now)) return null;
+  const ck = `${s.id}:${mx}:${my}:${seedsKey(seeds)}`;
+  if (refugeMemo.has(ck)) return refugeMemo.get(ck)!;
+  let best: { x: number; y: number; at: number } | null = null, bs = Infinity;
+  for (let j = -4; j <= 4; j++) for (let i = -4; i <= 4; i++) {
+    const ox = dx + i, oy = dy + j, x = s.x + ox, y = s.y + oy, k = `${ox},${oy}`;
+    if ((!i && !j) || spots.has(k) || CORE[k] || (!ox && !oy) || Math.hypot(ox, oy) < 1.6) continue;
+    if (!buildable(terrain(x, y)) || !waterNearby(x, y) || roadOwnerAt(x, y, seeds)) continue;
+    const sc = Math.hypot(i, j); if (sc < bs) { bs = sc; best = { x, y, at: LANDMARKS[MILL_IDX]!.at }; }
+  }
+  if (refugeMemo.size > 200) refugeMemo.clear();
+  refugeMemo.set(ck, best); return best;
 }
 
 /** Synergy bonus one neighbour gives: +10% .. +25%, more when closer and more mature. */
