@@ -128,7 +128,9 @@ describe("gated resident tax (Option A)", () => {
     const v = taxSharesAt(s, [s], at);
     expect(v.hasSchool).toBe(false); expect(v.infra).toBe(1);
     expect(taxSharesAt(s, [s], at + 1).infra).toBe(2);
-    expect(residentTax(s, [s], at)).toEqual(residentTax(s, [s], at));
+    // control town without the purchases made after `at`: identical receipt
+    const control = seed(["herbs"]);
+    expect(residentTax(s, [s], at)).toEqual(residentTax(control, [control], at));
   });
   it("economyWorldAt snapshot ignores later purchases for the tax shares", () => {
     const at = start + 60 * day, base = seed();
@@ -177,4 +179,73 @@ describe("residentTax integration (real rank, school, infrastructure)", () => {
     expect(r.income - p.income).toBe(Math.floor(0.15 * r.population));
   }, 30000);
   it("estate prices stay 1, 2 and 3 Taler", () => { expect(ESTATE_TAX).toEqual({ ordinary: 1, skilled: 2, wealthy: 3 }); });
+});
+
+describe("gated shares across real ranks (Dorf, Handelsstadt, Hansestadt)", () => {
+  const all = ["herbs", "hunter", "fisher", "dairy", "backhaus", "granary", "healer", "herberge", "woodcamp", "bigstore", "stonemason", "smokehouse", "beginen", "markethall", "guildhall"];
+  const world = (roads: number, school: boolean, items = all): Seed[] => {
+    const nb = (id: string, dx: number): Seed => ({ id, name: id, owner: "nb", hue: 0, x: 306 + dx, y: 420, created_at: new Date(start - 60 * day).toISOString() });
+    const r = [{ target: "nb1", at: start + 14 * day }, { target: "nb2", at: start + 45 * day }].slice(0, roads);
+    const s: Seed = { ...seed(), bought: [...items.map(item => ({ item, at: start })), ...(school ? [{ item: "school", at: start }] : [])], roads: r, civicRoads: r.map(x => ({ at: x.at })) };
+    return [s, nb("nb1", 15), nb("nb2", -15)];
+  };
+  const check = async (seeds: Seed[], at: number, rank: number) => {
+    const { townRank } = await import("./rank");
+    const { civicWealth, infraCount, estateShares } = await import("./prosperity");
+    const s = seeds[0]!, v = taxSharesAt(s, seeds, at);
+    expect(townRank(s, seeds, at)).toBe(rank);
+    expect(v.rank).toBe(rank);
+    expect(v.infra).toBe(infraCount(s, at));
+    expect(v.shares).toEqual(gatedEstateShares(civicWealth(s, at), rank, v.hasSchool, v.infra));
+    const L = estateShares(v.wealth);
+    expect(v.shares.skilled).toBeLessThanOrEqual(L.skilled); expect(v.shares.wealthy).toBeLessThanOrEqual(L.wealthy);
+    const homes = householdsOf(s, seeds, at);
+    expect(residentTax(s, seeds, at).assessed).toBe(assessHomesWith(homes, v.shares));
+    return v;
+  };
+  it("Dorf (rank 2): 4 % + 2.5 % per work, capped at 20 %, no wealthy even with a school", async () => {
+    const at = start + 40 * day;
+    const few = await check(world(1, true, ["herbs", "hunter", "fisher"]), at, 2);
+    expect(few.infra).toBe(4); expect(few.hasSchool).toBe(true);
+    expect(few.shares.skilled).toBeCloseTo(Math.min(0.14, estateShares(few.wealth).skilled), 10); expect(few.shares.wealthy).toBe(0);
+    const many = await check(world(1, true), at, 2);
+    expect(many.infra).toBeGreaterThanOrEqual(7); expect(many.shares.skilled).toBeLessThanOrEqual(0.2); expect(many.shares.wealthy).toBe(0);
+  }, 60000);
+  it("Handelsstadt (rank 4, one road): school caps skilled at 45 %, wealthy at 15 %; without school wealthy 0", async () => {
+    const at = start + 250 * day;
+    const v = await check(world(1, true), at, 4);
+    expect(v.hasSchool).toBe(true);
+    expect(v.shares.skilled).toBeCloseTo(Math.min(0.45, estateShares(v.wealth).skilled), 10);
+    expect(v.shares.wealthy).toBeCloseTo(Math.min(0.15, estateShares(v.wealth).wealthy), 10);
+    const n = await check(world(1, false), at, 4);
+    expect(n.hasSchool).toBe(false); expect(n.shares.wealthy).toBe(0); expect(n.shares.skilled).toBeLessThanOrEqual(0.2);
+  }, 120000);
+  it("Hansestadt (rank 5, two roads, school): full shares L", async () => {
+    const at = start + 300 * day;
+    const v = await check(world(2, true), at, 5);
+    expect(v.shares.skilled).toBeCloseTo(estateShares(v.wealth).skilled, 10);
+    expect(v.shares.wealthy).toBeCloseTo(estateShares(v.wealth).wealthy, 10);
+  }, 120000);
+  it("citizen estate, painted house and tax agree tile by tile", async () => {
+    await import("./rank");
+    const { structureAt } = await import("./world");
+    const { estateHouse } = await import("./prosperity");
+    const seeds = world(2, true), s = seeds[0]!, at = start + 120 * day;
+    const sh = taxSharesAt(s, seeds, at).shares;
+    expect(sh.wealthy).toBeGreaterThan(0);
+    const people = townOf(s, seeds, at).people.filter(p => p.role !== "guest" && p.role !== "mayor");
+    const byHome = new Map<string, string>();
+    let painted = 0;
+    for (const p of people) {
+      const e = estateOf(sh, ...p.home);
+      expect(p.estate).toBe(e);
+      byHome.set(`${p.home}`, e);
+      const st = structureAt(p.home[0], p.home[1], seeds, at);
+      if (st && st.build === undefined && !st.fire) { expect(st.kind).toBe(estateHouse(st.homeKind ?? st.kind, e)); if (st.homeKind) painted++; }
+    }
+    expect(painted).toBeGreaterThan(0);
+    const homes = householdsOf(s, seeds, at);
+    const fromPeople = homes.reduce((t, h) => t + h.size * ESTATE_TAX[byHome.get(`${h.home}`) as keyof typeof ESTATE_TAX], 0);
+    expect(residentTax(s, seeds, at).assessed).toBe(fromPeople);
+  }, 60000);
 });
