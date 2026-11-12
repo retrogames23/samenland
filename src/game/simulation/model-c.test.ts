@@ -229,3 +229,30 @@ describe("Model C player project choice", () => {
     for (const m of [t, s, h]) expect(m.errors).toEqual([]);
   });
 });
+
+describe("Model C half-surplus donations", () => {
+  const prof = { ...PROFILES.sparsam, reserve: 100, loginEvery: 1 };
+  const day = (tax = 0) => [{ ...rows(1, 4, tax)[0]!, rank: 4 }];
+  const run = (start: number, order = ["fountain"]) => modelC(day(), start, { profile: prof, strategy: "surplus_only", order }).days[0]!;
+  const afterBuys = (start: number, d: { booked: number; spent: number }) => start + d.booked - d.spent;
+  it("donates exactly half of the surplus left after regular purchases", () => {
+    const d = run(500), pre = afterBuys(500, d);
+    expect((pre - 100) % 2).toBe(0); expect(d.manual).toBe((pre - 100) / 2); expect(d.balance).toBe(pre - d.manual);
+  });
+  it("rounds an odd surplus down to whole Taler", () => {
+    for (const start of [501, 105, 101]) { const d = run(start), sur = afterBuys(start, d) - 100;
+      expect(d.manual).toBe(Math.floor(sur / 2)); if (sur % 2) expect(d.manual * 2).toBe(sur - 1); }
+    expect(run(101).manual).toBe(0);
+  });
+  it("keeps the profile reserve: no donation at or below it, never below after donating", () => {
+    expect(run(100).manual).toBe(0); expect(run(60)).toMatchObject({ manual: 0, balance: 60 });
+    for (const start of [150, 333, 1200]) expect(run(start).balance).toBeGreaterThanOrEqual(100);
+  });
+  it("never exceeds the open local project amount", () => {
+    const local = PROJECTS.find((p) => p.key === "fountain")!.local;
+    const d = modelC(day(local - 100), 1200, { profile: prof, strategy: "hybrid", taxRate: 1, order: ["fountain"] }).days[0]!;
+    expect(d.taxToProjects).toBe(local - 100);
+    expect(Math.floor((afterBuys(1200, d) - 100) / 2)).toBeGreaterThan(100); expect(d.manual).toBe(100);
+  });
+  it("no donation without a pick", () => { expect(run(500, []).manual).toBe(0); });
+});
