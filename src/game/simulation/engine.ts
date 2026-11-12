@@ -16,7 +16,7 @@ import { residentTax } from "../resident-tax";
 import { setRealm } from "../time";
 import { TWIN_WORKS, type Seed, type CharterPath } from "../world";
 import { LOCATIONS, VISIT_GIFT, WONDER_FIND } from "./profiles";
-import type { Booking, DayRow, SimConfig, SimResult } from "./types";
+import type { Booking, DayRow, Profile, SimConfig, SimResult } from "./types";
 
 const DAY = 86400000;
 /** Quest index → town rank the quest's milestone needs (assumption: other quest conditions are met by then). */
@@ -49,6 +49,33 @@ export const investmentVolume = (charter: CharterPath, way: TownWay) => offerFor
 export function bookCredit(balance: number, cap: number, amount: number) {
   const booked = Math.max(0, Math.min(amount, cap - balance));
   return { balance: balance + booked, booked, lost: amount - booked };
+}
+
+/** Everything a login day's purchase round needs. `buy` does the actual booking and returns false when the chest
+ *  (minus reserve) cannot pay or the item is owned; it is the only place that changes `owned`. */
+export type PurchaseCtx = { day: number; rank: number; chest: number; profile: Profile; charter: CharterPath; way: TownWay;
+  owned: ReadonlySet<string>; buy: (item: string, cost: number, reserve?: number) => boolean };
+/** One login day's purchase attempts in the fixed engine order (chest → care → guild → guild ranks → titles → civic →
+ *  way → monuments). Returns the new chest stage; the caller adopts it exactly once. */
+export function attemptPurchases(ctx: PurchaseCtx): number {
+  const { day, rank, profile: P, charter, way, owned, buy } = ctx;
+  let chest = ctx.chest;
+  if (P.chest) for (const [i, k] of (["chest2", "chest3", "chest4"] as const).entries()) if (chest === i && rank >= CHEST_STAGE[k] && buy(k, CHEST_PRICE[k], 0)) chest++;
+  for (const it of CARE_ORDER) if (rank >= Math.max(0, ITEM_RANK[it] ?? 0)) buy(it, ITEMS[it as keyof typeof ITEMS]);
+  if (P.guildRanks || P.civic) buy(GUILD_OF[charter], ITEMS[GUILD_OF[charter] as keyof typeof ITEMS]);
+  if (P.guildRanks) {
+    if (rank >= RANK_STAGE.rank2) buy("rank2", RANK_PRICE.rank2);
+    if (rank >= RANK_STAGE.rank3 && owned.has("belfry4") && owned.has("rank2")) buy("rank3", RANK_PRICE.rank3);
+  }
+  if (P.titles) for (const k of ["title1", "title2", "title3"] as const) if (rank >= TITLE_STAGE[k] && (k === "title1" || owned.has(k === "title2" ? "title1" : "title2"))) buy(k, TITLE_PRICE[k]);
+  if (P.civic) for (const it of CIVIC) if (rank >= (ITEM_RANK[it] ?? 0)) buy(it, ITEMS[it as keyof typeof ITEMS]);
+  if (P.way) for (const it of [...WAY_SMALL, ...WAY_BIG]) if (canBuyWay(it as Item, way) && rank >= (ITEM_RANK[it] ?? 0)) buy(it, ITEMS[it as keyof typeof ITEMS]);
+  if (P.monumentsFrom !== null && day >= P.monumentsFrom) for (const m of [WAY_MON[way], ...MON_ORDER]) {
+    if (rank < MONUMENTS[m].rank) continue;
+    const i = MONUMENTS[m].prices.findIndex((_, j) => !owned.has(`${m}${j + 1}`));
+    if (i >= 0 && !buy(`${m}${i + 1}`, MONUMENTS[m].prices[i]!)) break;
+  }
+  return chest;
 }
 
 export function simulate(cfg: SimConfig): SimResult {
@@ -112,21 +139,7 @@ export function simulate(cfg: SimConfig): SimResult {
       for (let i = 0; i < Math.min(3 * P.loginEvery, perDay(P.wondersPerWeek)); i++) credit("wonder", WONDER_FIND);
       for (let i = 0; i < perDay(P.visitsPerWeek); i++) credit("visit", VISIT_GIFT);
 
-      if (P.chest) for (const [i, k] of (["chest2", "chest3", "chest4"] as const).entries()) if (chest === i && rank >= CHEST_STAGE[k] && buy(k, CHEST_PRICE[k], 0)) chest++;
-      for (const it of CARE_ORDER) if (rank >= Math.max(0, ITEM_RANK[it] ?? 0)) buy(it, ITEMS[it as keyof typeof ITEMS]);
-      if (P.guildRanks || P.civic) buy(GUILD_OF[cfg.charter], ITEMS[GUILD_OF[cfg.charter] as keyof typeof ITEMS]);
-      if (P.guildRanks) {
-        if (rank >= RANK_STAGE.rank2) buy("rank2", RANK_PRICE.rank2);
-        if (rank >= RANK_STAGE.rank3 && owned.has("belfry4") && owned.has("rank2")) buy("rank3", RANK_PRICE.rank3);
-      }
-      if (P.titles) for (const k of ["title1", "title2", "title3"] as const) if (rank >= TITLE_STAGE[k] && (k === "title1" || owned.has(k === "title2" ? "title1" : "title2"))) buy(k, TITLE_PRICE[k]);
-      if (P.civic) for (const it of CIVIC) if (rank >= (ITEM_RANK[it] ?? 0)) buy(it, ITEMS[it as keyof typeof ITEMS]);
-      if (P.way) for (const it of [...WAY_SMALL, ...WAY_BIG]) if (canBuyWay(it as Item, way) && rank >= (ITEM_RANK[it] ?? 0)) buy(it, ITEMS[it as keyof typeof ITEMS]);
-      if (P.monumentsFrom !== null && day >= P.monumentsFrom) for (const m of [WAY_MON[way], ...MON_ORDER]) {
-        if (rank < MONUMENTS[m].rank) continue;
-        const i = MONUMENTS[m].prices.findIndex((_, j) => !owned.has(`${m}${j + 1}`));
-        if (i >= 0 && !buy(`${m}${i + 1}`, MONUMENTS[m].prices[i]!)) break;
-      }
+      chest = attemptPurchases({ day, rank, chest, profile: P, charter: cfg.charter, way, owned, buy });
     }
     // raids: last event of the moment, loss taken from the chest (never below 0), as in walkChest
     const rs = raids(seed, now);
