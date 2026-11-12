@@ -10,7 +10,7 @@ import { speedParts, radiusOf, stageOf, effAge, ageHours, links, waterNearby, tw
 
 /** Starting treasury and fixed prices (Mark). Prices mirror the database purchase guard. */
 export const START_TALER = 160;
-export const ITEMS = { herbs: 90, backhaus: 260, herberge: 420, beginen: 900, badestube: 700, hunter: 100, fisher: 140, woodcamp: 240, granary: 300, healer: 550, school: 1200, markethall: 450, guildhall: 450, library: 380, dairy: 350, firehouse: 600, guard: 750, bigstore: 380, stonemason: 380, smokehouse: 380, millrow: 700, hammerworks: 700, saltquay: 700 } as const;
+export const ITEMS = { herbs: 90, backhaus: 260, herberge: 420, beginen: 900, badestube: 700, hunter: 100, fisher: 140, woodcamp: 240, granary: 300, healer: 550, school: 1200, markethall: 450, guildhall: 450, library: 380, dairy: 350, fireorder: 400, firehouse: 600, guard: 750, bigstore: 380, stonemason: 380, smokehouse: 380, millrow: 700, hammerworks: 700, saltquay: 700 } as const;
 export type Item = keyof typeof ITEMS;
 /**
  * Prestige monuments built in paid steps (prices mirror the database purchase guard).

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { raids, raidLoss, fires, floodFood, floods, nearRiver, RAID_LOSS } from "./disasters";
+import { raids, raidLoss, fires, floodFood, floods, nearRiver, RAID_LOSS, FIRE_CHANCE_ORDER, FIRE_DEAD_ORDER } from "./disasters";
+import { ITEMS, needRankOf } from "./economy";
 import { waterNearby, riverDistAt, MAP, type Seed } from "./world";
 
 const DAY = 864e5, c0 = Date.parse("2026-01-01T00:00:00Z");
@@ -50,5 +51,40 @@ describe("disasters", () => {
   });
   it("a dry inland village never floods", () => {
     expect(floods(base, c0 + 700 * DAY)).toHaveLength(0);
+  });
+});
+
+describe("village fire order (Feuerordnung)", () => {
+  const c0 = Date.parse("2026-01-01T00:00:00Z");
+  const dry = { id: "fo-dry", x: 500, y: 340, created_at: new Date(c0).toISOString(), user_id: null } as unknown as Parameters<typeof fires>[0];
+  const until = c0 + 400 * DAY;
+  it("costs 400 Mark and unlocks at rank 2 (Dorf), fire house stays rank 3 at 600", () => {
+    expect(ITEMS.fireorder).toBe(400); expect(needRankOf("fireorder")).toBe(2);
+    expect(ITEMS.firehouse).toBe(600); expect(needRankOf("firehouse")).toBe(3);
+  });
+  it("chance 18 %, 15 % total loss", () => { expect(FIRE_CHANCE_ORDER).toBe(0.18); expect(FIRE_DEAD_ORDER).toBe(0.15); });
+  it("works only from the purchase time on", () => {
+    const at = c0 + 100 * DAY, s = { ...dry, bought: [{ item: "fireorder", at }] };
+    const f = fires(s, until);
+    expect(f.filter((x) => x.at < at).every((x) => !x.order)).toBe(true);
+    expect(f.filter((x) => x.at >= at).every((x) => x.order && !x.guarded)).toBe(true);
+  });
+  it("is never more fires than without it, burns 2.5 h on dry land / 1 h at water, 2–3 roofs", () => {
+    const s = { ...dry, bought: [{ item: "fireorder", at: c0 }] };
+    const f = fires(s, until).filter((x) => x.order);
+    expect(f.length).toBeGreaterThan(0);
+    expect(fires(s, until).length).toBeLessThanOrEqual(fires(dry, until).length);
+    for (const x of f) {
+      expect(x.end - x.at).toBe((x.water ? 1 : 2.5) * 3.6e6);
+      if (!x.water) expect([4, 5]).toContain(x.tiles.length); // n = 2–3 roofs (+2 neighbour tiles)
+      if (x.water) expect(x.dead).toBe(false);
+    }
+  });
+  it("is fully replaced by the fire house once that stands", () => {
+    const fh = c0 + 150 * DAY, s = { ...dry, bought: [{ item: "fireorder", at: c0 }, { item: "firehouse", at: fh }] };
+    const only = { ...dry, bought: [{ item: "firehouse", at: fh }] };
+    const after = (l: ReturnType<typeof fires>) => l.filter((x) => x.at >= fh);
+    expect(after(fires(s, until))).toEqual(after(fires(only, until)));
+    expect(after(fires(s, until)).every((x) => x.guarded && !x.order && !x.dead && x.end - x.at === 0.5 * 3.6e6)).toBe(true);
   });
 });

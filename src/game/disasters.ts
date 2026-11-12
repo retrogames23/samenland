@@ -12,13 +12,15 @@ import { structureAt, terrain, isWater, waterNearby, riverDistAt, radiusOf, reac
 
 const H = 3.6e6, DAY = 864e5, WEEK = 7 * DAY;
 export const FIRE_CHANCE = 0.3, FIRE_CHANCE_GUARDED = 0.08;
+/** Village fire order (Rang 2): fire hooks, ladders and leather buckets — rarer, shorter, smaller fires. */
+export const FIRE_CHANCE_ORDER = 0.18, FIRE_DEAD_ORDER = 0.15;
 export const FIRE_REBUILD = 36 * H;
 export const FLOOD_LEN = 48 * H, FLOOD_REBUILD = 48 * H, FLOOD_RICH = 14 * DAY;
 export const FLOOD_FOOD_LOSS = 20, FLOOD_FOOD_GAIN = 20;
 export const RAID_FIRST = 10 * DAY, RAID_EVERY = 17 * DAY, RAID_LOSS = 25, RAID_LEN = 45 * 6e4;
 /** Stage (0–5) from which the fire house and the town guard can be bought. */
 /** Settlement rank (townRank 0 Siedlung … 5 Hansestadt) each shop building needs — the only general purchase gate, never time; mirrors DB purchase_guard need_rank. */
-export const ITEM_RANK: Record<string, number> = { herbs: 0, hunter: 0, fisher: 0, markethall: 0, guildhall: 0, library: 0, dairy: 0, backhaus: 1, herberge: 1, beginen: 2, badestube: 2, woodcamp: 1, granary: 1, healer: 1, school: 3, firehouse: 3, guard: 4, bigstore: 1, stonemason: 1, smokehouse: 1, millrow: 3, hammerworks: 3, saltquay: 3 };
+export const ITEM_RANK: Record<string, number> = { herbs: 0, hunter: 0, fisher: 0, markethall: 0, guildhall: 0, library: 0, dairy: 0, backhaus: 1, herberge: 1, beginen: 2, badestube: 2, fireorder: 2, woodcamp: 1, granary: 1, healer: 1, school: 3, firehouse: 3, guard: 4, bigstore: 1, stonemason: 1, smokehouse: 1, millrow: 3, hammerworks: 3, saltquay: 3 };
 
 const AFFECTED = new Set(["hut", "suburb", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "barn", "workshop", "stall", "coop", "inn", "bakery"]);
 export const canBurn = (k: string) => AFFECTED.has(k);
@@ -33,7 +35,7 @@ const owns = (s: Seed, item: string, t: number) => (s.bought ?? []).some((b) => 
 /** Water within reach of the village core: bucket chains put fires out much faster. */
 export const hasWater = (s: Seed) => waterNearby(s.x, s.y);
 
-export type Fire = { at: number; end: number; tiles: number[]; x: number; y: number; dead: boolean; guarded: boolean; water: boolean };
+export type Fire = { at: number; end: number; tiles: number[]; x: number; y: number; dead: boolean; guarded: boolean; water: boolean; order?: boolean };
 export type Flood = { at: number; end: number; tiles: number[]; ruined: number[]; x: number; y: number };
 export type Raid = { at: number; end: number; loss: number; caught: boolean };
 
@@ -42,18 +44,19 @@ export function fires(s: Seed, now: number): Fire[] {
   for (let w = 1; c0 + w * WEEK <= now; w++) {
     const at = c0 + w * WEEK + rnd(s.id, w, 11) * WEEK;
     if (at > now) break;
-    const guarded = owns(s, "firehouse", at);
+    // the fire house (Kleinstadt) replaces the village fire order completely once it stands
+    const guarded = owns(s, "firehouse", at), order = !guarded && owns(s, "fireorder", at);
     const mo = new Date(at).getUTCMonth(), dry = mo >= 5 && mo <= 7 ? 1.6 : mo === 11 || mo <= 1 ? 1.1 : 0.75;
-    if (rnd(s.id, w, 12) > (guarded ? FIRE_CHANCE_GUARDED : FIRE_CHANCE) * dry * (stone ? STONE_FIRE : 1)) continue;
+    if (rnd(s.id, w, 12) > (guarded ? FIRE_CHANCE_GUARDED : order ? FIRE_CHANCE_ORDER : FIRE_CHANCE) * dry * (stone ? STONE_FIRE : 1)) continue;
     const r = radiusOf(ageHours(s, at)) * 0.75;
     if (r < 2) continue;
     const a = rnd(s.id, w, 13) * Math.PI * 2, d = 1.5 + rnd(s.id, w, 14) * (r - 1.5);
     const x = Math.round(s.x + Math.cos(a) * d), y = Math.round(s.y + Math.sin(a) * d);
-    const n = Math.max(1, (guarded ? 1 : water ? 2 : 3 + Math.floor(rnd(s.id, w, 15) * 2)) - (stone ? 1 : 0));
+    const n = Math.max(1, (guarded ? 1 : water ? 2 : order ? 2 + Math.floor(rnd(s.id, w, 15) * 2) : 3 + Math.floor(rnd(s.id, w, 15) * 2)) - (stone ? 1 : 0));
     const nb = [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
     const tiles = nb.slice(0, n + 2).map(([i, j]) => (y + j!) * MAP + x + i!);
-    const burn = guarded ? 0.5 * H : water ? 1.5 * H : 4 * H;
-    out.push({ at, end: at + burn, tiles, x, y, guarded, water, dead: !guarded && !water && rnd(s.id, w, 16) < 0.35 });
+    const burn = guarded ? 0.5 * H : order ? (water ? 1 * H : 2.5 * H) : water ? 1.5 * H : 4 * H;
+    out.push({ at, end: at + burn, tiles, x, y, guarded, water, ...(order ? { order } : {}), dead: !guarded && !water && rnd(s.id, w, 16) < (order ? FIRE_DEAD_ORDER : 0.35) });
   }
   const lf = labEvent("fire");
   if (lf && lf <= now && (s.user_id || s.realm === "lab") && !scanning) {

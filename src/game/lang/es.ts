@@ -167,6 +167,7 @@ export const es: Dict = {
     guildhall: ["Casa de gremios", "Edificio gremial de artesanos: mucha más prosperidad"],
     library: ["Biblioteca", "Edificio gremial de eruditos: salud y prosperidad"],
     dairy: ["Quesería", "Edificio gremial de labradores: mucho más alimento, algo de prosperidad"],
+    fireorder: ["Ordenanza de fuego", "Garfios, escaleras y cubos de cuero en la plaza, fogones apagados al toque de la tarde: incendios más raros y breves, menos tejados, casi ninguna casa arde por completo"],
     firehouse: ["Cobertizo de garfios", "Cuerpo de vigilancia: muchos menos incendios, ninguna casa arde por completo"],
     guard: ["Guardia de la villa", "Puesto de guardia: se apresa a los ladrones, no más mermas de tributos"],
   },
@@ -178,7 +179,7 @@ export const es: Dict = {
   docTitle: "Simulador de aldea Samenland – Siembra una semilla. Contempla cómo crece.",
   buyFail: "La adquisición fue rechazada; por favor, inténtalo de nuevo.",
   needStage: (n) => `Solo a partir de ${n}`,
-  woe: { fire: ["¡Fuego!", (t, w, d) => `Un tejado arde en llamas en ${t}.${w ? " Una cadena de cubos desde el agua mantiene a raya el fuego." : " Sin agua cerca, las llamas se propagan a las casas vecinas."}${d ? " Un habitante pereció entre las llamas." : ""} Las familias se cobijan con los vecinos hasta reedificar.`], fireGuarded: ["¡Fuego sofocado!", (t) => `Los vigilantes del fuego de ${t} acuden prestos con garfios y cubos; las llamas quedan extintas sin causar estrago alguno.`], flood: ["¡Inundación!", (t) => `El río se desborda de su cauce. En ${t}, los huertos ribereños y campos quedan anegados; la cosecha se malogra y algunas casas habrán de reconstruirse. Pero el limo enriquecerá los sembrados venideros.`], raid: ["¡Ladrones en la aldea!", (t, n) => `Un bribón merodea por ${t} y saquea las viviendas. Los despojados no pueden pagar sus tributos: −${n} Mark.`], caught: ["¡Ladrón apresado!", (t) => `La guardia de ${t} sorprende a un ladrón con las manos en la masa. Nadie sufre daño.`], go: "Mirar allí" },
+  woe: { fireOrder: "La ordenanza de fuego funciona: garfios y cubos de cuero llegan enseguida.", fire: ["¡Fuego!", (t, w, d) => `Un tejado arde en llamas en ${t}.${w ? " Una cadena de cubos desde el agua mantiene a raya el fuego." : " Sin agua cerca, las llamas se propagan a las casas vecinas."}${d ? " Un habitante pereció entre las llamas." : ""} Las familias se cobijan con los vecinos hasta reedificar.`], fireGuarded: ["¡Fuego sofocado!", (t) => `Los vigilantes del fuego de ${t} acuden prestos con garfios y cubos; las llamas quedan extintas sin causar estrago alguno.`], flood: ["¡Inundación!", (t) => `El río se desborda de su cauce. En ${t}, los huertos ribereños y campos quedan anegados; la cosecha se malogra y algunas casas habrán de reconstruirse. Pero el limo enriquecerá los sembrados venideros.`], raid: ["¡Ladrones en la aldea!", (t, n) => `Un bribón merodea por ${t} y saquea las viviendas. Los despojados no pueden pagar sus tributos: −${n} Mark.`], caught: ["¡Ladrón apresado!", (t) => `La guardia de ${t} sorprende a un ladrón con las manos en la masa. Nadie sufre daño.`], go: "Mirar allí" },
   age: (h) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))} min`
