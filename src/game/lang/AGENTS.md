@@ -18,3 +18,4 @@
 - Mayor address (lang/address.ts addressMayor/mayorWord/titleForm) derives from mayor_gender + townRank (town words from TOWN_ADDRESS_RANK) and is applied only at display; never stored, lines about other heads (Unser/fremde/andere) stay as written.
 - Population/rank quests pay only against a fresh server rank certificate (rank + citizens, DB quest_guard); the client certifies first, so rewards cannot be forged.
 - Estate shares (Option A gating) have one source: prosperity.ts sharesAt + townRank; resident-tax (taxSharesAt), people.ts (estateSharesLive, set after the town memo) and world.ts structureAt (via setEstateHook, uncached while the rank is being derived) all use it with estateOf — so citizen, house paint and tax never diverge.
+- Rank inputs (rankInput) and residentTax count citizens/dwellings straight from the householdsOf roster, never via townOf — same numbers as the citizen list, without rebuilding the whole town each assessed day.
