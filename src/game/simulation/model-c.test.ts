@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { simulate } from "./engine";
+import { BASE_LOCATIONS } from "./profiles";
+import { START_TALER } from "../economy";
 import { modelC, PROJECTS, LOCAL_VOLUME, TOTAL_VALUE } from "./model-c";
 import { PROFILES } from "./profiles";
 import type { DayRow } from "./types";
@@ -43,4 +46,45 @@ describe("Model C", () => {
       }
     }
   });
+});
+
+describe("Model C own purchases", () => {
+  const S = PROFILES.sparsam, base = { strategy: "tax_only" as const, charter: "trade" as const, way: "grain" as const };
+  it("buys on its own: without income nothing is bought, no backlog appears later", () => {
+    const zero = rows(30, 1, 0);
+    const m = modelC(zero, 0, { profile: P, ...base });
+    expect(m.spent).toBe(0); expect(m.bought).toEqual([]);
+    const m2 = modelC([...zero, ...rows(5, 1, 0).map((r, i) => ({ ...r, day: 31 + i, spent: 9999 }))], 0, { profile: P, ...base });
+    expect(m2.spent).toBe(0); // base r.spent is ignored completely
+  });
+  it("purchases keep the profile reserve and never go negative", () => {
+    const m = modelC(rows(200, 3, 400), 0, { profile: P, ...base });
+    expect(m.bought.length).toBeGreaterThan(0);
+    for (const d of m.days) expect(d.balance).toBeGreaterThanOrEqual(0);
+    const first = m.bought.find((x) => !x.item.startsWith("chest"))!;
+    expect(m.days[first.day - 1]!.balance).toBeGreaterThanOrEqual(P.reserve);
+  });
+  it("own chest stage raises the cap only for later credits; cap is never exceeded", () => {
+    const m = modelC(rows(400, 5, 2000), 0, { profile: P, ...base });
+    const up = m.days.findIndex((d) => d.chest >= 1);
+    expect(up).toBeGreaterThanOrEqual(0);
+    expect(m.days[up]!.cap).toBe(1200); expect(m.days[up + 1]!.cap).toBe([1200, 4000, 10000, 25000][m.days[up]!.chest]);
+    for (const d of m.days) expect(d.balance).toBeLessThanOrEqual(d.cap);
+  });
+  it("profile without chest upgrades stays at base cap", () => {
+    const m = modelC(rows(200, 5, 2000), 0, { profile: { ...S, chest: false }, ...base });
+    expect(m.days.every((d) => d.cap === 1200 && d.chest === 0)).toBe(true);
+  });
+});
+
+describe("Model C on real 730-day base runs", () => {
+  for (const key of ["regelmaessig", "optimierer"] as const) it(`${key}: no negatives, no cap overrun, ledger closes`, () => {
+    const r = simulate({ profile: PROFILES[key], charter: "trade", location: BASE_LOCATIONS[0]!, days: 730 });
+    for (const strategy of ["tax_only", "surplus_only", "hybrid"] as const) {
+      const m = modelC(r.daily, START_TALER, { profile: PROFILES[key], strategy, taxRate: 0.2, charter: "trade", way: r.way as never });
+      expect(m.errors).toEqual([]); expect(m.days).toHaveLength(730);
+      for (const d of m.days) { expect(d.balance).toBeGreaterThanOrEqual(0); expect(d.balance).toBeLessThanOrEqual(d.cap); }
+      expect(new Set(m.bought.map((b) => b.item)).size).toBe(m.bought.length);
+    }
+  }, 600_000);
 });

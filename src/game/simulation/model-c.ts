@@ -5,11 +5,12 @@
  * Rules: diversion only from Handelsstadt (rank ≥ 4) and only while a project is selected; no overfunding;
  * project money is irrevocable; a new project is only chosen on a login day (no automatic switch mid-day).
  */
-import { bookCredit, simulate } from "./engine";
-import { START_TALER } from "../economy";
+import { attemptPurchases, bookCredit, offerFor, simulate } from "./engine";
+import { CHEST_BASE, CHEST_CAP, START_TALER } from "../economy";
 import { PROFILES, BASE_LOCATIONS } from "./profiles";
 import type { DayRow, Profile, ProfileKey } from "./types";
 import type { CharterPath } from "../world";
+import type { TownWay } from "../character";
 
 export type Stage = { name: string; cost: number; buildDays: number };
 export type Project = { key: string; name: string; scope: "municipal" | "regional"; total: number; local: number; stages: Stage[] };
@@ -33,30 +34,44 @@ export const LOCAL_VOLUME = PROJECTS.reduce((a, p) => a + p.local, 0);
 export const TOTAL_VALUE = PROJECTS.reduce((a, p) => a + p.total, 0);
 
 export type Strategy = "tax_only" | "surplus_only" | "hybrid";
-export type ModelCConfig = { profile: Profile; strategy: Strategy; taxRate?: number; order?: string[]; hanseRank?: number };
+export type ModelCConfig = { profile: Profile; strategy: Strategy; taxRate?: number; order?: string[]; hanseRank?: number; charter?: CharterPath; way?: TownWay };
 export type CDay = { day: number; rank: number; grossTax: number; otherIncome: number; taxToProjects: number; toChestGross: number;
-  booked: number; lost: number; spent: number; deferred: number; manual: number; raid: number; balance: number; project: string | null; funded: number; completed: number };
-export type ModelCResult = { days: CDay[]; completed: { key: string; fundedDay: number; doneDay: number }[]; taxToProjects: number; manual: number;
+  booked: number; lost: number; spent: number; chest: number; cap: number; manual: number; raid: number; balance: number; project: string | null; funded: number; completed: number; open: number; openUnlocked: number };
+export type ModelCResult = { days: CDay[]; completed: { key: string; fundedDay: number; doneDay: number }[];
+  bought: { item: string; day: number; cost: number }[]; owned: string[]; spent: number; taxToProjects: number; manual: number;
   invested: number; lost: number; finalBalance: number; idleDays: number; errors: string[] };
 
-/** Replays base daily rows with Model C. Pure and deterministic. */
+/** Replays base daily rows with Model C and its OWN purchases (attemptPurchases from engine.ts), own chest stage and cap.
+ *  Order per day: credits (against the cap valid at day start) → login purchases → manual donation → raid. Pure and deterministic.
+ *  Raid loss uses the base row's raid amount, capped by Model C's own balance. */
 export function modelC(base: DayRow[], start: number, cfg: ModelCConfig): ModelCResult {
   const P = cfg.profile, rate = cfg.strategy === "surplus_only" ? 0 : (cfg.taxRate ?? 0), hanse = cfg.hanseRank ?? 4;
+  const charter = cfg.charter ?? "trade", way = cfg.way ?? "grain", all = offerFor(charter, way);
   const queue = (cfg.order ?? PROJECTS.map((p) => p.key)).map((k) => PROJECTS.find((p) => p.key === k)!);
-  let balance = start, pending = 0, active: Project | null = null, funded = 0, next = 0, sumTax = 0, sumManual = 0, sumLost = 0, completedCost = 0, idle = 0;
+  const caps = [CHEST_BASE, CHEST_CAP.chest2, CHEST_CAP.chest3, CHEST_CAP.chest4];
+  let balance = start, chest = 0, active: Project | null = null, funded = 0, next = 0, sumTax = 0, sumManual = 0, sumLost = 0, completedCost = 0, idle = 0, sumSpent = 0;
+  const owned = new Set<string>(), bought: ModelCResult["bought"] = [];
   const completed: ModelCResult["completed"] = [], days: CDay[] = [], errors: string[] = [];
   let buildUntil = 0;
   for (const r of base) {
-    const login = (r.day - 1) % P.loginEvery === 0;
+    const login = (r.day - 1) % P.loginEvery === 0, cap = caps[chest]!;
     if (!active && login && next < queue.length && r.rank >= hanse) { active = queue[next++]!; funded = 0; }
     const grossTax = r.tax, other = r.income - r.tax, room = active ? active.local - funded : 0;
     const taxToProjects = active && r.rank >= hanse ? Math.min(room, Math.floor(grossTax * rate)) : 0;
     funded += taxToProjects; sumTax += taxToProjects;
     const toChestGross = grossTax - taxToProjects + other;
-    const b = bookCredit(balance, r.cap, toChestGross); balance = b.balance; sumLost += b.lost;
-    pending += r.spent; const spend = Math.min(pending, balance); balance -= spend; pending -= spend;
+    const b = bookCredit(balance, cap, toChestGross); balance = b.balance; sumLost += b.lost;
+    let spend = 0;
+    if (login) {
+      const buy = (item: string, cost: number, reserve = P.reserve) => {
+        if (owned.has(item) || balance < cost + reserve) return false;
+        balance -= cost; spend += cost; owned.add(item); bought.push({ item, day: r.day, cost }); return true;
+      };
+      chest = attemptPurchases({ day: r.day, rank: r.rank, chest, profile: P, charter, way, owned, buy });
+    }
+    sumSpent += spend;
     let manual = 0;
-    if (active && login && cfg.strategy !== "tax_only" && r.rank >= hanse && pending === 0) {
+    if (active && login && cfg.strategy !== "tax_only" && r.rank >= hanse) {
       manual = Math.max(0, Math.min(active.local - funded, balance - P.reserve)); balance -= manual; funded += manual; sumManual += manual;
     }
     const raid = Math.min(balance, r.raid); balance -= raid;
@@ -65,16 +80,19 @@ export function modelC(base: DayRow[], start: number, cfg: ModelCConfig): ModelC
       buildUntil = Math.max(buildUntil, r.day) + build;
       completed.push({ key: active.key, fundedDay: r.day, doneDay: buildUntil }); completedCost += active.local; active = null; funded = 0;
     }
-    if (!active && next >= queue.length && pending === 0 && r.openUnlocked === 0) idle++;
+    const open = all.filter((o) => !owned.has(o.item)), openUnlocked = open.filter((o) => o.rank <= r.rank).length;
+    if (!active && next >= queue.length && openUnlocked === 0) idle++;
     const prev = days.at(-1)?.balance ?? start;
+    if (grossTax + other !== taxToProjects + toChestGross) errors.push(`d${r.day} split`);
     if (b.booked + b.lost !== toChestGross) errors.push(`d${r.day} chest`);
     if (balance !== prev + b.booked - spend - manual - raid) errors.push(`d${r.day} balance`);
     if (sumTax + sumManual !== completedCost + funded) errors.push(`d${r.day} projects`);
-    if (balance < 0 || balance > r.cap) errors.push(`d${r.day} range`);
-    days.push({ day: r.day, rank: r.rank, grossTax, otherIncome: other, taxToProjects, toChestGross, booked: b.booked, lost: b.lost, spent: spend, deferred: pending,
-      manual, raid, balance, project: active?.key ?? null, funded, completed: completed.length });
+    if (balance < 0 || balance > cap) errors.push(`d${r.day} range`);
+    days.push({ day: r.day, rank: r.rank, grossTax, otherIncome: other, taxToProjects, toChestGross, booked: b.booked, lost: b.lost, spent: spend, chest, cap,
+      manual, raid, balance, project: active?.key ?? null, funded, completed: completed.length, open: open.length, openUnlocked });
   }
-  return { days, completed, taxToProjects: sumTax, manual: sumManual, invested: sumTax + sumManual, lost: sumLost, finalBalance: balance, idleDays: idle, errors };
+  if (errors.length) throw new Error(`Model C ledger broken: ${errors.slice(0, 5).join(", ")}`);
+  return { days, completed, bought, owned: [...owned], spent: sumSpent, taxToProjects: sumTax, manual: sumManual, invested: sumTax + sumManual, lost: sumLost, finalBalance: balance, idleDays: idle, errors };
 }
 
 const CSV_HEAD = "profile;charter;location;strategy;taxRate;completed365;invested365;completed730;invested730;taxToProjects;manual;lost;finalBalance;idleDays;errors";
@@ -90,7 +108,7 @@ if (import.meta.main) {
     const base = simulate({ profile: PROFILES[p], charter: c, location: l, days: Number(da) });
     for (const s of strategies) for (const t of s === "surplus_only" ? [0] : rates) {
       if (s === "hybrid" && t === 0) continue;
-      const m = modelC(base.daily, START_TALER, { profile: PROFILES[p], strategy: s, taxRate: t });
+      const m = modelC(base.daily, START_TALER, { profile: PROFILES[p], strategy: s, taxRate: t, charter: c, way: base.way as TownWay });
       const at = (d: number) => m.days[Math.min(d, m.days.length) - 1];
       const inv = (d: number) => m.days.slice(0, d).reduce((a, x) => a + x.taxToProjects + x.manual, 0);
       console.log([p, c, l, s, t, at(365)?.completed ?? 0, inv(365), at(730)?.completed ?? 0, inv(730), m.taxToProjects, m.manual, m.lost, m.finalBalance, m.idleDays, m.errors.length].join(";"));
