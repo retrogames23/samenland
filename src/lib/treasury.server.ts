@@ -9,22 +9,40 @@ const DAY = 86400000;
 const BATCH = 7;
 /** One bounded batch per request; old earnings remain handled by the legacy database function. */
 /** Every simulation input of one realm, read with service rights; the caller supplies nothing. */
+/** Rows per request; at or below the Data API cap, so a full page always means "ask again". */
+export const PAGE = 1000;
+type Page<T> = PromiseLike<{ data: T[] | null; error: { message?: string } | null }>;
+/**
+ * Reads every row of a query page by page via .range(). The query must carry a unique total order so
+ * pages never overlap or skip. A short (or empty) page ends the read; any page error aborts the whole
+ * read — a partial result is never returned.
+ */
+export async function fetchPaged<T>(label: string, page: (from: number, to: number) => Page<T>, size = PAGE): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += size) {
+    const { data, error } = await page(from, from + size - 1);
+    if (error) throw new Error(`${label} unavailable (rows from ${from}): ${error.message ?? "error"}`);
+    const rows = data ?? [];
+    out.push(...rows);
+    if (rows.length < size) return out;
+  }
+}
+
 export async function loadEconomyInput(realm: string): Promise<EconomyWorld> {
-  const ss = await supabaseAdmin.from("seeds").select("*").eq("realm", realm).order("created_at").order("id");
-  if (ss.error) throw new Error("Seeds unavailable");
-  const raw = (ss.data ?? []) as Seed[], ids = raw.map(s => s.id);
-  const [p, b, c, e, r, v, w, g] = await Promise.all([
-    supabaseAdmin.from("purchases").select("seed_id,item,created_at,x,y").in("seed_id", ids).order("created_at"),
-    supabaseAdmin.from("blessings").select("seed_id,created_at").in("seed_id", ids),
-    supabaseAdmin.from("charters").select("seed_id,path,created_at").in("seed_id", ids),
-    supabaseAdmin.from("encounters").select("seed_id,event,choice,cost,created_at").in("seed_id", ids).order("created_at"),
-    supabaseAdmin.from("first_roads").select("seed_id,target_id,created_at").in("seed_id", ids).order("created_at"),
-    supabaseAdmin.from("twin_votes").select("seed_id,partner_id,pact,created_at").in("seed_id", ids),
-    supabaseAdmin.from("twin_works").select("seed_id,partner_id,work,cost,created_at").in("seed_id", ids),
-    supabaseAdmin.from("gifts").select("id,from_seed,to_seed,kind,created_at").in("to_seed", ids),
+  const db = supabaseAdmin;
+  const raw = await fetchPaged("Seeds", (a, z) => db.from("seeds").select("*").eq("realm", realm).order("created_at").order("id").range(a, z)) as Seed[];
+  const ids = raw.map(s => s.id);
+  const [purchases, blessings, charters, encounters, roads, votes, works, gifts] = await Promise.all([
+    fetchPaged("Purchases", (a, z) => db.from("purchases").select("seed_id,item,created_at,x,y").in("seed_id", ids).order("created_at").order("id").range(a, z)),
+    fetchPaged("Blessings", (a, z) => db.from("blessings").select("seed_id,created_at").in("seed_id", ids).order("id").range(a, z)),
+    fetchPaged("Charters", (a, z) => db.from("charters").select("seed_id,path,created_at").in("seed_id", ids).order("id").range(a, z)),
+    fetchPaged("Encounters", (a, z) => db.from("encounters").select("seed_id,event,choice,cost,created_at").in("seed_id", ids).order("created_at").order("id").range(a, z)),
+    fetchPaged("Roads", (a, z) => db.from("first_roads").select("seed_id,target_id,created_at").in("seed_id", ids).order("created_at").order("id").range(a, z)),
+    fetchPaged("Twin votes", (a, z) => db.from("twin_votes").select("seed_id,partner_id,pact,created_at").in("seed_id", ids).order("id").range(a, z)),
+    fetchPaged("Twin works", (a, z) => db.from("twin_works").select("seed_id,partner_id,work,cost,created_at").in("seed_id", ids).order("id").range(a, z)),
+    fetchPaged("Gifts", (a, z) => db.from("gifts").select("id,from_seed,to_seed,kind,created_at").in("to_seed", ids).order("id").range(a, z)),
   ]);
-  if ([p,b,c,e,r,v,w,g].some(q => q.error)) throw new Error("Simulation inputs unavailable");
-  return { seeds: raw, purchases: p.data ?? [], blessings: b.data ?? [], charters: c.data ?? [], encounters: e.data ?? [], roads: r.data ?? [], votes: v.data ?? [], works: w.data ?? [], gifts: g.data ?? [] };
+  return { seeds: raw, purchases, blessings, charters, encounters, roads, votes, works, gifts } as EconomyWorld;
 }
 
 /** Settlement rank judged on the server from real citizens, homes and roads; stored briefly for the purchase guard. */
@@ -54,9 +72,8 @@ export async function bookedDays(id: string, first: number): Promise<{ has(d: nu
   if (top.error || n.error) throw new Error("Treasury read failed");
   const max = top.data?.day ?? first - 1, count = n.count ?? 0;
   if (count === max - first + 1) return { has: (d) => d >= first && d <= max };
-  const all = await supabaseAdmin.from("tax_receipts").select("day").eq("seed_id", id).gte("day", first);
-  if (all.error) throw new Error("Treasury read failed");
-  return new Set((all.data ?? []).map(r => r.day));
+  const all = await fetchPaged("Tax receipts", (a, z) => supabaseAdmin.from("tax_receipts").select("day").eq("seed_id", id).gte("day", first).order("day").range(a, z));
+  return new Set(all.map(r => r.day));
 }
 
 export async function calculateTreasury(id: string, realm: string) {
