@@ -108,9 +108,10 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
   // on opening: jump to a waiting letter when the main room has nothing new
   const wasOpen = useRef(false);
   useEffect(() => {
-    if (open && !wasOpen.current && !peer && unreadOf("tavern") === 0) {
-      const p = peers.find((x) => !blocked.has(x) && unreadOf({ peer: x }) > 0);
-      if (p) setChan({ peer: p });
+    if (open && !wasOpen.current && !peer) {
+      // plain opening always starts in the main room, unless only a letter waits
+      const p = unreadOf("tavern") === 0 ? peers.find((x) => !blocked.has(x) && unreadOf({ peer: x }) > 0) : undefined;
+      setChan(p ? { peer: p } : "tavern"); setSide(false);
     }
     wasOpen.current = open;
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -164,10 +165,13 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
             <h2 className="truncate pe-2 pb-1 font-display text-2xl leading-tight sm:text-3xl">{t.tavern.title}</h2>
             <button type="button" aria-label={t.close} onClick={onClose} className="hit relative grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-ink/10"><X className="h-4 w-4" /></button>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {chan !== "tavern" && <button type="button" onClick={() => { setChan("tavern"); setSide(false); setMenu(null); }} className="hit relative mt-2 inline-flex min-h-9 items-center rounded border border-ink/40 bg-ink/10 px-3 text-sm font-semibold">← # {t.tavern.room}</button>}
             <button type="button" onClick={() => setSide((v) => !v)} className="hit relative mt-2 inline-flex min-h-9 max-w-full items-center rounded border border-ink/30 px-3 text-sm sm:hidden">
               {chan === "tavern" ? `# ${t.tavern.room}` : `@ ${people.get(chan.peer)?.owner ?? t.tavern.stranger}`} ▾
               {total - unreadOf(chan) > 0 && <span className="absolute -end-1.5 -top-1.5 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{total - unreadOf(chan)}</span>}
             </button>
+          </div>
         </div>
         <div className="relative flex min-h-0 flex-1">
           <aside className={`${side ? "absolute inset-0 z-10 block bg-card/95" : "hidden"} space-y-2 overflow-y-auto overflow-x-hidden border-e border-ink/25 p-3 text-sm sm:static sm:block sm:w-44 sm:shrink-0 sm:bg-transparent sm:p-2 sm:text-xs`}>
@@ -205,7 +209,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
               <div ref={end} />
             </div>
             {menu && (
-              <div className="absolute end-3 top-2 z-10 w-56 rounded border border-ink/30 bg-parchment p-2 text-sm shadow-lg">
+              <div className="absolute end-3 top-2 z-20 w-56 rounded border border-ink/30 bg-parchment p-2 text-sm shadow-lg">
                 <div className="mb-1 font-semibold">{label(menu)}</div>
                 {!blocked.has(menu) && <button type="button" className="block w-full rounded px-1 py-0.5 text-start hover:bg-ink/10 max-sm:min-h-11" onClick={() => { setChan({ peer: menu }); setMenu(null); }}>✉ {t.tavern.write}</button>}
                 <button type="button" className="block w-full rounded px-1 py-0.5 text-start hover:bg-ink/10 max-sm:min-h-11" onClick={() => toggleBlock(menu)}>{blocked.has(menu) ? t.tavern.unblock : t.tavern.block}</button>
