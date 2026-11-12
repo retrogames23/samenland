@@ -12,6 +12,8 @@ import { structureAt, terrain, isWater, waterNearby, riverDistAt, radiusOf, reac
 
 const H = 3.6e6, DAY = 864e5, WEEK = 7 * DAY;
 export const FIRE_CHANCE = 0.3, FIRE_CHANCE_GUARDED = 0.08;
+/** Village fire order (Rang 2): fire hooks, ladders and leather buckets — rarer, shorter, smaller fires. */
+export const FIRE_CHANCE_ORDER = 0.18, FIRE_DEAD_ORDER = 0.15;
 export const FIRE_REBUILD = 36 * H;
 export const FLOOD_LEN = 48 * H, FLOOD_REBUILD = 48 * H, FLOOD_RICH = 14 * DAY;
 export const FLOOD_FOOD_LOSS = 20, FLOOD_FOOD_GAIN = 20;

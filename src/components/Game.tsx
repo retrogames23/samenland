@@ -1765,7 +1765,7 @@ export function Game() {
   const festArt = (e: ChronEvent) => e.code === "fire" ? ART["fire"] : e.code === "flood" ? ART["flood"] : e.code === "raid" ? ART["robber"] : e.code === "wedding" ? ART["wedding"] : e.code === "house" ? ART["topping"] : e.code === "family" ? ART["newcomers"] : e.code === "road" ? ART["roadopen"] : e.code === "twin" || (e.code === "bought" && /^title[1-3]$/.test(e.item)) ? ART["charter"] : ART["fair"];
   const festText = (e: ChronEvent): [string, string] => {
     const n = festSeed?.name ?? "";
-    if (e.code === "fire") return e.guarded ? [t.woe.fireGuarded[0], t.woe.fireGuarded[1](n)] : [t.woe.fire[0], t.woe.fire[1](n, e.water, e.dead)];
+    if (e.code === "fire") return e.guarded ? [t.woe.fireGuarded[0], t.woe.fireGuarded[1](n)] : [t.woe.fire[0], t.woe.fire[1](n, e.water, e.dead) + (e.order ? ` ${t.woe.fireOrder}` : "")];
     if (e.code === "flood") return [t.woe.flood[0], t.woe.flood[1](n)];
     if (e.code === "raid") return e.caught ? [t.woe.caught[0], t.woe.caught[1](n)] : [t.woe.raid[0], t.woe.raid[1](n, e.loss)];
     if (e.code === "wedding") return [t.fest.wedding, t.fest.wedBody(e.a, e.b, e.dowry) + (e.alliance ? " " + t.fest.wedAlliance : "")];
@@ -2160,7 +2160,7 @@ export function Game() {
                 <div className="mt-1.5">
                   {at.has(it) ? <span className="text-xs font-semibold text-primary">{t.owned}</span> : (
                     (ITEM_RANK[it] ?? 0) > myStage ? <span className="text-xs text-muted-foreground">🔒 {t.needStage(t.stages[ITEM_RANK[it]!] ?? "")}{RANK_NEED[ITEM_RANK[it]! - 1] ? ` (${RANK_NEED[ITEM_RANK[it]! - 1]![0]} ${OUTLOOK[lang].cit}, ${RANK_NEED[ITEM_RANK[it]! - 1]![1]} ${OUTLOOK[lang].homes}${RANK_NEED[ITEM_RANK[it]! - 1]![2] ? `, ${RANK_NEED[ITEM_RANK[it]! - 1]![2]} ${OUTLOOK[lang].roads}` : ""})` : ""}</span> :
-                    <Button size="sm" className="h-7 w-full" disabled={cash < ITEMS[it]} onClick={() => { setPlacing(it); setTab(null); setMsg(t.place.pick(t.items[it]![0])); if (my) focus(my.x, my.y); }}>{t.hud.build}</Button>
+                    <Button size="sm" className="h-7 w-full" disabled={cash < ITEMS[it]} onClick={() => { if (!SPECIAL_KIND[it]) { void buy(it); return; } setPlacing(it); setTab(null); setMsg(t.place.pick(t.items[it]![0])); if (my) focus(my.x, my.y); }}>{t.hud.build}</Button>
                   )}
                 </div>
               </div>
