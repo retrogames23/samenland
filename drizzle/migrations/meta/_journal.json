@@ -771,6 +771,13 @@
       "when": 1794511239004,
       "tag": "0109_village_fire_order",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1794522675861,
+      "tag": "0110_europe_full_guard",
+      "breakpoints": true
     }
   ]
 }
