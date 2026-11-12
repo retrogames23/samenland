@@ -1053,7 +1053,7 @@ function roadAt(x: number, y: number, seeds: Seed[], now: number) {
   const n = r.link.tiles.length, half = n / 2;
   if (Math.min(r.i, n - 1 - r.i) > roadProgress(r.link, now) * half) return null;
   if (!r.link.water[r.i] && !buildable(terrain(x, y))) return null;
-  return { link: r.link, bridge: r.link.water[r.i]! };
+  return { link: r.link, i: r.i, bridge: r.link.water[r.i]! };
 }
 
 /** Dry road tile directly beside a finished water crossing of the same trade road. */
