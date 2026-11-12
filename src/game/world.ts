@@ -820,8 +820,9 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
       }
     }
   }
-  // trade roads keep their corridor: fields, gardens and pastures grow around them, never over them
-  if (best && ROAD_YIELDS.has(best.kind)) {
+  // trade roads keep their corridor: fields, gardens and pastures grow around them, never over them;
+  // a bridge head (dry road tile next to a water crossing) is never built over, so the bridge always stands
+  if (best && best.kind !== "road" && (ROAD_YIELDS.has(best.kind) || bridgeHead(x, y, seeds, now))) {
     const rd = roadAt(x, y, seeds, now);
     if (rd) best = { kind: rd.bridge ? "bridge" : isTwin(rd.link, seeds, now) ? "street" : "road", seed: rd.link.a, v: hash(x, y, 5) };
   }
@@ -1053,6 +1054,12 @@ function roadAt(x: number, y: number, seeds: Seed[], now: number) {
   if (Math.min(r.i, n - 1 - r.i) > roadProgress(r.link, now) * half) return null;
   if (!r.link.water[r.i] && !buildable(terrain(x, y))) return null;
   return { link: r.link, bridge: r.link.water[r.i]! };
+}
+
+/** Dry road tile directly beside a finished water crossing of the same trade road. */
+function bridgeHead(x: number, y: number, seeds: Seed[], now: number): boolean {
+  const r = roadAt(x, y, seeds, now); if (!r || r.bridge) return false;
+  const w = r.link.water; return !!(w[r.i - 1] || w[r.i + 1]);
 }
 
 /** Synergy bonus one neighbour gives: +10% .. +25%, more when closer and more mature. */
