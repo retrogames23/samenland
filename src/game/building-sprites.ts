@@ -48,6 +48,7 @@ import fishery from "@/assets/sprites/cohesive/fishery.webp";
 import granary from "@/assets/sprites/cohesive/granary.webp";
 import infirmary from "@/assets/sprites/cohesive/infirmary.webp";
 import firehouse from "@/assets/sprites/cohesive/firehouse.webp";
+import firerack from "@/assets/sprites/fire-rack.webp";
 import guardhouse from "@/assets/sprites/cohesive/guardhouse.webp";
 import school from "@/assets/sprites/cohesive/school.webp";
 import belfry from "@/assets/sprites/cohesive/belfry.webp";
@@ -289,6 +290,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   woodcamp: { url: woodcamp, night: woodcampLight, crop: [0, 0, 480, 427], width: 24, base: 4 },
   granary: { url: granary, night: granaryLight, crop: [0, 0, 408, 480], width: 25, base: 4 },
   infirmary: { url: infirmary, night: infirmaryLight, crop: [0, 0, 442, 480], width: 25, base: 4 },
+  firerack: { url: firerack, night: null, crop: [0, 0, 405, 480], width: 9, base: 2.5 },
   firehouse: { url: firehouse, night: firehouseLight, crop: [0, 0, 446, 480], width: 22, base: 4 },
   guardhouse: { url: guardhouse, night: guardhouseLight, crop: [0, 0, 429, 480], width: 21, base: 4 },
   school: { url: school, night: schoolLight, crop: [0, 0, 474, 480], width: 25, base: 4 },

@@ -3815,12 +3815,11 @@ export function draw(
   const fz = feastOn(now), fzProps = !!fz && (FEASTS[fz].scene === "fire" || fz === "pentecost" || fz === "christmas" || fz === "epiphany" || fz === "martinmas");
   fzNow = fz; fzHour = worldHour(now); fzStars.clear();
   if (detail) for (const sd of seeds) {
-    if (!sd.decisions?.length && !fzProps && !sd.bought?.some((b) => b.item === "fireorder")) continue;
+    if (!sd.decisions?.length && !fzProps) continue;
     const r = reachOf(sd, radiusOf(viewAge(sd, seeds, now))) + 2;
     if (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1) continue;
     const tw = townOf(sd, seeds, now);
     if (tw.maypole) addProp(tw.maypole[1] * MAP + tw.maypole[0], (cx, cy) => drawMaypole(c, cx, cy, t));
-    if (tw.fireRack) addProp(tw.fireRack[1] * MAP + tw.fireRack[0], (cx, cy) => drawFireRack(c, cx + 4, cy + 3));
     tw.stars.forEach((id, i) => fzStars.set(id, i));
     // Whitsun ox led in to the birch tree; St Martin rides to the church (feast-walkers.ts)
     const oxPath = fz === "pentecost" && tw.maypole ? feastRoute(tw, [tw.maypole[0] + 1, tw.maypole[1] + 1], hash(sd.x, sd.y, 1811), seeds) : null;
