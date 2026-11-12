@@ -12,24 +12,29 @@ import type { DayRow, Profile, ProfileKey } from "./types";
 import type { CharterPath } from "../world";
 import type { TownWay } from "../character";
 
-export type Stage = { name: string; cost: number; buildDays: number };
+export type Stage = { name: string; totalCost: number; localCost: number; buildDays: number };
 export type Project = { key: string; name: string; scope: "municipal" | "regional"; total: number; local: number; stages: Stage[] };
 
-const st = (...s: [string, number, number][]): Stage[] => s.map(([name, cost, buildDays]) => ({ name, cost, buildDays }));
-export const PROJECTS: Project[] = [
-  { key: "fountain", name: "Marktbrunnen mit Wasserkunst (Brunnensäule mit Wappentier)", scope: "municipal", total: 24000, local: 24000, stages: st(["Brunnenstube", 4000, 7], ["Röhrenleitung", 8000, 10], ["Brunnensäule mit Wappentier", 12000, 14]) },
-  { key: "spital", name: "Spital zum Heiligen Geist", scope: "municipal", total: 50000, local: 50000, stages: st(["Krankensaal", 20000, 21], ["Kapelle", 15000, 14], ["Wirtschaftshof", 15000, 14]) },
-  { key: "waage", name: "Ratswaage & Kranhaus", scope: "municipal", total: 30000, local: 30000, stages: st(["Waagehaus", 12000, 14], ["Tretradkran", 18000, 21]) },
-  { key: "school", name: "Lateinschule & Ratsbibliothek", scope: "municipal", total: 35000, local: 35000, stages: st(["Schulhaus", 20000, 21], ["Librarei", 15000, 14]) },
-  { key: "wall", name: "Backsteinmauer & Wehrtürme", scope: "municipal", total: 60000, local: 60000, stages: st(["Mauerring", 25000, 28], ["Stadttor", 15000, 21], ["Wehrtürme", 20000, 21]) },
-  { key: "quay", name: "Hafenkai & Tretradkran", scope: "municipal", total: 45000, local: 45000, stages: st(["Eichenbohlwerk", 25000, 21], ["Hafenkran", 20000, 21]) },
-  { key: "juergen", name: "St.-Jürgen-Hospital & Siechenhof", scope: "municipal", total: 25000, local: 25000, stages: st(["Siechenhaus", 15000, 14], ["Kapelle", 10000, 14]) },
-  { key: "armory", name: "Rüsthaus & Pulverturm", scope: "municipal", total: 35000, local: 35000, stages: st(["Rüsthaus", 20000, 21], ["Pulverturm", 15000, 21]) },
-  { key: "bridge", name: "Steinerne Strombrücke (Eichenpfahlrost & Fangdämme)", scope: "regional", total: 40000, local: 20000, stages: st(["Pfahlrost & Fangdämme", 10000, 21], ["Bögen & Fahrbahn", 10000, 28]) },
-  { key: "geleit", name: "Geleitweg & Landwehr", scope: "regional", total: 36000, local: 18000, stages: st(["Geleitweg", 9000, 21], ["Landwehr", 9000, 21]) },
-  { key: "lock", name: "Flussbau & Stauschleuse", scope: "regional", total: 60000, local: 20000, stages: st(["Uferbefestigung", 6000, 14], ["Schleusenkammer", 8000, 28], ["Stautore", 6000, 14]) },
-  { key: "tagfahrt", name: "Städtebund-Tagfahrtstube", scope: "regional", total: 50000, local: 12500, stages: st(["Saalbau", 7500, 21], ["Ausstattung", 5000, 14]) },
+// Existing regional shares are apportioned across stages at their unchanged project ratio.
+const st = (...s: [string, number, number, number?][]): Stage[] => s.map(([name, localCost, buildDays, totalCost = localCost]) => ({ name, totalCost, localCost, buildDays }));
+const catalog: Omit<Project, "total" | "local">[] = [
+  { key: "fountain", name: "Marktbrunnen mit Wasserkunst (Brunnensäule mit Wappentier)", scope: "municipal", stages: st(["Brunnenkump", 4000, 14], ["Wasserkunst", 8000, 21], ["Brunnensäule mit Wappentier", 12000, 30]) },
+  { key: "spital", name: "Spital zum Heiligen Geist", scope: "municipal", stages: st(["Krankensaal", 10000, 21], ["Kapelle", 18000, 35], ["Wirtschaftshof", 22000, 42]) },
+  { key: "waage", name: "Ratswaage & Kranhaus", scope: "municipal", stages: st(["Waagehaus", 12000, 14], ["Tretradkran", 18000, 21]) },
+  { key: "school", name: "Lateinschule & Ratsbibliothek", scope: "municipal", stages: st(["Schulhaus", 20000, 21], ["Librarei", 15000, 14]) },
+  { key: "wall", name: "Backsteinmauer & Wehrtürme", scope: "municipal", stages: st(["Mauerring", 25000, 28], ["Stadttor", 15000, 21], ["Wehrtürme", 20000, 21]) },
+  { key: "quay", name: "Hafenkai & Tretradkran", scope: "municipal", stages: st(["Eichenbohlwerk", 25000, 21], ["Hafenkran", 20000, 21]) },
+  { key: "juergen", name: "St.-Jürgen-Hospital & Siechenhof", scope: "municipal", stages: st(["Siechenhaus", 15000, 14], ["Kapelle", 10000, 14]) },
+  { key: "armory", name: "Rüsthaus & Pulverturm", scope: "municipal", stages: st(["Rüsthaus", 20000, 21], ["Pulverturm", 15000, 21]) },
+  { key: "bridge", name: "Steinerne Strombrücke (Eichenpfahlrost & Fangdämme)", scope: "regional", stages: st(["Pfahlrost & Fangdämme", 8000, 28, 16000], ["Bögen & Fahrbahn", 12000, 42, 24000]) },
+  { key: "geleit", name: "Geleitweg & Landwehr", scope: "regional", stages: st(["Geleitweg", 9000, 21, 18000], ["Landwehr", 9000, 21, 18000]) },
+  { key: "lock", name: "Flussbau & Stauschleuse", scope: "regional", stages: st(["Uferbefestigung", 6000, 14, 18000], ["Schleusenkammer", 8000, 28, 24000], ["Stautore", 6000, 14, 18000]) },
+  { key: "tagfahrt", name: "Städtebund-Tagfahrtstube", scope: "regional", stages: st(["Saalbau", 7500, 21, 30000], ["Ausstattung", 5000, 14, 20000]) },
 ];
+export const PROJECTS: Project[] = catalog.map((p) => ({ ...p,
+  total: p.stages.reduce((sum, stage) => sum + stage.totalCost, 0),
+  local: p.stages.reduce((sum, stage) => sum + stage.localCost, 0),
+}));
 export const LOCAL_VOLUME = PROJECTS.reduce((a, p) => a + p.local, 0);
 export const TOTAL_VALUE = PROJECTS.reduce((a, p) => a + p.total, 0);
 

@@ -15,7 +15,10 @@ describe("Model C", () => {
   it("catalog: 12 projects, 374,500 local, 490,000 total, no Roland or caissons", () => {
     expect(PROJECTS).toHaveLength(12);
     expect(LOCAL_VOLUME).toBe(374500); expect(TOTAL_VALUE).toBe(490000);
-    for (const p of PROJECTS) expect(p.stages.reduce((a, s) => a + s.cost, 0)).toBe(p.local);
+    for (const p of PROJECTS) {
+      expect(p.stages.reduce((a, s) => a + s.localCost, 0)).toBe(p.local);
+      expect(p.stages.reduce((a, s) => a + s.totalCost, 0)).toBe(p.total);
+    }
     expect(JSON.stringify(PROJECTS)).not.toMatch(/Roland|Caisson/i);
   });
   it("default diversion is 0 %: tax_only without a rate changes nothing", () => {
@@ -45,6 +48,44 @@ describe("Model C", () => {
         expect(d.toChestGross).toBe(d.booked + d.lost);
       }
     }
+  });
+});
+
+describe("Model C corrected catalog", () => {
+  const values = (key: string) => PROJECTS.find((p) => p.key === key)?.stages.map((s) => [s.totalCost, s.localCost, s.buildDays]);
+  it("fountain: 4,000 / 8,000 / 12,000 with 14 / 21 / 30 days", () => {
+    expect(values("fountain")).toEqual([[4000, 4000, 14], [8000, 8000, 21], [12000, 12000, 30]]);
+  });
+  it("spital: 10,000 / 18,000 / 22,000 with 21 / 35 / 42 days", () => {
+    expect(values("spital")).toEqual([[10000, 10000, 21], [18000, 18000, 35], [22000, 22000, 42]]);
+  });
+  it("bridge: two phases with separate total and local costs, 28 / 42 days", () => {
+    expect(values("bridge")).toEqual([[16000, 8000, 28], [24000, 12000, 42]]);
+    expect(PROJECTS.find((p) => p.key === "bridge")).toMatchObject({ total: 40000, local: 20000 });
+  });
+  it("other project local costs and build times remain unchanged", () => {
+    const expected = {
+      waage: [[12000, 14], [18000, 21]], school: [[20000, 21], [15000, 14]],
+      wall: [[25000, 28], [15000, 21], [20000, 21]], quay: [[25000, 21], [20000, 21]],
+      juergen: [[15000, 14], [10000, 14]], armory: [[20000, 21], [15000, 21]],
+      geleit: [[9000, 21], [9000, 21]], lock: [[6000, 14], [8000, 28], [6000, 14]],
+      tagfahrt: [[7500, 21], [5000, 14]],
+    };
+    for (const [key, stages] of Object.entries(expected)) {
+      expect(PROJECTS.find((p) => p.key === key)?.stages.map((s) => [s.localCost, s.buildDays])).toEqual(stages);
+    }
+    expect(PROJECTS.filter((p) => p.scope === "municipal").reduce((sum, p) => sum + p.total, 0)).toBe(304000);
+    expect(PROJECTS.filter((p) => p.scope === "regional").reduce((sum, p) => sum + p.total, 0)).toBe(186000);
+  });
+  it("bridge funding uses only the 20,000 local share and construction takes 70 days", () => {
+    const m = modelC(rows(110, 4, 1000), 0, { profile: P, strategy: "tax_only", taxRate: 0.2, order: ["bridge"] });
+    expect(m.invested).toBe(20000);
+    expect(m.completed).toEqual([{ key: "bridge", fundedDay: 100, doneDay: 170 }]);
+  });
+  it.each([["fountain", 24000, 65], ["spital", 50000, 98]] as const)("%s uses corrected construction duration", (key, local, buildDays) => {
+    const fundedDay = local / 200;
+    const m = modelC(rows(fundedDay, 4, 1000), 0, { profile: P, strategy: "tax_only", taxRate: 0.2, order: [key] });
+    expect(m.completed).toEqual([{ key, fundedDay, doneDay: fundedDay + buildDays }]);
   });
 });
 
