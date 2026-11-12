@@ -1,8 +1,8 @@
 import type { TownWay } from "./character";
 import { giftBalance, type Gift } from "./gifts";
 import { FOOD_CRAFTS } from "./food-crafts";
-import { civicWealth, estateAssessment, sharesAt, sickLoss, sickTaxRate } from "./prosperity";
-import { townRank } from "./rank";
+import { civicWealth, estateAssessment, sickLoss, sickTaxRate } from "./prosperity";
+import { residentTax } from "./resident-tax";
 import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, raids, floodFood, ITEM_RANK } from "./disasters";
@@ -75,33 +75,50 @@ export function taxPop(s: Seed, h: number, at: number) {
   return Math.min(p, cap);
 }
 
-/** Estate assessment of an estimated population: before CAP_ALL_SINCE the unchanged legacy shares (frozen balances),
- *  from then on the gated V3 shares of sharesAt with the real rank — same rule as resident-tax receipts. */
-const gatedMemo = new Map<string, { skilled: number; wealthy: number }>();
+/** Legacy estate assessment (before CAP_ALL_SINCE only — frozen balances, mirrors DB village_estate_tax_legacy). */
 export function assessAt(s: Seed, p: number, at: number) {
-  if (at < CAP_ALL_SINCE || !s.user_id) return estateAssessment(p, civicWealth(s, at));
-  const k = `${s.id}|${at}|${(s.bought ?? []).length}`;
-  let sh = gatedMemo.get(k);
-  if (!sh) { sh = sharesAt(s, at, townRank(s, [s], at)).shares; if (gatedMemo.size > 2000) gatedMemo.clear(); gatedMemo.set(k, sh); }
-  return p + Math.floor(p * sh.skilled + 1e-9) + 2 * Math.floor(p * sh.wealthy + 1e-9);
+  return estateAssessment(p, civicWealth(s, at));
 }
-/** One settlement day's tax (day d after founding): estate assessment minus sick loss plus trade bonus. Mirrors DB village_estate_tax. */
-export function taxOnDay(s: Seed, d: number) {
+/** Neighbours as they stood at `at` (same filter as economyWorldAt on the server); [s] only as a fallback for callers without a network. */
+const worldAt = (s: Seed, seeds: Seed[] | undefined, at: number) => {
+  const w = (seeds ?? [s]).filter((o) => Date.parse(o.created_at) <= at);
+  return w.some((o) => o.id === s.id) ? w : [...w, s];
+};
+/** Past settlement days are stable for identical inputs: memo keyed by day plus a fingerprint of the network. */
+const taxMemo = new Map<string, number>();
+const netKey = (seeds: Seed[]) => seeds.reduce((k, o) => k + (o.bought?.length ?? 0) + (o.roads?.length ?? 0) * 31 + (o.blessed?.length ?? 0) * 7, seeds.length * 1e6);
+/** From CAP_ALL_SINCE the one trusted assessment: residentTax (real households, tile rolls, real rank with trade roads). */
+function residentIncome(s: Seed, seeds: Seed[] | undefined, at: number) {
+  const w = worldAt(s, seeds, at);
+  const k = `${s.id}|${at}|${netKey(w)}`;
+  let v = taxMemo.get(k);
+  if (v === undefined) { v = residentTax(s, w, at).income; if (taxMemo.size > 5000) taxMemo.clear(); taxMemo.set(k, v); }
+  return v;
+}
+/** One settlement day's tax (day d after founding). Before CAP_ALL_SINCE: legacy estimate (mirrors DB village_estate_tax);
+ *  from then on residentTax with the full seeds network, exactly as the server receipts. */
+export function taxOnDay(s: Seed, d: number, seeds?: Seed[]) {
   const c0 = Date.parse(s.created_at), at = c0 + d * 86400000;
+  if (s.user_id && at >= CAP_ALL_SINCE) return residentIncome(s, seeds, at);
   const trade = s.charter?.path === "trade" ? s.charter.at : null;
   const p = taxPop(s, d * 24, at);
   const a = assessAt(s, p, at);
   return a - sickLoss(a, sickTaxRate(s, at)) + (trade != null && at >= trade ? Math.floor(TRADE_TAX * p) : 0);
 }
 /** Historical estate assessments (1/2/3 Mark), plus the existing +15% base trade-charter bonus — uncapped. */
-export function taxEarned(s: Seed, now: number) {
+export function taxEarned(s: Seed, now: number, seeds?: Seed[]) {
   const days = Math.floor((now - Date.parse(s.created_at)) / 86400000);
   let t = 0;
-  for (let d = 1; d <= days; d++) t += taxOnDay(s, d);
+  for (let d = 1; d <= days; d++) t += taxOnDay(s, d, seeds);
   return t;
 }
 /** Today's income per day, including the trade charter bonus. */
-export const dailyTax = (s: Seed, h: number) => { const at = Date.parse(s.created_at) + h * 3.6e6, p = taxPop(s, h, at); const a = assessAt(s, p, at); return a - sickLoss(a, sickTaxRate(s, at)) + (s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(TRADE_TAX * p) : 0); };
+export const dailyTax = (s: Seed, h: number, seeds?: Seed[]) => {
+  const at = Date.parse(s.created_at) + h * 3.6e6;
+  if (s.user_id && at >= CAP_ALL_SINCE) return residentTax(s, worldAt(s, seeds, at), at).income;
+  const p = taxPop(s, h, at); const a = assessAt(s, p, at);
+  return a - sickLoss(a, sickTaxRate(s, at)) + (s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(TRADE_TAX * p) : 0);
+};
 
 
 /** Friend-invite bonus (mirrors DB referrals in village_balance): both villages get the reward. */
@@ -221,14 +238,14 @@ export function walkChest(start: number, events: ChestEvent[], capAt: (t: number
   return Math.max(0, bal);
 }
 
-export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = [], since = CAP_ALL_SINCE) {
+export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = [], since = CAP_ALL_SINCE, seeds?: Seed[]) {
   if (!s.user_id || now < since) return legacyTreasury(s, purchases, now, gifts, claims);
   const T = since, pre = (iso: string) => Date.parse(iso) < T;
   const pre0 = { ...s, decisions: (s.decisions ?? []).filter((d) => d.at < T), works: (s.works ?? []).filter((w) => w.at < T) };
   const start = legacyTreasury(pre0, purchases.filter((p) => pre(p.created_at)), T, gifts.filter((g) => pre(g.created_at)), claims.filter((c) => pre(c.created_at)));
   const ev: ChestEvent[] = [];
   const c0 = Date.parse(s.created_at);
-  for (let d = Math.max(1, Math.floor((T - c0) / 86400000) + 1); c0 + d * 86400000 <= now; d++) ev.push({ t: c0 + d * 86400000, r: 0, v: taxOnDay(s, d), k: `d${d}` });
+  for (let d = Math.max(1, Math.floor((T - c0) / 86400000) + 1); c0 + d * 86400000 <= now; d++) ev.push({ t: c0 + d * 86400000, r: 0, v: taxOnDay(s, d, seeds), k: `d${d}` });
   for (const w of weddingDates(s, now)) if (w.at > T) ev.push({ t: w.at, r: 1, v: w.dowry, k: `w${w.k}` });
   ledger(s, purchases, gifts, claims).forEach(([t, v], i) => { if (t >= T && t <= now && v !== 0) ev.push({ t, r: v > 0 ? 2 : 3, v, k: `l${i}` }); });
   for (const r of raids(s, now)) if (r.at > T && r.loss > 0) ev.push({ t: r.at, r: 4, v: r.loss, k: `r${r.at}` });

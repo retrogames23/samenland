@@ -130,5 +130,5 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   }
   for (const o of orphanStays(s.decisions ?? [])) if (o.until > from && o.until <= to) ev.push({ at: o.until, code: "orphan", choice: o.choice });
   ev.sort((a, b) => a.at - b.at);
-  return { from, to, events: ev, popFrom: pop(s, seeds, from), popTo: pop(s, seeds, to), taler: taxEarned(s, to) - taxEarned(s, from) + dowryEarned(s, to) - dowryEarned(s, from) - raidLoss(s, to) + raidLoss(s, from) };
+  return { from, to, events: ev, popFrom: pop(s, seeds, from), popTo: pop(s, seeds, to), taler: taxEarned(s, to, seeds) - taxEarned(s, from, seeds) + dowryEarned(s, to) - dowryEarned(s, from) - raidLoss(s, to) + raidLoss(s, from) };
 }
