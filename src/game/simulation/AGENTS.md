@@ -1,1 +1,2 @@
 - model-c.ts replays engine.ts daily rows instead of re-simulating towns, so project strategies reuse real tax/chest results and stay fast; offline only, never imported by the game.
+- Model C project totals derive from stage totalCost/localCost; only localCost is financed by the simulated town, keeping regional co-financing separate from treasury spending.
