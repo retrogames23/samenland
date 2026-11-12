@@ -13,36 +13,44 @@ const BATCH = 7;
 export const PAGE = 1000;
 type Page<T> = PromiseLike<{ data: T[] | null; error: { message?: string } | null }>;
 /**
- * Reads every row of a query page by page via .range(). The query must carry a unique total order so
- * pages never overlap or skip. A short (or empty) page ends the read; any page error aborts the whole
- * read — a partial result is never returned.
+ * Keyset pagination: `page(after)` returns the rows strictly after the last row read (null = first page),
+ * in a unique total order. Rows inserted meanwhile never shift pages already read. A short (or empty)
+ * page ends the read; a page error or `data === null` aborts it — a partial result is never returned.
  */
-export async function fetchPaged<T>(label: string, page: (from: number, to: number) => Page<T>, size = PAGE): Promise<T[]> {
+export async function fetchPaged<T>(label: string, page: (after: T | null) => Page<T>, size = PAGE): Promise<T[]> {
   const out: T[] = [];
-  for (let from = 0; ; from += size) {
-    const { data, error } = await page(from, from + size - 1);
-    if (error) throw new Error(`${label} unavailable (rows from ${from}): ${error.message ?? "error"}`);
-    const rows = data ?? [];
-    out.push(...rows);
-    if (rows.length < size) return out;
+  for (let after: T | null = null; ;) {
+    const { data, error } = await page(after);
+    if (error) throw new Error(`${label} unavailable (after ${out.length} rows): ${error.message ?? "error"}`);
+    if (data == null) throw new Error(`${label} unavailable (after ${out.length} rows): no data`);
+    out.push(...data);
+    if (data.length < size) return out;
+    after = data[data.length - 1]!;
   }
 }
+type Chrono = { created_at: string; id: string };
+/** Cursor filter for order (created_at, id); values quoted for PostgREST. */
+export const afterChrono = (c: Chrono) => `created_at.gt."${c.created_at}",and(created_at.eq."${c.created_at}",id.gt."${c.id}")`;
 
 export async function loadEconomyInput(realm: string): Promise<EconomyWorld> {
   const db = supabaseAdmin;
-  const raw = await fetchPaged("Seeds", (a, z) => db.from("seeds").select("*").eq("realm", realm).order("created_at").order("id").range(a, z)) as Seed[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type Q = any;
+  const chrono = (label: string, base: () => Q) => fetchPaged<Chrono>(label, (c) => { let q = base(); if (c) q = q.or(afterChrono(c)); return q.order("created_at").order("id").limit(PAGE); });
+  const byId = (label: string, base: () => Q) => fetchPaged<{ id: string }>(label, (c) => { let q = base(); if (c) q = q.gt("id", c.id); return q.order("id").limit(PAGE); });
+  const raw = await chrono("Seeds", () => db.from("seeds").select("*").eq("realm", realm)) as unknown as Seed[];
   const ids = raw.map(s => s.id);
   const [purchases, blessings, charters, encounters, roads, votes, works, gifts] = await Promise.all([
-    fetchPaged("Purchases", (a, z) => db.from("purchases").select("seed_id,item,created_at,x,y").in("seed_id", ids).order("created_at").order("id").range(a, z)),
-    fetchPaged("Blessings", (a, z) => db.from("blessings").select("seed_id,created_at").in("seed_id", ids).order("id").range(a, z)),
-    fetchPaged("Charters", (a, z) => db.from("charters").select("seed_id,path,created_at").in("seed_id", ids).order("id").range(a, z)),
-    fetchPaged("Encounters", (a, z) => db.from("encounters").select("seed_id,event,choice,cost,created_at").in("seed_id", ids).order("created_at").order("id").range(a, z)),
-    fetchPaged("Roads", (a, z) => db.from("first_roads").select("seed_id,target_id,created_at").in("seed_id", ids).order("created_at").order("id").range(a, z)),
-    fetchPaged("Twin votes", (a, z) => db.from("twin_votes").select("seed_id,partner_id,pact,created_at").in("seed_id", ids).order("id").range(a, z)),
-    fetchPaged("Twin works", (a, z) => db.from("twin_works").select("seed_id,partner_id,work,cost,created_at").in("seed_id", ids).order("id").range(a, z)),
-    fetchPaged("Gifts", (a, z) => db.from("gifts").select("id,from_seed,to_seed,kind,created_at").in("to_seed", ids).order("id").range(a, z)),
+    chrono("Purchases", () => db.from("purchases").select("id,seed_id,item,created_at,x,y").in("seed_id", ids)),
+    byId("Blessings", () => db.from("blessings").select("id,seed_id,created_at").in("seed_id", ids)),
+    byId("Charters", () => db.from("charters").select("id,seed_id,path,created_at").in("seed_id", ids)),
+    chrono("Encounters", () => db.from("encounters").select("id,seed_id,event,choice,cost,created_at").in("seed_id", ids)),
+    chrono("Roads", () => db.from("first_roads").select("id,seed_id,target_id,created_at").in("seed_id", ids)),
+    byId("Twin votes", () => db.from("twin_votes").select("id,seed_id,partner_id,pact,created_at").in("seed_id", ids)),
+    byId("Twin works", () => db.from("twin_works").select("id,seed_id,partner_id,work,cost,created_at").in("seed_id", ids)),
+    byId("Gifts", () => db.from("gifts").select("id,from_seed,to_seed,kind,created_at").in("to_seed", ids)),
   ]);
-  return { seeds: raw, purchases, blessings, charters, encounters, roads, votes, works, gifts } as EconomyWorld;
+  return { seeds: raw, purchases, blessings, charters, encounters, roads, votes, works, gifts } as unknown as EconomyWorld;
 }
 
 /** Settlement rank judged on the server from real citizens, homes and roads; stored briefly for the purchase guard. */
@@ -72,7 +80,7 @@ export async function bookedDays(id: string, first: number): Promise<{ has(d: nu
   if (top.error || n.error) throw new Error("Treasury read failed");
   const max = top.data?.day ?? first - 1, count = n.count ?? 0;
   if (count === max - first + 1) return { has: (d) => d >= first && d <= max };
-  const all = await fetchPaged("Tax receipts", (a, z) => supabaseAdmin.from("tax_receipts").select("day").eq("seed_id", id).gte("day", first).order("day").range(a, z));
+  const all = await fetchPaged<{ day: number }>("Tax receipts", (c) => supabaseAdmin.from("tax_receipts").select("day").eq("seed_id", id).gte("day", c ? c.day + 1 : first).order("day").limit(PAGE));
   return new Set(all.map(r => r.day));
 }
 
