@@ -28,6 +28,7 @@ import gardenLeekUrl from "@/assets/sprites/garden-leek.webp";
 import gardenBeansUrl from "@/assets/sprites/garden-beans.webp";
 import pastureTussockUrl from "@/assets/sprites/pasture-tussock.webp";
 import maypoleUrl from "@/assets/sprites/maypole.webp";
+import fireRackUrl from "@/assets/sprites/fire-rack.webp";
 import { worldHour, clock } from "./time";
 import { forestExtra, forestShape } from "./forest-edge";
 import { forestEdge as labEdge } from "./lab-ctl";
@@ -3184,6 +3185,13 @@ function drawMaypole(c: C, x: number, y: number, t: number) {
   c.translate(x, y); c.rotate(Math.sin(t / 1800) * 0.006); c.drawImage(im, -w / 2, -h * 0.98, w, h);
   c.restore();
 }
+/** Fire-order rack: painted timber frame with leather buckets, hooks and ladder; contact shadow from the renderer. */
+function drawFireRack(c: C, x: number, y: number) {
+  const im = huntIm("fireRack", fireRackUrl); if (!im) return;
+  const h = 11, w = (im.naturalWidth / im.naturalHeight) * h;
+  c.fillStyle = "rgba(25,18,10,0.25)"; c.beginPath(); c.ellipse(x + 0.5, y + 0.3, w * 0.42, 1.1, 0, 0, 7); c.fill();
+  c.drawImage(im, x - w / 2, y - h * 0.98, w, h);
+}
 /** A village cow from the cow encounter: grazes on a pasture (or the green), slowly turning, lying down at night. */
 /** Village pigs masting under the oaks (Allmende): root for acorns, then trot a few steps; asleep in the sty at night. */
 function drawFarmAnimal(c: C, kind: FarmAnimal, x: number, y: number, now: number, sd: number, previewFrame?: number) {
@@ -3807,11 +3815,12 @@ export function draw(
   const fz = feastOn(now), fzProps = !!fz && (FEASTS[fz].scene === "fire" || fz === "pentecost" || fz === "christmas" || fz === "epiphany" || fz === "martinmas");
   fzNow = fz; fzHour = worldHour(now); fzStars.clear();
   if (detail) for (const sd of seeds) {
-    if (!sd.decisions?.length && !fzProps) continue;
+    if (!sd.decisions?.length && !fzProps && !sd.bought?.some((b) => b.item === "fireorder")) continue;
     const r = reachOf(sd, radiusOf(viewAge(sd, seeds, now))) + 2;
     if (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1) continue;
     const tw = townOf(sd, seeds, now);
     if (tw.maypole) addProp(tw.maypole[1] * MAP + tw.maypole[0], (cx, cy) => drawMaypole(c, cx, cy, t));
+    if (tw.fireRack) addProp(tw.fireRack[1] * MAP + tw.fireRack[0], (cx, cy) => drawFireRack(c, cx + 4, cy + 3));
     tw.stars.forEach((id, i) => fzStars.set(id, i));
     // Whitsun ox led in to the birch tree; St Martin rides to the church (feast-walkers.ts)
     const oxPath = fz === "pentecost" && tw.maypole ? feastRoute(tw, [tw.maypole[0] + 1, tw.maypole[1] + 1], hash(sd.x, sd.y, 1811), seeds) : null;

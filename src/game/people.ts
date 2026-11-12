@@ -12,7 +12,7 @@ import { courtSolid } from "./court";
 import { HOME_SIZES, townTiles, occupiedHomes } from "./households";
 import { dwellingKey, dwellingTile } from "./density";
 export { foodCapacity, FEED_BASE, WILD_MAX, FEED_FIELD, FEED_GARDEN, FEED_PASTURE, FEED_FOOD_ITEM, FEED_HEALTH_ITEM, FEED_WINTER } from "./households";
-import { fires, floods, floodFront } from "./disasters";
+import { fires, floods, floodFront, fireRackUp } from "./disasters";
 import { guestNow, maypoleUp, cowsOf } from "./encounters";
 import { orphanNow } from "./orphan";
 import { mastOn, oakSpot, bakeGathering, stegOf, stegSpot, heathSpot, lifeScenes } from "./commons";
@@ -129,6 +129,8 @@ export type Town = {
   weddings: Wedding[]; church: Tile | null;
   /** Encounter props on the square: a raised maypole and the village's cows (derived from decisions). */
   maypole: Tile | null; cows: Tile[];
+  /** Fire-order rack beside the square (derived from the stored purchase; gone once the fire house stands). */
+  fireRack: Tile | null;
   /** Feast kept today (feasts.ts) and the bonfire spot of a fire feast (Easter / St John's), both derived from the realm clock. */
   feast: FeastCode | null; bonfire: Tile | null;
   /** Allmende traces: pigs masting under the oaks, the footbridge over the mill stream (both banks, finish time). */
@@ -327,6 +329,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const maypole: Tile | null = maypoleUp(decs, now) || feast === "pentecost" ? nearFree(meet, s.x * 7 + s.y) : null;
   // Easter / St John's fire: on the meadow at the edge of the village, else beside the square
   const bonfire: Tile | null = feast && FEASTS[feast].scene === "fire" ? nearFree(plays.length ? plays[Math.floor(hash(s.x, s.y, 1411) * plays.length)]! : meet, s.x * 11 + s.y * 3) : null;
+  const fireRack: Tile | null = fireRackUp(s, now) ? nearFree(meet, s.x * 13 + s.y * 5 + 7) : null;
   const cows: Tile[] = [];
   // a cow never stands on ploughland or in a garden: open meadow first, else woodland pasture (Waldweide) at the forest edge
   const cowOpen = (x: number, y: number, wood: boolean) => {
@@ -536,7 +539,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const sk = s.x * 7 + s.y * 13;
   const stars = feast === "epiphany" ? pickStarSingers(people.filter((q) => q.job === "child" && !q.guest), sk) : [];
   const starDoors = stars.length ? starRound([...new Map(people.filter((q) => q.job !== "mayor").map((q) => [Math.round(q.home[0]) * 4096 + Math.round(q.home[1]), [Math.round(q.home[0]), Math.round(q.home[1]) + 0.55] as Tile])).values()], sk) : [];
-  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings, church, maypole, cows, feast, bonfire, pigs, steg, stars, starDoors };
+  return { seed: s, people, well, meet, meets, plays, school, play, x0, y0, x1, y1, routes: new Map(), now, freeC: new Map(), costC: new Map(), doors: new Map(), weddings, church, maypole, cows, fireRack, feast, bonfire, pigs, steg, stars, starDoors };
 }
 
 /**
