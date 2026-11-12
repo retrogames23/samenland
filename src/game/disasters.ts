@@ -32,6 +32,8 @@ function rnd(id: string, n: number, salt: number) {
   return (h >>> 0) / 4294967296;
 }
 const owns = (s: Seed, item: string, t: number) => (s.bought ?? []).some((b) => b.item === item && b.at <= t);
+/** The fire-order rack (hooks, ladder, buckets) stands from the stored purchase until the fire house replaces it. */
+export const fireRackUp = (s: Seed, now: number) => owns(s, "fireorder", now) && !owns(s, "firehouse", now);
 /** Water within reach of the village core: bucket chains put fires out much faster. */
 export const hasWater = (s: Seed) => waterNearby(s.x, s.y);
 

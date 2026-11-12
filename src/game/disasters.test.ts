@@ -88,3 +88,22 @@ describe("village fire order (Feuerordnung)", () => {
     expect(after(fires(s, until)).every((x) => x.guarded && !x.order && !x.dead && x.end - x.at === 0.5 * 3.6e6)).toBe(true);
   });
 });
+
+import { fireRackUp } from "./disasters";
+describe("fire-order rack on the map", () => {
+  const base = { id: "rack", x: 100, y: 100, created_at: "2026-01-01T00:00:00Z" } as never as import("./world").Seed;
+  const T = Date.parse("2026-03-01T00:00:00Z");
+  it("is hidden before the purchase", () => {
+    expect(fireRackUp({ ...base, bought: [{ item: "fireorder", at: T }] } as never, T - 1)).toBe(false);
+  });
+  it("shows from the stored purchase, also for old saves and after reload", () => {
+    const s = { ...base, bought: [{ item: "fireorder", at: T - 90 * 864e5 }] } as never;
+    expect(fireRackUp(s, T)).toBe(true);
+    expect(fireRackUp(structuredClone(s), T)).toBe(true);
+  });
+  it("disappears once the fire house stands", () => {
+    const s = { ...base, bought: [{ item: "fireorder", at: T }, { item: "firehouse", at: T + 864e5 }] } as never;
+    expect(fireRackUp(s, T + 1)).toBe(true);
+    expect(fireRackUp(s, T + 2 * 864e5)).toBe(false);
+  });
+});
