@@ -290,7 +290,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   woodcamp: { url: woodcamp, night: woodcampLight, crop: [0, 0, 480, 427], width: 24, base: 4 },
   granary: { url: granary, night: granaryLight, crop: [0, 0, 408, 480], width: 25, base: 4 },
   infirmary: { url: infirmary, night: infirmaryLight, crop: [0, 0, 442, 480], width: 25, base: 4 },
-  firerack: { url: firerack, night: null, crop: [0, 0, 405, 480], width: 9, base: 2.5 },
+  firerack: { url: firerack, night: null, crop: [0, 0, 405, 480], width: 12, base: 2.5 },
   firehouse: { url: firehouse, night: firehouseLight, crop: [0, 0, 446, 480], width: 22, base: 4 },
   guardhouse: { url: guardhouse, night: guardhouseLight, crop: [0, 0, 429, 480], width: 21, base: 4 },
   school: { url: school, night: schoolLight, crop: [0, 0, 474, 480], width: 25, base: 4 },
@@ -309,6 +309,11 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   library: { url: library, night: libraryLight, crop: [0, 0, 429, 480], width: 26, base: 4 },
   dairy: { url: dairy, night: dairyLight, crop: [0, 0, 480, 391], width: 24, base: 4 },
 };
+
+/** Placement preview sizing: a thin prop (the fire rack) would disappear over the pulsing footprint
+ *  at its painted size, so its ghost floats a little larger. Paint-only — the finished building keeps
+ *  the width in the registry above. */
+export const GHOST_WIDTH: Partial<Record<Kind, number>> = { firerack: 15 };
 
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
 export const hasNightSprite = (kind: Kind) => Boolean(sprites[kind]?.night);
@@ -407,8 +412,9 @@ function drawGroundShadow(c: CanvasRenderingContext2D, im: HTMLImageElement, lef
   c.drawImage(sh, left - 24 * k + width * 0.012, top + height - band - 24 * k + height * 0.012, sh.width * k, sh.height * k);
   c.globalAlpha = a;
 }
-/** `reveal` < 1 draws only the lower part of the building (walls rising on a construction site). */
-export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, reveal = 1, flip = false, style?: HouseStyle): boolean {
+/** `reveal` < 1 draws only the lower part of the building (walls rising on a construction site).
+ *  `widthOverride` paints the painting at a given world width (placement ghosts of thin props). */
+export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, reveal = 1, flip = false, style?: HouseStyle, widthOverride?: number): boolean {
   style = draftStyle(kind, style, variant);
   const sprite = spriteOf(kind, style);
   if (!sprite || typeof Image === "undefined") return false;
@@ -423,7 +429,7 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   if (image === st?.image && st.mirror) flip = !flip;
   if (!image.complete || !image.naturalWidth) return true; // still loading: draw nothing, never the old vector art
   const [, , sw, sh] = image === st?.image ? st.crop : sprite.crop;
-  const width = sprite.width * scaleOf(kind, variant);
+  const width = widthOverride ?? sprite.width * scaleOf(kind, variant);
   const height = width * sh / sw;
   // fast path (most houses): unmirrored, finished, no moving parts — one drawImage, no save()/restore()
   if (reveal >= 1 && !flip && kind !== "mill" && kind !== "watermill" && kind !== "campfire") {
