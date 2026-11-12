@@ -17,6 +17,8 @@ Replays the base run's daily rows (real residentTax, chest caps) and adds a volu
 
 Each stage stores `totalCost`, `localCost`, and `buildDays`; project and catalog sums are derived from these stages. Only the local share is funded by Model C. Existing regional projects retain their financing ratio, apportioned proportionally across stages.
 
+Model C computes its own raids with `raidPlan`, ignoring base-row `raid`. The optional `seedId` selects the calendar (default zero hash, matching engine simulation seeds). Purchase timestamps are integer simulation days; protection starts when the own guard is purchased and applies only to attacks at or after that timestamp, including equality. Raids are booked after credits, purchases and donations, capped by the own remaining balance; the event hour is preserved for protection checks.
+
 | Project | Total value per stage | Local share per stage | Build days per stage |
 | --- | --- | --- | --- |
 | Fountain | 4,000 / 8,000 / 12,000 | 4,000 / 8,000 / 12,000 | 14 / 21 / 30 |

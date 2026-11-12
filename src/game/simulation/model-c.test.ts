@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { simulate } from "./engine";
 import { BASE_LOCATIONS } from "./profiles";
 import { START_TALER } from "../economy";
+import { raidPlan, raids } from "../disasters";
 import { modelC, PROJECTS, LOCAL_VOLUME, TOTAL_VALUE } from "./model-c";
 import { PROFILES } from "./profiles";
 import type { DayRow } from "./types";
@@ -36,7 +37,7 @@ describe("Model C", () => {
   it("surplus_only diverts no tax and keeps the reserve", () => {
     const m = modelC(rows(60, 5, 1000), 0, { profile: P, strategy: "surplus_only", taxRate: 0.3 });
     expect(m.taxToProjects).toBe(0);
-    expect(m.days.every((d) => d.project === null || d.balance >= P.reserve || d.manual === 0)).toBe(true);
+    expect(m.days.every((d) => d.project === null || d.balance + d.raid >= P.reserve || d.manual === 0)).toBe(true);
   });
   it("all four identities close every day", () => {
     for (const strategy of ["tax_only", "surplus_only", "hybrid"] as const) {
@@ -124,8 +125,67 @@ describe("Model C on real 730-day base runs", () => {
     for (const strategy of ["tax_only", "surplus_only", "hybrid"] as const) {
       const m = modelC(r.daily, START_TALER, { profile: PROFILES[key], strategy, taxRate: 0.2, charter: "trade", way: r.way as never });
       expect(m.errors).toEqual([]); expect(m.days).toHaveLength(730);
-      for (const d of m.days) { expect(d.balance).toBeGreaterThanOrEqual(0); expect(d.balance).toBeLessThanOrEqual(d.cap); }
+      let previous = START_TALER;
+      for (const d of m.days) {
+        expect(d.balance).toBeGreaterThanOrEqual(0); expect(d.balance).toBeLessThanOrEqual(d.cap);
+        expect(d.grossTax + d.otherIncome).toBe(d.taxToProjects + d.toChestGross);
+        expect(d.booked + d.lost).toBe(d.toChestGross);
+        expect(d.balance).toBe(previous + d.booked - d.spent - d.manual - d.raid);
+        previous = d.balance;
+      }
       expect(new Set(m.bought.map((b) => b.item)).size).toBe(m.bought.length);
     }
   }, 600_000);
+});
+
+describe("Model C own raids", () => {
+  const passive = { ...PROFILES.sparsam, reserve: 1200, loginEvery: 1 };
+  const buyer = { ...P, reserve: 0, chest: false, titles: false, guildRanks: false, way: false, monumentsFrom: null };
+  const config = { strategy: "tax_only" as const, order: [] };
+  it("unguarded raids use the calendar, ignoring both zero and inflated base losses", () => {
+    const m = modelC(rows(35, 0, 0), 500, { ...config, profile: passive });
+    expect(m.days.filter((d) => d.raid > 0).map((d) => [d.day, d.raid])).toEqual([[10, 12], [32, 21]]);
+    expect(m.finalBalance).toBe(467);
+    expect(modelC(rows(35, 0, 0).map((r) => ({ ...r, raid: 9999 })), 500, { ...config, profile: passive })).toEqual(m);
+  });
+  it("a successfully purchased own guard prevents subsequent losses", () => {
+    const m = modelC(rows(35, 4, 1200), 0, { ...config, profile: buyer });
+    const guard = m.bought.find((b) => b.item === "guard");
+    expect(guard).toBeDefined(); expect(guard?.day).toBeLessThan(10);
+    expect(m.days.every((d) => d.raid === 0)).toBe(true);
+  });
+  it("a guard bought after the first raid cannot undo that loss", () => {
+    const base = rows(35, 3, 1200).map((r) => ({ ...r, rank: r.day < 11 ? 3 : 4 }));
+    const m = modelC(base, 0, { ...config, profile: buyer });
+    expect(m.bought.find((b) => b.item === "guard")?.day).toBe(11);
+    expect(m.days.find((d) => d.day === 10)?.raid).toBe(12);
+    expect(m.days.find((d) => d.day === 32)?.raid).toBe(0);
+  });
+  it("loss is limited to the own chest, including an empty chest", () => {
+    const m = modelC(rows(35, 0, 0), 5, { ...config, profile: passive });
+    expect(m.days.find((d) => d.day === 10)).toMatchObject({ raid: 5, balance: 0 });
+    expect(m.days.find((d) => d.day === 32)).toMatchObject({ raid: 0, balance: 0 });
+    expect(m.finalBalance).toBe(0); expect(m.errors).toEqual([]);
+  });
+  it("a guard bought on the booking day after the attack hour gives no retroactive protection", () => {
+    const base = rows(40, 3, 1200).map((r) => ({ ...r, rank: r.day < 12 ? 3 : 4 }));
+    const m = modelC(base, 0, { ...config, profile: buyer, seedId: "00000001-sim" });
+    expect(raidPlan("00000001-sim", 0)).toEqual({ gap: 7, hour: 1, loss: 13 });
+    expect(m.bought.find((b) => b.item === "guard")?.day).toBe(12);
+    expect(m.days.find((d) => d.day === 12)?.raid).toBe(13);
+  });
+  it("a guard bought exactly at the raid timestamp already protects the town", () => {
+    const base = rows(12, 3, 1200).map((r) => ({ ...r, rank: r.day < 10 ? 3 : 4 }));
+    const m = modelC(base, 0, { ...config, profile: buyer });
+    expect(m.bought.find((b) => b.item === "guard")?.day).toBe(10);
+    expect(m.days.find((d) => d.day === 10)?.raid).toBe(0);
+  });
+  it("different seed calendars match the existing raids function over 730 days", () => {
+    const c0 = Date.parse("2026-11-12T00:00:00Z"), dayMs = 86400000;
+    for (const id of ["00000000-sim", "12345678-sim", "abcdef01-sim"]) {
+      const expected = raids({ id, name: "Sim", owner: "sim", x: 500, y: 340, hue: 0, created_at: new Date(c0).toISOString() }, c0 + 730 * dayMs);
+      const m = modelC(rows(730, 0, 100), 0, { ...config, profile: passive, seedId: id });
+      expect(m.days.filter((d) => d.raid > 0).map((d) => [d.day, d.raid])).toEqual(expected.map((r) => [Math.ceil((r.at - c0) / dayMs), r.loss]));
+    }
+  });
 });
