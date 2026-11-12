@@ -1464,6 +1464,8 @@ export function Game() {
   // Village chronicle: derived from time since the last visit (per village, per device)
   const [chron, setChron] = useState<Chronicle | null>(null);
   const [chronOpen, setChronOpen] = useState(false);
+  // top-right feather only appears while something new waits (chronicle news since last reading, unread gifts)
+  const [chronRead, setChronRead] = useState<number | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
   const [introOpen, setIntroOpen] = useState(false);
   const [welcome, setWelcome] = useState(false);
@@ -1788,11 +1790,18 @@ export function Game() {
     setChron((c) => c ?? chronicle(my, seeds, now - 7 * 864e5, now));
     setScribe((x) => (x === undefined ? null : x));
     setChronBanner(false); setChronOpen(true);
+    localStorage.setItem(`samenland-chron-read-${my.id}`, String(now)); setChronRead(now);
   }
   // heavy derivations refresh every 5 s of world time, not on every pointer move
   const slow = Math.floor(now / 5000) * 5000;
   // Dörfer-Liste: Rang + Bonus je Dorf teuer (townRank) – im Leerlauf häppchenweise berechnen und 5 min cachen
   const townsTick = Math.floor(now / 300000);
+  useEffect(() => { if (my) setChronRead(Number(localStorage.getItem(`samenland-chron-read-${my.id}`) ?? clock())); }, [my?.id]);
+  const chronNews = useMemo(() => {
+    if (!owner || !my || chronRead == null || seeds.length === 0) return false;
+    const c = chronicle(my, seeds, chronRead, slow);
+    return c.events.some((e) => e.code !== "season");
+  }, [owner, my?.id, chronRead, seeds, slow]);
   const townsCache = useRef(new Map<string, { k: string; rank: number; parts: ReturnType<typeof speedParts> }>());
   const [, setTownsVer] = useState(0);
   const townsKey = (s: Seed) => `${s.x},${s.y},${s.created_at},${seeds.length},${townsTick}`;
@@ -3229,9 +3238,10 @@ export function Game() {
           {t.chron.banner(Math.max(1, Math.floor(((chron?.to ?? 0) - (chron?.from ?? 0)) / 864e5)))}
         </button>
       )}
-      {owner && !panelOpen && !chronBanner && (
+      {owner && !panelOpen && !chronBanner && (chronNews || (!!my && thankable(my.id, gifts, now).some((x) => !seenGifts.includes(x.id)))) && (
         <button type="button" onClick={openChron} title={t.chron.open} aria-label={t.chron.open} className="absolute right-3 z-30 grid h-10 w-10 place-items-center rounded-full border-2 border-border bg-card/90 text-foreground shadow" style={{ top: barH + 8 }}>
           <Feather className="h-5 w-5" />
+          <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-card" />
         </button>
       )}
 
