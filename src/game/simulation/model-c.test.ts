@@ -30,19 +30,19 @@ describe("Model C", () => {
     expect(modelC(rows(100, 3, 1000), 0, { profile: P, strategy: "tax_only", taxRate: 0.3 }).invested).toBe(0);
   });
   it("20 % diversion funds the fountain in 120 days of 1,000 tax, never overfunded", () => {
-    const m = modelC(rows(130, 4, 1000), 0, { profile: P, strategy: "tax_only", taxRate: 0.2 });
+    const m = modelC(rows(130, 4, 1000), 0, { profile: P, strategy: "tax_only", taxRate: 0.2, order: ["fountain", "spital"] });
     expect(m.completed[0]).toMatchObject({ key: "fountain", fundedDay: 120 });
     expect(m.manual).toBe(0);
   });
   it("surplus_only diverts no tax and keeps the reserve", () => {
-    const m = modelC(rows(60, 5, 1000), 0, { profile: P, strategy: "surplus_only", taxRate: 0.3 });
+    const m = modelC(rows(60, 5, 1000), 0, { profile: P, strategy: "surplus_only", taxRate: 0.3, order: ["fountain", "spital"] });
     expect(m.taxToProjects).toBe(0);
     expect(m.days.every((d) => d.project === null || d.balance + d.raid >= P.reserve || d.manual === 0)).toBe(true);
   });
   it("all four identities close every day", () => {
     for (const strategy of ["tax_only", "surplus_only", "hybrid"] as const) {
       const base = rows(400, 5, 3000).map((r, i) => ({ ...r, income: r.tax + (i % 7 === 0 ? 500 : 0), spent: i % 30 === 0 ? 2000 : 0, raid: i % 50 === 0 ? 300 : 0 }));
-      const m = modelC(base, 50, { profile: P, strategy, taxRate: 0.1 });
+      const m = modelC(base, 50, { profile: P, strategy, taxRate: 0.1, order: ["fountain", "spital"] });
       expect(m.errors).toEqual([]);
       for (const d of m.days) {
         expect(d.grossTax + d.otherIncome).toBe(d.taxToProjects + d.toChestGross);
@@ -123,7 +123,7 @@ describe("Model C on real 730-day base runs", () => {
   for (const key of ["regelmaessig", "optimierer"] as const) it(`${key}: no negatives, no cap overrun, ledger closes`, () => {
     const r = simulate({ profile: PROFILES[key], charter: "trade", location: BASE_LOCATIONS[0]!, days: 730 });
     for (const strategy of ["tax_only", "surplus_only", "hybrid"] as const) {
-      const m = modelC(r.daily, START_TALER, { profile: PROFILES[key], strategy, taxRate: 0.2, charter: "trade", way: r.way as never });
+      const m = modelC(r.daily, START_TALER, { profile: PROFILES[key], strategy, taxRate: 0.2, order: PROJECTS.map((p) => p.key), charter: "trade", way: r.way as never });
       expect(m.errors).toEqual([]); expect(m.days).toHaveLength(730);
       let previous = START_TALER;
       for (const d of m.days) {
@@ -187,5 +187,45 @@ describe("Model C own raids", () => {
       const m = modelC(rows(730, 0, 100), 0, { ...config, profile: passive, seedId: id });
       expect(m.days.filter((d) => d.raid > 0).map((d) => [d.day, d.raid])).toEqual(expected.map((r) => [Math.ceil((r.at - c0) / dayMs), r.loss]));
     }
+  });
+});
+
+describe("Model C player project choice", () => {
+  const all = PROJECTS.map((p) => p.key);
+  it("without a choice no money flows into projects, for every strategy", () => {
+    for (const strategy of ["tax_only", "surplus_only", "hybrid"] as const) {
+      const m = modelC(rows(200, 5, 2000), 0, { profile: P, strategy, taxRate: 0.3 });
+      expect(m.invested).toBe(0); expect(m.days.every((d) => d.project === null)).toBe(true);
+      expect(modelC(rows(200, 5, 2000), 0, { profile: P, strategy, taxRate: 0.3, choose: () => null }).invested).toBe(0);
+    }
+  });
+  it("the chosen project receives the funding", () => {
+    const m = modelC(rows(60, 4, 1000), 0, { profile: P, strategy: "tax_only", taxRate: 0.2, choose: () => "juergen" });
+    expect(m.days.every((d) => d.project === "juergen")).toBe(true); expect(m.invested).toBe(12000);
+  });
+  it("after funding and construction another project can be chosen, never earlier", () => {
+    const calls: number[] = [];
+    const choose = ({ day, available }: { day: number; available: { key: string }[] }) => { calls.push(day); return available.some((p) => p.key === "bridge") ? "bridge" : "fountain"; };
+    const m = modelC(rows(300, 4, 1000), 0, { profile: P, strategy: "tax_only", taxRate: 0.2, choose });
+    expect(m.completed[0]).toEqual({ key: "bridge", fundedDay: 100, doneDay: 170 });
+    expect(m.days.filter((d) => d.day > 100 && d.day < 170).every((d) => d.project === null && d.taxToProjects === 0)).toBe(true);
+    expect(calls).toEqual([1, 170]); expect(m.days[169]!.project).toBe("fountain");
+  });
+  it("switching during an active project is impossible; money stays bound", () => {
+    let calls = 0;
+    const m = modelC(rows(50, 4, 1000), 0, { profile: P, strategy: "tax_only", taxRate: 0.2, choose: () => (++calls === 1 ? "spital" : "fountain") });
+    expect(calls).toBe(1); expect(m.days.every((d) => d.project === "spital")).toBe(true);
+    expect(m.days.at(-1)!.funded).toBe(10000);
+  });
+  it("a completed project cannot be chosen again", () => {
+    expect(() => modelC(rows(200, 4, 1000), 0, { profile: P, strategy: "tax_only", taxRate: 0.2, choose: () => "fountain" })).toThrow(/not available/);
+  });
+  it("strategies keep their rules with a chosen project", () => {
+    const run = (strategy: "tax_only" | "surplus_only" | "hybrid") => modelC(rows(120, 5, 1500), 0, { profile: P, strategy, taxRate: 0.2, order: all });
+    const t = run("tax_only"), s = run("surplus_only"), h = run("hybrid");
+    expect(t.manual).toBe(0); expect(t.taxToProjects).toBeGreaterThan(0);
+    expect(s.taxToProjects).toBe(0); expect(s.manual).toBeGreaterThan(0);
+    expect(h.taxToProjects).toBeGreaterThan(0); expect(h.manual).toBeGreaterThan(0);
+    for (const m of [t, s, h]) expect(m.errors).toEqual([]);
   });
 });

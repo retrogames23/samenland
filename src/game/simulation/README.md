@@ -24,3 +24,5 @@ Model C computes its own raids with `raidPlan`, ignoring base-row `raid`. The op
 | Fountain | 4,000 / 8,000 / 12,000 | 4,000 / 8,000 / 12,000 | 14 / 21 / 30 |
 | Spital | 10,000 / 18,000 / 22,000 | 10,000 / 18,000 / 22,000 | 21 / 35 / 42 |
 | Bridge | 16,000 / 24,000 | 8,000 / 12,000 | 28 / 42 |
+
+Project choice: the player picks the next project via `choose({ day, rank, available })` or a pre-planned `order` list (CLI passes the full catalog order). Without a pick nothing is diverted or donated. A pick is locked until it is fully funded and its build days have passed; only then is the player asked again. Completed projects are no longer available.
