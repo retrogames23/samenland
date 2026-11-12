@@ -1,23 +1,84 @@
-# Performance-Audit 1 – Diagnose (keine Fixes)
+# Variante 3 – endgültige Spezifikation (Stände-Gating)
 
-Ziel: Herausfinden, wo die Spielgrafik tatsächlich Zeit und Speicher kostet, besonders bei Regen und beim Herauszoomen auf Handys. Das Spielverhalten bleibt dabei unverändert.
+## 1. Qualifizierende Infrastruktur (abschließende Positivliste)
 
-## Schritte
+Abgeglichen mit `ITEM_RANK` (src/game/disasters.ts). Es zählen genau diese 13 Käufe, je Bau einmal, ab `bought.at <= now`:
 
-1. **Architektur lesen**: alle AGENTS.md, Game.tsx-Zeichenschleife (ab ca. Zeile 900), render.ts (draw, drawOverview, drawOverviewTown, overviewKey, groundChunk/drawGroundChunks, groundGeom, drawFlatChunks/bakeFlat/flatCheck/flatTok, alle Caches, frameBakes inkl. Vorausbacken), weather.ts + drawWeather/wxTile, night.ts/beginLit/drawBuildingNight/skyTint, season-art.ts, nature-sprites.ts, people/animals/wander. Bestehende Optimierungen und ihre Kommentare dokumentieren.
-2. **Kleine Messhilfe (nur Diagnose)**: eigenes Modul `src/game/perf-probe.ts`, aktiv nur in DEV oder bei `?perf=1` im Lab. Sonst kostet es nichts, weil es nur einen Schalter prüft.
-   - Zeitmessung je Bereich: gesamtes draw, Übersicht/Normalansicht, Boden-Chunks, Flach-Chunks, Weltabfragen (structureAt, townTiles, links, roadProgress), Bewohner/Tiere, Straßen/Händler, Wetter, Nacht/Licht, Zusätzliches nach draw.
-   - Zähler: geprüfte/sichtbare Tiles, Städte geprüft/gezeichnet, Cache-Treffer und -Fehlgriffe je Cache, neu gebackene Chunks je Frame, Cache-Größen samt geschätztem Speicher, Canvas-Auflösung, DPR.
-   - FPS und Frame-Zeit p50/p95 über ein rollierendes Fenster; Ausgabe in die vorhandene Perf-Anzeige und als JSON-Export (`window.__perf`).
-3. **Testmatrix mit Playwright und Chromium** auf localhost: 10 Szenarien (Desktop/Mobil × nah/maximale Übersicht × klar/Regen, Panning und Zoomen, Nacht mit vielen Städten). Wetter, Tageszeit und Zoom stelle ich über die vorhandenen Lab-Schalter ein. Dazu zwei Welten, eine kleine und eine große: der Lab-Realm und der volle Europa-Realm. Für Mobil emuliere ich das Pixel 8 Pro (412×915, DPR 2 nach der Begrenzung, Touch) und drossle die CPU per CDP (4×). Zusätzlich zeichne ich Chrome-Traces auf, um JS-Zeit von Raster- und GPU-Zeit zu trennen. Der Bericht kennzeichnet ausdrücklich: **keine Messung auf einem echten Pixel**.
-4. **Bericht** (`/mnt/documents/performance-audit-1.md` plus Messdaten-CSV), auf Deutsch:
-   - A. Befunde mit Datei, Funktion, Zeile, Wirkung auf CPU/GPU/RAM und Evidenzgrad (gemessen / aus dem Code ableitbar / Hypothese)
-   - B. Ranking nach Nutzen und Risiko, getrennt nach CPU, GPU/Canvas und RAM
-   - C. höchstens 5 kleine, unabhängige Optimierungen mit Nebenwirkungen, Risiken, Regressionstests und Messmethode
-   - D. strategische Einschätzung der Canvas-Architektur, ohne Empfehlung für einen Umbau
-   - Abschluss: was nachgewiesen ist und was noch gemessen werden muss, z. B. auf einem echten Gerät
+| Rang | Bauten |
+|---|---|
+| 0 | herbs, hunter, fisher, dairy |
+| 1 | backhaus, herberge, woodcamp, granary, healer, bigstore, stonemason, smokehouse |
+| 2 | beginen |
 
-## Grenzen
-- Keine Änderungen an Mechanik, Wachstum, Datenbank, Bildqualität oder Weltlogik. Kein Veröffentlichen.
-- Einzige Code-Änderung: die abschaltbare Messhilfe und ihre Messpunkte in render.ts/Game.tsx. Messpunkte, die abgeschaltet sind, verändern das Bild und die Abläufe nicht. Nach dem Audit kann die Messhilfe drinbleiben oder auf Wunsch wieder entfernt werden.
-- Ein echtes Pixel 8 Pro steht mir nicht zur Verfügung. Die Mobilwerte sind deshalb Emulation und als solche gekennzeichnet.
+Bewusst ausgeschlossen:
+- markethall, guildhall, library (Rang 0 in ITEM_RANK, aber Repräsentations-/Kulturbauten, kein Dorfgewerbe; wirken bereits über den Wohlstand).
+- badestube, school, firehouse, millrow, hammerworks, saltquay (Rang 3) und guard (Rang 4): städtische Bauten, dürfen die Dorfphase nicht beeinflussen. Die Schule ist Schalter, kein Zählbau.
+- rank2/rank3, title1–3, Charta, Monumente, Segen, Straßen-Beschlüsse im Bau.
+
+Abgeschlossene Handelsstraße: ein Eintrag in `s.civicRoads`, also ein Partnerdorf, für das `roadDone(s, o)` einen Zeitpunkt liefert, mit `at <= now`. Jede Partnerstraße zählt einmal; höchstens 3 Straßen werden angerechnet (gleiche Obergrenze wie in `civicWealth`). Geplante oder im Bau befindliche Straßen zählen nicht.
+
+`n = gezählte Bauten + min(3, fertige Straßen)`.
+
+## 2. Progressionsregel
+
+Steuer je Kopf: `1 + s + 2w` (s = Anteil Gesellen, w = Anteil Wohlhabende). `L = estateShares(wealth)` ist die bisherige Verteilung; jede Stufe ist zusätzlich durch L nach oben begrenzt, sodass nie mehr gezahlt wird als heute.
+
+Rang `r` = derselbe Stadtrang, der heute die Kaufsperre nach ITEM_RANK steuert. `school = owns(s, "school", now)`.
+
+```text
+Weiler/Dorf (r <= 2), sowie Kleinstadt ohne Schule:
+  s = min(L.skilled, 0.04 + 0.025·n, 0.20)      w = 0
+  -> 1,04 bis höchstens 1,20 M/Kopf
+
+Kleinstadt mit Schule (r = 3):
+  s = min(L.skilled, 0.35)                        w = min(L.wealthy, 0.05)
+  -> höchstens 1 + 0,35 + 0,10 = 1,45 M/Kopf
+
+Handelsstadt (r >= 4), k = min(1, Tage seit Erreichen von r4 / 14):
+  s = min(L.skilled, 0.35 + k·(0.55 − 0.35))
+  w = school ? min(L.wealthy, 0.05 + k·(L.wealthy − 0.05)) : 0
+  -> nach 14 Tagen volle bisherige Verteilung L (max. ~2,08 M/Kopf)
+```
+
+Übergänge rechnerisch:
+- Dorf -> Kleinstadt mit Schule: höchstens 1,20 -> 1,45 (+0,25 M, +20,8 %).
+- Kleinstadt -> Handelsstadt: über 14 Tage linear bis L; kein Sprung an einem Tag.
+- Ohne Schule bleibt w in jeder Stufe 0.
+
+Haushaltszuordnung: `estateAt` behält den festen Kachel-Wurf `roll`; wohlhabend wenn `roll < w`, Geselle wenn `roll < w + s`. Steigende Anteile befördern also nur Haushalte, nie zurück, solange die Anteile wachsen.
+
+## 3. SQL
+
+Keine Migration.
+- `estate_assessment` wird nur noch von `village_capped_tax_fast` (0096) für Tage vor dem ersten Steuerbeleg aufgerufen, also für die eingefrorenen Altsalden über `village_balance_legacy` (0107). Eine Änderung würde historische Kassenstände verschieben – verboten.
+- Seit dem Cutover stammen Steuern ausschließlich aus `tax_receipts`, geschrieben vom Server über `residentTax()`. Die neue Regel greift damit automatisch nur für neue Belege.
+- `village_civic_wealth` (Hochzeiten, Altsalden) bleibt unverändert, weil der Wohlstandswert selbst unverändert bleibt.
+- Keine überladene Funktion, da kein aktueller Aufrufer sie braucht.
+
+## 4. Betroffene TypeScript-Dateien
+
+1. `src/game/prosperity.ts`: `ESTATE_INFRA`-Positivliste, `infraCount(s, now)`, `estateCaps(s, now)` (liefert s/w nach Abschnitt 2), `estateAt(shares, x, y)` und `estateAssessment(pop, shares)` nehmen die gedeckelten Anteile statt des Wohlstands. Wohlstandsanzeige bleibt `civicWealth`.
+2. `src/game/resident-tax.ts`: Anteile einmal je Seed/Stichtag über `estateCaps` und an `estateAt` übergeben.
+3. `src/game/people.ts` (`townOf`, Z. 285): dieselben Anteile für `p.estate`.
+4. `src/game/world.ts` (`structureAt`, Z. 837): dieselben Anteile für `estateHouse` – Haus, Bürgerrolle und Steuer bleiben deckungsgleich.
+5. `src/game/economy.ts` (`taxOnDay`, `dailyTax`): nur für Tage nach dem Cutover die neuen Anteile; davor unverändert die bisherige Formel, damit lokale Altsalden zur Datenbank passen.
+6. Unverändert, erben automatisch: `src/lib/treasury.server.ts`, `src/game/simulation/engine.ts`, `model-c.ts`.
+7. `src/game/i18n.ts`/Sprachdateien: nur falls das Bürgerbuch einen Hinweis „Wohlhabende erst mit Schule" zeigen soll (optional, nicht Teil der Regel).
+
+## 5. Tests
+
+- `prosperity.test.ts`: Positivliste exakt 13 Einträge und alle mit ITEM_RANK <= 2; ausgeschlossene Bauten zählen nicht; Kauf zählt erst ab `at`; Straße zählt erst ab Fertigstellung, max. 3; n=0 -> s=0,04; n=4 -> 0,14; n>=7 -> 0,20; w=0 ohne Schule in jedem Rang; Kleinstadt+Schule -> Kopfsteuer <= 1,45; Handelsstadt Tag 0 = Kleinstadtwerte, Tag 14 = L; nie über L.
+- `resident-tax.test.ts`: Summe der Haushaltsstände = aggregierte Steuer; vor Cutover unverändert.
+- `census.test.ts`: Bürgerbuch-Zählung = Steuerstände.
+- Konsistenztest: für dieselbe Kachel liefern people.ts, world.ts und resident-tax.ts denselben Stand.
+- `economy`-Regression: Saldo vor Cutover byte-identisch zum Stand vor der Änderung.
+- `engine.test.ts`, `model-c.test.ts`: laufen weiter grün.
+
+## 6. Reihenfolge
+
+1. prosperity.ts: Liste, `infraCount`, `estateCaps` + Unit-Tests (noch ohne Aufrufer).
+2. resident-tax.ts umstellen + Tests; Altsaldo-Regression.
+3. people.ts und world.ts umstellen + Konsistenztest.
+4. economy.ts (nur Tage nach Cutover) + Regression.
+5. Simulation der 5 Profile inkl. investierendem Gelegenheitsspieler, Tag 1 bis Handelsstadt, zur Kontrolle.
+6. Veröffentlichung erst nach Freigabe.
