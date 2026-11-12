@@ -1828,7 +1828,7 @@ export function Game() {
     return () => { dead = true; clearTimeout(timer); };
   }, [tab, seeds, townsTick]);
   const { cash, myRank, myStage, myTown, at, pop, residents, season, nbs, larder, boons, rankHint } = useMemo(() => {
-    const cash = my ? (accounting?.seed === my.id && accounting.active ? accounting.balance : treasury(my, purchases, slow, gifts, claims)) : 0;
+    const cash = my ? (accounting?.seed === my.id && accounting.active ? accounting.balance : treasury(my, purchases, slow, gifts, claims, undefined, seeds)) : 0;
     const myRank = my ? townRank(my, seeds, slow) : 0;
     // shop/monuments: the earned rank alone — the server re-counts it before every rank-gated purchase
     const myStage = myRank;
@@ -1837,7 +1837,7 @@ export function Game() {
     const larder = my ? larderOf(my, seeds, slow) : null;
     const boons = larder ? boonsOf(larder) : null;
     const at = my ? attributes(my, seeds, purchases, slow, myTown!.weddings.filter((w) => w.alliance).length, boons ?? undefined) : null;
-    const pop = my ? (accounting?.seed === my.id && accounting.active ? accounting.daily : dailyTax(my, ageHours(my, slow))) : 0;
+    const pop = my ? (accounting?.seed === my.id && accounting.active ? accounting.daily : dailyTax(my, ageHours(my, slow), seeds)) : 0;
     const residents = myTown ? citizensOf(myTown).length : 0;
     const sw = seasonAt(slow);
     const season = (Object.keys(sw) as (keyof typeof sw)[]).reduce((a, b) => (sw[b] > sw[a] ? b : a));
