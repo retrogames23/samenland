@@ -98,3 +98,17 @@ describe("treasury walks the same tax as residentTax with the network", () => {
     expect(taxOnDay(b[0]!, d, b)).toBe(residentTax(b[0]!, b, at).income);
   }, 120000);
 });
+
+describe("a settlement day exactly at CAP_ALL_SINCE", () => {
+  const start = CAP_ALL_SINCE - 10 * DAY;
+  const s = { id: "edge", name: "t", owner: "L", hue: 1, x: 306, y: 420, user_id: "u", created_at: new Date(start).toISOString(), bought: [], roads: [{ target: "nb1", at: start + DAY }], civicRoads: [{ at: start + DAY }] } as unknown as Seed;
+  const seeds = [s, { id: "nb1", name: "n", owner: "nb", hue: 0, x: 321, y: 420, created_at: new Date(start - 60 * DAY).toISOString() } as unknown as Seed];
+  it("is booked once in the walk with the full network", () => {
+    const full = residentTax(s, seeds, CAP_ALL_SINCE).income;
+    expect(full).not.toBe(residentTax(s, [s], CAP_ALL_SINCE).income);
+    const before = treasury(s, [], CAP_ALL_SINCE - 1, [], [], CAP_ALL_SINCE, seeds);
+    const at = treasury(s, [], CAP_ALL_SINCE, [], [], CAP_ALL_SINCE, seeds);
+    expect(at - before).toBe(full);
+    expect(treasury(s, [], CAP_ALL_SINCE + DAY / 2, [], [], CAP_ALL_SINCE, seeds)).toBe(at);
+  }, 120000);
+});

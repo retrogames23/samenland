@@ -188,7 +188,7 @@ function raidLedger(s: Seed, now: number): [number, number][] {
  * Taxes that actually reached the chest: day by day, entries booked before the settlement count, and from
  * CHEST_SINCE on the day's tax only fills the room left below the chest cap. Mirrors DB village_capped_tax.
  */
-export function cappedTax(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = []) {
+export function cappedTax(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = [], before = Infinity) {
   const c0 = Date.parse(s.created_at);
   const days = Math.floor((now - c0) / 86400000);
   const byDay = new Map<number, number>();
@@ -201,6 +201,7 @@ export function cappedTax(s: Seed, purchases: Purchase[], now: number, gifts: Gi
   for (let d = 1; d <= days; d++) {
     run += byDay.get(d - 1) ?? 0;
     const at = c0 + d * 86400000;
+    if (at >= before) break; // the day exactly at the walk start belongs to the walk (full network)
     let a = taxOnDay(s, d);
     if (at >= CHEST_SINCE && s.user_id) a = Math.min(a, Math.max(0, chestCap(s.id, mine, at) - run));
     run += a; tax += a;
@@ -209,11 +210,11 @@ export function cappedTax(s: Seed, purchases: Purchase[], now: number, gifts: Gi
 }
 
 /** Pre-rule balance formula: taxes capped day by day, dowries after CHEST_SINCE capped once, other income uncapped. */
-function legacyTreasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = []) {
+function legacyTreasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = [], before = Infinity) {
   const spent = purchases.filter((p) => p.seed_id === s.id).reduce((a, p) => a + p.cost, 0);
   const ev = (s.decisions ?? []).reduce((a, d) => a + d.cost, 0);
   const tw = (s.works ?? []).reduce((a, w) => a + w.cost, 0);
-  const base = START_TALER + cappedTax(s, purchases, now, gifts, claims) - spent - ev - tw + giftBalance(s.id, gifts) + questEarned(claims, s.id);
+  const base = START_TALER + cappedTax(s, purchases, now, gifts, claims, before) - spent - ev - tw + giftBalance(s.id, gifts) + questEarned(claims, s.id);
   const dOld = Date.parse(s.created_at) < CHEST_SINCE ? dowryEarned(s, Math.min(now, CHEST_SINCE)) : 0;
   let dNew = dowryEarned(s, now) - dOld;
   if (s.user_id) dNew = Math.min(dNew, Math.max(0, chestCap(s.id, purchases, now) - base - dOld));
@@ -244,10 +245,10 @@ export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gif
   if (!s.user_id || now < since) return legacyTreasury(s, purchases, now, gifts, claims);
   const T = since, pre = (iso: string) => Date.parse(iso) < T;
   const pre0 = { ...s, decisions: (s.decisions ?? []).filter((d) => d.at < T), works: (s.works ?? []).filter((w) => w.at < T) };
-  const start = legacyTreasury(pre0, purchases.filter((p) => pre(p.created_at)), T, gifts.filter((g) => pre(g.created_at)), claims.filter((c) => pre(c.created_at)));
+  const start = legacyTreasury(pre0, purchases.filter((p) => pre(p.created_at)), T, gifts.filter((g) => pre(g.created_at)), claims.filter((c) => pre(c.created_at)), T);
   const ev: ChestEvent[] = [];
   const c0 = Date.parse(s.created_at);
-  for (let d = Math.max(1, Math.floor((T - c0) / 86400000) + 1); c0 + d * 86400000 <= now; d++) ev.push({ t: c0 + d * 86400000, r: 0, v: taxOnDay(s, d, seeds), k: `d${d}` });
+  for (let d = Math.max(1, Math.ceil((T - c0) / 86400000)); c0 + d * 86400000 <= now; d++) ev.push({ t: c0 + d * 86400000, r: 0, v: taxOnDay(s, d, seeds), k: `d${d}` });
   for (const w of weddingDates(s, now)) if (w.at > T) ev.push({ t: w.at, r: 1, v: w.dowry, k: `w${w.k}` });
   ledger(s, purchases, gifts, claims).forEach(([t, v], i) => { if (t >= T && t <= now && v !== 0) ev.push({ t, r: v > 0 ? 2 : 3, v, k: `l${i}` }); });
   for (const r of raids(s, now)) if (r.at > T && r.loss > 0) ev.push({ t: r.at, r: 4, v: r.loss, k: `r${r.at}` });
