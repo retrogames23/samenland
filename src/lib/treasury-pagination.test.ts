@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-type Row = Record<string, unknown>;
-const db: { tables: Record<string, Row[]>; fail?: { table: string; from: number }; ranges: string[] } = { tables: {}, ranges: [] };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Row = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db: { tables: any; fail?: { table: string; from: number }; ranges: string[] } = { tables: {}, ranges: [] };
 
 // Minimal PostgREST stand-in: eq/in/gte filters, multi-key order, range slicing, upsert with unique key.
 vi.mock("@/integrations/supabase/client.server", () => ({
