@@ -83,6 +83,8 @@ describe("treasury walks the same tax as residentTax with the network", () => {
     return [s, { id: "nb1", name: "n", owner: "nb", hue: 0, x: 321, y: 420, created_at: new Date(start - 60 * DAY).toISOString() } as unknown as Seed];
   };
   const purchases = items.map((item, i) => ({ id: `p${i}`, seed_id: "tw", item, cost: 0, created_at: new Date(start).toISOString() }));
+  // a large pre-cutover spend empties the chest, so the cap leaves room for the whole cutover-day tax
+  purchases.push({ id: "drain", seed_id: "tw", item: "x", cost: 1e6, created_at: new Date(CAP_ALL_SINCE - 3600e3).toISOString() });
   const d = Math.floor((CAP_ALL_SINCE - start) / DAY) + 1, at = start + d * DAY;
   it("the cutover day's booking equals residentTax with the trade road", () => {
     const seeds = mk(start + 14 * DAY), s = seeds[0]!;
