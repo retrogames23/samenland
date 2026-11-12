@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { taxOnDay, taxEarned, dailyTax, treasury, assessAt, CAP_ALL_SINCE } from "./economy";
-import { civicWealth, estateAssessment, sickLoss, sickTaxRate } from "./prosperity";
+import { civicWealth, estateAssessment } from "./prosperity";
 import { residentTax, taxSharesAt } from "./resident-tax";
 import { rankInput, townRank } from "./rank";
 import type { Seed } from "./world";
@@ -69,9 +69,7 @@ describe("client fallback equals server receipts (residentTax) with the full net
     const seeds = world(2), s = seeds[0]!, r = residentTax(s, seeds, at);
     const sh = taxSharesAt(s, seeds, at).shares, p = r.population;
     const aggregate = p + Math.floor(p * sh.skilled) + 2 * Math.floor(p * sh.wealthy);
-    const viaAggregate = aggregate - sickLoss(aggregate, sickTaxRate(s, at));
     expect(taxOnDay(s, d, seeds)).toBe(r.income);
     expect(r.assessed).not.toBe(aggregate);
-    void viaAggregate;
   }, 120000);
 });
