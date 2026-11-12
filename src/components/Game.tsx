@@ -1629,6 +1629,8 @@ export function Game() {
   useEffect(() => { if (!visitNote) return; const h = setTimeout(() => setVisitNote(null), 9000); return () => clearTimeout(h); }, [visitNote]);
   visitFn.current = (o, my) => {
     if (!owner || my.user_id !== userId) { visitSeen.current.delete(o.id); return; }
+    // claim_visit only pays within 200 tiles of the own village — say so instead of staying silent
+    if (Math.hypot(my.x - o.x, my.y - o.y) > 200) { setVisitNote(t.visit.far(o.name)); return; }
     supabase.rpc("claim_visit", { _seed: my.id, _visited: o.id }).then(({ data, error }) => {
       if (error) return;
       if (!data) {
