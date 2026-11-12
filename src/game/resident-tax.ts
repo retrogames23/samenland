@@ -1,5 +1,5 @@
 import { householdsOf, type Household } from "./households";
-import { civicWealth, estateAt, estateOf, gatedEstateShares, infraCount, ESTATE_TAX, sickLoss, sickTaxRate, CULTURE_SICK, BEGINEN_SICK } from "./prosperity";
+import { estateAt, estateOf, sharesAt, ESTATE_TAX, sickLoss, sickTaxRate, CULTURE_SICK, BEGINEN_SICK } from "./prosperity";
 import { townRank } from "./rank";
 import type { Seed } from "./world";
 
@@ -14,9 +14,7 @@ export function assessHomesWith(homes: Household[], sh: TaxShares) {
 }
 /** Gated shares valid at `at`: civic wealth, real rank, school bought by then, qualifying infrastructure. */
 export function taxSharesAt(s: Seed, seeds: Seed[], at: number) {
-  const wealth = civicWealth(s, at), rank = townRank(s, seeds, at);
-  const hasSchool = (s.bought ?? []).some((b) => b.item === "school" && b.at <= at), infra = infraCount(s, at);
-  return { wealth, rank, hasSchool, infra, shares: gatedEstateShares(wealth, rank, hasSchool, infra) };
+  return sharesAt(s, at, townRank(s, seeds, at));
 }
 
 /** Tax follows occupied families. Visitors and the mayor's separately spawned avatar are not taxpayers. */

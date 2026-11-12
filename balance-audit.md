@@ -1,9 +1,11 @@
 # Bewohnergebundene Steuer: Ergebnis und Aktivierungsgrenzen
 
 ## Status
-Die gemeinsame Haushaltsberechnung wird von der Bevölkerung und der neuen Steuerbewertung verwendet. Die neue Kassenabrechnung ist vorbereitet, aber bewusst **nicht aktiviert**: `tax_cutover` enthält keinen Eintrag. Bestehende Guthaben und Kaufprüfungen bleiben unverändert. Keine rückwirkende Kürzung.
+**Aktueller Produktionszustand (geprüft am 12.11.2026):** Die Belegabrechnung ist aktiv. Migration `0055_activate_tax_receipts.sql` wurde in der Produktionsdatenbank eingespielt und hat `tax_cutover` gesetzt: ein Datensatz, `at = 2026-10-31 02:43:22 UTC`. In `tax_receipts` lagen zum Prüfzeitpunkt 275 Belege (Tage 1–35). Seit diesem Zeitpunkt stammen neue Steuertage ausschließlich aus Serverbelegen über `residentTax()`; Tage davor bleiben über die Altfunktionen eingefroren. Keine rückwirkende Kürzung.
 
-Vor Aktivierung erforderlich: vollständige paginierte Eingaben für große Welten, Messung des CPU-Budgets auf dem veröffentlichten Laufzeitsystem, angemeldeter Kauf mit anschließendem Kassenvergleich, Prüfung sämtlicher Kassenanzeigen und Fehlerzustände. Der angemeldete Test scheitert derzeit an einer fehlenden Testsitzung des anfragenden Kontos.
+**Historischer Zustand vor dem Cutover (bis 31.10.2026):** Die Belegabrechnung war vorbereitet, aber nicht aktiviert; `tax_cutover` enthielt damals keinen Eintrag, Kassen liefen über die Altformel. Die folgenden Abschnitte beschreiben die Analyse aus dieser Zeit.
+
+Damals als Voraussetzung genannt und weiterhin offen bzw. gesondert zu bearbeiten: vollständige paginierte Eingaben für große Welten (`loadEconomyInput`, `bookedDays`), Messung des CPU-Budgets auf dem veröffentlichten Laufzeitsystem.
 
 ## Reproduzierbare Simulation
 Start 1. Januar 2026 UTC, alleinstehender Ort bei 306/420. Versorgung: Jäger Tag 2, Kräuterhütte Tag 5, Fischer Tag 10, Kornspeicher Tag 45, Heiler Tag 100. Keine Charta, Nachbarn, Aufgaben oder aktive Begegnungsausgaben. Einnahmen werden täglich zum selben Gründungszeitpunkt bewertet; Mitgift und Raubverluste sind enthalten. Das ist ein Vergleichsszenario, keine Vorhersage für jeden Ort.
