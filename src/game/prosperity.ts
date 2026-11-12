@@ -69,3 +69,25 @@ export const CULTURE_SICK = 0.02;
 /** Beguines nurse the sick: fewer households fall ill (live villagers and new resident-tax receipts only, never legacy tax). */
 export const BEGINEN_SICK = 0.015;
 export const sickLoss = (assessed: number, rate: number) => Math.floor(assessed * rate * SICK_SHARE);
+
+/** Village-phase tax gating (Option A): the 13 purchasable works that let skilled trades settle.
+ * Representative halls, small-town buildings (bathhouse, school, firehouse …) and monuments never count. */
+export const INFRA_ITEMS = ["herbs", "hunter", "fisher", "dairy", "backhaus", "herberge", "woodcamp", "granary", "healer", "bigstore", "stonemason", "smokehouse", "beginen"] as const;
+const INFRA_SET = new Set<string>(INFRA_ITEMS);
+export const INFRA_ROAD_CAP = 3;
+/** Qualifying purchases (from purchase time, each once) plus finished roads (r.at <= now, at most three). */
+export function infraCount(s: Seed, now: number): number {
+  const own = new Set((s.bought ?? []).filter((b) => b.at <= now && INFRA_SET.has(b.item)).map((b) => b.item));
+  const roads = Math.min(INFRA_ROAD_CAP, (s.civicRoads ?? []).filter((r) => r.at <= now).length);
+  return own.size + roads;
+}
+/** Gated estate shares; L = estateShares(wealth) is the ceiling for every share. Pure: rank comes in as a number. */
+export function gatedEstateShares(wealth: number, rank: number, hasSchool: boolean, infra: number) {
+  const L = estateShares(wealth);
+  let skilled: number, wealthy: number;
+  if (!hasSchool || rank <= 2) { skilled = Math.min(L.skilled, 0.04 + 0.025 * Math.max(0, infra), 0.2); wealthy = 0; }
+  else if (rank === 3) { skilled = Math.min(L.skilled, 0.35); wealthy = Math.min(L.wealthy, 0.05); }
+  else if (rank === 4) { skilled = Math.min(L.skilled, 0.45); wealthy = Math.min(L.wealthy, 0.15); }
+  else { skilled = L.skilled; wealthy = L.wealthy; }
+  return { ordinary: 1 - skilled - wealthy, skilled, wealthy };
+}
