@@ -148,7 +148,7 @@ export const fr: Dict = {
     opera1: ["Cour d'Artus", "Bâtiment de prestige en 4 étapes. Terminé : +25 prospérité"],
     backhaus: ["Four banal", "Dès le hameau : 10 % de grain en moins, +5 santé, jour de cuisson au four commun"],
     herberge: ["Auberge des compagnons", "Dès le hameau : bâtiments achetés 15 % plus vite, +5 prospérité"],
-    badestube: ["Étuves", "Dès la petite ville : +10 santé, +5 prospérité, bain le samedi"],
+    badestube: ["Étuves", "Dès le village : +10 santé, +5 prospérité, bain le samedi"],
     beginen: ["Béguinage", "Dès la petite ville : +15 prospérité, +10 santé, moins de malades"],
     bigstore: ["Grand grenier", "Greniers à blé seulement : +15 vivres, +5 prospérité"],
     stonemason: ["Loge des tailleurs de pierre", "Ateliers des collines seulement : +10 prospérité, +10 santé"],

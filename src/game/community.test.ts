@@ -13,7 +13,7 @@ describe("community buildings", () => {
   });
   it("bathhouse costs 700 Mark, unlocks at Kleinstadt, +10 health +5 prosperity, bath day Saturday", () => {
     expect(ITEMS.badestube).toBe(700);
-    expect(ITEM_RANK["badestube"]).toBe(3);
+    expect(ITEM_RANK["badestube"]).toBe(2);
     expect([BADESTUBE_HEALTH, BADESTUBE_WEALTH]).toEqual([10, 5]);
     expect(SPECIAL_KIND["badestube"]).toBe("badestube");
     expect(BATH_DAY).toBe(6);
