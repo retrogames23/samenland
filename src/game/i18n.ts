@@ -183,6 +183,7 @@ const de = {
     guildhall: ["Zunfthaus", "Zunftbau des Handwerks: viel mehr Wohlstand"],
     library: ["Bibliothek", "Zunftbau der Gelehrten: Gesundheit und Wohlstand"],
     dairy: ["Käserei", "Zunftbau der Bauern: viel mehr Nahrung, etwas Wohlstand"],
+    fireorder: ["Feuerordnung", "Feuerhaken, Leitern und Ledereimer am Platz, Herdfeuer aus beim Abendläuten: seltener und kürzere Brände, weniger Dächer, kaum ein Haus brennt nieder"],
     firehouse: ["Löschgerätehaus", "Löschordnung: viel seltener Brände, kein Haus brennt mehr nieder"],
     guard: ["Bürgerwache", "Wachstube: Räuber werden gefasst, keine Steuerausfälle mehr"],
   } as Record<string, [string, string]>,
@@ -194,7 +195,7 @@ const de = {
   docTitle: "Samenland Dorf-Simulation – Pflanze einen Samen. Sieh ihm beim Wachsen zu.",
   buyFail: "Der Bau wurde abgelehnt – bitte versuch es erneut.",
   needStage: (n: string) => `Erst ab ${n}`,
-  woe: { fire: ["Feuer!", (t: string, w: boolean, d: boolean) => `In ${t} steht ein Dach in Flammen.${w ? " Eine Eimerkette vom Wasser hält den Brand klein." : " Ohne Wasser in der Nähe greift das Feuer auf die Nachbarhäuser über."}${d ? " Ein Mensch kam in den Flammen ums Leben." : ""} Die Familien kommen bei Nachbarn unter, bis neu gebaut ist.`] as [string, (t: string, w: boolean, d: boolean) => string], fireGuarded: ["Feuer gelöscht!", (t: string) => `Die Brandwächter von ${t} rücken mit Feuerhaken und Ledereimern aus – der Brand ist gelöscht, bevor er Schaden anrichtet.`] as [string, (t: string) => string], flood: ["Hochwasser!", (t: string) => `Der Fluss tritt über die Ufer. In ${t} stehen Ufergärten und Felder unter Wasser – die Ernte fällt aus, manche Häuser müssen neu gebaut werden. Doch der Schlamm macht die Äcker danach umso fruchtbarer.`] as [string, (t: string) => string], raid: ["Räuber im Dorf!", (t: string, n: number) => `Ein Räuber schleicht durch ${t} und plündert Häuser. Die Bestohlenen können ihre Steuern nicht zahlen: −${n} Mark.`] as [string, (t: string, n: number) => string], caught: ["Räuber gefasst!", (t: string) => `Die Bürgerwache von ${t} stellt einen Räuber auf frischer Tat. Niemand kommt zu Schaden.`] as [string, (t: string) => string], go: "Zur Stelle blicken" },
+  woe: { fireOrder: "Die Feuerordnung greift: Haken und Ledereimer sind rasch zur Hand.", fire: ["Feuer!", (t: string, w: boolean, d: boolean) => `In ${t} steht ein Dach in Flammen.${w ? " Eine Eimerkette vom Wasser hält den Brand klein." : " Ohne Wasser in der Nähe greift das Feuer auf die Nachbarhäuser über."}${d ? " Ein Mensch kam in den Flammen ums Leben." : ""} Die Familien kommen bei Nachbarn unter, bis neu gebaut ist.`] as [string, (t: string, w: boolean, d: boolean) => string], fireGuarded: ["Feuer gelöscht!", (t: string) => `Die Brandwächter von ${t} rücken mit Feuerhaken und Ledereimern aus – der Brand ist gelöscht, bevor er Schaden anrichtet.`] as [string, (t: string) => string], flood: ["Hochwasser!", (t: string) => `Der Fluss tritt über die Ufer. In ${t} stehen Ufergärten und Felder unter Wasser – die Ernte fällt aus, manche Häuser müssen neu gebaut werden. Doch der Schlamm macht die Äcker danach umso fruchtbarer.`] as [string, (t: string) => string], raid: ["Räuber im Dorf!", (t: string, n: number) => `Ein Räuber schleicht durch ${t} und plündert Häuser. Die Bestohlenen können ihre Steuern nicht zahlen: −${n} Mark.`] as [string, (t: string, n: number) => string], caught: ["Räuber gefasst!", (t: string) => `Die Bürgerwache von ${t} stellt einen Räuber auf frischer Tat. Niemand kommt zu Schaden.`] as [string, (t: string) => string], go: "Zur Stelle blicken" },
   age: (h: number) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))} Min.`
@@ -563,6 +564,7 @@ const en: typeof de = {
     guildhall: ["Guild hall", "Craft guild building: much more prosperity"],
     library: ["Library", "Scholars' guild building: health and prosperity"],
     dairy: ["Dairy", "Farmers' guild building: much more food, some prosperity"],
+    fireorder: ["Fire order", "Fire hooks, ladders and leather buckets on the green, hearths out at the evening bell: rarer, shorter fires, fewer roofs, hardly a house burns down"],
     firehouse: ["Fire-hook shed", "Fire watch: far fewer fires, no house burns down"],
     guard: ["Citizens' watch", "Guardhouse: robbers are caught, no more lost taxes"],
   },
@@ -574,7 +576,7 @@ const en: typeof de = {
   docTitle: "Samenland Village Sim – Plant a Seed. Watch it Grow.",
   buyFail: "The purchase was refused – please try again.",
   needStage: (n) => `Only from ${n}`,
-  woe: { fire: ["Fire!", (t, w, d) => `A roof is ablaze in ${t}.${w ? " A bucket chain from the water keeps the fire small." : " With no water nearby the fire spreads to neighbouring houses."}${d ? " One villager died in the flames." : ""} The families stay with neighbours until they rebuild.`], fireGuarded: ["Fire put out!", (t) => `The fire wardens of ${t} rush out with hooks and leather buckets – the blaze is out before it does any harm.`], flood: ["Flood!", (t) => `The river bursts its banks. In ${t} shore gardens and fields are under water – the harvest is lost and some houses must be rebuilt. But the silt makes the fields all the richer afterwards.`], raid: ["Robber in the village!", (t, n) => `A robber sneaks through ${t} and loots houses. The robbed cannot pay their taxes: −${n} Mark.`], caught: ["Robber caught!", (t) => `The citizens' watch of ${t} catches a robber red-handed. No one comes to harm.`], go: "Look there" },
+  woe: { fireOrder: "The fire order holds: hooks and leather buckets are quickly at hand.", fire: ["Fire!", (t, w, d) => `A roof is ablaze in ${t}.${w ? " A bucket chain from the water keeps the fire small." : " With no water nearby the fire spreads to neighbouring houses."}${d ? " One villager died in the flames." : ""} The families stay with neighbours until they rebuild.`], fireGuarded: ["Fire put out!", (t) => `The fire wardens of ${t} rush out with hooks and leather buckets – the blaze is out before it does any harm.`], flood: ["Flood!", (t) => `The river bursts its banks. In ${t} shore gardens and fields are under water – the harvest is lost and some houses must be rebuilt. But the silt makes the fields all the richer afterwards.`], raid: ["Robber in the village!", (t, n) => `A robber sneaks through ${t} and loots houses. The robbed cannot pay their taxes: −${n} Mark.`], caught: ["Robber caught!", (t) => `The citizens' watch of ${t} catches a robber red-handed. No one comes to harm.`], go: "Look there" },
   age: (h) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))} min`
@@ -943,6 +945,7 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
     guildhall: ["行会大厅", "工匠行会建筑：大幅提升繁荣"],
     library: ["藏书馆", "学者行会建筑：增进健康与繁荣"],
     dairy: ["乳品坊", "农人行会建筑：大幅增加食物，略增繁荣"],
+    fireorder: ["防火规约", "广场备好火钩、梯子与皮水桶，晚钟后熄灭灶火：火灾更少更短，烧到的屋顶更少，房屋几乎不会烧毁"],
     firehouse: ["火钩棚", "消防队：火灾大幅减少，房屋不再烧毁"],
     guard: ["镇卫", "卫所：抓捕盗贼，税款不再流失"],
   },
@@ -954,7 +957,7 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
   docTitle: "Samenland – 村庄模拟 – 播下一粒种子。看它慢慢生长。",
   buyFail: "购买未获准——请再试一次。",
   needStage: (n) => `需达到${n}阶段`,
-  woe: { fire: ["失火了！", (t, w, d) => `${t}的一处屋顶着火了。${w ? " 村民从水边接力传桶，控制住了火势。" : " 附近无水，火势蔓延到了邻家。"}${d ? " 一位村民葬身火海。" : ""} 重建之前，受灾人家暂住在邻居家中。`], fireGuarded: ["火扑灭了！", (t) => `${t}的救火人带着火钩、梯子赶来——火还未造成损害就被扑灭了。`], flood: ["洪水来了！", (t) => `河水漫过堤岸。${t}岸边的菜园与农田被淹——收成尽失，一些房屋也须重建。不过，退水后留下的淤泥会让土地更加肥沃。`], raid: ["村里进贼了！", (t, n) => `一个盗贼潜入${t}，洗劫民宅。受害人家无力缴税：−${n}马克。`], caught: ["抓住盗贼了！", (t) => `${t}的镇卫当场抓住了一名盗贼，无人受害。`], go: "前去看看" },
+  woe: { fireOrder: "防火规约见效：火钩与皮水桶很快就到了。", fire: ["失火了！", (t, w, d) => `${t}的一处屋顶着火了。${w ? " 村民从水边接力传桶，控制住了火势。" : " 附近无水，火势蔓延到了邻家。"}${d ? " 一位村民葬身火海。" : ""} 重建之前，受灾人家暂住在邻居家中。`], fireGuarded: ["火扑灭了！", (t) => `${t}的救火人带着火钩、梯子赶来——火还未造成损害就被扑灭了。`], flood: ["洪水来了！", (t) => `河水漫过堤岸。${t}岸边的菜园与农田被淹——收成尽失，一些房屋也须重建。不过，退水后留下的淤泥会让土地更加肥沃。`], raid: ["村里进贼了！", (t, n) => `一个盗贼潜入${t}，洗劫民宅。受害人家无力缴税：−${n}马克。`], caught: ["抓住盗贼了！", (t) => `${t}的镇卫当场抓住了一名盗贼，无人受害。`], go: "前去看看" },
   age: (h) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))}分钟`
@@ -1324,6 +1327,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
     guildhall: ["ギルド会館", "職人ギルドの建物：繁栄が大きく高まります"],
     library: ["図書館", "学者ギルドの建物：健康と繁栄が高まります"],
     dairy: ["酪農所", "農民ギルドの建物：食料が大きく増え、繁栄も少し高まります"],
+    fireorder: ["火の用心の掟", "広場に鳶口・梯子・革の手桶を備え、晩鐘で炉の火を落とす：火事が減って短くなり、焼ける屋根も少なく、家はほとんど焼け落ちません"],
     firehouse: ["鳶口小屋", "消防団：火事が大幅に減り、家が焼け落ちなくなります"],
     guard: ["町の衛兵", "衛兵詰所：盗賊を捕らえ、税の損失を防ぎます"],
   },
@@ -1335,7 +1339,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   docTitle: "Samenland – 村づくりシミュレーション – 種をまき、育ちを見守る。",
   buyFail: "購入できませんでした。もう一度お試しください。",
   needStage: (n) => `${n}から利用できます`,
-  woe: { fire: ["火事です！", (t, w, d) => `${t}で屋根が燃えています。${w ? " 水辺からの桶のリレーで、火の勢いを抑えています。" : " 近くに水がなく、隣の家々へ燃え広がっています。"}${d ? " 村人が一人、炎の中で命を落としました。" : ""} 家族たちは家を建て直すまで、隣人のもとに身を寄せます。`], fireGuarded: ["火を消し止めました！", (t) => `${t}の火の番が鳶口と梯子を携えて駆けつけ、被害が出る前に火を消し止めました。`], flood: ["洪水です！", (t) => `川があふれました。${t}では岸辺の菜園と畑が水に沈み、収穫が失われ、一部の家は建て直しが必要です。けれど、運ばれた土はやがて畑をいっそう肥沃にするでしょう。`], raid: ["村に盗賊です！", (t, n) => `盗賊が${t}に忍び込み、家々を荒らしました。被害に遭った人々は税を納められません：−${n}マルク。`], caught: ["盗賊を捕らえました！", (t) => `${t}の衛兵が、盗みの現場で賊を捕らえました。誰も傷つかずに済みました。`], go: "様子を見る" },
+  woe: { fireOrder: "火の用心の掟が効いています：鳶口と革の手桶がすぐに届きます。", fire: ["火事です！", (t, w, d) => `${t}で屋根が燃えています。${w ? " 水辺からの桶のリレーで、火の勢いを抑えています。" : " 近くに水がなく、隣の家々へ燃え広がっています。"}${d ? " 村人が一人、炎の中で命を落としました。" : ""} 家族たちは家を建て直すまで、隣人のもとに身を寄せます。`], fireGuarded: ["火を消し止めました！", (t) => `${t}の火の番が鳶口と梯子を携えて駆けつけ、被害が出る前に火を消し止めました。`], flood: ["洪水です！", (t) => `川があふれました。${t}では岸辺の菜園と畑が水に沈み、収穫が失われ、一部の家は建て直しが必要です。けれど、運ばれた土はやがて畑をいっそう肥沃にするでしょう。`], raid: ["村に盗賊です！", (t, n) => `盗賊が${t}に忍び込み、家々を荒らしました。被害に遭った人々は税を納められません：−${n}マルク。`], caught: ["盗賊を捕らえました！", (t) => `${t}の衛兵が、盗みの現場で賊を捕らえました。誰も傷つかずに済みました。`], go: "様子を見る" },
   age: (h) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))}分`

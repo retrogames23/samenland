@@ -167,6 +167,7 @@ export const fr: Dict = {
     guildhall: ["Maison des corporations", "Bâtiment de la corporation des artisans : bien plus de prospérité"],
     library: ["Bibliothèque", "Bâtiment de la corporation des érudits : santé et prospérité"],
     dairy: ["Laiterie", "Bâtiment de la corporation paysanne : abondance de vivres, un peu de prospérité"],
+    fireorder: ["Règlement du feu", "Crocs, échelles et seaux de cuir sur la place, feux éteints à la cloche du soir : incendies plus rares et plus courts, moins de toits, presque aucun logis ne périt"],
     firehouse: ["Remise aux crocs à feu", "Compagnie des garde-feu : bien moins d'incendies, nul logis ne périt par les flammes"],
     guard: ["Guet communal", "Corps de garde : les larrons sont coffrés, plus aucune taxe dérobée"],
   },
@@ -178,7 +179,7 @@ export const fr: Dict = {
   docTitle: "Samenland Village Sim – Semez une graine. Regardez-la grandir.",
   buyFail: "L'acquisition a été refusée – veuillez réessayer.",
   needStage: (n) => `Seulement à partir du rang de ${n}`,
-  woe: { fire: ["Au feu !", (t, w, d) => `Un toit s'embrase à ${t}.${w ? " Une chaîne de seaux depuis l'eau contient le brasier." : " Faute d'eau proche, les flammes gagnent les toits voisins."}${d ? " Un villageois a péri dans le brasier." : ""} Les familles logent chez leurs voisins en attendant de rebâtir.`], fireGuarded: ["Feu éteint !", (t) => `Les garde-feu de ${t} accourent avec la crocs et seaux – le feu est étouffé avant de causer grand mal.`], flood: ["Inondation !", (t) => `La rivière est sortie de son lit. À ${t}, potagers riverains et guérets sont sous les flots – la récolte est perdue et quelques bâtisses doivent être relevées. Mais le limon rendra les terres plus fécondes encore.`], raid: ["Un larron au village !", (t, n) => `Un coupe-bourse se glisse dans ${t} et pille les demeures. Les victimes ne peuvent payer leurs taxes : −${n} Mark.`], caught: ["Larron coffré !", (t) => `Le guet de ${t} prend un brigand sur le fait. Nul n'a souffert de dommage.`], go: "Aller voir" },
+  woe: { fireOrder: "Le règlement du feu tient : crocs et seaux de cuir sont vite à portée de main.", fire: ["Au feu !", (t, w, d) => `Un toit s'embrase à ${t}.${w ? " Une chaîne de seaux depuis l'eau contient le brasier." : " Faute d'eau proche, les flammes gagnent les toits voisins."}${d ? " Un villageois a péri dans le brasier." : ""} Les familles logent chez leurs voisins en attendant de rebâtir.`], fireGuarded: ["Feu éteint !", (t) => `Les garde-feu de ${t} accourent avec la crocs et seaux – le feu est étouffé avant de causer grand mal.`], flood: ["Inondation !", (t) => `La rivière est sortie de son lit. À ${t}, potagers riverains et guérets sont sous les flots – la récolte est perdue et quelques bâtisses doivent être relevées. Mais le limon rendra les terres plus fécondes encore.`], raid: ["Un larron au village !", (t, n) => `Un coupe-bourse se glisse dans ${t} et pille les demeures. Les victimes ne peuvent payer leurs taxes : −${n} Mark.`], caught: ["Larron coffré !", (t) => `Le guet de ${t} prend un brigand sur le fait. Nul n'a souffert de dommage.`], go: "Aller voir" },
   age: (h) =>
     h < 1
       ? `${Math.max(1, Math.round(h * 60))} min`
