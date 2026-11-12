@@ -93,3 +93,53 @@ describe("no founding-site penalty", () => {
     expect(foodCapacity(s, rich, at, 10)).toBeGreaterThan(foodCapacity(s, new Map(), at, 10));
   });
 });
+
+import { assessHomesWith, taxSharesAt } from "./resident-tax";
+import { estateAt, estateOf, estateShares, gatedEstateShares, ESTATE_TAX } from "./prosperity";
+import type { Household } from "./households";
+
+describe("gated resident tax (Option A)", () => {
+  const homes: Household[] = Array.from({ length: 60 }, (_, i) => ({ home: [i * 3 + 1, i * 7 + 2], size: 4 } as unknown as Household));
+  const sum = (sh: { skilled: number; wealthy: number }) => homes.reduce((t, h) => t + h.size * ESTATE_TAX[estateOf(sh, ...h.home)], 0);
+  it("estateAt is unchanged and equals estateOf with plain shares", () => {
+    for (const w of [0, 30, 55, 80, 100]) for (const h of homes) expect(estateAt(w, ...h.home)).toBe(estateOf(estateShares(w), ...h.home));
+  });
+  it("each rank tier assesses through gated shares; no school keeps wealthy at 0", () => {
+    for (const r of [0, 1, 2, 3, 4, 5]) for (const school of [false, true]) {
+      const sh = gatedEstateShares(90, r, school, 7);
+      expect(assessHomesWith(homes, sh)).toBe(sum(sh));
+      if (!school || r <= 2) expect(homes.some(h => estateOf(sh, ...h.home) === "wealthy")).toBe(false);
+    }
+    const t3 = assessHomesWith(homes, gatedEstateShares(90, 3, true, 7)), t4 = assessHomesWith(homes, gatedEstateShares(90, 4, true, 7)), t5 = assessHomesWith(homes, gatedEstateShares(90, 5, true, 7));
+    expect(t3).toBeLessThanOrEqual(t4); expect(t4).toBeLessThanOrEqual(t5);
+    expect(t5).toBe(sum(estateShares(90)));
+  });
+  it("more infrastructure never lowers the village assessment", () => {
+    let last = 0;
+    for (let n = 0; n <= 8; n++) { const v = assessHomesWith(homes, gatedEstateShares(100, 2, false, n)); expect(v).toBeGreaterThanOrEqual(last); last = v; }
+  });
+  it("repeated assessment gives identical results", () => {
+    const sh = gatedEstateShares(70, 4, true, 5);
+    expect(assessHomesWith(homes, sh)).toBe(assessHomesWith(homes, sh));
+  });
+  it("purchases after `at` (school, infrastructure) do not count", () => {
+    const at = start + 60 * day;
+    const s: Seed = { ...seed(["herbs"]), bought: [{ item: "herbs", at: start }, { item: "school", at: at + 1 }, { item: "fisher", at: at + 1 }] };
+    const v = taxSharesAt(s, [s], at);
+    expect(v.hasSchool).toBe(false); expect(v.infra).toBe(1);
+    expect(taxSharesAt(s, [s], at + 1).infra).toBe(2);
+    expect(residentTax(s, [s], at)).toEqual(residentTax(s, [s], at));
+  });
+  it("economyWorldAt snapshot ignores later purchases for the tax shares", () => {
+    const at = start + 60 * day, base = seed();
+    const world: EconomyWorld = { seeds: [base], purchases: [
+      { seed_id: "p", created_at: new Date(start).toISOString(), item: "herbs" },
+      { seed_id: "p", created_at: new Date(at + day).toISOString(), item: "school" },
+      { seed_id: "p", created_at: new Date(at + day).toISOString(), item: "fisher" },
+    ], blessings: [], charters: [], encounters: [], roads: [], votes: [], works: [], gifts: [] };
+    const snap = economyWorldAt(world, at), s = snap[0]!;
+    const v = taxSharesAt(s, snap, at);
+    expect(v.hasSchool).toBe(false); expect(v.infra).toBe(1);
+    expect(s.civicRoads ?? []).toEqual([]);
+  });
+});
