@@ -151,6 +151,14 @@
   "decision": "unlit",
   "note": "2026-11-09: Offener Schuppen ohne Glasfenster"
  },
+ "firerack": {
+  "day": "efe5180920204384",
+  "night": null,
+  "technical": "pass",
+  "visual": "inspected",
+  "decision": "unlit",
+  "note": "2026-11-13: Feuerordnung-Gestell: offenes Holzgestell ohne Fenster, kein Nachtlicht"
+ },
  "fishery": {
   "day": "45301e33b5e4c188",
   "night": "0eda632fae24f5d8",
