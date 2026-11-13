@@ -467,7 +467,7 @@ export function acreOf(x: number, y: number, s: Seed) {
   return { id: bx * 100003 + by, h, ripe: hash(bx, by + n, 93) > 0.45, along: hash(bx, by + n, 94) > 0.5, corner: (x + ox + sh) % W === 0 && (y + oy) % H === 0 };
 }
 
-/** Near range (tiles) in which a spoke that meets water or rock is turned landward. */
+/** Near range (tiles) in which a spoke that meets water is turned landward (rock keeps the old heading). */
 export const SPOKE_PROBE = 16;
 /** A direction counts as open land when every tile from 2 to SPOKE_OPEN along it is buildable. */
 export const SPOKE_OPEN = 24;
@@ -476,11 +476,16 @@ const rayClear = (s: { x: number; y: number }, ang: number, to: number) => {
   for (let t = 2; t <= to; t++) if (!buildable(terrain(Math.round(s.x + c * t), Math.round(s.y + n * t)))) return false;
   return true;
 };
+const rayDry = (s: { x: number; y: number }, ang: number, to: number) => {
+  const c = Math.cos(ang), n = Math.sin(ang);
+  for (let t = 2; t <= to; t++) if (isWater(terrain(Math.round(s.x + c * t), Math.round(s.y + n * t)))) return false;
+  return true;
+};
 const angGap = (p: number, q: number) => { let g = Math.abs(p - q) % (Math.PI * 2); return g > Math.PI ? Math.PI * 2 - g : g; };
 const spokeCache = new Map<string, number[]>();
 /**
  * Base heading of each village spoke (pure from seed + terrain). Spokes keep their nominal golden-angle
- * heading unless water or rock blocks them within SPOKE_PROBE tiles; those are turned, in spoke order, to the
+ * heading unless water blocks them within SPOKE_PROBE tiles (rock never turns a spoke); those are turned, in spoke order, to the
  * open land heading farthest from every other spoke — same eight spokes, never forced across water.
  */
 export function spokeDirs(s: { id: string; x: number; y: number }): number[] {
@@ -489,7 +494,7 @@ export function spokeDirs(s: { id: string; x: number; y: number }): number[] {
   let sn = 0; for (const ch of s.id) sn = (sn * 31 + ch.charCodeAt(0)) | 0;
   const base = hash(sn, 1, 2) * Math.PI * 2;
   const dirs = SPOKE_AT.map((_, k) => base + k * 2.39996);
-  const blocked = dirs.map((a) => !rayClear(s, a, SPOKE_PROBE));
+  const blocked = dirs.map((a) => !rayDry(s, a, SPOKE_PROBE));
   if (blocked.some(Boolean)) {
     const open: number[] = [];
     for (let i = 0; i < 72; i++) { const a = base + (i / 72) * Math.PI * 2; if (rayClear(s, a, SPOKE_OPEN)) open.push(a); }
