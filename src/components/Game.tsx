@@ -8,6 +8,8 @@ import { PROSPERITY } from "@/game/lang/prosperity";
 import { ESTATE_TAX } from "@/game/prosperity";
 import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind } from "@/game/gifts";
 import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
+/** Accounts that always found their village on Europa I (Altenland), bypassing the overflow to Europa II. */
+const FORCE_EUROPE = new Set(["victoria.halper@gmail.com", "johanna.mellentin@gmail.com"]);
 import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, EUROPE_FULL, type Realm } from "@/game/time";
 import { useModeCursor } from "@/components/hooks/useModeCursor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -608,6 +610,8 @@ export function Game() {
       // admins visiting the test map are not pushed into founding there
       if (realm !== "lab") setTab("plant");
       const { data: u } = await supabase.auth.getUser();
+      // hand-picked accounts always settle on Europa I, even when Altenland is full
+      if (live && !isAdmin && FORCE_EUROPE.has((u.user?.email ?? "").toLowerCase()) && realmRef.current !== "europe") loadRealmRef.current?.("europe");
       const meta = u.user?.user_metadata ?? {};
       const full = String(meta["full_name"] ?? meta["name"] ?? "").split(" ")[0]?.slice(0, 32) ?? "";
       if (live && full) setForm((f) => (f.owner ? f : { ...f, owner: full }));
@@ -711,6 +715,7 @@ export function Game() {
       let r = detectRealm();
       let uid: string | null = null;
       let adminPick = false, hasHome = false;
+      let sessMail: string | null = null;
       try {
         // guests must never wait on auth: local session only, with a short cap
         const sess = await Promise.race([
@@ -718,6 +723,7 @@ export function Game() {
           new Promise<null>((res) => setTimeout(() => res(null), 1500)),
         ]);
         uid = sess?.user.id ?? null;
+        sessMail = sess?.user.email ?? null;
         if (uid) {
           const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
           const adm = !!roles?.some((x) => x.role === "admin");
@@ -739,7 +745,8 @@ export function Game() {
       let refSeed: { id: string } | null = null; // invites never pick the map, so the friend may live elsewhere
       { const refId = localStorage.getItem("samenland-ref"); if (refId && !hasHome) refSeed = { id: refId }; }
       // an invite never picks the map (the bonus works across maps); Altenland is full from EUROPE_FULL villages on: every newcomer settles on Elbwerder (Europa II)
-      if (r === "europe" && !adminPick && !hasHome) {
+      if (!adminPick && !hasHome && FORCE_EUROPE.has((sessMail ?? "").toLowerCase())) r = "europe";
+      else if (r === "europe" && !adminPick && !hasHome) {
         const { count } = await supabase.from("seeds").select("id", { count: "exact", head: true }).eq("realm", "europe");
         if ((count ?? 0) >= EUROPE_FULL) r = "europe-2";
       }
