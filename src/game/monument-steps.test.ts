@@ -35,7 +35,7 @@ describe("monument step effects (paid steps)", () => {
   it("cathedral step 5 lowers sickness by 2 points; step 3 counts as care", () => {
     const at = Date.parse("2026-07-21T00:00:00Z"); // a day without wedding joy in either town
     expect(sickRate(town([]), at) - sickRate(town(["cathedral1", "cathedral2", "cathedral3", "cathedral4", "cathedral5"]), at)).toBeCloseTo(CATHEDRAL_SICK);
-    const base = ["fisher", "hunter", "granary", "herbs", "healer"];
+    const base = ["fisher", "hunter", "granary", "herbs"];
     expect(careStage(town([...base, "cathedral1", "cathedral2", "cathedral3"]), T + 1)).toBeGreaterThan(careStage(town(base), T + 1));
   });
   it("orangery step 2 acts like a herb hut", () => {
