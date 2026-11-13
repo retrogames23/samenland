@@ -8,7 +8,7 @@ export const STONE_FIRE = 0.6;
  * and purchases (fire house, town guard). Nothing is stored: every client sees the same fire at the same moment.
  * Raid losses are mirrored by the database function village_raids, so the treasury stays tamper-proof.
  */
-import { structureAt, stepsDone, terrain, isWater, waterNearby, riverDistAt, radiusOf, reachOf, ageHours, stepsPaid, MAP, type Seed } from "./world";
+import { structureAt, stepsDone, terrain, isWater, waterNearby, riverDistAt, radiusOf, reachOf, ageHours, MAP, type Seed } from "./world";
 
 const H = 3.6e6, DAY = 864e5, WEEK = 7 * DAY;
 export const FIRE_CHANCE = 0.3, FIRE_CHANCE_GUARDED = 0.08;
