@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { LOCATIONS } from "./simulation/profiles";
 import { setRealm } from "./time";
-import { spokeDirs, structureAt, terrain, buildable, isWater, SPOKE_PROBE, type Seed } from "./world";
+import { spokeBends, spokeDirs, structureAt, terrain, buildable, isWater, SPOKE_PROBE, type Seed } from "./world";
 
 setRealm("europe");
 const GOLD = 2.39996;
@@ -28,5 +28,9 @@ describe("landward spokes", () => {
       const s = seedAt(k);
       for (const p of roads(s)) { const [i, j] = p.split(",").map(Number); expect(buildable(terrain(s.x + i!, s.y + j!))).toBe(true); }
     }
+  });
+  it("water bypass: open land and rock-bound towns never bend, only water-blocked spokes may", () => {
+    for (const k of ["grain", "gateway-river", "workshop", "workshop-tight"]) expect(spokeBends(seedAt(k)).every((b) => b === null)).toBe(true);
+    for (const b of spokeBends(seedAt("grain-trap"))) if (b) expect(Math.abs(b.turn)).toBeLessThanOrEqual(0.6);
   });
 });
