@@ -141,7 +141,7 @@ export const fr: Dict = {
     cathedral1: ["Cathédrale", "Bâtiment de prestige en 5 étapes. Terminé : +20 prospérité, +10 santé"],
     university1: ["Université", "Bâtiment de prestige en 4 étapes. Terminé : +15 santé, +15 prospérité"],
     exchange1: ["Maison des marchands", "Bâtiment de prestige en 4 étapes. Terminé : +20 prospérité, +5 nourriture"],
-    harvest1: ["Halle des moissons", "Réservé aux greniers à blé. 3 étapes. Terminé : +15 nourriture, +5 santé, +5 prospérité"],
+    harvest1: ["Halle des moissons", "Réservé aux greniers à blé. 3 étapes, chacune n'agit qu'une fois bâtie. Étape 1 : compte comme bâtiment de ravitaillement pour le rang suivant (pas de vivres en plus). Étape 2 : en hiver, on ne mange que 15 % de plus au lieu de 30 % – il ne reste quelque chose que si la récolte suffit. Étape 3 : supplément hivernal de maladie réduit de moitié ; en crue, 60 % au lieu de 30 % des produits des champs, jardins et pâturages subsistent."],
     guildtower1: ["Tour des corporations", "Réservé à l'atelier des collines. 3 étapes. Chaque étape achevée raccourcit les chantiers suivants (5 / 10 / 15 %), jamais le sien. Achevé : +15 prospérité, +10 santé"],
     lighthouse1: ["Phare", "Réservé à la porte sur le monde. 3 étapes. Terminé : +10 prospérité, +10 nourriture, +5 santé"],
     orangery1: ["Klostergarten", "Bâtiment de prestige en 3 étapes. Terminé : +15 santé, +10 prospérité, +5 nourriture"],
