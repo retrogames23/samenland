@@ -5,10 +5,9 @@ import type { Kind } from "./world";
 const MULTI_HOME = new Set<Kind>(["cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "suburb"]);
 export function dwellingSlots(way: TownWay, kind: Kind, radius: number) {
   if (!MULTI_HOME.has(kind)) return 1;
-  // Staggered so no character pulls far ahead mid-game: hills densify first and highest,
-  // coasts and plains share the same floors once they are small towns.
-  if (way === "workshop") return radius >= 24 ? 3 : radius >= 14 ? 2 : 1;
-  return radius >= 26 ? 3 : radius >= 16 ? 2 : 1;
+  // One rule for every town way: a second family from radius 18, a third from radius 30.
+  void way;
+  return radius >= 30 ? 3 : radius >= 18 ? 2 : 1;
 }
 // Keep every legacy family/member ID unchanged; new floors occupy disjoint ID blocks.
 export const HOME_KEY_SPACE = 1024 * 1024;
