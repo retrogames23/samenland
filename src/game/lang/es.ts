@@ -141,7 +141,7 @@ export const es: Dict = {
     cathedral1: ["Catedral", "Obra de prestigio en 5 fases. Terminada: +20 prosperidad, +10 salud"],
     university1: ["Universidad", "Obra de prestigio en 4 fases. Terminada: +15 salud, +15 prosperidad"],
     exchange1: ["Lonja de mercaderes", "Obra de prestigio en 4 fases. Terminada: +20 prosperidad, +5 comida"],
-    harvest1: ["Salón de la cosecha", "Solo para graneros. 3 fases. Terminado: +15 comida, +5 salud, +5 prosperidad"],
+    harvest1: ["Salón de la cosecha", "Solo para graneros. 3 fases; cada una actúa solo cuando está construida. Fase 1: cuenta como edificio de abastecimiento para el siguiente rango (sin comida extra). Fase 2: en invierno se come solo un 15 % más en vez de un 30 % – solo sobra algo si la cosecha alcanza. Fase 3: la mitad del recargo invernal de enfermedad; en una inundación queda el 60 % en vez del 30 % de lo producido en campos, huertos y pastos."],
     guildtower1: ["Torre gremial", "Solo para el taller de las colinas. 3 fases. Cada fase terminada acorta las obras posteriores (5 / 10 / 15 %), nunca la propia. Completo: +15 prosperidad, +10 salud"],
     lighthouse1: ["Faro", "Solo para la puerta al mundo. 3 fases. Terminado: +10 prosperidad, +10 comida, +5 salud"],
     orangery1: ["Klostergarten", "Obra de prestigio en 3 fases. Terminada: +15 salud, +10 prosperidad, +5 comida"],
