@@ -1193,6 +1193,13 @@ export function Game() {
     const me = lastPeople.find((o) => o.q.p.role === "mayor" && o.q.p.seed.id === mine);
     return !!me && Math.hypot(me.q.x - x, me.q.y - y) <= MEET_TILES;
   };
+  /** Tapping one's own waiting visitor opens the pending encounter at once (no 3-minute wait). */
+  const guestTap = (p: Person) => {
+    if (p.role !== "guest" || p.guest?.until !== Infinity || p.seed.id !== mine || !userId || p.seed.user_id !== userId) return false;
+    const nw = clock();
+    if (!pendingAll(p.seed, p.seed.decisions ?? [], nw, effAge(p.seed, seeds, nw), townRank(p.seed, seeds, Math.floor(nw / 5000) * 5000))) return false;
+    setSnooze({}); setEncOpen(true); return true;
+  };
   const speak = (p: Person) => {
     if (p.role === "mayor") return;
     const nw = clock(), tw = townOf(p.seed, seeds, nw), q = poseOf(p, tw, seeds, nw);
@@ -1253,6 +1260,7 @@ export function Game() {
       } }
     const p = personAt(e);
     if (p && p.role === "mayor" && p.seed.id !== mine && p.seed.user_id && userId) { setDmPeer(p.seed.user_id); setTavernOpen(true); return true; }
+    if (p && guestTap(p)) { tap(); return true; }
     if (p && p.role !== "mayor") { hm(); speak(p); return true; }
     if (courtAt(e)) { tap(); return true; }
     // knock only when the house itself was clicked; paths and meadows beside it send the mayor there
@@ -2630,6 +2638,7 @@ export function Game() {
               const pan = (e.clientX / window.innerWidth) * 2 - 1;
               if (best && best.role === "mayor" && best.seed.id !== mine && best.seed.user_id && userId) { tap(pan); setWho(null); setPlace(null); setDmPeer(best.seed.user_id); setTavernOpen(true); return; }
               if (heraldHit(e)) { openHerald(); return; }
+              if (best && guestTap(best)) { tap(pan); setWho(null); setPlace(null); return; }
               if (best) { hm(pan); setPlace(null); speak(best); return setWho(best); }
               if (courtAt(e)) { tap(pan); setWho(null); setPlace(null); return; }
               { const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
