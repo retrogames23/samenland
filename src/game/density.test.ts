@@ -8,12 +8,12 @@ import type { Seed, Kind } from "./world";
 import type { Person } from "./people";
 
 describe("character dwellings", () => {
-  it("every town way shares the same floors: second from radius 20, third from 32", () => {
+  it("every town way shares the same floors: second from radius 18, third from 30", () => {
     for (const way of ["grain", "gateway", "workshop"] as const) for (const kind of ["townhouse", "fachwerk", "steinhaus", "patrician", "tenement"] as Kind[]) {
-      expect(dwellingSlots(way, kind, 19)).toBe(1);
-      expect(dwellingSlots(way, kind, 20)).toBe(2);
-      expect(dwellingSlots(way, kind, 31)).toBe(2);
-      expect(dwellingSlots(way, kind, 32)).toBe(3);
+      expect(dwellingSlots(way, kind, 17)).toBe(1);
+      expect(dwellingSlots(way, kind, 18)).toBe(2);
+      expect(dwellingSlots(way, kind, 29)).toBe(2);
+      expect(dwellingSlots(way, kind, 30)).toBe(3);
     }
     expect(dwellingSlots("grain", "hut", 40)).toBe(1);
     expect(dwellingSlots("workshop", "farmhouse", 40)).toBe(1);
