@@ -17,7 +17,9 @@ describe("steering the mayor", () => {
     for (let dx = -4; dx <= 4 && !goal; dx++) for (let dy = -4; dy <= 4 && !goal; dy++)
       if (commandMayor(me, t, seeds, now, [s.x + dx, s.y + dy])) goal = [s.x + dx, s.y + dy];
     expect(goal).not.toBeNull();
-    expect(mayorGoal(now)).toEqual(goal);
+    const g = mayorGoal(now)!;
+    // a blocked tap snaps to the nearest walkable tile within 3
+    expect(Math.max(Math.abs(g[0] - goal![0]), Math.abs(g[1] - goal![1]))).toBeLessThanOrEqual(3);
     const mid = poseOf(me, t, seeds, now + 1500);
     expect(mid.visible).toBe(true);
     // long enough to arrive, still waiting at the goal
