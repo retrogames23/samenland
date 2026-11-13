@@ -2,7 +2,7 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import type { SimResult } from "./types";
 const [dir = "/tmp/sim-out", csv = "/tmp/sim-matrix.csv"] = process.argv.slice(2);
-const cols = ["profile", "charter", "location", "way", "hansestadt", "strategyDone", "unlockedDone", "saturation", "idleDays", "afterHanseIdle", "population", "households",
+const cols = ["profile", "charter", "location", "way", "hansestadt", "strategyDone", "unlockedDone", "saturation", "idleDays", "afterHanseIdle", "population", "households", "houses", "occ1", "occ2", "occ3", "occ4", "byKind",
   "gross", "tax", "dowry", "quest", "prince", "wonder", "visit", "raid", "spent", "volume", "lost", "lostShare", "taxShare", "firstOverflow", "regularOverflow", "overflowDays",
   "finalBalance", "taxPerDayAtHanse", "taxPerDayEnd", "incomePerDayAfterSat", "lostShareAfterSat", "remaining"];
 const rows = readdirSync(dir).filter((f) => f.endsWith(".json")).sort().map((f) => {
@@ -10,7 +10,7 @@ const rows = readdirSync(dir).filter((f) => f.endsWith(".json")).sort().map((f) 
   const at = (d: number | null) => (d === null ? "" : r.daily[d - 1]?.tax ?? "");
   const after = r.phases[2]!;
   return [r.profile, r.charter, r.location, r.way, r.hansestadtDay ?? "", r.strategyDoneDay ?? "", r.unlockedDoneDay ?? "", r.saturationDay ?? "", r.idleDays,
-    r.hansestadtDay === null || r.saturationDay === null ? "" : r.days - r.hansestadtDay, r.population, r.households,
+    r.hansestadtDay === null || r.saturationDay === null ? "" : r.days - r.hansestadtDay, r.population, r.households, r.housing?.houses ?? "", ...["1", "2", "3", "4"].map((k) => r.housing?.occupancy[k] ?? ""), r.housing ? Object.entries(r.housing.byKind).map(([k, v]) => `${k}:${v}`).join(",") : "",
     r.gross, b["tax"] ?? 0, b["dowry"] ?? 0, b["quest"] ?? 0, b["prince"] ?? 0, b["wonder"] ?? 0, b["visit"] ?? 0, b["raid"] ?? 0, r.spent, r.volume, r.lost, r.lostShare, r.taxShare,
     r.firstOverflowDay ?? "", r.regularOverflowDay ?? "", r.overflowDays, r.finalBalance, at(r.hansestadtDay), r.daily.at(-1)!.tax,
     r.saturationDay === null ? "" : after.incomePerDay, r.saturationDay === null ? "" : after.lostShare, r.remaining.length].join(";");

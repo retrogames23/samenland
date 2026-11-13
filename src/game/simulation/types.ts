@@ -59,6 +59,8 @@ export type SimResult = {
   volume: number;
   overflowDays: number;
   population: number; households: number;
+  /** Final day: physical dwellings, households per building kind, dwellings by number of families ("1"…"4"). */
+  housing: { houses: number; byKind: Record<string, number>; occupancy: Record<string, number> };
   firstOverflowDay: number | null;
   /** First day from which ≥ 50 % of the following 30 days overflowed. */
   regularOverflowDay: number | null;

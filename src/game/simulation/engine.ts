@@ -13,6 +13,7 @@ import { PRINCELY_REWARDS } from "../princely";
 import { townRank } from "../rank";
 import { townCharacter, type TownWay } from "../character";
 import { residentTax } from "../resident-tax";
+import { householdsOf } from "../households";
 import { setRealm } from "../time";
 import { TWIN_WORKS, type Seed, type CharterPath } from "../world";
 import { LOCATIONS, VISIT_GIFT, WONDER_FIND } from "./profiles";
@@ -165,12 +166,25 @@ export function simulate(cfg: SimConfig): SimResult {
       lostShare: inc ? +(rows.reduce((a, r) => a + r.lost, 0) / inc).toFixed(3) : 0, balanceEnd: rows.at(-1)?.balance ?? balance };
   };
   const h = hanse ?? days, s = saturation ?? days;
+  const housing = housingOf(seed, seeds, c0 + days * DAY);
   return { profile: P.key, charter: cfg.charter, location: cfg.location, way, days, hansestadtDay: hanse, rankDays,
     strategyDoneDay: bought.at(-1)?.day ?? null, unlockedDoneDay: unlockedDone, saturationDay: saturation, idleDays: saturation === null ? 0 : days - saturation,
-    volume, overflowDays: daily.filter((r) => r.lost > 0).length, population: pop, households: hh,
+    volume, overflowDays: daily.filter((r) => r.lost > 0).length, population: pop, households: hh, housing,
     firstOverflowDay: firstOverflow, regularOverflowDay: regular, gross, booked, lost, spent, finalBalance: balance,
     taxShare: +((bySource["tax"] ?? 0) / gross).toFixed(3), lostShare: +(lost / gross).toFixed(3), bySource, bought,
     remaining: all.filter((o) => !owned.has(o.item)).map((o) => o.item),
     phases: [phase("bis Hansestadt", 1, h), phase("Hansestadt bis Sättigung", h + 1, Math.max(h, s)), phase("nach Sättigung", Math.max(h, s) + 1, days)],
     daily, ledger };
+}
+
+/** Report only (final day): physical dwellings, households per building kind, dwellings by number of families. */
+export function housingOf(seed: Seed, seeds: Seed[], at: number): SimResult["housing"] {
+  const homes = new Map<string, { kind: string; n: number }>(), byKind: Record<string, number> = {};
+  for (const h of householdsOf(seed, [...seeds], at)) {
+    const k = `${h.home[0]},${h.home[1]}`, e = homes.get(k) ?? { kind: h.kind, n: 0 };
+    e.n++; homes.set(k, e); byKind[h.kind] = (byKind[h.kind] ?? 0) + 1;
+  }
+  const occupancy: Record<string, number> = { "1": 0, "2": 0, "3": 0, "4": 0 };
+  for (const e of homes.values()) occupancy[String(e.n)] = (occupancy[String(e.n)] ?? 0) + 1;
+  return { houses: homes.size, byKind, occupancy };
 }
