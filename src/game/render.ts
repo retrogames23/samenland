@@ -1295,7 +1295,18 @@ const WORK_FRAMES = 6;
 const legsFor = (q: Pose) => !!HIPS[folkOf(q)];
 /** Painted villager sprite: faces the walking direction, bobs while walking, sways while working. */
 /** Mayor's insignia by honorary title (titleOfSeed): fur collar, judge's staff, own banner — drawn in the mirrored figure frame. */
+/** Painted tool of a travelling visitor (minstrel's lute, surveyor's rod, painter's box), in the mirrored figure frame. */
+const GUEST_PROP: Record<string, [FolkSprite, number, number, number]> = { // sprite, height share, x share, top share
+  minstrel: ["guestLute", 0.42, 0.2, 0.72], surveyor: ["guestRod", 1.08, -0.3, 1.0], painter: ["guestPaintbox", 0.24, 0.2, 0.52],
+};
+function guestProp(c: C, q: Pose, hgt: number) {
+  const g = q.p.guest && GUEST_PROP[q.p.guest.event]; if (!g) return;
+  const im = folkImage(g[0]); if (!im) return;
+  const h = hgt * g[1], w = (h * im.naturalWidth) / im.naturalHeight;
+  c.drawImage(im, hgt * g[2] - w / 2, -hgt * g[3], w, h);
+}
 function insignia(c: C, q: Pose, hgt: number) {
+  guestProp(c, q, hgt);
   // rain or snow: adults out of doors pull up a wool Gugel (hood with shoulder cape), each by own tolerance
   const wxs = Math.max(wetness(renderNow), snowiness(renderNow));
   if (wxs > 0.15 && q.p.age >= 12 && q.p.job !== "mayor" && !q.festive && !q.working && hash(q.p.id, 78, 5) < wxs * 1.4) {
