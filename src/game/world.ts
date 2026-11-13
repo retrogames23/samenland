@@ -515,16 +515,61 @@ export function spokeDirs(s: { id: string; x: number; y: number }): number[] {
   return dirs;
 }
 
+/** Range (tiles) along which a spoke is checked for an obstacle it can bend around. */
+export const BEND_REACH = 40;
+/** Candidate bend angles (rad), smallest first; a bend is only taken when the straight spoke hits water or rock. */
+const BEND_TURNS = [0.15, 0.3, 0.45, 0.6];
+type Bend = { at: number; turn: number; len: number } | null;
+const bendCache = new Map<string, Bend[]>();
+const bendOff = (b: Bend, d: number) => !b || d <= b.at ? 0 : b.turn * Math.min(1, (d - b.at) / b.len);
+/**
+ * Local obstacle bypass (pure from seed + terrain): a spoke whose straight run meets water (rock never bends one) between
+ * 4 and BEND_REACH tiles bends, from 3 tiles before the obstacle, by the smallest turn whose curve stays on
+ * buildable land for 12 more tiles and keeps clear of the other spokes; otherwise it ends as before.
+ * Unobstructed spokes keep their exact course.
+ */
+export function spokeBends(s: { id: string; x: number; y: number }): Bend[] {
+  const ck = `${s.id}|${s.x}|${s.y}`;
+  const hit = bendCache.get(ck); if (hit) return hit;
+  const dirs = spokeDirs(s);
+  const ok = (d: number, a: number) => buildable(terrain(Math.round(s.x + Math.cos(a) * d), Math.round(s.y + Math.sin(a) * d)));
+  let sn = 0; for (const ch of s.id) sn = (sn * 31 + ch.charCodeAt(0)) | 0;
+  const out: Bend[] = dirs.map(() => null);
+  dirs.forEach((a, k) => {
+    let t0 = 0;
+    for (let t = 2; t <= BEND_REACH; t++) {
+      const tt = terrain(Math.round(s.x + Math.cos(a) * t), Math.round(s.y + Math.sin(a) * t));
+      if (isWater(tt)) { t0 = t; break; }
+      if (!buildable(tt)) return; // rock ends a spoke as before — mountain towns gain no extra reach
+    }
+    if (t0 < 4) return;
+    const at = Math.max(2, t0 - 3), sg = hash(sn, k, 77) < 0.5 ? 1 : -1;
+    for (const m of BEND_TURNS) for (const turn of [m * sg, -m * sg]) {
+      const len = Math.max(4, at * Math.abs(turn) * 2), b = { at, turn, len };
+      let good = true;
+      for (let d = at; d <= at + len + 12 && good; d += 0.5) {
+        const h = a + bendOff(b, d);
+        if (!ok(d, h)) good = false;
+        else for (let j = 0; j < dirs.length; j++) if (j !== k && angGap(h, dirs[j]! + bendOff(out[j]!, d)) < 0.25) { good = false; break; }
+      }
+      if (good) { out[k] = b; return; }
+    }
+  });
+  if (bendCache.size > 500) bendCache.clear();
+  bendCache.set(ck, out);
+  return out;
+}
+
 function pathAt(x: number, y: number, s: Seed, age: number, r: number): boolean {
   const dx = x - s.x, dy = y - s.y, d = townDist(x, y, s);
   if (d < 0.8 || d > r + 0.3) return false;
   if (!buildable(terrain(x, y))) return false;
   const sn = seedNum(s);
   const a = Math.atan2(dy, dx);
-  const dirs = spokeDirs(s);
+  const dirs = spokeDirs(s), bends = spokeBends(s);
   for (let k = 0; k < SPOKE_AT.length; k++) {
     if (age < SPOKE_AT[k]!) break;
-    const ang = dirs[k]! + (vnoise(d * 0.18, k * 7.3, sn & 1023) - 0.5) * 1.1;
+    const ang = dirs[k]! + bendOff(bends[k]!, d) + (vnoise(d * 0.18, k * 7.3, sn & 1023) - 0.5) * 1.1;
     let diff = Math.abs(a - ang) % (Math.PI * 2);
     if (diff > Math.PI) diff = Math.PI * 2 - diff;
     if (diff < Math.PI / 2 && d * Math.sin(diff) < 0.55) return true;
