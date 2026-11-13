@@ -778,6 +778,13 @@
       "when": 1794522675861,
       "tag": "0110_europe_full_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1794552727704,
+      "tag": "0111_fire_order_placement",
+      "breakpoints": true
     }
   ]
 }
