@@ -2699,7 +2699,7 @@ export function Game() {
                   const Icon = k === "food" ? Wheat : k === "health" ? Heart : Coins;
                   return (
                     <span key={k} className="flex flex-col items-center gap-0.5">
-                      <span className="relative h-4 w-1.5 overflow-hidden rounded bg-muted"><span className={`absolute inset-x-0 bottom-0 rounded ${at[k] < 30 ? "bg-destructive" : "bg-primary"}`} style={{ height: `${at[k]}%` }} /></span>
+                      <span className="relative h-4 w-1.5 overflow-hidden rounded bg-muted"><span className={`absolute inset-x-0 bottom-0 rounded bg-primary`} style={{ height: `${at[k]}%` }} /></span>
                       <Icon aria-hidden className="h-2.5 w-2.5 text-muted-foreground" />
                     </span>
                   );
