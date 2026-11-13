@@ -665,7 +665,11 @@ export const SAWMILL_AGE = LANDMARKS.find((l) => l.kind === "sawmill")!.at;
 export const sawmillUp = (s: Seed, seeds: Seed[], now: number) => effAge(s, seeds, now) >= SAWMILL_AGE;
 /** Journeymen lodging in the Gesellenherberge lend a hand: bought builds go up faster. */
 export const HERBERGE_BUILD = 0.85;
-export const specialBuild = (s: Seed, mill = false) => ((s.bought ?? []).some((b) => b.item === "herberge") ? HERBERGE_BUILD : 1) * (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1) * (mill ? TIMBER_BUILD : 1) * (s.charter?.path === "craft" && (s.bought ?? []).some((b) => b.item === "rank2") ? 0.8 : 1);
+/** Paid steps of a monument by time t (each step gives part of its effect, see MONUMENT step boons). */
+export const stepsPaid = (s: Seed, key: MonumentKey, t = Infinity) => (s.bought ?? []).filter((b) => b.at <= t && monumentOf(b.item) === key).length;
+/** Zunftturm (Bauhütte): every paid step makes bought buildings and monuments 5 % faster to build. */
+export const GUILDTOWER_STEP = 0.05;
+export const specialBuild = (s: Seed, mill = false) => (1 - GUILDTOWER_STEP * stepsPaid(s, "guildtower")) * ((s.bought ?? []).some((b) => b.item === "herberge") ? HERBERGE_BUILD : 1) * (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1) * (mill ? TIMBER_BUILD : 1) * (s.charter?.path === "craft" && (s.bought ?? []).some((b) => b.item === "rank2") ? 0.8 : 1);
 /** When a bought (non-monument) building started at `at` is finished – same rule as structureAt. */
 export function specialDone(s: Seed, seeds: Seed[], at: number): number {
   // builders rest at night (workClock), the day shift makes up for it
