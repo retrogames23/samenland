@@ -3,7 +3,7 @@ import { NAMES_F, NAMES_M, SURNAMES } from "./names";
  * People between villages: journeymen (Wandergesellen) and messengers walking the trade roads.
  * A pure calendar from the road (seed pair) and the clock – nothing is stored, every client sees the same walkers.
  */
-import { ageHours, GROWTH_PACE, hash, links, roadProgress, stageOf, type Link, type Seed } from "./world";
+import { ageHours, GROWTH_PACE, hash, links, roadProgress, stageOf, stepsPaid, UNIVERSITY_WALZ, type Link, type Seed } from "./world";
 import { clock, worldHour, worldWeekday } from "./time";
 
 export type WalkerKind = "journeyman" | "messenger" | "bridal" | "family" | "gift" | "aid" | "letter" | "rider" | "trader" | "transit";
@@ -50,7 +50,8 @@ export function walkersOn(l: Link, d: number): Walker[] {
   };
   // a Gesellenherberge at either end draws journeymen on the Walz more often (purchase rows only, so all clients agree)
   const inn = [l.a, l.b].some((t) => t.bought?.some((b) => b.item === "herberge" && b.at <= d * DAY));
-  if (hash(sn, d, 1501) < (inn ? HERBERGE_WALZ : 0.3)) add("journeyman", 0);
+  const uni = [l.a, l.b].some((t) => stepsPaid(t, "university", d * DAY) >= 1);
+  if (hash(sn, d, 1501) < (inn ? HERBERGE_WALZ : 0.3) * (uni ? UNIVERSITY_WALZ : 1)) add("journeyman", 0);
   if (hash(sn, d, 1505) < 0.6) add("messenger", 1);
   // a bride from one town marries into the neighbour and walks over in her wedding dress (~every 25 days per road)
   if (hash(sn, d, 1506) < 0.04) add("bridal", 2);
