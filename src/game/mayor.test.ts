@@ -24,7 +24,7 @@ describe("steering the mayor", () => {
     expect(mid.visible).toBe(true);
     // long enough to arrive, still waiting at the goal
     const there = poseOf(me, t, seeds, now + 40_000);
-    expect(Math.hypot(there.x - goal![0], there.y - goal![1])).toBeLessThan(0.01);
+    expect(Math.hypot(there.x - g[0], there.y - g[1])).toBeLessThan(0.01);
     expect(there.walking).toBe(false);
     // after the idle time the order is gone
     poseOf(me, t, seeds, now + (60 + ORDER_IDLE) * 1000 + 60_000);
