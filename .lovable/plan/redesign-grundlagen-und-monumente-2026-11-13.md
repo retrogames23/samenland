@@ -291,3 +291,34 @@ Die Regelkarte ist kein Selbstzweck: Sie soll künftige Widersprüche verhindern
 **Jetzt nur Block 0 und Block 1 bearbeiten.** Block 1.1 (Wohlstand) und 1.2 (Gesundheit/Krankheit) sind die ersten Implementierungsscheiben. 1.3 bis 1.5 folgen unmittelbar, jeweils klein und testbar. Block 2 und alle Monumenteffekte bleiben bis zur Bereinigung der Grundlagen konzeptionell vorbereitet, aber werden noch nicht parallel umgebaut.
 
 Bestehende Spielstände, Kassen und gebuchte Steuern haben Vorrang vor einer theoretisch eleganten Vereinheitlichung.
+
+---
+
+## Stand 2026-11-13: Block 2 abgeschlossen
+
+### Block 2.2 – endgültige Mehrwohnungsregeln (density.ts)
+- Grundregel unverändert: 2. Familie ab Radius 18, 3. ab Radius 30.
+- Werkbank: Steinhaus, Handwerkerhaus, Mietshaus 2. Familie ab Radius 12, 3. ab Radius 24. Bleibt bestehen, obwohl sie aktuell versorgungsbedingt keine zusätzlichen Haushalte erzeugt (Engpass ist die Versorgung, nicht der Wohnraum). Versorgungsmechanik bleibt unverändert.
+- Tor zur Welt: Patrizierhaus und Mietshaus 4. Familie ab Radius 30; keine Ausweitung auf andere Gebäudetypen.
+- Kornkammer unverändert. Keine weiteren Anpassungen an Dichte, Versorgung, Rangschwellen oder Wachstum.
+
+### Simulationsergebnisse („Regelmäßig“, Tag 730; Haushalte / Bürger / Rang / Tag Hansestadt)
+| Ort | vorher | nachher |
+|---|---|---|
+| grain | 810 / 2.840 / 5 / 530 | unverändert |
+| grain-free | – | 822 / 3.082 / 5 / 530 |
+| grain-trap | 377 / 1.281 / 3 | unverändert |
+| workshop | 696 / 2.506 / 4 | unverändert |
+| workshop-free | 741 / 2.626 / 5 / 560 | unverändert |
+| workshop-tight | 615 / 2.223 / 4 | unverändert |
+| gateway | 582 / 2.052 / 4 | 623 / 2.259 / 4 |
+| gateway-river | 750 / – / 5 | 825 / 3.036 / 5 / 490 |
+| gateway-trap | 405 / 1.401 / 3 | 444 / 1.573 / 4 (Tag 600) |
+
+Hinweis: gateway-river liegt mit 825 Haushalten leicht vor der Kornkammer (810) und wird 40 Tage früher Hansestadt.
+
+Qualitätsstand (gemeldet bei Umsetzung, seitdem nicht neu geprüft): 924 Tests bestanden, 10 übersprungen, Build erfolgreich.
+
+Simulationsausgabe ab sofort zusätzlich (nur künftige Läufe): physische Wohnhäuser, Haushalte je Gebäudetyp, Belegung mit 1/2/3/4 Familien (`housing` im JSON, Spalten in report.ts).
+
+### Nächster Schritt: Block 3 – Monumente
