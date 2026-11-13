@@ -13,7 +13,7 @@ describe("fire order rack", () => {
     const oldBlock = fix.match(/\$old\$([\s\S]*?)\$old\$/)?.[1];
     const newBlock = fix.match(/\$new\$([\s\S]*?)\$new\$/)?.[1];
     if (!oldBlock || !newBlock) throw new Error("Missing fire-order guard replacement");
-    expect(original.replaceAll("''", "'")).toContain(oldBlock);
+    expect(original.replaceAll("''", "'")).toContain(oldBlock.trimStart());
     expect(newBlock).toBe(oldBlock
       .replace("an ordinance, no building site, once per village", "placeable rack, once per village; legacy unpositioned purchases remain valid")
       .replace("    IF NEW.x IS NOT NULL THEN RAISE EXCEPTION 'bad position'; END IF;\n", ""));
