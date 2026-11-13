@@ -290,7 +290,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   woodcamp: { url: woodcamp, night: woodcampLight, crop: [0, 0, 480, 427], width: 24, base: 4 },
   granary: { url: granary, night: granaryLight, crop: [0, 0, 408, 480], width: 25, base: 4 },
   infirmary: { url: infirmary, night: infirmaryLight, crop: [0, 0, 442, 480], width: 25, base: 4 },
-  firerack: { url: firerack, night: null, crop: [0, 0, 405, 480], width: 12, base: 2.5 },
+  firerack: { url: firerack, night: null, crop: [0, 0, 390, 480], width: 17, base: 3 },
   firehouse: { url: firehouse, night: firehouseLight, crop: [0, 0, 446, 480], width: 22, base: 4 },
   guardhouse: { url: guardhouse, night: guardhouseLight, crop: [0, 0, 429, 480], width: 21, base: 4 },
   school: { url: school, night: schoolLight, crop: [0, 0, 474, 480], width: 25, base: 4 },
@@ -313,7 +313,7 @@ const sprites: Partial<Record<Kind, Sprite>> = {
 /** Placement preview sizing: a thin prop (the fire rack) would disappear over the pulsing footprint
  *  at its painted size, so its ghost floats a little larger. Paint-only — the finished building keeps
  *  the width in the registry above. */
-export const GHOST_WIDTH: Partial<Record<Kind, number>> = { firerack: 15 };
+export const GHOST_WIDTH: Partial<Record<Kind, number>> = { firerack: 18 };
 
 const nightImages: Partial<Record<Kind, HTMLImageElement>> = {};
 export const hasNightSprite = (kind: Kind) => Boolean(sprites[kind]?.night);
