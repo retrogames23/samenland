@@ -1,76 +1,51 @@
-# Variante 3 – endgültige Spezifikation (Stände-Gating)
+# Funktionskonzept für die zehn Monumente (nur Konzept, keine Umsetzung)
 
-## 1. Qualifizierende Infrastruktur (abschließende Positivliste)
+## A. Verifizierter Ist-Zustand (aus dem Code gelesen)
 
-Abgeglichen mit `ITEM_RANK` (src/game/disasters.ts). Es zählen genau diese 13 Käufe, je Bau einmal, ab `bought.at <= now`:
+- **Preise und Rang** (economy.ts `MONUMENTS`): Belfried R3 400/500/600/700, Tanzhaus (Theater) R3 500/700/900, Dom (Kathedrale) R4 800–1600 in 5 Stufen, Universität R4 700–1300, Schütting (Börse) R4 700–1300, Klostergarten (Orangerie) R4 500/700/900, Artushof (Oper) R5 1200–2100, Erntehalle/Zunftturm/Leuchtfeuer R3 450/600/750 (nur das eine Monument, das zum Weg des Dorfes passt).
+- **Was tatsächlich wirkt:** Nur der Wohlstandsbonus `PRESTIGE_BONUS` (prosperity.ts) für die letzte Stufe, 6 h nach dem Kauf: Belfried +15, Tanzhaus +15, Dom +20, Universität +15, Schütting +20, Klostergarten +10, Artushof +25. Über `civicWealth` fließt er in die Steueranteile. Die drei Weg-Monumente fehlen dort.
+- **Deckelung:** Die Steueranteile sind nach Rang begrenzt (`gatedEstateShares`: Kleinstadt höchstens 35 % Gesellen und 5 % Wohlhabende). Mehr Wohlstand bringt dort kaum mehr Steuer, und die Kasse läuft in der Kleinstadt ohnehin voll.
+- **Was nur angezeigt wird:** Die Werte Nahrung, Gesundheit und Wohlstand je Monument in `attributes()`. Sie ändern weder die Krankheitsrate (`sickRate` liest nur Kräuterhütte, Heiler, Kultur-Charta und Beginenhof) noch die Zahl der Haushalte (`households.ts` zählt nur bestimmte Nahrungs- und Heilbauten). Feuer (`disasters.ts`) und Raubzüge lesen keine Monumente.
+- **Vorstufen:** Ohne Nutzen. Sie bauen nur die Baustelle weiter (`monumentProgress`).
+- **Sichtbar heute schon:** Jedes Monument hat eigene Arbeiter (people.ts: Türmer, Kaufleute, Kräuterfrauen usw.) und ein Einweihungsfest.
 
-| Rang | Bauten |
-|---|---|
-| 0 | herbs, hunter, fisher, dairy |
-| 1 | backhaus, herberge, woodcamp, granary, healer, bigstore, stonemason, smokehouse |
-| 2 | beginen |
+## B. Leitlinien des Konzepts
 
-Bewusst ausgeschlossen:
-- markethall, guildhall, library (Rang 0 in ITEM_RANK, aber Repräsentations-/Kulturbauten, kein Dorfgewerbe; wirken bereits über den Wohlstand).
-- badestube, school, firehouse, millrow, hammerworks, saltquay (Rang 3) und guard (Rang 4): städtische Bauten, dürfen die Dorfphase nicht beeinflussen. Die Schule ist Schalter, kein Zählbau.
-- rank2/rank3, title1–3, Charta, Monumente, Segen, Straßen-Beschlüsse im Bau.
+- Jedes Monument greift an genau **einem vorhandenen Stellhebel** in der Simulation an: Krankheitsrate, Feuer, Raubzüge, Bautempo, Kornspeicher, Handelsdeckel, Zuzug oder Pflege-Schwelle. Keine neue Geldquelle, keine neuen Systeme.
+- Vorstufen bringen einen **kleinen Teilnutzen am selben Hebel**, die letzte Stufe den vollen. So lohnt sich das Ansparen, ohne dass eine Stufe zum Muss wird.
+- Der Wohlstandsbonus bleibt, wie er ist. Er wird nicht erhöht, die Weg-Monumente bekommen keinen neuen Steuerbonus. So wächst der Geldüberschuss nicht weiter.
+- Alles wird aus den Kaufzeilen und der Uhr abgeleitet und ist auf der Karte zu sehen (Memory-Regel „Was passiert, muss man sehen“).
 
-Abgeschlossene Handelsstraße: ein Eintrag in `s.civicRoads`, also ein Partnerdorf, für das `roadDone(s, o)` einen Zeitpunkt liefert, mit `at <= now`. Jede Partnerstraße zählt einmal; höchstens 3 Straßen werden angerechnet (gleiche Obergrenze wie in `civicWealth`). Geplante oder im Bau befindliche Straßen zählen nicht.
+## C. Konzepttabelle
 
-`n = gezählte Bauten + min(3, fertige Straßen)`.
+| Monument (Rang) | Bisher | Neue Funktion (Art) | Wirkung, Größenordnung | Baustufen | Spielstil | Historisch | Technische Ansatzpunkte | Risiken |
+|---|---|---|---|---|---|---|---|---|
+| **Stadtturm/Belfried** (R3) | +15 Wohlstand, 400–700 | Türmer meldet Feuer und Räuber (Sicherheit) | Brand dauert 25 % kürzer, Raubzug-Fangchance +15 Prozentpunkte | 1–2: nur Feuer −10 %; 3: Feuer −25 %; 4: dazu Räuber | Vorsichtige, Gelegenheitsspieler | Türmer und Sturmglocke auf Stadttürmen sind gut belegt | `disasters.ts` Branddauer `burn`; `caught` in raidPlan | Raubverluste werden in der DB gespiegelt (`village_raids`), also SQL mitändern; mit Spritzenhaus begrenzen |
+| **Tanzhaus** (R3) | +15 Wohlstand, 500–900 | Feste ziehen Leute an (Bevölkerung) | +1 neue Familie pro 10 Häuser innerhalb der Pflege-Schwelle (kein neuer Deckel) | 1: Proben (nur sichtbar); 2: halber Effekt; 3: voll | Dorfpfleger, Festefeierer | Tanz- und Hochzeitshäuser gab es in Städten wie Lübeck | `density.ts`/`households.ts` Familien je Haus | Mehr Haushalte heißt mehr Steuer. Nur bis zur bestehenden Obergrenze, sonst vergrößert es den Überschuss |
+| **Erntehalle** (R3, Weg Korn) | Nur Anzeige, 450–750 | Kornvorrat und Winter (Versorgung) | Kornspeicher-Grenze +25 %, im Winter Krankheitsrate −0,01 | 1: Speicher +10 %; 2: +25 %; 3: dazu Winterbonus | Ebene, Kornkammer | Zehntscheunen und Kornhäuser | `goods.ts` `grainCap`; `sickRate` | Nur Versorgung, kein Geld |
+| **Zunftturm** (R3, Weg Werkbank) | Nur Anzeige, 450–750 | Bauhütte (Bauwesen) | Gekaufte Bauten und Monumente bauen 15 % schneller | 1: 5 %; 2: 10 %; 3: 15 % | Hügel, Baumeister | Bauhütten an Stadttürmen und Domen | `specialBuild` (world.ts), dieselbe Kette wie Herberge und Holzfällerlager | Fertigstellungs-Briefe und Chronik gehen über `specialDone`/`monumentDone`, das bleibt einheitlich |
+| **Leuchtfeuer** (R3, Weg Tor zur Welt) | Nur Anzeige, 450–750 | Sichere Wege übers Wasser (Handel) | Handelsdeckel +5 % Wachstum (`tradeCapOf`), dazu Hochwasser-Warnung: überflutete Kacheln trocknen 25 % schneller | 1: Hochwasser; 2: Deckel +3 %; 3: +5 % | Küste, Händler | Seezeichen und Feuerbaken an der Hansestraße (z. B. Travemünde) | `world.ts` `softTrade/tradeCapOf`; `disasters.ts` Flut-Dauer | Nur Wachstum, kein Geld; Obergrenze von 60 % bleibt |
+| **Dom/Kathedrale** (R4) | +20 Wohlstand, 800–1600 | Pilgerort (Gesundheit, Pflege) | Zählt als ein Heilbau für die Pflege-Schwelle (`careStage`); Krankheitsrate −0,01 | 1–2: Bauhütte (sichtbar); 3: −0,005; 5: voll + Pflege-Schwelle | Langzeit-Aufbauer | Domkapitel mit Spital und Armenpflege | `world.ts` `CARE_HEALTH`, `sickRate` | Pflege-Schwelle beeinflusst Wachstum; genau prüfen, damit keine Stadt schrumpft |
+| **Universität** (R4) | +15 Wohlstand, 700–1300 | Gelehrte und Ärzte (Gesundheit, Handwerk) | Krankheitsrate −0,015; Gesellen auf der Walz +25 % wahrscheinlicher | 2: Krankheit −0,005; 4: voll | Optimierer | Universität Rostock (1419), Greifswald (1456) | `sickRate`; `wander.ts` Gesellen (wie `HERBERGE_WALZ`) | Mit Heiler und Beginenhof zusammen: Untergrenze 0,01 beachten |
+| **Schütting/Börse** (R4) | +20 Wohlstand, 700–1300 | Kaufmannsgilde (Handel) | Umweg-Handel über ein Zwischendorf von 75 % auf 85 % | 2: 80 %; 4: 85 % | Netzwerker, Straßenbauer | Schütting in Bremen und Lübeck als Sitz der Kaufleute | `world.ts` `TRANSIT_SHARE`/`hubRoutes` | Nur Wachstum; wirkt sich auf Nachbarn aus, mit Netzwerk-Test prüfen |
+| **Klostergarten/Orangerie** (R4) | +10 Wohlstand, 500–900 | Heilkräuter (Gesundheit) | Krankheitsrate −0,01; zählt für die Pflege-Schwelle wie eine Kräuterhütte | 1: −0,005; 3: voll | Ruhige Spieler, Gesundheit | Klostergärten mit Heilkräuterbeeten | `sickRate`; `households.ts` Liste der Heilbauten | Steht neben Dom und Universität im selben Hebel; kleine Werte, Untergrenze beachten |
+| **Artushof/Oper** (R5) | +25 Wohlstand, 1200–2100 | Festsaal der Hanse (Kultur, Ehre) | Einmal im Monat ein Bankett für Partnerdörfer: Handelsstraßen zu ihnen +10 % Wachstum, danach Freude im Dorf (wie bei einer Hochzeit) | 2: Feste nur sichtbar; 4: voll | Endspiel, Gemeinschaft | Artushof Danzig, Treffpunkt der Kaufleute | `world.ts` Bonus je Straße; `weddingJoy`-Muster in people.ts | Freude setzt die Krankheitsrate aus; Dauer kurz halten |
 
-## 2. Progressionsregel (verbindlich: Option A, umgesetzt in `gatedEstateShares`)
+## D. Wechselwirkungen und Obergrenzen
 
-Steuer je Kopf: `1 + s + 2w` (s = Anteil Gesellen, w = Anteil Wohlhabende). `L = estateShares(wealth)` ist die bisherige Verteilung; jede Stufe ist zusätzlich durch L nach oben begrenzt.
+- **Krankheitsrate:** Dom, Universität, Klostergarten und Erntehalle senken alle denselben Wert. Die Untergrenze von 0,01 bleibt bestehen, die einzelnen Beiträge bleiben klein (höchstens zusammen −0,045).
+- **Haushalte und Steuer:** Nur Tanzhaus, Dom und Klostergarten (über die Pflege-Schwelle) berühren die Zahl der Einwohner. Das ändert die Steuer und muss in `resident-tax.ts` und den Simulationsläufen dasselbe Ergebnis liefern. Alle anderen Vorschläge wirken nur auf Wachstum, Sicherheit oder Versorgung.
+- **Datenbank:** Nur der Belfried (Raubzug-Spiegel) braucht eine Änderung in SQL. Alles andere ist reine Ableitung im Spiel.
+- **Kein Zwang zum Geldausgeben:** Die Kassen-Obergrenzen bleiben gleich. Monumente sind ein Angebot zum Ansparen, keine Pflicht.
 
-Rang `r = townRank(s, seeds, at)` (echte Bürger, bewohnte Haushalte, fertige Straßen), `school = Schulkauf mit at <= Bewertungszeitpunkt`, `n = infraCount(s, at)` (Abschnitt 1).
+## E. Priorisierung (die ersten drei)
 
-```text
-Ohne Schule (jeder Rang) oder r <= 2:
-  s = min(L.skilled, 0.04 + 0.025·n, 0.20)   w = 0      -> höchstens 1,20 M/Kopf
-r = 3 mit Schule:  s = min(L.skilled, 0.35)   w = min(L.wealthy, 0.05)   -> höchstens 1,45 M/Kopf
-r = 4 mit Schule:  s = min(L.skilled, 0.45)   w = min(L.wealthy, 0.15)   -> höchstens 1,75 M/Kopf
-r = 5 mit Schule:  s = L.skilled              w = L.wealthy              -> volle Verteilung (~2,08 M/Kopf)
-```
+1. **Zunftturm, Erntehalle, Leuchtfeuer als Paket.** Sie sind ab der Kleinstadt verfügbar, genau dort, wo die Simulation die Investitionslücke gezeigt hat, und haben heute gar keine echte Wirkung. Alle drei bekommen gleich starke Hebel, damit kein Weg bevorzugt wird.
+2. **Belfried.** Erstes Monument für alle ab der Kleinstadt. Sicherheit ergänzt Spritzenhaus und Feuerordnung. Gut sichtbar (Türmer, Sturmglocke).
+3. **Klostergarten.** Am billigsten von den Rang-4-Monumenten, aber mit dem schwächsten Nutzen. Ein kleiner, klarer Gesundheitseffekt schließt die Lücke ohne Geldwirkung.
 
-Feste Obergrenzen je Rang statt Timer: Für den Rang-4-Zeitpunkt ist kein Zeitstempel gespeichert, ein Gründungszeitpunkt als Ersatz ist ausgeschlossen.
+Danach: Universität und Dom (Gesundheit/Pflege, mit genauer Steuerprüfung), zuletzt Tanzhaus und Artushof.
 
-**Überholt (nicht umgesetzt):** Der frühere Entwurf mit gleitendem 14-Tage-Übergang ab Handelsstadt (`k = min(1, Tage seit r4 / 14)`) ist durch Option A ersetzt.
+## F. Nächster Schritt nach Freigabe
 
-Haushaltszuordnung: fester Kachel-Wurf `estateRoll(x, y)` über `estateOf(shares, x, y)`; wohlhabend wenn `roll < w`, Geselle wenn `roll < w + s`. Steuer (`resident-tax.ts`), Bürgerstand (`people.ts`) und Hausdarstellung (`world.ts`) nutzen dieselben Anteile aus `sharesAt` in prosperity.ts.
-
-## 3. SQL
-
-Keine Migration.
-- `estate_assessment` wird nur noch von `village_capped_tax_fast` (0096) für Tage vor dem ersten Steuerbeleg aufgerufen, also für die eingefrorenen Altsalden über `village_balance_legacy` (0107). Eine Änderung würde historische Kassenstände verschieben – verboten.
-- Seit dem Cutover stammen Steuern ausschließlich aus `tax_receipts`, geschrieben vom Server über `residentTax()`. Die neue Regel greift damit automatisch nur für neue Belege.
-- `village_civic_wealth` (Hochzeiten, Altsalden) bleibt unverändert, weil der Wohlstandswert selbst unverändert bleibt.
-- Keine überladene Funktion, da kein aktueller Aufrufer sie braucht.
-
-## 4. Betroffene TypeScript-Dateien
-
-1. `src/game/prosperity.ts`: `ESTATE_INFRA`-Positivliste, `infraCount(s, now)`, `estateCaps(s, now)` (liefert s/w nach Abschnitt 2), `estateAt(shares, x, y)` und `estateAssessment(pop, shares)` nehmen die gedeckelten Anteile statt des Wohlstands. Wohlstandsanzeige bleibt `civicWealth`.
-2. `src/game/resident-tax.ts`: Anteile einmal je Seed/Stichtag über `estateCaps` und an `estateAt` übergeben.
-3. `src/game/people.ts` (`townOf`): `estateSharesLive` (sharesAt + townRank, gemerkt je Minute) für `p.estate`. (umgesetzt)
-4. `src/game/world.ts` (`structureAt`): dieselben Anteile über einen Hook für `estateHouse` – Haus, Bürgerrolle und Steuer bleiben deckungsgleich. (umgesetzt)
-5. `src/game/economy.ts` (`taxOnDay`, `dailyTax`): nur für Tage nach dem Cutover die neuen Anteile; davor unverändert die bisherige Formel, damit lokale Altsalden zur Datenbank passen.
-6. Unverändert, erben automatisch: `src/lib/treasury.server.ts`, `src/game/simulation/engine.ts`, `model-c.ts`.
-7. `src/game/i18n.ts`/Sprachdateien: nur falls das Bürgerbuch einen Hinweis „Wohlhabende erst mit Schule" zeigen soll (optional, nicht Teil der Regel).
-
-## 5. Tests
-
-- `prosperity.test.ts`: Positivliste exakt 13 Einträge und alle mit ITEM_RANK <= 2; ausgeschlossene Bauten zählen nicht; Kauf zählt erst ab `at`; Straße zählt erst ab Fertigstellung, max. 3; n=0 -> s=0,04; n=4 -> 0,14; n>=7 -> 0,20; w=0 ohne Schule in jedem Rang; Obergrenzen je Rang 3/4/5 nach Abschnitt 2; nie über L.
-- `resident-tax.test.ts`: Summe der Haushaltsstände = aggregierte Steuer; vor Cutover unverändert.
-- `census.test.ts`: Bürgerbuch-Zählung = Steuerstände.
-- Konsistenztest: für dieselbe Kachel liefern people.ts, world.ts und resident-tax.ts denselben Stand.
-- `economy`-Regression: Saldo vor Cutover byte-identisch zum Stand vor der Änderung.
-- `engine.test.ts`, `model-c.test.ts`: laufen weiter grün.
-
-## 6. Reihenfolge
-
-1. prosperity.ts: Liste, `infraCount`, `estateCaps` + Unit-Tests (noch ohne Aufrufer).
-2. resident-tax.ts umstellen + Tests; Altsaldo-Regression.
-3. people.ts und world.ts umstellen + Konsistenztest.
-4. economy.ts (nur Tage nach Cutover) + Regression.
-5. Simulation der 5 Profile inkl. investierendem Gelegenheitsspieler, Tag 1 bis Handelsstadt, zur Kontrolle.
-6. Veröffentlichung erst nach Freigabe.
+Die drei priorisierten Vorschläge in der Wirtschaftssimulation (`src/game/simulation`) messen: Brandschäden, Bautempo, Wachstum und Krankheitsrate. Dabei Steuer und Kasse nachweislich unverändert lassen. Erst danach umsetzen.
