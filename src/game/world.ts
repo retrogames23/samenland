@@ -468,8 +468,8 @@ export function acreOf(x: number, y: number, s: Seed) {
 }
 
 /** Near range (tiles) in which a spoke that meets water is turned landward (rock keeps the old heading). */
-export const SPOKE_PROBE = 16;
-/** A direction counts as open land when every tile from 2 to SPOKE_OPEN along it is buildable. */
+export const SPOKE_PROBE = 12;
+/** A replacement direction counts as open land when no tile from 2 to SPOKE_OPEN along it is water (rock never excludes one). */
 export const SPOKE_OPEN = 24;
 const rayClear = (s: { x: number; y: number }, ang: number, to: number) => {
   const c = Math.cos(ang), n = Math.sin(ang);
@@ -497,7 +497,7 @@ export function spokeDirs(s: { id: string; x: number; y: number }): number[] {
   const blocked = dirs.map((a) => !rayDry(s, a, SPOKE_PROBE));
   if (blocked.some(Boolean)) {
     const open: number[] = [];
-    for (let i = 0; i < 72; i++) { const a = base + (i / 72) * Math.PI * 2; if (rayClear(s, a, SPOKE_OPEN)) open.push(a); }
+    for (let i = 0; i < 72; i++) { const a = base + (i / 72) * Math.PI * 2; if (rayDry(s, a, SPOKE_OPEN)) open.push(a); }
     const fixed = dirs.filter((_, k) => !blocked[k]);
     for (let k = 0; k < dirs.length; k++) {
       if (!blocked[k] || !open.length) continue;
