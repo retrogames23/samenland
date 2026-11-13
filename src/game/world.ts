@@ -468,9 +468,9 @@ export function acreOf(x: number, y: number, s: Seed) {
 }
 
 /** Near range (tiles) in which a spoke that meets water or rock is turned landward. */
-export const SPOKE_PROBE = 8;
+export const SPOKE_PROBE = 16;
 /** A direction counts as open land when every tile from 2 to SPOKE_OPEN along it is buildable. */
-export const SPOKE_OPEN = 12;
+export const SPOKE_OPEN = 24;
 const rayClear = (s: { x: number; y: number }, ang: number, to: number) => {
   const c = Math.cos(ang), n = Math.sin(ang);
   for (let t = 2; t <= to; t++) if (!buildable(terrain(Math.round(s.x + c * t), Math.round(s.y + n * t)))) return false;
