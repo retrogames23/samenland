@@ -2,7 +2,7 @@
 export type RankInput = { citizens: number; homes: number; roads: number };
 /** [citizens, occupied dwellings, finished trade roads] needed for Weiler … Hansestadt. */
 export const RANK_NEED: readonly [number, number, number][] = [
-  [15, 4, 0], [120, 40, 0], [500, 220, 0], [1500, 430, 1], [2700, 760, 2],
+  [15, 4, 0], [120, 40, 0], [500, 220, 0], [1500, 430, 1], [2600, 730, 2],
 ];
 export function rankOf({ citizens, homes, roads }: RankInput) {
   let r = 0;
