@@ -17,12 +17,14 @@ describe("steering the mayor", () => {
     for (let dx = -4; dx <= 4 && !goal; dx++) for (let dy = -4; dy <= 4 && !goal; dy++)
       if (commandMayor(me, t, seeds, now, [s.x + dx, s.y + dy])) goal = [s.x + dx, s.y + dy];
     expect(goal).not.toBeNull();
-    expect(mayorGoal(now)).toEqual(goal);
+    const g = mayorGoal(now)!;
+    // a blocked tap snaps to the nearest walkable tile within 3
+    expect(Math.max(Math.abs(g[0] - goal![0]), Math.abs(g[1] - goal![1]))).toBeLessThanOrEqual(3);
     const mid = poseOf(me, t, seeds, now + 1500);
     expect(mid.visible).toBe(true);
     // long enough to arrive, still waiting at the goal
     const there = poseOf(me, t, seeds, now + 40_000);
-    expect(Math.hypot(there.x - goal![0], there.y - goal![1])).toBeLessThan(0.01);
+    expect(Math.hypot(there.x - g[0], there.y - g[1])).toBeLessThan(0.01);
     expect(there.walking).toBe(false);
     // after the idle time the order is gone
     poseOf(me, t, seeds, now + (60 + ORDER_IDLE) * 1000 + 60_000);

@@ -1208,7 +1208,7 @@ export function steeredMayor(): { sid: string; x: number; y: number } | null {
 }
 let order: Order | null = null;
 /** Max tiles searched around start/goal for the mayor's tap route. */
-const MAYOR_PAD = 24, MAYOR_SPAN = 220;
+const MAYOR_PAD = 24, MAYOR_PAD_MAX = 72, MAYOR_SPAN = 220;
 const FARMLAND: ReadonlySet<Kind> = new Set(["field", "garden", "pasture"] as Kind[]);
 /**
  * Tap route for the player's mayor: A* over a box spanning start and goal, with buildings,
@@ -1216,8 +1216,10 @@ const FARMLAND: ReadonlySet<Kind> = new Set(["field", "garden", "pasture"] as Ki
  * tile path to the goal, or to the reachable tile nearest it when the goal is cut off.
  */
 export function mayorRoute(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
-  const x0 = Math.max(1, Math.min(a[0], b[0]) - MAYOR_PAD), y0 = Math.max(1, Math.min(a[1], b[1]) - MAYOR_PAD);
-  const x1 = Math.min(MAP - 2, Math.max(a[0], b[0]) + MAYOR_PAD), y1 = Math.min(MAP - 2, Math.max(a[1], b[1]) + MAYOR_PAD);
+  // long walks get a wider search box so detours round lakes and ridges fit in one tap
+  const PAD = Math.min(MAYOR_PAD_MAX, MAYOR_PAD + Math.round(Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1])) / 3));
+  const x0 = Math.max(1, Math.min(a[0], b[0]) - PAD), y0 = Math.max(1, Math.min(a[1], b[1]) - PAD);
+  const x1 = Math.min(MAP - 2, Math.max(a[0], b[0]) + PAD), y1 = Math.min(MAP - 2, Math.max(a[1], b[1]) + PAD);
   const W = x1 - x0 + 1, H = y1 - y0 + 1;
   const idx = (x: number, y: number) => (y - y0) * W + (x - x0);
   const dist = new Float64Array(W * H).fill(Infinity), prev = new Int32Array(W * H).fill(-1);
@@ -1255,8 +1257,16 @@ export function mayorRoute(t: Town, a: Tile, b: Tile, seeds: Seed[]): Tile[] {
 }
 /** Local-only steering of the player's own figure; never stored, other clients keep seeing the routine. */
 export function commandMayor(p: Person, t: Town, seeds: Seed[], now: number, to: Tile): boolean {
-  const g: Tile = [Math.round(to[0]), Math.round(to[1])];
-  if (p.role !== "mayor" || !free(t, g[0], g[1], seeds)) return false;
+  if (p.role !== "mayor") return false;
+  let g: Tile = [Math.round(to[0]), Math.round(to[1])];
+  // a tap on water, rock or a roof snaps to the nearest walkable tile within 3 tiles
+  if (!free(t, g[0], g[1], seeds)) {
+    let hit: Tile | null = null;
+    for (let r = 1; r <= 3 && !hit; r++) for (let ox = -r; ox <= r && !hit; ox++) for (let oy = -r; oy <= r && !hit; oy++)
+      if (Math.max(Math.abs(ox), Math.abs(oy)) === r && free(t, g[0] + ox, g[1] + oy, seeds)) hit = [g[0] + ox, g[1] + oy];
+    if (!hit) return false;
+    g = hit;
+  }
   const q = poseOf(p, t, seeds, now);
   const from: Tile = q.visible ? [q.x, q.y] : doorOf(t, p.home, seeds);
   const a: Tile = [Math.round(from[0]), Math.round(from[1])];
