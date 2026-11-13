@@ -5,7 +5,7 @@ import { hash, structureAt, reachOf, radiusOf, effAge, townDist, specialSites, t
 
 export type HomeTile = [number, number];
 export const HOME_SIZES: Partial<Record<Kind, readonly [number, number]>> = { hut: [2, 2], suburb: [2, 4], farmhouse: [2, 4], cottage: [2, 3], townhouse: [2, 4], townhouse2: [2, 4], fachwerk: [2, 5], steinhaus: [2, 5], handwerker: [2, 4], patrician: [2, 5], villa: [2, 4], tenement: [4, 8], inn: [2, 2], bakery: [2, 2] };
-/** Share of the winter food shortfall a Kornkammer still feels. */
+/** Share of the winter food shortfall a Kornkammer still feels (larder display only; not capacity or growth). */
 export const GRAIN_WINTER = 0.8;
 export const FEED_BASE = 24, WILD_MAX = 32, FEED_FIELD = 0.25, FEED_GARDEN = FEED_FIELD, FEED_PASTURE = FEED_FIELD, FEED_FOOD_ITEM = 0.15, FEED_HEALTH_ITEM = 0.1, FEED_WINTER = 0.25;
 
@@ -20,8 +20,8 @@ function capacityAt(s: Seed, byKind: Map<Kind, unknown[]>, now: number, r: numbe
   const own = new Set((s.bought ?? []).filter(b => b.at <= now).map(b => b.item));
   const food = ["fisher", "hunter", "granary", "dairy", "markethall", "guildhall"].filter(i => own.has(i)).length;
   const health = ["herbs", "healer", "library"].filter(i => own.has(i)).length;
-  // Winter protection: housing capacity is year-round. Winter scarcity acts on larder, sickness and growth,
-  // never on how many established households exist (FEED_WINTER no longer caps homes).
+  // System B (household capacity): long-term carrying limit, year-round and independent of the momentary larder.
+  // Winter acts only on larder stock and sickness — never on this capacity or on growth (FEED_WINTER is unused here).
   const w = 1;
   // Different farming art must not silently reduce a town's household supply.
   const farm = FEED_FIELD * (byKind.get("field")?.length ?? 0) + FEED_GARDEN * (byKind.get("garden")?.length ?? 0) + FEED_PASTURE * (byKind.get("pasture")?.length ?? 0);

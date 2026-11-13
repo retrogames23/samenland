@@ -1274,8 +1274,10 @@ export function hubRoutes(s: Seed, seeds: Seed[]): { since: number }[] {
   return out;
 }
 
-/** Care gate: food/health buildings a player town needs before each later era (Kleinstadt, Handelsstadt, Hansestadt). */
-/** Care-gate supply list: the four FOOD_CRAFTS plus market hall and guild hall (broader on purpose; not "food buildings"). */
+/** System C (care gate): bought infrastructure a player town needs before each later era (Kleinstadt, Handelsstadt, Hansestadt).
+ * It checks purchases only — never larder stock or momentary supply — and caps further expansion, never existing households.
+ * CARE_FOOD = "Versorgung" (four FOOD_CRAFTS plus market hall and guild hall, broader on purpose);
+ * CARE_HEALTH = "Gemeinwesen" (herb hut, healer, library, plus careHealthExtra). */
 export const CARE_FOOD: string[] = [...FOOD_CRAFTS, "markethall", "guildhall"], CARE_HEALTH = ["herbs", "healer", "library"];
 export const CARE_NEED: [number, number][] = [[1, 0], [2, 1], [3, 2]];
 /** Highest growth stage a town may reach with the care bought by `now` (sample towns are never gated). */

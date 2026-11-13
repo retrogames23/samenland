@@ -97,7 +97,7 @@ export const es: Dict = {
     open: "Almacenes",
     young: "Tu aldea es aún joven. En cuanto los primeros leñadores, pescadores y labradores comiencen su labor, los graneros se colmarán.",
     boonsTitle: "Lo que aportan los almacenes llenos",
-    boons: { fed: "Bien nutridos: 2 raciones por habitante → +10 alimento, +5 salud", varied: "Variedad: dos clases de alimento → +5 salud", surplus: "Excedente de tablones, harina, pan o queso (10+) → +5 prosperidad" },
+    boons: { fed: "Bien nutridos: 2 raciones por habitante → +10 alimento, +5 salud", varied: "Variedad: dos clases de alimento → +5 salud", surplus: "Excedente de tablones, harina, pan o queso (10+) → gran día de mercado posible" },
     timber: "Aserradero en el pueblo: los edificios adquiridos se erigen un 15% más rápido",
     market: "Celebrar día de mercado (+15 Mark)",
     marketDone: "Hoy se celebró mercado; volverá mañana.",

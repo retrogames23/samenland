@@ -274,7 +274,7 @@ export const PER_HEAD_POP = 25, PER_HEAD_MIN = 0.3;
 export const perHead = (pop: number) => Math.max(PER_HEAD_MIN, Math.min(1, PER_HEAD_POP / Math.max(1, pop)));
 
 /** Village attributes 0–100, derived from age, trade, charter, larder and purchased buildings. */
-export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: number, alliances = 0, stores?: { food: number; health: number; wealth: number; supply?: number }) {
+export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: number, alliances = 0, stores?: { food: number; health: number; supply?: number }) {
   const has = (i: Item | MonumentStep) => purchases.some((p) => p.seed_id === s.id && p.item === i);
   // twins share wells, healer and school at half strength; a protective pact adds health
   const twins = twinLinks(s, seeds, now).map((l) => (l.a.id === s.id ? l.b : l.a));
