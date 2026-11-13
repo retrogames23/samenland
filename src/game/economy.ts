@@ -7,7 +7,7 @@ import { residentTax } from "./resident-tax";
 import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, raids, floodFood, ITEM_RANK } from "./disasters";
-import { dowryEarned, weddingDates, weddingJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
+import { dowryEarned, weddingDates, festJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
 import { speedParts, radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, monumentOf, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
 
 /** Starting treasury and fixed prices (Mark). Prices mirror the database purchase guard. */
@@ -305,7 +305,7 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   if (has("badestube")) { b.health += BADESTUBE_HEALTH; }
   b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0;
   // weddings: a day of joy (health, prosperity) and lasting craft alliances between families
-  const joy = weddingJoy(s, now);
+  const joy = festJoy(s, now);
   b.health += joy ? 10 : 0;
   if (stores) { b.food += stores.food; b.health += stores.health; }
   // Wohlstand comes only from prosperityAt (same source as estates, house paint and resident tax); no side bonuses.

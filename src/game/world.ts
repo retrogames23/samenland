@@ -770,7 +770,9 @@ export const sawmillUp = (s: Seed, seeds: Seed[], now: number) => effAge(s, seed
 export const HERBERGE_BUILD = 0.85;
 /** Paid steps of a monument by time t (each step gives part of its effect, see MONUMENT step boons). */
 export const stepsPaid = (s: Seed, key: MonumentKey, t = Infinity) => (s.bought ?? []).filter((b) => b.at <= t && monumentOf(b.item) === key).length;
-/** Zunftturm (Bauhütte): every paid step makes bought buildings and monuments 5 % faster to build. */
+/** Physically finished steps of a monument by time t (same chain as map, mails and chronicle). */
+export const stepsDone = (s: Seed, key: MonumentKey, t: number) => monumentChain(s, key, t).filter((c) => c.done <= t).length;
+/** Zunftturm (Bauhütte): every finished step makes bought buildings and monuments 5 % faster to build. */
 export const GUILDTOWER_STEP = 0.05;
 /** Monument step effects (paid steps count at once, independent of the physical build):
  *  harvest: grain store +10 % / +25 %, step 3 halves the winter sickness surcharge;
@@ -788,12 +790,29 @@ export const CATHEDRAL_SICK = 0.02, UNIVERSITY_SICK = 0.015, UNIVERSITY_WALZ = 1
 export const transitShare = (s: Seed, now: number) => { const n = stepsPaid(s, "exchange", now); return n >= 4 ? 0.85 : n >= 2 ? 0.8 : TRANSIT_SHARE; };
 /** Extra health-care count from monuments (cathedral step 3+, orangery step 2+ when no herb hut). */
 export const careHealthExtra = (s: Seed, now: number, own: Set<string>) => (stepsPaid(s, "cathedral", now) >= 3 ? 1 : 0) + (!own.has("herbs") && stepsPaid(s, "orangery", now) >= 2 ? 1 : 0);
-export const specialBuild = (s: Seed, mill = false) => (1 - GUILDTOWER_STEP * stepsPaid(s, "guildtower")) * ((s.bought ?? []).some((b) => b.item === "herberge") ? HERBERGE_BUILD : 1) * (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1) * (mill ? TIMBER_BUILD : 1) * (s.charter?.path === "craft" && (s.bought ?? []).some((b) => b.item === "rank2") ? 0.8 : 1);
+/** Finished Zunftturm steps at time t: each step is built after the previous one with only the steps already
+ *  standing at its own start speeding it — the tower never speeds its own running step. Pure, no recursion. */
+export function guildtowerDone(s: Seed, t: number): number {
+  const paid = (s.bought ?? []).filter((b) => monumentOf(b.item) === "guildtower").map((b) => b.at).sort((a, b) => a - b);
+  let prev = -Infinity, n = 0;
+  for (const at of paid) {
+    const start = Math.max(at, prev); if (start > t) break;
+    prev = doneWith(s, [s], start, n);
+    if (prev <= t) n++; else break;
+  }
+  return n;
+}
+const buildWith = (s: Seed, mill: boolean, gt: number) => (1 - GUILDTOWER_STEP * gt) * ((s.bought ?? []).some((b) => b.item === "herberge") ? HERBERGE_BUILD : 1) * (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1) * (mill ? TIMBER_BUILD : 1) * (s.charter?.path === "craft" && (s.bought ?? []).some((b) => b.item === "rank2") ? 0.8 : 1);
+function doneWith(s: Seed, seeds: Seed[], at: number, gt: number) {
+  const fast = workDone(at, buildWith(s, true, gt));
+  return sawmillUp(s, seeds, fast) ? fast : workDone(at, buildWith(s, false, gt));
+}
+/** Build time of a bought building/monument step started at `at` (default: with every Zunftturm step finished by now). */
+export const specialBuild = (s: Seed, mill = false, at = Infinity) => buildWith(s, mill, guildtowerDone(s, at));
 /** When a bought (non-monument) building started at `at` is finished – same rule as structureAt. */
 export function specialDone(s: Seed, seeds: Seed[], at: number): number {
   // builders rest at night (workClock), the day shift makes up for it
-  const fast = workDone(at, specialBuild(s, true));
-  return sawmillUp(s, seeds, fast) ? fast : workDone(at, specialBuild(s, false));
+  return doneWith(s, seeds, at, guildtowerDone(s, at));
 }
 /** When a fully paid monument is finished (last step + build time, same rule as structureAt), or null while steps are missing. */
 export function monumentDone(s: Seed, _seeds: Seed[], key: MonumentKey): number | null {
@@ -913,7 +932,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     if (sp.kind === "square") { best = { kind: "square", seed: s, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
     const mk = MONUMENT_BY_KIND.get(sp.kind);
     const mill = sawmillUp(s, seeds, now);
-    const p = mk ? monumentProgress(s, now, mk) : (workClock(now) - workClock(sp.at)) / specialBuild(s, mill);
+    const p = mk ? monumentProgress(s, now, mk) : (workClock(now) - workClock(sp.at)) / specialBuild(s, mill, sp.at);
     const doneAt = p < 1 ? (mk ? monumentDone(s, seeds, mk) ?? undefined : specialDone(s, seeds, sp.at)) : undefined;
     best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p, doneAt } : {}) };
     scache.set(ck, best);
