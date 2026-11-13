@@ -669,6 +669,18 @@ export const HERBERGE_BUILD = 0.85;
 export const stepsPaid = (s: Seed, key: MonumentKey, t = Infinity) => (s.bought ?? []).filter((b) => b.at <= t && monumentOf(b.item) === key).length;
 /** Zunftturm (Bauhütte): every paid step makes bought buildings and monuments 5 % faster to build. */
 export const GUILDTOWER_STEP = 0.05;
+/** Monument step effects (paid steps count at once, independent of the physical build):
+ *  harvest: grain store +10 % / +25 %, step 3 halves the winter sickness surcharge;
+ *  lighthouse: step 1 floods recede 30 % sooner, steps 2/3 raise the trade ceiling +0.03/+0.05;
+ *  cathedral: from step 3 counts as a health building for the care gate, step 5 sickness −0.02;
+ *  university: journeymen +20 % more often from step 1, sickness −0.015 from step 3;
+ *  exchange: routed trade 0.80 from step 2, 0.85 at step 4; orangery: from step 2 like a herb hut, step 3 sickness −0.01;
+ *  opera (Artushof): step 4 roads to partners +10 % trade factor (inside the usual cap). */
+export const HARVEST_GRAIN = [0, 0.1, 0.25, 0.25] as const, LIGHTHOUSE_FLOOD = 0.7, LIGHTHOUSE_CEIL = [0, 0, 0.03, 0.05] as const;
+export const CATHEDRAL_SICK = 0.02, UNIVERSITY_SICK = 0.015, UNIVERSITY_WALZ = 1.2, ORANGERY_SICK = 0.01, OPERA_TRADE = 0.1;
+export const transitShare = (s: Seed, now: number) => { const n = stepsPaid(s, "exchange", now); return n >= 4 ? 0.85 : n >= 2 ? 0.8 : TRANSIT_SHARE; };
+/** Extra health-care count from monuments (cathedral step 3+, orangery step 2+ when no herb hut). */
+export const careHealthExtra = (s: Seed, now: number, own: Set<string>) => (stepsPaid(s, "cathedral", now) >= 3 ? 1 : 0) + (!own.has("herbs") && stepsPaid(s, "orangery", now) >= 2 ? 1 : 0);
 export const specialBuild = (s: Seed, mill = false) => (1 - GUILDTOWER_STEP * stepsPaid(s, "guildtower")) * ((s.bought ?? []).some((b) => b.item === "herberge") ? HERBERGE_BUILD : 1) * (s.charter?.path === "craft" ? SPECIAL_BUILD / 2 : SPECIAL_BUILD) * ((s.bought ?? []).some((b) => b.item === "woodcamp") ? WOODCAMP_BUILD : 1) * (mill ? TIMBER_BUILD : 1) * (s.charter?.path === "craft" && (s.bought ?? []).some((b) => b.item === "rank2") ? 0.8 : 1);
 /** When a bought (non-monument) building started at `at` is finished – same rule as structureAt. */
 export function specialDone(s: Seed, seeds: Seed[], at: number): number {
@@ -1135,6 +1147,7 @@ export function tradeFactor(s: Seed, o: Seed, now: number) {
   let f = complement(s, o);
   if (townCharacter(s).main !== townCharacter(o).main) f += WAY_COMPLEMENT;
   if (stageOf(ageHours(s, now)) >= 4) f += KONTOR_BONUS;
+  if (stepsPaid(s, "opera", now) >= 4) f += OPERA_TRADE;
   const cap = s.charter?.path === "trade" && now > s.charter.at ? 1.75 : COMPLEMENT_MAX;
   return Math.min(cap, f);
 }
@@ -1208,6 +1221,7 @@ export function tradeCapOf(s: Seed, now: number) {
   if (s.user_id && townCharacter(s).main === "gateway") c += CEIL_GATEWAY;
   if (s.charter?.path === "trade" && now > s.charter.at) c += CEIL_CHARTER;
   if ((s.bought ?? []).some((b) => b.item === "markethall" && b.at <= now)) c += CEIL_MARKET;
+  c += LIGHTHOUSE_CEIL[Math.min(3, stepsPaid(s, "lighthouse", now))]!;
   return Math.min(TRADE_CEIL_MAX, c);
 }
 /** Effective trade for a raw trade value: unchanged up to TRADE_CAP, then rising ever more slowly towards `cap`. */
@@ -1239,7 +1253,7 @@ export function transitRoutes(s: Seed, seeds: Seed[]): Transit[] {
       const since = Math.max(roadDoneAt(l1), roadDoneAt(l2)), d = l1.d + l2.d;
       const prev = best.get(to.id);
       if (prev && prev.since <= since) continue;
-      best.set(to.id, { to, via, since, d, bonus: (now) => bonusOf(Math.min(TRADE_DIST, d), ageHours(to, now)) * tradeFactor(s, to, now) * TRANSIT_SHARE });
+      best.set(to.id, { to, via, since, d, bonus: (now) => bonusOf(Math.min(TRADE_DIST, d), ageHours(to, now)) * tradeFactor(s, to, now) * transitShare(s, now) });
     }
   }
   return [...best.values()];
@@ -1263,7 +1277,7 @@ export const CARE_NEED: [number, number][] = [[1, 0], [2, 1], [3, 2]];
 export function careStage(s: Seed, now: number) {
   if (!s.user_id) return 5;
   const own = new Set((s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item));
-  const f = CARE_FOOD.filter((i) => own.has(i)).length, hl = CARE_HEALTH.filter((i) => own.has(i)).length;
+  const f = CARE_FOOD.filter((i) => own.has(i)).length, hl = CARE_HEALTH.filter((i) => own.has(i)).length + careHealthExtra(s, now, own);
   let st = 2;
   for (const [nf, nh] of CARE_NEED) { if (f >= nf && hl >= nh) st++; else break; }
   return st;
@@ -1273,7 +1287,7 @@ export function careMissing(s: Seed, now: number) {
   const st = careStage(s, now), need = CARE_NEED[st - 2];
   if (!need) return null;
   const own = new Set((s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item));
-  const f = CARE_FOOD.filter((i) => own.has(i)).length, hl = CARE_HEALTH.filter((i) => own.has(i)).length;
+  const f = CARE_FOOD.filter((i) => own.has(i)).length, hl = CARE_HEALTH.filter((i) => own.has(i)).length + careHealthExtra(s, now, own);
   return { stage: st, food: Math.max(0, need[0] - f), health: Math.max(0, need[1] - hl),
     foodItems: CARE_FOOD.filter((i) => !own.has(i)), healthItems: CARE_HEALTH.filter((i) => !own.has(i)) };
 }
