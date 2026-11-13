@@ -15,19 +15,19 @@ describe("economy simulation", () => {
     expect(b).toBe(walkChest(0, ev, () => 1200));
   });
   it("metro quest needs Hansestadt", () => { expect(questRank(18)).toBe(5); expect(questRank(0)).toBe(1); });
-  it("town volume: 13 general, 1 charter, 2 way buildings, 1 way monument", () => {
+  it("town volume: 14 general (incl. fire order), 1 charter, 2 way buildings, 1 way monument", () => {
     const o = offerFor("trade", "grain");
-    expect(o.filter((e) => e.group === "general")).toHaveLength(13);
+    expect(o.filter((e) => e.group === "general")).toHaveLength(14);
     expect(o.filter((e) => e.group === "charter")).toHaveLength(1);
     expect(o.filter((e) => e.group === "way")).toHaveLength(2);
     expect(new Set(o.filter((e) => e.group === "way-monument").map((e) => e.item.replace(/\d+$/, ""))).size).toBe(1);
   });
   it("investment volumes per charter", () => {
     for (const w of ["grain", "workshop", "gateway"] as const) {
-      expect(investmentVolume("trade", w)).toBe(44880);
-      expect(investmentVolume("craft", w)).toBe(44880);
-      expect(investmentVolume("culture", w)).toBe(44810);
-      expect(investmentVolume("farm", w)).toBe(44780);
+      expect(investmentVolume("trade", w)).toBe(45280);
+      expect(investmentVolume("craft", w)).toBe(45280);
+      expect(investmentVolume("culture", w)).toBe(45210);
+      expect(investmentVolume("farm", w)).toBe(45180);
     }
     expect(TWIN_VOLUME).toBe(750);
     expect(RANK_PRICE.rank3).toBe(800);
