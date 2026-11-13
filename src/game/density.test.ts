@@ -8,15 +8,38 @@ import type { Seed, Kind } from "./world";
 import type { Person } from "./people";
 
 describe("character dwellings", () => {
-  it("every town way shares the same floors: second from radius 18, third from 30", () => {
-    for (const way of ["grain", "gateway", "workshop"] as const) for (const kind of ["townhouse", "fachwerk", "steinhaus", "patrician", "tenement"] as Kind[]) {
-      expect(dwellingSlots(way, kind, 17)).toBe(1);
-      expect(dwellingSlots(way, kind, 18)).toBe(2);
-      expect(dwellingSlots(way, kind, 29)).toBe(2);
-      expect(dwellingSlots(way, kind, 30)).toBe(3);
+  it("grain keeps the shared floors: second from radius 18, third from 30", () => {
+    for (const kind of ["townhouse", "fachwerk", "steinhaus", "patrician", "tenement"] as Kind[]) {
+      expect(dwellingSlots("grain", kind, 17)).toBe(1);
+      expect(dwellingSlots("grain", kind, 18)).toBe(2);
+      expect(dwellingSlots("grain", kind, 30)).toBe(3);
+      expect(dwellingSlots("grain", kind, 45)).toBe(3);
     }
     expect(dwellingSlots("grain", "hut", 40)).toBe(1);
     expect(dwellingSlots("workshop", "farmhouse", 40)).toBe(1);
+    expect(dwellingSlots("gateway", "hut", 40)).toBe(1);
+  });
+  it("workshop stone and craft houses stack earlier: second from 12, third from 24", () => {
+    for (const kind of ["steinhaus", "handwerker", "tenement"] as Kind[]) {
+      expect(dwellingSlots("workshop", kind, 11)).toBe(1);
+      expect(dwellingSlots("workshop", kind, 12)).toBe(2);
+      expect(dwellingSlots("workshop", kind, 24)).toBe(3);
+      expect(dwellingSlots("workshop", kind, 40)).toBe(3);
+    }
+    expect(dwellingSlots("workshop", "cottage", 12)).toBe(1);
+    expect(dwellingSlots("workshop", "patrician", 40)).toBe(3);
+  });
+  it("gateway merchant houses and tenements carry a fourth family from radius 30", () => {
+    for (const kind of ["patrician", "tenement"] as Kind[]) {
+      expect(dwellingSlots("gateway", kind, 29)).toBe(2);
+      expect(dwellingSlots("gateway", kind, 30)).toBe(4);
+    }
+    expect(dwellingSlots("gateway", "cottage", 40)).toBe(3);
+    expect(dwellingSlots("gateway", "villa", 40)).toBe(3);
+  });
+  it("no way ever has fewer floors than the shared rule", () => {
+    for (const way of ["grain", "workshop", "gateway"] as const) for (const kind of ["cottage", "townhouse", "steinhaus", "handwerker", "patrician", "villa", "tenement", "hut"] as Kind[]) for (let r = 0; r <= 50; r++)
+      expect(dwellingSlots(way, kind, r)).toBeGreaterThanOrEqual(dwellingSlots("grain", kind, r));
   });
   it("keeps old IDs and decodes every floor to the real ground tile", () => {
     expect(dwellingKey(306, 420)).toBe(313764);
