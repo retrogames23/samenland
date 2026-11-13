@@ -297,8 +297,9 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   const tb = titleBoons(s, purchases); b.food += tb.food; b.health += tb.health; b.wealth += tb.wealth;
   for (const k of MONUMENT_KEYS) {
     const m = MONUMENTS[k];
-    if (!has(`${k}${m.prices.length}` as Item) || monumentProgress(s, now, k) < 1) continue;
-    b.food += m.food ?? 0; b.health += m.health ?? 0; b.wealth += m.wealth ?? 0;
+    // every finished step gives its share; the last step completes the full bonus
+    const f = monumentProgress(s, now, k); if (f <= 0) continue;
+    b.food += Math.round((m.food ?? 0) * f); b.health += Math.round((m.health ?? 0) * f); b.wealth += Math.round((m.wealth ?? 0) * f);
   }
   for (const [it, wb] of Object.entries(WAY_BONUS)) if (has(it as Item)) { b.food += wb.food ?? 0; b.health += wb.health ?? 0; b.wealth += wb.wealth ?? 0; }
   // Wegezoll: trade beyond what growth can absorb turns into prosperity
