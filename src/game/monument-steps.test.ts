@@ -16,15 +16,21 @@ describe("monument step boons", () => {
   });
 });
 
-import { tradeCapOf, transitShare, careStage, CATHEDRAL_SICK } from "./world";
+import { tradeCapOf, transitShare, tradeFactor, seaDist, careStage, CATHEDRAL_SICK } from "./world";
 import { sickRate } from "./people";
-import { floods } from "./disasters";
 describe("monument step effects (paid steps)", () => {
   const T = Date.parse("2026-03-01T00:00:00Z");
   const town = (steps: string[]): Seed => ({ id: "mfx", name: "M", owner: "o", hue: 1, x: 400, y: 540, user_id: "u", created_at: "2026-01-01T00:00:00Z", bought: steps.map((item) => ({ item, at: T })) } as Seed);
-  it("lighthouse steps 2/3 raise the trade ceiling by 0.03/0.05", () => {
+  it("lighthouse: coastal trade factor, halved distance loss, step 3 ceiling +0.05", () => {
     const b = tradeCapOf(town([]), T + 1);
-    expect(tradeCapOf(town(["lighthouse1", "lighthouse2"]), T + 1) - b).toBeCloseTo(0.03);
+    expect(tradeCapOf(town(["lighthouse1", "lighthouse2"]), T + 1) - b).toBeCloseTo(0);
+    const sea = { ...town([]), id: "sea" } as Seed, land = { ...town([]), id: "land" } as Seed;
+    vi.spyOn(character, "townCharacter").mockImplementation((o: Seed) => ({ main: o.id === "sea" ? "gateway" : "grain" }) as never);
+    const l1 = town(["lighthouse1"]);
+    expect(tradeFactor(l1, sea, T + 1)).toBeGreaterThan(tradeFactor(town([]), sea, T + 1));
+    expect(seaDist(town(["lighthouse1", "lighthouse2"]), sea, 60, T + 1)).toBeLessThan(60);
+    expect(seaDist(town(["lighthouse1", "lighthouse2"]), land, 60, T + 1)).toBe(60);
+    vi.restoreAllMocks();
     expect(tradeCapOf(town(["lighthouse1", "lighthouse2", "lighthouse3"]), T + 1) - b).toBeCloseTo(0.05);
   });
   it("exchange: routed trade 0.75 → 0.80 (step 2) → 0.85 (step 4)", () => {
@@ -41,14 +47,5 @@ describe("monument step effects (paid steps)", () => {
   it("orangery step 2 acts like a herb hut", () => {
     const at = Date.parse("2026-07-21T00:00:00Z");
     expect(sickRate(town(["orangery1", "orangery2"]), at)).toBeCloseTo(sickRate(town(["herbs"]), at));
-  });
-  it("lighthouse step 1 shortens floods by 30 %", () => {
-    let fs: ReturnType<typeof floods> = [];
-    outer: for (let y = 100; y < 900; y += 20) for (let x = 100; x < 900; x += 20) {
-      fs = floods({ ...town(["lighthouse1"]), x, y }, T + 400 * 864e5).filter((f) => f.at > T);
-      if (fs.length) break outer;
-    }
-    expect(fs.length).toBeGreaterThan(0);
-    for (const f of fs) expect(f.end - f.at).toBeCloseTo(48 * 3.6e6 * 0.7);
   });
 });
