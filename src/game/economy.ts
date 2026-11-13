@@ -290,28 +290,25 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
     + Math.min(15, trade * (path === "trade" ? 8 : 5)) + (path === "farm" ? 15 : 0));
   const health = clamp(HEALTH_BASE + (food - 50) * 0.3 + k * ((has("healer") ? 20 : 0) + (has("herbs") ? HERBS_HEALTH : 0) + (has("library") ? 10 : 0))
     + (path === "culture" ? 15 : 0) + (near("healer") ? 15 : 0) + (shield ? 10 : 0));
-  const wealth = clamp(25 + roadWealth(trade) + (has("school") ? 20 : 0) + stage * 5 + (path === "craft" ? 10 : 0)
-    + (near("school") ? 10 : 0) + (has("guildhall") ? 15 : 0) + (has("markethall") ? 15 : 0) + (has("library") ? 10 : 0) + (has("dairy") ? 5 : 0) + (has("woodcamp") ? WOODCAMP_WEALTH : 0));
   const b = activeBoons(s.decisions ?? [], now);
-  const rb = rankBoons(s, purchases); b.food += rb.food; b.health += rb.health; b.wealth += rb.wealth;
-  const tb = titleBoons(s, purchases); b.food += tb.food; b.health += tb.health; b.wealth += tb.wealth;
+  const rb = rankBoons(s, purchases); b.food += rb.food; b.health += rb.health;
+  const tb = titleBoons(s, purchases); b.food += tb.food; b.health += tb.health;
   for (const k of MONUMENT_KEYS) {
     const m = MONUMENTS[k];
     // every finished step gives its share; the last step completes the full bonus
     const f = monumentProgress(s, now, k); if (f <= 0) continue;
-    b.food += Math.round((m.food ?? 0) * f); b.health += Math.round((m.health ?? 0) * f); b.wealth += Math.round((m.wealth ?? 0) * f);
+    b.food += Math.round((m.food ?? 0) * f); b.health += Math.round((m.health ?? 0) * f);
   }
-  for (const [it, wb] of Object.entries(WAY_BONUS)) if (has(it as Item)) { b.food += wb.food ?? 0; b.health += wb.health ?? 0; b.wealth += wb.wealth ?? 0; }
-  // Wegezoll: trade beyond what growth can absorb turns into prosperity
-  b.wealth += Math.round(speedParts(s, seeds, now).toll / 2);
-  b.health += has("backhaus") ? BACKHAUS_HEALTH : 0; b.wealth += has("herberge") ? HERBERGE_WEALTH : 0;
-  if (has("beginen")) { b.wealth += BEGINEN_WEALTH; b.health += BEGINEN_HEALTH; }
-  if (has("badestube")) { b.health += BADESTUBE_HEALTH; b.wealth += BADESTUBE_WEALTH; }
-  b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0; b.wealth += has("guard") ? 5 : 0;
+  for (const [it, wb] of Object.entries(WAY_BONUS)) if (has(it as Item)) { b.food += wb.food ?? 0; b.health += wb.health ?? 0; }
+  b.health += has("backhaus") ? BACKHAUS_HEALTH : 0;
+  if (has("beginen")) b.health += BEGINEN_HEALTH;
+  if (has("badestube")) { b.health += BADESTUBE_HEALTH; }
+  b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0;
   // weddings: a day of joy (health, prosperity) and lasting craft alliances between families
   const joy = weddingJoy(s, now);
-  b.health += joy ? 10 : 0; b.wealth += (joy ? 5 : 0) + Math.min(ALLIANCE_MAX, alliances * ALLIANCE_WEALTH);
-  if (stores) { b.food += stores.food; b.health += stores.health; b.wealth += stores.wealth; }
+  b.health += joy ? 10 : 0;
+  if (stores) { b.food += stores.food; b.health += stores.health; }
+  // Wohlstand comes only from prosperityAt (same source as estates, house paint and resident tax); no side bonuses.
   return { food: soften(food + b.food), health: soften(health + b.health), wealth: Math.round(prosperityAt(s, now, householdsOf(s, seeds, now).reduce((n, h) => n + h.size, 0))), has };
 }
 
