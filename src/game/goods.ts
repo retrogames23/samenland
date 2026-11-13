@@ -1,4 +1,4 @@
-import { structureAt, seedsKey, type Kind, type Seed } from "./world";
+import { structureAt, seedsKey, stepsPaid, HARVEST_GRAIN, type Kind, type Seed } from "./world";
 import { townOf, type Job, type Person } from "./people";
 import { seasonAt } from "./season";
 import { worldHour } from "./time";
@@ -113,7 +113,7 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   if (need > 0) add(used, "grain", Math.min(need, Math.max(0, (made.get("grain") ?? 0) - (used.get("grain") ?? 0))));
   add(used, "herbs", Math.min(made.get("herbs") ?? 0, t.people.filter((p) => p.sick).length));
   const h = worldHour(now), done = workDone(h), eaten = Math.min(1, Math.max(0, (h - 6) / 15));
-  const cap = grainCap(byKind) + (s.charter?.path === "farm" && (s.bought ?? []).some((b) => b.item === "rank2") ? 40 : 0);
+  const cap = Math.round(grainCap(byKind) * (1 + HARVEST_GRAIN[Math.min(3, stepsPaid(s, "harvest", now))]!)) + (s.charter?.path === "farm" && (s.bought ?? []).some((b) => b.item === "rank2") ? 40 : 0);
   const flows: Flow[] = [];
   for (const w of WARES) {
     const m = made.get(w) ?? 0, u = used.get(w) ?? 0;
