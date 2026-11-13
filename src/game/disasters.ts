@@ -8,7 +8,7 @@ export const STONE_FIRE = 0.6;
  * and purchases (fire house, town guard). Nothing is stored: every client sees the same fire at the same moment.
  * Raid losses are mirrored by the database function village_raids, so the treasury stays tamper-proof.
  */
-import { structureAt, terrain, isWater, waterNearby, riverDistAt, radiusOf, reachOf, ageHours, stepsPaid, LIGHTHOUSE_FLOOD, MAP, type Seed } from "./world";
+import { structureAt, terrain, isWater, waterNearby, riverDistAt, radiusOf, reachOf, ageHours, stepsPaid, MAP, type Seed } from "./world";
 
 const H = 3.6e6, DAY = 864e5, WEEK = 7 * DAY;
 export const FIRE_CHANCE = 0.3, FIRE_CHANCE_GUARDED = 0.08;
@@ -140,7 +140,7 @@ function floodsReal(s: Seed, now: number): Flood[] {
     const tiles = shoreTiles(s, reachOf(s, radiusOf(ageHours(s, at))));
     if (!tiles.length) continue;
     const ruined = tiles.filter((t) => rnd(s.id, t, 23 + k) < 0.3);
-    out.push({ at, end: at + FLOOD_LEN * (stepsPaid(s, "lighthouse", at) >= 1 ? LIGHTHOUSE_FLOOD : 1), tiles, ruined, x: s.x, y: s.y });
+    out.push({ at, end: at + FLOOD_LEN, tiles, ruined, x: s.x, y: s.y });
   }
   return out;
 }

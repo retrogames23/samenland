@@ -671,12 +671,16 @@ export const stepsPaid = (s: Seed, key: MonumentKey, t = Infinity) => (s.bought 
 export const GUILDTOWER_STEP = 0.05;
 /** Monument step effects (paid steps count at once, independent of the physical build):
  *  harvest: grain store +10 % / +25 %, step 3 halves the winter sickness surcharge;
- *  lighthouse: step 1 floods recede 30 % sooner, steps 2/3 raise the trade ceiling +0.03/+0.05;
+ *  lighthouse (sea trade): step 1 roads to coastal (gateway) towns +0.15 trade factor, step 2 halves their distance loss,
+ *  step 3 routed trade via/to coastal towns +20 % and trade ceiling +0.05;
  *  cathedral: from step 3 counts as a health building for the care gate, step 5 sickness −0.02;
  *  university: journeymen +20 % more often from step 1, sickness −0.015 from step 3;
  *  exchange: routed trade 0.80 from step 2, 0.85 at step 4; orangery: from step 2 like a herb hut, step 3 sickness −0.01;
  *  opera (Artushof): step 4 roads to partners +10 % trade factor (inside the usual cap). */
-export const HARVEST_GRAIN = [0, 0.1, 0.25, 0.25] as const, LIGHTHOUSE_FLOOD = 0.7, LIGHTHOUSE_CEIL = [0, 0, 0.03, 0.05] as const;
+export const HARVEST_GRAIN = [0, 0.1, 0.25, 0.25] as const, LIGHTHOUSE_TRADE = 0.15, LIGHTHOUSE_TRANSIT = 1.2, LIGHTHOUSE_CEIL = [0, 0, 0, 0.05] as const;
+const coastal = (o: Seed) => townCharacter(o).main === "gateway";
+/** Leuchtfeuer step 2: roads to coastal towns lose only half their distance penalty. */
+export const seaDist = (s: Seed, o: Seed, d: number, now: number) => stepsPaid(s, "lighthouse", now) >= 2 && coastal(o) ? MIN_SEED_DISTANCE + (d - MIN_SEED_DISTANCE) / 2 : d;
 export const CATHEDRAL_SICK = 0.02, UNIVERSITY_SICK = 0.015, UNIVERSITY_WALZ = 1.2, ORANGERY_SICK = 0.01, OPERA_TRADE = 0.1;
 export const transitShare = (s: Seed, now: number) => { const n = stepsPaid(s, "exchange", now); return n >= 4 ? 0.85 : n >= 2 ? 0.8 : TRANSIT_SHARE; };
 /** Extra health-care count from monuments (cathedral step 3+, orangery step 2+ when no herb hut). */
@@ -1148,6 +1152,7 @@ export function tradeFactor(s: Seed, o: Seed, now: number) {
   if (townCharacter(s).main !== townCharacter(o).main) f += WAY_COMPLEMENT;
   if (stageOf(ageHours(s, now)) >= 4) f += KONTOR_BONUS;
   if (stepsPaid(s, "opera", now) >= 4) f += OPERA_TRADE;
+  if (stepsPaid(s, "lighthouse", now) >= 1 && coastal(o)) f += LIGHTHOUSE_TRADE;
   const cap = s.charter?.path === "trade" && now > s.charter.at ? 1.75 : COMPLEMENT_MAX;
   return Math.min(cap, f);
 }
@@ -1158,7 +1163,7 @@ function rawTrade(s: Seed, seeds: Seed[], now: number) {
   for (const l of links(seeds)) {
     if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
     const o = l.a.id === s.id ? l.b : l.a;
-    trade += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * roadProgress(l, now);
+    trade += bonusOf(seaDist(s, o, l.d, now), ageHours(o, now)) * tradeFactor(s, o, now) * roadProgress(l, now);
     if (roadProgress(l, now) >= 1 && marketHours(now)) trade += MARKET_BONUS;
   }
   for (const r of transitRoutes(s, seeds)) if (now > r.since) trade += r.bonus(now);
@@ -1199,7 +1204,7 @@ function effAgeBase(s: Seed, seeds: Seed[], now: number) {
   for (const l of links(seeds)) {
     if (now < l.since || (l.a.id !== s.id && l.b.id !== s.id)) continue;
     const o = l.a.id === s.id ? l.b : l.a;
-    h += bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now) * (now - l.since) / 3.6e6;
+    h += bonusOf(seaDist(s, o, l.d, now), ageHours(o, now)) * tradeFactor(s, o, now) * (now - l.since) / 3.6e6;
     // Saturday markets: 8 of 168 hours a week at MARKET_BONUS, spread evenly so growth stays smooth
     h += MARKET_BONUS * (8 / 168) * (now - l.since) / 3.6e6;
   }
@@ -1253,7 +1258,7 @@ export function transitRoutes(s: Seed, seeds: Seed[]): Transit[] {
       const since = Math.max(roadDoneAt(l1), roadDoneAt(l2)), d = l1.d + l2.d;
       const prev = best.get(to.id);
       if (prev && prev.since <= since) continue;
-      best.set(to.id, { to, via, since, d, bonus: (now) => bonusOf(Math.min(TRADE_DIST, d), ageHours(to, now)) * tradeFactor(s, to, now) * transitShare(s, now) });
+      best.set(to.id, { to, via, since, d, bonus: (now) => bonusOf(Math.min(TRADE_DIST, d), ageHours(to, now)) * tradeFactor(s, to, now) * transitShare(s, now) * (stepsPaid(s, "lighthouse", now) >= 3 && (coastal(to) || coastal(via)) ? LIGHTHOUSE_TRANSIT : 1) });
     }
   }
   return [...best.values()];
@@ -1337,7 +1342,7 @@ export function tradePartners(s: Seed, seeds: Seed[], now: number) {
   return links(seeds).filter((l) => now >= l.since && (l.a.id === s.id || l.b.id === s.id)).map((l) => {
     const o = l.a.id === s.id ? l.b : l.a, theirs = tradeProfile(o, now);
     return {
-      seed: o, factor: tradeFactor(s, o, now), bonus: bonusOf(l.d, ageHours(o, now)) * tradeFactor(s, o, now),
+      seed: o, factor: tradeFactor(s, o, now), bonus: bonusOf(seaDist(s, o, l.d, now), ageHours(o, now)) * tradeFactor(s, o, now),
       buy: theirs.exports.filter((g) => mine.imports.includes(g)), sell: mine.exports.filter((g) => theirs.imports.includes(g)),
     };
   });
