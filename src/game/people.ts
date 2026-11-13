@@ -20,6 +20,7 @@ import { WORK_START, WORK_END } from "./time";
 import { worldHour, worldWeekday } from "./time";
 const worldHourOf = worldHour;
 import { seasonAt } from "./season";
+import { sickChance } from "./sickness";
 import { wetness, shelters } from "./weather";
 import { fieldLook, farmTask } from "./rotation";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
@@ -610,16 +611,8 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
 
 /** Days a sickness lasts; each household rolls once per such window. */
 export const SICK_DAYS = 3;
-/** Chance a household has a sick member in a window: higher in winter, lower with herb hut and healer, none during wedding joy. */
-export function sickRate(s: Seed, now: number): number {
-  if (weddingJoy(s, now)) return 0;
-  const own = (i: string) => s.bought?.some((b) => b.item === i && b.at <= now);
-  const healer = own("healer") || own("infirmary");
-  const st = (k: Parameters<typeof stepsPaid>[1]) => stepsPaid(s, k, now);
-  const herbs = own("herbs") || st("orangery") >= 2;
-  const mon = (st("cathedral") >= 5 ? CATHEDRAL_SICK : 0) + (st("university") >= 3 ? UNIVERSITY_SICK : 0) + (st("orangery") >= 3 ? ORANGERY_SICK : 0);
-  return Math.max(0.01, 0.06 + 0.03 * seasonAt(now).winter * (st("harvest") >= 3 ? 0.5 : 1) - mon - (herbs ? 0.015 : 0) - (healer ? 0.035 : 0) - (s.charter?.path === "culture" && s.charter.at <= now ? CULTURE_SICK : 0) - (own("beginen") ? BEGINEN_SICK : 0));
-}
+/** Chance a household has a sick member in a window — the shared rule in sickness.ts. */
+export const sickRate = (s: Seed, now: number) => sickChance(s, now);
 /** Does the household at home key `hh` (x*1024+y) nurse a sick member right now? Pure in seed, home and time. */
 export const sickHome = (s: Seed, hh: number, now: number) => hash(hh, Math.floor(now / (SICK_DAYS * 864e5)), 1301) < sickRate(s, now);
 const hhTile = dwellingTile;
