@@ -2185,7 +2185,7 @@ export function Game() {
             const steps = monumentSteps(key), mt = t.monuments[key]!;
             const paid = purchases.filter((p) => p.seed_id === my.id && steps.includes(p.item));
             const next = nextMonumentStep(paid.map((p) => p.item), key);
-            const mill = sawmillUp(my, seeds, now), prog = monumentProgress(my, now, key, mill), n = steps.length, i = paid.length;
+            const prog = monumentProgress(my, now, key), n = steps.length, i = paid.length;
             const kind = MONUMENT_DEFS[key].kind, first = `${key}1`;
             return (
               <div key={key} className="rounded-md border border-brass/60 bg-brass/10 p-2">

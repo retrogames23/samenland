@@ -52,11 +52,10 @@ describe("Phase 1: monument steps", () => {
   it("paying all four belfry steps at once does not jump the site ahead", () => {
     const s = belfry([T0, T0 + 1000, T0 + 2000, T0 + 3000]);
     expect(monumentProgress(s, T0 + 4000)).toBeLessThan(0.01);
-    const B = specialBuild(s);
-    const one = workDone(T0, B);
+    const one = specialDone(s, [s], T0), done = monumentDone(s, [s], "belfry")!;
     expect(monumentProgress(s, one)).toBeCloseTo(0.25, 2);
-    expect(monumentProgress(s, workDone(T0, 4 * B) - 3.6e6)).toBeLessThan(1);
-    expect(monumentProgress(s, workDone(T0, 4 * B) + 60000)).toBe(1);
+    expect(monumentProgress(s, done - 3.6e6)).toBeLessThan(1);
+    expect(monumentProgress(s, done)).toBe(1);
   });
   it("monument bonuses wait for physical completion", () => {
     const s = belfry([T0, T0 + 1, T0 + 2, T0 + 3]);
