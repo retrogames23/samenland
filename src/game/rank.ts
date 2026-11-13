@@ -2,7 +2,7 @@
 export type RankInput = { citizens: number; homes: number; roads: number };
 /** [citizens, occupied dwellings, finished trade roads] needed for Weiler … Hansestadt. */
 export const RANK_NEED: readonly [number, number, number][] = [
-  [15, 4, 0], [80, 28, 0], [280, 100, 0], [750, 260, 1], [1500, 430, 2],
+  [15, 4, 0], [120, 40, 0], [500, 180, 0], [1400, 400, 1], [2200, 600, 2],
 ];
 export function rankOf({ citizens, homes, roads }: RankInput) {
   let r = 0;
@@ -16,7 +16,7 @@ export function nextRankNeed(i: RankInput) {
   return { citizens: Math.max(0, need[0] - i.citizens), homes: Math.max(0, need[1] - i.homes), roads: Math.max(0, need[2] - i.roads) };
 }
 
-import { setRankHook } from "./people";
+import { setRankHook, setCitizenHook } from "./people";
 import { householdsOf } from "./households";
 import { links, type Seed } from "./world";
 /** Each resident family occupies one dwelling, including separate floors of the same house.
@@ -28,5 +28,6 @@ export function rankInput(s: Seed, seeds: Seed[], now: number): RankInput {
 }
 export const townRank = (s: Seed, seeds: Seed[], now: number) => rankOf(rankInput(s, seeds, now));
 setRankHook(townRank);
+setCitizenHook((s, seeds, now) => householdsOf(s, seeds, now).reduce((n, h) => n + h.size, 0));
 /** Mayor's seat painting per rank: Kate (Siedlung/Weiler), Hof (Dorf), Amtshaus (Kleinstadt), Rathaus (Handelsstadt+). */
 export const seatKindForRank = (r: number) => (r >= 4 ? "townhall" : r === 3 ? "seat3" : r === 2 ? "seat2" : "seat1") as "seat1" | "seat2" | "seat3" | "townhall";

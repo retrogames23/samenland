@@ -77,42 +77,32 @@ describe("rebalanced guild and prestige buildings", () => {
   it("new prices", () => { expect(PRICES.fisher).toBe(140); expect(PRICES.library).toBe(380); expect(PRICES.dairy).toBe(350); expect(PRICES.guard).toBe(750); });
 });
 
-import { INFRA_ITEMS, infraCount, gatedEstateShares } from "./prosperity";
-describe("village tax gating (Option A)", () => {
+import { prosperityAt, sharesFromProsperity, sharesAt } from "./prosperity";
+describe("Wohlstand: one continuous value", () => {
   const base: Seed = { id: "g", name: "G", owner: "G", x: 0, y: 0, hue: 0, created_at: new Date(t0).toISOString() };
-  it("lists exactly the 13 qualifying works", () => {
-    expect(INFRA_ITEMS.length).toBe(13);
-    expect(new Set(INFRA_ITEMS).size).toBe(13);
-    for (const i of INFRA_ITEMS) expect(ITEM_RANK[i] ?? 0).toBeLessThanOrEqual(2);
+  const works = ["herbs", "hunter", "fisher", "dairy", "backhaus", "granary", "healer", "herberge", "woodcamp", "bigstore"];
+  const town = (items: string[]) => ({ ...base, bought: items.map((item) => ({ item, at: t0 })) });
+  it("a village never reaches full prosperity, even with every early work", () => {
+    expect(prosperityAt(town(works), t0, 120)).toBeLessThan(25);
   });
-  it.each(["badestube", "school", "firehouse", "markethall", "guildhall", "library", "guard", "belfry4"])("%s does not count", (item) => {
-    expect(infraCount({ ...base, bought: [{ item, at: t0 }] }, t0)).toBe(0);
+  it("keeps maturing past Hansestadt (2200 citizens)", () => {
+    const s = town([...works, "school", "guildhall", "markethall", "library"]);
+    const a = prosperityAt(s, t0, 2200), b = prosperityAt(s, t0, 4000);
+    expect(b).toBeGreaterThan(a); expect(b).toBeLessThan(100);
   });
-  it("counts purchases only from purchase time, each once", () => {
-    const s = { ...base, bought: [{ item: "herbs", at: t0 }, { item: "herbs", at: t0 }, { item: "dairy", at: t0 + day }] };
-    expect(infraCount(s, t0)).toBe(1);
-    expect(infraCount(s, t0 + day)).toBe(2);
+  it("rises strictly with citizens", () => {
+    let last = -1; for (const c of [0, 50, 120, 500, 1100, 2200, 5000]) { const p = prosperityAt(base, t0, c); expect(p).toBeGreaterThan(last); last = p; }
   });
-  it("counts roads only once finished, at most three", () => {
-    expect(infraCount({ ...base, civicRoads: [{ at: t0 + day }] }, t0)).toBe(0);
-    expect(infraCount({ ...base, civicRoads: [{ at: t0 }] }, t0)).toBe(1);
-    expect(infraCount({ ...base, civicRoads: Array.from({ length: 5 }, () => ({ at: t0 })) }, t0)).toBe(3);
+  it("a school helps but is no switch: a big town has wealthy citizens without it", () => {
+    const no = sharesAt(town(works), t0, 2200), yes = sharesAt(town([...works, "school"]), t0, 2200);
+    expect(no.shares.wealthy).toBeGreaterThan(0.05); expect(yes.wealth).toBeGreaterThan(no.wealth);
   });
-  it.each([[0, 0.04], [4, 0.14], [7, 0.2], [13, 0.2]])("n=%i gives %f skilled", (n, s) => {
-    expect(gatedEstateShares(100, 2, false, n).skilled).toBeCloseTo(s);
+  it("purchases count only from purchase time", () => {
+    const s = { ...base, bought: [{ item: "school", at: t0 + day }] };
+    expect(prosperityAt(s, t0, 500)).toBe(prosperityAt(base, t0, 500));
   });
-  it("rank tiers with school", () => {
-    expect(gatedEstateShares(100, 3, true, 0)).toMatchObject({ skilled: 0.35, wealthy: 0.05 });
-    expect(gatedEstateShares(100, 4, true, 0)).toMatchObject({ skilled: 0.45, wealthy: 0.15 });
-    expect(gatedEstateShares(100, 5, true, 0)).toEqual(estateShares(100));
-  });
-  it("without school wealthy is always 0; no share exceeds L; shares sum to 1", () => {
-    for (let w = 0; w <= 100; w += 5) for (let r = 0; r <= 5; r++) for (const sc of [false, true]) for (let n = 0; n <= 16; n++) {
-      const g = gatedEstateShares(w, r, sc, n), L = estateShares(w);
-      if (!sc || r <= 2) expect(g.wealthy).toBe(0);
-      expect(g.skilled).toBeLessThanOrEqual(L.skilled + 1e-12);
-      expect(g.wealthy).toBeLessThanOrEqual(L.wealthy + 1e-12);
-      expect(g.ordinary + g.skilled + g.wealthy).toBeCloseTo(1);
-    }
+  it("shares grow continuously, wealthy later than skilled, sum to 1", () => {
+    for (let p = 0; p <= 100; p += 5) { const s = sharesFromProsperity(p); expect(s.ordinary + s.skilled + s.wealthy).toBeCloseTo(1); expect(s.wealthy).toBeLessThanOrEqual(s.skilled); }
+    expect(sharesFromProsperity(20).wealthy).toBeLessThan(0.02);
   });
 });

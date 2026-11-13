@@ -1,7 +1,8 @@
 import type { TownWay } from "./character";
 import { giftBalance, type Gift } from "./gifts";
 import { FOOD_CRAFTS } from "./food-crafts";
-import { civicWealth, estateAssessment, sickLoss, sickTaxRate } from "./prosperity";
+import { civicWealth, estateAssessment, sickLoss, sickTaxRate, prosperityAt } from "./prosperity";
+import { householdsOf } from "./households";
 import { residentTax } from "./resident-tax";
 import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
@@ -308,7 +309,7 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   const joy = weddingJoy(s, now);
   b.health += joy ? 10 : 0; b.wealth += (joy ? 5 : 0) + Math.min(ALLIANCE_MAX, alliances * ALLIANCE_WEALTH);
   if (stores) { b.food += stores.food; b.health += stores.health; b.wealth += stores.wealth; }
-  return { food: soften(food + b.food), health: soften(health + b.health), wealth: soften(wealth + b.wealth), has };
+  return { food: soften(food + b.food), health: soften(health + b.health), wealth: Math.round(prosperityAt(s, now, householdsOf(s, seeds, now).reduce((n, h) => n + h.size, 0))), has };
 }
 
 // ---------------- guild ranks (Lehrling · Geselle · Meister) ----------------

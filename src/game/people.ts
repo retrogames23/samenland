@@ -678,15 +678,17 @@ const FETE_WIN = 2.5 * 3600e3;
 /** townRank, registered by rank.ts (it imports this module, so no static import back). */
 let rankHook: ((s: Seed, seeds: Seed[], t: number) => number) | null = null;
 export const setRankHook = (f: typeof rankHook) => { rankHook = f; };
+let citizenHook: ((s: Seed, seeds: Seed[], t: number) => number) | null = null;
+export const setCitizenHook = (f: typeof citizenHook) => { citizenHook = f; };
 let inRank = false;
 /** Gated estate shares at `now` — the same sharesAt + townRank as resident tax; null while the rank itself is being derived. */
 let inShares = false;
 const sharesMemo = new Map<string, { skilled: number; wealthy: number }>();
 export function estateSharesLive(s: Seed, seeds: Seed[], now: number) {
-  if (!rankHook || inShares) return null;
+  if (!citizenHook || inShares) return null;
   const k = `${s.id}|${cacheTick(now)}|${seedsKey(seeds)}`;
   let sh = sharesMemo.get(k);
-  if (!sh) { inShares = true; try { sh = sharesAt(s, now, rankHook(s, seeds, now)).shares; } finally { inShares = false; } if (sharesMemo.size > 4000) sharesMemo.clear(); sharesMemo.set(k, sh); }
+  if (!sh) { inShares = true; try { sh = sharesAt(s, now, citizenHook!(s, seeds, now)).shares; } finally { inShares = false; } if (sharesMemo.size > 4000) sharesMemo.clear(); sharesMemo.set(k, sh); }
   return sh;
 }
 setEstateHook(estateSharesLive);

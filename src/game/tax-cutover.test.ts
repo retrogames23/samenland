@@ -38,7 +38,7 @@ describe("legacy days before the cutover stay unchanged", () => {
 
 describe("client fallback equals server receipts (residentTax) with the full network", () => {
   const all = ["herbs", "hunter", "fisher", "dairy", "backhaus", "granary", "healer", "herberge", "woodcamp", "bigstore", "stonemason", "smokehouse", "beginen", "markethall", "guildhall", "school"];
-  const start = Date.parse("2026-01-01T00:00:00Z");
+  const start = Date.parse("2025-01-01T00:00:00Z");
   const world = (roads: number): Seed[] => {
     const nb = (id: string, dx: number): Seed => ({ id, name: id, owner: "nb", hue: 0, x: 306 + dx, y: 420, created_at: new Date(start - 60 * DAY).toISOString() });
     const r = [{ target: "nb1", at: start + 14 * DAY }, { target: "nb2", at: start + 45 * DAY }].slice(0, roads);
