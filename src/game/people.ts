@@ -32,7 +32,7 @@ export type Sex = "f" | "m";
 export type Job =
   | "farmer" | "baker" | "smith" | "innkeeper" | "miller" | "crafter" | "worker"
   | "sawyer" | "builder" | "woodcutter" | "mason" | "merchant" | "priest" | "carter" | "mayor" | "fisher" | "healer" | "teacher" | "firewarden" | "watchman" | "hunter" | "herbalist" | "homemaker" | "retired" | "child";
-export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play" | "sick" | "care" | "church" | "visit" | "stroll" | "wedding" | "fete" | "fire" | "guest";
+export type Activity = "sleep" | "work" | "lunch" | "leisure" | "home" | "school" | "play" | "sick" | "care" | "church" | "visit" | "stroll" | "wedding" | "fete" | "fire" | "guest" | "guestStay";
 type Tile = [number, number];
 /** Bath day at the Badestube: Saturday (weekday 6), hour slots between BATH_FROM and BATH_TO realm time. */
 export const BATH_DAY = 6, BATH_FROM = 14, BATH_TO = 18;
@@ -759,10 +759,12 @@ function guestPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): 
   if (now < g.at || now >= g.until || hr >= 22 || hr < 6) return { ...base, visible: false };
   const pts = [g.from, ...route(t, g.from, [Math.round(g.spot[0]), Math.round(g.spot[1])], seeds).slice(1, -1), g.spot];
   const len = lenOf(pts), dd = ((now - g.at) / 1000) * p.speed;
-  if (dd < len) { const q = along(pts, dd); if (q) return { ...base, ...q, visible: true, walking: true, act: "guest", phase: dd / STRIDE }; }
+  // still waiting for the mayor's answer, or already welcomed and staying a while
+  const act: Activity = g.until === Infinity ? "guest" : "guestStay";
+  if (dd < len) { const q = along(pts, dd); if (q) return { ...base, ...q, visible: true, walking: true, act, phase: dd / STRIDE }; }
   const dx = g.face[0] - g.spot[0], dy = g.face[1] - g.spot[1], m = Math.hypot(dx, dy) || 1;
   const look = hash(p.id, Math.floor(now / 25000), 817) < 0.3 ? -1 : 1;
-  return { ...base, x: g.spot[0], y: g.spot[1], visible: true, walking: false, act: "guest", talk: null, dir: [(dx / m) * look, (dy / m) * look] };
+  return { ...base, x: g.spot[0], y: g.spot[1], visible: true, walking: false, act, talk: null, dir: [(dx / m) * look, (dy / m) * look] };
 }
 
 /** Relatives of a person within the town: spouse, parents, children, siblings (all derived). */
