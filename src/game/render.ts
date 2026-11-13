@@ -1297,7 +1297,7 @@ const legsFor = (q: Pose) => !!HIPS[folkOf(q)];
 /** Mayor's insignia by honorary title (titleOfSeed): fur collar, judge's staff, own banner — drawn in the mirrored figure frame. */
 /** Painted tool of a travelling visitor (minstrel's lute, surveyor's rod, painter's box), in the mirrored figure frame. */
 const GUEST_PROP: Record<string, [FolkSprite, number, number, number]> = { // sprite, height share, x share, top share
-  minstrel: ["guestLute", 0.42, 0.2, 0.72], surveyor: ["guestRod", 1.08, -0.3, 1.0], painter: ["guestPaintbox", 0.24, 0.2, 0.52],
+  minstrel: ["guestLute", 0.42, 0.2, 0.72], surveyor: ["guestRod", 1.08, -0.24, 1.0], painter: ["guestPaintbox", 0.24, 0.2, 0.52],
 };
 function guestProp(c: C, q: Pose, hgt: number) {
   const g = q.p.guest && GUEST_PROP[q.p.guest.event]; if (!g) return;
