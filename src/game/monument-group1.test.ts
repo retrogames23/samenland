@@ -3,7 +3,7 @@ import { specialBuild, specialDone, guildtowerDone, stepsDone, monumentChain, SP
 import { fires, raids } from "./disasters";
 import { festJoy, weddingDates, weddingJoy } from "./weddings";
 import { sickChance } from "./sickness";
-import { attributes } from "./economy";
+import { householdsOf } from "./households";
 
 const T = Date.parse("2026-03-02T06:00:00Z"), DAY = 864e5;
 const town = (items: [string, number][], extra: Partial<Seed> = {}): Seed => ({ id: "g1", name: "G", owner: "o", hue: 1, x: 400, y: 540, user_id: "u",
@@ -79,7 +79,8 @@ describe("Tanzhaus: festive joy from finished steps", () => {
     const easter = Date.parse("2027-04-11T12:00:00Z");
     const paidNow = town(steps("theater", 3, easter - 1000));
     expect(festJoy(paidNow, easter)).toBe(weddingJoy(paidNow, easter));
-    const a = attributes(town(steps("theater", 3)), [], Date.parse("2027-04-14T12:00:00Z"));
-    expect(a.wealth).toBe(attributes(town([]), [], Date.parse("2027-04-14T12:00:00Z")).wealth);
+    const at = Date.parse("2027-04-14T12:00:00Z"), th = town(steps("theater", 3)), no = town([]);
+    expect(householdsOf(th, [th], at).length).toBe(householdsOf(no, [no], at).length);
+    expect(weddingDates(th, at).map((w) => [w.at, w.dowry])).toEqual(weddingDates(no, at).map((w) => [w.at, w.dowry]));
   });
 });
