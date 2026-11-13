@@ -6,9 +6,9 @@ describe("settlement rank from real state", () => {
   it("15 citizens in 4 homes make a Weiler", () => expect(rankOf({ citizens: 15, homes: 4, roads: 0 })).toBe(1));
   it("Dorf needs 120 citizens in 40 homes", () => { expect(rankOf({ citizens: 119, homes: 40, roads: 0 })).toBe(1); expect(rankOf({ citizens: 120, homes: 40, roads: 0 })).toBe(2); });
   it("Kleinstadt needs 500 citizens in 180 homes", () => { expect(rankOf({ citizens: 500, homes: 179, roads: 0 })).toBe(2); expect(rankOf({ citizens: 500, homes: 180, roads: 0 })).toBe(3); });
-  it("Handelsstadt needs 1100 citizens, 350 homes and a finished trade road", () => {
-    expect(rankOf({ citizens: 1100, homes: 350, roads: 0 })).toBe(3);
-    expect(rankOf({ citizens: 1100, homes: 350, roads: 1 })).toBe(4);
+  it("Handelsstadt needs 1400 citizens, 400 homes and a finished trade road", () => {
+    expect(rankOf({ citizens: 1400, homes: 400, roads: 0 })).toBe(3);
+    expect(rankOf({ citizens: 1400, homes: 400, roads: 1 })).toBe(4);
   });
   it("Hansestadt needs 2200 citizens, 600 homes and two roads", () => {
     expect(rankOf({ citizens: 2199, homes: 600, roads: 2 })).toBe(4);
