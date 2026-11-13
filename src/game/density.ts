@@ -5,9 +5,9 @@ import type { Kind } from "./world";
 const MULTI_HOME = new Set<Kind>(["cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "suburb"]);
 export function dwellingSlots(way: TownWay, kind: Kind, radius: number) {
   if (!MULTI_HOME.has(kind)) return 1;
-  // One rule for every town way: a second family from radius 18, a third from radius 30.
+  // One rule for every town way: a second family from radius 20, a third from radius 32.
   void way;
-  return radius >= 30 ? 3 : radius >= 18 ? 2 : 1;
+  return radius >= 32 ? 3 : radius >= 20 ? 2 : 1;
 }
 // Keep every legacy family/member ID unchanged; new floors occupy disjoint ID blocks.
 export const HOME_KEY_SPACE = 1024 * 1024;
