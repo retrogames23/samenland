@@ -791,7 +791,14 @@ export const CATHEDRAL_SICK = 0.02, UNIVERSITY_SICK = 0.015, UNIVERSITY_WALZ = 1
 export const transitShare = (s: Seed, now: number) => { const n = stepsPaid(s, "exchange", now); return n >= 4 ? 0.85 : n >= 2 ? 0.8 : TRANSIT_SHARE; };
 /** Erntedankhalle step 1 (physically finished): counts as one more supply building for the care gate only —
  *  never foodCapacity, production or stock. */
-export const careFoodExtra = (s: Seed, now: number) => (stepsDone(s, "harvest", now) >= 1 ? 1 : 0);
+/** While a hall's own build chain is evaluated (its sawmill check reads effAge → care gate), the hall does not count
+ *  for itself — no self-acceleration and no recursion; deterministic on every client and the tax server. */
+const harvestBusy = new Set<string>();
+export const careFoodExtra = (s: Seed, now: number) => {
+  if (harvestBusy.has(s.id) || !(s.bought ?? []).some((b) => b.at <= now && monumentOf(b.item) === "harvest")) return 0;
+  harvestBusy.add(s.id);
+  try { return stepsDone(s, "harvest", now) >= 1 ? 1 : 0; } finally { harvestBusy.delete(s.id); }
+};
 /** Extra health-care count from monuments (cathedral step 3+, orangery step 2+ when no herb hut). */
 export const careHealthExtra = (s: Seed, now: number, own: Set<string>) => (stepsPaid(s, "cathedral", now) >= 3 ? 1 : 0) + (!own.has("herbs") && stepsPaid(s, "orangery", now) >= 2 ? 1 : 0);
 /** Finished Zunftturm steps at time t: each step is built after the previous one with only the steps already
