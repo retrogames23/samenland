@@ -327,3 +327,9 @@ Simulationsausgabe ab sofort zusätzlich (nur künftige Läufe): physische Wohnh
 - Erste Monumentgruppe (Belfried, Tanzhaus, Zunftturm): Wirkungen greifen erst nach physischer Fertigstellung der jeweiligen Stufe.
 - Belfried-Brandwirkung: Stufe 1 −10 %, Stufe 2 −15 %, Stufe 3 −25 % Branddauer; Stufe 4 Vollendung.
 - Raubschutz des Belfrieds bewusst nicht umgesetzt (keine persistente Fertigstellungszeit, keine Migration); die Stadtgarde bleibt allein für Raubschutz zuständig.
+
+### Block 3.4 Erntedankhalle – abgeschlossen (2026-11-14)
+- Stufe 1: Versorgungsbau fürs Care-Gate (careFoodExtra), keine Nahrung/foodCapacity.
+- Stufe 2: Wintermehrbedarf 30 % → 15 % in larderOf.
+- Stufe 3: halber Winter-Krankheitszuschlag; Flutfaktor aller Hof-Erzeugnisse 0,3 → 0,6.
+- Alle Wirkungen inkl. Speicherbonus erst nach Fertigstellung (stepsDone). Test: harvest-hall.test.ts.
