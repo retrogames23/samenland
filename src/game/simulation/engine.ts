@@ -125,7 +125,7 @@ export function simulate(cfg: SimConfig): SimResult {
       rank = Math.max(rank, r);
       if (rank >= 5) hanse = day;
     }
-    const t = residentTax(seed, seeds, now);
+    const t = residentTax(seed, [...seeds], now);
     pop = t.population; hh = t.households;
     credit("tax", t.income);
     const weds = weddingDates(seed, now);
