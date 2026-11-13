@@ -22,6 +22,7 @@ const worldHourOf = worldHour;
 import { seasonAt } from "./season";
 import { sickChance } from "./sickness";
 import { wetness, shelters } from "./weather";
+import { nightLevel } from "./sun";
 import { fieldLook, farmTask } from "./rotation";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
@@ -1107,7 +1108,9 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   let i = pl.length - 1;
   while (i > 0 && pl[i]!.at > hr) i--;
   // rain (display only): outdoor leisure/lunch/play turn into staying at home
-  const wet = wetness(now), dry = (en: Entry): Entry => shelters(en.act, en.indoor, p.id, wet) ? { ...en, act: "home", place: p.home, indoor: true } : en;
+  // winter darkness (display only): on ordinary evenings the open-air chat breaks up once it is dark — only a few hardy souls stay
+  const dark = !t.feast && p.role !== "mayor" && hr >= 15 && nightLevel(now) > 0.6;
+  const wet = wetness(now), dry = (en: Entry): Entry => shelters(en.act, en.indoor, p.id, wet) || (dark && !en.indoor && (en.act === "leisure" || en.act === "lunch" || en.act === "play") && hash(p.id, 78) > 0.12) ? { ...en, act: "home", place: p.home, indoor: true } : en;
   const e = dry(pl[i]!), prev = dry(pl[(i - 1 + pl.length) % pl.length]!);
   const base: Pose = { p, x: e.place[0], y: e.place[1], visible: !e.indoor, walking: false, dir: [0, 1], phase: 0, act: e.act, working: false, talk: null, talkTurn: false, carry: null, dest: null };
   const secs = (hr - e.at) * 3600;
