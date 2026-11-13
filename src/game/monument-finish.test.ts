@@ -18,8 +18,6 @@ function agree(s: Seed) {
   expect(monumentProgress(s, done)).toBe(1);
   // Wohlstand switches exactly at the finish
   expect(prosperityAt(s, done, 500)).toBeGreaterThan(prosperityAt(s, done - 60000, 500));
-  const tile = [...specialSites(s).keys()][0]!, x = tile % 1000, y = Math.floor(tile / 1000);
-  void x; void y;
   expect(attributes(s, [s], buys(s), done).health).toBeGreaterThanOrEqual(attributes(s, [s], buys(s), done - 60000).health);
   return done;
 }
