@@ -56,3 +56,12 @@ describe("village life", () => {
     expect(q.festive).toBe("bride");
   });
 });
+
+describe("winter darkness", () => {
+  it("dark November evenings empty the square, summer evenings do not", () => {
+    const count = (iso: string) => { const n = Date.parse(iso), t = townOf(s, seeds, n); return t.people.filter((p) => { const q = poseOf(p, t, seeds, n); return q.visible && q.act === "leisure"; }).length; };
+    const nov = count("2026-11-12T17:30:00Z"), jun = count("2026-06-11T16:30:00Z");
+    expect(jun).toBeGreaterThan(3);
+    expect(nov).toBeLessThan(jun * 0.3);
+  });
+});
