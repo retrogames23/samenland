@@ -1828,7 +1828,9 @@ export function Game() {
     return () => { dead = true; clearTimeout(timer); };
   }, [tab, seeds, townsTick]);
   const { cash, myRank, myStage, myTown, at, pop, residents, season, nbs, larder, boons, rankHint } = useMemo(() => {
-    const cash = my ? (accounting?.seed === my.id && accounting.active ? accounting.balance : treasury(my, purchases, slow, gifts, claims, undefined, seeds)) : 0;
+    // accounting.balance (DB village_balance) is authoritative; the local value is only a forecast, using booked receipts where known
+    const own = accounting?.seed === my?.id ? accounting : null;
+    const cash = my ? (own?.active ? own.balance : treasury(my, purchases, slow, gifts, claims, undefined, seeds, own?.receipts)) : 0;
     const myRank = my ? townRank(my, seeds, slow) : 0;
     // shop/monuments: the earned rank alone — the server re-counts it before every rank-gated purchase
     const myStage = myRank;
