@@ -1,6 +1,6 @@
 import { stepsPaid, CATHEDRAL_SICK, UNIVERSITY_SICK, ORANGERY_SICK, type Seed } from "./world";
 import { seasonAt } from "./season";
-import { weddingJoy } from "./weddings";
+import { festJoy } from "./weddings";
 import { CULTURE_SICK, BEGINEN_SICK } from "./prosperity";
 
 /** Plain summer chance that a household has a sick member in a SICK_DAYS window. */
@@ -19,7 +19,7 @@ export const HERBS_SICK = 0.015, HEALER_SICK = 0.035;
  * so every further investment still lowers sickness (no floor that swallows it). Wedding joy: 0.
  */
 export function sickChance(s: Seed, at: number): number {
-  if (weddingJoy(s, at)) return 0;
+  if (festJoy(s, at)) return 0;
   const own = (i: string) => (s.bought ?? []).some((b) => b.item === i && b.at <= at);
   const st = (k: Parameters<typeof stepsPaid>[1]) => stepsPaid(s, k, at);
   const boons = [

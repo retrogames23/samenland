@@ -5,7 +5,9 @@ import { labEvent } from "./lab-ctl";
  * Calendar and dowries are mirrored by the database function village_weddings, so the treasury and
  * the encounter guard stay tamper-proof. Which villagers marry is derived in people.ts — nothing is stored.
  */
-import type { Seed } from "./world";
+import { stepsDone, type Seed } from "./world";
+import { feastOn } from "./feasts";
+import { isSunday } from "./time";
 import { civicWealth } from "./prosperity";
 import { FOOD_CRAFTS } from "./food-crafts";
 
@@ -85,7 +87,17 @@ export const weddingTimes = (s: Seed, now: number): number[] => weddingDates(s, 
 export const dowryEarned = (s: Seed, now: number) => weddingDates(s, now).reduce((a, w) => a + w.dowry, 0);
 const lastOf = (s: Seed, now: number) => { const w = weddingDates(s, now); return w[w.length - 1]; };
 /** Wedding joy: a day after a great wedding (in a village every one, in a town only council weddings). */
-export const weddingJoy = (s: Seed, now: number) => { const l = lastOf(s, now); return !!l && l.grand && now - l.at < WED_JOY; };
+export const weddingJoy = (s: Seed, now: number) => { const l = lastOf(s, now); return !!l && (l.grand || stepsDone(s, "theater", now) >= 1) && now - l.at < WED_JOY; };
+/**
+ * Tanzhaus (finished steps only): 1 — every wedding is danced out, so each gives wedding joy, not only grand ones;
+ * 2 — church feast days are danced too and count as joy days; 3 — the Sunday dance makes every Sunday a joy day.
+ * Joy is the existing wedding-joy effect (no sickness that day, +10 health); no money, no residents, no login needed.
+ */
+export const festJoy = (s: Seed, now: number) => {
+  if (weddingJoy(s, now)) return true;
+  const n = s.bought?.length ? stepsDone(s, "theater", now) : 0;
+  return (n >= 2 && feastOn(now) !== null) || (n >= 3 && isSunday(now));
+};
 /** Hours after a wedding begins during which the mayor may answer it (mirrored by DB encounter_guard). */
 export const WED_WINDOW_H = 3;
 /** The real wedding happening right now, or null. */

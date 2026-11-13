@@ -8,7 +8,7 @@ export const STONE_FIRE = 0.6;
  * and purchases (fire house, town guard). Nothing is stored: every client sees the same fire at the same moment.
  * Raid losses are mirrored by the database function village_raids, so the treasury stays tamper-proof.
  */
-import { structureAt, terrain, isWater, waterNearby, riverDistAt, radiusOf, reachOf, ageHours, stepsPaid, MAP, type Seed } from "./world";
+import { structureAt, stepsDone, terrain, isWater, waterNearby, riverDistAt, radiusOf, reachOf, ageHours, stepsPaid, MAP, type Seed } from "./world";
 
 const H = 3.6e6, DAY = 864e5, WEEK = 7 * DAY;
 export const FIRE_CHANCE = 0.3, FIRE_CHANCE_GUARDED = 0.08;
@@ -60,8 +60,8 @@ export function fires(s: Seed, now: number): Fire[] {
     const nb = [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
     const tiles = nb.slice(0, n + 2).map(([i, j]) => (y + j!) * MAP + x + i!);
     const burn = guarded ? 0.5 * H : order ? (water ? 1 * H : 2.5 * H) : water ? 1.5 * H : 4 * H;
-    // Belfried (Türmer, Sturmglocke): steps 1–2 shorten fires by 10 %, step 3 on by 25 %
-    const bs = stepsPaid(s, "belfry", at), bell = bs >= 3 ? BELFRY_FIRE[1] : bs >= 1 ? BELFRY_FIRE[0] : 1;
+    // Belfried (Türmer, Sturmglocke): finished steps 1–2 shorten fires by 10 %, finished step 3 on by 25 %
+    const bs = stepsDone(s, "belfry", at), bell = bs >= 3 ? BELFRY_FIRE[1] : bs >= 1 ? BELFRY_FIRE[0] : 1;
     out.push({ at, end: at + burn * bell, tiles, x, y, guarded, water, ...(order ? { order } : {}), dead: !guarded && !water && rnd(s.id, w, 16) < (order ? FIRE_DEAD_ORDER : 0.35) });
   }
   const lf = labEvent("fire");
