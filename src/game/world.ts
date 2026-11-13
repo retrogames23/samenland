@@ -649,12 +649,22 @@ export const MONUMENT_STEPS = ["belfry1", "belfry2", "belfry3", "belfry4"] as co
 /** Construction progress 0…1 of a monument. Paying a step is not building it: steps are built one after another,
  *  each over specialBuild work time, starting when it is paid or the previous step is finished, whichever is later —
  *  so buying all steps at once never makes the site jump ahead. */
-export function monumentProgress(s: Seed, now: number, key: MonumentKey = "belfry", mill = false): number {
-  const n = MONUMENT_DEFS[key].n, B = specialBuild(s, mill), w = workClock(now);
-  const steps = (s.bought ?? []).filter((b) => monumentOf(b.item) === key && b.at <= now).map((b) => b.at).sort((a, b) => a - b);
-  let end = -Infinity, sum = 0;
-  for (const at of steps) { const start = Math.max(workClock(at), end); end = start + B; sum += Math.min(1, Math.max(0, (w - start) / B)); }
-  return Math.min(n, sum) / n;
+export function monumentProgress(s: Seed, now: number, key: MonumentKey = "belfry"): number {
+  const w = workClock(now);
+  let sum = 0;
+  for (const { start, done } of monumentChain(s, key, now)) sum += Math.min(1, Math.max(0, (w - workClock(start)) / Math.max(1, workClock(done) - workClock(start))));
+  return Math.min(MONUMENT_DEFS[key].n, sum) / MONUMENT_DEFS[key].n;
+}
+/** The single build chain of a monument: step i starts when paid or when step i-1 stands (whichever is later) and
+ *  finishes at specialDone. Always evaluated against the town alone ([s]) so map, menu, effects, Wohlstand,
+ *  chronicle and finish letter share one sawmill decision and one finish time. */
+export function monumentChain(s: Seed, key: MonumentKey, until = Infinity): { at: number; start: number; done: number }[] {
+  const out: { at: number; start: number; done: number }[] = [];
+  let prev = -Infinity;
+  for (const at of (s.bought ?? []).filter((b) => monumentOf(b.item) === key && b.at <= until).map((b) => b.at).sort((a, b) => a - b)) {
+    const start = Math.max(at, prev); prev = specialDone(s, [s], start); out.push({ at, start, done: prev });
+  }
+  return out;
 }
 /** Craft charter halves the construction time of bought buildings. */
 /** Craft charter halves, a woodcutter's camp (ready timber) shortens build time by a quarter — both pure from purchases. */
@@ -693,13 +703,9 @@ export function specialDone(s: Seed, seeds: Seed[], at: number): number {
   return sawmillUp(s, seeds, fast) ? fast : workDone(at, specialBuild(s, false));
 }
 /** When a fully paid monument is finished (last step + build time, same rule as structureAt), or null while steps are missing. */
-export function monumentDone(s: Seed, seeds: Seed[], key: MonumentKey): number | null {
-  const steps = (s.bought ?? []).filter((b) => monumentOf(b.item) === key);
-  if (steps.length < MONUMENT_DEFS[key].n) return null;
-  // same sequential chain as monumentProgress: each step starts once paid and the previous one stands
-  let done = -Infinity;
-  for (const at of steps.map((b) => b.at).sort((a, b) => a - b)) done = specialDone(s, seeds, Math.max(at, done));
-  return done;
+export function monumentDone(s: Seed, _seeds: Seed[], key: MonumentKey): number | null {
+  const chain = monumentChain(s, key);
+  return chain.length < MONUMENT_DEFS[key].n ? null : chain[chain.length - 1]!.done;
 }
 /** The tile of each bought building kind of a seed (pure). */
 export function specialTile(s: Seed, kind: Kind): [number, number] | null {
@@ -814,7 +820,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     if (sp.kind === "square") { best = { kind: "square", seed: s, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
     const mk = MONUMENT_BY_KIND.get(sp.kind);
     const mill = sawmillUp(s, seeds, now);
-    const p = mk ? monumentProgress(s, now, mk, mill) : (workClock(now) - workClock(sp.at)) / specialBuild(s, mill);
+    const p = mk ? monumentProgress(s, now, mk) : (workClock(now) - workClock(sp.at)) / specialBuild(s, mill);
     const doneAt = p < 1 ? (mk ? monumentDone(s, seeds, mk) ?? undefined : specialDone(s, seeds, sp.at)) : undefined;
     best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p, doneAt } : {}) };
     scache.set(ck, best);
