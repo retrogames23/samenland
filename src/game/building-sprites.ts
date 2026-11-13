@@ -355,7 +355,12 @@ const styledOf = (kind: Kind, style?: HouseStyle, variant?: number) => {
   return (slot > 0 ? vs?.[slot - 1] : undefined) ?? styledBase(kind, style);
 };
 export const variantPaintingCount = (kind: VariantKind, style: "grain" | HouseStyle) => 1 + variants[kind][style].length;
-const load = (url: string) => { const im = new Image(); im.decoding = "async"; im.src = url; return im; };
+/** Mobile networks drop downloads; a failed image retries with backoff instead of staying blank all session. */
+const load = (url: string) => {
+  const im = new Image(); im.decoding = "async"; let tries = 0;
+  im.onerror = () => { if (++tries > 6) return; setTimeout(() => { im.src = `${url}${url.includes("?") ? "&" : "?"}r=${tries}`; }, 1500 * tries); };
+  im.src = url; return im;
+};
 const ready = (im?: HTMLImageElement) => !!(im?.complete && im.naturalWidth);
 
 /** Image URL of a building, for previews in menus. */
@@ -419,9 +424,7 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   const sprite = spriteOf(kind, style);
   if (!sprite || typeof Image === "undefined") return false;
   if (!sprite.image) {
-    sprite.image = new Image();
-    sprite.image.decoding = "async";
-    sprite.image.src = sprite.url;
+    sprite.image = load(sprite.url);
   }
   const st = styledOf(kind, style, variant);
   if (st && !st.image) st.image = load(st.day);
@@ -459,6 +462,8 @@ export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: nu
   if (st && !st.light) st.light = load(st.night);
   const own = !!st && ready(st.image) && ready(st.light);
   if (st && !own) return; // never pair a variant's walls with another painting's windows
+  if (!own && !ready(spriteOf(kind, style)?.image)) return; // never light windows before their walls are painted
+  if (!own && !nightImages[kind] && sprites[kind]?.night) nightImages[kind] = load(sprites[kind]!.night!);
   const image = own ? st?.light : nightImages[kind], box = spriteBox(kind, variant, own ? style : undefined);
   if (!image?.complete || !image.naturalWidth || !box) return;
   if (own && st?.mirror) flip = !flip;
@@ -484,13 +489,13 @@ export function nightPairs(): NightPair[] {
 /** Starts loading every building image right away so towns appear complete. */
 export function preloadBuildingSprites() {
   if (typeof Image === "undefined") return;
-  for (const [kind, sp] of Object.entries(sprites)) {
-    const k = kind as Kind, url = sp?.night; if (!url) continue;
-    if (!nightImages[k]) { const im = new Image(); im.decoding = "async"; im.src = url; nightImages[k] = im; }
-  }
-  for (const set of Object.values(styled)) for (const v of Object.values(set)) { v.image ??= load(v.day); v.light ??= load(v.night); }
-  for (const sets of Object.values(variants)) for (const entries of Object.values(sets)) for (const v of entries) { v.image ??= load(v.day); v.light ??= load(v.night); }
-  for (const s of Object.values(sprites)) if (s && !s.image) { s.image = new Image(); s.image.decoding = "async"; s.image.src = s.url; }
+  // walls first, window masks afterwards — small masks must never overtake the day paintings
+  for (const s of Object.values(sprites)) if (s && !s.image) s.image = load(s.url);
+  for (const set of Object.values(styled)) for (const v of Object.values(set)) v.image ??= load(v.day);
+  for (const sets of Object.values(variants)) for (const entries of Object.values(sets)) for (const v of entries) v.image ??= load(v.day);
+  for (const [kind, sp] of Object.entries(sprites)) { const k = kind as Kind, url = sp?.night; if (url && !nightImages[k]) nightImages[k] = load(url); }
+  for (const set of Object.values(styled)) for (const v of Object.values(set)) v.light ??= load(v.night);
+  for (const sets of Object.values(variants)) for (const entries of Object.values(sets)) for (const v of entries) v.light ??= load(v.night);
 }
 if (typeof window !== "undefined") preloadBuildingSprites();
 
