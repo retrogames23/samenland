@@ -30,8 +30,9 @@ export function LoadingScreen({ title, lines, onDone }: { title: string; lines: 
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
+    const hard = setTimeout(() => { cancelAnimationFrame(raf); markSplashDone(); setFade(true); setTimeout(() => { setGone(true); done.current?.(); }, 600); }, 6000);
     const iv = setInterval(() => setLine((l) => l + 1), 1800);
-    return () => { cancelAnimationFrame(raf); clearInterval(iv); };
+    return () => { cancelAnimationFrame(raf); clearTimeout(hard); clearInterval(iv); };
   }, []);
   if (gone) return null;
   return (

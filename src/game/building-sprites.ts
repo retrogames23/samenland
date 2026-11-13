@@ -358,7 +358,7 @@ export const variantPaintingCount = (kind: VariantKind, style: "grain" | HouseSt
 /** Mobile networks drop downloads; a failed image retries with backoff instead of staying blank all session. */
 const load = (url: string) => {
   const im = new Image(); im.decoding = "async"; let tries = 0;
-  im.onerror = () => { if (++tries > 6) return; setTimeout(() => { im.src = `${url}${url.includes("?") ? "&" : "?"}r=${tries}`; }, 1500 * tries); };
+  im.onerror = () => { if (++tries > 3) return; setTimeout(() => { im.src = `${url}${url.includes("?") ? "&" : "?"}r=${tries}`; }, 4000 * tries); };
   im.src = url; return im;
 };
 const ready = (im?: HTMLImageElement) => !!(im?.complete && im.naturalWidth);
@@ -497,7 +497,7 @@ export function preloadBuildingSprites() {
   for (const set of Object.values(styled)) for (const v of Object.values(set)) v.light ??= load(v.night);
   for (const sets of Object.values(variants)) for (const entries of Object.values(sets)) for (const v of entries) v.light ??= load(v.night);
 }
-if (typeof window !== "undefined") preloadBuildingSprites();
+if (typeof window !== "undefined") { const go = () => setTimeout(preloadBuildingSprites, 300); if (document.readyState === "complete") go(); else window.addEventListener("load", go, { once: true }); }
 
 // ---- living overlays: moving parts painted over the still sprites (pure functions of clock time) ----
 let animT = 0;
