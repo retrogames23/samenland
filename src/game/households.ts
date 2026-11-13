@@ -1,5 +1,5 @@
 import { townCharacter } from "./character";
-import { dwellingSlots } from "./density";
+import { dwellingSlots, MAX_SLOTS } from "./density";
 import { leaversOf } from "./wander";
 import { hash, structureAt, reachOf, radiusOf, effAge, townDist, specialSites, twinSites, roadOwnerAt, MAP, type Seed, type Kind } from "./world";
 
@@ -81,7 +81,7 @@ export function occupiedHomes(s: Seed, seeds: Seed[], now: number, byKind: Map<K
   if (!s.user_id) return occupied;
   const way = townCharacter(s).main;
   const extra: Household[] = [];
-  for (let unit = 1; unit < 3; unit++) for (const h of occupied) {
+  for (let unit = 1; unit < MAX_SLOTS; unit++) for (const h of occupied) {
     if (occupied.length + extra.length >= cap) break;
     if (dwellingSlots(way, h.kind, r) <= unit) continue;
     const range = HOME_SIZES[h.kind];
