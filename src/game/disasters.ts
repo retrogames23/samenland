@@ -37,8 +37,8 @@ export const fireRackUp = (s: Seed, now: number) => owns(s, "fireorder", now) &&
 /** Water within reach of the village core: bucket chains put fires out much faster. */
 export const hasWater = (s: Seed) => waterNearby(s.x, s.y);
 
-/** Fire duration factor of the belfry: steps 1–2, steps 3–4. */
-export const BELFRY_FIRE = [0.9, 0.75] as const;
+/** Fire duration factor of the belfry by finished steps: 1, 2, 3+. */
+export const BELFRY_FIRE = [0.9, 0.85, 0.75] as const;
 export type Fire = { at: number; end: number; tiles: number[]; x: number; y: number; dead: boolean; guarded: boolean; water: boolean; order?: boolean };
 export type Flood = { at: number; end: number; tiles: number[]; ruined: number[]; x: number; y: number };
 export type Raid = { at: number; end: number; loss: number; caught: boolean };
@@ -60,8 +60,8 @@ export function fires(s: Seed, now: number): Fire[] {
     const nb = [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
     const tiles = nb.slice(0, n + 2).map(([i, j]) => (y + j!) * MAP + x + i!);
     const burn = guarded ? 0.5 * H : order ? (water ? 1 * H : 2.5 * H) : water ? 1.5 * H : 4 * H;
-    // Belfried (Türmer, Sturmglocke): finished steps 1–2 shorten fires by 10 %, finished step 3 on by 25 %
-    const bs = stepsDone(s, "belfry", at), bell = bs >= 3 ? BELFRY_FIRE[1] : bs >= 1 ? BELFRY_FIRE[0] : 1;
+    // Belfried (Türmer, Sturmglocke): finished step 1 shortens fires by 10 %, step 2 by 15 %, step 3 on by 25 %
+    const bs = stepsDone(s, "belfry", at), bell = bs >= 1 ? BELFRY_FIRE[Math.min(bs, 3) - 1]! : 1;
     out.push({ at, end: at + burn * bell, tiles, x, y, guarded, water, ...(order ? { order } : {}), dead: !guarded && !water && rnd(s.id, w, 16) < (order ? FIRE_DEAD_ORDER : 0.35) });
   }
   const lf = labEvent("fire");
