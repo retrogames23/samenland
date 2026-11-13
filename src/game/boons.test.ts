@@ -7,7 +7,7 @@ describe("larder boons", () => {
     const b = boonsOf(L(20, 10));
     expect(b.food).toBe(10); expect(b.health).toBe(5);
   });
-  it("an empty larder gives nothing", () => expect(boonsOf(L(0, 3))).toMatchObject({ food: 0, health: 0, wealth: 0 }));
+  it("an empty larder gives nothing", () => expect(boonsOf(L(0, 3))).toMatchObject({ food: 0, health: 0, surplus: false }));
   it("two kinds of food add +5 health", () => expect(boonsOf(L(0, 3, [f("fish", 2), f("bread", 2)])).health).toBe(5));
-  it("surplus of finished goods adds +5 prosperity", () => expect(boonsOf(L(0, 3, [f("planks", 12, 5, 2)])).wealth).toBe(5));
+  it("surplus of finished goods only unlocks the big market, no prosperity", () => { const b = boonsOf(L(0, 3, [f("planks", 12, 5, 2)])); expect(b.surplus).toBe(true); expect("wealth" in b).toBe(false); });
 });

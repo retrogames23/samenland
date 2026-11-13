@@ -175,9 +175,11 @@ export function chainOf(kind: Kind, tile: Tile, l: Larder, people: Person[]): Li
   });
 }
 
-/** What full stores give back — derived purely from the larder (never stored). */
-export type Boons = { fed: boolean; varied: boolean; timber: boolean; surplus: boolean; supply: number; food: number; health: number; wealth: number };
-export const FED_MEALS = 2, FED_CAP = 60, FED_FOOD = 10, FED_HEALTH = 5, VARIED_HEALTH = 5, SURPLUS_WEALTH = 5;
+/** What the current larder gives back — a momentary, derived HUD/supply signal (never stored).
+ * System A (real supply): it only nudges the shown food/health values and unlocks the big market (surplus);
+ * it never changes household capacity (households.ts), the care gate (world.ts), residents or taxes. */
+export type Boons = { fed: boolean; varied: boolean; timber: boolean; surplus: boolean; supply: number; food: number; health: number };
+export const FED_MEALS = 2, FED_CAP = 60, FED_FOOD = 10, FED_HEALTH = 5, VARIED_HEALTH = 5;
 const FINISHED: Ware[] = ["planks", "flour", "bread", "cheese"];
 export function boonsOf(l: Larder): Boons {
   const goal = Math.min(l.eaters * FED_MEALS, FED_CAP);
@@ -186,5 +188,5 @@ export function boonsOf(l: Larder): Boons {
   const varied = l.flows.filter((f) => FOOD.includes(f.ware) && f.stock > 0).length >= 2;
   const timber = l.flows.some((f) => (f.ware === "planks" || f.ware === "log") && f.stock > 0);
   const surplus = l.flows.some((f) => FINISHED.includes(f.ware) && f.made > f.used && f.stock >= 10);
-  return { fed, varied, timber, surplus, supply, food: fed ? FED_FOOD : 0, health: (fed ? FED_HEALTH : 0) + (varied ? VARIED_HEALTH : 0), wealth: surplus ? SURPLUS_WEALTH : 0 };
+  return { fed, varied, timber, surplus, supply, food: fed ? FED_FOOD : 0, health: (fed ? FED_HEALTH : 0) + (varied ? VARIED_HEALTH : 0) };
 }
