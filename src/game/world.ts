@@ -468,7 +468,7 @@ export function acreOf(x: number, y: number, s: Seed) {
 }
 
 /** Near range (tiles) in which a spoke that meets water is turned landward (rock keeps the old heading). */
-export const SPOKE_PROBE = 16;
+export const SPOKE_PROBE = 12;
 /** A replacement direction counts as open land when no tile from 2 to SPOKE_OPEN along it is water (rock never excludes one). */
 export const SPOKE_OPEN = 24;
 const rayClear = (s: { x: number; y: number }, ang: number, to: number) => {
