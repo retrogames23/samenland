@@ -43,12 +43,14 @@ export const PROSPER_WORKS: Record<string, number> = {
   herbs: 1, hunter: 1, fisher: 1, dairy: 1, backhaus: 1, herberge: 1, woodcamp: 1, granary: 1, healer: 1, bigstore: 1,
   stonemason: 1, smokehouse: 1, beginen: 1, badestube: 1, school: 3, guildhall: 2, markethall: 2, library: 2, infirmary: 1, guard: 1, firehouse: 1,
 };
+let monumentStands: ((s: Seed, at: number, key: string) => boolean) | null = null;
+export const setMonumentHook = (f: typeof monumentStands) => { monumentStands = f; };
 const WORKS_FULL = 20, CIT_HALF = 1500;
 export function prosperityAt(s: Seed, at: number, citizens: number): number {
   const own = new Set((s.bought ?? []).filter((b) => b.at <= at).map((b) => b.item));
   let w = 0; for (const [item, n] of Object.entries(PROSPER_WORKS)) if (own.has(item)) w += n;
-  // finished monuments (last step + six hours) count as two works each
-  for (const item of Object.keys(PRESTIGE_BONUS)) if ((s.bought ?? []).some((b) => b.item === item && b.at + 6 * 3.6e6 <= at)) w += 2;
+  // monuments count as two works each once they physically stand (registered by world.ts)
+  for (const item of Object.keys(PRESTIGE_BONUS)) if (own.has(item) && monumentStands?.(s, at, item.replace(/\d+$/, ""))) w += 2;
   const dev = citizens / (citizens + CIT_HALF), civ = Math.min(1, w / WORKS_FULL);
   return 100 * (0.7 * dev + 0.3 * civ);
 }

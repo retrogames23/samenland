@@ -9,7 +9,7 @@ import { biomeKey, type Biome } from "./biome";
 import { clock, cacheTick, worldHour, worldWeekday, workClock, workDone, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
-import { estateOf, estateHouse, RESIDENTIAL } from "./prosperity";
+import { estateOf, estateHouse, RESIDENTIAL, setMonumentHook } from "./prosperity";
 // Pure, deterministic world + town growth logic (shared by every player).
 const ROAD_YIELDS: ReadonlySet<string> = new Set(["field", "garden", "pasture", "hay", "fence"]);
 export const MAP = 1024;
@@ -1596,3 +1596,4 @@ export const CHARTER_FROM = 24;
 export const CHARTER_FIT: Record<Character, CharterPath> = { plains: "farm", forest: "farm", mountain: "craft", coast: "trade" };
 export const charterReady = (createdAt: string, now: number) => (now - Date.parse(createdAt)) / 3.6e6 >= CHARTER_FROM;
 export const charterFits = (c: Character, p: CharterPath) => CHARTER_FIT[c] === p;
+setMonumentHook((s, at, key) => monumentProgress(s, at, key as MonumentKey) >= 1);

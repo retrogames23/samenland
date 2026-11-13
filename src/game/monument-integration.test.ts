@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { attributes } from "./economy";
+import { prosperityAt } from "./prosperity";
+import "./world";
 import { monumentProgress, monumentDone, specialBuild, specialDone, specialSites, type Seed } from "./world";
 import { buildMailDue } from "./build-mail";
 import { workClock, workDone } from "./time";
@@ -10,7 +11,8 @@ const H = 3.6e6;
 const town = (ats: number[], extra: { item: string; at: number }[] = []): Seed => ({ id: "itest", name: "Prüfstadt", owner: "o", x: 300, y: 300, hue: 0,
   created_at: "2026-04-24T00:00:00Z", bought: [...extra, ...ats.map((at, i) => ({ item: `belfry${i + 1}`, at, ...(i ? {} : { x: 303, y: 302 }) }))] });
 const rows = (s: Seed) => s.bought!.map((b, i) => ({ id: `${i}`, seed_id: s.id, item: b.item, cost: 0, created_at: new Date(b.at).toISOString() }));
-const wealth = (s: Seed, t: number) => attributes(s, [s], rows(s), t).wealth;
+// Wohlstand at a fixed citizen count, so only the monument can move it
+const wealth = (s: Seed, t: number) => prosperityAt(s, t, 500);
 const placed = (s: Seed) => new Set([...specialSites(s).values()].map((v) => v.at));
 /** Which rows the 15-minute cron would enqueue between from and to (timing only; once-only delivery is proven in src/lib/build-mail-outbox.pg.test.ts). */
 function mails(s: Seed, from: number, to: number) {

@@ -8,21 +8,15 @@ import type { Seed, Kind } from "./world";
 import type { Person } from "./people";
 
 describe("character dwellings", () => {
-  it("hills support two and then three families in suitable houses", () => {
-    expect(dwellingSlots("workshop", "steinhaus", 13)).toBe(1);
-    expect(dwellingSlots("workshop", "steinhaus", 14)).toBe(2);
-    expect(dwellingSlots("workshop", "steinhaus", 24)).toBe(3);
-    expect(dwellingSlots("workshop", "hut", 40)).toBe(1);
-  });
-  it("plains and coasts share the same floors: second from radius 16, third from 26", () => {
-    for (const way of ["grain", "gateway"] as const) for (const kind of ["townhouse", "fachwerk", "steinhaus", "patrician", "tenement"] as Kind[]) {
-      expect(dwellingSlots(way, kind, 15)).toBe(1);
-      expect(dwellingSlots(way, kind, 16)).toBe(2);
-      expect(dwellingSlots(way, kind, 25)).toBe(2);
-      expect(dwellingSlots(way, kind, 26)).toBe(3);
+  it("every town way shares the same floors: second from radius 18, third from 30", () => {
+    for (const way of ["grain", "gateway", "workshop"] as const) for (const kind of ["townhouse", "fachwerk", "steinhaus", "patrician", "tenement"] as Kind[]) {
+      expect(dwellingSlots(way, kind, 17)).toBe(1);
+      expect(dwellingSlots(way, kind, 18)).toBe(2);
+      expect(dwellingSlots(way, kind, 29)).toBe(2);
+      expect(dwellingSlots(way, kind, 30)).toBe(3);
     }
     expect(dwellingSlots("grain", "hut", 40)).toBe(1);
-    expect(dwellingSlots("grain", "farmhouse", 40)).toBe(1);
+    expect(dwellingSlots("workshop", "farmhouse", 40)).toBe(1);
   });
   it("keeps old IDs and decodes every floor to the real ground tile", () => {
     expect(dwellingKey(306, 420)).toBe(313764);
@@ -33,9 +27,9 @@ describe("character dwellings", () => {
     const people = [0, 1, 2].map(unit => ({ id: dwellingKey(4, 4, unit) * 8, hh: dwellingKey(4, 4, unit), home: [4, 4], role: "head", last: "Weber", age: 30, job: "farmer" } as Person));
     expect(rollOf(people).households.length).toBe(3);
   });
-  it("430 occupied dwellings allow a metropolis even when housed on fewer tiles", () => {
-    expect(rankOf({ citizens: 1500, homes: 430, roads: 2 })).toBe(5);
-    expect(rankOf({ citizens: 1500, homes: 429, roads: 2 })).toBe(4);
+  it("600 occupied dwellings allow a Hansestadt even when housed on fewer tiles", () => {
+    expect(rankOf({ citizens: 2200, homes: 600, roads: 2 })).toBe(5);
+    expect(rankOf({ citizens: 2200, homes: 599, roads: 2 })).toBe(4);
   });
 });
 describe("equal food catchments", () => {
