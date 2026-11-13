@@ -23,7 +23,7 @@ const DAY = 86400000;
 export const questRank = (i: number) => (i <= 6 ? 1 : i <= 11 ? 2 : i <= 15 ? 3 : i <= 17 ? 4 : 5);
 /** Care purchases first, in this order (assumption). */
 export const CARE_ORDER = ["hunter", "herbs", "granary", "fisher", "healer"];
-export const CIVIC = ["backhaus", "herberge", "woodcamp", "beginen", "badestube", "school", "firehouse", "guard"];
+export const CIVIC = ["backhaus", "herberge", "woodcamp", "beginen", "badestube", "fireorder", "school", "firehouse", "guard"];
 const MON_ORDER = ["belfry", "theater", "cathedral", "university", "exchange", "orangery", "opera"] as const;
 export const WAY_MON = { grain: "harvest", workshop: "guildtower", gateway: "lighthouse" } as const;
 /** Optional twin works (need a partner town) — reported separately, never part of the town volume. */

@@ -27,8 +27,8 @@ describe("character dwellings", () => {
     const people = [0, 1, 2].map(unit => ({ id: dwellingKey(4, 4, unit) * 8, hh: dwellingKey(4, 4, unit), home: [4, 4], role: "head", last: "Weber", age: 30, job: "farmer" } as Person));
     expect(rollOf(people).households.length).toBe(3);
   });
-  it("600 occupied dwellings allow a Hansestadt even when housed on fewer tiles", () => {
-    expect(rankOf({ citizens: 2200, homes: 600, roads: 2 })).toBe(5);
+  it("700 occupied dwellings allow a Hansestadt even when housed on fewer tiles", () => {
+    expect(rankOf({ citizens: 2500, homes: 700, roads: 2 })).toBe(5);
     expect(rankOf({ citizens: 2200, homes: 599, roads: 2 })).toBe(4);
   });
 });
@@ -48,9 +48,10 @@ describe("equal food catchments", () => {
     expect(townCharacter(location).main).toBe("workshop");
     const town = { ...s, ...location };
     const tiles: HomeTile[] = Array.from({ length: 8 }, (_, i) => [town.x + i, town.y]);
-    const homes = occupiedHomes(town, [town], at, new Map<Kind, HomeTile[]>([["steinhaus", tiles]]));
+    const late = Date.parse("2026-11-01T00:00:00Z");
+    const homes = occupiedHomes(town, [town], late, new Map<Kind, HomeTile[]>([["steinhaus", tiles]]));
     expect(homes.filter(h => !h.unit).map(h => h.home)).toEqual(tiles);
     expect(homes.some(h => h.unit === 1)).toBe(true);
-    expect(homes.length).toBeLessThanOrEqual(foodCapacity(town, new Map(), at, 24));
+    expect(homes.length).toBeLessThanOrEqual(foodCapacity(town, new Map(), late, 24));
   });
 });
