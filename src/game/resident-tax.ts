@@ -1,6 +1,7 @@
 import { householdsOf, type Household } from "./households";
-import { estateAt, estateOf, sharesAt, ESTATE_TAX, sickLoss, sickTaxRate, CULTURE_SICK, BEGINEN_SICK } from "./prosperity";
+import { estateAt, estateOf, sharesAt, ESTATE_TAX, sickLoss } from "./prosperity";
 import type { Seed } from "./world";
+import { sickChance } from "./sickness";
 
 /** Legacy assessment by plain wealth shares (kept for callers/tests that pass wealth only). */
 export function assessHomes(homes: Household[], wealth: number) {
@@ -22,5 +23,5 @@ export function residentTax(s: Seed, seeds: Seed[], at: number) {
   const population = homes.reduce((n, h) => n + h.size, 0);
   const assessed = assessHomesWith(homes, taxSharesAt(s, seeds, at, population).shares);
   const trade = s.charter?.path === "trade" && s.charter.at <= at ? Math.floor(0.15 * population) : 0;
-  return { population, households: homes.length, assessed, income: assessed - sickLoss(assessed, Math.max(0.01, sickTaxRate(s, at) - (s.charter?.path === "culture" && s.charter.at <= at ? CULTURE_SICK : 0) - ((s.bought ?? []).some((b) => b.item === "beginen" && b.at <= at) ? BEGINEN_SICK : 0))) + trade };
+  return { population, households: homes.length, assessed, income: assessed - sickLoss(assessed, sickChance(s, at)) + trade };
 }
