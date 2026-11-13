@@ -106,3 +106,11 @@ describe("Wohlstand: one continuous value", () => {
     expect(sharesFromProsperity(20).wealthy).toBeLessThan(0.02);
   });
 });
+
+import { PROSPER_MONUMENTS } from "./prosperity";
+describe("Block 1.1: all ten monuments count toward Wohlstand", () => {
+  it("lists seven general and three way monuments", () => {
+    expect(PROSPER_MONUMENTS).toHaveLength(10);
+    for (const k of ["harvest3", "guildtower3", "lighthouse3"]) expect(PROSPER_MONUMENTS).toContain(k);
+  });
+});
