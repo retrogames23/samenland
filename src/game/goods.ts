@@ -1,4 +1,4 @@
-import { structureAt, seedsKey, stepsPaid, HARVEST_GRAIN, type Kind, type Seed } from "./world";
+import { structureAt, seedsKey, stepsDone, HARVEST_GRAIN, type Kind, type Seed } from "./world";
 import { townOf, type Job, type Person } from "./people";
 import { seasonAt } from "./season";
 import { worldHour } from "./time";
@@ -48,6 +48,21 @@ export const BACKHAUS_GRAIN = 0.9;
 export const GRAIN_MEAL = 0.5;
 /** Meals a villager eats per day, extra hunger at full winter, and days of surplus kept in store. */
 export const MEAL_PER_HEAD = 1, WINTER_HUNGER = 0.3, SURPLUS_DAYS = 1.5;
+/** Erntedankhalle step 2 (finished): winter extra hunger halves (0.30 → 0.15). Changes only daily consumption. */
+export const HARVEST_WINTER_HUNGER = 0.15;
+export const winterHunger = (s: Seed, now: number) => (stepsDone(s, "harvest", now) >= 2 ? HARVEST_WINTER_HUNGER : WINTER_HUNGER);
+/** Farm produce factor during an active flood: 0.3, with finished Erntedankhalle step 3 0.6.
+ *  Deliberately all farm produce (fields, gardens, pastures/cheese) — the existing flood loss already hits every farmer recipe. */
+export const FLOOD_FARM = 0.3, HARVEST_FLOOD_FARM = 0.6;
+export const floodFarm = (s: Seed, now: number) => floodFood(s, now) < 0 ? (stepsDone(s, "harvest", now) >= 3 ? HARVEST_FLOOD_FARM : FLOOD_FARM) : 1;
+/** Daily meals a village needs. */
+export const mealNeed = (eaters: number, hunger: number, winter: number, backhaus: boolean) => eaters * (MEAL_PER_HEAD + hunger * winter) * (backhaus ? BACKHAUS_GRAIN : 1);
+/** Serve the need from produced food in FOOD order; returns what each ware gives and the hunger left. Never invents stock. */
+export function serveMeals(made: Map<Ware, number>, need: number) {
+  const take = new Map<Ware, number>();
+  for (const w of FOOD) { const t = Math.min(need, made.get(w) ?? 0); if (t) { take.set(w, t); need -= t; } }
+  return { take, left: need };
+}
 export const grainCap = (byKind: Map<Kind, unknown[]>) =>
   GRAIN_BASE + GRAIN_PER_MILL * ((byKind.get("mill")?.length ?? 0) + (byKind.get("watermill")?.length ?? 0)) + GRAIN_PER_GRANARY * (byKind.get("granary")?.length ?? 0);
 export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
@@ -58,7 +73,7 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   if (cache.size > 40) cache.clear();
   const sw = seasonAt(now);
   const sf = (w: Ware) => { const f = SEASON[w]; return f ? f[0] * sw.winter + f[1] * sw.spring + f[2] * sw.summer + f[3] * sw.autumn : 1; };
-  const flood = floodFood(s, now) < 0 ? 0.3 : 1;
+  const flood = floodFarm(s, now);
   const byKind = new Map<Kind, Tile[]>();
   const seen = new Set<string>();
   for (const p of t.people) {
@@ -107,13 +122,14 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   const eaters = t.people.length;
   // one meal a head, more in the cold months
   // a communal bakehouse bakes for everyone at once: a tenth less grain goes to waste
-  let need = eaters * (MEAL_PER_HEAD + WINTER_HUNGER * sw.winter) * (byKind.has("backhaus") ? BACKHAUS_GRAIN : 1);
-  for (const w of FOOD) { const take = Math.min(need, made.get(w) ?? 0); if (take) { add(used, w, take); need -= take; } }
+  const served = serveMeals(made, mealNeed(eaters, winterHunger(s, now), sw.winter, byKind.has("backhaus")));
+  for (const [w, v] of served.take) add(used, w, v);
+  let need = served.left;
   // porridge: left-over grain fills the remaining hunger (after the mills took their share)
   if (need > 0) add(used, "grain", Math.min(need, Math.max(0, (made.get("grain") ?? 0) - (used.get("grain") ?? 0))));
   add(used, "herbs", Math.min(made.get("herbs") ?? 0, t.people.filter((p) => p.sick).length));
   const h = worldHour(now), done = workDone(h), eaten = Math.min(1, Math.max(0, (h - 6) / 15));
-  const cap = Math.round(grainCap(byKind) * (1 + HARVEST_GRAIN[Math.min(3, stepsPaid(s, "harvest", now))]!)) + (s.charter?.path === "farm" && (s.bought ?? []).some((b) => b.item === "rank2") ? 40 : 0);
+  const cap = Math.round(grainCap(byKind) * (1 + HARVEST_GRAIN[Math.min(3, stepsDone(s, "harvest", now))]!)) + (s.charter?.path === "farm" && (s.bought ?? []).some((b) => b.item === "rank2") ? 40 : 0);
   const flows: Flow[] = [];
   for (const w of WARES) {
     const m = made.get(w) ?? 0, u = used.get(w) ?? 0;

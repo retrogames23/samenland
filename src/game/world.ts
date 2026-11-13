@@ -775,7 +775,8 @@ export const stepsDone = (s: Seed, key: MonumentKey, t: number) => monumentChain
 /** Zunftturm (Bauhütte): every finished step makes bought buildings and monuments 5 % faster to build. */
 export const GUILDTOWER_STEP = 0.05;
 /** Monument step effects (paid steps count at once, independent of the physical build):
- *  harvest: grain store +10 % / +25 %, step 3 halves the winter sickness surcharge;
+ *  harvest (finished steps only, stepsDone): step 1 care-gate supply, grain store +10 % / +25 %, step 2 halves winter hunger,
+ *  step 3 halves the winter sickness surcharge and softens the flood loss of farm produce;
  *  lighthouse (sea trade): step 1 roads to coastal (gateway) towns +0.15 trade factor, step 2 halves their distance loss,
  *  step 3 routed trade via/to coastal towns +20 % and trade ceiling +0.05;
  *  cathedral: from step 3 counts as a health building for the care gate, step 5 sickness −0.02;
@@ -788,6 +789,9 @@ const coastal = (o: Seed) => townCharacter(o).main === "gateway";
 export const seaDist = (s: Seed, o: Seed, d: number, now: number) => stepsPaid(s, "lighthouse", now) >= 2 && coastal(o) ? MIN_SEED_DISTANCE + (d - MIN_SEED_DISTANCE) / 2 : d;
 export const CATHEDRAL_SICK = 0.02, UNIVERSITY_SICK = 0.015, UNIVERSITY_WALZ = 1.2, ORANGERY_SICK = 0.01, OPERA_TRADE = 0.1;
 export const transitShare = (s: Seed, now: number) => { const n = stepsPaid(s, "exchange", now); return n >= 4 ? 0.85 : n >= 2 ? 0.8 : TRANSIT_SHARE; };
+/** Erntedankhalle step 1 (physically finished): counts as one more supply building for the care gate only —
+ *  never foodCapacity, production or stock. */
+export const careFoodExtra = (s: Seed, now: number) => (stepsDone(s, "harvest", now) >= 1 ? 1 : 0);
 /** Extra health-care count from monuments (cathedral step 3+, orangery step 2+ when no herb hut). */
 export const careHealthExtra = (s: Seed, now: number, own: Set<string>) => (stepsPaid(s, "cathedral", now) >= 3 ? 1 : 0) + (!own.has("herbs") && stepsPaid(s, "orangery", now) >= 2 ? 1 : 0);
 /** Finished Zunftturm steps at time t: each step is built after the previous one with only the steps already
@@ -1402,7 +1406,7 @@ export const CARE_NEED: [number, number][] = [[1, 0], [2, 1], [3, 2]];
 export function careStage(s: Seed, now: number) {
   if (!s.user_id) return 5;
   const own = new Set((s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item));
-  const f = CARE_FOOD.filter((i) => own.has(i)).length, hl = CARE_HEALTH.filter((i) => own.has(i)).length + careHealthExtra(s, now, own);
+  const f = CARE_FOOD.filter((i) => own.has(i)).length + careFoodExtra(s, now), hl = CARE_HEALTH.filter((i) => own.has(i)).length + careHealthExtra(s, now, own);
   let st = 2;
   for (const [nf, nh] of CARE_NEED) { if (f >= nf && hl >= nh) st++; else break; }
   return st;
@@ -1412,7 +1416,7 @@ export function careMissing(s: Seed, now: number) {
   const st = careStage(s, now), need = CARE_NEED[st - 2];
   if (!need) return null;
   const own = new Set((s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item));
-  const f = CARE_FOOD.filter((i) => own.has(i)).length, hl = CARE_HEALTH.filter((i) => own.has(i)).length + careHealthExtra(s, now, own);
+  const f = CARE_FOOD.filter((i) => own.has(i)).length + careFoodExtra(s, now), hl = CARE_HEALTH.filter((i) => own.has(i)).length + careHealthExtra(s, now, own);
   return { stage: st, food: Math.max(0, need[0] - f), health: Math.max(0, need[1] - hl),
     foodItems: CARE_FOOD.filter((i) => !own.has(i)), healthItems: CARE_HEALTH.filter((i) => !own.has(i)) };
 }

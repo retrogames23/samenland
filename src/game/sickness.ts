@@ -1,4 +1,4 @@
-import { stepsPaid, CATHEDRAL_SICK, UNIVERSITY_SICK, ORANGERY_SICK, type Seed } from "./world";
+import { stepsPaid, stepsDone, CATHEDRAL_SICK, UNIVERSITY_SICK, ORANGERY_SICK, type Seed } from "./world";
 import { seasonAt } from "./season";
 import { festJoy } from "./weddings";
 import { CULTURE_SICK, BEGINEN_SICK } from "./prosperity";
@@ -31,6 +31,6 @@ export function sickChance(s: Seed, at: number): number {
     st("university") >= 3 ? UNIVERSITY_SICK : 0,
     st("orangery") >= 3 ? ORANGERY_SICK : 0,
   ];
-  const risk = SICK_BASE + SICK_WINTER * seasonAt(at).winter * (st("harvest") >= 3 ? 0.5 : 1);
+  const risk = SICK_BASE + SICK_WINTER * seasonAt(at).winter * (stepsDone(s, "harvest", at) >= 3 ? 0.5 : 1);
   return boons.reduce((r, b) => r * (1 - b / SICK_BASE), risk);
 }
