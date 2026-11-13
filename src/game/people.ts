@@ -4,7 +4,7 @@ import { setChosenTraits } from "./traits";
 import { cacheTick } from "./time";
 import { feastOn, isRestDay, realmDate, FEASTS, type FeastCode } from "./feasts";
 import { pickStarSingers, starRound, STAR_FROM, STAR_STOP } from "./feast-walkers";
-import { estateOf, sharesAt, CULTURE_SICK, BEGINEN_SICK, type Estate } from "./prosperity";
+import { estateOf, sharesAt, type Estate } from "./prosperity";
 import { weddingDates, weddingJoy } from "./weddings";
 import { hasTrait } from "./traits";
 import { pathHeading } from "./motion";
@@ -25,7 +25,7 @@ import { wetness, shelters } from "./weather";
 import { fieldLook, farmTask } from "./rotation";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { geoKey, MAP, hash, structureAt, setEstateHook, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, stepsPaid, CATHEDRAL_SICK, UNIVERSITY_SICK, ORANGERY_SICK, type TradeGood, type Seed, type Kind } from "./world";
+import { geoKey, MAP, hash, structureAt, setEstateHook, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, stepsPaid, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
