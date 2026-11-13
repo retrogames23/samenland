@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Parchment } from "@/components/hud/Parchment";
-import { Button } from "@/components/ui/button";
 import type { Lang } from "@/game/i18n";
 import { REWORK } from "@/game/lang/rework";
 
@@ -18,7 +17,7 @@ export function ReworkNotice({ userId, lang }: { userId: string | null; lang: La
   const t = REWORK[lang] ?? REWORK.de;
   const close = () => { try { localStorage.setItem(KEY(userId), "1"); } catch { /* ignore */ } setOpen(false); };
   return (
-    <Parchment title={t.title} later={t.ok} onLater={close} action={<Button type="button" onClick={close}>{t.ok}</Button>}>
+    <Parchment title={t.title} later={t.ok} onLater={close}>
       <p className="mt-2 text-center font-display text-xl leading-snug text-ink">{t.body}</p>
       <p className="mt-2 text-center text-sm text-muted-foreground">{t.note}</p>
     </Parchment>
