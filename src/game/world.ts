@@ -523,7 +523,7 @@ type Bend = { at: number; turn: number; len: number } | null;
 const bendCache = new Map<string, Bend[]>();
 const bendOff = (b: Bend, d: number) => !b || d <= b.at ? 0 : b.turn * Math.min(1, (d - b.at) / b.len);
 /**
- * Local obstacle bypass (pure from seed + terrain): a spoke whose straight run meets water or rock between
+ * Local obstacle bypass (pure from seed + terrain): a spoke whose straight run meets water (rock never bends one) between
  * 4 and BEND_REACH tiles bends, from 3 tiles before the obstacle, by the smallest turn whose curve stays on
  * buildable land for 12 more tiles and keeps clear of the other spokes; otherwise it ends as before.
  * Unobstructed spokes keep their exact course.
@@ -537,7 +537,11 @@ export function spokeBends(s: { id: string; x: number; y: number }): Bend[] {
   const out: Bend[] = dirs.map(() => null);
   dirs.forEach((a, k) => {
     let t0 = 0;
-    for (let t = 2; t <= BEND_REACH; t++) if (!ok(t, a)) { t0 = t; break; }
+    for (let t = 2; t <= BEND_REACH; t++) {
+      const tt = terrain(Math.round(s.x + Math.cos(a) * t), Math.round(s.y + Math.sin(a) * t));
+      if (isWater(tt)) { t0 = t; break; }
+      if (!buildable(tt)) return; // rock ends a spoke as before — mountain towns gain no extra reach
+    }
     if (t0 < 4) return;
     const at = Math.max(2, t0 - 3), sg = hash(sn, k, 77) < 0.5 ? 1 : -1;
     for (const m of BEND_TURNS) for (const turn of [m * sg, -m * sg]) {
