@@ -5,8 +5,12 @@ import { ITEM_RANK } from "./disasters";
 import { MONUMENT_KEYS, monumentProgress, monumentDone, specialBuild, specialDone, monumentSteps, type Seed } from "./world";
 import { workDone } from "./time";
 
-// 0108 patches only the bathhouse gate (3 -> 2) inside the live guard from 0104/0105.
-const sql = readFileSync("drizzle/migrations/0104_monument_steps_no_wait.sql", "utf8").replace("WHEN 'badestube' THEN 3", readFileSync("drizzle/migrations/0108_bathhouse_village_rank.sql", "utf8").includes("THEN 2');") ? "WHEN 'badestube' THEN 2" : "WHEN 'badestube' THEN 3");
+// Mirror the later bathhouse and fire-order price/rank patches in the guard.
+const fireOrderSql = readFileSync("drizzle/migrations/0109_village_fire_order.sql", "utf8");
+const sql = readFileSync("drizzle/migrations/0104_monument_steps_no_wait.sql", "utf8")
+  .replace("WHEN 'badestube' THEN 3", readFileSync("drizzle/migrations/0108_bathhouse_village_rank.sql", "utf8").includes("THEN 2');") ? "WHEN 'badestube' THEN 2" : "WHEN 'badestube' THEN 3")
+  .replace("WHEN 'firehouse' THEN 600", fireOrderSql.includes("WHEN ''fireorder'' THEN 400") ? "WHEN 'fireorder' THEN 400 WHEN 'firehouse' THEN 600" : "WHEN 'firehouse' THEN 600")
+  .replace("WHEN 'firehouse' THEN 3", fireOrderSql.includes("WHEN ''fireorder'' THEN 2") ? "WHEN 'fireorder' THEN 2 WHEN 'firehouse' THEN 3" : "WHEN 'firehouse' THEN 3");
 const T0 = Date.parse("2026-03-02T05:00:00Z");
 const belfry = (ats: number[]): Seed => ({ id: "b", name: "B", owner: "o", x: 500, y: 500, hue: 0, created_at: "2025-01-01T00:00:00Z",
   bought: ats.map((at, i) => ({ item: `belfry${i + 1}`, at })) });
