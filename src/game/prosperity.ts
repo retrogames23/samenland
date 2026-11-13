@@ -47,6 +47,8 @@ const WORKS_FULL = 20, CIT_HALF = 1500;
 export function prosperityAt(s: Seed, at: number, citizens: number): number {
   const own = new Set((s.bought ?? []).filter((b) => b.at <= at).map((b) => b.item));
   let w = 0; for (const [item, n] of Object.entries(PROSPER_WORKS)) if (own.has(item)) w += n;
+  // finished monuments (last step + six hours) count as two works each
+  for (const item of Object.keys(PRESTIGE_BONUS)) if ((s.bought ?? []).some((b) => b.item === item && b.at + 6 * 3.6e6 <= at)) w += 2;
   const dev = citizens / (citizens + CIT_HALF), civ = Math.min(1, w / WORKS_FULL);
   return 100 * (0.7 * dev + 0.3 * civ);
 }
