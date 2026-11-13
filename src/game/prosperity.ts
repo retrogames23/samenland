@@ -36,10 +36,30 @@ export function estateShares(wealth: number) {
   const wealthy = w <= 30 ? 0 : w <= 55 ? (w - 30) * 0.003 : w <= 80 ? 0.075 + (w - 55) * 0.007 : 0.25 + (w - 80) * 0.0025;
   return { ordinary: 1 - skilled - wealthy, skilled, wealthy };
 }
-/** One source for gated shares at `at` given the real rank: used by resident tax, villagers (people.ts) and house paint (world.ts). */
-export function sharesAt(s: Seed, at: number, rank: number) {
-  const wealth = civicWealth(s, at), hasSchool = (s.bought ?? []).some((b) => b.item === "school" && b.at <= at), infra = infraCount(s, at);
-  return { wealth, rank, hasSchool, infra, shares: gatedEstateShares(wealth, rank, hasSchool, infra) };
+/** Wohlstand — the single prosperity value for HUD, villagers, house paint and new resident tax.
+ * Continuous: grows with real citizens (never saturates, keeps maturing past Hansestadt) and with
+ * civic works bought by then. The school helps like any work (weighted), it is never a switch. */
+export const PROSPER_WORKS: Record<string, number> = {
+  herbs: 1, hunter: 1, fisher: 1, dairy: 1, backhaus: 1, herberge: 1, woodcamp: 1, granary: 1, healer: 1, bigstore: 1,
+  stonemason: 1, smokehouse: 1, beginen: 1, badestube: 1, school: 3, guildhall: 2, markethall: 2, library: 2, infirmary: 1, guard: 1, firehouse: 1,
+};
+const WORKS_FULL = 20, CIT_HALF = 1500;
+export function prosperityAt(s: Seed, at: number, citizens: number): number {
+  const own = new Set((s.bought ?? []).filter((b) => b.at <= at).map((b) => b.item));
+  let w = 0; for (const [item, n] of Object.entries(PROSPER_WORKS)) if (own.has(item)) w += n;
+  const dev = citizens / (citizens + CIT_HALF), civ = Math.min(1, w / WORKS_FULL);
+  return 100 * (0.7 * dev + 0.3 * civ);
+}
+/** Estate shares from Wohlstand: skilled linear, wealthy quadratic, so the well-to-do settle late and gradually. */
+export function sharesFromProsperity(p: number) {
+  const x = Math.max(0, Math.min(100, p)) / 100;
+  const skilled = 0.55 * x, wealthy = 0.25 * x * x;
+  return { ordinary: 1 - skilled - wealthy, skilled, wealthy };
+}
+/** One source for shares at `at`: used by resident tax, villagers (people.ts), house paint (world.ts) and the HUD. */
+export function sharesAt(s: Seed, at: number, citizens: number) {
+  const wealth = prosperityAt(s, at, citizens);
+  return { wealth, citizens, shares: sharesFromProsperity(wealth) };
 }
 /** Fixed household roll by home tile. Own integer hash, mirrored by PostgreSQL if individual assessments are queried later. */
 export const estateRoll = (x: number, y: number) => (((x * 7381 + y * 19391 + 7919) % 10000) + 10000) % 10000 / 10000;
