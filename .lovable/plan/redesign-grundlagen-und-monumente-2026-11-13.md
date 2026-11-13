@@ -322,3 +322,8 @@ Qualitätsstand (gemeldet bei Umsetzung, seitdem nicht neu geprüft): 924 Tests 
 Simulationsausgabe ab sofort zusätzlich (nur künftige Läufe): physische Wohnhäuser, Haushalte je Gebäudetyp, Belegung mit 1/2/3/4 Familien (`housing` im JSON, Spalten in report.ts).
 
 ### Nächster Schritt: Block 3 – Monumente
+
+## Stand Block 3.2 (abgeschlossen)
+- Erste Monumentgruppe (Belfried, Tanzhaus, Zunftturm): Wirkungen greifen erst nach physischer Fertigstellung der jeweiligen Stufe.
+- Belfried-Brandwirkung: Stufe 1 −10 %, Stufe 2 −15 %, Stufe 3 −25 % Branddauer; Stufe 4 Vollendung.
+- Raubschutz des Belfrieds bewusst nicht umgesetzt (keine persistente Fertigstellungszeit, keine Migration); die Stadtgarde bleibt allein für Raubschutz zuständig.

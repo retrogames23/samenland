@@ -39,11 +39,16 @@ describe("Zunftturm: only finished steps speed builds", () => {
 
 describe("Belfried fire watch: only finished steps", () => {
   const len = (s: Seed) => fires(s, T + 400 * DAY).filter((f) => f.at > T + 30 * DAY).map((f) => f.end - f.at);
-  it("finished step 1 shortens fires by 10 %, step 3 by 25 %", () => {
-    const base = len(town([])), l1 = len(town(steps("belfry", 1))), l3 = len(town(steps("belfry", 3)));
-    expect(base.length).toBeGreaterThan(0);
-    l1.forEach((v, i) => expect(v / base[i]!).toBeCloseTo(0.9));
-    l3.forEach((v, i) => expect(v / base[i]!).toBeCloseTo(0.75));
+  for (const [n, f] of [[1, 0.9], [2, 0.85], [3, 0.75], [4, 0.75]] as const)
+    it(`finished step ${n} shortens fires to ${f}`, () => {
+      const base = len(town([])), l = len(town(steps("belfry", n)));
+      expect(base.length).toBeGreaterThan(0);
+      expect(l.length).toBe(base.length);
+      l.forEach((v, i) => expect(v / base[i]!).toBeCloseTo(f));
+    });
+  it("paid but unfinished steps 1–3 have no effect", () => {
+    const s = town(steps("belfry", 3, T + 1000 * DAY));
+    expect(len(s)).toEqual(len(town([])));
   });
   it("an unfinished step has no effect", () => {
     const s = town(steps("belfry", 1)), f = fires(s, T + 400 * DAY).find((x) => x.at > T)!;
@@ -53,6 +58,10 @@ describe("Belfried fire watch: only finished steps", () => {
   });
   it("raids are not changed by the belfry (left open: DB raid mirror cannot see build completion)", () => {
     expect(raids(town(steps("belfry", 4)), T + 200 * DAY)).toEqual(raids(town([]), T + 200 * DAY));
+  });
+  it("town guard logic is unchanged by the belfry", () => {
+    const g: [string, number] = ["guard", T];
+    expect(raids(town([g, ...steps("belfry", 4)]), T + 200 * DAY)).toEqual(raids(town([g]), T + 200 * DAY));
   });
 });
 
