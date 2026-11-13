@@ -66,6 +66,7 @@ import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT, UKRAINE_URL } from "@/game/lang/support";
 import { Survey } from "@/components/Survey";
+import { ReworkNotice } from "@/components/ReworkNotice";
 import { Stube, STUBE_KINDS, type StubeKind } from "@/components/Stube";
 import { STUBE } from "@/game/lang/stube";
 import { Search } from "lucide-react";
@@ -2872,6 +2873,7 @@ export function Game() {
         </Panel>
       </div>
       <Survey userId={userId} lang={lang} />
+      <ReworkNotice userId={userId} lang={lang} />
       {stube && <Stube kind={(STUBE_KINDS.has(stube.kind) ? stube.kind : "farmhouse") as StubeKind} seed={stube.seed} seeds={seeds} residents={stube.residents} family={stube.residents.find((p) => p.role === "head")?.last ?? stube.residents[0]?.last ?? stube.seed.name} lang={lang} onClose={() => setStube(null)} />}
 
       {plantAsk && (() => {
