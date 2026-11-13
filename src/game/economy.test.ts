@@ -22,3 +22,29 @@ describe("early buildings", () => {
   });
   it("a village without water can afford the hunter's lodge on day one", () => expect(treasury(seed(), [], t0)).toBeGreaterThanOrEqual(ITEMS.hunter));
 });
+
+describe("treasury with stored tax receipts", async () => {
+  const { CAP_ALL_SINCE, taxOnDay } = await import("./economy");
+  const c0 = CAP_ALL_SINCE - 3 * day + 3600e3;
+  const s = { ...seed(), user_id: "u", created_at: new Date(c0).toISOString() };
+  const first = Math.ceil((CAP_ALL_SINCE - c0) / day), now = c0 + (first + 3) * day;
+  const base = treasury(s, [], now, [], [], CAP_ALL_SINCE, [s]);
+  const days = [first, first + 1, first + 2, first + 3];
+  it("a booked receipt overrides the dynamic assessment", () => {
+    const dyn = taxOnDay(s, first + 1, [s]);
+    expect(treasury(s, [], now, [], [], CAP_ALL_SINCE, [s], { [first + 1]: dyn + 7 })).toBe(base + 7);
+  });
+  it("a receipt with income 0 stays binding", () => {
+    const dyn = taxOnDay(s, first, [s]);
+    expect(dyn).toBeGreaterThan(0);
+    expect(treasury(s, [], now, [], [], CAP_ALL_SINCE, [s], { [first]: 0 })).toBe(base - dyn);
+  });
+  it("a missing receipt is assessed dynamically", () => {
+    expect(treasury(s, [], now, [], [], CAP_ALL_SINCE, [s], {})).toBe(base);
+  });
+  it("several historical receipts all count", () => {
+    const dyn = days.reduce((a, d) => a + taxOnDay(s, d, [s]), 0);
+    const rec = Object.fromEntries(days.map((d, i) => [d, i + 1]));
+    expect(treasury(s, [], now, [], [], CAP_ALL_SINCE, [s], rec)).toBe(base - dyn + 10);
+  });
+});

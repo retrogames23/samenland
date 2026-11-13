@@ -242,14 +242,16 @@ export function walkChest(start: number, events: ChestEvent[], capAt: (t: number
   return Math.max(0, bal);
 }
 
-export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = [], since = CAP_ALL_SINCE, seeds?: Seed[]) {
+/** `receipts` (settlement day → income) are the stored tax_receipts: a booked day is binding (also 0), only unbooked days
+ *  are forecast via taxOnDay. The result stays a forecast — the authoritative chest is DB village_balance (accounting.balance). */
+export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = [], since = CAP_ALL_SINCE, seeds?: Seed[], receipts?: Readonly<Record<number, number>>) {
   if (!s.user_id || now < since) return legacyTreasury(s, purchases, now, gifts, claims);
   const T = since, pre = (iso: string) => Date.parse(iso) < T;
   const pre0 = { ...s, decisions: (s.decisions ?? []).filter((d) => d.at < T), works: (s.works ?? []).filter((w) => w.at < T) };
   const start = legacyTreasury(pre0, purchases.filter((p) => pre(p.created_at)), T, gifts.filter((g) => pre(g.created_at)), claims.filter((c) => pre(c.created_at)), T);
   const ev: ChestEvent[] = [];
   const c0 = Date.parse(s.created_at);
-  for (let d = Math.max(1, Math.ceil((T - c0) / 86400000)); c0 + d * 86400000 <= now; d++) ev.push({ t: c0 + d * 86400000, r: 0, v: taxOnDay(s, d, seeds), k: `d${d}` });
+  for (let d = Math.max(1, Math.ceil((T - c0) / 86400000)); c0 + d * 86400000 <= now; d++) ev.push({ t: c0 + d * 86400000, r: 0, v: receipts?.[d] ?? taxOnDay(s, d, seeds), k: `d${d}` });
   for (const w of weddingDates(s, now)) if (w.at > T) ev.push({ t: w.at, r: 1, v: w.dowry, k: `w${w.k}` });
   ledger(s, purchases, gifts, claims).forEach(([t, v], i) => { if (t >= T && t <= now && v !== 0) ev.push({ t, r: v > 0 ? 2 : 3, v, k: `l${i}` }); });
   for (const r of raids(s, now)) if (r.at > T && r.loss > 0) ev.push({ t: r.at, r: 4, v: r.loss, k: `r${r.at}` });
