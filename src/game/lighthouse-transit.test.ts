@@ -17,7 +17,7 @@ function chain(want: (s: Seed, v: Seed, t: Seed) => boolean) {
     for (const t of grid) {
       const d2 = dist(v, t); if (d2 < 45 || d2 > 70 || dist(a, t) <= 85) continue;
       const s = mk(a.x, a.y, true);
-      if (want(s, v, t)) return { s, v, t };
+      if (want(s, v, t) && routeBonus(s, v, t, 0).r) return { s, v, t };
     }
   }
   return null;
@@ -43,12 +43,14 @@ describe("Leuchtturm Stufe 3: echter Transitbonus", () => {
   it("Binnenstadt mit Küsten-Mittelstadt: ×1,2", () => {
     const c = chain((s, v, t) => !isCoast(s) && isCoast(v) && !isCoast(t));
     if (!c) return; // map offers no such constellation
+    expect(routeBonus(c.s, c.v, c.t, 3).r).toBeTruthy();
     const with3 = routeBonus(c.s, c.v, c.t, 3), none = routeBonus(c.s, c.v, c.t, 0);
     expect(with3.r!.bonus(with3.now) / none.r!.bonus(with3.now)).toBeCloseTo(LIGHTHOUSE_TRANSIT, 5);
   });
   it("keine der drei Städte an der Küste: kein Bonus", () => {
     const c = chain((s, v, t) => !isCoast(s) && !isCoast(v) && !isCoast(t))!;
     expect(c).toBeTruthy();
+    expect(routeBonus(c.s, c.v, c.t, 3).r).toBeTruthy();
     const with3 = routeBonus(c.s, c.v, c.t, 3), none = routeBonus(c.s, c.v, c.t, 0);
     expect(with3.r!.bonus(with3.now) / none.r!.bonus(with3.now)).toBeCloseTo(1, 5);
   });
