@@ -556,6 +556,14 @@ export function Game() {
     cam.current.y = iy;
   };
   /** Event look: glide close (detail zoom); for a moving-in family follow the walking newcomer. */
+  /** Soft camera flight to a tile; zoom only ever moves closer (never pulls a close view back out). */
+  const glideTo = (x: number, y: number, zoom: number) => {
+    const [gx, gy] = iso(x, y);
+    camFree.current = true; fling.current = { vx: 0, vy: 0, t: performance.now() }; glide.current = { x: gx, y: gy };
+    target.current = { ...target.current, zoom: Math.max(target.current.zoom, zoom) };
+  };
+  /** Zoom per kind of look: people/houses close, big monuments a bit wider, whole towns as overview. */
+  const LOOK_PERSON = 5.5, LOOK_BUILDING = 4.4, LOOK_TOWN = 2.8;
   const lookAt = (x: number, y: number, code?: string) => {
     let tx = x, ty = y;
     if (code === "family" && my) {
@@ -563,9 +571,14 @@ export function Game() {
       const p = tw.people.find((q) => q.home[0] === x && q.home[1] === y && q.arrive);
       if (p) { const z = poseOf(p, tw, seeds, nw); if (z.visible) { tx = z.x; ty = z.y; setWho(p); } }
     }
-    const [gx, gy] = iso(tx, ty);
-    camFree.current = true; fling.current = { vx: 0, vy: 0, t: performance.now() }; glide.current = { x: gx, y: gy };
-    target.current = { ...target.current, zoom: Math.max(target.current.zoom, 5.5) };
+    glideTo(tx, ty, code === "stage" || code === "twin" || code === "road" || code == null ? LOOK_TOWN : code === "built" || code === "bought" ? LOOK_BUILDING : LOOK_PERSON);
+  };
+  /** Look at a villager: fly close and select; someone indoors shows their house instead. */
+  const lookPerson = (p: Person) => {
+    const nw = clock(), tw = townOf(p.seed, seeds, nw), q = tw.people.find((x) => x.id === p.id) ?? p, z = poseOf(q, tw, seeds, nw);
+    glideTo(z.visible ? z.x : q.home[0], z.visible ? z.y : q.home[1], LOOK_PERSON);
+    setWho(q);
+    return z;
   };
   const placeBox = useRef<HTMLDivElement | null>(null);
   /** Placement on touch: centre the site in the free map strip above the placement panel, not behind it. */
@@ -2284,7 +2297,7 @@ export function Game() {
                     {th && <div className="text-muted-foreground">{t.signUi.theirs(o.name)}: <span className="italic">„{th.message}“</span></div>}
                     <div className="flex flex-wrap gap-1">
                       <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setSignEdit(signEdit === o.id ? null : o.id)}>{signEdit === o.id ? t.signUi.cancel : t.signUi.edit}</Button>
-                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { focus(o.x, o.y); setTab(null); }}>{t.signUi.town}</Button>
+                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { glideTo(o.x, o.y, LOOK_TOWN); setTab(null); }}>{t.signUi.town}</Button>
                       {tl && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { const cv = canvasRef.current; const [ix, iy] = iso(tl[0], tl[1]); cam.current.zoom = 6; cam.current.x = ix + 5; cam.current.y = iy + 18; target.current = { zoom: 6, ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 }; signFocus.k = tl[1] * MAP + tl[0]; signFocus.until = Date.now() + 10000; setMsg(`${t.signTo(o.name)}: „${mine(o)!.message}“`); setTab(null); }}>{t.signUi.look}</Button>}
                     </div>
                   </div>
@@ -2315,7 +2328,7 @@ export function Game() {
         <div className="space-y-2">
           <p className="text-xs">{t.hasTown.at(home.name, t.realms[home.realm ?? "europe"])}</p>
           <p className="text-xs text-muted-foreground">{t.hasTown.one}</p>
-          {home.realm === realm && <Button size="sm" variant="secondary" className="w-full" onClick={() => focus(home.x, home.y)}>{t.hasTown.look}</Button>}
+          {home.realm === realm && <Button size="sm" variant="secondary" className="w-full" onClick={() => glideTo(home.x, home.y, LOOK_TOWN)}>{t.hasTown.look}</Button>}
         </div>
       ) : (
         <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); startSeedMode(); }}>
@@ -2895,7 +2908,7 @@ export function Game() {
             <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.hud.zoomOut} onClick={() => zoomBy(1 / 1.6)}><Minus className="h-4 w-4" /></Button>
             <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.hud.zoomIn} onClick={() => zoomBy(1.6)}><Plus className="h-4 w-4" /></Button>
             <Button size="sm" variant={lens ? "default" : "secondary"} className="h-7 flex-1 px-0" aria-label={STUBE[lang].lens} aria-pressed={lens} title={STUBE[lang].lens} onClick={() => { const on = !lens; setLens(on); setMsg(on ? STUBE[lang].lensOn : null); }}><Search className="h-4 w-4" /></Button>
-            {my && <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.toMine} title={t.toMine} onClick={() => focus(my.x, my.y)}><Home className="h-4 w-4" /></Button>}
+            {my && <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.toMine} title={t.toMine} onClick={() => glideTo(my.x, my.y, LOOK_TOWN)}><Home className="h-4 w-4" /></Button>}
             {my && <Button size="sm" variant="secondary" className="h-7 flex-1 px-0" aria-label={t.mayorFind} title={t.mayorFind} onClick={findMayor}><Crown className="h-4 w-4" /></Button>}
           </div>
         </Panel>
@@ -3096,23 +3109,19 @@ export function Game() {
           </div>
         </Parchment>
       )}
-      {encOpen && my && <EncounterDialog t={t} lang={lang} my={my} seeds={seeds} slow={slow} cash={cash} later={later} decide={decide} focus={focus} setWho={setWho} />}
-      {roadOpen && my && <RoadDialog t={t} lang={lang} my={my} seeds={seeds} now={now} charters={charters} pick={roadPick} setPick={setRoadPick} later={later} focus={focus} seal={sealRoad} />}
+      {encOpen && my && <EncounterDialog t={t} lang={lang} my={my} seeds={seeds} slow={slow} cash={cash} later={later} decide={decide} focus={(x, y) => glideTo(x, y, LOOK_PERSON)} setWho={setWho} />}
+      {roadOpen && my && <RoadDialog t={t} lang={lang} my={my} seeds={seeds} now={now} charters={charters} pick={roadPick} setPick={setRoadPick} later={later} focus={(x, y) => glideTo(x, y, LOOK_TOWN)} seal={sealRoad} />}
 
       {pactOpen && my && pactPartner && <PactDialog t={t} my={my} partner={pactPartner} pick={pactPick} setPick={setPactPick} later={later} seal={sealPact} />}
       {charterOpen && my && <CharterDialog t={t} my={my} now={now} pick={charterPick} setPick={setCharterPick} later={later} seal={sealCharter} />}
 
       {profile && (
-        <TownProfile t={t} lang={lang} town={seeds.find((x) => x.id === profile.id) ?? profile} me={my ?? null} seeds={seeds} now={clock()} onClose={() => setProfile(null)} onLook={() => { focus(profile.x, profile.y); setProfile(null); }} />
+        <TownProfile t={t} lang={lang} town={seeds.find((x) => x.id === profile.id) ?? profile} me={my ?? null} seeds={seeds} now={clock()} onClose={() => setProfile(null)} onLook={() => { glideTo(profile.x, profile.y, LOOK_TOWN); setProfile(null); }} />
       )}
       {rollOpen && my && myTown && (
         <VillageRoll t={t} lang={lang} town={myTown} hue={my.hue} character={<><CharacterDetails seed={my} lang={lang} /><div className="mt-2"><Outlook t={t} lang={lang} my={my} seeds={seeds} now={slow} rank={myRank} charter={myCharter} way={wayOf(my)} /></div>{guestbook}</>} onClose={() => setRollOpen(false)} onPick={(p) => {
-          const now = clock();
-          const z = poseOf(p, townOf(p.seed, seeds, now), seeds, now);
           setRollOpen(false);
-          focus(z.visible ? z.x : p.home[0], z.visible ? z.y : p.home[1]);
-          cam.current.zoom = Math.max(cam.current.zoom, 2);
-          setWho(p);
+          const z = lookPerson(p);
           setMsg(z.visible ? null : `${p.first} ${z.act === "sleep" || z.act === "home" || z.act === "sick" ? t.roll.home : t.roll.inside}`);
         }} />
       )}
@@ -3197,7 +3206,7 @@ export function Game() {
                 <span className="font-display text-base leading-tight">{petition!.header}</span>
                 <ChevronDown className={`mt-0.5 h-4 w-4 shrink-0 opacity-60 transition-transform ${questFold ? "" : "rotate-180"}`} />
               </button>
-              {petition!.person && <button type="button" aria-label={petition!.find} title={petition!.find} className="hit relative shrink-0 rounded p-0.5 text-wood hover:bg-ink/10" onClick={() => { const nw = clock(), tw = townOf(my!, seeds, nw), p = tw.people.find((q) => q.id === petition!.person!.id); const z = p ? poseOf(p, tw, seeds, nw) : null; if (z) focus(z.x, z.y); if (p) setWho(p); }}><MapPin className="h-4 w-4" /></button>}
+              {petition!.person && <button type="button" aria-label={petition!.find} title={petition!.find} className="hit relative shrink-0 rounded p-0.5 text-wood hover:bg-ink/10" onClick={() => { const nw = clock(), tw = townOf(my!, seeds, nw), p = tw.people.find((q) => q.id === petition!.person!.id); if (p) lookPerson(p); }}><MapPin className="h-4 w-4" /></button>}
             </div>
             {!questFold && heads.length > 1 && (
               <div role="tablist" className="mt-1 flex gap-1">
@@ -3454,7 +3463,7 @@ export function Game() {
           const tw = townOf(who.seed, seeds, now);
           const q = poseOf(who, tw, seeds, now);
           const kin = kinOf(who, tw);
-          const pick = (p: Person) => { const z = poseOf(p, tw, seeds, now); focus(z.x, z.y); setWho(p); };
+          const pick = (p: Person) => { lookPerson(p); };
           const kl = (p: Person) => <button key={p.id} type="button" className="underline-offset-2 hover:underline" onClick={() => pick(p)}>{p.first}{p.role === "child" ? ` (${p.age})` : ""}</button>;
           const row = (label: string, ps: Person[]) => ps.length ? <div><span className="text-muted-foreground">{label}: </span>{ps.map((p, i) => <span key={p.id}>{i ? ", " : ""}{kl(p)}</span>)}</div> : null;
           return (
@@ -3549,7 +3558,7 @@ export function Game() {
                             {i > 0 && <span className="text-muted-foreground">→</span>}
                             <button type="button" disabled={!c.tile || c.here} title={c.tile ? undefined : t.goods.missing}
                               className={c.here ? "rounded bg-primary/15 px-1 font-semibold" : c.tile ? "rounded px-1 underline-offset-2 hover:underline" : "rounded px-1 text-muted-foreground line-through"}
-                              onClick={() => { if (c.tile) { focus(c.tile[0], c.tile[1]); setPlace({ ...ins, x: c.tile[0], y: c.tile[1], kind: c.kind }); } }}>
+                              onClick={() => { if (c.tile) { glideTo(c.tile[0], c.tile[1], LOOK_BUILDING); setPlace({ ...ins, x: c.tile[0], y: c.tile[1], kind: c.kind }); } }}>
                               {t.kind[c.kind] ?? c.kind}
                             </button>
                           </span>))}</div></div>}
