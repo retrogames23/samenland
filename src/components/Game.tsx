@@ -130,7 +130,7 @@ import {
   charterReady,
   type CharterPath,
   twinLinks, pactOf, pactPending, workOf, marketDay, marketHours, festivalDate, twinGateAt, PACTS, TWIN_WORKS, PACT_WAIT, type PactKind, type WorkKind,
-  sawmillUp, SEAT_KINDS,
+  SEAT_KINDS,
   signTile,
   hash,
   FOOT2,
@@ -2930,7 +2930,6 @@ export function Game() {
               {(["fed", "varied", "surplus"] as const).map((k) => (
                 <li key={k} className={boons?.[k] ? "text-primary" : "text-muted-foreground"}>{boons?.[k] ? "✓" : "○"} {t.goods.boons[k]}</li>
               ))}
-              <li className={my && sawmillUp(my, seeds, slow) ? "text-primary" : "text-muted-foreground"}>{my && sawmillUp(my, seeds, slow) ? "✓" : "○"} {t.goods.timber}</li>
             </ul>
             {(() => {
               const today = new Date(clock()).toISOString().slice(0, 10);
