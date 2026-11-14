@@ -11,7 +11,7 @@ for (let y = 60; y < 940 && !(coast && land); y += 15) for (let x = 60; x < 940;
   const c = { id: `p${x}_${y}`, name: "P", owner: "o", hue: 1, x, y, user_id: "u", created_at: "2025-01-01T00:00:00Z" } as Seed;
   if (townCharacter(c).main === "gateway") coast ??= c; else land ??= c;
 }
-const town = (at: Seed, n: number, extra: [string, number][] = []): Seed => ({ ...at, id: `lh-${at.id}`,
+const town = (at: Seed, n: number, extra: [string, number][] = []): Seed => ({ ...at, id: `lh-${at.id}-${n}-${extra.length}`,
   bought: [...extra, ...Array.from({ length: n }, (_, i) => [`lighthouse${i + 1}`, T + i] as [string, number])]
     .map(([item, t], i) => ({ item, at: t, ...(i ? {} : { x: at.x + 2, y: at.y + 1 }) })) });
 const done = (s: Seed, i: number) => monumentChain(s, "lighthouse")[i]!.done;
