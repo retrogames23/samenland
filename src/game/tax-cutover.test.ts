@@ -37,7 +37,8 @@ describe("legacy days before the cutover stay unchanged", () => {
 });
 
 describe("client fallback equals server receipts (residentTax) with the full network", () => {
-  const all = ["herbs", "hunter", "fisher", "dairy", "backhaus", "granary", "healer", "herberge", "woodcamp", "bigstore", "stonemason", "smokehouse", "beginen", "markethall", "guildhall", "school"];
+  // no harbour buildings: sea ways would count as roads and hide the network effect under test
+  const all = ["herbs", "hunter", "dairy", "backhaus", "granary", "healer", "herberge", "woodcamp", "bigstore", "stonemason", "beginen", "markethall", "guildhall", "school"];
   const start = Date.parse("2025-01-01T00:00:00Z");
   const world = (roads: number): Seed[] => {
     const nb = (id: string, dx: number): Seed => ({ id, name: id, owner: "nb", hue: 0, x: 306 + dx, y: 420, created_at: new Date(start - 60 * DAY).toISOString() });
@@ -76,7 +77,7 @@ describe("client fallback equals server receipts (residentTax) with the full net
 
 describe("treasury walks the same tax as residentTax with the network", () => {
   const start = Date.parse("2026-01-01T00:00:00Z");
-  const items = ["herbs", "hunter", "fisher", "dairy", "backhaus", "granary", "healer", "herberge", "woodcamp", "bigstore", "stonemason", "smokehouse", "beginen", "markethall", "guildhall", "school", "chest2", "chest3", "chest4"];
+  const items = ["herbs", "hunter", "dairy", "backhaus", "granary", "healer", "herberge", "woodcamp", "bigstore", "stonemason", "beginen", "markethall", "guildhall", "school", "chest2", "chest3", "chest4"];
   const mk = (roadAt: number | null): Seed[] => {
     const r = roadAt == null ? [] : [{ target: "nb1", at: roadAt }];
     const s = { id: "tw", name: "t", owner: "L", hue: 1, x: 306, y: 420, user_id: "u", created_at: new Date(start).toISOString(), bought: items.map((item) => ({ item, at: start })), roads: r, civicRoads: r.map((x) => ({ at: x.at })) } as unknown as Seed;

@@ -761,18 +761,21 @@ export type Database = {
           citizens: number
           rank: number
           seed_id: string
+          ways: number
         }
         Insert: {
           certified_at?: string
           citizens?: number
           rank: number
           seed_id: string
+          ways?: number
         }
         Update: {
           certified_at?: string
           citizens?: number
           rank?: number
           seed_id?: string
+          ways?: number
         }
         Relationships: []
       }

@@ -61,8 +61,9 @@ export async function certifyRank(id: string, realm: string) {
   setRealm(realm as Realm);
   const now = Date.now(), seeds = economyWorldAt(input, now), seed = seeds.find(s => s.id === id);
   if (!seed) throw new Error("Missing village");
-  const rank = townRank(seed, seeds, now), citizens = rankInput(seed, seeds, now).citizens;
-  const { error } = await supabaseAdmin.from("rank_certificates").upsert({ seed_id: id, rank, citizens, certified_at: new Date(now).toISOString() }, { onConflict: "seed_id" });
+  const { seaWays } = await import("@/game/world");
+  const rank = townRank(seed, seeds, now), citizens = rankInput(seed, seeds, now).citizens, ways = seaWays(seed, now);
+  const { error } = await supabaseAdmin.from("rank_certificates").upsert({ seed_id: id, rank, citizens, ways, certified_at: new Date(now).toISOString() }, { onConflict: "seed_id" });
   if (error) throw new Error("Rank certificate failed");
   return { rank };
 }
