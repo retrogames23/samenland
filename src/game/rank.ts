@@ -18,12 +18,15 @@ export function nextRankNeed(i: RankInput) {
 
 import { setRankHook, setCitizenHook } from "./people";
 import { householdsOf } from "./households";
-import { links, type Seed } from "./world";
+import { links, seaWays, type Seed } from "./world";
+/** Finished trade roads plus sea/river ways (lighthouse, harbours), which count as full roads for the rank. */
+export const roadsFor = (s: Seed, seeds: Seed[], now: number) =>
+  links(seeds).filter((l) => (l.a.id === s.id || l.b.id === s.id) && now >= l.since).length + seaWays(s, now);
 /** Each resident family occupies one dwelling, including separate floors of the same house.
  *  Counted from the household roster (the same one townOf turns into citizens) — no full town build. */
 export function rankInput(s: Seed, seeds: Seed[], now: number): RankInput {
   const hh = householdsOf(s, seeds, now);
-  const roads = links(seeds).filter((l) => (l.a.id === s.id || l.b.id === s.id) && now >= l.since).length;
+  const roads = roadsFor(s, seeds, now);
   return { citizens: hh.reduce((n, h) => n + h.size, 0), homes: hh.length, roads };
 }
 export const townRank = (s: Seed, seeds: Seed[], now: number) => rankOf(rankInput(s, seeds, now));

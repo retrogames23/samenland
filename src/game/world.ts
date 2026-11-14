@@ -797,6 +797,19 @@ export const lighthouseDone = (s: Seed, now: number) =>
 const coastal = (o: Seed) => townCharacter(o).main === "gateway";
 /** Leuchtturm step 2 (finished, own gateway town): every own road loses only half its distance penalty beyond MIN_SEED_DISTANCE. */
 export const seaDist = (s: Seed, _o: Seed, d: number, now: number) => d > MIN_SEED_DISTANCE && coastal(s) && lighthouseDone(s, now) >= 2 ? MIN_SEED_DISTANCE + (d - MIN_SEED_DISTANCE) / 2 : d;
+/** Sea and river ways that count like finished trade roads for the settlement rank (max SEA_WAYS_MAX):
+ *  finished lighthouse step 1, finished fish hall/salt quay (coastal harbour), finished fisher's hut on water (inland harbour). */
+export const SEA_WAYS_MAX = 2;
+export function seaWays(s: Seed, now: number): number {
+  let n = lighthouseDone(s, now) >= 1 ? 1 : 0;
+  for (const b of s.bought ?? []) {
+    if (b.at > now || !(b.item === "smokehouse" || b.item === "saltquay" || b.item === "fisher")) continue;
+    if (specialDone(s, [s], b.at) > now) continue;
+    if (b.item === "fisher") { const t = specialTile(s, "fishery"); if (!t || !waterNearby(t[0], t[1])) continue; }
+    n++;
+  }
+  return Math.min(SEA_WAYS_MAX, n);
+}
 export const CATHEDRAL_SICK = 0.02, ORANGERY_SICK = 0.01, OPERA_TRADE = 0.1;
 export const transitShare = (s: Seed, now: number) => { const n = stepsPaid(s, "exchange", now); return n >= 4 ? 0.85 : n >= 2 ? 0.8 : TRANSIT_SHARE; };
 /** Erntedankhalle step 1 (physically finished): counts as one more supply building for the care gate only —
@@ -1069,11 +1082,13 @@ export function canPlant(x: number, y: number, seeds: Seed[]): string | null {
 
 // ---------------- trade roads & synergy ----------------
 /** Towns closer than this get a deterministic trade road. */
-export const TRADE_DIST = 80;
+export const TRADE_DIST = 120;
+/** Synergy bonus scale keeps its original 80-tile reach, so existing roads keep their bonus; farther roads give the +10 % floor. */
+export const BONUS_DIST = 80;
 /** Road is founded once the younger town is this many hours old, then built from both ends over ROAD_BUILD hours. */
 export const ROAD_AT = 6;
 export const ROAD_BUILD = 24;
-/** Build time of a decided road in hours: half an hour per tile of distance, at least 8 h (max reach 80 tiles → 40 h). Mirrored by DB road_done. */
+/** Build time of a decided road in hours: half an hour per tile of distance, at least 8 h (max reach 120 tiles → 60 h). Mirrored by DB road_done. */
 export const ROAD_MIN = 8, ROAD_PER_TILE = 0.5, ROAD_MAX = Math.max(ROAD_MIN, Math.round(TRADE_DIST * ROAD_PER_TILE));
 export const roadHours = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.max(ROAD_MIN, Math.round(Math.hypot(a.x - b.x, a.y - b.y) * ROAD_PER_TILE));
 export type Link = { a: Seed; b: Seed; d: number; since: number; build?: number; tiles: [number, number][]; water: boolean[] };
@@ -1280,7 +1295,7 @@ export function millRefuge(s: Seed, seeds: Seed[], now: number): { x: number; y:
 
 /** Synergy bonus one neighbour gives: +10% .. +25%, more when closer and more mature. */
 export function bonusOf(d: number, neighbourAgeH: number) {
-  const close = Math.max(0, Math.min(1, (TRADE_DIST - d) / (TRADE_DIST - MIN_SEED_DISTANCE)));
+  const close = Math.max(0, Math.min(1, (BONUS_DIST - d) / (BONUS_DIST - MIN_SEED_DISTANCE)));
   const mature = Math.min(1, neighbourAgeH / 480);
   return 0.1 + 0.15 * close * mature;
 }
@@ -1420,7 +1435,7 @@ export function transitRoutes(s: Seed, seeds: Seed[]): Transit[] {
       const since = Math.max(roadDoneAt(l1), roadDoneAt(l2)), d = l1.d + l2.d;
       const prev = best.get(to.id);
       if (prev && prev.since <= since) continue;
-      best.set(to.id, { to, via, since, d, bonus: (now) => bonusOf(Math.min(TRADE_DIST, d), ageHours(to, now)) * tradeFactor(s, to, now) * transitShare(s, now) * ((coastal(s) || coastal(via) || coastal(to)) && lighthouseDone(s, now) >= 3 ? LIGHTHOUSE_TRANSIT : 1) });
+      best.set(to.id, { to, via, since, d, bonus: (now) => bonusOf(Math.min(BONUS_DIST, d), ageHours(to, now)) * tradeFactor(s, to, now) * transitShare(s, now) * ((coastal(s) || coastal(via) || coastal(to)) && lighthouseDone(s, now) >= 3 ? LIGHTHOUSE_TRANSIT : 1) });
     }
   }
   return [...best.values()];

@@ -19,7 +19,7 @@ import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, last
 /** Tiles within which strangers in a foreign village speak to the strolling mayor. */
 const MEET_TILES = 4;
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
-import { townRank, rankInput, nextRankNeed } from "@/game/rank";
+import { townRank, rankInput, nextRankNeed, roadsFor } from "@/game/rank";
 import { townOf, poseOf, jobKey, weddingFocus, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, parkMayor, mayorAway, setMounted, setStrollHold, setOwnMayor, citizensOf, isHomeKind, setRemoteMayor, clearRemoteMayors, type Person } from "@/game/people";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { traitsOf, thoughtOf } from "@/game/traits";
@@ -2153,7 +2153,7 @@ export function Game() {
               <b>{PATH_ICON[myCharter]} {t.charter.paths[myCharter]![0]}:</b> {t.charter.bonus[myCharter]}
               {my && (() => {
                 const r = rankOf(my, purchases), step: RankStep = r === 1 ? "rank2" : "rank3";
-                const roads = links(seeds).filter((l) => (l.a.id === my.id || l.b.id === my.id) && now >= l.since).length;
+                const roads = roadsFor(my, seeds, now);
                 const blk = rankBlock(my, purchases, myStage, roads);
                 const why = blk === "age" ? t.rank.need.age(t.stages[step === "rank2" ? 2 : 4] ?? "") : blk === "guild" ? t.rank.need.guild : blk === "belfry" ? t.rank.need.belfry : blk === "roads" ? t.rank.need.roads(RANK_ROADS) : "";
                 return (
