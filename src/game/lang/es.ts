@@ -139,7 +139,7 @@ export const es: Dict = {
   items: {
     belfry1: ["Campanario", "Obra de prestigio en 4 fases. Vigía: la fase 1 terminada acorta los incendios un 10 %, la fase 2 un 15 %, la fase 3 un 25 %. Completa: +15 prosperidad, +5 salud"],
     theater1: ["Teatro", "Obra de prestigio en 3 fases. Fases terminadas: 1 – cada boda es día de alegría, 2 – también las fiestas religiosas, 3 – baile cada domingo. En días de alegría nadie enferma. Completa: +15 prosperidad, +5 salud"],
-    cathedral1: ["Catedral", "Obra de prestigio en 5 fases. Terminada: +20 prosperidad, +10 salud"],
+    cathedral1: ["Catedral", "Obra de prestigio en 5 fases. Una vez construida: 2 – el coro pasa a ser lugar de misas, cortejos nupciales y reuniones, 3 – cuenta como equipamiento comunitario, 4 – hospital catedralicio: dos sacerdotes cuidan a los enfermos (tras el beaterio), 5 – repique festivo, recargo invernal de enfermedad reducido un tercio, +20 prosperidad"],
     university1: ["Universidad", "Obra de prestigio en 4 fases. Terminada: +15 salud, +15 prosperidad"],
     exchange1: ["Lonja de mercaderes", "Obra de prestigio en 4 fases. Terminada: +20 prosperidad, +5 comida"],
     harvest1: ["Salón de la cosecha", "Solo para graneros. 3 fases; cada una actúa solo cuando está construida. Fase 1: cuenta como edificio de abastecimiento para el siguiente rango (sin comida extra). Fase 2: en invierno se come solo un 15 % más en vez de un 30 % – solo sobra algo si la cosecha alcanza. Fase 3: la mitad del recargo invernal de enfermedad; en una inundación queda el 60 % en vez del 30 % de lo producido en campos, huertos y pastos."],
