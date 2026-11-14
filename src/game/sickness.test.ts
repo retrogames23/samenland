@@ -34,7 +34,7 @@ describe("gemeinsame Krankheitslogik", () => {
     const a = sickChance(base, SUMMER);
     expect(a).toBeGreaterThan(0);
     expect(a).toBeLessThan(0.01);
-    const more = seed(["herbs", "healer", "beginen", ...steps("cathedral", 5)], { charter: { path: "culture", at: T0 } } as Partial<Seed>);
+    const more = seed(["herbs", "healer", "beginen", ...steps("university", 3)], { charter: { path: "culture", at: T0 } } as Partial<Seed>);
     expect(sickChance(more, SUMMER)).toBeLessThan(a);
   });
   it("Bewohner und neue Steuer nutzen dieselbe Krankheitswahrscheinlichkeit", () => {
