@@ -131,7 +131,7 @@ function heightMarsh(x: number, y: number) {
   const wx = x + (fbm(x / 150, y / 150, 621) - 0.5) * 130, wy = y + (fbm(x / 150, y / 150, 622) - 0.5) * 130;
   const cx = wx / MAP - 0.5, cy = wy / MAP - 0.5, ang = Math.atan2(cy, cx);
   const coast = 0.82 + (vnoise(Math.cos(ang) * 5 + 12, Math.sin(ang) * 5 + 12, 623) - 0.5) * 0.3;
-  const edge = Math.max(0, Math.hypot(cx * 0.85, cy * 1.25) * 2 - coast) * 2.2;
+  const edge = Math.max(0, Math.hypot(cx * 1.05, cy * 1.2) * 2 - coast) * 2.2;
   const bend = cy - 0.08 - Math.sin(cx * 7) * 0.035; // the river meanders across the island
   const river = Math.max(0, 1 - Math.abs(bend) / 0.02) * (Math.abs(cx) < 0.36 ? 1 : 0);
   const geest = Math.max(0, 0.16 - Math.hypot(cx + 0.05, cy + 0.2)) * 1.6;
