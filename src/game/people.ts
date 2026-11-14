@@ -620,7 +620,7 @@ export const sickRate = (s: Seed, now: number) => sickChance(s, now);
 export const sickHome = (s: Seed, hh: number, now: number) => hash(hh, Math.floor(now / (SICK_DAYS * 864e5)), 1301) < sickRate(s, now);
 const hhTile = dwellingTile;
 /** Mark the sick villager of each affected home and the housemate who stays in to care for them. */
-function falls(s: Seed, people: Person[], now: number, hof: Tile | null = null, dom: Tile | null = null) {
+export function falls(s: Seed, people: Person[], now: number, hof: Tile | null = null, dom: Tile | null = null, ill: (hh: number) => boolean = (hh) => sickHome(s, hh, now)) {
   // beguines of a finished Beginenhof walk out to nurse the sick, so the housemate can go to work
   const begs = hof && s.bought?.some((b) => b.item === "beginen" && b.at <= now)
     ? people.filter((q) => q.job === "herbalist" && q.sex === "f" && q.work && Math.abs(q.work[0] - hof[0]) + Math.abs(q.work[1] - hof[1]) <= 3) : [];
@@ -635,7 +635,7 @@ function falls(s: Seed, people: Person[], now: number, hof: Tile | null = null, 
     group.push(p); homes.set(k, group);
   }
   for (const [k, ms] of homes) {
-    if (ms.length < 2 || !sickHome(s, k, now)) continue;
+    if (ms.length < 2 || !ill(k)) continue;
     const w = Math.floor(now / (SICK_DAYS * 864e5));
     const ill = ms[Math.floor(hash(k, w, 1302) * ms.length)]!;
     const by = ms.filter((q) => q !== ill && q.age >= 16);
