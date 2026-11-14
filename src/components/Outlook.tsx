@@ -61,6 +61,7 @@ export function Outlook({ t, lang, my, seeds, now, rank, charter, way }: { t: T;
           <Bar label={o.cit} have={inp.citizens} want={need[0]} />
           <Bar label={o.homes} have={inp.homes} want={need[1]} />
           <Bar label={o.roads} have={inp.roads} want={need[2]} />
+          {need[2] > 0 && <div className="text-[11px] text-muted-foreground">⚓ {o.sea}</div>}
           <List s={rank + 1} />
           {care && care.stage <= rank + 1 && (care.food > 0 || care.health > 0) && (
             <div className="rounded border border-wood/40 bg-parchment/40 p-1.5">
