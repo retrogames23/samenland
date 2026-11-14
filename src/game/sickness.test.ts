@@ -3,7 +3,7 @@ import { sickChance, SICK_BASE } from "./sickness";
 import { residentTax } from "./resident-tax";
 import { sickRate } from "./people";
 import { sickLoss, sickTaxRate } from "./prosperity";
-import { UNIVERSITY_SICK, ORANGERY_SICK, type Seed } from "./world";
+import { ORANGERY_SICK, type Seed } from "./world";
 import { weddingDates, WED_JOY } from "./weddings";
 import { HERBS_SICK } from "./sickness";
 
@@ -65,12 +65,8 @@ describe("Monument- und Festeffekte auf Krankheit", () => {
     expect(sickChance(h3, WINTER) - SICK_BASE).toBeCloseTo(extra / 2, 9);
     expect(sickChance(h2, WINTER)).toBeCloseTo(plain(WINTER), 9);
   });
-  it("Universität Stufe 3 senkt um UNIVERSITY_SICK/SICK_BASE, Stufe 2 noch nicht", () => {
-    const f = 1 - UNIVERSITY_SICK / SICK_BASE;
-    for (const t of [SUMMER, WINTER]) {
-      expect(sickChance(seed(steps("university", 3)), t)).toBeCloseTo(plain(t) * f, 9);
-      expect(sickChance(seed(steps("university", 2)), t)).toBeCloseTo(plain(t), 9);
-    }
+  it("Universität wirkt nicht mehr auf Krankheit (alter Bonus entfallen)", () => {
+    for (const t of [SUMMER, WINTER]) expect(sickChance(seed(steps("university", 4)), t)).toBeCloseTo(plain(t), 9);
   });
   it("Orangerie: ab Stufe 2 wie Kräuterhütte, Stufe 3 zusätzlich", () => {
     const herb = 1 - HERBS_SICK / SICK_BASE, ora = 1 - ORANGERY_SICK / SICK_BASE;
