@@ -155,7 +155,7 @@ const de = {
   items: {
     belfry1: ["Stadtturm", "Prestigebau in 4 Bauabschnitten. Türmerwache: fertiger Abschnitt 1 verkürzt Brände um 10 %, Abschnitt 2 um 15 %, Abschnitt 3 um 25 %. Vollendet: +15 Wohlstand, +5 Gesundheit, Glockenschlag zur vollen Stunde"],
     theater1: ["Tanzhaus", "Prestigebau in 3 Abschnitten. Fertig gebaut: 1 – jede Hochzeit wird zum Freudentag, 2 – auch Kirchenfeste, 3 – Sonntagstanz an jedem Sonntag. Freudentage: niemand erkrankt. Vollendet: +15 Wohlstand, +5 Gesundheit"],
-    cathedral1: ["Dom", "Prestigebau in 5 Abschnitten. Fertig: +20 Wohlstand, +10 Gesundheit"],
+    cathedral1: ["Dom", "Prestigebau in 5 Abschnitten. Fertig gebaut: 2 – der Chor wird Kirchplatz für Gottesdienst, Hochzeitszüge und Versammlungen, 3 – zählt als Gemeinwesen-Einrichtung, 4 – Domspital: zwei Dompriester pflegen Kranke (nach dem Beginenhof), 5 – Festgeläut, Winterzuschlag der Krankheit um ein Drittel gesenkt, +20 Wohlstand"],
     university1: ["Universität", "Prestigebau in 4 Abschnitten. Fertig: +15 Gesundheit, +15 Wohlstand"],
     exchange1: ["Schütting", "Prestigebau in 4 Abschnitten. Fertig: +20 Wohlstand, +5 Nahrung"],
     harvest1: ["Erntedankhalle", "Nur für Kornkammern. 3 Abschnitte, jeder wirkt erst fertig gebaut. Abschnitt 1: zählt als Versorgungsbau für den nächsten Stadtrang (keine zusätzliche Nahrung). Abschnitt 2: im Winter essen die Bürger nur 15 % statt 30 % mehr – mehr bleibt nur, wenn genug geerntet wird. Abschnitt 3: halber Winterzuschlag bei Krankheit; bei Hochwasser bleiben 60 % statt 30 % der Ernte von Acker, Garten und Weide."],
@@ -537,7 +537,7 @@ const en: typeof de = {
   items: {
     belfry1: ["Town tower", "Prestige build in 4 stages. Tower watch: finished stage 1 shortens fires by 10 %, stage 2 by 15 %, stage 3 by 25 %. Complete: +15 prosperity, +5 health, a bell on every hour"],
     theater1: ["Dance house", "Prestige build in 3 stages. Once built: 1 – every wedding is a day of joy, 2 – church feasts too, 3 – a Sunday dance every Sunday. On days of joy nobody falls ill. Complete: +15 prosperity, +5 health"],
-    cathedral1: ["Cathedral", "Prestige build in 5 stages. Finished: +20 prosperity, +10 health"],
+    cathedral1: ["Cathedral", "Prestige build in 5 stages. Once built: 2 – the choir becomes the church square for services, wedding processions and gatherings, 3 – counts as a community facility, 4 – cathedral hospital: two cathedral priests nurse the sick (after the beguinage), 5 – festive peal, winter sickness surcharge cut by a third, +20 prosperity"],
     university1: ["University", "Prestige build in 4 stages. Finished: +15 health, +15 prosperity"],
     exchange1: ["Schütting merchants' hall", "Prestige build in 4 stages. Finished: +20 prosperity, +5 food"],
     harvest1: ["Harvest hall", "Breadbaskets only. 3 stages, each works only once built. Stage 1: counts as a supply building for the next town rank (no extra food). Stage 2: in winter citizens eat only 15 % instead of 30 % more – something is left only if the harvest suffices. Stage 3: half the winter sickness surcharge; in a flood 60 % instead of 30 % of field, garden and pasture produce remains."],
@@ -919,7 +919,7 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
   items: {
     belfry1: ["钟楼", "分4期建造的荣耀建筑。第1期建成火灾缩短10%，第2期缩短15%，第3期缩短25%。全部建成：+15繁荣，+5健康"],
     theater1: ["舞厅", "分3期建造的荣耀建筑。建成第1期：每场婚礼成为欢庆日；第2期：教会节日亦然；第3期：每个星期日跳舞。欢庆日无人生病。全部建成：+15繁荣，+5健康"],
-    cathedral1: ["大教堂", "分5期建造的荣耀建筑。建成后：+20繁荣，+10健康"],
+    cathedral1: ["大教堂", "分5期建造的荣耀建筑。建成后：2 – 唱诗坛成为礼拜、婚礼游行与集会之所，3 – 计为一处公共设施，4 – 大教堂医院：两位教士照料病人（在贝居安会院之后），5 – 庆典钟声，冬季患病加成减少三分之一，+20繁荣"],
     university1: ["大学", "分4期建造的荣耀建筑。建成后：+15健康，+15繁荣"],
     exchange1: ["商人会馆", "分4期建造的荣耀建筑。建成后：+20繁荣，+5食物"],
     harvest1: ["丰收大厅", "仅限粮仓之乡。分3期，每期建成后才生效。第1期：计为晋升下一城镇等级所需的供给建筑（不增加食物）。第2期：冬季居民只多吃15%而非30%——只有收成足够才会有余。第3期：冬季患病附加减半；洪水时田地、菜园和牧场的产出保留60%而非30%。"],
@@ -1302,7 +1302,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   items: {
     belfry1: ["鐘楼", "4段階で建てる誉れの建物。第1段階の完成で火事が10%短く、第2段階で15%、第3段階で25%短く。全完成で繁栄+15、健康+5"],
     theater1: ["舞踏館", "3段階で建てる誉れの建物。完成段階1：婚礼はすべて喜びの日、2：教会の祝日も、3：毎週日曜の踊り。喜びの日は誰も病まない。全完成で繁栄+15、健康+5"],
-    cathedral1: ["大聖堂", "5段階で建てる誉れの建物。完成で繁栄+20、健康+10"],
+    cathedral1: ["大聖堂", "5段階で建てる誉れの建物。完成ごとに：2 – 内陣が礼拝・婚礼行列・集いの場に、3 – 共同体施設として数える、4 – 大聖堂施療院：二人の聖職者が病人を看護（ベギン会院の後）、5 – 祝いの鐘、冬の病気加算を三分の一軽減、繁栄+20"],
     university1: ["大学", "4段階で建てる誉れの建物。完成で健康+15、繁栄+15"],
     exchange1: ["商人会館", "4段階で建てる誉れの建物。完成で繁栄+20、食料+5"],
     harvest1: ["収穫祭の館", "穀倉の町専用。3段階、各段階は完成後にのみ効果。第1段階：次の町の格に必要な供給施設として数える（食料は増えない）。第2段階：冬の食べる量の増加が30%から15%に――収穫が足りる時だけ余りが出る。第3段階：冬の病気の上乗せが半分に。洪水時、畑・菜園・牧草地の産物が30%でなく60%残る。"],

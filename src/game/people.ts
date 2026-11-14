@@ -26,7 +26,7 @@ import { nightLevel } from "./sun";
 import { fieldLook, farmTask } from "./rotation";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { geoKey, MAP, hash, structureAt, setEstateHook, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, stepsPaid, type TradeGood, type Seed, type Kind } from "./world";
+import { geoKey, MAP, hash, structureAt, setEstateHook, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, stepsPaid, cathedralDone, DOM_NURSES, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -288,8 +288,10 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const order = people.map((p) => ({ p, b: bornAt(p.home[0], p.home[1], s) })).sort((a, b) => a.b - b.b || a.p.id - b.p.id);
   for (const { p } of order) p.first = pickFree(p.sex === "f" ? F : M, hash(p.id, 77, 10), taken);
   const weddings = marry(s, people, seeds, now);
-  falls(s, people, now, byKind.get("beginenhof")?.[0] ?? null);
-  const chT = byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
+  // the Dom is identified by its own bought site (specialTile), never by the first generic "factory" tile
+  const domSteps = cathedralDone(s, now), domT = domSteps >= 2 ? specialTile(s, "factory") : null;
+  falls(s, people, now, byKind.get("beginenhof")?.[0] ?? null, domSteps >= 4 ? specialTile(s, "factory") : null);
+  const chT = domT ?? byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
   const church: Tile | null = chT ? (front(chT) ?? null) : null;
   processions(weddings, people, church ?? meet, now);
   // the mayor's answer to the real wedding: the feast also gathers the village at church (the couple's procession runs anyway)
@@ -618,10 +620,13 @@ export const sickRate = (s: Seed, now: number) => sickChance(s, now);
 export const sickHome = (s: Seed, hh: number, now: number) => hash(hh, Math.floor(now / (SICK_DAYS * 864e5)), 1301) < sickRate(s, now);
 const hhTile = dwellingTile;
 /** Mark the sick villager of each affected home and the housemate who stays in to care for them. */
-function falls(s: Seed, people: Person[], now: number, hof: Tile | null = null) {
+export function falls(s: Seed, people: Person[], now: number, hof: Tile | null = null, dom: Tile | null = null, isIll: (hh: number) => boolean = (hh) => sickHome(s, hh, now)) {
   // beguines of a finished Beginenhof walk out to nurse the sick, so the housemate can go to work
   const begs = hof && s.bought?.some((b) => b.item === "beginen" && b.at <= now)
     ? people.filter((q) => q.job === "herbalist" && q.sex === "f" && q.work && Math.abs(q.work[0] - hof[0]) + Math.abs(q.work[1] - hof[1]) <= 3) : [];
+  // Domspital (Dom step 4 finished): the Dom's own priests take up to DOM_NURSES further sick homes after the beguines
+  const domN = dom ? people.filter((q) => q.job === "priest" && q.work && !begs.includes(q) && Math.max(Math.abs(q.work[0] - dom[0]), Math.abs(q.work[1] - dom[1])) <= 1).slice(0, DOM_NURSES) : [];
+  const nurses = [...begs, ...domN];
   let bi = 0;
   const homes = new Map<number, Person[]>();
   for (const p of people) {
@@ -630,14 +635,14 @@ function falls(s: Seed, people: Person[], now: number, hof: Tile | null = null) 
     group.push(p); homes.set(k, group);
   }
   for (const [k, ms] of homes) {
-    if (ms.length < 2 || !sickHome(s, k, now)) continue;
+    if (ms.length < 2 || !isIll(k)) continue;
     const w = Math.floor(now / (SICK_DAYS * 864e5));
     const ill = ms[Math.floor(hash(k, w, 1302) * ms.length)]!;
     const by = ms.filter((q) => q !== ill && q.age >= 16);
     if (!by.length) continue;
     const cr = by.find((q) => q.id === ill.spouse) ?? by.find((q) => q.role === "head" || q.role === "spouse") ?? by[0]!;
     ill.sick = true;
-    const b = begs[bi];
+    const b = nurses[bi];
     if (b) { bi++; b.nurse = ill.home; } else cr.carer = ill.id;
   }
 }

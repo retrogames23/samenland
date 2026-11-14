@@ -785,7 +785,7 @@ export const GUILDTOWER_STEP = 0.05;
  *  step 3 halves the winter sickness surcharge and softens the flood loss of farm produce;
  *  lighthouse (all via stepsDone): step 1 winter fishing 0.5→0.8 + one care-food building, step 2 (own gateway town)
  *  halves the distance loss beyond MIN_SEED_DISTANCE on all own roads, step 3 routed trade touching a coast +20 % and ceiling +0.05;
- *  cathedral: from step 3 counts as a health building for the care gate, step 5 sickness −0.02;
+ *  cathedral: see cathedralDone (all finished steps only);
  *  university: journeymen +20 % more often from step 1, sickness −0.015 from step 3;
  *  exchange: routed trade 0.80 from step 2, 0.85 at step 4; orangery: from step 2 like a herb hut, step 3 sickness −0.01;
  *  opera (Artushof): step 4 roads to partners +10 % trade factor (inside the usual cap). */
@@ -813,7 +813,18 @@ export const careFoodExtra = (s: Seed, now: number) => {
   try { return light + (stepsDone(s, "harvest", now) >= 1 ? 1 : 0); } finally { harvestBusy.delete(s.id); }
 };
 /** Extra health-care count from monuments (cathedral step 3+, orangery step 2+ when no herb hut). */
-export const careHealthExtra = (s: Seed, now: number, own: Set<string>) => (stepsPaid(s, "cathedral", now) >= 3 ? 1 : 0) + (!own.has("herbs") && stepsPaid(s, "orangery", now) >= 2 ? 1 : 0);
+/** Finished Dom steps, guarded like lighthouseDone: while the cathedral's own chain is evaluated (sawmill → effAge →
+ *  care gate → careHealthExtra) it reads 0 — no self-acceleration, no recursion, identical on client and tax server.
+ *  Step 2: Dom portal becomes the church gathering place; 3: +1 Gemeinwesen; 4: Domspital (2 priests nurse);
+ *  5: winter sickness surcharge × CATHEDRAL_WINTER, festive peal (finished structure), PRESTIGE_BONUS unchanged. */
+const domBusy = new Set<string>();
+export const CATHEDRAL_WINTER = 2 / 3, DOM_NURSES = 2;
+export const cathedralDone = (s: Seed, now: number) => {
+  if (domBusy.has(s.id) || !(s.bought ?? []).some((b) => b.at <= now && monumentOf(b.item) === "cathedral")) return 0;
+  domBusy.add(s.id);
+  try { return stepsDone(s, "cathedral", now); } finally { domBusy.delete(s.id); }
+};
+export const careHealthExtra = (s: Seed, now: number, own: Set<string>) => (cathedralDone(s, now) >= 3 ? 1 : 0) + (!own.has("herbs") && stepsPaid(s, "orangery", now) >= 2 ? 1 : 0);
 /** Finished Zunftturm steps at time t: each step is built after the previous one with only the steps already
  *  standing at its own start speeding it — the tower never speeds its own running step. Pure, no recursion. */
 export function guildtowerDone(s: Seed, t: number): number {

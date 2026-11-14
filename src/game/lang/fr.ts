@@ -139,7 +139,7 @@ export const fr: Dict = {
   items: {
     belfry1: ["Beffroi", "Bâtiment de prestige en 4 étapes. Guet : l'étape 1 achevée raccourcit les incendies de 10 %, l'étape 2 de 15 %, l'étape 3 de 25 %. Achevé : +15 prospérité, +5 santé"],
     theater1: ["Maison de danse", "Bâtiment de prestige en 3 étapes. Étapes achevées : 1 – chaque noce est jour de joie, 2 – les fêtes religieuses aussi, 3 – bal chaque dimanche. Les jours de joie, personne ne tombe malade. Achevé : +15 prospérité, +5 santé"],
-    cathedral1: ["Cathédrale", "Bâtiment de prestige en 5 étapes. Terminé : +20 prospérité, +10 santé"],
+    cathedral1: ["Cathédrale", "Bâtiment de prestige en 5 étapes. Une fois bâti : 2 – le chœur devient le lieu des offices, cortèges de noces et assemblées, 3 – compte comme équipement communautaire, 4 – hôpital de la cathédrale : deux prêtres soignent les malades (après le béguinage), 5 – sonnerie de fête, surcroît de maladie hivernal réduit d’un tiers, +20 prospérité"],
     university1: ["Université", "Bâtiment de prestige en 4 étapes. Terminé : +15 santé, +15 prospérité"],
     exchange1: ["Maison des marchands", "Bâtiment de prestige en 4 étapes. Terminé : +20 prospérité, +5 nourriture"],
     harvest1: ["Halle des moissons", "Réservé aux greniers à blé. 3 étapes, chacune n'agit qu'une fois bâtie. Étape 1 : compte comme bâtiment de ravitaillement pour le rang suivant (pas de vivres en plus). Étape 2 : en hiver, on ne mange que 15 % de plus au lieu de 30 % – il ne reste quelque chose que si la récolte suffit. Étape 3 : supplément hivernal de maladie réduit de moitié ; en crue, 60 % au lieu de 30 % des produits des champs, jardins et pâturages subsistent."],
