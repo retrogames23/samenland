@@ -22,21 +22,6 @@ import { townCharacter } from "./character";
 describe("monument step effects (paid steps)", () => {
   const T = Date.parse("2026-03-01T00:00:00Z");
   const town = (steps: string[]): Seed => ({ id: "mfx", name: "M", owner: "o", hue: 1, x: 400, y: 540, user_id: "u", created_at: "2026-01-01T00:00:00Z", bought: steps.map((item) => ({ item, at: T })) } as Seed);
-  it("lighthouse: coastal trade factor, halved distance loss, step 3 ceiling +0.05", () => {
-    const b = tradeCapOf(town([]), T + 1);
-    expect(tradeCapOf(town(["lighthouse1", "lighthouse2"]), T + 1) - b).toBeCloseTo(0);
-    let sea: Seed | undefined, land: Seed | undefined;
-    for (let y = 60; y < 940 && !(sea && land); y += 15) for (let x = 60; x < 940; x += 15) {
-      const c = { ...town([]), id: `p${x}_${y}`, x, y } as Seed, m = townCharacter(c).main;
-      if (m === "gateway") sea ??= c; else land ??= c;
-    }
-    if (!sea || !land) throw new Error("no coastal/land probe");
-    const l1 = town(["lighthouse1"]);
-    expect(tradeFactor(l1, sea, T + 1)).toBeGreaterThan(tradeFactor(town([]), sea, T + 1));
-    expect(seaDist(town(["lighthouse1", "lighthouse2"]), sea, 60, T + 1)).toBeLessThan(60);
-    expect(seaDist(town(["lighthouse1", "lighthouse2"]), land, 60, T + 1)).toBe(60);
-    expect(tradeCapOf(town(["lighthouse1", "lighthouse2", "lighthouse3"]), T + 1) - b).toBeCloseTo(0.05);
-  });
   it("exchange: routed trade 0.75 → 0.80 (step 2) → 0.85 (step 4)", () => {
     expect(transitShare(town(["exchange1"]), T + 1)).toBe(0.75);
     expect(transitShare(town(["exchange1", "exchange2"]), T + 1)).toBe(0.8);

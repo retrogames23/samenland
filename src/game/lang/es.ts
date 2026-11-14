@@ -143,7 +143,7 @@ export const es: Dict = {
     exchange1: ["Lonja de mercaderes", "Obra de prestigio en 4 fases. Terminada: +20 prosperidad, +5 comida"],
     harvest1: ["Salón de la cosecha", "Solo para graneros. 3 fases; cada una actúa solo cuando está construida. Fase 1: cuenta como edificio de abastecimiento para el siguiente rango (sin comida extra). Fase 2: en invierno se come solo un 15 % más en vez de un 30 % – solo sobra algo si la cosecha alcanza. Fase 3: la mitad del recargo invernal de enfermedad; en una inundación queda el 60 % en vez del 30 % de lo producido en campos, huertos y pastos."],
     guildtower1: ["Torre gremial", "Solo para el taller de las colinas. 3 fases. Cada fase terminada acorta las obras posteriores (5 / 10 / 15 %), nunca la propia. Completo: +15 prosperidad, +10 salud"],
-    lighthouse1: ["Faro", "Solo para la puerta al mundo. 3 fases. Terminado: +10 prosperidad, +10 comida, +5 salud"],
+    lighthouse1: ["Faro", "Solo para la puerta al mundo. 3 fases, cada una actúa al terminarse. Fase 1: en invierno los pescadores capturan el 80 % en vez del 50 % (con pesquería) y la torre cuenta como edificio de abasto para el siguiente rango. Fase 2: todos los caminos comerciales propios cuentan solo la mitad más allá de 40 casillas. Fase 3: comercio de tránsito por la costa +20 %, límite comercial +0,05. Terminado: +10 prosperidad, +10 comida, +5 salud"],
     orangery1: ["Klostergarten", "Obra de prestigio en 3 fases. Terminada: +15 salud, +10 prosperidad, +5 comida"],
     opera1: ["Corte de Artús", "Obra de prestigio en 4 fases. Terminada: +25 prosperidad"],
     backhaus: ["Horno comunal", "Desde aldea: 10 % menos grano, +5 salud, día de horneado en el horno comunal"],

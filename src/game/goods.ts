@@ -1,4 +1,4 @@
-import { structureAt, seedsKey, stepsDone, HARVEST_GRAIN, type Kind, type Seed } from "./world";
+import { structureAt, seedsKey, stepsDone, lighthouseDone, HARVEST_GRAIN, type Kind, type Seed } from "./world";
 import { townOf, type Job, type Person } from "./people";
 import { seasonAt } from "./season";
 import { worldHour } from "./time";
@@ -63,6 +63,9 @@ export function serveMeals(made: Map<Ware, number>, need: number) {
   for (const w of FOOD) { const t = Math.min(need, made.get(w) ?? 0); if (t) { take.set(w, t); need -= t; } }
   return { take, left: need };
 }
+/** Leuchtturm step 1 (finished): winter fishing 0.5 → 0.8; other seasons unchanged, no fish without a fishery job. */
+export const LIGHTHOUSE_WINTER_FISH = 0.8;
+export const fishWinter = (lit: boolean) => lit ? LIGHTHOUSE_WINTER_FISH : SEASON.fish![0];
 export const grainCap = (byKind: Map<Kind, unknown[]>) =>
   GRAIN_BASE + GRAIN_PER_MILL * ((byKind.get("mill")?.length ?? 0) + (byKind.get("watermill")?.length ?? 0)) + GRAIN_PER_GRANARY * (byKind.get("granary")?.length ?? 0);
 export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
@@ -72,7 +75,8 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   if (hit) return hit;
   if (cache.size > 40) cache.clear();
   const sw = seasonAt(now);
-  const sf = (w: Ware) => { const f = SEASON[w]; return f ? f[0] * sw.winter + f[1] * sw.spring + f[2] * sw.summer + f[3] * sw.autumn : 1; };
+  const lit = lighthouseDone(s, now) >= 1;
+  const sf = (w: Ware) => { const f = SEASON[w]; return f ? (w === "fish" ? fishWinter(lit) : f[0]) * sw.winter + f[1] * sw.spring + f[2] * sw.summer + f[3] * sw.autumn : 1; };
   const flood = floodFarm(s, now);
   const byKind = new Map<Kind, Tile[]>();
   const seen = new Set<string>();
