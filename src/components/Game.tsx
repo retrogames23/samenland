@@ -141,7 +141,7 @@ const WAY_BUILDS: Record<TownWay, string[]> = { grain: ["bigstore", "millrow", "
 const wayOf = (p: { x: number; y: number }) => townCharacter(p).main;
 import { drawBuildingSprite, spriteUrl, GHOST_WIDTH } from "@/game/building-sprites";
 import { TOWN_CHARACTER } from "@/game/i18n";
-import { onIsland } from "@/game/islands";
+import { onIsland, ISLAND } from "@/game/islands";
 import { townCharacter, type TownWay } from "@/game/character";
 import { LabDesk } from "@/components/hud/LabDesk";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
