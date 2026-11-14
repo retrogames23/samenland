@@ -10,6 +10,11 @@ export function sacksAt(hour: number, sunday: boolean): number {
 }
 
 /** Bread basket by the bakery door: out from morning till evening (bakers work Sundays too). */
+/** Oven fire and chimney smoke: the town baker fires up before dawn (3:00) and lets the oven cool by late
+ *  afternoon; the communal bakehouse is only heated by day. At night both stay dark (fire order, c. 1500). */
+export const OVEN_HOURS: Record<string, [number, number]> = { bakery: [3, 17], backhaus: [6, 15] };
+export const ovenLit = (kind: string, hour: number) => { const w = OVEN_HOURS[kind]; return !w || (hour >= w[0] && hour < w[1]); };
+
 export const breadOut = (hour: number) => hour >= 6 && hour < CRAFT_CLOSE + 1;
 
 /** Fishers cast only by day, not on Sundays and not on deep-winter ice. */

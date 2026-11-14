@@ -736,7 +736,7 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
       const im = folkImage("breadBasket");
       if (im) { const hh = 2, ww = (hh * im.naturalWidth) / im.naturalHeight; c.drawImage(im, cx + (flip ? 6 : -6) - ww / 2, cy + 3.5 - hh, ww, hh); }
     }
-    const vents = !style ? VENTS[s.kind] : undefined;
+    const vents = !style && ovenLit(s.kind, localHour()) ? VENTS[s.kind] : undefined;
     if (vents) {
       const b = spriteBox(s.kind, s.v);
       if (b) {
