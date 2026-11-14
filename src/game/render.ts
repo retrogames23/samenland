@@ -50,7 +50,7 @@ import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFr
 import { folkImage, walkSheet, standSprite, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { townRank, seatKindForRank } from "./rank";
-import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
+import { sacksAt, breadOut, ovenLit, fishingNow, workshopCraft, workshopOpen } from "./crafts";
 import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
 import { wayTexture } from "./winter-way";
 import { sheavesOn, woodpileLevel, frost, waySnow, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
@@ -736,7 +736,7 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
       const im = folkImage("breadBasket");
       if (im) { const hh = 2, ww = (hh * im.naturalWidth) / im.naturalHeight; c.drawImage(im, cx + (flip ? 6 : -6) - ww / 2, cy + 3.5 - hh, ww, hh); }
     }
-    const vents = !style ? VENTS[s.kind] : undefined;
+    const vents = !style && ovenLit(s.kind, localHour()) ? VENTS[s.kind] : undefined;
     if (vents) {
       const b = spriteBox(s.kind, s.v);
       if (b) {
