@@ -5,7 +5,7 @@ import { seasonAt } from "./season";
 import { falls, townOf, type Person } from "./people";
 
 const T = Date.parse("2026-03-02T06:00:00Z"), DAY = 864e5;
-const W = Date.parse("2027-01-15T12:00:00Z"), S = Date.parse("2026-07-21T12:00:00Z");
+let W = Date.parse("2027-01-15T12:00:00Z"); const S = Date.parse("2026-07-21T12:00:00Z");
 const town = (items: [string, number][], id = "dom"): Seed => ({ id, name: "D", owner: "o", hue: 1, x: 400, y: 540, user_id: "u",
   created_at: "2025-01-01T00:00:00Z", bought: items.map(([item, at], i) => ({ item, at, ...(item === "cathedral1" ? { x: 404, y: 543 } : {}), ...(i < 0 ? {} : {}) })) } as Seed);
 const dom = (n: number, at = T, extra: [string, number][] = []) => town([...extra, ...Array.from({ length: n }, (_, i) => [`cathedral${i + 1}`, at + i] as [string, number])]);
@@ -43,6 +43,9 @@ describe("Dom Schritt 5: nur der winterliche Zuschlag sinkt um ein Drittel", () 
   const harvest = (s: Seed) => ({ ...s, bought: [...(s.bought ?? []), ...[1, 2, 3].map((i) => ({ item: `harvest${i}`, at: T - 400 * DAY + i }))] }) as Seed;
   const built = (extra: string[] = []) => dom(5, T - 300 * DAY, early(extra));
   const plain = (extra: string[] = []) => town(early(extra));
+  // a deep-winter day without wedding joy in any compared town (joy days set sickness to 0)
+  for (let d = 0; d < 40; d++) { const t = Date.parse("2027-01-05T12:00:00Z") + d * DAY;
+    if ([plain(), plain(all), built(), built(all), harvest(built()), harvest(built(all)), harvest(plain(all)), plain(["herbs", "healer"]), built(["herbs", "healer"])].every((x) => sickChance(x, t) > 0)) { W = t; break; } }
   const winterPart = (s: Seed, t: number, others: number) => sickChance(s, t) / others;
   it("ohne Dom unverändert die bisherige Formel", () => {
     expect(sickChance(plain(), W)).toBeCloseTo(SICK_BASE + SICK_WINTER * seasonAt(W).winter, 9);
