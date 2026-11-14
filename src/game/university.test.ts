@@ -43,7 +43,7 @@ describe("Universität: nur fertig gebaute Abschnitte wirken", () => {
   });
   it("Schritt 4: zwei Zivilwerke erst nach Fertigstellung; Prestigeliste unverändert", () => {
     const s = uni(4), d = doneAt(s, 3);
-    expect(PRESTIGE_BONUS.university4).toBe(15);
+    expect(PRESTIGE_BONUS["university4"]).toBe(15);
     expect(PROSPER_MONUMENTS).toContain("university4");
     expect(prosperityAt(s, d, 500) - prosperityAt(s, d - 1, 500)).toBeCloseTo(100 * 0.3 * 2 / 20, 9);
     // legacy civic wealth (DB-mirrored) keeps its six-hour maturing from the paid row
