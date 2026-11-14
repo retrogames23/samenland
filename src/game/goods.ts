@@ -1,4 +1,4 @@
-import { structureAt, seedsKey, stepsDone, HARVEST_GRAIN, type Kind, type Seed } from "./world";
+import { structureAt, seedsKey, stepsDone, lighthouseDone, HARVEST_GRAIN, type Kind, type Seed } from "./world";
 import { townOf, type Job, type Person } from "./people";
 import { seasonAt } from "./season";
 import { worldHour } from "./time";
@@ -75,7 +75,7 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   if (hit) return hit;
   if (cache.size > 40) cache.clear();
   const sw = seasonAt(now);
-  const lit = stepsDone(s, "lighthouse", now) >= 1;
+  const lit = lighthouseDone(s, now) >= 1;
   const sf = (w: Ware) => { const f = SEASON[w]; return f ? (w === "fish" ? fishWinter(lit) : f[0]) * sw.winter + f[1] * sw.spring + f[2] * sw.summer + f[3] * sw.autumn : 1; };
   const flood = floodFarm(s, now);
   const byKind = new Map<Kind, Tile[]>();

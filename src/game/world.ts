@@ -784,9 +784,17 @@ export const GUILDTOWER_STEP = 0.05;
  *  exchange: routed trade 0.80 from step 2, 0.85 at step 4; orangery: from step 2 like a herb hut, step 3 sickness −0.01;
  *  opera (Artushof): step 4 roads to partners +10 % trade factor (inside the usual cap). */
 export const HARVEST_GRAIN = [0, 0.1, 0.25, 0.25] as const, LIGHTHOUSE_TRANSIT = 1.2, LIGHTHOUSE_CEIL = [0, 0, 0, 0.05] as const;
+/** Finished lighthouse steps, guarded: while the lighthouse's own build chain is evaluated (sawmill → effAge → trade),
+ *  its effects read 0 — no self-acceleration, no recursion, identical on every client and the tax server. */
+const lightBusy = new Set<string>();
+export const lighthouseDone = (s: Seed, now: number) => {
+  if (lightBusy.has(s.id) || !(s.bought ?? []).some((b) => b.at <= now && b.item.startsWith("lighthouse"))) return 0;
+  lightBusy.add(s.id);
+  try { return stepsDone(s, "lighthouse", now); } finally { lightBusy.delete(s.id); }
+};
 const coastal = (o: Seed) => townCharacter(o).main === "gateway";
 /** Leuchtturm step 2 (finished, own gateway town): every own road loses only half its distance penalty beyond MIN_SEED_DISTANCE. */
-export const seaDist = (s: Seed, _o: Seed, d: number, now: number) => d > MIN_SEED_DISTANCE && coastal(s) && stepsDone(s, "lighthouse", now) >= 2 ? MIN_SEED_DISTANCE + (d - MIN_SEED_DISTANCE) / 2 : d;
+export const seaDist = (s: Seed, _o: Seed, d: number, now: number) => d > MIN_SEED_DISTANCE && coastal(s) && lighthouseDone(s, now) >= 2 ? MIN_SEED_DISTANCE + (d - MIN_SEED_DISTANCE) / 2 : d;
 export const CATHEDRAL_SICK = 0.02, UNIVERSITY_SICK = 0.015, UNIVERSITY_WALZ = 1.2, ORANGERY_SICK = 0.01, OPERA_TRADE = 0.1;
 export const transitShare = (s: Seed, now: number) => { const n = stepsPaid(s, "exchange", now); return n >= 4 ? 0.85 : n >= 2 ? 0.8 : TRANSIT_SHARE; };
 /** Erntedankhalle step 1 (physically finished): counts as one more supply building for the care gate only —
@@ -801,7 +809,7 @@ export const careFoodExtra = (s: Seed, now: number) => {
   const h = has("harvest"), l = has("lighthouse");
   if (!h && !l) return 0;
   harvestBusy.add(s.id);
-  try { return (h && stepsDone(s, "harvest", now) >= 1 ? 1 : 0) + (l && stepsDone(s, "lighthouse", now) >= 1 ? 1 : 0); }
+  try { return (h && stepsDone(s, "harvest", now) >= 1 ? 1 : 0) + (l && lighthouseDone(s, now) >= 1 ? 1 : 0); }
   finally { harvestBusy.delete(s.id); }
 };
 /** Extra health-care count from monuments (cathedral step 3+, orangery step 2+ when no herb hut). */
@@ -1359,7 +1367,7 @@ export function tradeCapOf(s: Seed, now: number) {
   if (s.user_id && townCharacter(s).main === "gateway") c += CEIL_GATEWAY;
   if (s.charter?.path === "trade" && now > s.charter.at) c += CEIL_CHARTER;
   if ((s.bought ?? []).some((b) => b.item === "markethall" && b.at <= now)) c += CEIL_MARKET;
-  c += LIGHTHOUSE_CEIL[Math.min(3, stepsDone(s, "lighthouse", now))]!;
+  c += LIGHTHOUSE_CEIL[Math.min(3, lighthouseDone(s, now))]!;
   return Math.min(TRADE_CEIL_MAX, c);
 }
 /** Effective trade for a raw trade value: unchanged up to TRADE_CAP, then rising ever more slowly towards `cap`. */
@@ -1391,7 +1399,7 @@ export function transitRoutes(s: Seed, seeds: Seed[]): Transit[] {
       const since = Math.max(roadDoneAt(l1), roadDoneAt(l2)), d = l1.d + l2.d;
       const prev = best.get(to.id);
       if (prev && prev.since <= since) continue;
-      best.set(to.id, { to, via, since, d, bonus: (now) => bonusOf(Math.min(TRADE_DIST, d), ageHours(to, now)) * tradeFactor(s, to, now) * transitShare(s, now) * ((coastal(s) || coastal(via) || coastal(to)) && stepsDone(s, "lighthouse", now) >= 3 ? LIGHTHOUSE_TRANSIT : 1) });
+      best.set(to.id, { to, via, since, d, bonus: (now) => bonusOf(Math.min(TRADE_DIST, d), ageHours(to, now)) * tradeFactor(s, to, now) * transitShare(s, now) * ((coastal(s) || coastal(via) || coastal(to)) && lighthouseDone(s, now) >= 3 ? LIGHTHOUSE_TRANSIT : 1) });
     }
   }
   return [...best.values()];
