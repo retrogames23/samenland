@@ -43,7 +43,7 @@ describe("Leuchtturm: alle Stufen erst nach Fertigstellung", () => {
     expect(seaDist(l, coast!, 70, done(l, 1))).toBe(70);
   });
   it("Stufe 3: Handelslimit +0,05 erst fertig", () => {
-    const s = town(coast!, 3), d = done(s, 2); console.log("DBG", coast!.x, coast!.y, monumentChain(s,"lighthouse").map(c=>c.done), d, stepsDone(s,"lighthouse",d), W.lighthouseDone(s,d)); const b = tradeCapOf(town(coast!, 0), d);
+    const s = town(coast!, 3), d = done(s, 2); const b = tradeCapOf(town(coast!, 0), d);
     expect(tradeCapOf(s, d - 1) - b).toBeCloseTo(0);
     expect(tradeCapOf(s, d) - b).toBeCloseTo(0.05);
     expect(W.LIGHTHOUSE_TRANSIT).toBe(1.2);

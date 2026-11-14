@@ -751,12 +751,18 @@ export function monumentProgress(s: Seed, now: number, key: MonumentKey = "belfr
 /** The single build chain of a monument: step i starts when paid or when step i-1 stands (whichever is later) and
  *  finishes at specialDone. Always evaluated against the town alone ([s]) so map, menu, effects, Wohlstand,
  *  chronicle and finish letter share one sawmill decision and one finish time. */
+/** Set while a lighthouse chain is evaluated (see lighthouseDone). */
+const lightBusy = new Set<string>();
 export function monumentChain(s: Seed, key: MonumentKey, until = Infinity): { at: number; start: number; done: number }[] {
   const out: { at: number; start: number; done: number }[] = [];
   let prev = -Infinity;
+  const guard = key === "lighthouse" && !lightBusy.has(s.id);
+  if (guard) lightBusy.add(s.id);
+  try {
   for (const at of (s.bought ?? []).filter((b) => monumentOf(b.item) === key && b.at <= until).map((b) => b.at).sort((a, b) => a - b)) {
     const start = Math.max(at, prev); prev = specialDone(s, [s], start); out.push({ at, start, done: prev });
   }
+  } finally { if (guard) lightBusy.delete(s.id); }
   return out;
 }
 /** Craft charter halves the construction time of bought buildings. */
@@ -786,12 +792,8 @@ export const GUILDTOWER_STEP = 0.05;
 export const HARVEST_GRAIN = [0, 0.1, 0.25, 0.25] as const, LIGHTHOUSE_TRANSIT = 1.2, LIGHTHOUSE_CEIL = [0, 0, 0, 0.05] as const;
 /** Finished lighthouse steps, guarded: while the lighthouse's own build chain is evaluated (sawmill → effAge → trade),
  *  its effects read 0 — no self-acceleration, no recursion, identical on every client and the tax server. */
-const lightBusy = new Set<string>();
-export const lighthouseDone = (s: Seed, now: number) => {
-  if (lightBusy.has(s.id) || !(s.bought ?? []).some((b) => b.at <= now && b.item.startsWith("lighthouse"))) return 0;
-  lightBusy.add(s.id);
-  try { return stepsDone(s, "lighthouse", now); } finally { lightBusy.delete(s.id); }
-};
+export const lighthouseDone = (s: Seed, now: number) =>
+  lightBusy.has(s.id) || !(s.bought ?? []).some((b) => b.at <= now && monumentOf(b.item) === "lighthouse") ? 0 : stepsDone(s, "lighthouse", now);
 const coastal = (o: Seed) => townCharacter(o).main === "gateway";
 /** Leuchtturm step 2 (finished, own gateway town): every own road loses only half its distance penalty beyond MIN_SEED_DISTANCE. */
 export const seaDist = (s: Seed, _o: Seed, d: number, now: number) => d > MIN_SEED_DISTANCE && coastal(s) && lighthouseDone(s, now) >= 2 ? MIN_SEED_DISTANCE + (d - MIN_SEED_DISTANCE) / 2 : d;
@@ -804,13 +806,11 @@ export const transitShare = (s: Seed, now: number) => { const n = stepsPaid(s, "
 const harvestBusy = new Set<string>();
 /** Lighthouse step 1 counts the same way; one shared guard covers both monuments, so neither recurses through the other. */
 export const careFoodExtra = (s: Seed, now: number) => {
-  if (harvestBusy.has(s.id)) return 0;
-  const has = (k: string) => (s.bought ?? []).some((b) => b.at <= now && monumentOf(b.item) === k);
-  const h = has("harvest"), l = has("lighthouse");
-  if (!h && !l) return 0;
+  if (harvestBusy.has(s.id)) return lighthouseDone(s, now) >= 1 ? 1 : 0;
+  const light = lighthouseDone(s, now) >= 1 ? 1 : 0;
+  if (!(s.bought ?? []).some((b) => b.at <= now && monumentOf(b.item) === "harvest")) return light;
   harvestBusy.add(s.id);
-  try { return (h && stepsDone(s, "harvest", now) >= 1 ? 1 : 0) + (l && lighthouseDone(s, now) >= 1 ? 1 : 0); }
-  finally { harvestBusy.delete(s.id); }
+  try { return light + (stepsDone(s, "harvest", now) >= 1 ? 1 : 0); } finally { harvestBusy.delete(s.id); }
 };
 /** Extra health-care count from monuments (cathedral step 3+, orangery step 2+ when no herb hut). */
 export const careHealthExtra = (s: Seed, now: number, own: Set<string>) => (stepsPaid(s, "cathedral", now) >= 3 ? 1 : 0) + (!own.has("herbs") && stepsPaid(s, "orangery", now) >= 2 ? 1 : 0);
