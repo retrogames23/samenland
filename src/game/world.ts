@@ -66,6 +66,7 @@ function syncGeo() {
 const ANCHORS: Record<Biome, [number, number][]> = {
   heartland: [],
   elbe: [],
+  marsh: [], halligen: [], bodden: [], moor: [],
   westwild: [[304, 405], [330, 354]],
   westwood: [[297, 415]],
   heath: [[374, 379], [404, 411]],
@@ -86,6 +87,10 @@ function protect(x: number, y: number, h: number) {
 function heightAt(x: number, y: number) {
   if (geo === "heartland") return heightEurope(x, y);
   if (geo === "elbe") return heightElbe(x, y);
+  if (geo === "marsh") return heightMarsh(x, y);
+  if (geo === "halligen") return heightHalligen(x, y);
+  if (geo === "bodden") return heightBodden(x, y);
+  if (geo === "moor") return heightMoor(x, y);
   const h = geo === "westwild" ? heightFjords(x, y) : geo === "westwood" ? heightCoastPlain(x, y) : heightArchipelago(x, y);
   return protect(x, y, h);
 }
@@ -120,6 +125,47 @@ function heightElbe(x: number, y: number) {
   const ridge = 1 - Math.abs(fbm(x / 130, y / 130, 526) * 2 - 1);
   const geest = Math.max(0, ex - 0.02) * 0.6; // higher sandy ground south-east of the river
   return fbm(x / 95, y / 95, 501) * 0.72 + ridge * ridge * (0.2 + geest) - edge - funnel * 0.42;
+}
+/** Störwerder (Europa III): long river marsh island running W–E, a wide river with side creeks, a small Geest hump in the north. */
+function heightMarsh(x: number, y: number) {
+  const wx = x + (fbm(x / 150, y / 150, 621) - 0.5) * 130, wy = y + (fbm(x / 150, y / 150, 622) - 0.5) * 130;
+  const cx = wx / MAP - 0.5, cy = wy / MAP - 0.5, ang = Math.atan2(cy, cx);
+  const coast = 0.82 + (vnoise(Math.cos(ang) * 5 + 12, Math.sin(ang) * 5 + 12, 623) - 0.5) * 0.3;
+  const edge = Math.max(0, Math.hypot(cx * 1.05, cy * 1.2) * 2 - coast) * 2.2;
+  const bend = cy - 0.08 - Math.sin(cx * 7) * 0.035; // the river meanders across the island
+  const river = Math.max(0, 1 - Math.abs(bend) / 0.02) * (Math.abs(cx) < 0.36 ? 1 : 0);
+  const geest = Math.max(0, 0.16 - Math.hypot(cx + 0.05, cy + 0.2)) * 1.6;
+  return fbm(x / 100, y / 100, 601) * 0.62 + 0.11 + geest - edge - river * 0.4;
+}
+/** Hallighörn (Amerika West II): a central island and a chain of flat Halligen in the north and west. */
+function heightHalligen(x: number, y: number) {
+  const wx = x + (fbm(x / 120, y / 120, 721) - 0.5) * 120, wy = y + (fbm(x / 120, y / 120, 722) - 0.5) * 120;
+  const cx = wx / MAP - 0.55, cy = wy / MAP - 0.55, d = Math.hypot(cx, cy), ang = Math.atan2(cy, cx);
+  const coast = 0.68 + (vnoise(Math.cos(ang) * 6 + 50, Math.sin(ang) * 6 + 50, 723) - 0.5) * 0.4;
+  const main = fbm(x / 90, y / 90, 701) * 0.66 + 0.04 - Math.max(0, d * 2 - coast) * 2.4;
+  const isl = fbm(x / 40, y / 40, 731) * 1.3 - 0.3 - Math.max(0, d - 0.3) * 2.4 - Math.max(0, cx + cy) * 1.2;
+  return Math.max(main, Math.min(0.5, isl));
+}
+/** Boddenholm (Amerika Ost II): a compact Baltic island cut by deep shallow lagoons, chalk heights in the north-east. */
+function heightBodden(x: number, y: number) {
+  const wx = x + (fbm(x / 160, y / 160, 821) - 0.5) * 140, wy = y + (fbm(x / 160, y / 160, 822) - 0.5) * 140;
+  const cx = wx / MAP - 0.5, cy = wy / MAP - 0.48, ang = Math.atan2(cy, cx);
+  const coast = 0.78 + (vnoise(Math.cos(ang) * 3 + 70, Math.sin(ang) * 3 + 70, 823) - 0.5) * 0.28;
+  const edge = Math.max(0, Math.hypot(cx, cy) * 2 - coast) * 2.3;
+  const lagoon = Math.max(0, fbm(x / 70, y / 70, 824) - 0.6) * 2.2 * (Math.hypot(cx, cy) < 0.3 ? 1 : 0.4);
+  const chalk = Math.max(0, cx - cy - 0.1) * 0.5;
+  const ridge = 1 - Math.abs(fbm(x / 110, y / 110, 825) * 2 - 1);
+  return fbm(x / 95, y / 95, 801) * 0.7 + ridge * ridge * (0.12 + chalk) - edge - lagoon;
+}
+/** Moorgeest (Asien-Pazifik II): a round, compact island with low bog ground in the middle and a sandy rim ridge. */
+function heightMoor(x: number, y: number) {
+  const wx = x + (fbm(x / 140, y / 140, 921) - 0.5) * 120, wy = y + (fbm(x / 140, y / 140, 922) - 0.5) * 120;
+  const cx = wx / MAP - 0.48, cy = wy / MAP - 0.5, d = Math.hypot(cx, cy), ang = Math.atan2(cy, cx);
+  const coast = 0.76 + (vnoise(Math.cos(ang) * 5 + 90, Math.sin(ang) * 5 + 90, 923) - 0.5) * 0.3;
+  const edge = Math.max(0, d * 2 - coast) * 2.4;
+  const rim = Math.max(0, 1 - Math.abs(d - 0.27) / 0.08) * 0.14;
+  const ridge = 1 - Math.abs(fbm(x / 100, y / 100, 925) * 2 - 1);
+  return fbm(x / 85, y / 85, 901) * 0.68 + ridge * ridge * 0.16 + rim - edge;
 }
 /** West isles: a long, tilted island with ragged fjords and a granite spine along its eastern side. */
 function heightFjords(x: number, y: number) {
