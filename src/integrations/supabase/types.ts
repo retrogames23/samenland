@@ -202,6 +202,7 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          edited_at: string | null
           id: string
           realm: string
           recipient_id: string | null
@@ -211,6 +212,7 @@ export type Database = {
         Insert: {
           body: string
           created_at?: string
+          edited_at?: string | null
           id?: string
           realm: string
           recipient_id?: string | null
@@ -220,6 +222,7 @@ export type Database = {
         Update: {
           body?: string
           created_at?: string
+          edited_at?: string | null
           id?: string
           realm?: string
           recipient_id?: string | null
