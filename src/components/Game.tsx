@@ -555,6 +555,18 @@ export function Game() {
     cam.current.x = ix;
     cam.current.y = iy;
   };
+  /** Event look: glide close (detail zoom); for a moving-in family follow the walking newcomer. */
+  const lookAt = (x: number, y: number, code?: string) => {
+    let tx = x, ty = y;
+    if (code === "family" && my) {
+      const nw = clock(), tw = townOf(my, seeds, nw);
+      const p = tw.people.find((q) => q.home[0] === x && q.home[1] === y && q.arrive);
+      if (p) { const z = poseOf(p, tw, seeds, nw); if (z.visible) { tx = z.x; ty = z.y; setWho(p); } }
+    }
+    const [gx, gy] = iso(tx, ty);
+    camFree.current = true; fling.current = { vx: 0, vy: 0, t: performance.now() }; glide.current = { x: gx, y: gy };
+    target.current = { ...target.current, zoom: Math.max(target.current.zoom, 5.5) };
+  };
   const placeBox = useRef<HTMLDivElement | null>(null);
   /** Placement on touch: centre the site in the free map strip above the placement panel, not behind it. */
   const placeFocus = (x: number, y: number) => {
@@ -3290,7 +3302,7 @@ export function Game() {
           </Parchment>
         );
       })()}
-      {festNow && festSeed && (() => { const [h, body] = festText(festNow); const go = () => { const e = festNow as { x?: number; y?: number }; if (e.x != null && e.y != null) focus(e.x, e.y); else focus(festSeed.x, festSeed.y); setFest((q) => q.slice(1)); }; return (
+      {festNow && festSeed && (() => { const [h, body] = festText(festNow); const go = () => { const e = festNow as { x?: number; y?: number }; if (e.x != null && e.y != null) lookAt(e.x, e.y, festNow.code); else lookAt(festSeed.x, festSeed.y); setFest((q) => q.slice(1)); }; return (
         <Parchment image={festArt(festNow)} title={h} later={t.fest.close} onLater={() => setFest((q) => q.slice(1))}>
           <p className="text-center font-display text-xl leading-snug text-ink">{body}</p>
           <div className="mt-4 flex justify-center gap-2">
@@ -3317,7 +3329,7 @@ export function Game() {
             <ul className="mt-3 space-y-1 border-l-2 border-ink/20 pl-3">
               {chron.events.slice(-14).map((e, i) => (
                 <li key={i}>
-                  <button type="button" className="flex w-full items-start gap-1 text-left text-sm text-ink hover:underline" onClick={() => { if (e.code === "letter") setFest((q) => [e, ...q]); else { const p = e as { x?: number; y?: number }; if (p.x != null && p.y != null) focus(p.x, p.y); else focus(my.x, my.y); } setChronOpen(false); }}>
+                  <button type="button" className="flex w-full items-start gap-1 text-left text-sm text-ink hover:underline" onClick={() => { if (e.code === "letter") setFest((q) => [e, ...q]); else { const p = e as { x?: number; y?: number }; if (p.x != null && p.y != null) lookAt(p.x, p.y, e.code); else lookAt(my.x, my.y); } setChronOpen(false); }}>
                     <span className="mr-2 text-ink/60">{new Date(e.at).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "short" })}</span><span className="flex-1">{chronLine(e)}</span>{"x" in e && <MapPin aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-50" />}
                   </button>
                 </li>
