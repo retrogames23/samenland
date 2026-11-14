@@ -786,7 +786,7 @@ export const GUILDTOWER_STEP = 0.05;
  *  lighthouse (all via stepsDone): step 1 winter fishing 0.5→0.8 + one care-food building, step 2 (own gateway town)
  *  halves the distance loss beyond MIN_SEED_DISTANCE on all own roads, step 3 routed trade touching a coast +20 % and ceiling +0.05;
  *  cathedral: see cathedralDone (all finished steps only);
- *  university: journeymen +20 % more often from step 1, sickness −0.015 from step 3;
+ *  university: see universityDone (all finished steps only);
  *  exchange: routed trade 0.80 from step 2, 0.85 at step 4; orangery: from step 2 like a herb hut, step 3 sickness −0.01;
  *  opera (Artushof): step 4 roads to partners +10 % trade factor (inside the usual cap). */
 export const HARVEST_GRAIN = [0, 0.1, 0.25, 0.25] as const, LIGHTHOUSE_TRANSIT = 1.2, LIGHTHOUSE_CEIL = [0, 0, 0, 0.05] as const;
@@ -797,7 +797,7 @@ export const lighthouseDone = (s: Seed, now: number) =>
 const coastal = (o: Seed) => townCharacter(o).main === "gateway";
 /** Leuchtturm step 2 (finished, own gateway town): every own road loses only half its distance penalty beyond MIN_SEED_DISTANCE. */
 export const seaDist = (s: Seed, _o: Seed, d: number, now: number) => d > MIN_SEED_DISTANCE && coastal(s) && lighthouseDone(s, now) >= 2 ? MIN_SEED_DISTANCE + (d - MIN_SEED_DISTANCE) / 2 : d;
-export const CATHEDRAL_SICK = 0.02, UNIVERSITY_SICK = 0.015, UNIVERSITY_WALZ = 1.2, ORANGERY_SICK = 0.01, OPERA_TRADE = 0.1;
+export const CATHEDRAL_SICK = 0.02, ORANGERY_SICK = 0.01, OPERA_TRADE = 0.1;
 export const transitShare = (s: Seed, now: number) => { const n = stepsPaid(s, "exchange", now); return n >= 4 ? 0.85 : n >= 2 ? 0.8 : TRANSIT_SHARE; };
 /** Erntedankhalle step 1 (physically finished): counts as one more supply building for the care gate only —
  *  never foodCapacity, production or stock. */
@@ -824,7 +824,17 @@ export const cathedralDone = (s: Seed, now: number) => {
   domBusy.add(s.id);
   try { return stepsDone(s, "cathedral", now); } finally { domBusy.delete(s.id); }
 };
-export const careHealthExtra = (s: Seed, now: number, own: Set<string>) => (cathedralDone(s, now) >= 3 ? 1 : 0) + (!own.has("herbs") && stepsPaid(s, "orangery", now) >= 2 ? 1 : 0);
+/** Finished university steps, guarded like cathedralDone (no self-acceleration, no recursion via the care gate).
+ *  Step 1: the two lecturers take up teaching; 2: chancery — messengers on own roads +20 % (UNIVERSITY_MESSENGER);
+ *  3: library counts as +1 Gemeinwesen; 4: PROSPER_MONUMENTS works (PRESTIGE_BONUS list unchanged). */
+const uniBusy = new Set<string>();
+export const UNIVERSITY_MESSENGER = 1.2;
+export const universityDone = (s: Seed, now: number) => {
+  if (uniBusy.has(s.id) || !(s.bought ?? []).some((b) => b.at <= now && monumentOf(b.item) === "university")) return 0;
+  uniBusy.add(s.id);
+  try { return stepsDone(s, "university", now); } finally { uniBusy.delete(s.id); }
+};
+export const careHealthExtra = (s: Seed, now: number, own: Set<string>) => (cathedralDone(s, now) >= 3 ? 1 : 0) + (universityDone(s, now) >= 3 ? 1 : 0) + (!own.has("herbs") && stepsPaid(s, "orangery", now) >= 2 ? 1 : 0);
 /** Finished Zunftturm steps at time t: each step is built after the previous one with only the steps already
  *  standing at its own start speeding it — the tower never speeds its own running step. Pure, no recursion. */
 export function guildtowerDone(s: Seed, t: number): number {

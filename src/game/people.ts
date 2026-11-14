@@ -26,7 +26,7 @@ import { nightLevel } from "./sun";
 import { fieldLook, farmTask } from "./rotation";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { geoKey, MAP, hash, structureAt, setEstateHook, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, stepsPaid, cathedralDone, DOM_NURSES, type TradeGood, type Seed, type Kind } from "./world";
+import { geoKey, MAP, hash, structureAt, setEstateHook, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, stepsPaid, cathedralDone, universityDone, DOM_NURSES, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -191,6 +191,8 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const slots: { job: Job; at: Tile }[] = [];
   for (const [k, sl] of Object.entries(SLOTS) as [Kind, [Job, number]][])
     for (const at of byKind.get(k) ?? []) for (let i = 0; i < sl[1] * (SERVICE.has(k) ? 1 + Math.floor(r / 12) : 1); i++) slots.push({ job: sl[0], at });
+  // the university's two lecturers start teaching once step 1 is physically finished (the site stays under build until step 4)
+  if (!byKind.get("university")?.length && universityDone(s, now) >= 1) { const u = specialTile(s, "university"); if (u) for (let i = 0; i < 2; i++) slots.push({ job: "teacher", at: u }); }
   slots.sort((a, b) => hash(a.at[0] * 7 + a.job.length, a.at[1], 501) - hash(b.at[0] * 7 + b.job.length, b.at[1], 501));
   // raw materials first: a woodcutter at the nearest forest edge, a mason at the nearest rocks
   const age = effAge(s, seeds, now);

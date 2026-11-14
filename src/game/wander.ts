@@ -3,7 +3,7 @@ import { NAMES_F, NAMES_M, SURNAMES } from "./names";
  * People between villages: journeymen (Wandergesellen) and messengers walking the trade roads.
  * A pure calendar from the road (seed pair) and the clock – nothing is stored, every client sees the same walkers.
  */
-import { ageHours, GROWTH_PACE, hash, links, roadProgress, stageOf, stepsPaid, UNIVERSITY_WALZ, type Link, type Seed } from "./world";
+import { ageHours, GROWTH_PACE, hash, links, roadProgress, stageOf, universityDone, UNIVERSITY_MESSENGER, type Link, type Seed } from "./world";
 import { clock, worldHour, worldWeekday } from "./time";
 
 export type WalkerKind = "journeyman" | "messenger" | "bridal" | "family" | "gift" | "aid" | "letter" | "rider" | "trader" | "transit";
@@ -33,6 +33,10 @@ export function homeDraw(l: Link, at: number): number {
 
 /** Daily journeyman chance on a road touching a Gesellenherberge (0.3 otherwise). */
 export const HERBERGE_WALZ = 0.5;
+/** Daily chance of a messenger on a road. */
+export const MESSENGER_DAY = 0.6;
+/** Either end has a finished university chancery (step 2) by the start of UTC day d. */
+export const uniChancery = (l: Link, d: number) => [l.a, l.b].some((t) => universityDone(t, d * DAY) >= 2);
 /** Walkers that start on road l during UTC day d (0–2 per day: a journeyman some days, a messenger most days). */
 export function walkersOn(l: Link, d: number): Walker[] {
   const sn = roadId(l), n = l.tiles.length, out: Walker[] = [];
@@ -50,9 +54,9 @@ export function walkersOn(l: Link, d: number): Walker[] {
   };
   // a Gesellenherberge at either end draws journeymen on the Walz more often (purchase rows only, so all clients agree)
   const inn = [l.a, l.b].some((t) => t.bought?.some((b) => b.item === "herberge" && b.at <= d * DAY));
-  const uni = [l.a, l.b].some((t) => stepsPaid(t, "university", d * DAY) >= 1);
-  if (hash(sn, d, 1501) < (inn ? HERBERGE_WALZ : 0.3) * (uni ? UNIVERSITY_WALZ : 1)) add("journeyman", 0);
-  if (hash(sn, d, 1505) < 0.6) add("messenger", 1);
+  if (hash(sn, d, 1501) < (inn ? HERBERGE_WALZ : 0.3)) add("journeyman", 0);
+  // a finished university chancery (step 2) at either end sends letters more often: 0.6 → 0.72
+  if (hash(sn, d, 1505) < MESSENGER_DAY * (uniChancery(l, d) ? UNIVERSITY_MESSENGER : 1)) add("messenger", 1);
   // a bride from one town marries into the neighbour and walks over in her wedding dress (~every 25 days per road)
   if (hash(sn, d, 1506) < 0.04) add("bridal", 2);
   // a household packs its cart and moves to the neighbour offering more (~every 20 days per road, only on an imbalance)
