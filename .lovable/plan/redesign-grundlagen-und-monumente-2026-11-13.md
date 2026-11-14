@@ -333,3 +333,11 @@ Simulationsausgabe ab sofort zusätzlich (nur künftige Läufe): physische Wohnh
 - Stufe 2: Wintermehrbedarf 30 % → 15 % in larderOf.
 - Stufe 3: halber Winter-Krankheitszuschlag; Flutfaktor aller Hof-Erzeugnisse 0,3 → 0,6.
 - Alle Wirkungen inkl. Speicherbonus erst nach Fertigstellung (stepsDone). Test: harvest-hall.test.ts.
+
+## Block 3.6 – Dom (abgeschlossen 2026-11-14)
+- Fünf Kaufschritte und Preise unverändert (800/1.000/1.200/1.400/1.600), keine Migration; alle Wirkungen über `cathedralDone` (stepsDone mit Rekursionsschutz).
+- Schritt 2: Domportal (eigener Bauplatz via specialTile) wird Kirchplatz für Gottesdienst, Hochzeitszüge und kirchliche Lebensszenen; keine Änderung an Hochzeitsökonomie, kein Wohlstandsbonus.
+- Schritt 3: +1 Gemeinwesen im Care-Gate (statt stepsPaid).
+- Schritt 4: Domspital – die zwei Dompriester pflegen bis zu zwei weitere kranke Haushalte nach den Beginen.
+- Schritt 5: Winterzuschlag ×2/3 nach Erntedankhalle, alle anderen Schutzwirkungen bleiben; pauschales CATHEDRAL_SICK entfällt; PRESTIGE_BONUS 20 und Festgeläut (fertiger Bau) unverändert.
+- Tests: src/game/cathedral.test.ts.
