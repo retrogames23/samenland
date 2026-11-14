@@ -73,6 +73,14 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, (p) => {
         const m = p.new as ChatMsg;
         setMsgs((ms) => (ms.some((x) => x.id === m.id) ? ms : [...ms.slice(-299), m]));
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chat_messages" }, (p) => {
+        const m = p.new as ChatMsg;
+        setMsgs((ms) => ms.map((x) => (x.id === m.id ? m : x)));
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "chat_messages" }, (p) => {
+        const id = (p.old as { id?: string }).id;
+        if (id) setMsgs((ms) => ms.filter((x) => x.id !== id));
       }).subscribe();
     return () => { live = false; supabase.removeChannel(ch); };
   }, [userId]);
@@ -120,8 +128,30 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
   // one send at a time: the field clears at once and the button locks, so a slow reply can't trigger a second copy
   const sendingRef = useRef(false);
   const [sending, setSending] = useState(false);
+  const [editing, setEditing] = useState<ChatMsg | null>(null);
+  const startEdit = (m: ChatMsg) => { setEditing(m); setText(m.body); };
+  const cancelEdit = () => { setEditing(null); setText(""); };
+  const remove = async (m: ChatMsg) => {
+    if (!window.confirm(t.tavern.delAsk)) return;
+    const { error } = await supabase.from("chat_messages").delete().eq("id", m.id);
+    if (error) { toast.error(t.tavern.fail); return; }
+    setMsgs((ms) => ms.filter((x) => x.id !== m.id));
+    if (editing?.id === m.id) cancelEdit();
+  };
   const send = async () => {
     const body = text.trim();
+    if (editing) {
+      if (!body || body.length > CHAT_MAX || sendingRef.current) return;
+      if (body === editing.body) { cancelEdit(); return; }
+      sendingRef.current = true; setSending(true);
+      const { data, error } = await supabase.from("chat_messages").update({ body }).eq("id", editing.id).select().single();
+      sendingRef.current = false; setSending(false);
+      if (error) { toast.error(t.tavern.fail); return; }
+      const m = data as ChatMsg;
+      setMsgs((ms) => ms.map((x) => (x.id === m.id ? m : x)));
+      cancelEdit();
+      return;
+    }
     if (!body || body.length > CHAT_MAX || !userId || !my || sendingRef.current) return;
     sendingRef.current = true; setSending(true); setText("");
     const { data, error } = await supabase.from("chat_messages").insert({ body, sender_id: userId, sender_seed: my.id, realm, recipient_id: chan === "tavern" ? null : chan.peer }).select().single();
@@ -204,6 +234,13 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
                   <span dir="ltr" className="text-ink/50">[{time(m.created_at)}]</span>{" "}
                   <button type="button" disabled={m.sender_id === userId} onClick={() => setMenu(menu === m.sender_id ? null : m.sender_id)} className="font-semibold text-primary hover:underline disabled:text-ink disabled:no-underline">&lt;{label(m.sender_id, m.sender_seed)}&gt;</button>{" "}
                   <span dir="auto">{m.body}</span>
+                  {m.edited_at && <span className="text-ink/50"> ({t.tavern.edited})</span>}
+                  {m.sender_id === userId && (
+                    <span className="ms-1 inline-flex gap-1 align-middle">
+                      <button type="button" aria-label={t.tavern.edit} title={t.tavern.edit} onClick={() => startEdit(m)} className="hit rounded px-0.5 text-ink/40 hover:text-ink">✎</button>
+                      <button type="button" aria-label={t.tavern.del} title={t.tavern.del} onClick={() => void remove(m)} className="hit rounded px-0.5 text-ink/40 hover:text-destructive">🗑</button>
+                    </span>
+                  )}
                 </div>
               ))}
               <div ref={end} />
@@ -217,14 +254,15 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
             )}
             <form className="flex gap-2 border-t border-ink/25 p-2" onSubmit={(e) => { e.preventDefault(); void send(); }}>
               <textarea dir="auto" rows={3} value={text} disabled={!userId || !my} onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }}
+                onKeyDown={(e) => { if (e.key === "Escape" && editing) { e.preventDefault(); e.stopPropagation(); cancelEdit(); return; } if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }}
                 placeholder={!my ? t.tavern.needVillage : chan === "tavern" ? t.tavern.say : t.tavern.sayLetter(people.get(chan.peer)?.owner ?? "")}
                 className="min-w-0 flex-1 resize-none rounded border border-ink/30 bg-parchment/60 px-2 py-1 font-mono text-base outline-none sm:text-sm focus:border-ink/60" />
               <div className="flex shrink-0 flex-col items-end justify-between gap-1">
               <span aria-live="polite" className={`text-[11px] tabular-nums ${text.trim().length > CHAT_MAX ? "font-semibold text-destructive" : text.trim().length > CHAT_MAX - 40 ? "text-primary" : "text-ink/50"}`}>
                 {text.trim().length > CHAT_MAX ? t.tavern.tooLong(text.trim().length - CHAT_MAX) : `${text.trim().length} / ${CHAT_MAX}`}
               </span>
-              <button type="submit" disabled={!text.trim() || text.trim().length > CHAT_MAX || !my || sending} className="min-h-11 rounded bg-primary px-3 text-sm text-primary-foreground disabled:opacity-40 sm:min-h-0">{t.tavern.send}</button>
+              <button type="submit" disabled={!text.trim() || text.trim().length > CHAT_MAX || !my || sending} className="min-h-11 rounded bg-primary px-3 text-sm text-primary-foreground disabled:opacity-40 sm:min-h-0">{editing ? t.tavern.save : t.tavern.send}</button>
+              {editing && <button type="button" onClick={cancelEdit} className="text-xs text-ink/60 underline">{t.tavern.cancel}</button>}
               </div>
             </form>
           </div>

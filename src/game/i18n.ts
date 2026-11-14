@@ -92,6 +92,7 @@ const de = {
   builders: "Zimmerleute vor Ort",
   nobody: "niemand gerade",
   tavern: {
+    edit: 'Bearbeiten', del: 'Löschen', delAsk: 'Diese Nachricht wirklich löschen?', edited: 'bearbeitet', save: 'Speichern', cancel: 'Abbrechen',
     tooLong: (n: number) => `Um ${n} Zeichen zu lang`,
     menu: "Taverne", title: "Zur Taverne", room: "Taverne", letters: "Briefe", mayors: "Dorfschulzen",
     stranger: "Fremder", alone: "noch niemand hier", signIn: "Melde dich an, um in der Taverne mitzureden.",
@@ -473,6 +474,7 @@ const en: typeof de = {
   builders: "Carpenters on site",
   nobody: "nobody right now",
   tavern: {
+    edit: 'Edit', del: 'Delete', delAsk: 'Really delete this message?', edited: 'edited', save: 'Save', cancel: 'Cancel',
     tooLong: (n: number) => `${n} characters too long`,
     menu: "Tavern", title: "The Tavern", room: "tavern", letters: "Letters", mayors: "Mayors",
     stranger: "Stranger", alone: "nobody here yet", signIn: "Sign in to join the tavern talk.",
@@ -854,6 +856,7 @@ tagline: "播下一粒种子，看村庄随时光生长——即使你不在，�
   builders: "工地上的木匠",
   nobody: "眼下无人",
   tavern: {
+    edit: '编辑', del: '删除', delAsk: '确定删除这条消息吗？', edited: '已编辑', save: '保存', cancel: '取消',
     tooLong: (n: number) => `超出 ${n} 个字符`,
     menu: "酒馆", title: "酒馆", room: "酒馆", letters: "书信", mayors: "村长们",
     stranger: "陌生人", alone: "还没有人在这里", signIn: "登录后，便可加入酒馆闲谈。",
@@ -1236,6 +1239,7 @@ tagline: "種をまき、村の育ちを見守りましょう。留守の間も�
   builders: "現場の大工",
   nobody: "今は誰もいません",
   tavern: {
+    edit: '編集', del: '削除', delAsk: 'このメッセージを本当に削除しますか？', edited: '編集済み', save: '保存', cancel: 'キャンセル',
     tooLong: (n: number) => `${n} 文字オーバー`,
     menu: "酒場", title: "酒場", room: "酒場", letters: "手紙", mayors: "村長たち",
     stranger: "旅人", alone: "まだ誰もいません", signIn: "酒場の語らいに加わるには、ログインしてください。",

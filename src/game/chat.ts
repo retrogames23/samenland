@@ -1,5 +1,5 @@
 /** Pure chat helpers: channel filtering and unread counting (no I/O). */
-export type ChatMsg = { id: string; realm: string; sender_id: string; sender_seed: string; recipient_id: string | null; body: string; created_at: string };
+export type ChatMsg = { id: string; realm: string; sender_id: string; sender_seed: string; recipient_id: string | null; body: string; created_at: string; edited_at?: string | null };
 export type Channel = "tavern" | { peer: string };
 
 export const chanKey = (c: Channel) => (c === "tavern" ? "tavern" : c.peer);
