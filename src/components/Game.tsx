@@ -20,8 +20,7 @@ import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, last
 const MEET_TILES = 4;
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townRank, rankInput, nextRankNeed, roadsFor } from "@/game/rank";
-import { townOf, poseOf, jobKey, weddingFocus, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, parkMayor, mayorAway, setMounted, setStrollHold, setOwnMayor, citizensOf, isHomeKind, setRemoteMayor, clearRemoteMayors, type Person } from "@/game/people";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import { townOf, poseOf, jobKey, weddingFocus, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, parkMayor, mayorAway, setMounted, setStrollHold, setOwnMayor, citizensOf, isHomeKind, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { banter } from "@/game/banter";
 import { weddingJoy, weddingLive } from "@/game/weddings";
@@ -1102,7 +1101,7 @@ export function Game() {
     };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
     const onBlur = () => keys.clear();
-    let lastPan = performance.now(), walkDriven = false, liveSent = 0, liveOn = false, liveW = false;
+    let lastPan = performance.now(), walkDriven = false;
     panStep = () => {
       const now = performance.now(), dt = Math.min(50, now - lastPan); lastPan = now;
       { const pd = panDelta.current; if (pd.dx || pd.dy) { cam.current.x -= pd.dx / cam.current.zoom; cam.current.y -= pd.dy / cam.current.zoom; pd.dx = 0; pd.dy = 0; } }
