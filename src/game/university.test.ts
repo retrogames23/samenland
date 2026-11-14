@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { universityDone, careHealthExtra, careStage, monumentChain, stepsPaid, cathedralDone, lighthouseDone, careFoodExtra, specialTile, UNIVERSITY_MESSENGER, links, hash, type Seed } from "./world";
+import { universityDone, careHealthExtra, careStage, monumentChain, stepsPaid, cathedralDone, lighthouseDone, careFoodExtra, specialTile, UNIVERSITY_MESSENGER, hash, type Link, type Seed } from "./world";
 import { sickChance } from "./sickness";
 import { walkersOn, uniChancery, MESSENGER_DAY, HERBERGE_WALZ } from "./wander";
 import { prosperityAt, PRESTIGE_BONUS, PROSPER_MONUMENTS, civicWealth } from "./prosperity";
@@ -58,13 +58,13 @@ describe("Universität: nur fertig gebaute Abschnitte wirken", () => {
 
 describe("Schritt 2: Kanzleiboten +20 %", () => {
   const a = uni(2, T - 300 * DAY), b = town([], "nb", 440, 540);
-  const l = links([a, b], T)[0];
-  it("Straße existiert", () => expect(l).toBeTruthy());
+  const tiles = Array.from({ length: 40 }, (_, i) => [400 + i, 540] as [number, number]);
+  const l = { a, b, tiles, since: 0 } as unknown as Link;
   it("exakt 20 % auf die Basiswahrscheinlichkeit, erst ab fertigem Schritt 2, Gesellen unverändert", () => {
     expect(UNIVERSITY_MESSENGER).toBe(1.2); expect(MESSENGER_DAY * UNIVERSITY_MESSENGER).toBeCloseTo(0.72, 12);
     const d2 = Math.ceil(doneAt(a, 1) / DAY), d1 = Math.floor(doneAt(a, 1) / DAY) - 1;
     expect(uniChancery(l!, d1)).toBe(false); expect(uniChancery(l!, d2)).toBe(true);
-    const base = town([], "uni", 400, 540), lb = links([base, b], T)[0]!;
+    const lb = { ...l, a: town([], "uni", 400, 540) } as Link;
     let more = 0, journ = 0;
     for (let d = d2; d < d2 + 400; d++) {
       const w = walkersOn(l!, d), w0 = walkersOn(lb, d);
