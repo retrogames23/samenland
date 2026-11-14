@@ -26,7 +26,7 @@ import { nightLevel } from "./sun";
 import { fieldLook, farmTask } from "./rotation";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { geoKey, MAP, hash, structureAt, setEstateHook, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, specialDone, specialTile, stepsPaid, cathedralDone, universityDone, DOM_NURSES, type TradeGood, type Seed, type Kind } from "./world";
+import { geoKey, MAP, hash, structureAt, setEstateHook, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, exchangeMerchants, specialDone, specialTile, stepsPaid, cathedralDone, universityDone, DOM_NURSES, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -112,7 +112,7 @@ const pick = <T,>(a: readonly T[], h: number) => a[Math.floor(h * a.length) % a.
 /** Kinds people live in. */
 export const isHomeKind = (k: string) => k in HOME_SIZES && k !== "inn" && k !== "bakery";
 const SLOTS: Partial<Record<Kind, [Job, number]>> = {
-  belfry: ["watchman", 1], theater: ["crafter", 2], opera: ["crafter", 2], university: ["teacher", 2], exchange: ["merchant", 3], orangery: ["herbalist", 2], harvesthall: ["farmer", 2], guildtower: ["mason", 2], lighthouse: ["watchman", 1],
+  belfry: ["watchman", 1], theater: ["crafter", 2], opera: ["crafter", 2], university: ["teacher", 2], orangery: ["herbalist", 2], harvesthall: ["farmer", 2], guildtower: ["mason", 2], lighthouse: ["watchman", 1],
   watermill: ["miller", 2], chapel: ["priest", 1], manufactory: ["crafter", 4], steamworks: ["smith", 3], station: ["merchant", 2], stall: ["merchant", 2], harbor: ["carter", 2], townhall: ["crafter", 2], seat3: ["crafter", 1],
   bakery: ["baker", 2], smithy: ["smith", 2], inn: ["innkeeper", 2], mill: ["miller", 1], workshop: ["crafter", 2],
   factory: ["priest", 2], sawmill: ["sawyer", 3], market: ["merchant", 2], church: ["priest", 1], warehouse: ["carter", 2],
@@ -193,6 +193,8 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     for (const at of byKind.get(k) ?? []) for (let i = 0; i < sl[1] * (SERVICE.has(k) ? 1 + Math.floor(r / 12) : 1); i++) slots.push({ job: sl[0], at });
   // the university's two lecturers start teaching once step 1 is physically finished (the site stays under build until step 4)
   if (!byKind.get("university")?.length && universityDone(s, now) >= 1) { const u = specialTile(s, "university"); if (u) for (let i = 0; i < 2; i++) slots.push({ job: "teacher", at: u }); }
+  // Schütting merchants follow finished steps only: 2 from step 2, 3 in total at step 4
+  { const m = exchangeMerchants(s, now); const u = m ? specialTile(s, "exchange") : null; if (u) for (let i = 0; i < m; i++) slots.push({ job: "merchant", at: u }); }
   slots.sort((a, b) => hash(a.at[0] * 7 + a.job.length, a.at[1], 501) - hash(b.at[0] * 7 + b.job.length, b.at[1], 501));
   // raw materials first: a woodcutter at the nearest forest edge, a mason at the nearest rocks
   const age = effAge(s, seeds, now);
