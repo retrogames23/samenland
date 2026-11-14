@@ -42,7 +42,7 @@ describe("Leuchtturm Stufe 3: echter Transitbonus", () => {
   });
   it("Binnenstadt mit Küsten-Mittelstadt: ×1,2", () => {
     const c = chain((s, v, t) => !isCoast(s) && isCoast(v) && !isCoast(t));
-    if (!c) return; // map offers no such constellation
+    expect(c).toBeTruthy();
     expect(routeBonus(c.s, c.v, c.t, 3).r).toBeTruthy();
     const with3 = routeBonus(c.s, c.v, c.t, 3), none = routeBonus(c.s, c.v, c.t, 0);
     expect(with3.r!.bonus(with3.now) / none.r!.bonus(with3.now)).toBeCloseTo(LIGHTHOUSE_TRANSIT, 5);
