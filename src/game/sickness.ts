@@ -1,4 +1,4 @@
-import { stepsPaid, stepsDone, cathedralDone, CATHEDRAL_WINTER, UNIVERSITY_SICK, ORANGERY_SICK, type Seed } from "./world";
+import { stepsPaid, stepsDone, cathedralDone, CATHEDRAL_WINTER, ORANGERY_SICK, type Seed } from "./world";
 import { seasonAt } from "./season";
 import { festJoy } from "./weddings";
 import { CULTURE_SICK, BEGINEN_SICK } from "./prosperity";
@@ -27,7 +27,6 @@ export function sickChance(s: Seed, at: number): number {
     own("healer") || own("infirmary") ? HEALER_SICK : 0,
     s.charter?.path === "culture" && s.charter.at <= at ? CULTURE_SICK : 0,
     own("beginen") ? BEGINEN_SICK : 0,
-    st("university") >= 3 ? UNIVERSITY_SICK : 0,
     st("orangery") >= 3 ? ORANGERY_SICK : 0,
   ];
   const risk = SICK_BASE + SICK_WINTER * seasonAt(at).winter * (stepsDone(s, "harvest", at) >= 3 ? 0.5 : 1)
