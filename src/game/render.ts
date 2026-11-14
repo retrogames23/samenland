@@ -50,7 +50,7 @@ import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFr
 import { folkImage, walkSheet, standSprite, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { townRank, seatKindForRank } from "./rank";
-import { sacksAt, breadOut, fishingNow, workshopCraft, workshopOpen } from "./crafts";
+import { sacksAt, breadOut, ovenLit, fishingNow, workshopCraft, workshopOpen } from "./crafts";
 import { fieldLook, sheafDays, farmTask, type Look } from "./rotation";
 import { wayTexture } from "./winter-way";
 import { sheavesOn, woodpileLevel, frost, waySnow, strawOn, springWork, laundryOut, dryingSmoke } from "./seasonal-props";
