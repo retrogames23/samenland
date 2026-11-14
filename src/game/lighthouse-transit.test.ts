@@ -41,7 +41,7 @@ describe("Leuchtturm Stufe 3: echter Transitbonus", () => {
     expect(two.r!.bonus(two.now) / none.r!.bonus(two.now)).toBeCloseTo(1, 5);
   });
   it("Binnenstadt mit Küsten-Mittelstadt: ×1,2", () => {
-    const c = chain((s, v, t) => !isCoast(s) && isCoast(v) && !isCoast(t));
+    const c = chain((s, v, t) => !isCoast(s) && isCoast(v) && !isCoast(t))!;
     expect(c).toBeTruthy();
     expect(routeBonus(c.s, c.v, c.t, 3).r).toBeTruthy();
     const with3 = routeBonus(c.s, c.v, c.t, 3), none = routeBonus(c.s, c.v, c.t, 0);
