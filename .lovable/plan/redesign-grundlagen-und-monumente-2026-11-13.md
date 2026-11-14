@@ -341,3 +341,7 @@ Simulationsausgabe ab sofort zusätzlich (nur künftige Läufe): physische Wohnh
 - Schritt 4: Domspital – die zwei Dompriester pflegen bis zu zwei weitere kranke Haushalte nach den Beginen.
 - Schritt 5: Winterzuschlag ×2/3 nach Erntedankhalle, alle anderen Schutzwirkungen bleiben; pauschales CATHEDRAL_SICK entfällt; PRESTIGE_BONUS 20 und Festgeläut (fertiger Bau) unverändert.
 - Tests: src/game/cathedral.test.ts.
+
+## Block 3.7 – Universität (abgeschlossen 2026-11-14)
+- Alle Wirkungen über universityDone (fertige Schritte): 1 zwei Dozenten, 2 Kanzleiboten +20 % (0,6 → 0,72), 3 +1 Gemeinwesen, 4 zwei Zivilwerke. UNIVERSITY_SICK und UNIVERSITY_WALZ entfernt. Preise 700/900/1.100/1.300 unverändert, keine Migration.
+- Offen: alter civicWealth-Prestigebonus (+15) reift weiter 6 h ab Zahlung von Schritt 4 (DB-gespiegelt; Umstellung bräuchte Migration).
