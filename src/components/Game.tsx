@@ -10,7 +10,7 @@ import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind }
 import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
 /** Accounts that always found their village on Europa I (Altenland), bypassing the overflow to Europa II. */
 const FORCE_EUROPE = new Set(["victoria.halper@gmail.com", "johanna.mellentin@gmail.com"]);
-import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, EUROPE_FULL, type Realm } from "@/game/time";
+import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, openRealm, type Realm } from "@/game/time";
 import { useModeCursor } from "@/components/hooks/useModeCursor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -767,11 +767,14 @@ export function Game() {
       } catch { /* play as guest */ }
       let refSeed: { id: string } | null = null; // invites never pick the map, so the friend may live elsewhere
       { const refId = localStorage.getItem("samenland-ref"); if (refId && !hasHome) refSeed = { id: refId }; }
-      // an invite never picks the map (the bonus works across maps); Altenland is full from EUROPE_FULL villages on: every newcomer settles on Elbwerder (Europa II)
+      // an invite never picks the map (the bonus works across maps); a full map sends every newcomer on to the next map of its time zone
       if (!adminPick && !hasHome && FORCE_EUROPE.has((sessMail ?? "").toLowerCase())) r = "europe";
-      else if (r === "europe" && !adminPick && !hasHome) {
-        const { count } = await supabase.from("seeds").select("id", { count: "exact", head: true }).eq("realm", "europe");
-        if ((count ?? 0) >= EUROPE_FULL) r = "europe-2";
+      else if (!adminPick && !hasHome) {
+        // each map holds REALM_FULL villages, then newcomers move on along the time zone's chain (DB realm_full_guard mirrors it)
+        const counts = new Map<string, number>();
+        const rows = await supabase.from("seeds").select("realm").in("realm", REALMS);
+        for (const x of rows.data ?? []) counts.set(x.realm, (counts.get(x.realm) ?? 0) + 1);
+        r = openRealm(r, (q) => counts.get(q) ?? 0);
       }
       const loadRealm = async (r: Realm) => {
       if (!uid) uid = (await supabase.auth.getSession()).data.session?.user.id ?? null;
@@ -2773,11 +2776,10 @@ export function Game() {
             </label>
             {isAdmin && (<>
               <div className="text-xs text-muted-foreground">{t.hud.realm}</div>
-              <div className="grid grid-cols-2 gap-1">
-                {[...REALMS, "lab" as Realm].map((r) => (
-                  <button key={r} className={`rounded px-2 py-1 text-xs ${realm === r ? "bg-accent text-foreground" : "hover:bg-accent/50"}`} onClick={() => { if (r === realm) return; localStorage.setItem("samenland-realm", r); loadRealmRef.current?.(r); }}>{t.realms[r]}</button>
-                ))}
-              </div>
+              <select value={realm} onChange={(e) => { const r = e.target.value as Realm; if (r === realm) return; localStorage.setItem("samenland-realm", r); loadRealmRef.current?.(r); }}
+                className="h-8 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                {[...REALMS, "lab" as Realm].map((r) => <option key={r} value={r}>{ISLAND[r]} · {t.realms[r]}</option>)}
+              </select>
               {realm === "lab" && (<>
                 <div className="text-xs text-muted-foreground">{t.lab.title(LAB_SPEED)}</div>
                 <div className="grid grid-cols-3 gap-1">
