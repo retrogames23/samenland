@@ -41,3 +41,43 @@ describe("realtime isolation", () => {
     expect(mergeRows(fresh, old, (r) => onIds(ids, r.s))).toEqual([{ id: "1", s: "a" }, { id: "2", s: "a" }]);
   });
 });
+
+// simulates loadRealm: every state write is guarded by isCurrent(epoch)
+async function load(g: LoadGate, st: { ids: string[]; seeds: string[] }, ids: string[], wait: Promise<void>, late?: Promise<string[]>) {
+  const e = g.begin(); const live = () => g.isCurrent(e);
+  try {
+    await wait; if (!live()) return;
+    st.ids = ids; st.seeds = mergeRows(ids.map((id) => ({ id })), st.seeds.map((id) => ({ id })), (r) => onIds(st.ids, r.id)).map((r) => r.id);
+    late?.then((xs) => { if (live()) st.seeds = [...st.seeds, ...xs]; });
+  } finally { g.end(e); }
+}
+const later = () => { let go!: () => void; const p = new Promise<void>((r) => (go = r)); return { p, go }; };
+
+describe("stale map loads", () => {
+  it("A starts, B starts and finishes first: A never overwrites B", async () => {
+    const g = new LoadGate(); const st = { ids: [] as string[], seeds: [] as string[] };
+    const a = later(), b = later();
+    const pa = load(g, st, ["a1"], a.p); const pb = load(g, st, ["b1"], b.p);
+    b.go(); await pb; a.go(); await pa;
+    expect(st).toEqual({ ids: ["b1"], seeds: ["b1"] });
+  });
+  it("A finishes first: A keeps the buffer closed, B releases it against B's ids", async () => {
+    const g = new LoadGate(); const st = { ids: [] as string[], seeds: [] as string[] }; const got: string[] = [];
+    const a = later(), b = later();
+    const pa = load(g, st, ["a1"], a.p); const pb = load(g, st, ["b1"], b.p);
+    g.run(() => { for (const x of ["a1", "b1"]) if (onIds(st.ids, x)) got.push(x); });
+    a.go(); await pa; expect(got).toEqual([]); expect(st.ids).toEqual([]);
+    b.go(); await pb; expect(got).toEqual(["b1"]);
+  });
+  it("late sub-query results of a stale load are dropped", async () => {
+    const g = new LoadGate(); const st = { ids: [] as string[], seeds: [] as string[] };
+    const sub = later(); const late = sub.p.then(() => ["foreign"]);
+    await load(g, st, ["a1"], Promise.resolve(), late);
+    await load(g, st, ["b1"], Promise.resolve());
+    sub.go(); await late; await Promise.resolve();
+    expect(st.seeds).toEqual(["b1"]);
+  });
+  it("mergeRows filters fresh rows too", () => {
+    expect(mergeRows([{ id: "1", s: "x" }], [], (r) => onIds(ids, r.s))).toEqual([]);
+  });
+});
