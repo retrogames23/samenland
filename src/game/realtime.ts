@@ -19,6 +19,18 @@ export function snapRows<T extends { id: string }>(fresh: T[], keep: (r: T) => b
   return [...m.values()];
 }
 
+/**
+ * seeds DELETE: Realtime sends only the primary key in `old` (no REPLICA IDENTITY FULL), so realm is unknown —
+ * judged by id alone: an id not on the loaded map (other realm) changes nothing. Returns the new ids, or null if foreign.
+ */
+export function dropSeedId(ids: readonly string[], ev: { old?: { id?: string } | null }): string[] | null {
+  const id = ev.old?.id; return id && ids.includes(id) ? ids.filter((x) => x !== id) : null;
+}
+/** companion rows of a deleted village: drop every row naming it in one of cols (same as abandon_village deletes) */
+export function withoutSeed<T>(rows: T[], id: string, ...cols: (keyof T)[]): T[] {
+  return rows.some((r) => cols.some((c) => r[c] === id)) ? rows.filter((r) => !cols.some((c) => r[c] === id)) : rows;
+}
+
 /** signposts: INSERT/UPDATE only for the map, DELETE only removes the matching id */
 export function applySign<T extends { id: string; seed_id: string }>(s: T[], ev: { eventType: string; new?: Partial<T> | null; old?: Partial<T> | null }, ids: readonly string[]): T[] {
   if (ev.eventType === "DELETE") { const id = ev.old?.id; return id && s.some((x) => x.id === id) ? s.filter((x) => x.id !== id) : s; }
