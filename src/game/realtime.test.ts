@@ -106,7 +106,7 @@ describe("late follow-ups after a map switch", () => {
   it("realtime letter body still arrives without a switch", async () => {
     const g = new LoadGate(); const bodies: Record<string, string> = {};
     const e = g.epochNow;
-    await Promise.resolve().then(() => { if (g.isCurrent(e) && onIds(["a"], "a")) bodies.L = "t"; });
+    await Promise.resolve().then(() => { if (g.isCurrent(e) && onIds(["a"], "a")) bodies["L"] = "t"; });
     expect(bodies).toEqual({ L: "t" });
   });
 });
