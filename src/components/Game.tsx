@@ -801,7 +801,7 @@ export function Game() {
         mapRows(ids, (c) => supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y").in("seed_id", c).order("id")),
         mapRows(ids, (c) => supabase.from("charters").select("id, seed_id, path, created_at").in("seed_id", c).order("id")),
         mapRows(ids, (c) => supabase.from("first_roads").select("id, seed_id, target_id, created_at").in("seed_id", c).order("id")),
-      ]).then((xs) => xs.map((data) => ({ data })) as unknown as [{ data: Planting[] }, { data: { id: string; seed_id: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; user_id: string; message: string }[] }, { data: { id: string; seed_id: string; item: string; cost: number; created_at: string; x: number | null; y: number | null }[] }, { data: { id: string; seed_id: string; path: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; created_at: string }[] }];
+      ]).then((xs) => xs.map((data) => ({ data }))) as unknown as [{ data: Planting[] }, { data: { id: string; seed_id: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; user_id: string; message: string }[] }, { data: { id: string; seed_id: string; item: string; cost: number; created_at: string; x: number | null; y: number | null }[] }, { data: { id: string; seed_id: string; path: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; created_at: string }[] }];
       setCharters(chq.data ?? []);
       setFirstRoads(frq.data ?? []);
       mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c).order("id")).then(setEncounters);
