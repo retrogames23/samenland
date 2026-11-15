@@ -233,7 +233,7 @@ export function coastCraftFigOf(pl: StubePlace): Fig | null {
   return null;
 }
 const COAST_CRAFT: Layout = { w: 1536, h: 1024, seat: coastCraftFigOf, slots: STUBE_SLOTS, glow: [[0.62, 0.76, 0.2, 1]] };
-const layoutOf = (k: StubeKind, way?: string) => (k === "patrician" ? TALL : k === "handwerker" && way === "gateway" ? COAST_CRAFT : WIDE);
+const layoutOf = (k: StubeKind, way?: string) => (k === "patrician" || k === "townhouse" || k === "townhouse2" ? TALL : k === "handwerker" && way === "gateway" ? COAST_CRAFT : WIDE);
 
 /** Farmhouse diorama: the painted room with exactly those residents the derived routine keeps at home. */
 export function Stube({ kind = "farmhouse", seed, seeds, residents, family, lang, onClose }: { seed: Seed; seeds: Seed[]; residents: Person[]; family: string; lang: Lang; onClose: () => void; kind?: StubeKind }) {
