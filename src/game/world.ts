@@ -1188,7 +1188,8 @@ const lkMemo = new WeakMap<Seed[], string>();
 export function links(seeds: Seed[]): Link[] {
   syncGeo();
   let key = lkMemo.get(seeds);
-  if (key === undefined) { key = seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.roads ?? []).map((r) => `${r.target}@${r.at}`).join("+")}`).join("|"); lkMemo.set(seeds, key); }
+  // full content key: roadGate reads user_id, and cached Links hand out their a/b seed objects to callers
+  if (key === undefined) { key = `${seeds.map((s) => s.realm ?? "").join(",")}#${seedsKey(seeds)}`; lkMemo.set(seeds, key); }
   if (key === linkKey) return linkCache;
   const hit = linkSets.get(key);
   if (hit) { linkKey = key; linkCache = hit.links; roadIdx = hit.idx; return linkCache; }
