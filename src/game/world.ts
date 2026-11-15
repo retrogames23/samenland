@@ -642,7 +642,7 @@ const keptCache = new Map<string, Set<number>>();
  * until every remaining end touches a building or the village square.
  */
 function keptPaths(s: Seed, age: number, r: number): Set<number> {
-  const ck = `${s.id}|${Math.floor(age * 60)}`;
+  const ck = `${s.id}|${Math.floor(age * 60)}|${seedsKey(soloSeeds(s))}`; // anchors depend on purchases/charter, not only age
   const hit = keptCache.get(ck); if (hit) return hit;
   const R = Math.ceil(reachOf(s, r) + 1), cx = Math.round(s.x), cy = Math.round(s.y);
   const paths = new Set<number>(), anchor = new Set<number>();
@@ -1002,7 +1002,20 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
 /** Cache key that changes whenever seed positions, ages or purchases change. */
 const skMemo = new WeakMap<Seed[], string>();
 export const seedsKey = (seeds: Seed[]) => { let k = skMemo.get(seeds); if (k === undefined) { k = seedsKeyRaw(seeds); skMemo.set(seeds, k); } return k; };
-const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => `${s.id}:${s.x}:${s.y}:${s.created_at}:${(s.bought ?? []).map((b) => `${b.item}@${b.at}@${b.x ?? ""}.${b.y ?? ""}`).join("/")}:${s.charter?.path ?? ""}@${s.charter?.at ?? ""}:${(s.roads ?? []).map((r) => r.target).join("+")}:${(s.works ?? []).length}`).join(";");
+const tup = (xs: string[] | undefined) => (xs ?? []).slice().sort().join("/");
+/** Full content fingerprint of every seed input that drives growth, buildings, households and citizens (sorted tuples, order-independent). */
+const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => [s.id, s.x, s.y, s.created_at, s.user_id ?? "",
+  tup(s.bought?.map((b) => `${b.item}@${b.at}@${b.x ?? ""}.${b.y ?? ""}`)),
+  `${s.charter?.path ?? ""}@${s.charter?.at ?? ""}`,
+  tup(s.roads?.map((r) => `${r.target}@${r.at}`)),
+  tup(s.decisions?.map((d) => `${d.event}@${d.choice}@${d.cost}@${d.at}`)),
+  tup(s.blessed?.map(String)),
+  tup(s.votes?.map((v) => `${v.partner}@${v.pact}@${v.at}`)),
+  tup(s.works?.map((w) => `${w.partner}@${w.work}@${w.cost}@${w.at}`)),
+  tup(s.aid?.map(String)),
+  tup(s.sent?.map((g) => `${g.to}@${g.kind}@${g.at}`)),
+  tup(s.civicRoads?.map((c) => String(c.at))),
+].join(":")).join(";");
 
 /** Growth hour at which the building on this tile is finished (0 for the founding core). */
 export function bornAt(x: number, y: number, s: Seed): number {
