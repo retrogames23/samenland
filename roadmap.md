@@ -17,4 +17,4 @@
 - [x] Pilot 3 gewählt: Wald-Gras-Übergang; Bestandsaufnahme fertig (docs/terrain/wald-gras-uebergang)
 - [ ] Wald-Gras-Übergang umsetzen (Variante 1) – wartet auf Freigabe
 - [x] Nachtmasken Gruppe G: 7 Grundwohnhäuser geprüft, korrigiert, freigegeben
-- [ ] Inselregister im Reiter „Dörfer" (Klick auf Ortsname fährt zum Ort)
+- [x] Inselregister im Reiter „Dörfer" (Klick auf Ortsname fährt zum Ort)
