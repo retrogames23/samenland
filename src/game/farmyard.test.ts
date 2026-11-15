@@ -23,18 +23,21 @@ describe("Hofstellen", () => {
 
 describe("Hofstellen bleiben stehen", () => {
   it("a finished lot never flips between barn and dwelling while the village grows within its era", () => {
-    const seeds = [seed];
+    for (const [sx, sy] of [[300, 400], [180, 220], [420, 310], [250, 520], [520, 450]]) {
+    const sd = { ...seed, id: `yard-${sx}-${sy}`, x: sx, y: sy } as Seed;
+    const seeds = [sd];
     const born = Date.parse(seed.created_at);
-    const kindAt = (x: number, y: number, t: number) => { const st = structureAt(x, y, seeds, t); return st?.seed.id === seed.id && !st.build ? st.kind : null; };
+    const kindAt = (x: number, y: number, t: number) => { const st = structureAt(x, y, seeds, t); return st?.seed.id === sd.id && !st.build ? st.kind : null; };
     const flips: string[] = [];
-    for (let y = seed.y - 8; y <= seed.y + 8; y++) for (let x = seed.x - 8; x <= seed.x + 8; x++) {
+    for (let y = sy - 9; y <= sy + 9; y++) for (let x = sx - 9; x <= sx + 9; x++) {
       let last: string | null = null;
-      for (let h = 10; h <= 40; h += 0.5) {
+      for (let h = 10; h <= 60; h += 1) {
         const k = kindAt(x, y, born + h * 3.6e6);
         if (k !== "barn" && k !== "farmhouse" && k !== "cottage") { last = null; continue; }
-        if (last && last !== k && (last === "barn" || k === "barn")) flips.push(`${x},${y}@${h}`);
+        if (last && last !== k && (last === "barn" || k === "barn")) flips.push(`${sd.id} ${x},${y}@${h}`);
         last = k;
       }
+    }
     }
     expect(flips).toEqual([]);
   });
