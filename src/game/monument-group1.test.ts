@@ -119,10 +119,6 @@ describe("Belfried steps 2 and 3: fire size and total-loss risk", () => {
     const fh: [string, number] = ["firehouse", T];
     for (const f of after(at("g2", [fh, ...steps("belfry", 2)]))) expect(f.tiles).toHaveLength(3);
   });
-  it("step 2 for a workshop town at water: floor stays", () => {
-    // n = max(1, 2 - stone - belfry) is already 1 for stone towns at water
-    expect(Math.max(1, 2 - 1 - 1) + 2).toBe(Math.max(1, 2 - 1) + 2);
-  });
   it("step 3: total-loss risk exactly halved, zero stays zero", () => {
     expect(fireDeadRisk(false, false, false, 0)).toBe(0.35);
     expect(fireDeadRisk(false, false, false, 3)).toBe(0.175);
