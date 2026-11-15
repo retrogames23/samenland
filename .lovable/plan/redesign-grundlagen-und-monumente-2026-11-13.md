@@ -358,3 +358,8 @@ Simulationsausgabe ab sofort zusätzlich (nur künftige Läufe): physische Wohnh
 - Typprüfung und Produktions-Build erfolgreich.
 - Visuelle Prüfung im Preview offen: Baumenü/Stufen des Schüttings brauchen eine Stadt ab Rang 4; im Preview nicht geprüft.
 - Sprachkatalog: Schütting-Stufentexte vorhanden für DE/EN/ZH/JA; FR/ES/AR/HI haben keinen entsprechenden Eintrag und zeigen weiterhin den Rückfalltext.
+
+### Block 3.7 Universität – bewusste Abweichung Phase 4 (Stand 2026-11-15)
+- +2 Zivilwerke (prosperityAt): physische Fertigstellung von Abschnitt 4 + 6 Stunden.
+- +15 Prestige (civicWealth): Bezahlung von Abschnitt 4 + 6 Stunden – bewusst beibehalten, aus Kompatibilität mit der DB-Berechnung (village_civic_wealth) für historische Steuern und Mitgiften. Änderung nur mit freigegebener Migration.
+- Status: Universität wird nach visueller Prüfung geschlossen.
