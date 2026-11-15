@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as W from "./world";
-import { monumentChain, operaDone, operaMerchants, tradeCapOf, tradeFactor, townCharacter, effAge, WAY_COMPLEMENT, OPERA_TRADE, TRADE_CEIL_MAX, type Seed } from "./world";
+import { monumentChain, operaDone, operaMerchants, tradeCapOf, tradeFactor, effAge, WAY_COMPLEMENT, OPERA_TRADE, TRADE_CEIL_MAX, type Seed } from "./world";
+import { townCharacter } from "./character";
 import { townOf } from "./people";
 
 const T = Date.parse("2026-03-02T06:00:00Z");
