@@ -3286,7 +3286,7 @@ function drawCow(c: C, x: number, y: number, now: number, sd: number, i: number)
   c.save();
   c.fillStyle = "rgba(25,18,10,0.28)"; c.beginPath(); c.ellipse(x + dx, y + dy + 0.2, 3.4, 1.1, 0, 0, 7); c.fill();
   c.translate(x + dx, y + dy); c.scale(-(night ? prevDir : scaleX), 1); // cow art faces left: mirror when heading right
-  if (night) { c.scale(1, 0.82 * breath); c.drawImage(im, -w / 2, -h * 0.9, w, h); } // resting in the grass: whole cow, slightly lowered — never cropped
+  if (night) c.drawImage(im, 0, im.naturalHeight * 0.45, im.naturalWidth, im.naturalHeight * 0.55, -w / 2, -h * 0.55, w, h * 0.55);
   else if (walking) { c.rotate(tilt * 0.5); if (!cowStep(c, ws, Math.floor(into / 480))) c.drawImage(im, -w / 2, -h * 0.96, w, h); }
   else { c.rotate(tilt); c.scale(1, breath); c.drawImage(im, -w / 2, -h * 0.96, w, h); }
   c.restore();
