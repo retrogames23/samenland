@@ -11,9 +11,10 @@ import craftCoastUrl from "@/assets/sprites/stube/craft-room-gateway.webp";
 import patUrl from "@/assets/sprites/stube/patrician-room.webp";
 import patHillUrl from "@/assets/sprites/stube/patrician-room-workshop.webp";
 import patCoastUrl from "@/assets/sprites/stube/patrician-room-gateway.webp";
+import townRoomUrl from "@/assets/sprites/stube/townhouse-room.webp";
 import { townCharacter } from "@/game/character";
 /** Room picture per house kind and building style (plains / hill stone / coastal), matching the map sprite. */
-const ROOMS = { farmhouse: { grain: roomUrl, workshop: farmHillUrl, gateway: farmCoastUrl }, hut: { grain: hutRoomUrl, workshop: hutHillUrl, gateway: hutCoastUrl }, handwerker: { grain: craftUrl, workshop: craftHillUrl, gateway: craftCoastUrl }, patrician: { grain: patUrl, workshop: patHillUrl, gateway: patCoastUrl } } as const;
+const ROOMS = { farmhouse: { grain: roomUrl, workshop: farmHillUrl, gateway: farmCoastUrl }, hut: { grain: hutRoomUrl, workshop: hutHillUrl, gateway: hutCoastUrl }, handwerker: { grain: craftUrl, workshop: craftHillUrl, gateway: craftCoastUrl }, patrician: { grain: patUrl, workshop: patHillUrl, gateway: patCoastUrl }, townhouse: { grain: townRoomUrl, workshop: townRoomUrl, gateway: townRoomUrl }, townhouse2: { grain: townRoomUrl, workshop: townRoomUrl, gateway: townRoomUrl } } as const;
 export type StubeKind = keyof typeof ROOMS;
 export const STUBE_KINDS: ReadonlySet<string> = new Set(Object.keys(ROOMS));
 import manUrl from "@/assets/sprites/stube/eat-man.webp";
