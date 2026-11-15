@@ -1,43 +1,29 @@
-# Inselregister im Reiter „Dörfer"
+# Sanierungsplan: Datenabfragen für Tausende Dörfer
 
-Der bestehende Reiter „Dörfer" wird zu einer aufgeräumten Übersicht der ganzen Insel. Alle Angaben werden aus den Daten berechnet, die das Spiel ohnehin schon geladen hat. Es gibt keine neue Datenbankabfrage, keine Migration und keine Änderung an der Spielmechanik.
+Ziel: Keine Abfrage darf mehr stillschweigend bei 1.000 Zeilen abbrechen oder Daten fremder Karten mitladen. Spielmechanik, Salden und Berechnungen bleiben exakt gleich – es ändert sich nur, *welche* Zeilen geladen werden und dass alle ankommen.
 
-## Was man sieht
+## 1. Tavernenchat je Karte
+- Erstabfrage lädt die letzten 300 Nachrichten nur der eigenen Karte (plus eigene Briefe/Flüstern), nicht weltweit.
+- Keine automatische Löschung alter Nachrichten (wäre eigene Entscheidung, siehe offene Frage).
 
-**Kopfbereich**
-- Name der Insel, z. B. „Altenland"
-- Zahl der Orte und Bürger auf der ganzen Insel
-- Wie sich die Orte auf die drei Wege verteilen: Kornkammer, Werkbank, Tor zur Welt
+## 2. Kartendaten nur für die aktuelle Karte, vollständig
+Beim Kartenstart werden Käufe, Begegnungen, Segen, Chartas, Handelsstraßen, Pflanzungen, Wegweiser, Partnerschafts-Abstimmungen/-Werke und Geschenke nur für die Dörfer der aktuellen Karte geladen – in Blöcken, bis alle Zeilen da sind (wie bereits bei Aufgaben und Markt).
+- Auch die Nachlade-Stellen (nach Kauf, nach Begegnung, Charta-Prüfung) nutzen dieselbe Abfrage.
+- Brieftexte: nur Texte der in den letzten 60 Tagen sichtbaren Briefe.
 
-**Sortierknöpfe**
-- Nach Bürgern, Entfernung zur eigenen Stadt oder Name
-- Standard: Bürger, die größten Orte zuerst
+## 3. Server-Berechnungen absichern
+Schatzkammer/Steuer, Bau-Mail und Truhen-Mail laden schon kartenbezogen, aber ohne Blockweise-Laden. Alle bekommen dasselbe vollständige Laden, damit Kassenstände bei 60 aktiven Dörfern nicht falsch werden.
 
-**Eine kompakte Zeile pro Ort**
-- Zeichen für den Weg, Name und Rang, z. B. Weiler oder Hansestadt
-- Bürger und Haushalte
-- Bis zu drei Waren, die der Ort anbietet, als kleine Warensymbole
-- Verbindung zur eigenen Stadt: Handelsstraße, im Bau, oder Reitminuten
-- Der eigene Ort ist hervorgehoben und steht immer oben
-
-**Aufklappen beim Antippen**
-- Darunter erscheinen die bisherigen Angaben: Schulze, Alter, Boni, Mentor und Markt
-- Dazu die bisherigen Knöpfe: Profil, Hinschauen, Brief und Geschenk oder Hilfe
-- Diese Knöpfe behalten genau die Regeln, die sie heute haben
-
-## Was gleich bleibt
-- Der Knopf in der unteren Leiste und die Verweise aus den Aufgaben, die auf diesen Reiter zeigen
-- Geschenk- und Brieflogik, Preise und alle Regeln
+## 4. Absicherung
+- Gemeinsame Hilfsfunktion für "alle Zeilen in Blöcken, nach Dorf-Liste gefiltert" (große Dorflisten werden gestückelt).
+- Tests: Hilfsfunktion liefert >1.000 Zeilen vollständig; Kassenstand-Tests unverändert grün.
+- Volle Testsuite und Build; nichts veröffentlichen.
 
 ## Technische Details
-- Neue Komponente `src/components/hud/IslandRegister.tsx`. Die Liste in `Game.tsx` (Zeile ~2386) wird durch diese Komponente ersetzt, Handler und Daten werden als Props übergeben. Das passt zur bereits beschlossenen Aufteilung von `Game.tsx`.
-- Herkunft der Daten:
-  - Rang, Bürger und Haushalte aus `townsCache` (`tc.rank` sowie die vorhandenen Zahlen zu Bewohnern und Haushalten)
-  - Weg über `wayOf(s)`
-  - Waren aus dem vorhandenen Profil bzw. aus `goods.ts`
-  - Verbindung aus `links(seeds)`, Entfernung über die Koordinaten
-- Inselname aus `islands.ts` bzw. dem aktuellen Realm.
-- Alle neuen Texte stehen im Sprachkatalog, in allen acht Sprachen.
-- Bei schmalem Bildschirm scrollt die Liste. Sortierauswahl und Aufklappzustand bleiben nur lokal und werden nirgends gespeichert.
-- Prüfung: Typprüfung, Build und eine Bildschirmaufnahme im Preview mit Handybreite.
-- Keine Veröffentlichung.
+- `allRows` aus Game.tsx in `src/lib/fetch-all.ts` auslagern, Variante `allRowsIn(table, col, ids, select)` mit `.range()`-Paginierung, `.order("id")` und ID-Chunks à ~200.
+- Betroffen: `Game.tsx` (Z. 653, 731–733, 791–805, 1398, 1437), `Tavern.tsx` Z. 69 (`.or(realm.eq.X,recipient_id.eq.me)`), `treasury.server.ts` Z. 44–51, `api/public/build-mail.ts`, `api/public/chest-mail.ts`.
+- Gifts: `.or(from_seed.in.(...),to_seed.in.(...))` bzw. zwei Abfragen zusammengeführt.
+- Keine Migration nötig; optional später Indizes auf `seed_id`, falls Abfragen langsam werden.
+
+## Offen
+- Soll alter Tavernenchat nach z. B. 90 Tagen automatisch gelöscht werden? Nicht Teil dieses Plans.
