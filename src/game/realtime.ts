@@ -9,10 +9,13 @@ export function mergeRows<T extends { id: string }>(fresh: T[], old: T[], keep: 
   return [...m.values()];
 }
 
-/** Full snapshot of the loaded map: map rows missing from `fresh` are dropped (deletes/updates win), except rows created after the load began (inserts racing the query). */
-export function snapRows<T extends { id: string; created_at?: string }>(fresh: T[], old: T[], keep: (r: T) => boolean, since: number): T[] {
+/**
+ * Full snapshot of the loaded map: it replaces the old state completely (deletes/updates win, foreign rows drop).
+ * Inserts racing the query are not kept from old local state: they arrive as realtime events, held by the
+ * LoadGate while the snapshot loads and replayed right after it is applied (gate.end applies first, then replays).
+ */
+export function snapRows<T extends { id: string }>(fresh: T[], keep: (r: T) => boolean): T[] {
   const m = new Map(fresh.filter(keep).map((r) => [r.id, r]));
-  for (const r of old) if (!m.has(r.id) && keep(r) && r.created_at && Date.parse(r.created_at) >= since) m.set(r.id, r);
   return [...m.values()];
 }
 
@@ -36,12 +39,28 @@ export class LoadGate {
   /** epoch of the newest load, to tag async work started outside a load (e.g. realtime follow-ups) */
   get epochNow() { return this.epoch; }
   isCurrent(epoch: number) { return epoch === this.epoch; }
-  /** true if this load is still the newest; then replays held events */
-  end(epoch: number) {
+  /** a load or refresh is running (events are being held) */
+  get busy() { return this.loading; }
+  /** true if this load is still the newest; then applies its snapshot (if given) and replays held events after it */
+  end(epoch: number, apply?: () => void) {
     if (epoch !== this.epoch) return false;
+    apply?.();
     this.loading = false;
     const p = this.pending; this.pending = [];
     for (const f of p) f();
     return true;
   }
+}
+
+/**
+ * Re-read part of the loaded map (tab woke up, failed save) through the same gate as a map load:
+ * events are held meanwhile and replayed after the snapshot; a newer load/refresh makes this one stale,
+ * so a late answer for map A never lands on map B. Skipped while a load runs (that load covers it).
+ */
+export async function refreshMap<R>(gate: LoadGate, fetch: () => Promise<R>, apply: (r: R) => void): Promise<boolean> {
+  if (gate.busy) return false;
+  const e = gate.begin();
+  let r: R | undefined, ok = false;
+  try { r = await fetch(); ok = true; } catch { /* keep the old state */ }
+  return gate.end(e, ok ? () => apply(r as R) : undefined) && ok;
 }

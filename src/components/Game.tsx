@@ -1,4 +1,4 @@
-import { LoadGate, applySign, mergeRows, onIds, snapRows } from "@/game/realtime";
+import { LoadGate, applySign, mergeRows, onIds, snapRows, refreshMap } from "@/game/realtime";
 import { allIn, allPages, allEither } from "@/lib/fetch-all";
 import { WalkStick } from "./WalkStick";
 import { maxZoom } from "@/game/camera";
@@ -474,6 +474,25 @@ export function Game() {
   const mapIds = useRef<string[]>([]);
   // holds realtime events while a map loads (see game/realtime.ts)
   const rtGate = useRef(new LoadGate());
+  // tab woke up: re-read every population input of the loaded map through rtGate (stale after a map switch, events held + replayed)
+  const refreshPop = useRef(() => {
+    const ids = mapIds.current;
+    void refreshMap(rtGate.current, () => Promise.all([
+      mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)) as Promise<EncRow[]>,
+      mapRows(ids, (c) => supabase.from("charters").select("id, seed_id, path, created_at").in("seed_id", c)),
+      mapRows(ids, (c) => supabase.from("first_roads").select("id, seed_id, target_id, created_at").in("seed_id", c)),
+      mapRows(ids, (c) => supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").in("seed_id", c)),
+      mapRows(ids, (c) => supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").in("seed_id", c)),
+      mapRows(ids, (c) => supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y").in("seed_id", c)),
+      mapRows(ids, (c) => supabase.from("blessings").select("id, seed_id, created_at").in("seed_id", c)),
+    ]), ([enc, ch, fr, vo, wo, pu, bl]) => {
+      const keep = (...xs: (string | null | undefined)[]) => onIds(mapIds.current, ...xs);
+      setEncounters(snapRows(enc, (x) => keep(x.seed_id))); setCharters(snapRows(ch, (x) => keep(x.seed_id)));
+      setFirstRoads(snapRows(fr, (x) => keep(x.seed_id, x.target_id)));
+      setVotes(snapRows(vo, (x) => keep(x.seed_id, x.partner_id))); setWorks(snapRows(wo, (x) => keep(x.seed_id, x.partner_id)));
+      setPurchases(snapRows(pu as Purchase[], (x) => keep(x.seed_id))); setBlessings(snapRows(bl as typeof blessings, (x) => keep(x.seed_id)));
+    });
+  });
   // swaps the map in place (admin realm switch) — no page reload, no splash
   const loadRealmRef = useRef<((r: Realm) => Promise<void>) | null>(null);
   const [view, setView] = useState({ x: MAP / 2, y: MAP / 2, span: 40 });
@@ -736,11 +755,7 @@ export function Game() {
         supabase.auth.startAutoRefresh();
         supabase.auth.getSession().then(({ data }) => { if (data.session) setUserId(data.session.user.id); });
         // decisions made on another device while this tab slept
-        if (mapIds.current.length) {
-          mapRows(mapIds.current, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)).then(setEncounters);
-          mapRows(mapIds.current, (c) => supabase.from("charters").select("id, seed_id, path, created_at").in("seed_id", c)).then(setCharters);
-          mapRows(mapIds.current, (c) => supabase.from("first_roads").select("id, seed_id, target_id, created_at").in("seed_id", c)).then(setFirstRoads);
-        }
+        if (mapIds.current.length) refreshPop.current();
       } else supabase.auth.stopAutoRefresh();
     };
     document.addEventListener("visibilitychange", onVis);
@@ -807,7 +822,6 @@ export function Game() {
       const ids = a.data.map((x) => x.id);
       mapIds.current = ids;
       setMapGen((n) => n + 1);
-      const loadT0 = Date.now() - 60_000;
       const [[b, bl, sg, pu, chq, frq], encRows, voteRows, workRows] = await Promise.all([Promise.all([
         mapRows(ids, (c) => supabase.from("plantings").select("*").in("seed_id", c)),
         mapRows(ids, (c) => supabase.from("blessings").select("id, seed_id, created_at").in("seed_id", c)),
@@ -823,10 +837,11 @@ export function Game() {
       ]);
       if (!live()) return;
       const keep = (...xs: (string | null | undefined)[]) => onIds(mapIds.current, ...xs);
-      setCharters((o) => snapRows(chq.data ?? [], o, (x) => keep(x.seed_id), loadT0));
-      setFirstRoads((o) => snapRows(frq.data ?? [], o, (x) => keep(x.seed_id, x.target_id), loadT0));
-      setEncounters((o) => snapRows(encRows, o, (x) => keep(x.seed_id), loadT0));
-      setVotes(voteRows); setWorks(workRows);
+      // full snapshots; inserts racing the queries are held by rtGate and replayed after end()
+      setCharters(snapRows(chq.data ?? [], (x) => keep(x.seed_id)));
+      setFirstRoads(snapRows(frq.data ?? [], (x) => keep(x.seed_id, x.target_id)));
+      setEncounters(snapRows(encRows, (x) => keep(x.seed_id)));
+      setVotes(snapRows(voteRows, (x) => keep(x.seed_id, x.partner_id))); setWorks(snapRows(workRows, (x) => keep(x.seed_id, x.partner_id)));
       Promise.all([
         mapRows(ids, (c) => supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").in("to_seed", c)),
         mapRows(ids, (c) => supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").in("from_seed", c)),
@@ -873,11 +888,11 @@ export function Game() {
           localStorage.setItem("samenland-ref-seen", String(got.length));
         }
       });
-      setBlessings((o) => mergeRows(bl.data ?? [], o, (x) => keep(x.seed_id)));
-      setPurchases((o) => mergeRows(pu.data ?? [], o, (x) => keep(x.seed_id)));
-      setSigns((o) => mergeRows((sg.data ?? []) as Signpost[], o, (x) => keep(x.seed_id)));
-      setSeeds((o) => mergeRows(ss, o, (x) => x.realm === r));
-      setPlantings((o) => mergeRows((b.data ?? []) as Planting[], o, (x) => keep(x.seed_id)));
+      setBlessings(snapRows(bl.data ?? [], (x) => keep(x.seed_id)));
+      setPurchases(snapRows(pu.data ?? [], (x) => keep(x.seed_id)));
+      setSigns(snapRows((sg.data ?? []) as Signpost[], (x) => keep(x.seed_id)));
+      setSeeds(snapRows(ss, (x) => x.realm === r));
+      setPlantings(snapRows((b.data ?? []) as Planting[], (x) => keep(x.seed_id)));
       // visitors without a village first see the oldest (most grown) town of this map
       const oldest = [...ss].sort((p, q) => Date.parse(p.created_at) - Date.parse(q.created_at))[0];
       const own = ss.find((s) => uid && s.user_id === uid);
@@ -1474,7 +1489,8 @@ export function Game() {
     encSaving.current = false;
     if (error || !data) {
       // already answered elsewhere: reload instead of leaving a stale question open
-      mapRows(mapIds.current, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)).then(setEncounters);
+      { const ids = mapIds.current; refreshMap(rtGate.current, () => mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)) as Promise<EncRow[]>,
+        (rows) => setEncounters(snapRows(rows, (x) => onIds(mapIds.current, x.seed_id)))); }
       if (error?.message?.includes("not enough money")) setEncOpen(true);
       return setMsg(error?.message?.includes("not enough money") ? t.poor : t.enc.fail);
     }
