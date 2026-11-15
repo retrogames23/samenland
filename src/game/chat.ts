@@ -24,3 +24,17 @@ export const peersOf = (msgs: ChatMsg[], me: string | null) => {
 export function unread(msgs: ChatMsg[], c: Channel, me: string | null, realm: string, blocked: Set<string>, seenAt: number) {
   return inChannel(msgs, c, me, realm, blocked).filter((m) => m.sender_id !== me && Date.parse(m.created_at) > seenAt).length;
 }
+
+/** Buffer sizes: the map room and my letters are kept separately, so neither crowds out the other. */
+export const ROOM_KEEP = 300, LETTER_KEEP = 300;
+const isLetter = (m: ChatMsg, me: string | null) => !!me && m.recipient_id !== null && (m.sender_id === me || m.recipient_id === me);
+/** Whether a live message belongs in this client's buffer: this map's room or one of my letters. */
+export const relevant = (m: ChatMsg, me: string | null, realm: string) => (m.recipient_id === null && m.realm === realm) || isLetter(m, me);
+/** Merge, dedupe by id, sort by time, and trim room and letters each to its own limit. */
+export function mergeChat(cur: ChatMsg[], add: ChatMsg[], me: string | null, realm: string): ChatMsg[] {
+  const all = [...new Map([...cur, ...add].filter((m) => relevant(m, me, realm)).map((m) => [m.id, m])).values()]
+    .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
+  const room = all.filter((m) => m.recipient_id === null).slice(-ROOM_KEEP), mail = all.filter((m) => m.recipient_id !== null).slice(-LETTER_KEEP);
+  const keep = new Set([...room, ...mail].map((m) => m.id));
+  return all.filter((m) => keep.has(m.id));
+}

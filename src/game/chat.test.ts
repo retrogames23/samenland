@@ -14,3 +14,22 @@ describe("tavern chat", () => {
     expect(unread(msgs, "tavern", "me", "europe", new Set(), Date.parse("2026-10-29T02:00:00Z"))).toBe(0);
   });
 });
+
+import { mergeChat, relevant } from "./chat";
+describe("chat buffers per channel", () => {
+  const m = (id: number, realm: string, rec: string | null = null, snd = "x") => ({ id: `m${String(id).padStart(5, "0")}`, realm, sender_id: snd, sender_seed: "s", recipient_id: rec, body: "", created_at: new Date(1e12 + id * 1000).toISOString() });
+  it("other maps' messages never enter the buffer", () => {
+    expect(relevant(m(1, "asia"), "me", "europe")).toBe(false);
+    expect(relevant(m(1, "asia", "other", "x"), "me", "europe")).toBe(false);
+    expect(relevant(m(1, "asia", "me"), "me", "europe")).toBe(true);
+  });
+  it("a flood of room or foreign messages keeps my room history and my letters", () => {
+    const mine = [m(1, "europe", "me"), m(2, "europe", "peer", "me")];
+    let buf = mergeChat([], [...mine, ...Array.from({ length: 300 }, (_, i) => m(10 + i, "europe"))], "me", "europe");
+    buf = mergeChat(buf, Array.from({ length: 2000 }, (_, i) => m(5000 + i, "asia")), "me", "europe");
+    expect(buf.filter((x) => x.recipient_id === null).length).toBe(300);
+    buf = mergeChat(buf, Array.from({ length: 500 }, (_, i) => m(9000 + i, "europe")), "me", "europe");
+    expect(buf.filter((x) => x.recipient_id === null).length).toBe(300);
+    expect(buf.filter((x) => x.recipient_id !== null).map((x) => x.id)).toEqual(mine.map((x) => x.id));
+  });
+});
