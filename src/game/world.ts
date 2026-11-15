@@ -407,7 +407,8 @@ export const buildTime = (at: number) => Math.min(96, Math.max(1.5, at * 0.06));
 /** Ordinary homes, barns and workshops take a fixed short site phase (growth hours, ≈1.7 real h at base pace):
  * big towns grow slower because houses appear less often, never because each house takes longer. Finish time (birth) is unchanged. */
 export const HOUSE_BUILD = 0.6;
-let buildP = 1, buildAt = 0;
+/** Site progress of one tile evaluation; owned by the caller, never shared module state. */
+type BuildOut = { p: number; at: number };
 /** Homes that may be mirrored so their front turns toward the street (pure, all clients agree). */
 export const MIRROR_KINDS: ReadonlySet<Kind> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "suburb", "barn", "workshop", "stall", "coop"]);
 /**
@@ -608,7 +609,7 @@ export function spokeBends(s: { id: string; x: number; y: number }): Bend[] {
 
 function pathAt(x: number, y: number, s: Seed, age: number, r: number): boolean {
   const dx = x - s.x, dy = y - s.y, d = townDist(x, y, s);
-  if (d < 0.8 || d > r + 0.3) return false;
+  if (d < 0.8 || d > r + 0.5) return false; // same edge as lots/structureAt, so a finished house is never overrun later
   if (!buildable(terrain(x, y))) return false;
   const sn = seedNum(s);
   const a = Math.atan2(dy, dx);
@@ -699,7 +700,7 @@ function barnOfYard(x: number, y: number, s: Seed, age: number, r: number, stage
   }
   return farm;
 }
-function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: number, raw = false): Kind | null {
+function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: number, raw = false, out?: BuildOut): Kind | null {
   const dx = x - s.x, dy = y - s.y, stage = stageOf(age);
   if (dx === 0 && dy === 0) return age < 0.15 ? "campfire" : "well";
   const core = CORE[`${dx},${dy}`];
@@ -715,7 +716,7 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   for (let n = here.length - 1; n >= 0; n--) {
     const l = LANDMARKS[here[n]!]; if (!l) continue;
     if (age < l.at - buildTime(l.at)) continue;
-    if (age < l.at) { buildP = 1 - (l.at - age) / buildTime(l.at); buildAt = l.at; }
+    if (age < l.at && out) { out.p = 1 - (l.at - age) / buildTime(l.at); out.at = l.at; }
     if (l.kind === "watermill" && !waterNearby(x,y)) return "mill";
     return wayLandmark(l.kind, townCharacter(s).main, waterNearby(x, y));
   }
@@ -727,7 +728,7 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   if (stage >= 2 && d < SQUARE_R) return "square";
   const birth = tileBirth(d) * (0.75 + 0.5 * hash(x,y,3));
   if (age < birth - HOUSE_BUILD) return null;
-  if (age < birth) { buildP = 1 - (birth - age) / HOUSE_BUILD; buildAt = birth; }
+  if (age < birth && out) { out.p = 1 - (birth - age) / HOUSE_BUILD; out.at = birth; }
   let near = false;
   for (let j=-1;j<=1 && !near;j++) for (let i=-1;i<=1;i++) if ((i||j) && pathAt(x+i,y+j,s,age,r)) { near=true; break; }
   const h = hash(x,y,4);
@@ -1075,23 +1076,23 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
       const age = effAge(s, seeds, now);
       const r = radiusOf(age);
       if (d > r + 0.5 || d >= bestD) continue;
-      buildP = 1;
-      let k = forSeed(x, y, s, age, r, d);
+      const bo: BuildOut = { p: 1, at: 0 };
+      let k = forSeed(x, y, s, age, r, d, false, bo);
       // watermill displaced by a bridge head moves to its refuge tile on the same shore
       const mr = millRefuge(s, seeds, now);
       if (mr && mr.x === x && mr.y === y && age >= mr.at - buildTime(mr.at)) {
-        buildP = age < mr.at ? 1 - (mr.at - age) / buildTime(mr.at) : 1; buildAt = mr.at; k = "watermill";
+        bo.p = age < mr.at ? 1 - (mr.at - age) / buildTime(mr.at) : 1; bo.at = mr.at; k = "watermill";
       }
-      if (k && buildP < 1 && (FLAT.has(k) || k === "hay" || k === "fence")) continue;
+      if (k && bo.p < 1 && (FLAT.has(k) || k === "hay" || k === "fence")) continue;
       if (k) {
         let doneAt: number | undefined;
-        if (buildP < 1) {
+        if (bo.p < 1) {
           // estimate: remaining growth hours ÷ current growth rate (growth hours per real hour)
           const rate = Math.max(0.05, effAge(s, seeds, now + 3.6e6) - age);
           // the stage being built now (seat1 before townhall on one tile), never the tile's last landmark
-          doneAt = now + ((buildAt - age) / rate) * 3.6e6;
+          doneAt = now + ((bo.at - age) / rate) * 3.6e6;
         }
-        best = { kind: k, seed: s, v: hash(x, y, 5), ...(buildP < 1 ? { build: Math.max(0, buildP), doneAt } : {}) }; bestD = d;
+        best = { kind: k, seed: s, v: hash(x, y, 5), ...(bo.p < 1 ? { build: Math.max(0, bo.p), doneAt } : {}) }; bestD = d;
       }
     }
   }
