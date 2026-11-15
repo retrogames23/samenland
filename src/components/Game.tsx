@@ -1,3 +1,4 @@
+import { allIn, allPages } from "@/lib/fetch-all";
 import { WalkStick } from "./WalkStick";
 import { maxZoom } from "@/game/camera";
 import { personHit } from "@/game/hit";
@@ -465,6 +466,8 @@ export function Game() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [realm, setRealmState] = useState<Realm>("europe");
   const realmRef = useRef<Realm>("europe");
+  // seed ids of the loaded map: every per-village table is read only for these (never world-wide, never cut at 1000 rows)
+  const mapIds = useRef<string[]>([]);
   // swaps the map in place (admin realm switch) — no page reload, no splash
   const loadRealmRef = useRef<((r: Realm) => Promise<void>) | null>(null);
   const [view, setView] = useState({ x: MAP / 2, y: MAP / 2, span: 40 });
@@ -650,7 +653,7 @@ export function Game() {
       const l = data.user?.user_metadata?.["lang"];
       if (typeof l === "string" && (LANGS as string[]).includes(l)) { setLang(l as Lang); localStorage.setItem("samenland-lang", l); }
     });
-    supabase.from("letter_bodies").select("letter_id, body").then(({ data }) => { if (data?.length) setBodies((old) => ({ ...old, ...Object.fromEntries(data.map((b) => [b.letter_id, b.body])) })); });
+    allRows(() => supabase.from("letter_bodies").select("letter_id, body").order("letter_id")).then(({ data }) => { if (data.length) setBodies((old) => ({ ...old, ...Object.fromEntries(data.map((b) => [b.letter_id, b.body])) })); });
   }, [userId]);
   // optional letter by email when a bought building is finished (sent by the scheduled build-mail route)
   const [mailOn, setMailOn] = useState(false);
@@ -728,9 +731,11 @@ export function Game() {
         supabase.auth.startAutoRefresh();
         supabase.auth.getSession().then(({ data }) => { if (data.session) setUserId(data.session.user.id); });
         // decisions made on another device while this tab slept
-        supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").then(({ data }) => { if (data) setEncounters(data); });
-        supabase.from("charters").select("id, seed_id, path, created_at").then(({ data }) => { if (data) setCharters(data); });
-        supabase.from("first_roads").select("id, seed_id, target_id, created_at").then(({ data }) => { if (data) setFirstRoads(data); });
+        if (mapIds.current.length) {
+          mapRows(mapIds.current, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c).order("id")).then(setEncounters);
+          mapRows(mapIds.current, (c) => supabase.from("charters").select("id, seed_id, path, created_at").in("seed_id", c).order("id")).then(setCharters);
+          mapRows(mapIds.current, (c) => supabase.from("first_roads").select("id, seed_id, target_id, created_at").in("seed_id", c).order("id")).then(setFirstRoads);
+        }
       } else supabase.auth.stopAutoRefresh();
     };
     document.addEventListener("visibilitychange", onVis);
@@ -786,27 +791,32 @@ export function Game() {
       setRealmState(r);
       if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
       // charters and roads load together with the seeds, so no settled decision pops up again
-      const [a, b, bl, sg, pu, chq, frq] = await Promise.all([
-        supabase.from("seeds").select("*").eq("realm", r).order("created_at"),
-        supabase.from("plantings").select("*"),
-        supabase.from("blessings").select("id, seed_id, created_at"),
-        supabase.from("signposts").select("id, seed_id, target_id, user_id, message"),
-        supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y"),
-        supabase.from("charters").select("id, seed_id, path, created_at"),
-        supabase.from("first_roads").select("id, seed_id, target_id, created_at"),
-      ]);
+      const a = await allRows(() => supabase.from("seeds").select("*").eq("realm", r).order("created_at").order("id"));
+      const ids = a.data.map((x) => x.id);
+      mapIds.current = ids;
+      const [b, bl, sg, pu, chq, frq] = await Promise.all([
+        mapRows(ids, (c) => supabase.from("plantings").select("*").in("seed_id", c).order("id")),
+        mapRows(ids, (c) => supabase.from("blessings").select("id, seed_id, created_at").in("seed_id", c).order("id")),
+        mapRows(ids, (c) => supabase.from("signposts").select("id, seed_id, target_id, user_id, message").in("seed_id", c).order("id")),
+        mapRows(ids, (c) => supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y").in("seed_id", c).order("id")),
+        mapRows(ids, (c) => supabase.from("charters").select("id, seed_id, path, created_at").in("seed_id", c).order("id")),
+        mapRows(ids, (c) => supabase.from("first_roads").select("id, seed_id, target_id, created_at").in("seed_id", c).order("id")),
+      ]).then((xs) => xs.map((data) => ({ data }))) as unknown as [{ data: Planting[] }, { data: { id: string; seed_id: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; user_id: string; message: string }[] }, { data: { id: string; seed_id: string; item: string; cost: number; created_at: string; x: number | null; y: number | null }[] }, { data: { id: string; seed_id: string; path: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; created_at: string }[] }];
       setCharters(chq.data ?? []);
       setFirstRoads(frq.data ?? []);
-      supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").then(({ data }) => setEncounters(data ?? []));
-      supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").then(({ data }) => setVotes(data ?? []));
-      supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").then(({ data }) => setWorks(data ?? []));
-      supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").then(({ data }) => setGifts((data ?? []) as Gift[]));
+      mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c).order("id")).then(setEncounters);
+      mapRows(ids, (c) => supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").in("seed_id", c).order("id")).then(setVotes);
+      mapRows(ids, (c) => supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").in("seed_id", c).order("id")).then(setWorks);
+      Promise.all([
+        mapRows(ids, (c) => supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").in("to_seed", c).order("id")),
+        mapRows(ids, (c) => supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").in("from_seed", c).order("id")),
+      ]).then(([x, y]) => { const m = new Map([...x, ...y].map((g) => [g.id, g])); setGifts([...m.values()] as Gift[]); });
       supabase.from("letters").select("id, from_seed, to_seed, created_at").gte("created_at", new Date(Date.now() - 60 * 864e5).toISOString()).then(({ data }) => setLetters(data ?? []));
-      supabase.from("letter_bodies").select("letter_id, body").then(({ data }) => setBodies((old) => ({ ...old, ...Object.fromEntries((data ?? []).map((b) => [b.letter_id, b.body])) })));
+      allRows(() => supabase.from("letter_bodies").select("letter_id, body").order("letter_id")).then(({ data }) => setBodies((old) => ({ ...old, ...Object.fromEntries(data.map((b) => [b.letter_id, b.body])) })));
       const ss = (a.data ?? []) as Seed[];
       Promise.all([
-        allRows(() => supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at").order("id")),
-        allRows(() => supabase.from("market_sales").select("id, seed_id, day, reward, created_at").order("id")),
+        mapRows(ids, (c) => supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at").in("seed_id", c).order("id")).then((data) => ({ data })),
+        mapRows(ids, (c) => supabase.from("market_sales").select("id, seed_id, day, reward, created_at").in("seed_id", c).order("id")).then((data) => ({ data })),
         // signed-in only (RLS): guests would just get 401s
         uid ? supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at") : Promise.resolve({ data: [] as { id: string; referrer_seed: string; referee_seed: string; reward: number; created_at: string }[] }),
         uid ? supabase.from("village_visits").select("id, visitor_seed, visited_seed, reward, created_at, last_at") : Promise.resolve({ data: [] as { id: string; visitor_seed: string; visited_seed: string; reward: number; created_at: string; last_at: string | null }[] }),
@@ -1395,8 +1405,7 @@ export function Game() {
     if (error || !data) {
       // already sealed (e.g. on another device): refresh and close instead of a silent dead button
       if (error?.code === "23505") {
-        const { data: all } = await supabase.from("charters").select("id, seed_id, path, created_at");
-        if (all) setCharters(all);
+        setCharters(await mapRows(mapIds.current, (c) => supabase.from("charters").select("id, seed_id, path, created_at").in("seed_id", c).order("id")));
         setCharterOpen(false);
         return;
       }
@@ -1434,7 +1443,7 @@ export function Game() {
     encSaving.current = false;
     if (error || !data) {
       // already answered elsewhere: reload instead of leaving a stale question open
-      supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").then(({ data: rows }) => { if (rows) setEncounters(rows); });
+      mapRows(mapIds.current, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c).order("id")).then(setEncounters);
       if (error?.message?.includes("not enough money")) setEncOpen(true);
       return setMsg(error?.message?.includes("not enough money") ? t.poor : t.enc.fail);
     }
@@ -3564,13 +3573,5 @@ export function Game() {
 }
 
 // The data API returns at most 1000 rows per request — page through growing tables so no claim is ever missed.
-async function allRows<T>(q: () => { range: (a: number, b: number) => PromiseLike<{ data: T[] | null; error: unknown }> }): Promise<{ data: T[] }> {
-  const out: T[] = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await q().range(from, from + 999);
-    if (error || !data) break;
-    out.push(...data);
-    if (data.length < 1000) break;
-  }
-  return { data: out };
-}
+const mapRows = allIn;
+const allRows = async <T,>(q: Parameters<typeof allPages<T>>[0]) => ({ data: await allPages<T>(q) });

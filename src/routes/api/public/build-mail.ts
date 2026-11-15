@@ -25,9 +25,10 @@ export const Route = createFileRoute("/api/public/build-mail")({
         const { data: seeds } = await supabaseAdmin.from("seeds").select("*").in("user_id", opts.map((o) => o.user_id)).neq("realm", "lab");
         if (!seeds?.length) return Response.json({ sent: 0 });
         const ids = seeds.map((s) => s.id);
-        const [{ data: buys }, { data: chs }] = await Promise.all([
-          supabaseAdmin.from("purchases").select("id, seed_id, item, created_at, x, y").in("seed_id", ids),
-          supabaseAdmin.from("charters").select("seed_id, path, created_at").in("seed_id", ids),
+        const { allIn } = await import("@/lib/fetch-all");
+        const [buys, chs] = await Promise.all([
+          allIn(ids, (c) => supabaseAdmin.from("purchases").select("id, seed_id, item, created_at, x, y").in("seed_id", c).order("id")),
+          allIn(ids, (c) => supabaseAdmin.from("charters").select("seed_id, path, created_at").in("seed_id", c).order("seed_id")),
         ]);
 
         const { buildMailDoneAt } = await import("@/game/build-mail");
