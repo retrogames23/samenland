@@ -20,12 +20,13 @@ export const Route = createFileRoute("/api/public/build-mail")({
         const now = Date.now();
         const WINDOW = enqueueWindow(now); // catch-up after outages; outbox key dedupes
 
-        const { data: opts } = (await await (supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient).from("build_mail").select("user_id, lang").eq("enabled", true)) as { data: { user_id: string; lang: string }[] | null };
+        const { allPages, allIn } = await import("@/lib/fetch-all");
+        // user_id is the primary key of build_mail: unique keyset cursor
+        const opts = await allPages<{ user_id: string; lang: string }>(() => (supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient).from("build_mail").select("user_id, lang").eq("enabled", true), "user_id", 1000, "build_mail");
         if (!opts?.length) return Response.json({ sent: 0 });
-        const { data: seeds } = await supabaseAdmin.from("seeds").select("*").in("user_id", opts.map((o) => o.user_id)).neq("realm", "lab");
+        const seeds = await allIn<import("@/integrations/supabase/types").Tables<"seeds">>(opts.map((o) => o.user_id), (c) => supabaseAdmin.from("seeds").select("*").in("user_id", c).neq("realm", "lab"));
         if (!seeds?.length) return Response.json({ sent: 0 });
         const ids = seeds.map((s) => s.id);
-        const { allIn } = await import("@/lib/fetch-all");
         const [buys, chs] = await Promise.all([
           allIn(ids, (c) => supabaseAdmin.from("purchases").select("id, seed_id, item, created_at, x, y").in("seed_id", c)),
           allIn(ids, (c) => supabaseAdmin.from("charters").select("id, seed_id, path, created_at").in("seed_id", c)),

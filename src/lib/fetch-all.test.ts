@@ -49,6 +49,13 @@ describe("fetch-all keyset", () => {
     const q = db(mk(2100)); const got = await allPages<R>(() => q(), "chrono");
     expect(got.map((r) => r.id)).toEqual(mk(2100).map((r) => r.id));
   });
+  it("seeds: >1000 rows with identical created_at page by (created_at, id) without gaps or repeats", async () => {
+    const rows: R[] = Array.from({ length: 2600 }, (_, i) => ({ id: pad(2600 - i), seed: "s", created_at: "2026-01-01T00:00:00Z" }));
+    const got = await allPages<R>(() => db(rows)(), "chrono");
+    expect(got.length).toBe(2600);
+    expect(new Set(got.map((r) => r.id)).size).toBe(2600);
+    expect(got.map((r) => r.id)).toEqual([...rows.map((r) => r.id)].sort());
+  });
   it("an error on a later page fails the whole read", async () => {
     const q = db(mk(2500), { fail: 1 }); await expect(allPages(() => q())).rejects.toThrow();
   });

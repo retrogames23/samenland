@@ -18,12 +18,13 @@ export const Route = createFileRoute("/api/public/chest-mail")({
         const db = supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient;
         const now = Date.now();
 
-        const { data: opts } = (await db.from("chest_mail").select("user_id, lang, last_sent_at").eq("enabled", true)) as { data: { user_id: string; lang: string; last_sent_at: string | null }[] | null };
+        const { allPages, allIn } = await import("@/lib/fetch-all");
+        // user_id is the primary key of chest_mail: unique keyset cursor
+        const opts = await allPages<{ user_id: string; lang: string; last_sent_at: string | null }>(() => db.from("chest_mail").select("user_id, lang, last_sent_at").eq("enabled", true), "user_id", 1000, "chest_mail");
         const due = (opts ?? []).filter((o) => !o.last_sent_at || now - Date.parse(o.last_sent_at) > RESEND);
         if (!due.length) return Response.json({ sent: 0 });
-        const { data: seeds } = await supabaseAdmin.from("seeds").select("id, user_id, name, owner").in("user_id", due.map((o) => o.user_id)).neq("realm", "lab");
+        const seeds = await allIn<{ id: string; user_id: string | null; name: string; owner: string }>(due.map((o) => o.user_id), (c) => supabaseAdmin.from("seeds").select("id, user_id, name, owner").in("user_id", c).neq("realm", "lab"));
         if (!seeds?.length) return Response.json({ sent: 0 });
-        const { allIn } = await import("@/lib/fetch-all");
         const buys = await allIn(seeds.map((s) => s.id), (c) => supabaseAdmin.from("purchases").select("id, seed_id, item, created_at").in("seed_id", c).like("item", "chest%"));
 
         let sent = 0;
