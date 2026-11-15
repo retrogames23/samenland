@@ -10,7 +10,7 @@ const town = (n: number, extra: [string, number][] = [], id = "ex"): Seed => ({ 
   bought: [...extra, ...Array.from({ length: n }, (_, i) => [`exchange${i + 1}`, T + i] as [string, number])]
     .map(([item, t]) => ({ item, at: t, ...(item === "exchange1" ? { x: base.x + 2, y: base.y + 1 } : {}) })) });
 const done = (s: Seed, i: number) => monumentChain(s, "exchange")[i]!.done;
-const merchantsAt = (s: Seed, t: number) => { const u = W.specialTile(s, "exchange"); return townOf(s, [s], t).people.filter((p) => p.job === "merchant" && p.work[0] === u?.[0] && p.work[1] === u?.[1]).length; };
+const merchantsAt = (s: Seed, t: number) => { const u = W.specialTile(s, "exchange"); return townOf(s, [s], t).people.filter((p) => p.job === "merchant" && p.work?.[0] === u?.[0] && p.work?.[1] === u?.[1]).length; };
 
 describe("Schütting: alle Stufen erst nach Fertigstellung", () => {
   it("bloße Bezahlung aktiviert nichts", () => {
@@ -70,7 +70,7 @@ describe("Schütting: alle Stufen erst nach Fertigstellung", () => {
     expect(monumentChain(s, "exchange").map((c) => c.done)).toEqual(monumentChain(s, "exchange").map((c) => c.done));
   });
   it("Prestige 20 und Wohlstandswerke bleiben", () => {
-    expect(PRESTIGE_BONUS.exchange4).toBe(20);
+    expect(PRESTIGE_BONUS["exchange4"]).toBe(20);
     const s = town(4), d = done(s, 3);
     expect(prosperityAt(s, d + 864e5, 100)).toBeGreaterThan(prosperityAt(town(3), d + 864e5, 100));
   });
