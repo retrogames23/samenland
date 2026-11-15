@@ -1,4 +1,4 @@
-import { LoadGate, applySign, mergeRows, onIds } from "@/game/realtime";
+import { LoadGate, applySign, mergeRows, onIds, snapRows } from "@/game/realtime";
 import { allIn, allPages, allEither } from "@/lib/fetch-all";
 import { WalkStick } from "./WalkStick";
 import { maxZoom } from "@/game/camera";
@@ -806,21 +806,26 @@ export function Game() {
       const ids = a.data.map((x) => x.id);
       mapIds.current = ids;
       setMapGen((n) => n + 1);
-      const [b, bl, sg, pu, chq, frq] = await Promise.all([
+      const loadT0 = Date.now() - 60_000;
+      const [[b, bl, sg, pu, chq, frq], encRows, voteRows, workRows] = await Promise.all([Promise.all([
         mapRows(ids, (c) => supabase.from("plantings").select("*").in("seed_id", c)),
         mapRows(ids, (c) => supabase.from("blessings").select("id, seed_id, created_at").in("seed_id", c)),
         mapRows(ids, (c) => supabase.from("signposts").select("id, seed_id, target_id, user_id, message").in("seed_id", c)),
         mapRows(ids, (c) => supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y").in("seed_id", c)),
         mapRows(ids, (c) => supabase.from("charters").select("id, seed_id, path, created_at").in("seed_id", c)),
         mapRows(ids, (c) => supabase.from("first_roads").select("id, seed_id, target_id, created_at").in("seed_id", c)),
-      ]).then((xs) => xs.map((data) => ({ data }))) as unknown as [{ data: Planting[] }, { data: { id: string; seed_id: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; user_id: string; message: string }[] }, { data: { id: string; seed_id: string; item: string; cost: number; created_at: string; x: number | null; y: number | null }[] }, { data: { id: string; seed_id: string; path: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; created_at: string }[] }];
+      ]).then((xs) => xs.map((data) => ({ data }))) as unknown as Promise<[{ data: Planting[] }, { data: { id: string; seed_id: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; user_id: string; message: string }[] }, { data: { id: string; seed_id: string; item: string; cost: number; created_at: string; x: number | null; y: number | null }[] }, { data: { id: string; seed_id: string; path: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; created_at: string }[] }]>,
+        // everything population depends on loads before the first full town is published (no 124-then-189)
+        mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)) as Promise<EncRow[]>,
+        mapRows(ids, (c) => supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").in("seed_id", c)),
+        mapRows(ids, (c) => supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").in("seed_id", c)),
+      ]);
       if (!live()) return;
       const keep = (...xs: (string | null | undefined)[]) => onIds(mapIds.current, ...xs);
-      setCharters((o) => mergeRows(chq.data ?? [], o, (x) => keep(x.seed_id)));
-      setFirstRoads((o) => mergeRows(frq.data ?? [], o, (x) => keep(x.seed_id, x.target_id)));
-      mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)).then((rows) => { if (live()) setEncounters((o) => mergeRows(rows as EncRow[], o, (x) => keep(x.seed_id))); });
-      mapRows(ids, (c) => supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").in("seed_id", c)).then((v) => { if (live()) setVotes(v); });
-      mapRows(ids, (c) => supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").in("seed_id", c)).then((v) => { if (live()) setWorks(v); });
+      setCharters((o) => snapRows(chq.data ?? [], o, (x) => keep(x.seed_id), loadT0));
+      setFirstRoads((o) => snapRows(frq.data ?? [], o, (x) => keep(x.seed_id, x.target_id), loadT0));
+      setEncounters((o) => snapRows(encRows, o, (x) => keep(x.seed_id), loadT0));
+      setVotes(voteRows); setWorks(workRows);
       Promise.all([
         mapRows(ids, (c) => supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").in("to_seed", c)),
         mapRows(ids, (c) => supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").in("from_seed", c)),
@@ -1866,8 +1871,9 @@ export function Game() {
   }, [owner, my?.id, chronRead, seeds, slow]);
   const townsCache = useRef(new Map<string, { k: string; rank: number; parts: ReturnType<typeof speedParts>; citizens: number; homes: number; wares: Ware[] }>());
   const [, setTownsVer] = useState(0);
-  const townsData = `${seeds.length},${encounters.length},${purchases.length},${blessings.length},${firstRoads.length},${charters.length},${votes.length},${works.length},${gifts.length}`;
-  const townsKey = (s: Seed) => `${s.x},${s.y},${s.created_at},${townsData},${townsTick}`;
+  // content fingerprint of every input (decisions, blessings, purchases, roads, twins, gifts) — never mere row counts
+  const townsData = seedsKey(seeds);
+  const townsKey = (s: Seed) => `${s.id}|${townsTick}|${townsData}`;
   useEffect(() => {
     if (tab !== "towns") return;
     let dead = false, timer = 0;
