@@ -805,8 +805,8 @@ export function Game() {
       supabase.from("letter_bodies").select("letter_id, body").then(({ data }) => setBodies((old) => ({ ...old, ...Object.fromEntries((data ?? []).map((b) => [b.letter_id, b.body])) })));
       const ss = (a.data ?? []) as Seed[];
       Promise.all([
-        supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at"),
-        supabase.from("market_sales").select("id, seed_id, day, reward, created_at"),
+        allRows(() => supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at").order("id")),
+        allRows(() => supabase.from("market_sales").select("id, seed_id, day, reward, created_at").order("id")),
         // signed-in only (RLS): guests would just get 401s
         uid ? supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at") : Promise.resolve({ data: [] as { id: string; referrer_seed: string; referee_seed: string; reward: number; created_at: string }[] }),
         uid ? supabase.from("village_visits").select("id, visitor_seed, visited_seed, reward, created_at, last_at") : Promise.resolve({ data: [] as { id: string; visitor_seed: string; visited_seed: string; reward: number; created_at: string; last_at: string | null }[] }),
@@ -3561,4 +3561,16 @@ export function Game() {
       <div ref={tileInfoRef} style={{ display: "none", bottom: "calc(var(--dock-bottom, 0px) + 0.75rem)" }} className="pointer-events-none fixed start-[calc(var(--safe-l,0px)+0.75rem)] z-30 max-w-[min(26rem,80vw)] rounded-md border border-border bg-card/90 px-2.5 py-1 text-xs text-foreground shadow-sm max-md:!bottom-[calc(var(--dock-bottom,0px)+4.5rem)]" />
     </div>
   );
+}
+
+// The data API returns at most 1000 rows per request — page through growing tables so no claim is ever missed.
+async function allRows<T>(q: () => { range: (a: number, b: number) => PromiseLike<{ data: T[] | null; error: unknown }> }): Promise<{ data: T[] }> {
+  const out: T[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await q().range(from, from + 999);
+    if (error || !data) break;
+    out.push(...data);
+    if (data.length < 1000) break;
+  }
+  return { data: out };
 }
