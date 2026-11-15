@@ -45,7 +45,13 @@ describe("Universität: nur fertig gebaute Abschnitte wirken", () => {
     const s = uni(4), d = doneAt(s, 3);
     expect(PRESTIGE_BONUS["university4"]).toBe(15);
     expect(PROSPER_MONUMENTS).toContain("university4");
-    expect(prosperityAt(s, d, 500) - prosperityAt(s, d - 1, 500)).toBeCloseTo(100 * 0.3 * 2 / 20, 9);
+    const H6 = 6 * 3.6e6, base = prosperityAt(town([]), d + H6, 500);
+    // bezahlt, aber noch nicht fertig: keine Zivilwerke
+    expect(prosperityAt(s, d - 1, 500)).toBeCloseTo(prosperityAt(town([]), d - 1, 500), 9);
+    // fertig, aber < 6 h: keine Zivilwerke
+    expect(prosperityAt(s, d + H6 - 1, 500)).toBeCloseTo(prosperityAt(town([]), d + H6 - 1, 500), 9);
+    // fertig und 6 h vergangen: +2 Zivilwerke
+    expect(prosperityAt(s, d + H6, 500) - base).toBeCloseTo(100 * 0.3 * 2 / 20, 9);
     // legacy civic wealth (DB-mirrored) keeps its six-hour maturing from the paid row
     const paid = s.bought!.find((b) => b.item === "university4")!.at;
     expect(civicWealth(s, paid + 6 * 3.6e6) - civicWealth(s, paid + 6 * 3.6e6 - 1)).toBe(15);
