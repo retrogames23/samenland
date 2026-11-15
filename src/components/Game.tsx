@@ -793,7 +793,7 @@ export function Game() {
       setRealmState(r);
       if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
       // charters and roads load together with the seeds, so no settled decision pops up again
-      const a = await allRows(() => supabase.from("seeds").select("*").eq("realm", r).order("created_at"));
+      const a = await allRows(() => supabase.from("seeds").select("*").eq("realm", r), "chrono");
       const ids = a.data.map((x) => x.id);
       mapIds.current = ids;
       setMapGen((n) => n + 1);
@@ -873,6 +873,7 @@ export function Game() {
       loadRealmRef.current = loadRealm;
       await loadRealm(r);
     })();
+    const onMap = (...xs: (string | null | undefined)[]) => xs.some((x) => !!x && mapIds.current.includes(x));
     const ch = supabase
       .channel(`world-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "seeds" }, (p) => {
@@ -880,13 +881,13 @@ export function Game() {
         setSeeds((s) => (s.some((x) => x.id === (p.new as Seed).id) ? s : [...s, p.new as Seed]));
       },
       )
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "plantings" }, (p) =>
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "plantings" }, (p) => onMap((p.new as Planting).seed_id) &&
         setPlantings((s) =>
           s.some((x) => x.id === (p.new as Planting).id) ? s : [...s, p.new as Planting],
         ),
       )
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "purchases" }, (p) => {
-        const n = p.new as Purchase;
+        const n = p.new as Purchase; if (!onMap(n.seed_id)) return;
         setPurchases((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "letters" }, (p) => {
@@ -895,22 +896,22 @@ export function Game() {
         supabase.from("letter_bodies").select("letter_id, body").eq("letter_id", n.id).maybeSingle().then(({ data }) => { if (data) setBodies((b) => ({ ...b, [data.letter_id]: data.body })); });
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "charters" }, (p) => {
-        const n = p.new as { id: string; seed_id: string; path: string; created_at: string };
+        const n = p.new as { id: string; seed_id: string; path: string; created_at: string }; if (!onMap(n.seed_id)) return;
         setCharters((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "encounters" }, (p) => {
-        const n = p.new as EncRow;
+        const n = p.new as EncRow; if (!onMap(n.seed_id)) return;
         setEncounters((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "first_roads" }, (p) => {
-        const n = p.new as { id: string; seed_id: string; target_id: string; created_at: string };
+        const n = p.new as { id: string; seed_id: string; target_id: string; created_at: string }; if (!onMap(n.seed_id, n.target_id)) return;
         setFirstRoads((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "gifts" }, (p) => {
-        const g = p.new as Gift; setGifts((q) => (q.some((x) => x.id === g.id) ? q : [...q, g]));
+        const g = p.new as Gift; if (!onMap(g.from_seed, g.to_seed)) return; setGifts((q) => (q.some((x) => x.id === g.id) ? q : [...q, g]));
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "blessings" }, (p) => {
-        const n = p.new as { id: string; seed_id: string; created_at: string };
+        const n = p.new as { id: string; seed_id: string; created_at: string }; if (!onMap(n.seed_id)) return;
         setBlessings((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "signposts" }, (p) => {
