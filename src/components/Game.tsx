@@ -788,17 +788,21 @@ export function Game() {
         r = openRealm(r, (q) => counts.get(q) ?? 0);
       }
       const loadRealm = async (r: Realm) => {
+      // a newer map load supersedes this one: after that, this load must not touch any state
+      const epoch = rtGate.current.begin();
+      const live = () => rtGate.current.isCurrent(epoch);
+      try {
       if (!uid) uid = (await supabase.auth.getSession()).data.session?.user.id ?? null;
+      if (!live()) return;
       setRealm(r);
       // a chronicle belongs to one village: never leave it open over another map
       if (realmRef.current !== r) { setChronOpen(false); setChron(null); setChronBanner(false); chronDone.current = null; }
       realmRef.current = r;
       setRealmState(r);
-      const epoch = rtGate.current.begin();
-      try {
       if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
       // charters and roads load together with the seeds, so no settled decision pops up again
       const a = await allRows(() => supabase.from("seeds").select("*").eq("realm", r), "chrono");
+      if (!live()) return;
       const ids = a.data.map((x) => x.id);
       mapIds.current = ids;
       setMapGen((n) => n + 1);
@@ -810,24 +814,25 @@ export function Game() {
         mapRows(ids, (c) => supabase.from("charters").select("id, seed_id, path, created_at").in("seed_id", c)),
         mapRows(ids, (c) => supabase.from("first_roads").select("id, seed_id, target_id, created_at").in("seed_id", c)),
       ]).then((xs) => xs.map((data) => ({ data }))) as unknown as [{ data: Planting[] }, { data: { id: string; seed_id: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; user_id: string; message: string }[] }, { data: { id: string; seed_id: string; item: string; cost: number; created_at: string; x: number | null; y: number | null }[] }, { data: { id: string; seed_id: string; path: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; created_at: string }[] }];
+      if (!live()) return;
       const keep = (...xs: (string | null | undefined)[]) => onIds(mapIds.current, ...xs);
       setCharters((o) => mergeRows(chq.data ?? [], o, (x) => keep(x.seed_id)));
       setFirstRoads((o) => mergeRows(frq.data ?? [], o, (x) => keep(x.seed_id, x.target_id)));
-      mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)).then((rows) => { if (realmRef.current === r) setEncounters((o) => mergeRows(rows as EncRow[], o, (x) => keep(x.seed_id))); });
-      mapRows(ids, (c) => supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").in("seed_id", c)).then(setVotes);
-      mapRows(ids, (c) => supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").in("seed_id", c)).then(setWorks);
+      mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)).then((rows) => { if (live()) setEncounters((o) => mergeRows(rows as EncRow[], o, (x) => keep(x.seed_id))); });
+      mapRows(ids, (c) => supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").in("seed_id", c)).then((v) => { if (live()) setVotes(v); });
+      mapRows(ids, (c) => supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").in("seed_id", c)).then((v) => { if (live()) setWorks(v); });
       Promise.all([
         mapRows(ids, (c) => supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").in("to_seed", c)),
         mapRows(ids, (c) => supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").in("from_seed", c)),
-      ]).then(([x, y]) => { const m = new Map([...x, ...y].map((g) => [g.id, g])); if (realmRef.current === r) setGifts((o) => mergeRows([...m.values()] as Gift[], o, (g) => keep(g.from_seed, g.to_seed))); });
+      ]).then(([x, y]) => { const m = new Map([...x, ...y].map((g) => [g.id, g])); if (live()) setGifts((o) => mergeRows([...m.values()] as Gift[], o, (g) => keep(g.from_seed, g.to_seed))); });
       // letters touching this map (last 60 days) and only their bodies (RLS: sender/recipient)
       setLetters([]); setBodies({});
       { const since = new Date(Date.now() - 60 * 864e5).toISOString();
         allEither<LetterRow>(ids, ["from_seed", "to_seed"], (col, c) => supabase.from("letters").select("id, from_seed, to_seed, created_at").gte("created_at", since).in(col, c)).then(async (ls) => {
-          if (realmRef.current !== r) return;
+          if (!live()) return;
           setLetters((o) => mergeRows(ls, o, (l) => keep(l.from_seed, l.to_seed)));
           const bs = uid ? await mapRows<{ letter_id: string; body: string }>(ls.map((l) => l.id), (c) => supabase.from("letter_bodies").select("letter_id, body").in("letter_id", c), "letter_id") : [];
-          if (realmRef.current === r) setBodies((old) => ({ ...old, ...Object.fromEntries(bs.map((b) => [b.letter_id, b.body])) }));
+          if (live()) setBodies((old) => ({ ...old, ...Object.fromEntries(bs.map((b) => [b.letter_id, b.body])) }));
         }); }
       const ss = (a.data ?? []) as Seed[];
       Promise.all([
@@ -840,9 +845,10 @@ export function Game() {
         allRows<unknown>(() => supabase.from("wonder_finds").select("id, seed_id, site, realm, first, reward, created_at").eq("realm", r)),
         mapRows<unknown>(ids, (c) => supabase.from("princely_tasks").select("id, seed_id, step, task, reward, accepted_at, done_at").in("seed_id", c)).then((data) => ({ data })),
       ]).then(([q, m, rf, vv, wf, pt]) => {
+        if (!live()) return;
         princelyRows.current = (pt.data ?? []) as PrincelyRow[]; setHeraldRows(princelyRows.current); bumpPrince((n) => n + 1);
         loadErrands();
-        mapRows<{ seed_id: string }>(ids, (c) => supabase.from("knighthoods").select("seed_id").in("seed_id", c), "seed_id").then((data) => { knights.current = new Set(data.map((k) => k.seed_id)); });
+        mapRows<{ seed_id: string }>(ids, (c) => supabase.from("knighthoods").select("seed_id").in("seed_id", c), "seed_id").then((data) => { if (live()) knights.current = new Set(data.map((k) => k.seed_id)); });
         // only this player's own visits mark a town as seen — other players' visits must not block the welcome gift
         // (repeat visits are still reported once per session: they count for the prince's "visit" decree, never a second gift)
         // repeat visits persist as last_at — keep them after reload so the "visit" decree stays met (mirrors princely_task_met)
