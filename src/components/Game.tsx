@@ -1,3 +1,4 @@
+import { LoadGate, applySign, mergeRows, onIds } from "@/game/realtime";
 import { allIn, allPages, allEither } from "@/lib/fetch-all";
 import { WalkStick } from "./WalkStick";
 import { maxZoom } from "@/game/camera";
@@ -470,6 +471,8 @@ export function Game() {
   const realmRef = useRef<Realm>("europe");
   // seed ids of the loaded map: every per-village table is read only for these (never world-wide, never cut at 1000 rows)
   const mapIds = useRef<string[]>([]);
+  // holds realtime events while a map loads (see game/realtime.ts)
+  const rtGate = useRef(new LoadGate());
   // swaps the map in place (admin realm switch) — no page reload, no splash
   const loadRealmRef = useRef<((r: Realm) => Promise<void>) | null>(null);
   const [view, setView] = useState({ x: MAP / 2, y: MAP / 2, span: 40 });
@@ -791,6 +794,8 @@ export function Game() {
       if (realmRef.current !== r) { setChronOpen(false); setChron(null); setChronBanner(false); chronDone.current = null; }
       realmRef.current = r;
       setRealmState(r);
+      const epoch = rtGate.current.begin();
+      try {
       if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
       // charters and roads load together with the seeds, so no settled decision pops up again
       const a = await allRows(() => supabase.from("seeds").select("*").eq("realm", r), "chrono");
@@ -805,21 +810,22 @@ export function Game() {
         mapRows(ids, (c) => supabase.from("charters").select("id, seed_id, path, created_at").in("seed_id", c)),
         mapRows(ids, (c) => supabase.from("first_roads").select("id, seed_id, target_id, created_at").in("seed_id", c)),
       ]).then((xs) => xs.map((data) => ({ data }))) as unknown as [{ data: Planting[] }, { data: { id: string; seed_id: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; user_id: string; message: string }[] }, { data: { id: string; seed_id: string; item: string; cost: number; created_at: string; x: number | null; y: number | null }[] }, { data: { id: string; seed_id: string; path: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; created_at: string }[] }];
-      setCharters(chq.data ?? []);
-      setFirstRoads(frq.data ?? []);
-      mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)).then(setEncounters);
+      const keep = (...xs: (string | null | undefined)[]) => onIds(mapIds.current, ...xs);
+      setCharters((o) => mergeRows(chq.data ?? [], o, (x) => keep(x.seed_id)));
+      setFirstRoads((o) => mergeRows(frq.data ?? [], o, (x) => keep(x.seed_id, x.target_id)));
+      mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)).then((rows) => { if (realmRef.current === r) setEncounters((o) => mergeRows(rows as EncRow[], o, (x) => keep(x.seed_id))); });
       mapRows(ids, (c) => supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").in("seed_id", c)).then(setVotes);
       mapRows(ids, (c) => supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").in("seed_id", c)).then(setWorks);
       Promise.all([
         mapRows(ids, (c) => supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").in("to_seed", c)),
         mapRows(ids, (c) => supabase.from("gifts").select("id, from_seed, to_seed, kind, amount, note, created_at").in("from_seed", c)),
-      ]).then(([x, y]) => { const m = new Map([...x, ...y].map((g) => [g.id, g])); setGifts([...m.values()] as Gift[]); });
+      ]).then(([x, y]) => { const m = new Map([...x, ...y].map((g) => [g.id, g])); if (realmRef.current === r) setGifts((o) => mergeRows([...m.values()] as Gift[], o, (g) => keep(g.from_seed, g.to_seed))); });
       // letters touching this map (last 60 days) and only their bodies (RLS: sender/recipient)
       setLetters([]); setBodies({});
       { const since = new Date(Date.now() - 60 * 864e5).toISOString();
         allEither<LetterRow>(ids, ["from_seed", "to_seed"], (col, c) => supabase.from("letters").select("id, from_seed, to_seed, created_at").gte("created_at", since).in(col, c)).then(async (ls) => {
           if (realmRef.current !== r) return;
-          setLetters(ls);
+          setLetters((o) => mergeRows(ls, o, (l) => keep(l.from_seed, l.to_seed)));
           const bs = uid ? await mapRows<{ letter_id: string; body: string }>(ls.map((l) => l.id), (c) => supabase.from("letter_bodies").select("letter_id, body").in("letter_id", c), "letter_id") : [];
           if (realmRef.current === r) setBodies((old) => ({ ...old, ...Object.fromEntries(bs.map((b) => [b.letter_id, b.body])) }));
         }); }
@@ -855,11 +861,11 @@ export function Game() {
           localStorage.setItem("samenland-ref-seen", String(got.length));
         }
       });
-      setBlessings(bl.data ?? []);
-      setPurchases(pu.data ?? []);
-      setSigns((sg.data ?? []) as Signpost[]);
-      setSeeds(ss);
-      setPlantings((b.data ?? []) as Planting[]);
+      setBlessings((o) => mergeRows(bl.data ?? [], o, (x) => keep(x.seed_id)));
+      setPurchases((o) => mergeRows(pu.data ?? [], o, (x) => keep(x.seed_id)));
+      setSigns((o) => mergeRows((sg.data ?? []) as Signpost[], o, (x) => keep(x.seed_id)));
+      setSeeds((o) => mergeRows(ss, o, (x) => x.realm === r));
+      setPlantings((o) => mergeRows((b.data ?? []) as Planting[], o, (x) => keep(x.seed_id)));
       // visitors without a village first see the oldest (most grown) town of this map
       const oldest = [...ss].sort((p, q) => Date.parse(p.created_at) - Date.parse(q.created_at))[0];
       const own = ss.find((s) => uid && s.user_id === uid);
@@ -869,56 +875,56 @@ export function Game() {
       else focus(MAP / 2, MAP / 2);
       if (!own && friend) setMsg(tRef.current.invite.welcome(friend.name));
       refSeed = null; // the welcome is only for the first map
+      } finally { rtGate.current.end(epoch); }
       };
       loadRealmRef.current = loadRealm;
       await loadRealm(r);
     })();
-    const onMap = (...xs: (string | null | undefined)[]) => xs.some((x) => !!x && mapIds.current.includes(x));
+    const onMap = (...xs: (string | null | undefined)[]) => onIds(mapIds.current, ...xs);
+    // events arriving while a map loads are held, then judged against the new map's ids
+    const held = (fn: (p: any) => void) => (p: any) => rtGate.current.run(() => fn(p)); // eslint-disable-line @typescript-eslint/no-explicit-any
     const ch = supabase
       .channel(`world-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "seeds" }, (p) => {
-        if ((p.new as { realm?: string }).realm !== realmRef.current) return;
-        setSeeds((s) => (s.some((x) => x.id === (p.new as Seed).id) ? s : [...s, p.new as Seed]));
-      },
-      )
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "plantings" }, (p) => onMap((p.new as Planting).seed_id) &&
-        setPlantings((s) =>
-          s.some((x) => x.id === (p.new as Planting).id) ? s : [...s, p.new as Planting],
-        ),
-      )
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "purchases" }, (p) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "seeds" }, held((p) => {
+        const n = p.new as Seed; if ((n as { realm?: string }).realm !== realmRef.current) return;
+        if (!mapIds.current.includes(n.id)) mapIds.current = [...mapIds.current, n.id];
+        setSeeds((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+      }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "plantings" }, held((p) => {
+        const n = p.new as Planting; if (!onMap(n.seed_id)) return;
+        setPlantings((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+      }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "purchases" }, held((p) => {
         const n = p.new as Purchase; if (!onMap(n.seed_id)) return;
         setPurchases((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "letters" }, (p) => {
-        const n = p.new as LetterRow;
+      }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "letters" }, held((p) => {
+        const n = p.new as LetterRow; if (!onMap(n.from_seed, n.to_seed)) return;
         setLetters((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
         supabase.from("letter_bodies").select("letter_id, body").eq("letter_id", n.id).maybeSingle().then(({ data }) => { if (data) setBodies((b) => ({ ...b, [data.letter_id]: data.body })); });
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "charters" }, (p) => {
+      }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "charters" }, held((p) => {
         const n = p.new as { id: string; seed_id: string; path: string; created_at: string }; if (!onMap(n.seed_id)) return;
         setCharters((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "encounters" }, (p) => {
+      }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "encounters" }, held((p) => {
         const n = p.new as EncRow; if (!onMap(n.seed_id)) return;
         setEncounters((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "first_roads" }, (p) => {
+      }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "first_roads" }, held((p) => {
         const n = p.new as { id: string; seed_id: string; target_id: string; created_at: string }; if (!onMap(n.seed_id, n.target_id)) return;
         setFirstRoads((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "gifts" }, (p) => {
+      }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "gifts" }, held((p) => {
         const g = p.new as Gift; if (!onMap(g.from_seed, g.to_seed)) return; setGifts((q) => (q.some((x) => x.id === g.id) ? q : [...q, g]));
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "blessings" }, (p) => {
+      }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "blessings" }, held((p) => {
         const n = p.new as { id: string; seed_id: string; created_at: string }; if (!onMap(n.seed_id)) return;
         setBlessings((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "signposts" }, (p) => {
-        if (p.eventType === "DELETE") return setSigns((s) => s.filter((x) => x.id !== (p.old as Signpost).id));
-        const n = p.new as Signpost;
-        setSigns((s) => [...s.filter((x) => x.id !== n.id), n]);
-      })
+      }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "signposts" }, held((p) => {
+        setSigns((s) => applySign(s, p, mapIds.current));
+      }))
       .subscribe();
     const iv = setInterval(() => tick((n) => n + 1), isLab() && LAB_SPEED > 1 ? 2000 : 30000);
     return () => {
