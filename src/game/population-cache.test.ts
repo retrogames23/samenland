@@ -47,9 +47,9 @@ describe("population cache chain", () => {
   });
   it("E: twin pact / joint work changed at equal count", async () => {
     const v = (pact: "trade" | "culture", at: number) => [{ partner: "nb", pact, at }];
-    const w = (work: "bridge" | "fair", at: number) => [{ partner: "nb", work, cost: 100, at }];
+    const w = (work: "bridge" | "hall", at: number) => [{ partner: "nb", work, cost: 100, at }];
     const a = [base({ votes: v("trade", NOW - 200 * H), works: w("bridge", NOW - 150 * H) as NonNullable<Seed["works"]> }), nb({ votes: [{ partner: "dk", pact: "trade", at: NOW - 199 * H }] })];
-    const b = [base({ votes: v("culture", NOW - 100 * H), works: w("fair", NOW - 120 * H) as NonNullable<Seed["works"]> }), nb({ votes: [{ partner: "dk", pact: "trade", at: NOW - 199 * H }] })];
+    const b = [base({ votes: v("culture", NOW - 100 * H), works: w("hall", NOW - 120 * H) as NonNullable<Seed["works"]> }), nb({ votes: [{ partner: "dk", pact: "trade", at: NOW - 199 * H }] })];
     const { sb, fb } = await cachedVsFresh(a as Seed[], b as Seed[]);
     expect(sb).toEqual(fb);
   });
@@ -74,20 +74,71 @@ describe("population cache chain", () => {
     const s = await fresh([base({ decisions: DEC }), nb()]);
     expect(s.citizens).toBe(s.rank);
   });
-  it("J: an older realm's seeds never leak into the current realm's results", async () => {
-    vi.resetModules(); const m = await load();
+  it("J: a late result of realm A, arriving while B loads, is dropped and B stays exact", async () => {
+    vi.resetModules(); const m = await load(); const { LoadGate } = await import("./realtime");
+    const gate = new LoadGate(); let state: Seed[] = [];
     const realmA = [base({ decisions: DEC }), nb()], realmB = [base(), nb()];
-    snap(m, realmB); snap(m, realmA); // late result of A computed after B
-    expect(snap(m, realmB)).toEqual(await fresh(realmB));
+    let releaseA!: () => void; const slowA = new Promise<void>((r) => { releaseA = r; });
+    const loadRealm = async (rows: Seed[], wait?: Promise<void>) => { const e = gate.begin(); if (wait) await wait; gate.end(e, () => { state = rows; }); };
+    const a = loadRealm(realmA, slowA); const b = loadRealm(realmB);
+    await b; snap(m, state); releaseA(); await a;
+    expect(state).toBe(realmB);
+    expect(snap(m, state)).toEqual(await fresh(realmB));
+  });
+  it("links() cache reacts to user_id with identical roads", async () => {
+    vi.resetModules(); const w = await import("./world");
+    const pair = (u?: string) => [base({ user_id: u }), nb({ user_id: u })] as Seed[];
+    expect(w.roadGate(pair()[0]!, pair()[1]!)).toBe(-Infinity);
+    expect(w.roadGate(pair("u")[0]!, pair("u")[1]!)).toBeNull();
+    const sample = w.links(pair()).length, owned = w.links(pair("u")).length;
+    expect(sample).toBeGreaterThan(0);
+    expect(owned).toBe(0);
+    expect(w.links(pair()).length).toBe(sample);
   });
 });
 
 describe("snapshot replace", () => {
-  it("drops map rows missing from a fresh snapshot, keeps rows inserted during the load and other maps' rows out", async () => {
+  it("a full snapshot replaces the map's rows; no old local row survives, foreign rows drop", async () => {
     const { snapRows } = await import("./realtime");
-    const ids = ["a"], keep = (r: { seed_id: string }) => ids.includes(r.seed_id);
-    const old = [{ id: "1", seed_id: "a", created_at: "2026-11-01T00:00:00Z" }, { id: "2", seed_id: "a", created_at: "2026-11-15T12:00:00Z" }, { id: "3", seed_id: "x", created_at: "2026-11-15T12:00:00Z" }];
-    const out = snapRows([{ id: "4", seed_id: "a", created_at: "2026-11-10T00:00:00Z" }], old, keep, Date.parse("2026-11-15T11:59:00Z"));
-    expect(out.map((r) => r.id).sort()).toEqual(["2", "4"]);
+    const keep = (r: { seed_id: string }) => r.seed_id === "a";
+    const out = snapRows([{ id: "4", seed_id: "a" }, { id: "5", seed_id: "x" }], keep);
+    expect(out.map((r) => r.id)).toEqual(["4"]);
+  });
+});
+
+describe("refreshMap (tab wake-up)", () => {
+  type Row = { id: string; seed_id: string };
+  const setup = async () => {
+    const { LoadGate, refreshMap, snapRows } = await import("./realtime");
+    const gate = new LoadGate(); const st = { enc: [] as Row[], votes: [] as Row[], works: [] as Row[] };
+    const insert = (r: Row) => gate.run(() => { if (!st.enc.some((x) => x.id === r.id)) st.enc = [...st.enc, r]; });
+    let ids = ["a"];
+    const refresh = (data: { enc: Row[]; votes: Row[]; works: Row[] }, wait?: Promise<void>) => refreshMap(gate, async () => { await wait; return data; },
+      (d) => { const k = (x: Row) => ids.includes(x.seed_id); st.enc = snapRows(d.enc, k); st.votes = snapRows(d.votes, k); st.works = snapRows(d.works, k); });
+    return { gate, st, insert, refresh, setIds: (x: string[]) => { ids = x; } };
+  };
+  it("applies a refresh without realm switch, votes and works included, deleted rows gone", async () => {
+    const t = await setup(); t.st.enc = [{ id: "old", seed_id: "a" }];
+    expect(await t.refresh({ enc: [{ id: "e1", seed_id: "a" }], votes: [{ id: "v1", seed_id: "a" }], works: [{ id: "w1", seed_id: "a" }] })).toBe(true);
+    expect(t.st).toEqual({ enc: [{ id: "e1", seed_id: "a" }], votes: [{ id: "v1", seed_id: "a" }], works: [{ id: "w1", seed_id: "a" }] });
+  });
+  it("drops a late answer after a realm switch", async () => {
+    const t = await setup(); let rel!: () => void; const wait = new Promise<void>((r) => { rel = r; });
+    const p = t.refresh({ enc: [{ id: "A", seed_id: "a" }], votes: [], works: [] }, wait);
+    const e = t.gate.begin(); t.setIds(["b"]); t.gate.end(e, () => { t.st.enc = [{ id: "B", seed_id: "b" }]; });
+    rel(); expect(await p).toBe(false);
+    expect(t.st.enc).toEqual([{ id: "B", seed_id: "b" }]);
+  });
+  it("keeps realtime inserts that arrive during the refresh", async () => {
+    const t = await setup(); let rel!: () => void; const wait = new Promise<void>((r) => { rel = r; });
+    const p = t.refresh({ enc: [{ id: "e1", seed_id: "a" }], votes: [], works: [] }, wait);
+    t.insert({ id: "rt", seed_id: "a" }); expect(t.st.enc).toEqual([]);
+    rel(); await p;
+    expect(t.st.enc.map((r) => r.id)).toEqual(["e1", "rt"]);
+  });
+  it("is skipped while a map load runs", async () => {
+    const t = await setup(); t.gate.begin();
+    expect(await t.refresh({ enc: [{ id: "x", seed_id: "a" }], votes: [], works: [] })).toBe(false);
+    expect(t.st.enc).toEqual([]);
   });
 });
