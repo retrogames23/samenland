@@ -847,7 +847,7 @@ export function Game() {
       ]).then(([q, m, rf, vv, wf, pt]) => {
         if (!live()) return;
         princelyRows.current = (pt.data ?? []) as PrincelyRow[]; setHeraldRows(princelyRows.current); bumpPrince((n) => n + 1);
-        loadErrands();
+        loadErrands(epoch);
         mapRows<{ seed_id: string }>(ids, (c) => supabase.from("knighthoods").select("seed_id").in("seed_id", c), "seed_id").then((data) => { if (live()) knights.current = new Set(data.map((k) => k.seed_id)); });
         // only this player's own visits mark a town as seen — other players' visits must not block the welcome gift
         // (repeat visits are still reported once per session: they count for the prince's "visit" decree, never a second gift)
@@ -907,7 +907,8 @@ export function Game() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "letters" }, held((p) => {
         const n = p.new as LetterRow; if (!onMap(n.from_seed, n.to_seed)) return;
         setLetters((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
-        supabase.from("letter_bodies").select("letter_id, body").eq("letter_id", n.id).maybeSingle().then(({ data }) => { if (data) setBodies((b) => ({ ...b, [data.letter_id]: data.body })); });
+        const e = rtGate.current.epochNow;
+        supabase.from("letter_bodies").select("letter_id, body").eq("letter_id", n.id).maybeSingle().then(({ data }) => { if (data && rtGate.current.isCurrent(e) && onMap(n.from_seed, n.to_seed)) setBodies((b) => ({ ...b, [data.letter_id]: data.body })); });
       }))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "charters" }, held((p) => {
         const n = p.new as { id: string; seed_id: string; path: string; created_at: string }; if (!onMap(n.seed_id)) return;
@@ -1620,9 +1621,10 @@ export function Game() {
   const [errandNote, setErrandNote] = useState<string | null>(null);
   const [, bumpErrand] = useState(0);
   const courtTask = (seedId: string) => { const o = openTaskOf(princelyRows.current, seedId); return o && o.task === "court" ? o : null; };
-  const loadErrands = () => {
+  // epoch of the map load that asked: a superseded load never writes late errands
+  const loadErrands = (epoch: number) => {
     mapRows<{ task_id: string; errand: string }>(mapIds.current, (c) => supabase.from("princely_errands").select("id, task_id, errand").in("seed_id", c))
-      .then((data) => { errandDone.current = data; errNear.current = null; bumpErrand((n) => n + 1); });
+      .then((data) => { if (!rtGate.current.isCurrent(epoch)) return; errandDone.current = data; errNear.current = null; bumpErrand((n) => n + 1); });
   };
   const doErrand = async (seedId: string, e: Errand) => {
     const P = PRINCELY[lang], ct = courtTask(seedId);
