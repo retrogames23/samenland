@@ -87,7 +87,7 @@ describe("population cache chain", () => {
   });
   it("links() cache reacts to user_id with identical roads", async () => {
     vi.resetModules(); const w = await import("./world");
-    const pair = (u?: string) => [base({ user_id: u }), nb({ user_id: u })] as Seed[];
+    const pair = (u: string | null = null) => [base({ user_id: u }), nb({ user_id: u })] as Seed[];
     expect(w.roadGate(pair()[0]!, pair()[1]!)).toBe(-Infinity);
     expect(w.roadGate(pair("u")[0]!, pair("u")[1]!)).toBeNull();
     const sample = w.links(pair()).length, owned = w.links(pair("u")).length;
