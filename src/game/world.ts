@@ -743,7 +743,8 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   if (stage <= 2) {
     const k = yardKind(x, y, s, age, r, stage);
     // Hofstelle: a barn only stands beside a farmhouse it belongs to, never two barns side by side
-    if (k === "barn" && !barnOfYard(x, y, s, age, r, stage)) return stage <= 1 ? "farmhouse" : "cottage";
+    // decided once at the lot's own birth (radius only grows), so a finished yard never flips between barn and house
+    if (k === "barn" && !barnOfYard(x, y, s, birth, radiusOf(birth), stage)) return stage <= 1 ? "farmhouse" : "cottage";
     return k;
   }
   // Stable sectors form residential, craft and market districts.
