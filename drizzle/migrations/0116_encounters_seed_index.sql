@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS encounters_seed_idx ON public.encounters (seed_id, created_at, id);
