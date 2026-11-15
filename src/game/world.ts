@@ -871,6 +871,16 @@ export const schuettingDone = (s: Seed, now: number) => {
   try { return stepsDone(s, "exchange", now); } finally { exBusy.delete(s.id); }
 };
 export const exchangeMerchants = (s: Seed, now: number) => { const n = schuettingDone(s, now); return n >= 4 ? 3 : n >= 2 ? 2 : 0; };
+/** Artushof: finished steps only; operaBusy breaks effAge → trade → operaDone → stepsDone → sawmillUp → effAge (0 while busy, so the site never speeds itself up). */
+const operaBusy = new Set<string>();
+export const operaDone = (s: Seed, now: number) => {
+  if (operaBusy.has(s.id) || !(s.bought ?? []).some((b) => b.at <= now && monumentOf(b.item) === "opera")) return 0;
+  operaBusy.add(s.id);
+  try { return stepsDone(s, "opera", now); } finally { operaBusy.delete(s.id); }
+};
+/** Artushof: step 3 doubles WAY_COMPLEMENT and lifts the ceiling +0.03 (max 0.63), step 4 +0.05 (max 0.65). */
+export const OPERA_WAY = 0.1, OPERA_CEIL = [0, 0, 0, 0.03, 0.05] as const, OPERA_CEIL_MAX = [0.6, 0.6, 0.6, 0.63, 0.65] as const;
+export const operaMerchants = (s: Seed, now: number) => (operaDone(s, now) >= 2 ? 2 : 0);
 export const transitShare = (s: Seed, now: number) => { const n = schuettingDone(s, now); return n >= 4 ? 0.85 : n >= 2 ? 0.8 : TRANSIT_SHARE; };
 /** Erntedankhalle step 1 (physically finished): counts as one more supply building for the care gate only —
  *  never foodCapacity, production or stock. */
@@ -1413,9 +1423,10 @@ export const complement = (a: Seed, b: Seed) => COMPLEMENT_MIN + (COMPLEMENT_MAX
 /** Trade factor town `s` gets from a road to `o`: complement, +15 % with a Hansekontor era (Handelsstadt+, real age); trade charter lifts the cap. */
 export function tradeFactor(s: Seed, o: Seed, now: number) {
   let f = complement(s, o);
-  if (townCharacter(s).main !== townCharacter(o).main) f += WAY_COMPLEMENT;
+  const od = operaDone(s, now);
+  if (townCharacter(s).main !== townCharacter(o).main) f += WAY_COMPLEMENT + (od >= 3 ? OPERA_WAY : 0);
   if (stageOf(ageHours(s, now)) >= 4) f += KONTOR_BONUS;
-  if (stepsPaid(s, "opera", now) >= 4) f += OPERA_TRADE;
+  if (od >= 4) f += OPERA_TRADE;
   const cap = s.charter?.path === "trade" && now > s.charter.at ? 1.75 : COMPLEMENT_MAX;
   return Math.min(cap, f);
 }
@@ -1491,7 +1502,9 @@ export function tradeCapOf(s: Seed, now: number) {
   if ((s.bought ?? []).some((b) => b.item === "markethall" && b.at <= now)) c += CEIL_MARKET;
   c += LIGHTHOUSE_CEIL[Math.min(3, lighthouseDone(s, now))]!;
   if (schuettingDone(s, now) >= 3) c += EXCHANGE_CEIL;
-  return Math.min(TRADE_CEIL_MAX, c);
+  const od = Math.min(4, operaDone(s, now));
+  c += OPERA_CEIL[od]!;
+  return Math.min(OPERA_CEIL_MAX[od]!, c);
 }
 /** Effective trade for a raw trade value: unchanged up to TRADE_CAP, then rising ever more slowly towards `cap`. */
 export function softTrade(raw: number, cap: number) {

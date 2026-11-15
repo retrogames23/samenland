@@ -146,7 +146,7 @@ export const es: Dict = {
     guildtower1: ["Torre gremial", "Solo para el taller de las colinas. 3 fases. Cada fase terminada acorta las obras posteriores (5 / 10 / 15 %), nunca la propia. Completo: +2 obras cívicas para la prosperidad, +10 salud"],
     lighthouse1: ["Faro", "Solo para la puerta al mundo. 3 fases, cada una actúa al terminarse. Fase 1: en invierno los pescadores capturan el 80 % en vez del 50 % (con pesquería) y la torre cuenta como edificio de abasto para el siguiente rango. Fase 2: todos los caminos comerciales propios cuentan solo la mitad más allá de 40 casillas. Fase 3: comercio de tránsito por la costa +20 %, límite comercial +0,05. Terminado: +2 obras cívicas para la prosperidad, +10 comida, +5 salud"],
     orangery1: ["Klostergarten", "Obra de prestigio en 3 fases. Terminada: +15 salud, +10 prosperidad, +5 comida"],
-    opera1: ["Corte de Artús", "Obra de prestigio en 4 fases. Terminada: +25 prosperidad"],
+    opera1: ["Corte de Artús", "Obra de prestigio en 4 fases; cada una actúa solo cuando está construida. 1 – bodega abovedada: solo avance de obra, 2 – sala de ladrillo: dos mercaderes, 3 – bóveda estrellada: comercio más fuerte con villas de otro camino, límite comercial +0,03, 4 – primer banquete: bono comercial extra, límite comercial +0,05 en total. Terminada: +2 obras cívicas para la prosperidad"],
     backhaus: ["Horno comunal", "Desde aldea: 10 % menos grano, +5 salud, día de horneado en el horno comunal"],
     herberge: ["Albergue de oficiales", "Desde aldea: edificios comprados un 15 % más rápido, +5 prosperidad"],
     badestube: ["Casa de baños", "Desde aldea: +10 salud, +5 prosperidad, baño los sábados"],
