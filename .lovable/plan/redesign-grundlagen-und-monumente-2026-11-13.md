@@ -351,3 +351,10 @@ Simulationsausgabe ab sofort zusätzlich (nur künftige Läufe): physische Wohnh
 - Stufe 1 Gewölbekeller: ohne Wirkung (kein Lager). Stufe 2 Arkadenhalle: 2 Händler, Transit 0,80. Stufe 3 Staffelgiebel: Handelsobergrenze +0,05 (max. 0,60, nur über softTrade). Stufe 4 Wetterfahne: 3. Händler (gesamt 3), Transit 0,85; Prestige +20 nach 6 h und +2 Werke unverändert.
 - Ergänzende Standorte grain-free, workshop-tight, gateway-trap: in der bestehenden Simulation sind die Nachbarn isoliert (nb1/nb2 ohne Weiterverbindung), daher entstehen dort wie an den übrigen sechs Standorten keine Transitrouten; Transitwirkung 0,00. Die Cap-Erhöhung greift nur, wenn Rohhandel über TRADE_CAP 0,35 liegt; ob das an diesen drei Standorten erreicht wird, ist ohne Vergleichslauf nicht belegt. Abgeleitet aus derselben Berechnung, kein neuer Vergleichslauf.
 - Hinweis: Frühere Zeitgewinn-Angaben sind aus Bonusstunden abgeleitet, keine vollständigen direkten Vergleichsläufe.
+
+### Block 3.8 – Abschlussprüfung (2026-11-15)
+- Testsuite in 13 Gruppen (172 Testdateien): 1.055 Tests bestanden, 10 übersprungen, 0 fehlgeschlagen; 171 Dateien vollständig mit Vitest-Zusammenfassung.
+- Ausnahme `simulation/model-c.test.ts`: 35 Tests bestanden, 2 übersprungen per Filter; die zwei 730-Tage-Basisläufe (regelmaessig, optimierer) überschreiten im Sandbox-Zeitlimit (≈10 min) jede Laufzeit und sind nicht bestätigt (kein Fehler, nur Zeitlimit; vorbestehend, keine Schütting-Abhängigkeit).
+- Typprüfung und Produktions-Build erfolgreich.
+- Visuelle Prüfung im Preview offen: Baumenü/Stufen des Schüttings brauchen eine Stadt ab Rang 4; im Preview nicht geprüft.
+- Sprachkatalog: Schütting-Stufentexte vorhanden für DE/EN/ZH/JA; FR/ES/AR/HI haben keinen entsprechenden Eintrag und zeigen weiterhin den Rückfalltext.
