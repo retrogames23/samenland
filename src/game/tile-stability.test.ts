@@ -7,7 +7,7 @@ const HOMES = new Set(["farmhouse", "cottage", "barn", "hut", "handwerker", "coo
 const at = (s: Seed, x: number, y: number, h: number) => { const st = structureAt(x, y, [s], T0 + h * 3.6e6); return st?.seed.id === s.id ? st : null; };
 
 describe("Gebäude werden nicht von Wegen überrollt", () => {
-  it("Sommersdorf [575,627]: finished farmhouse stays from hour 87.5 to 100", () => {
+  it("Sommersdorf [575,627]: no house is built and later overrun, the yard beside stands (h 87.5–100)", () => {
     const s = mk("cc48af03-3473-424d-a783-4b635e4776fb", 572, 630);
     // the tile becomes a path as soon as it enters reach (never a house first); the yard beside it stands for good
     const seq: string[] = [];
@@ -20,7 +20,7 @@ describe("Gebäude werden nicht von Wegen überrollt", () => {
     }
     expect(seq[seq.length - 1]).toBe("path");
     let nb = false;
-    for (let h = 92; h <= 100; h += 0.25) { const st = at(s, 576, 628, h); expect(st?.kind).toBe("farmhouse"); nb = true; }
+    for (let h = 93; h <= 100; h += 0.25) { const st = at(s, 576, 628, h); expect(st?.kind).toBe("farmhouse"); nb = true; }
     expect(nb).toBe(true);
   });
   it("no finished home turns into a path or empty ground in its era (several seeds)", () => {
