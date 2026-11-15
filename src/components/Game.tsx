@@ -3585,4 +3585,4 @@ export function Game() {
 
 // The data API returns at most 1000 rows per request — page through growing tables so no claim is ever missed.
 const mapRows = allIn;
-const allRows = async <T,>(q: () => any, key = "id") => ({ data: await allPages<T>(q, key) }); // eslint-disable-line @typescript-eslint/no-explicit-any
+const allRows = async <T = any,>(q: () => any, key = "id") => ({ data: await allPages<T>(q, key) }); // eslint-disable-line @typescript-eslint/no-explicit-any

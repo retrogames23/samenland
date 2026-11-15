@@ -7,7 +7,7 @@ export type Builder = { gt: (c: string, v: string) => Builder; or: (f: string) =
 /** "id" (or any unique column) pages by that column; "chrono" pages by (created_at, id). */
 export type Key = string;
 const quote = (v: unknown) => `"${String(v).replace(/"/g, '\\"')}"`;
-export async function allPages<T>(q: () => any, key: Key = "id", size = 1000, label = "rows"): Promise<T[]> {
+export async function allPages<T = any>(q: () => any, key: Key = "id", size = 1000, label = "rows"): Promise<T[]> {
   const out: T[] = [];
   for (let last: any = null; ;) {
     let b = q() as Builder;
@@ -26,7 +26,7 @@ export async function allPages<T>(q: () => any, key: Key = "id", size = 1000, la
     last = data[data.length - 1];
   }
 }
-export async function allIn<T>(ids: string[], q: (chunk: string[]) => any, key: Key = "id", chunk = 150, size = 1000): Promise<T[]> {
+export async function allIn<T = any>(ids: string[], q: (chunk: string[]) => any, key: Key = "id", chunk = 150, size = 1000): Promise<T[]> {
   const out: T[] = [];
   for (let i = 0; i < ids.length; i += chunk) { const c = ids.slice(i, i + chunk); out.push(...(await allPages<T>(() => q(c), key, size))); }
   return out;
