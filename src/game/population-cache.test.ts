@@ -81,3 +81,13 @@ describe("population cache chain", () => {
     expect(snap(m, realmB)).toEqual(await fresh(realmB));
   });
 });
+
+describe("snapshot replace", () => {
+  it("drops map rows missing from a fresh snapshot, keeps rows inserted during the load and other maps' rows out", async () => {
+    const { snapRows } = await import("./realtime");
+    const ids = ["a"], keep = (r: { seed_id: string }) => ids.includes(r.seed_id);
+    const old = [{ id: "1", seed_id: "a", created_at: "2026-11-01T00:00:00Z" }, { id: "2", seed_id: "a", created_at: "2026-11-15T12:00:00Z" }, { id: "3", seed_id: "x", created_at: "2026-11-15T12:00:00Z" }];
+    const out = snapRows([{ id: "4", seed_id: "a", created_at: "2026-11-10T00:00:00Z" }], old, keep, Date.parse("2026-11-15T11:59:00Z"));
+    expect(out.map((r) => r.id).sort()).toEqual(["2", "4"]);
+  });
+});
