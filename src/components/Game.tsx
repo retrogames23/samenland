@@ -809,7 +809,7 @@ export function Game() {
         supabase.from("market_sales").select("id, seed_id, day, reward, created_at"),
         // signed-in only (RLS): guests would just get 401s
         uid ? supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at") : Promise.resolve({ data: [] as { id: string; referrer_seed: string; referee_seed: string; reward: number; created_at: string }[] }),
-        uid ? supabase.from("village_visits").select("id, visitor_seed, visited_seed, reward, created_at") : Promise.resolve({ data: [] as { id: string; visitor_seed: string; visited_seed: string; reward: number; created_at: string }[] }),
+        uid ? supabase.from("village_visits").select("id, visitor_seed, visited_seed, reward, created_at, last_at") : Promise.resolve({ data: [] as { id: string; visitor_seed: string; visited_seed: string; reward: number; created_at: string; last_at: string | null }[] }),
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("wonder_finds").select("id, seed_id, site, realm, first, reward, created_at"),
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: unknown[] | null }> } }).from("princely_tasks").select("id, seed_id, step, task, reward, accepted_at, done_at"),
       ]).then(([q, m, rf, vv, wf, pt]) => {
@@ -818,6 +818,8 @@ export function Game() {
         (supabase as unknown as { from: (t: string) => { select: (c: string) => PromiseLike<{ data: { seed_id: string }[] | null }> } }).from("knighthoods").select("seed_id").then(({ data }) => { knights.current = new Set((data ?? []).map((k) => k.seed_id)); });
         // only this player's own visits mark a town as seen — other players' visits must not block the welcome gift
         // (repeat visits are still reported once per session: they count for the prince's "visit" decree, never a second gift)
+        // repeat visits persist as last_at — keep them after reload so the "visit" decree stays met (mirrors princely_task_met)
+        { const me = ss.find((s) => uid && s.user_id === uid); repeatVisits.current = [...new Set([...repeatVisits.current, ...(vv.data ?? []).filter((x) => me && x.visitor_seed === me.id && x.last_at).map((x) => x.last_at as string)])]; }
         wonderRows.current = (wf.data ?? []) as unknown as WonderFind[];
         syncWonders();
         setClaims([...(q.data ?? []), ...visitClaims(vv.data ?? []), ...wonderClaims(wonderRows.current), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? []), ...princelyClaims(princelyRows.current)]);
