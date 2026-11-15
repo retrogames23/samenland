@@ -935,7 +935,7 @@ export function Game() {
         setFirstRoads((r) => withoutSeed(r, id, "seed_id", "target_id")); setVotes((r) => withoutSeed(r, id, "seed_id", "partner_id"));
         setWorks((r) => withoutSeed(r, id, "seed_id", "partner_id")); setPurchases((r) => withoutSeed(r, id, "seed_id"));
         setBlessings((r) => withoutSeed(r, id, "seed_id")); setPlantings((r) => withoutSeed(r, id, "seed_id"));
-        setGifts((r) => withoutSeed(r, id, "from_seed", "to_seed")); setSigns((r) => withoutSeed(r, id, "seed_id", "target_id" as keyof Signpost));
+        setGifts((r) => withoutSeed(r, id, "from_seed", "to_seed")); setSigns((r) => withoutSeed(r, id, "seed_id", "target_id"));
       }))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "plantings" }, held((p) => {
         const n = p.new as Planting; if (!onMap(n.seed_id)) return;
