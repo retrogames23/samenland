@@ -26,6 +26,8 @@ export class LoadGate {
   /** run now, or hold until the running load finishes */
   run(fn: () => void) { if (this.loading) this.pending.push(fn); else fn(); }
   /** false once a newer load has begun — a stale load must not touch any state */
+  /** epoch of the newest load, to tag async work started outside a load (e.g. realtime follow-ups) */
+  get epochNow() { return this.epoch; }
   isCurrent(epoch: number) { return epoch === this.epoch; }
   /** true if this load is still the newest; then replays held events */
   end(epoch: number) {

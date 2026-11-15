@@ -81,3 +81,32 @@ describe("stale map loads", () => {
     expect(mergeRows([{ id: "1", s: "x" }], [], (r) => onIds(ids, r.s))).toEqual([]);
   });
 });
+
+describe("late follow-ups after a map switch", () => {
+  it("late errands of a superseded load are dropped", async () => {
+    const g = new LoadGate(); let done: string[] = ["kept"];
+    const q = later();
+    const e1 = g.begin();
+    const res = q.p.then(() => { if (g.isCurrent(e1)) done = ["old-map"]; }); // loadErrands(e1)
+    g.end(e1);
+    const e2 = g.begin(); g.end(e2);
+    q.go(); await res;
+    expect(done).toEqual(["kept"]);
+  });
+  it("late realtime letter body is dropped after a map switch", async () => {
+    const g = new LoadGate(); let cur = ["a"]; const bodies: Record<string, string> = {};
+    const q = later();
+    const n = { id: "L1", from_seed: "a", to_seed: "x" };
+    const e = g.epochNow;
+    const res = q.p.then(() => { if (g.isCurrent(e) && onIds(cur, n.from_seed, n.to_seed)) bodies[n.id] = "text"; });
+    const e2 = g.begin(); cur = ["b"]; g.end(e2);
+    q.go(); await res;
+    expect(bodies).toEqual({});
+  });
+  it("realtime letter body still arrives without a switch", async () => {
+    const g = new LoadGate(); const bodies: Record<string, string> = {};
+    const e = g.epochNow;
+    await Promise.resolve().then(() => { if (g.isCurrent(e) && onIds(["a"], "a")) bodies.L = "t"; });
+    expect(bodies).toEqual({ L: "t" });
+  });
+});
