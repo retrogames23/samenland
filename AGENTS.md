@@ -48,4 +48,3 @@
 - Camera zoom limits live in src/game/camera.ts and apply to every realm and input path; wheel, pinch, buttons, double-tap and stroll exit all use maxZoom so their limits cannot diverge.
 - Church feasts (src/game/feasts.ts) are derived from the realm calendar (Julian Easter of the game year, snapped to the map's Sunday); rest days, bonfires, Whitsun tree, Christmas lights and the feast parchment all read feastOn() — never stored, so every player on a map keeps the same feast.
 - Split Game.tsx into src/components/hooks/ (e.g. useTreasurySync) without behaviour change; the monolith is hard to maintain.
-- Reads that can exceed 1000 rows use src/lib/fetch-all.ts (keyset, chunked ids, errors throw), scoped to the current map — the data API caps replies at 1000.
