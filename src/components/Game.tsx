@@ -1,3 +1,4 @@
+import { allIn, allPages } from "@/lib/fetch-all";
 import { WalkStick } from "./WalkStick";
 import { maxZoom } from "@/game/camera";
 import { personHit } from "@/game/hit";
@@ -800,7 +801,7 @@ export function Game() {
         mapRows(ids, (c) => supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y").in("seed_id", c).order("id")),
         mapRows(ids, (c) => supabase.from("charters").select("id, seed_id, path, created_at").in("seed_id", c).order("id")),
         mapRows(ids, (c) => supabase.from("first_roads").select("id, seed_id, target_id, created_at").in("seed_id", c).order("id")),
-      ]).then((xs) => xs.map((data) => ({ data }))) as unknown as [{ data: Planting[] }, { data: { id: string; seed_id: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; user_id: string; message: string }[] }, { data: { id: string; seed_id: string; item: string; cost: number; created_at: string; x: number | null; y: number | null }[] }, { data: { id: string; seed_id: string; path: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; created_at: string }[] }];
+      ]).then((xs) => xs.map((data) => ({ data })) as unknown as [{ data: Planting[] }, { data: { id: string; seed_id: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; user_id: string; message: string }[] }, { data: { id: string; seed_id: string; item: string; cost: number; created_at: string; x: number | null; y: number | null }[] }, { data: { id: string; seed_id: string; path: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; created_at: string }[] }];
       setCharters(chq.data ?? []);
       setFirstRoads(frq.data ?? []);
       mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c).order("id")).then(setEncounters);
@@ -3572,19 +3573,5 @@ export function Game() {
 }
 
 // The data API returns at most 1000 rows per request — page through growing tables so no claim is ever missed.
-// Rows of the given villages only: ids are sent in chunks (URL length) and each chunk is paged past the 1000-row cap.
-async function mapRows<T>(ids: string[], q: (chunk: string[]) => { range: (a: number, b: number) => PromiseLike<{ data: T[] | null; error: unknown }> }): Promise<T[]> {
-  const out: T[] = [];
-  for (let i = 0; i < ids.length; i += 150) { const c = ids.slice(i, i + 150); out.push(...(await allRows(() => q(c))).data); }
-  return out;
-}
-async function allRows<T>(q: () => { range: (a: number, b: number) => PromiseLike<{ data: T[] | null; error: unknown }> }): Promise<{ data: T[] }> {
-  const out: T[] = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await q().range(from, from + 999);
-    if (error || !data) break;
-    out.push(...data);
-    if (data.length < 1000) break;
-  }
-  return { data: out };
-}
+const mapRows = allIn;
+const allRows = async <T,>(q: Parameters<typeof allPages<T>>[0]) => ({ data: await allPages<T>(q) });
