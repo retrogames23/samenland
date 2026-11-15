@@ -1,4 +1,4 @@
-import { dropSeedId, withoutSeed, LoadGate, applySign, mergeRows, onIds, snapRows, refreshMap } from "@/game/realtime";
+import { dropSeedId, withoutSeed, withoutKeys, LoadGate, applySign, mergeRows, onIds, snapRows, refreshMap } from "@/game/realtime";
 import { allIn, allPages, allEither } from "@/lib/fetch-all";
 import { WalkStick } from "./WalkStick";
 import { maxZoom } from "@/game/camera";
@@ -936,6 +936,9 @@ export function Game() {
         setWorks((r) => withoutSeed(r, id, "seed_id", "partner_id")); setPurchases((r) => withoutSeed(r, id, "seed_id"));
         setBlessings((r) => withoutSeed(r, id, "seed_id")); setPlantings((r) => withoutSeed(r, id, "seed_id"));
         setGifts((r) => withoutSeed(r, id, "from_seed", "to_seed")); setSigns((r) => withoutSeed(r, id, "seed_id", "target_id"));
+        // abandon_village also deletes letters to/from the village: drop them and their bodies, close views on it
+        setLetters((r) => { const gone = r.filter((l) => l.from_seed === id || l.to_seed === id).map((l) => l.id); if (gone.length) setBodies((b) => withoutKeys(b, gone)); return gone.length ? withoutSeed(r, id, "from_seed", "to_seed") : r; });
+        setPostTo((x) => (x && x.id === id ? null : x)); setProfile((x) => (x && x.id === id ? null : x));
       }))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "plantings" }, held((p) => {
         const n = p.new as Planting; if (!onMap(n.seed_id)) return;
