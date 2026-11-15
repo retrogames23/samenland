@@ -13,9 +13,9 @@ const done = (s: Seed, i: number) => monumentChain(s, "opera")[i]!.done;
 const jobsAt = (s: Seed, t: number, job: string) => { const u = W.specialTile(s, "opera"); return townOf(s, [s], t).people.filter((p) => p.job === job && p.work?.[0] === u?.[0] && p.work?.[1] === u?.[1]).length; };
 const partner = (same: boolean, s: Seed): Seed => {
   const main = townCharacter(s).main;
-  for (let x = 300; x < 520; x += 7) for (let y = 440; y < 640; y += 7) {
+  for (let x = 100; x < 900; x += 11) for (let y = 100; y < 900; y += 11) {
     const o = { ...base, id: `p${x}-${y}`, x, y, bought: [] } as Seed;
-    if ((townCharacter(o).main === main) === same && W.buildable(x, y)) return o;
+    if ((townCharacter(o).main === main) === same) return o;
   }
   throw new Error("no partner");
 };
