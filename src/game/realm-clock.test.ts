@@ -28,11 +28,13 @@ describe("realm clock", () => {
       const v = getSyncedTime(); expect(v).toBeGreaterThanOrEqual(prev); prev = v;
     }
   });
-  it("drops parallel syncs and keeps explicit clock args and lab isolated", async () => {
+  it("drops parallel syncs ", async () => {
     let release!: (v: { serverTime: number }) => void;
     const a = syncServerTime(() => new Promise((r) => { release = r; }));
     expect(await syncServerTime(async () => ({ serverTime: 0 }))).toBe(false);
     release({ serverTime: T0 }); await a;
-    expect(clock(12345)).toBe(12345); expect(isLab()).toBe(false);
+  });
+  it("explicit clock arguments stay untouched, lab off on public maps", () => {
+    expect(clock(12345)).toBe(12345); expect(isLab()).toBe(false); expect(clock()).toBe(getSyncedTime());
   });
 });
