@@ -1866,7 +1866,8 @@ export function Game() {
   }, [owner, my?.id, chronRead, seeds, slow]);
   const townsCache = useRef(new Map<string, { k: string; rank: number; parts: ReturnType<typeof speedParts>; citizens: number; homes: number; wares: Ware[] }>());
   const [, setTownsVer] = useState(0);
-  const townsKey = (s: Seed) => `${s.x},${s.y},${s.created_at},${seeds.length},${townsTick}`;
+  const townsData = `${seeds.length},${encounters.length},${purchases.length},${blessings.length},${firstRoads.length},${charters.length},${votes.length},${works.length},${gifts.length}`;
+  const townsKey = (s: Seed) => `${s.x},${s.y},${s.created_at},${townsData},${townsTick}`;
   useEffect(() => {
     if (tab !== "towns") return;
     let dead = false, timer = 0;
