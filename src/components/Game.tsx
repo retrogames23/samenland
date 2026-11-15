@@ -24,7 +24,7 @@ import { townOf, poseOf, jobKey, weddingFocus, kinOf, FETE_SECS, commandMayor, d
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { banter } from "@/game/banter";
 import { weddingJoy, weddingLive } from "@/game/weddings";
-import { inspectAt, type Inspect } from "@/game/inspect";
+import { inspectAt, paintedKind, type Inspect } from "@/game/inspect";
 import { larderOf, storedAt, chainOf, boonsOf, type Ware } from "@/game/goods";
 import { WareIcon } from "@/components/hud/WareIcon";
 import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, Crown, X, LogIn, Footprints } from "lucide-react";
@@ -2641,7 +2641,8 @@ export function Game() {
             if (mode === "look" && lens) {
               const [lx, ly] = tileAt(e), li = inspectAt(lx, ly, seeds, clock());
               setWho(null); setPlace(null);
-              if (li && STUBE_KINDS.has(li.kind) && li.build === null) { tap((e.clientX / window.innerWidth) * 2 - 1); setStube(li); }
+              const pk = li ? paintedKind(li, seeds, clock()) : null;
+              if (li && pk && STUBE_KINDS.has(pk) && li.build === null) { tap((e.clientX / window.innerWidth) * 2 - 1); setStube({ ...li, kind: pk }); }
               else setMsg(STUBE[lang].onlyFarm);
               return;
             }
@@ -3529,7 +3530,7 @@ export function Game() {
                   {t.purpose[ins.kind] && <div>{t.purpose[ins.kind]}</div>}
                   {ins.residents.some(p => p.estate) && <div className="text-xs text-muted-foreground">{PROSPERITY[lang].household(ins.residents.reduce((sum, p) => sum + (p.estate && !p.sick ? ESTATE_TAX[p.estate] : 0), 0))}</div>}
                   {ins.residents.length > 0 && <div className="text-xs"><div className="font-semibold">{t.residents}</div>{list(ins.residents)}</div>}
-                  {STUBE_KINDS.has(ins.kind) && <Button type="button" size="sm" variant="outline" className="mt-1" onClick={() => { setStube(ins); setPlace(null); }}><Search className="me-1 h-4 w-4" />{STUBE[lang].look}</Button>}
+                  {(() => { const pk = paintedKind(ins, seeds, clock()); return STUBE_KINDS.has(pk) && <Button type="button" size="sm" variant="outline" className="mt-1" onClick={() => { setStube({ ...ins, kind: pk }); setPlace(null); }}><Search className="me-1 h-4 w-4" />{STUBE[lang].look}</Button>; })()}
                   {ins.workers.length > 0 && <div className="text-xs"><div className="font-semibold">{t.workers}</div>{list(ins.workers)}</div>}
                   {(() => {
                     const l = larderOf(ins.seed, seeds, clock());
