@@ -39,7 +39,7 @@ describe("Zunftturm: only finished steps speed builds", () => {
 
 describe("Belfried fire watch: only finished steps", () => {
   const len = (s: Seed) => fires(s, T + 400 * DAY).filter((f) => f.at > T + 30 * DAY).map((f) => f.end - f.at);
-  for (const [n, f] of [[1, 0.9], [2, 0.85], [3, 0.75], [4, 0.75]] as const)
+  for (const [n, f] of [[1, 0.9], [2, 0.9], [3, 0.85], [4, 0.85]] as const)
     it(`finished step ${n} shortens fires to ${f}`, () => {
       const base = len(town([])), l = len(town(steps("belfry", n)));
       expect(base.length).toBeGreaterThan(0);
