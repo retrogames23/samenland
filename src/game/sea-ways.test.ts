@@ -9,7 +9,7 @@ describe("Straßenreichweite und Seewege", () => {
   it("Straßen reichen jetzt 120 Kacheln", () => {
     expect(TRADE_DIST).toBe(120);
     const a = mk("a", 300, 300);
-    expect(roadCandidates(a, [a, mk("b", 415, 300), mk("c", 425, 300)]).map((s) => s.id)).toEqual(["b"]);
+    expect(roadCandidates(a, [a, mk("b", 415, 300), mk("c", 425, 300)]).map((s) => s.id)).toEqual(["b"]); // Randlage: 0 Nachbarn im 80er-Radius
   });
   it("Bonus bestehender Straßen bleibt gleich, über 80 Kacheln +10 %", () => {
     expect(bonusOf(40, 480)).toBeCloseTo(0.25);

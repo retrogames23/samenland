@@ -1233,8 +1233,20 @@ export function roadIncoming(s: Seed, seeds: Seed[], now: number): { from: Seed;
   return null;
 }
 /** Neighbours a village may still decide a road to (in reach, not yet connected). */
+/** Standard road reach; up to TRADE_DIST only for towns with fewer than two neighbours (connected or not) inside it. Mirrored by DB first_road_guard. */
+export const NEAR_ROAD_DIST = 80;
+const sameRealm = (a: Seed, b: Seed) => (a.realm ?? "europe") === (b.realm ?? "europe");
+/** Reach of new road decisions by s: NEAR_ROAD_DIST, or TRADE_DIST when fewer than two towns lie within NEAR_ROAD_DIST. */
+export const roadReach = (s: Seed, seeds: Seed[]) =>
+  seeds.filter((o) => o.id !== s.id && sameRealm(s, o) && Math.hypot(o.x - s.x, o.y - s.y) <= NEAR_ROAD_DIST).length < 2 ? TRADE_DIST : NEAR_ROAD_DIST;
+/** May s decide a road to o? Within its own reach, or as counter-decision to a road o already decided towards s (up to TRADE_DIST). */
+export const roadAllowed = (s: Seed, o: Seed, seeds: Seed[]) => {
+  if (o.id === s.id || !sameRealm(s, o)) return false;
+  const d = Math.hypot(o.x - s.x, o.y - s.y);
+  return d <= roadReach(s, seeds) || (d <= TRADE_DIST && (o.roads ?? []).some((r) => r.target === s.id));
+};
 export const roadCandidates = (s: Seed, seeds: Seed[]) =>
-  seeds.filter((o) => o.id !== s.id && Math.hypot(o.x - s.x, o.y - s.y) <= TRADE_DIST && roadGate(s, o) === null)
+  seeds.filter((o) => roadAllowed(s, o, seeds) && roadGate(s, o) === null)
     .sort((p, q) => Math.hypot(p.x - s.x, p.y - s.y) - Math.hypot(q.x - s.x, q.y - s.y));
 /** The road this village decided that is still being built (only one at a time), or null. */
 export function roadBuilding(s: Seed, now: number, seeds?: Seed[]): { target: string; at: number; done: number } | null {
