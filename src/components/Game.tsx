@@ -137,6 +137,7 @@ import {
   hash,
   FOOT2,
   TRADE_DIST,
+  seedsKey,
 } from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<TownWay, string> = { grain: "🌾", workshop: "⚒", gateway: "⚓" };
