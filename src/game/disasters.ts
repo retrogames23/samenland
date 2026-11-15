@@ -40,6 +40,9 @@ export const hasWater = (s: Seed) => waterNearby(s.x, s.y);
 /** Fire duration factor of the belfry by finished steps 1, 2, 3+ (replaces, never multiplies). Step 2 also spares one fire tile, step 3 halves the total-loss risk. */
 export const BELFRY_FIRE = [0.9, 0.9, 0.85] as const;
 export const BELFRY_DEAD = 0.5;
+/** Chance that a fire costs a life: none with fire house or water, 35 % / 15 % (fire order), halved by a finished belfry step 3. */
+export const fireDeadRisk = (guarded: boolean, water: boolean, order: boolean, belfrySteps: number) =>
+  guarded || water ? 0 : (order ? FIRE_DEAD_ORDER : 0.35) * (belfrySteps >= 3 ? BELFRY_DEAD : 1);
 export type Fire = { at: number; end: number; tiles: number[]; x: number; y: number; dead: boolean; guarded: boolean; water: boolean; order?: boolean };
 export type Flood = { at: number; end: number; tiles: number[]; ruined: number[]; x: number; y: number };
 export type Raid = { at: number; end: number; loss: number; caught: boolean };
@@ -63,7 +66,7 @@ export function fires(s: Seed, now: number): Fire[] {
     const nb = [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
     const tiles = nb.slice(0, n + 2).map(([i, j]) => (y + j!) * MAP + x + i!);
     const burn = guarded ? 0.5 * H : order ? (water ? 1 * H : 2.5 * H) : water ? 1.5 * H : 4 * H;
-    out.push({ at, end: at + burn * bell, tiles, x, y, guarded, water, ...(order ? { order } : {}), dead: !guarded && !water && rnd(s.id, w, 16) < (order ? FIRE_DEAD_ORDER : 0.35) * (bs >= 3 ? BELFRY_DEAD : 1) });
+    out.push({ at, end: at + burn * bell, tiles, x, y, guarded, water, ...(order ? { order } : {}), dead: rnd(s.id, w, 16) < fireDeadRisk(guarded, water, order, bs) });
   }
   const lf = labEvent("fire");
   if (lf && lf <= now && (s.user_id || s.realm === "lab") && !scanning) {
