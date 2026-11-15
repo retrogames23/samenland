@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Seed } from "@/game/world";
 import type { Dict } from "@/game/i18n";
-import { chanKey, inChannel, peersOf, unread, type Channel, type ChatMsg } from "@/game/chat";
+import { chanKey, inChannel, peersOf, unread, mergeChat, relevant, ROOM_KEEP, LETTER_KEEP, type Channel, type ChatMsg } from "@/game/chat";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -66,13 +66,17 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
   useEffect(() => {
     if (!userId) { setMsgs([]); return; }
     let live = true;
-    supabase.from("chat_messages").select("*").or(`realm.eq.${realm},recipient_id.eq.${userId},sender_id.eq.${userId}`).order("created_at", { ascending: false }).limit(300)
-      .then(({ data }) => { if (live && data) setMsgs((data as ChatMsg[]).reverse()); });
+    setMsgs([]);
+    // two separate reads: the map room and my own letters each get their own limit
+    const add = (data: unknown) => { if (live && data) setMsgs((ms) => mergeChat(ms, data as ChatMsg[], userId, realm)); };
+    supabase.from("chat_messages").select("*").eq("realm", realm).is("recipient_id", null).order("created_at", { ascending: false }).limit(ROOM_KEEP).then(({ data }) => add(data));
+    supabase.from("chat_messages").select("*").not("recipient_id", "is", null).or(`recipient_id.eq.${userId},sender_id.eq.${userId}`).order("created_at", { ascending: false }).limit(LETTER_KEEP).then(({ data }) => add(data));
     supabase.from("chat_blocks").select("blocked_id").then(({ data }) => { if (live && data) setBlocked(new Set(data.map((b) => b.blocked_id))); });
     const ch = supabase.channel(`chat-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, (p) => {
         const m = p.new as ChatMsg;
-        setMsgs((ms) => (ms.some((x) => x.id === m.id) ? ms : [...ms.slice(-299), m]));
+        // other maps' rooms and strangers' letters never enter (or crowd) this buffer
+        if (relevant(m, userId, realm)) setMsgs((ms) => (ms.some((x) => x.id === m.id) ? ms : mergeChat(ms, [m], userId, realm)));
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chat_messages" }, (p) => {
         const m = p.new as ChatMsg;
