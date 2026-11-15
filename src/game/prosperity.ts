@@ -48,12 +48,15 @@ export const setMonumentHook = (f: typeof monumentStands) => { monumentStands = 
 /** Final steps of all ten monuments (seven general + three way monuments); each counts as two works once it stands.
  *  Separate from PRESTIGE_BONUS, which stays the DB-mirrored legacy civicWealth list. */
 export const PROSPER_MONUMENTS = [...Object.keys(PRESTIGE_BONUS), "harvest3", "guildtower3", "lighthouse3"];
+/** University step 4 works mature six hours after physical completion (never from payment). */
+export const MATURE_MS = 6 * 3.6e6;
+const MATURE_AFTER_DONE = new Set(["university4"]);
 const WORKS_FULL = 20, CIT_HALF = 1500;
 export function prosperityAt(s: Seed, at: number, citizens: number): number {
   const own = new Set((s.bought ?? []).filter((b) => b.at <= at).map((b) => b.item));
   let w = 0; for (const [item, n] of Object.entries(PROSPER_WORKS)) if (own.has(item)) w += n;
   // monuments count as two works each once they physically stand (registered by world.ts)
-  for (const item of PROSPER_MONUMENTS) if (own.has(item) && monumentStands?.(s, at, item.replace(/\d+$/, ""))) w += 2;
+  for (const item of PROSPER_MONUMENTS) if (own.has(item) && monumentStands?.(s, at - (MATURE_AFTER_DONE.has(item) ? MATURE_MS : 0), item.replace(/\d+$/, ""))) w += 2;
   const dev = citizens / (citizens + CIT_HALF), civ = Math.min(1, w / WORKS_FULL);
   return 100 * (0.7 * dev + 0.3 * civ);
 }
