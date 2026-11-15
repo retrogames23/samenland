@@ -96,9 +96,60 @@ let lab = false, jumpH = 0;
 export const isLab = () => lab;
 export function setLabJump(h: number) { jumpH = Math.max(0, h); }
 export const labJump = () => jumpH;
-/** The game's "now": real time on public maps, warped time on the lab map. */
-export function clock(real = Date.now()): number {
-  return lab ? LAB_EPOCH + (real - LAB_EPOCH) * LAB_SPEED + jumpH * 3.6e6 : real;
+/** The game's "now": server-synced time on public maps, warped time on the lab map; an explicit argument is used as is. */
+export function clock(real?: number): number {
+  if (lab) { const r = real ?? Date.now(); return LAB_EPOCH + (r - LAB_EPOCH) * LAB_SPEED + jumpH * 3.6e6; }
+  return real ?? (synced ? getSyncedTime() : Date.now());
+}
+
+/* ---- server-synced realm clock: anchor pair (T_ref, P_ref) on performance.now(), monotonic via hold/slew ---- */
+export const SYNC_RTT_MAX = 800, HOLD_MAX = 3000, SLEW_RATE = 0.5, SYNC_EVERY = 10 * 60e3;
+let perfNow: () => number = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+let synced = false;
+let tRef = 0, pRef = 0, rate = 1;     // displayed clock: tRef + (p - pRef) * rate
+let sT = 0, sP = 0;                   // best server estimate anchor
+let last = -Infinity;                 // lastDeliveredClock
+let syncInFlight = false;
+/** Test hook: replace the monotonic source and reset sync state. */
+export function _setPerfSource(f: () => number) { perfNow = f; synced = false; last = -Infinity; rate = 1; syncInFlight = false; }
+export function initTimeSync(serverTime: number) {
+  const p = perfNow();
+  tRef = sT = serverTime; pRef = sP = p; rate = 1; synced = true;
+}
+export function getSyncedTime(): number {
+  const p = perfNow();
+  let v: number;
+  if (rate === 1) v = tRef + (p - pRef);
+  else {
+    const d = tRef + (p - pRef) * rate, s = sT + (p - sP);
+    if (s >= d) { tRef = sT; pRef = sP; rate = 1; v = s; } // caught up: back to normal speed
+    else v = d;
+  }
+  if (v < last) v = last;
+  last = v;
+  return v;
+}
+/** Apply one measured sample (exported for tests). Returns false when discarded. */
+export function applySync(serverTime: number, pStart: number, pEnd: number): boolean {
+  const rtt = pEnd - pStart;
+  if (rtt < 0 || rtt > SYNC_RTT_MAX) return false;
+  const tEst = serverTime + rtt / 2;
+  if (!synced) { tRef = sT = tEst; pRef = sP = pEnd; rate = 1; synced = true; return true; }
+  const cur = getSyncedTime();             // current displayed time at pEnd (≈ now)
+  sT = tEst; sP = pEnd;
+  if (tEst >= cur) { tRef = tEst; pRef = pEnd; rate = 1; }          // normal / positive correction
+  else { tRef = cur; pRef = pEnd; rate = cur - tEst <= HOLD_MAX ? 0 : SLEW_RATE; } // hold or slew, never back
+  return true;
+}
+/** NTP-lite re-sync against the server; parallel calls are dropped. */
+export async function syncServerTime(fetchTime: () => Promise<{ serverTime: number }>): Promise<boolean> {
+  if (syncInFlight || lab) return false;
+  syncInFlight = true;
+  try {
+    const p0 = perfNow();
+    const { serverTime } = await fetchTime();
+    return applySync(serverTime, p0, perfNow());
+  } catch { return false; } finally { syncInFlight = false; }
 }
 /** Bucket for structure/town caches: one game minute, or ~1 real second while time is warped. */
 export const cacheTick = (now: number) => Math.floor(now / Math.max(60000, LAB_SPEED * 1000));

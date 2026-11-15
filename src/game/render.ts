@@ -3937,7 +3937,7 @@ export function draw(
   // the prince's messenger: rides in along the village's road, waits by the mayor's seat, rides off (pure from decree rows + clock)
   heraldSpots.clear();
   if (folkOn && heraldRows.length) for (const sd of seeds) {
-    const v = heraldVisit(heraldRows, sd.id, Date.now()); if (!v) continue;
+    const v = heraldVisit(heraldRows, sd.id, now); if (!v) continue;
     const [hx, hy] = seatTile(sd);
     if (hx < x0 - 20 || hx > x1 + 20 || hy < y0 - 20 || hy > y1 + 20) continue;
     let goal: [number, number] = [hx + 0.5, hy + 2.5];
