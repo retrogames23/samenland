@@ -66,7 +66,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
   useEffect(() => {
     if (!userId) { setMsgs([]); return; }
     let live = true;
-    supabase.from("chat_messages").select("*").order("created_at", { ascending: false }).limit(300)
+    supabase.from("chat_messages").select("*").or(`realm.eq.${realm},recipient_id.eq.${userId},sender_id.eq.${userId}`).order("created_at", { ascending: false }).limit(300)
       .then(({ data }) => { if (live && data) setMsgs((data as ChatMsg[]).reverse()); });
     supabase.from("chat_blocks").select("blocked_id").then(({ data }) => { if (live && data) setBlocked(new Set(data.map((b) => b.blocked_id))); });
     const ch = supabase.channel(`chat-${Math.random().toString(36).slice(2)}`)
@@ -83,7 +83,7 @@ export function Tavern({ t, open, onClose, peer, userId, my, seeds, realm, lang,
         if (id) setMsgs((ms) => ms.filter((x) => x.id !== id));
       }).subscribe();
     return () => { live = false; supabase.removeChannel(ch); };
-  }, [userId]);
+  }, [userId, realm]);
 
   // who is who: user id → mayor + village (this map first)
   const people = useMemo(() => {
