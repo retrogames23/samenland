@@ -39,7 +39,7 @@ describe("Zunftturm: only finished steps speed builds", () => {
 
 describe("Belfried fire watch: only finished steps", () => {
   const len = (s: Seed) => fires(s, T + 400 * DAY).filter((f) => f.at > T + 30 * DAY).map((f) => f.end - f.at);
-  for (const [n, f] of [[1, 0.9], [2, 0.85], [3, 0.75], [4, 0.75]] as const)
+  for (const [n, f] of [[1, 0.9], [2, 0.9], [3, 0.85], [4, 0.85]] as const)
     it(`finished step ${n} shortens fires to ${f}`, () => {
       const base = len(town([])), l = len(town(steps("belfry", n)));
       expect(base.length).toBeGreaterThan(0);
@@ -92,5 +92,56 @@ describe("Tanzhaus: festive joy from finished steps", () => {
     expect(householdsOf(th, [th], at).length).toBe(householdsOf(no, [no], at).length);
     // joy never enters the (DB-mirrored) wedding calendar: festJoy is read nowhere in weddingDates
     expect(weddingDates(th, at)).toEqual(weddingDates({ ...th }, at));
+  });
+});
+
+import { fireDeadRisk } from "./disasters";
+describe("Belfried steps 2 and 3: fire size and total-loss risk", () => {
+  const HORIZON = T + 400 * DAY, after = (s: Seed) => fires(s, HORIZON).filter((f) => f.at > T + 30 * DAY);
+  const ids = ["g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8"];
+  const at = (id: string, items: [string, number][], extra: Partial<Seed> = {}) => town(items, { id, ...extra });
+  it("step 0 and 1: same fire tiles and total-loss outcome as without belfry", () => {
+    for (const id of ids) {
+      const a = after(at(id, [])), b = after(at(id, steps("belfry", 1)));
+      expect(b.map((f) => [f.at, f.tiles, f.dead])).toEqual(a.map((f) => [f.at, f.tiles, f.dead]));
+    }
+  });
+  it("step 2: exactly one fire tile less unless at the floor", () => {
+    let cut = 0;
+    for (const id of ids) {
+      const a = after(at(id, [])), b = after(at(id, steps("belfry", 2)));
+      expect(b.length).toBe(a.length);
+      a.forEach((f, i) => { const want = Math.max(3, f.tiles.length - 1); expect(b[i]!.tiles).toEqual(f.tiles.slice(0, want)); if (want < f.tiles.length) cut++; });
+    }
+    expect(cut).toBeGreaterThan(0);
+  });
+  it("step 2 with fire house: floor of 3 tiles stays", () => {
+    const fh: [string, number] = ["firehouse", T];
+    for (const f of after(at("g2", [fh, ...steps("belfry", 2)]))) expect(f.tiles).toHaveLength(3);
+  });
+  it("step 3: total-loss risk exactly halved, zero stays zero", () => {
+    expect(fireDeadRisk(false, false, false, 0)).toBe(0.35);
+    expect(fireDeadRisk(false, false, false, 3)).toBe(0.175);
+    expect(fireDeadRisk(false, false, true, 0)).toBe(0.15);
+    expect(fireDeadRisk(false, false, true, 3)).toBe(0.075);
+    expect(fireDeadRisk(false, true, false, 3)).toBe(0);
+    expect(fireDeadRisk(true, false, false, 3)).toBe(0);
+    expect(fireDeadRisk(false, false, false, 2)).toBe(0.35);
+  });
+  it("step 3 in real fires: deaths only drop, never appear", () => {
+    for (const id of ids) {
+      const a = after(at(id, [])), b = after(at(id, steps("belfry", 3)));
+      a.forEach((f, i) => { if (b[i]!.dead) expect(f.dead).toBe(true); });
+    }
+  });
+  it("step 3: duration factor 0.85, not 0.90 × 0.85", () => {
+    const a = after(at("g3", [])), b = after(at("g3", steps("belfry", 3)));
+    b.forEach((f, i) => { const r = (f.end - f.at) / (a[i]!.end - a[i]!.at); expect(r).toBeCloseTo(0.85, 9); expect(r).not.toBeCloseTo(0.765, 3); });
+  });
+  it("fire outbreak is unchanged at every step", () => {
+    for (const id of ids) {
+      const base = after(at(id, [])).map((f) => [f.at, f.x, f.y]);
+      for (const n of [1, 2, 3, 4]) expect(after(at(id, steps("belfry", n))).map((f) => [f.at, f.x, f.y])).toEqual(base);
+    }
   });
 });

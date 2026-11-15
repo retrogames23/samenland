@@ -11,8 +11,8 @@ describe("monument step boons", () => {
     expect(specialBuild(withSteps("guildtower", 1))).toBeCloseTo(SPECIAL_BUILD * 0.95);
     expect(specialBuild(withSteps("guildtower", 3))).toBeCloseTo(SPECIAL_BUILD * 0.85);
   });
-  it("belfry shortens fires by 10 % / 15 % / 25 % at steps 1 / 2 / 3", () => {
-    expect(BELFRY_FIRE).toEqual([0.9, 0.85, 0.75]);
+  it("belfry fire duration factors 0.90 / 0.90 / 0.85 at steps 1 / 2 / 3", () => {
+    expect(BELFRY_FIRE).toEqual([0.9, 0.9, 0.85]);
   });
 });
 
