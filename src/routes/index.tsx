@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Game } from "@/components/Game";
+import { getServerTime } from "@/game/time.functions";
 
 export const Route = createFileRoute("/")({
   staticData: { sitemap: true },
@@ -14,5 +15,11 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Game,
+  loader: () => getServerTime(),
+  component: IndexPage,
 });
+
+function IndexPage() {
+  const { serverTime } = Route.useLoaderData();
+  return <Game serverTime={serverTime} />;
+}

@@ -12,7 +12,8 @@ import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind }
 import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
 /** Accounts that always found their village on Europa I (Altenland), bypassing the overflow to Europa II. */
 const FORCE_EUROPE = new Set(["victoria.halper@gmail.com", "johanna.mellentin@gmail.com"]);
-import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, openRealm, type Realm } from "@/game/time";
+import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, openRealm, initTimeSync, syncServerTime, SYNC_EVERY, type Realm } from "@/game/time";
+import { getServerTime } from "@/game/time.functions";
 import { useModeCursor } from "@/components/hooks/useModeCursor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -215,7 +216,15 @@ function drawBubble(ctx: CanvasRenderingContext2D, cv: HTMLCanvasElement, cam: C
   ctx.restore();
 }
 
-export function Game() {
+export function Game({ serverTime }: { serverTime?: number } = {}) {
+  // shared realm clock: anchor on the server time from the page load, then NTP-lite re-syncs
+  useEffect(() => {
+    if (serverTime) initTimeSync(serverTime);
+    const sync = () => { void syncServerTime(() => getServerTime()); };
+    sync();
+    const iv = setInterval(sync, SYNC_EVERY);
+    return () => clearInterval(iv);
+  }, []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // dev diagnostics HUD: written straight to the DOM, never through React state
   const perfRef = useRef<HTMLDivElement>(null);
@@ -762,6 +771,7 @@ export function Game() {
     const onVis = () => {
       if (document.visibilityState === "visible") {
         supabase.auth.startAutoRefresh();
+        void syncServerTime(() => getServerTime());
         supabase.auth.getSession().then(({ data }) => { if (data.session) setUserId(data.session.user.id); });
         // decisions made on another device while this tab slept
         if (mapIds.current.length) refreshPop.current();
@@ -1699,7 +1709,7 @@ export function Game() {
   const [herald, setHerald] = useState(false);
   const [, bumpHerald] = useState(0);
   /** Is the messenger in the village (riding in or waiting)? Derived by heraldVisit, the same visit the map draws. */
-  const heraldDue = (seedId: string) => { const v = heraldVisit(princelyRows.current, seedId, Date.now()); return !!v && v.phase !== "leave"; };
+  const heraldDue = (seedId: string) => { const v = heraldVisit(princelyRows.current, seedId, clock()); return !!v && v.phase !== "leave"; };
   const openHerald = () => { setDecree(null); setHerald(true); jingle("fanfare"); };
   /** Tap on the own village's messenger (screen spot from the last frame). */
   const heraldHit = (e: { clientX: number; clientY: number }) => {
@@ -1744,7 +1754,7 @@ export function Game() {
       if (error) return;
       if (!data) {
         const op = openTaskOf(princelyRows.current, my.id);
-        if (op && op.task === "visit" && Date.parse(op.accepted_at) < Date.now()) { repeatVisits.current.push(new Date().toISOString()); jingle("fanfare"); setVisitNote(PRINCELY[lang].visited(o.name)); }
+        if (op && op.task === "visit" && Date.parse(op.accepted_at) < clock()) { repeatVisits.current.push(new Date().toISOString()); jingle("fanfare"); setVisitNote(PRINCELY[lang].visited(o.name)); }
         return;
       }
       const now0 = new Date().toISOString();
@@ -1791,7 +1801,7 @@ export function Game() {
       const fs = before ? st.current.seeds.find((s) => s.id === before.seed_id) : null;
       const by = fs ? `${fs.owner} (${fs.name})` : "?";
       const o = openTaskOf(princelyRows.current, my.id);
-      const base = before ? t.wonder.later(name, data, by, daysSince(before.created_at, Date.now())) : t.wonder.first(name, data);
+      const base = before ? t.wonder.later(name, data, by, daysSince(before.created_at, clock())) : t.wonder.first(name, data);
       setVisitNote(o && o.task === "wonder" ? `${base} ${PRINCELY[lang].ready}` : base);
     });
   };
@@ -3100,7 +3110,7 @@ export function Game() {
         </Parchment>
       )}
       {inviteOpen && home && (() => {
-        const ok = Date.now() - Date.parse(home.created_at) >= 24 * 3600e3;
+        const ok = clock() - Date.parse(home.created_at) >= 24 * 3600e3;
         const link = `https://samenland.app/?ref=${home.id}`;
         const n = claims.filter((c) => c.seed_id === home.id && c.quest.startsWith("ref:")).length;
         return (
@@ -3322,7 +3332,7 @@ export function Game() {
                       errands: new Set(errandDone.current.filter((e) => e.task_id === o.id).map((e) => e.errand)).size,
                     });
                     if (!met) return null;
-                    const S = DECREE_STATUS[lang], left = heraldArrives(o) - Date.now();
+                    const S = DECREE_STATUS[lang], left = heraldArrives(o) - clock();
                     return (<>
                       <div className="text-xs font-bold text-primary">{S.done}</div>
                       <div className="text-xs italic opacity-80">{left > 0 ? S.coming(Math.max(1, Math.ceil(left / 3600e3))) : S.waiting}</div>
