@@ -20,7 +20,7 @@ describe("Gebäude werden nicht von Wegen überrollt", () => {
     }
     expect(seq[seq.length - 1]).toBe("path");
     let nb = false;
-    for (let h = 93; h <= 100; h += 0.25) { const st = at(s, 576, 628, h); expect(st?.kind).toBe("farmhouse"); nb = true; }
+    for (let h = 93; h <= 100; h += 0.25) { const st = at(s, 575, 628, h); expect(st?.kind).toBe("farmhouse"); nb = true; }
     expect(nb).toBe(true);
   });
   it("no finished home turns into a path or empty ground in its era (several seeds)", () => {
