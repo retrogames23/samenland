@@ -24,7 +24,7 @@ export const Route = createFileRoute("/api/public/chest-mail")({
         const { data: seeds } = await supabaseAdmin.from("seeds").select("id, user_id, name, owner").in("user_id", due.map((o) => o.user_id)).neq("realm", "lab");
         if (!seeds?.length) return Response.json({ sent: 0 });
         const { allIn } = await import("@/lib/fetch-all");
-        const buys = await allIn(seeds.map((s) => s.id), (c) => supabaseAdmin.from("purchases").select("id, seed_id, item, created_at").in("seed_id", c).like("item", "chest%").order("id"));
+        const buys = await allIn(seeds.map((s) => s.id), (c) => supabaseAdmin.from("purchases").select("id, seed_id, item, created_at").in("seed_id", c).like("item", "chest%"));
 
         let sent = 0;
         for (const s of seeds) {

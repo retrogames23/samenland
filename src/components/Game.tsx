@@ -428,6 +428,7 @@ export function Game() {
   const [labOpen, setLabOpen] = useState(false);
   // supporter decorations: only granted rows are stored, placement is derived (src/game/supporter.ts)
   const [support, setSupport] = useState<Map<string, Set<string>>>(new Map());
+  const [mapGen, setMapGen] = useState(0); // bumps when a map's villages are loaded, so per-map reads follow realm switches
   const loadSupport = useCallback(async () => {
     const env = paymentsEnvOrNull(); if (!env) return;
     const data = await mapRows<{ seed_id: string; reward: string }>(mapIds.current, (c) => supabase.from("supporter_rewards").select("id, seed_id, reward").eq("environment", env).in("seed_id", c));
