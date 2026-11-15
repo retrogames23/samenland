@@ -46,15 +46,15 @@ describe("fetch-all keyset", () => {
     expect(new Set(got.map((r) => r.id)).size).toBe(2500);
   });
   it("pages chronologically with ties on created_at", async () => {
-    const got = await allPages<R>(() => db(mk(2100))(), "chrono");
+    const q = db(mk(2100)); const got = await allPages<R>(() => q(), "chrono");
     expect(got.map((r) => r.id)).toEqual(mk(2100).map((r) => r.id));
   });
   it("an error on a later page fails the whole read", async () => {
-    await expect(allPages(() => db(mk(2500), { fail: 1 })())).rejects.toThrow();
+    const q = db(mk(2500), { fail: 1 }); await expect(allPages(() => q())).rejects.toThrow();
   });
   it("data === null fails the whole read", async () => {
-    await expect(allPages(() => db(mk(2500), { nullAt: 2 })())).rejects.toThrow();
-    await expect(allIn(["s000000"], (c) => db(mk(10), { nullAt: 0 })().in("seed", c))).rejects.toThrow();
+    const q = db(mk(2500), { nullAt: 2 }); await expect(allPages(() => q())).rejects.toThrow();
+    const q2 = db(mk(10), { nullAt: 0 }); await expect(allIn(["s000000"], (c) => q2().in("seed", c))).rejects.toThrow();
   });
   it("letters, visits and referrals: either side on this map, each row once", async () => {
     const rows: R[] = [
