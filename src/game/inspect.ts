@@ -36,6 +36,8 @@ export function inspectAt(x: number, y: number, seeds: Seed[], now: number): Ins
 }
 
 /** Kind as painted on the map (street-front repaint included), so the Schaukasten only opens a diorama matching what the player sees. Paint-only, never used for mechanics. */
+/** Same street set as render.ts PATHLIKE (keep equal). */
+const STREETISH: ReadonlySet<string> = new Set(["path", "street", "square", "well", "market", "road", "bridge", "avenue"]);
 export function paintedKind(ins: Inspect, seeds: Seed[], now: number): Kind {
   const st = structureAt(ins.x, ins.y, seeds, now);
   if (!st) return ins.kind;
