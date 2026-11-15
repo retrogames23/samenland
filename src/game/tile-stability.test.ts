@@ -9,13 +9,19 @@ const at = (s: Seed, x: number, y: number, h: number) => { const st = structureA
 describe("Gebäude werden nicht von Wegen überrollt", () => {
   it("Sommersdorf [575,627]: finished farmhouse stays from hour 87.5 to 100", () => {
     const s = mk("cc48af03-3473-424d-a783-4b635e4776fb", 572, 630);
-    let done = false;
+    // the tile becomes a path as soon as it enters reach (never a house first); the yard beside it stands for good
+    const seq: string[] = [];
+    let houseSeen = false;
     for (let h = 87.5; h <= 100; h += 0.25) {
-      const st = at(s, 575, 627, h);
-      if (st && !st.build && HOMES.has(st.kind)) done = true;
-      else if (done) throw new Error(`house vanished at ${h}: ${st?.kind}`);
+      const st = at(s, 575, 627, h), k = st ? st.kind : "-";
+      if (HOMES.has(k)) houseSeen = true;
+      else if (houseSeen) throw new Error(`house vanished at ${h}: ${k}`);
+      seq.push(k);
     }
-    expect(done).toBe(true);
+    expect(seq[seq.length - 1]).toBe("path");
+    let nb = false;
+    for (let h = 92; h <= 100; h += 0.25) { const st = at(s, 576, 628, h); expect(st?.kind).toBe("farmhouse"); nb = true; }
+    expect(nb).toBe(true);
   });
   it("no finished home turns into a path or empty ground in its era (several seeds)", () => {
     const bad: string[] = [];
@@ -25,7 +31,8 @@ describe("Gebäude werden nicht von Wegen überrollt", () => {
         let home = false;
         for (let h = 10; h <= 130; h += 1) { // effAge stays below the first ring (240) and third spoke
           const st = at(s, x, y, h);
-          const k = st && !st.build ? st.kind : null;
+          if (st?.build !== undefined) { home = false; continue; } // planned rebuild at an era change, not a loss
+          const k = st ? st.kind : null;
           if (k && HOMES.has(k)) home = true;
           else if (home && (k === null || k === "path")) { bad.push(`${s.id} ${x},${y}@${h} ${k}`); break; }
         }
