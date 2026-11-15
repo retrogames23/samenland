@@ -142,3 +142,38 @@ describe("refreshMap (tab wake-up)", () => {
     expect(t.st.enc).toEqual([]);
   });
 });
+
+describe("refreshMap reloads the map's seeds (abandoned villages)", () => {
+  type S = { id: string; realm: string };
+  const setup = async () => {
+    const { LoadGate, refreshMap, snapRows } = await import("./realtime");
+    const gate = new LoadGate();
+    const st = { realm: "A", raw: [] as S[], ids: [] as string[] };
+    // mirrors the seeds INSERT handler in Game.tsx (held by the gate)
+    const insert = (n: S) => gate.run(() => { if (n.realm !== st.realm) return; if (!st.ids.includes(n.id)) st.ids = [...st.ids, n.id]; if (!st.raw.some((x) => x.id === n.id)) st.raw = [...st.raw, n]; });
+    // mirrors refreshPop: fresh seeds -> ids, applied only for the realm it started on
+    const refresh = (rows: S[], wait?: Promise<void>) => { const r = st.realm; return refreshMap(gate, async () => { await wait; return rows; }, (ss) => {
+      if (st.realm !== r) return; st.ids = ss.map((x) => x.id); st.raw = snapRows(ss, (x) => x.realm === r);
+    }); };
+    return { gate, st, insert, refresh };
+  };
+  it("an abandoned village is gone from rawSeeds and mapIds after the refresh", async () => {
+    const t = await setup(); t.st.raw = [{ id: "a", realm: "A" }, { id: "gone", realm: "A" }]; t.st.ids = ["a", "gone"];
+    expect(await t.refresh([{ id: "a", realm: "A" }])).toBe(true);
+    expect(t.st.raw.map((x) => x.id)).toEqual(["a"]); expect(t.st.ids).toEqual(["a"]);
+  });
+  it("a seed inserted by realtime during the refresh survives snapshot + replay", async () => {
+    const t = await setup(); let rel!: () => void; const wait = new Promise<void>((r) => { rel = r; });
+    const p = t.refresh([{ id: "a", realm: "A" }], wait);
+    t.insert({ id: "new", realm: "A" }); expect(t.st.raw).toEqual([]);
+    rel(); await p;
+    expect(t.st.raw.map((x) => x.id)).toEqual(["a", "new"]); expect(t.st.ids).toEqual(["a", "new"]);
+  });
+  it("a late refresh of realm A never overwrites realm B", async () => {
+    const t = await setup(); let rel!: () => void; const wait = new Promise<void>((r) => { rel = r; });
+    const p = t.refresh([{ id: "a", realm: "A" }], wait);
+    const e = t.gate.begin(); t.st.realm = "B"; t.gate.end(e, () => { t.st.raw = [{ id: "b", realm: "B" }]; t.st.ids = ["b"]; });
+    rel(); expect(await p).toBe(false);
+    expect(t.st.raw).toEqual([{ id: "b", realm: "B" }]); expect(t.st.ids).toEqual(["b"]);
+  });
+});
