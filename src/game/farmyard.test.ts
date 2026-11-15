@@ -24,7 +24,7 @@ describe("Hofstellen", () => {
 describe("Hofstellen bleiben stehen", () => {
   it("a finished lot never flips between barn and dwelling while the village grows within its era", () => {
     const flips: string[] = [];
-    for (const [sx, sy] of [[300, 400], [180, 220], [420, 310], [250, 520], [520, 450]]) {
+    for (const [sx, sy] of [[300, 400], [180, 220], [420, 310], [250, 520], [520, 450]] as [number, number][]) {
     const sd = { ...seed, id: `yard-${sx}-${sy}`, x: sx, y: sy } as Seed;
     const seeds = [sd];
     const born = Date.parse(seed.created_at);
