@@ -36,6 +36,7 @@ import { ITEM_RANK } from "@/game/disasters";
 import type { DecisionKind } from "@/game/decision-order";
 import { Minimap } from "@/components/hud/Minimap";
 import { rideTime, letterArrives } from "@/game/wander";
+import { IslandRegister, type RegisterRow } from "@/components/hud/IslandRegister";
 type LetterRow = { id: string; from_seed: string; to_seed: string; created_at: string };
 import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
@@ -1826,7 +1827,7 @@ export function Game() {
     const c = chronicle(my, seeds, chronRead, slow);
     return c.events.some((e) => e.code !== "season");
   }, [owner, my?.id, chronRead, seeds, slow]);
-  const townsCache = useRef(new Map<string, { k: string; rank: number; parts: ReturnType<typeof speedParts> }>());
+  const townsCache = useRef(new Map<string, { k: string; rank: number; parts: ReturnType<typeof speedParts>; citizens: number; homes: number; wares: Ware[] }>());
   const [, setTownsVer] = useState(0);
   const townsKey = (s: Seed) => `${s.x},${s.y},${s.created_at},${seeds.length},${townsTick}`;
   useEffect(() => {
@@ -1840,7 +1841,8 @@ export function Game() {
         const c = townsCache.current.get(s.id);
         if (c && c.k === townsKey(s)) continue;
         const t = clock();
-        townsCache.current.set(s.id, { k: townsKey(s), rank: townRank(s, seeds, Math.floor(t / 5000) * 5000), parts: speedParts(s, seeds, t) });
+        const cz = citizensOf(townOf(s, seeds, t)), wares = larderOf(s, seeds, t).flows.filter((f) => f.made > 0.05).sort((a, b) => b.made - a.made).slice(0, 3).map((f) => f.ware);
+        townsCache.current.set(s.id, { k: townsKey(s), rank: townRank(s, seeds, Math.floor(t / 5000) * 5000), parts: speedParts(s, seeds, t), citizens: cz.length, homes: new Set(cz.map((p) => p.hh ?? `${p.home[0]},${p.home[1]}`)).size, wares });
         did = true;
         if (performance.now() - t0 > 30) break;
       }
@@ -2383,12 +2385,16 @@ export function Game() {
           </div>
         );
       })()}
-      {tab === "towns" && (
-        <ul className="max-h-[50vh] space-y-1 overflow-y-auto overflow-x-hidden">
-          {seeds.map((s) => { const tc = townsCache.current.get(s.id); if (!tc) return (
-            <li key={s.id} className="animate-pulse px-2 py-1"><span className="text-foreground">{s.name}</span><span className="block text-xs text-muted-foreground">…</span></li>
-          ); const rk = tc.rank; return (
-            <li key={s.id}>
+      {tab === "towns" && (() => {
+        const nw = clock(), lk = links(seeds), rb = my ? roadBuilding(my, nw, seeds) : null;
+        const rows: RegisterRow[] = seeds.map((s) => { const tc = townsCache.current.get(s.id), mine = !!my && s.id === my.id;
+          const road = !!my && !mine && lk.some((l) => nw >= l.since && ((l.a.id === my.id && l.b.id === s.id) || (l.b.id === my.id && l.a.id === s.id)));
+          return { seed: s, ready: !!tc, rank: tc ? t.stages[tc.rank] ?? "" : "", way: TOWN_CHARACTER[lang].names[wayOf(s)], wayKey: wayOf(s), citizens: tc?.citizens ?? 0, homes: tc?.homes ?? 0, wares: tc?.wares ?? [],
+            link: road ? "road" : rb?.target === s.id ? "building" : null, rideMin: my && !mine ? Math.round(rideTime(my, s) / 60000) : null, dist: my ? Math.hypot(my.x - s.x, my.y - s.y) : null, mine };
+        });
+        return <IslandRegister lang={lang} island={ISLAND[realm] ?? ISLAND.europe} rows={rows} wayNames={TOWN_CHARACTER[lang].names as Record<string, string>}
+          onGo={(s) => { setTab(null); glideTo(s.x, s.y, LOOK_TOWN); }}
+          details={(s) => { const tc = townsCache.current.get(s.id); if (!tc) return <span className="text-xs text-muted-foreground">…</span>; const rk = tc.rank; return (<>
               <button className="w-full rounded px-2 py-1 text-left hover:bg-accent" onClick={() => { setProfile(s); setTab(null); }}>
                 <span className="text-foreground">{s.name}</span>
                 <span className="block text-xs text-muted-foreground">
@@ -2411,10 +2417,8 @@ export function Game() {
                 {hurt && <Button size="sm" className="ml-2 mb-1" disabled={used || cash < AID_TALER} onClick={() => sendGift(s, "aid")}>{t.gifts.aid(AID_TALER)}</Button>}
                 {(used || cash < GIFT_TALER) && <span className="mb-1 ml-2 block text-[11px] italic text-muted-foreground">{used ? t.gifts.once : t.gifts.poor}</span>}
               </>); })()}
-            </li>
-          ); })}
-        </ul>
-      )}
+</>); }} />;
+      })()}
     </div>
   );
 
