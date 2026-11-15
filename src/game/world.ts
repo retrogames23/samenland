@@ -833,7 +833,7 @@ export const GUILDTOWER_STEP = 0.05;
  *  halves the distance loss beyond MIN_SEED_DISTANCE on all own roads, step 3 routed trade touching a coast +20 % and ceiling +0.05;
  *  cathedral: see cathedralDone (all finished steps only);
  *  university: see universityDone (all finished steps only);
- *  exchange: routed trade 0.80 from step 2, 0.85 at step 4; orangery: from step 2 like a herb hut, step 3 sickness −0.01;
+ *  exchange: see schuettingDone (all finished steps only); orangery: from step 2 like a herb hut, step 3 sickness −0.01;
  *  opera (Artushof): step 4 roads to partners +10 % trade factor (inside the usual cap). */
 export const HARVEST_GRAIN = [0, 0.1, 0.25, 0.25] as const, LIGHTHOUSE_TRANSIT = 1.2, LIGHTHOUSE_CEIL = [0, 0, 0, 0.05] as const;
 /** Finished lighthouse steps, guarded: while the lighthouse's own build chain is evaluated (sawmill → effAge → trade),
@@ -857,7 +857,19 @@ export function seaWays(s: Seed, now: number): number {
   return Math.min(SEA_WAYS_MAX, n);
 }
 export const CATHEDRAL_SICK = 0.02, ORANGERY_SICK = 0.01, OPERA_TRADE = 0.1;
-export const transitShare = (s: Seed, now: number) => { const n = stepsPaid(s, "exchange", now); return n >= 4 ? 0.85 : n >= 2 ? 0.8 : TRANSIT_SHARE; };
+/** Finished Schütting steps, guarded like cathedralDone: while its own build chain is evaluated (sawmill → effAge →
+ *  trade → transitShare/tradeCapOf) it reads 0 — no self-acceleration, no recursion. Step 1: vaulted cellar (no stock);
+ *  2: arcade hall — 2 merchants, routed trade 0.80; 3: stepped gable — trade ceiling +0.05 (via softTrade only);
+ *  4: weather vane — 3rd merchant, routed trade 0.85; PRESTIGE_BONUS and Wohlstand works unchanged. */
+const exBusy = new Set<string>();
+export const EXCHANGE_CEIL = 0.05;
+export const schuettingDone = (s: Seed, now: number) => {
+  if (exBusy.has(s.id) || !(s.bought ?? []).some((b) => b.at <= now && monumentOf(b.item) === "exchange")) return 0;
+  exBusy.add(s.id);
+  try { return stepsDone(s, "exchange", now); } finally { exBusy.delete(s.id); }
+};
+export const exchangeMerchants = (s: Seed, now: number) => { const n = schuettingDone(s, now); return n >= 4 ? 3 : n >= 2 ? 2 : 0; };
+export const transitShare = (s: Seed, now: number) => { const n = schuettingDone(s, now); return n >= 4 ? 0.85 : n >= 2 ? 0.8 : TRANSIT_SHARE; };
 /** Erntedankhalle step 1 (physically finished): counts as one more supply building for the care gate only —
  *  never foodCapacity, production or stock. */
 /** While a hall's own build chain is evaluated (its sawmill check reads effAge → care gate), the hall does not count
@@ -1450,6 +1462,7 @@ export function tradeCapOf(s: Seed, now: number) {
   if (s.charter?.path === "trade" && now > s.charter.at) c += CEIL_CHARTER;
   if ((s.bought ?? []).some((b) => b.item === "markethall" && b.at <= now)) c += CEIL_MARKET;
   c += LIGHTHOUSE_CEIL[Math.min(3, lighthouseDone(s, now))]!;
+  if (schuettingDone(s, now) >= 3) c += EXCHANGE_CEIL;
   return Math.min(TRADE_CEIL_MAX, c);
 }
 /** Effective trade for a raw trade value: unchanged up to TRADE_CAP, then rising ever more slowly towards `cap`. */

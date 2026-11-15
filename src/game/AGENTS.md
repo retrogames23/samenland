@@ -52,3 +52,5 @@
 - Universität: every effect reads universityDone (world.ts, finished steps only, uniBusy guard): 1 lecturers via specialTile slots in people.ts, 2 messengers ×UNIVERSITY_MESSENGER via uniChancery in wander.ts, 3 +1 in careHealthExtra, 4 PROSPER_MONUMENTS; no sickness or journeyman effect. Legacy civicWealth PRESTIGE_BONUS.university4 stays paid+6 h because DB village_civic_wealth mirrors it.
 
 - Road reach TRADE_DIST (120) is mirrored by DB first_road_guard and quest_guard; the synergy bonus keeps its BONUS_DIST (80) scale so existing roads never change. Sea ways (seaWays in world.ts: finished lighthouse step 1, smokehouse/saltquay, fisher's hut on water; max 2) count as roads in rankInput via roadsFor, and certifyRank stores them in rank_certificates.ways for the rank3 guard.
+
+- Schütting (exchange): every effect reads schuettingDone (world.ts, guarded stepsDone) — step 2 two merchants + transitShare 0.80, step 3 tradeCapOf +EXCHANGE_CEIL (still ≤ TRADE_CEIL_MAX, only via softTrade), step 4 third merchant + 0.85; merchant slots come from exchangeMerchants in people.ts, never from SLOTS, so paying never acts early.

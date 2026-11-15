@@ -345,3 +345,9 @@ Simulationsausgabe ab sofort zusätzlich (nur künftige Läufe): physische Wohnh
 ## Block 3.7 – Universität (abgeschlossen 2026-11-14)
 - Alle Wirkungen über universityDone (fertige Schritte): 1 zwei Dozenten, 2 Kanzleiboten +20 % (0,6 → 0,72), 3 +1 Gemeinwesen, 4 zwei Zivilwerke. UNIVERSITY_SICK und UNIVERSITY_WALZ entfernt. Preise 700/900/1.100/1.300 unverändert, keine Migration.
 - Offen: alter civicWealth-Prestigebonus (+15) reift weiter 6 h ab Zahlung von Schritt 4 (DB-gespiegelt; Umstellung bräuchte Migration).
+
+## Block 3.8 – Schütting (umgesetzt, unveröffentlicht)
+- Preise 700/900/1.100/1.300, Rang 4, keine Migration. Alle Wirkungen nach physischer Fertigstellung (`schuettingDone`).
+- Stufe 1 Gewölbekeller: ohne Wirkung (kein Lager). Stufe 2 Arkadenhalle: 2 Händler, Transit 0,80. Stufe 3 Staffelgiebel: Handelsobergrenze +0,05 (max. 0,60, nur über softTrade). Stufe 4 Wetterfahne: 3. Händler (gesamt 3), Transit 0,85; Prestige +20 nach 6 h und +2 Werke unverändert.
+- Ergänzende Standorte grain-free, workshop-tight, gateway-trap: in der bestehenden Simulation sind die Nachbarn isoliert (nb1/nb2 ohne Weiterverbindung), daher entstehen dort wie an den übrigen sechs Standorten keine Transitrouten; Transitwirkung 0,00. Die Cap-Erhöhung greift nur, wenn Rohhandel über TRADE_CAP 0,35 liegt; ob das an diesen drei Standorten erreicht wird, ist ohne Vergleichslauf nicht belegt. Abgeleitet aus derselben Berechnung, kein neuer Vergleichslauf.
+- Hinweis: Frühere Zeitgewinn-Angaben sind aus Bonusstunden abgeleitet, keine vollständigen direkten Vergleichsläufe.
