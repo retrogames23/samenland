@@ -476,8 +476,12 @@ export function Game() {
   const rtGate = useRef(new LoadGate());
   // tab woke up: re-read every population input of the loaded map through rtGate (stale after a map switch, events held + replayed)
   const refreshPop = useRef(() => {
-    const ids = mapIds.current;
-    void refreshMap(rtGate.current, () => Promise.all([
+    const r = realmRef.current;
+    // seeds first: abandon_village deletes the seed row itself, so the map's ids come from a fresh read
+    void refreshMap(rtGate.current, async () => {
+      const ss = (await allRows<Seed>(() => supabase.from("seeds").select("*").eq("realm", r), "chrono")).data;
+      const ids = ss.map((x) => x.id);
+      return [ss, ids, await Promise.all([
       mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)) as Promise<EncRow[]>,
       mapRows(ids, (c) => supabase.from("charters").select("id, seed_id, path, created_at").in("seed_id", c)),
       mapRows(ids, (c) => supabase.from("first_roads").select("id, seed_id, target_id, created_at").in("seed_id", c)),
@@ -485,7 +489,12 @@ export function Game() {
       mapRows(ids, (c) => supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").in("seed_id", c)),
       mapRows(ids, (c) => supabase.from("purchases").select("id, seed_id, item, cost, created_at, x, y").in("seed_id", c)),
       mapRows(ids, (c) => supabase.from("blessings").select("id, seed_id, created_at").in("seed_id", c)),
-    ]), ([enc, ch, fr, vo, wo, pu, bl]) => {
+    ])] as const;
+    }, ([ss, ids, [enc, ch, fr, vo, wo, pu, bl]]) => {
+      if (realmRef.current !== r) return;
+      mapIds.current = ids;
+      setSeeds(snapRows(ss, (x) => x.realm === r));
+      setHome((h) => (h && h.realm === r && !ids.includes(h.id) ? null : h));
       const keep = (...xs: (string | null | undefined)[]) => onIds(mapIds.current, ...xs);
       setEncounters(snapRows(enc, (x) => keep(x.seed_id))); setCharters(snapRows(ch, (x) => keep(x.seed_id)));
       setFirstRoads(snapRows(fr, (x) => keep(x.seed_id, x.target_id)));
