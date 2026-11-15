@@ -48,8 +48,8 @@ describe("population cache chain", () => {
   it("E: twin pact / joint work changed at equal count", async () => {
     const v = (pact: "trade" | "culture", at: number) => [{ partner: "nb", pact, at }];
     const w = (work: "bridge" | "fair", at: number) => [{ partner: "nb", work, cost: 100, at }];
-    const a = [base({ votes: v("trade", NOW - 200 * H), works: w("bridge", NOW - 150 * H) as Seed["works"] }), nb({ votes: [{ partner: "dk", pact: "trade", at: NOW - 199 * H }] })];
-    const b = [base({ votes: v("culture", NOW - 100 * H), works: w("fair", NOW - 120 * H) as Seed["works"] }), nb({ votes: [{ partner: "dk", pact: "trade", at: NOW - 199 * H }] })];
+    const a = [base({ votes: v("trade", NOW - 200 * H), works: w("bridge", NOW - 150 * H) as NonNullable<Seed["works"]> }), nb({ votes: [{ partner: "dk", pact: "trade", at: NOW - 199 * H }] })];
+    const b = [base({ votes: v("culture", NOW - 100 * H), works: w("fair", NOW - 120 * H) as NonNullable<Seed["works"]> }), nb({ votes: [{ partner: "dk", pact: "trade", at: NOW - 199 * H }] })];
     const { sb, fb } = await cachedVsFresh(a as Seed[], b as Seed[]);
     expect(sb).toEqual(fb);
   });
