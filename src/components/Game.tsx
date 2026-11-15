@@ -1,4 +1,4 @@
-import { LoadGate, applySign, mergeRows, onIds, snapRows, refreshMap } from "@/game/realtime";
+import { dropSeedId, withoutSeed, LoadGate, applySign, mergeRows, onIds, snapRows, refreshMap } from "@/game/realtime";
 import { allIn, allPages, allEither } from "@/lib/fetch-all";
 import { WalkStick } from "./WalkStick";
 import { maxZoom } from "@/game/camera";
@@ -925,6 +925,17 @@ export function Game() {
         const n = p.new as Seed; if ((n as { realm?: string }).realm !== realmRef.current) return;
         if (!mapIds.current.includes(n.id)) mapIds.current = [...mapIds.current, n.id];
         setSeeds((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+      }))
+      // abandoned village: held like every event, so a DELETE during a refresh replays after its snapshot and wins
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "seeds" }, held((p) => {
+        const left = dropSeedId(mapIds.current, p); if (!left) return;
+        const id = (p.old as { id: string }).id; mapIds.current = left;
+        setSeeds((s) => s.filter((x) => x.id !== id)); setHome((h) => (h && h.id === id ? null : h));
+        setEncounters((r) => withoutSeed(r, id, "seed_id")); setCharters((r) => withoutSeed(r, id, "seed_id"));
+        setFirstRoads((r) => withoutSeed(r, id, "seed_id", "target_id")); setVotes((r) => withoutSeed(r, id, "seed_id", "partner_id"));
+        setWorks((r) => withoutSeed(r, id, "seed_id", "partner_id")); setPurchases((r) => withoutSeed(r, id, "seed_id"));
+        setBlessings((r) => withoutSeed(r, id, "seed_id")); setPlantings((r) => withoutSeed(r, id, "seed_id"));
+        setGifts((r) => withoutSeed(r, id, "from_seed", "to_seed")); setSigns((r) => withoutSeed(r, id, "seed_id", "target_id"));
       }))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "plantings" }, held((p) => {
         const n = p.new as Planting; if (!onMap(n.seed_id)) return;

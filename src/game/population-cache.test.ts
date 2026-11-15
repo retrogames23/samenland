@@ -177,3 +177,38 @@ describe("refreshMap reloads the map's seeds (abandoned villages)", () => {
     expect(t.st.raw).toEqual([{ id: "b", realm: "B" }]); expect(t.st.ids).toEqual(["b"]);
   });
 });
+
+// simplified replay of the Game.tsx seeds DELETE handler + refreshPop (pure helpers, not the component)
+describe("seeds DELETE during and outside a refresh", () => {
+  type S = { id: string; realm: string };
+  const setup = async () => {
+    const { LoadGate, refreshMap, snapRows, dropSeedId, withoutSeed } = await import("./realtime");
+    const gate = new LoadGate();
+    const st = { realm: "A", raw: [] as S[], ids: [] as string[], enc: [] as { id: string; seed_id: string }[], home: "x" as string | null };
+    const del = (id: string) => gate.run(() => { const left = dropSeedId(st.ids, { old: { id } }); if (!left) return;
+      st.ids = left; st.raw = st.raw.filter((x) => x.id !== id); st.enc = withoutSeed(st.enc, id, "seed_id"); if (st.home === id) st.home = null; });
+    const refresh = (rows: S[], wait?: Promise<void>) => { const r = st.realm; return refreshMap(gate, async () => { await wait; return rows; }, (ss) => {
+      if (st.realm !== r) return; st.ids = ss.map((x) => x.id); st.raw = snapRows(ss, (x) => x.realm === r);
+      st.enc = snapRows([{ id: "e-gone", seed_id: "gone" }, { id: "e-a", seed_id: "a" }], (x) => st.ids.includes(x.seed_id));
+    }); };
+    return { gate, st, del, refresh };
+  };
+  it("a village deleted while the refresh still read it stays gone after snapshot + replay", async () => {
+    const t = await setup(); t.st.ids = ["a", "gone"]; t.st.raw = [{ id: "a", realm: "A" }, { id: "gone", realm: "A" }]; t.st.home = "gone";
+    let rel!: () => void; const wait = new Promise<void>((r) => { rel = r; });
+    const p = t.refresh([{ id: "a", realm: "A" }, { id: "gone", realm: "A" }], wait);
+    t.del("gone"); rel(); expect(await p).toBe(true);
+    expect(t.st.raw.map((x) => x.id)).toEqual(["a"]); expect(t.st.ids).toEqual(["a"]);
+    expect(t.st.enc.map((x) => x.id)).toEqual(["e-a"]); expect(t.st.home).toBeNull();
+  });
+  it("a DELETE of another realm's village leaves the active map unchanged", async () => {
+    const t = await setup(); t.st.ids = ["a"]; t.st.raw = [{ id: "a", realm: "A" }];
+    t.del("b-elsewhere");
+    expect(t.st.ids).toEqual(["a"]); expect(t.st.raw).toEqual([{ id: "a", realm: "A" }]);
+  });
+  it("a DELETE outside a refresh removes the village at once", async () => {
+    const t = await setup(); t.st.ids = ["a", "gone"]; t.st.raw = [{ id: "a", realm: "A" }, { id: "gone", realm: "A" }];
+    t.st.enc = [{ id: "e", seed_id: "gone" }]; t.del("gone");
+    expect(t.st.ids).toEqual(["a"]); expect(t.st.raw.map((x) => x.id)).toEqual(["a"]); expect(t.st.enc).toEqual([]);
+  });
+});
