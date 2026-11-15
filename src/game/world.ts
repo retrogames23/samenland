@@ -642,7 +642,7 @@ const keptCache = new Map<string, Set<number>>();
  * until every remaining end touches a building or the village square.
  */
 function keptPaths(s: Seed, age: number, r: number): Set<number> {
-  const ck = `${s.id}|${Math.floor(age * 60)}`;
+  const ck = `${s.id}|${Math.floor(age * 60)}|${seedsKey(soloSeeds(s))}`; // anchors depend on purchases/charter, not only age
   const hit = keptCache.get(ck); if (hit) return hit;
   const R = Math.ceil(reachOf(s, r) + 1), cx = Math.round(s.x), cy = Math.round(s.y);
   const paths = new Set<number>(), anchor = new Set<number>();
