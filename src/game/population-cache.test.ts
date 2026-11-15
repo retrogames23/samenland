@@ -212,3 +212,15 @@ describe("seeds DELETE during and outside a refresh", () => {
     expect(t.st.ids).toEqual(["a"]); expect(t.st.raw.map((x) => x.id)).toEqual(["a"]); expect(t.st.enc).toEqual([]);
   });
 });
+
+describe("seeds DELETE drops the village's letters and bodies", () => {
+  it("removes in- and outgoing letters with their bodies, keeps others", async () => {
+    const { withoutSeed, withoutKeys } = await import("./realtime");
+    const letters = [{ id: "l1", from_seed: "gone", to_seed: "a" }, { id: "l2", from_seed: "a", to_seed: "gone" }, { id: "l3", from_seed: "a", to_seed: "b" }];
+    const bodies = { l1: "x", l2: "y", l3: "z" };
+    const gone = letters.filter((l) => l.from_seed === "gone" || l.to_seed === "gone").map((l) => l.id);
+    expect(withoutSeed(letters, "gone", "from_seed", "to_seed").map((l) => l.id)).toEqual(["l3"]);
+    expect(withoutKeys(bodies, gone)).toEqual({ l3: "z" });
+    expect(withoutKeys(bodies, ["nope"])).toBe(bodies);
+  });
+});
