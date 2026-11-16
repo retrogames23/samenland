@@ -82,7 +82,10 @@ export type NatureKind = keyof typeof NATURE;
 export const natureReady = () => Object.values(NATURE).every((s) => !!img(s.url));
 
 /** Draws a nature sprite with its foot at (x,y); sway skews the crown slightly. */
-export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: number, sway = 0, flip = false): boolean {
+/** Screen-pixel shift of a crown at local height `top` for sway, at `px` device pixels per world unit (0 = unknown). */
+export const swayShiftPx = (sway: number, top: number, px: number) => Math.abs(sway * 0.04 * top) * px;
+/** px: device pixels per world unit of the live canvas (zoom × dpr); when > 0, sway below one device pixel is skipped. */
+export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: number, sway = 0, flip = false, px = 0): boolean {
   const s = NATURE[k];
   const i = img(s.url); if (!i) return true; // loading: draw nothing rather than old art
   const [, , sw, sh] = s.crop;
@@ -95,8 +98,10 @@ export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: num
   }
   if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
   const im = seasonalImage(i, k === "fir" ? "fir" : rock ? "building" : "leaf"), top = rock ? -h * 0.72 : -h + h * 0.02;
+  if (px > 0 && sway !== 0) { pCount("tree.n"); if (swayShiftPx(sway, top, px) < 1) { pCount("tree.sub"); sway = 0; } else pCount("tree.sway"); }
   if (!flip && Math.abs(sway) < 0.01) { c.drawImage(im, x - w / 2, y + top, w, h); return true; }
   // zero-save: one absolute matrix (world × translate × mirror/sway shear), then back to the world matrix
+  if (px > 0) pCount("tree.xform");
   const B = c.getTransform(), fx = flip ? -1 : 1, sk = sway * 0.04;
   c.setTransform(B.a * fx, B.b * fx, B.a * sk + B.c, B.b * sk + B.d, B.a * x + B.c * y + B.e, B.b * x + B.d * y + B.f);
   c.drawImage(im, -w / 2, top, w, h);
