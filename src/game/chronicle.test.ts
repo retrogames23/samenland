@@ -23,9 +23,10 @@ describe("small milestones", () => {
     if (homes.length <= CHRON_DETAIL) expect(c.events.filter((e) => e.code === "house").length).toBe(homes.length);
     else expect(c.events.some((e) => e.code === "houses")).toBe(true);
   });
-  it("summarises more than six homes into one line", () => {
+  it("over long absences at most one homes line per day", () => {
     const c = chronicle(s, [s], t0, t0 + 120 * 864e5);
-    expect(c.events.filter((e) => e.code === "house").length).toBeLessThanOrEqual(CHRON_DETAIL);
+    const lines = c.events.filter((e) => e.code === "house" || e.code === "houses");
+    expect(new Set(lines.map((e) => Math.floor(e.at / 864e5))).size).toBe(lines.length);
   });
 });
 
@@ -43,5 +44,18 @@ describe("completion feasts", () => {
     const ev = chronicle(full, [full], t0, t0 + 6 * 864e5).events.filter((e) => e.code === "bought");
     expect(ev.length).toBe(1);
     expect(ev[0]!.at).toBeGreaterThan(t0 + 1.2 * 864e5);
+  });
+});
+
+describe("summaries keep their real day", () => {
+  it("many homes are summarised per day, never dated on the last day of the window", () => {
+    const from = t0, to = t0 + 120 * 864e5;
+    const c = chronicle(s, [s], from, to);
+    const homes = homesBetween(s, [s], from, to);
+    const sum = c.events.filter((e) => e.code === "houses" || e.code === "house").reduce((n, e) => n + (e.code === "houses" ? e.n : 1), 0);
+    expect(sum).toBe(homes.length);
+    const days = new Set(c.events.filter((e) => e.code === "houses").map((e) => Math.floor(e.at / 864e5)));
+    expect(days.size).toBe(c.events.filter((e) => e.code === "houses").length);
+    if (homes.length > CHRON_DETAIL) expect(c.events.filter((e) => e.code === "houses" || e.code === "house").every((e) => e.at !== to || homes.some((h) => h.at === to))).toBe(true);
   });
 });
