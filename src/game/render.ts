@@ -2634,7 +2634,7 @@ export function setKnights(k: ReadonlySet<string>) { knightSeeds = k; }
 /** Tethered riding horse beside a knight's seat; faces right, hooves on the ground line. */
 function drawTetheredHorse(c: C, x: number, y: number, t: number, flip: boolean) {
   const im = horseImage(); if (!im) return;
-  const H = 8.6, W = (im.naturalWidth / im.naturalHeight) * H, sway = Math.sin(t / 2300) * 0.08;
+  const H = 7.2, W = (im.naturalWidth / im.naturalHeight) * H, sway = Math.sin(t / 2300) * 0.08;
   c.save(); c.translate(x, y); if (flip) c.scale(-1, 1);
   c.fillStyle = "rgba(20,15,10,0.32)"; c.beginPath(); c.ellipse(0, -0.1, W * 0.38, 0.9, 0, 0, 7); c.fill();
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
