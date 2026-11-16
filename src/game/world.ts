@@ -1208,8 +1208,63 @@ export function links(seeds: Seed[]): Link[] {
   if (key === linkKey) return linkCache;
   const hit = linkSets.get(key);
   if (hit) { linkKey = key; linkCache = hit.links; roadIdx = hit.idx; return linkCache; }
-  const out: Link[] = [];
+  const out = deriveLinks(seeds, nearPairs(seeds));
+  const idx = new Map<number, { link: Link; i: number }>();
+  for (const l of out) l.tiles.forEach(([x, y], i) => { const k = y * MAP + x; if (!idx.has(k)) idx.set(k, { link: l, i }); });
+  if (linkSets.size >= 8) linkSets.delete(linkSets.keys().next().value!);
+  linkSets.set(key, { links: out, idx });
+  linkKey = key; linkCache = out; roadIdx = idx;
+  return linkCache;
+}
+
+/**
+ * Seed index pairs (i < j) within TRADE_DIST, in exactly the order of the naive double loop
+ * (i ascending, then j ascending). A uniform grid with cell size TRADE_DIST limits each seed to
+ * its own and the eight neighbouring cells — any pair within TRADE_DIST lies there, so the result
+ * equals the naive scan. `stats` counts distance checks (tests/benchmarks only).
+ */
+export function nearPairs(seeds: Seed[], stats?: { checks: number }): [number, number][] {
+  const C = TRADE_DIST, cells = new Map<string, number[]>();
+  const cx = new Array<number>(seeds.length), cy = new Array<number>(seeds.length);
+  for (let i = 0; i < seeds.length; i++) {
+    const s = seeds[i]!, x = Math.floor(s.x / C), y = Math.floor(s.y / C);
+    cx[i] = x; cy[i] = y;
+    const k = `${x},${y}`; let c = cells.get(k); if (!c) cells.set(k, (c = [])); c.push(i); // indices ascending
+  }
+  const out: [number, number][] = [];
+  const cand: number[] = [];
+  for (let i = 0; i < seeds.length; i++) {
+    cand.length = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const c = cells.get(`${cx[i]! + dx},${cy[i]! + dy}`); if (!c) continue;
+      for (const j of c) if (j > i) cand.push(j);
+    }
+    cand.sort((p, q) => p - q);
+    const a = seeds[i]!;
+    for (const j of cand) {
+      const b = seeds[j]!;
+      if (stats) stats.checks++;
+      if (Math.hypot(a.x - b.x, a.y - b.y) <= TRADE_DIST) out.push([i, j]);
+    }
+  }
+  return out;
+}
+/** Naive reference scan over all pairs — the specification nearPairs must equal (tests only). */
+export function nearPairsNaive(seeds: Seed[], stats?: { checks: number }): [number, number][] {
+  const out: [number, number][] = [];
   for (let i = 0; i < seeds.length; i++) for (let j = i + 1; j < seeds.length; j++) {
+    const a = seeds[i]!, b = seeds[j]!;
+    if (stats) stats.checks++;
+    if (Math.hypot(a.x - b.x, a.y - b.y) <= TRADE_DIST) out.push([i, j]);
+  }
+  return out;
+}
+/** Uncached link derivation with the naive pair scan — reference for tests, never used by the game. */
+export function linksReference(seeds: Seed[]): Link[] { syncGeo(); return deriveLinks(seeds, nearPairsNaive(seeds)); }
+
+function deriveLinks(seeds: Seed[], pairs: [number, number][]): Link[] {
+  const out: Link[] = [];
+  for (const [i, j] of pairs) {
     const a = seeds[i]!, b = seeds[j]!;
     const d = Math.hypot(a.x - b.x, a.y - b.y);
     if (d > TRADE_DIST) continue;
@@ -1219,12 +1274,7 @@ export function links(seeds: Seed[]): Link[] {
     // player-decided roads start at the decision itself; only sample pairs wait for ROAD_AT
     if (l) { if (gate !== -Infinity) { const k = roadKinetics(a, b)!; l.since = k.since; l.baseBuild = k.baseBuild; if (k.joinAt !== undefined) l.joinAt = k.joinAt; l.doneAt = k.doneAt; } out.push(l); }
   }
-  const idx = new Map<number, { link: Link; i: number }>();
-  for (const l of out) l.tiles.forEach(([x, y], i) => { const k = y * MAP + x; if (!idx.has(k)) idx.set(k, { link: l, i }); });
-  if (linkSets.size >= 8) linkSets.delete(linkSets.keys().next().value!);
-  linkSets.set(key, { links: out, idx });
-  linkKey = key; linkCache = out; roadIdx = idx;
-  return linkCache;
+  return out;
 }
 
 /**
