@@ -55,7 +55,7 @@ export function homesBetween(s: Seed, seeds: Seed[], from: number, to: number) {
   }
   return out.sort((p, q) => p.at - q.at);
 }
-export type Chronicle = { from: number; to: number; events: ChronEvent[]; popFrom: number; popTo: number; taler: number };
+export type Chronicle = { from: number; to: number; events: ChronEvent[]; popFrom: number; popTo: number; taler: number; manual?: boolean };
 
 /** Show the automatic letter after this long away; a quiet banner after a day. */
 export const CHRON_LETTER = 5 * 864e5, CHRON_BANNER = 864e5, CHRON_MAX = 120 * 864e5;
@@ -63,6 +63,14 @@ const STEP = 6 * 3.6e6;
 /** Real residents: everyone living in a finished home (same list the map shows). */
 const pop = (s: Seed, seeds: Seed[], t: number) => citizensOf(townOf(s, seeds, t)).length;
 const dominant = (now: number) => { const w = seasonAt(now); return (Object.keys(w) as Season[]).reduce((a, b) => (w[b] > w[a] ? b : a)); };
+
+/** Groups time-sorted items by calendar day of the realm (UTC day buckets, display only). */
+function byDay<T>(xs: T[], at: (x: T) => number): T[][] {
+  const out: T[][] = [];
+  let key = NaN;
+  for (const x of xs) { const k = Math.floor(at(x) / 864e5); if (k !== key) { out.push([]); key = k; } out[out.length - 1]!.push(x); }
+  return out;
+}
 
 export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chronicle {
   from = Math.max(from, to - CHRON_MAX, Date.parse(s.created_at));
@@ -109,7 +117,11 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   }
   const homes = homesBetween(s, seeds, from, to);
   if (homes.length > CHRON_DETAIL) {
-    ev.push({ at: to, code: "houses", n: homes.length }, { at: to, code: "families", n: homes.length });
+    // summarised per calendar day, dated on that day — never all on the last day of the window
+    for (const g of byDay(homes, (h) => h.at)) {
+      if (g.length === 1) { const h = g[0]!; ev.push({ at: h.at, code: "house", kind: h.kind, x: h.x, y: h.y }, { at: Math.min(to, h.at + 6e5), code: "family", x: h.x, y: h.y }); }
+      else { const at = g[g.length - 1]!.at; ev.push({ at, code: "houses", n: g.length }, { at: Math.min(to, at + 6e5), code: "families", n: g.length }); }
+    }
   } else for (const h of homes) ev.push({ at: h.at, code: "house", kind: h.kind, x: h.x, y: h.y }, { at: Math.min(to, h.at + 6e5), code: "family", x: h.x, y: h.y });
   const tw = townOf(s, seeds, to);
   for (const w of tw.weddings) if (w.at > from && w.at <= to)
@@ -119,7 +131,11 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   for (const f of floods(s, to)) if (f.at > from) { const fr = floodFront(f); ev.push({ at: f.at, code: "flood", x: Math.round(fr.x), y: Math.round(fr.y) }); }
   for (const r of raids(s, to)) if (r.at > from) ev.push({ at: r.at, code: "raid", loss: r.loss, caught: r.caught, x: s.x, y: s.y });
   const jm = journeymenTo(s, seeds, from, to);
-  if (jm.length > CHRON_DETAIL) ev.push({ at: to, code: "journeymen", n: jm.length });
+  if (jm.length > CHRON_DETAIL) for (const g of byDay(jm, (w) => w.t1)) {
+    const w = g[0]!;
+    if (g.length === 1) ev.push({ at: w.t1, code: "journeyman", name: w.name, craft: w.craft, sex: w.sex, other: w.from.name });
+    else ev.push({ at: g[g.length - 1]!.t1, code: "journeymen", n: g.length });
+  }
   else for (const w of jm) ev.push({ at: w.t1, code: "journeyman", name: w.name, craft: w.craft, sex: w.sex, other: w.from.name });
   for (const w of bridesOf(s, seeds, from, to)) ev.push({ at: w.t1, code: "bride", name: w.name, sex: w.sex, away: w.from.id === s.id, other: (w.from.id === s.id ? w.to : w.from).name });
   for (const w of movesOf(s, seeds, from, to)) ev.push({ at: w.t1, code: "moved", name: w.name, away: w.from.id === s.id, other: (w.from.id === s.id ? w.to : w.from).name });

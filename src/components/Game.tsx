@@ -1926,7 +1926,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   function openChron() {
     if (!my) return;
     const now = clock();
-    setChron((c) => c ?? chronicle(my, seeds, now - 7 * 864e5, now));
+    setChron((c) => c ?? { ...chronicle(my, seeds, now - 7 * 864e5, now), manual: true });
     setScribe((x) => (x === undefined ? null : x));
     setChronBanner(false); setChronOpen(true);
     localStorage.setItem(`samenland-chron-read-${my.id}`, String(now)); setChronRead(now);
@@ -3430,8 +3430,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       )}
       {chronOpen && chron && my && (
         <Parchment title={`${t.chron.title} · ${my.name}`} later={t.chron.close} onLater={() => setChronOpen(false)}>
-          <p className="text-center text-sm text-ink/70">{t.chron.away(Math.max(1, Math.round((chron.to - chron.from) / 864e5)))}</p>
-          <p className="mt-3 text-center font-display text-xl leading-snug text-ink">{scribe === undefined ? <span className="animate-pulse text-ink/60">{t.chron.writing}</span> : scribe ?? addr(t.chron.greet)}</p>
+          {!chron.manual && <p className="text-center text-sm text-ink/70">{t.chron.away(Math.max(1, Math.round((chron.to - chron.from) / 864e5)))}</p>}
+          {!chron.manual && <p className="mt-3 text-center font-display text-xl leading-snug text-ink">{scribe === undefined ? <span className="animate-pulse text-ink/60">{t.chron.writing}</span> : scribe ?? addr(t.chron.greet)}</p>}
           <div className="mt-4 flex justify-center gap-4 font-display text-lg text-ink">
             <span>{t.chron.pop(chron.popFrom, chron.popTo)}</span><span>{t.chron.taler(chron.taler)}</span>
           </div>

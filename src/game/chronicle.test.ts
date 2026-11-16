@@ -45,3 +45,16 @@ describe("completion feasts", () => {
     expect(ev[0]!.at).toBeGreaterThan(t0 + 1.2 * 864e5);
   });
 });
+
+describe("summaries keep their real day", () => {
+  it("many homes are summarised per day, never dated on the last day of the window", () => {
+    const from = t0, to = t0 + 120 * 864e5;
+    const c = chronicle(s, [s], from, to);
+    const homes = homesBetween(s, [s], from, to);
+    const sum = c.events.filter((e) => e.code === "houses" || e.code === "house").reduce((n, e) => n + (e.code === "houses" ? e.n : 1), 0);
+    expect(sum).toBe(homes.length);
+    const days = new Set(c.events.filter((e) => e.code === "houses").map((e) => Math.floor(e.at / 864e5)));
+    expect(days.size).toBe(c.events.filter((e) => e.code === "houses").length);
+    if (homes.length > CHRON_DETAIL) expect(c.events.filter((e) => e.code === "houses" || e.code === "house").every((e) => e.at !== to || homes.some((h) => h.at === to))).toBe(true);
+  });
+});
