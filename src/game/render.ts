@@ -3703,6 +3703,11 @@ export function draw(
   // gradients and clips per tile every frame blew the 16 ms budget while panning.
   const detail = true, sharp = false;
   const cs0x = cam.x - w / 2 / z, cs1x = cam.x + w / 2 / z, cs0y = cam.y - h / 2 / z, cs1y = cam.y + h / 2 / z;
+  // display-only road preselection: a superset of every per-loop road test below (roadBox ± 60 world units, or 120 screen px
+  // converted through the zoom when that is wider), so roads, crews, bridges and traffic draw exactly as before
+  const nearLinks = framePool.nearLinks; nearLinks.length = 0;
+  { const M = Math.max(60, 120 / z); for (const l of worldLinks) { const bx = roadBox(l); if (bx[2] < cs0x - M || bx[0] > cs1x + M || bx[3] < cs0y - M || bx[1] > cs1y + M) continue; nearLinks.push(l); } }
+  pCount("links.all", worldLinks.length); pCount("links.near", nearLinks.length);
   const L = framePool.lights; L.length = 0;
   beginLit(w, h, nightLevel(clock()) > 0.02);
   // pooled per-frame buffers: slots and maps are reused across frames to keep GC pauses out of the loop
@@ -3773,7 +3778,7 @@ export function draw(
   pEnd(); pBegin("near.outskirts"); syncOutskirts(seeds, now); drawOutskirts(c, x0, x1, y0, y1, z, seeds, now);
   pEnd(); pBegin("near.roads");
   // ---- trade roads as one continuous ribbon each (the tile steps stay logic only) ----
-  for (const l of worldLinks) {
+  for (const l of nearLinks) {
     const bx = roadBox(l); if (bx[2] < cs0x - 60 || bx[0] > cs1x + 60 || bx[3] < cs0y - 60 || bx[1] > cs1y + 60) continue;
     if (roadProgress(l, now) <= 0) continue;
     drawRoadRibbon(c, l, seeds, now);
@@ -3829,7 +3834,7 @@ export function draw(
   const props = framePool.props; props.clear();
   const addProp = (k: number, f: (cx: number, cy: number) => void) => (props.get(k) ?? props.set(k, []).get(k)!).push(f);
   // road crews join the tile depth order, so houses in front hide them instead of the crew floating on roofs
-  if (detail) for (const l of worldLinks) {
+  if (detail) for (const l of nearLinks) {
     const prog = roadProgress(l, now);
     if (prog <= 0 || prog >= 1) continue;
     const pts = smoothRoad(l), n = pts.length, k = Math.min(n - 2, Math.floor(prog * n / 2));
@@ -3918,7 +3923,7 @@ export function draw(
     }
     if (best < 0) f(); else addProp(best, () => f());
   };
-  if (detail) for (const l of worldLinks) {
+  if (detail) for (const l of nearLinks) {
     // off-screen road: none of its bridges can show (same margin as the span test below)
     { const bx = roadBox(l); if (bx[2] < cs0x - 60 || bx[0] > cs1x + 60 || bx[3] < cs0y - 60 || bx[1] > cs1y + 60) continue; }
     const n = l.tiles.length;
@@ -3990,7 +3995,7 @@ export function draw(
     roadProp(px, py, fade, (context) => drawHerald(context, px, py, ddx, ddy, gait, speed, t, v.phase === "wait", night, sd.x * 13 + sd.y), true, `herald:${sd.id}`);
   }
   // ---- life on the trade roads ----
-  if (detail) for (const l of worldLinks) {
+  if (detail) for (const l of nearLinks) {
     { const bx = roadBox(l); if (bx[2] < cs0x - 60 || bx[0] > cs1x + 60 || bx[3] < cs0y - 60 || bx[1] > cs1y + 60) continue; } // off-screen road: skip its traffic
     const prog = roadProgress(l, now);
     if (prog <= 0) continue;
