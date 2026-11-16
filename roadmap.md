@@ -18,3 +18,5 @@
 - [ ] Wald-Gras-Übergang umsetzen (Variante 1) – wartet auf Freigabe
 - [x] Nachtmasken Gruppe G: 7 Grundwohnhäuser geprüft, korrigiert, freigegeben
 - [x] Inselregister im Reiter „Dörfer" (Klick auf Ortsname fährt zum Ort)
+- [x] Artushof: vier Stufen nach Fertigstellung (Kaufleute, Wegergänzung, Handelsobergrenze 0,63/0,65)
+- [x] Phase C: server-synchronisierte, monotone Realm-Uhr abgeschlossen und abgenommen
