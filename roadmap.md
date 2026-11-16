@@ -20,3 +20,4 @@
 - [x] Inselregister im Reiter „Dörfer" (Klick auf Ortsname fährt zum Ort)
 - [x] Artushof: vier Stufen nach Fertigstellung (Kaufleute, Wegergänzung, Handelsobergrenze 0,63/0,65)
 - [x] Phase C: server-synchronisierte, monotone Realm-Uhr abgeschlossen und abgenommen
+- [ ] ovCache-Kapazität an die Seed-Zahl anpassen; Maxout, Overview und Mid messen, visuell prüfen und vollständige QS durchführen
