@@ -65,7 +65,7 @@ describe("Universität: nur fertig gebaute Abschnitte wirken", () => {
 describe("Schritt 2: Kanzleiboten +20 %", () => {
   const a = uni(2, T - 300 * DAY), b = town([], "nb", 440, 540);
   const tiles = Array.from({ length: 40 }, (_, i) => [400 + i, 540] as [number, number]);
-  const l = { a, b, tiles, since: 0 } as unknown as Link;
+  const l = { a, b, tiles, since: 0, baseBuild: 24 * 3.6e6, doneAt: 24 * 3.6e6 } as unknown as Link;
   it("exakt 20 % auf die Basiswahrscheinlichkeit, erst ab fertigem Schritt 2, Gesellen unverändert", () => {
     expect(UNIVERSITY_MESSENGER).toBe(1.2); expect(MESSENGER_DAY * UNIVERSITY_MESSENGER).toBeCloseTo(0.72, 12);
     const d2 = Math.ceil(doneAt(a, 1) / DAY), d1 = Math.floor(doneAt(a, 1) / DAY) - 1;

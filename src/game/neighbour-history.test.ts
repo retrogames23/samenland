@@ -6,6 +6,8 @@ const DAY = 864e5;
 const mk = (id: string, x: number, y: number, born: number) => ({ id, name: id, owner: "t", user_id: "u-" + id, x, y, hue: 0, realm: "europe", bought: [], created_at: new Date(born).toISOString() } as unknown as Seed);
 const area = (cx: number, cy: number, r: number) => { const t: [number, number][] = []; for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) t.push([x, y]); return t; };
 
+// Adversarial on purpose: distance 8 is far below canPlant()'s minimum of 40; it forces direct tile
+// competition inside structureAt() independent of the founding guard.
 // A at [572,630]; B founded 100 days later right at A's edge, close enough to win tiles if it counted early
 const A = mk("hist-a", 572, 630, T0);
 const BORN_B = T0 + 100 * DAY;
