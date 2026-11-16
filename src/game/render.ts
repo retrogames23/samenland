@@ -2944,6 +2944,8 @@ function labEntries(): LabEntry[] {
   for (const [sit, dx, dy, walk] of [["Steht", 1, 0.3, false], ["Reitet", 1, 0.3, true], ["Reitet fort", 1, -1, true]] as const)
     out.push({ label: `Ritterschulze · ${sit}`, row: "Ritterschulze", sit, cat: "mayor", h: 11, w: 9, cfg: null,
       draw: (c, _h, ph) => { drawRider(c, 0, 0, dx, dy, 0, walk ? (ph / 6.2832) * 4 * RIDER_MS : 0); return 9; } });
+  out.push({ label: "Ritterpferd · Angebunden", row: "Ritterschulze", sit: "Pferd am Sitz", cat: "mayor", h: 9, w: 9, cfg: null,
+    draw: (c, _h, _ph, now) => { drawTetheredHorse(c, 0, 0, now, false); return 9; } });
   // animals, hunters and riders: real game draw calls at the origin; ph (radians) is turned into the distance / clock each one steps by
   const A = (row: string, sit: string, h: number, w: number, draw: (c: C, ph: number, now: number) => unknown): LabEntry =>
     ({ label: `${row} · ${sit}`, row, sit, cat: "animal", h, w, cfg: null, draw: (c, _h, ph, now) => (draw(c, ph, now) === false ? null : w) });
