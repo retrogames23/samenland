@@ -3376,11 +3376,11 @@ function flatCheck(x: number, y: number, st: Structure | null) {
   // paths and acres look at their neighbours: a change on the chunk edge also refreshes the chunk next door
   for (const [dx, dy] of NB8) { const n = flatCache.get((((y + dy) / FC) | 0) * 4096 + (((x + dx) / FC) | 0)); if (n) n.dirty = true; }
 }
-function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number) {
+function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number, px = 0) {
   pBegin("flat.bake"); pCount("cache.flat.miss");
-  try { bakeFlatInner(e, ix, iy, q, seeds, now, t); } finally { pEnd(); }
+  try { bakeFlatInner(e, ix, iy, q, seeds, now, t, px); } finally { pEnd(); }
 }
-function bakeFlatInner(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number) {
+function bakeFlatInner(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number, px = 0) {
   agriMiss = false;
   const X0 = ix * FC, Y0 = iy * FC, X1 = Math.min(MAP - 1, X0 + FC - 1), Y1 = Math.min(MAP - 1, Y0 + FC - 1);
   let any = false;
@@ -3398,7 +3398,7 @@ function bakeFlatInner(e: FlatChunk, ix: number, iy: number, q: number, seeds: S
   g.setTransform(q, 0, 0, q, -left * q, -top * q);
   for (let s = X0 + Y0; s <= X1 + Y1; s++) for (let x = Math.max(X0, s - Y1); x <= Math.min(X1, s - Y0); x++) {
     const y = s - x, [cx, cy] = iso(x, y);
-    flatTile(g, x, y, cx, cy, sts[(y - Y0) * FC + (x - X0)] ?? null, seeds, now, t);
+    flatTile(g, x, y, cx, cy, sts[(y - Y0) * FC + (x - X0)] ?? null, seeds, now, t, px);
   }
   cv.ox = left; cv.oy = top; e.cv = cv; e.bm?.close(); e.bm = null;
   // snapshot into an immutable bitmap: blitting it is a plain texture copy, not a replay of the recorded sprite draws
@@ -3464,7 +3464,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     if (stale && adm) staleAdmitted++;
     if (stale && adm && perfOn()) pCount(e.baked <= -1e9 ? "flat.staleNew" : e.dirty ? "flat.staleDirty" : e.q !== q ? "flat.staleQ" : e.sk !== sk ? "flat.staleSeason" : "flat.staleArt");
     if (perfOn()) { pCount("flat.chunksVisible"); if (stale && adm) pCount("flat.chunksStale"); if (e.dirty) pCount("flat.chunksDirty"); }
-    if (stale && adm && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; pCount("flat.bakeCount"); bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false; staleAdmitted--; }
+    if (stale && adm && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; pCount("flat.bakeCount"); bakeFlat(e, ix, iy, q, seeds, now, t, z); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false; staleAdmitted--; }
     if (e.empty && e.q === q) { flatSet.add(key); vBaked++; continue; }
     // soft fallback: while a re-bake is pending, keep showing the previous bake scaled (never live-draw the whole chunk)
     if (e.cv && e.sk === sk) { pCount("flat.chunksBlit"); c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); if (e.q === q) vBaked++; }
@@ -3482,7 +3482,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
       if (e && !e.dirty && e.q === q && e.sk === sk) continue;
       if (!e) { e = newFlat(); flatCache.set(key, e); }
       frameBakes++; pCount("flat.bakeCount"); pCount("flat.lookaheadBakes");
-      bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false;
+      bakeFlat(e, ix, iy, q, seeds, now, t, z); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false;
       total += heldBytes(e);
       break outer;
     }
@@ -3578,7 +3578,7 @@ function winterTrack(c: C, x: number, y: number, cx: number, cy: number, con: [n
   c.globalAlpha = 1;
 }
 /** Flat ground dressing of one tile (turf, ore rocks, paths, squares, acres) — drawn live or baked into a flat chunk. */
-function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number) {
+function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number, z = 0) {
     const live = nearTown(x, y);
     if (live) natureAt(c, x, y, cx, cy, t, false, true, z); // ore rocks
 
@@ -3785,7 +3785,7 @@ export function draw(
       if (!flatDone.has(((y / FC) | 0) * 4096 + ((x / FC) | 0))) {
         pCount("flat.unbakedTiles");
         // chunk not baked yet: on touch draw only a cheap base fill for the frame or two until the bake lands
-        if (!TOUCH) flatTile(c, x, y, cx, cy, st, seeds, now, t);
+        if (!TOUCH) flatTile(c, x, y, cx, cy, st, seeds, now, t, z);
         else if (st?.kind === "field" || st?.kind === "garden") { c.fillStyle = texture(c, st.kind === "field" ? fieldTex(x, y, st.seed, now) : "dirt") ?? hsl(44, 45, 66); diamond(c, cx, cy, 1.0); c.fill(); }
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square" || st.kind === "market" || st.kind === "well")) { c.fillStyle = texture(c, st.kind === "path" ? "dirt" : "cobble") ?? "#cdb084"; diamond(c, cx, cy, 0.7); c.fill(); }
       }
