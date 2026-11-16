@@ -177,13 +177,11 @@ function doorV(c: C, p: ReturnType<typeof P>, u: number, v: number, sd: number, 
   shape(c, [p(u - w, v, 0), p(u + w, v, 0), p(u + w, v, hh), p(u - w, v, hh)], sd, col);
 }
 
-/** Device pixels per world unit of the live frame (zoom × dpr); 0 while baking, so baked art keeps its exact old sway. */
-let swayPx = 0;
 const NO_SUB_SWAY = typeof location !== "undefined" && new URLSearchParams(location.search).has("nosubsway");
-function tree(c: C, x: number, y: number, s: number, t: number, v: number, sd: number, conifer = 0.5) {
+function tree(c: C, x: number, y: number, s: number, t: number, v: number, sd: number, conifer = 0.5, px = 0) {
   const sway = Math.sin(t / 1300 + v * 10) * 0.6;
   const k = treeKind(v, conifer);
-  if (drawNature(c, k, x, y, s, sway, hash(sd, 5, 5) > 0.5, t !== 0 ? (NO_SUB_SWAY ? -swayPx : swayPx) : 0)) return;
+  if (drawNature(c, k, x, y, s, sway, hash(sd, 5, 5) > 0.5, t !== 0 ? (NO_SUB_SWAY ? -px : px) : 0)) return;
   blob(c, x, y - 7 * s, 4 * s, hsl(100, 30, 40), sd, false);
 }
 let smokeWind = 0.3;
@@ -2484,7 +2482,7 @@ function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Struct
   if (sp) c.drawImage(sp, cx - AGRI_W / 2, cy - AGRI_UP, AGRI_W, AGRI_H);
 }
 /** Wild trees, bushes, crags and ore rocks of one tile — the single source for every zoom level. */
-function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean, turf = true) {
+function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean, turf = true, px = 0) {
   if (inCourt(x, y)) return; // the estate keeps open lawns
   const tr = terrain(x, y);
   // lone boulders only; ore/bog-iron deposits stay invisible (they have no in-game use, loose heaps looked wrong)
@@ -2496,15 +2494,15 @@ function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number,
   // snow-free rock massif: broad overlapping cliff blocks on most tiles read as one continuous range
   if (tr === "mountain" && hash(x, y, 26) > 0.18) drawNature(g, "crag", cx + (hash(x, y, 28) - 0.5) * 8, cy + 6, 0.8 + hash(x, y, 27) * 0.35, 0, hash(x, y, 29) > 0.5);
   if (tr === "forest") {
-    if (hash(x, y, 19) > 0.35) tree(g, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6);
-    tree(g, cx - 5, cy + 3, 0.85 + hash(x, y, 17) * 0.35, t, hash(x, y, 18), x * 13 + y, 0.6);
+    if (hash(x, y, 19) > 0.35) tree(g, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6, px);
+    tree(g, cx - 5, cy + 3, 0.85 + hash(x, y, 17) * 0.35, t, hash(x, y, 18), x * 13 + y, 0.6, px);
   } else if (tr === "hill") { // upland: wind-shaped shrubs and small rock ledges, few trees
     const h = hash(x, y, 22);
-    if (h > 0.97) tree(g, cx, cy + 1, 0.8, t, hash(x, y, 23), x * 19 + y, 0.2);
+    if (h > 0.97) tree(g, cx, cy + 1, 0.8, t, hash(x, y, 23), x * 19 + y, 0.2, px);
     else if (h > 0.85) drawNature(g, "bush", cx + (hash(x, y, 24) - 0.5) * 12, cy + 2, 0.6 + hash(x, y, 25) * 0.4);
     else if (h > 0.76) drawNature(g, "boulder", cx + (hash(x, y, 24) - 0.5) * 10, cy + 3, 0.45 + hash(x, y, 25) * 0.35, 0, hash(x, y, 26) > 0.5);
   } else if (tr === "grass" || tr === "meadow") {
-    if (hash(x, y, 22) > 0.95) tree(g, cx, cy + 1, 0.9, t, hash(x, y, 23), x * 19 + y, 0.2);
+    if (hash(x, y, 22) > 0.95) tree(g, cx, cy + 1, 0.9, t, hash(x, y, 23), x * 19 + y, 0.2, px);
     else if (hash(x, y, 22) > 0.9) drawNature(g, "bush", cx + (hash(x, y, 24) - 0.5) * 12, cy + 2, 0.8 + hash(x, y, 25) * 0.5);
   }
 }
@@ -3582,7 +3580,7 @@ function winterTrack(c: C, x: number, y: number, cx: number, cy: number, con: [n
 /** Flat ground dressing of one tile (turf, ore rocks, paths, squares, acres) — drawn live or baked into a flat chunk. */
 function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number) {
     const live = nearTown(x, y);
-    if (live) natureAt(c, x, y, cx, cy, t, false); // ore rocks
+    if (live) natureAt(c, x, y, cx, cy, t, false, true, z); // ore rocks
 
     if (pondsNow.has(y * MAP + x)) { drawPond(c, x, y, cx, cy); return; }
     if (!st) { if (live && !inCourt(x, y)) wildTurf(c, x, y, cx, cy, terrain(x, y)); return; }
@@ -3696,7 +3694,7 @@ export function draw(
   pBegin("near.setup");
   const t = performance.now(); setSpriteTime(t);
   const worldLinks = links(seeds); // one lookup per frame: the cache key itself serialises every seed
-  const z = cam.zoom * dpr; swayPx = z;
+  const z = cam.zoom * dpr;
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.fillStyle = hsl(205, 30, 58); c.fillRect(0, 0, w, h);
   c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
@@ -4167,7 +4165,7 @@ export function draw(
       else if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, FOOT2.has(st.kind) ? cy - TH / 2 : cy, st.v);
       continue; // forests and crags are baked into the ground chunks
     }
-    if (!st && (sharp || nearTown(x, y)) && !(outDone.has(((y / CH) | 0) * 4096 + ((x / CH) | 0)) && outskirt(x, y))) natureAt(c, x, y, cx, cy, t, true, false); // turf already lies in the flat pass
+    if (!st && (sharp || nearTown(x, y)) && !(outDone.has(((y / CH) | 0) * 4096 + ((x / CH) | 0)) && outskirt(x, y))) natureAt(c, x, y, cx, cy, t, true, false, z); // turf already lies in the flat pass
     pFE(); pFB("p2.animals");
     if (!original && !floodWild.get(y * MAP + x)?.flood && !inCourt(x, y)) {
       const animal = farmAnimalsAt(x, y, seeds, now, pondsNow);
