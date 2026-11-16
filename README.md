@@ -36,7 +36,7 @@ npm run dev        # starts the dev server on http://localhost:8080
 npm test           # runs the test suite
 ```
 
-The app expects backend credentials in `.env` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`). Database migrations live in `supabase/migrations/`.
+The app expects backend credentials in `.env` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`). Database migrations live in `drizzle/migrations/` (plain SQL, numbered in journal order); `supabase/` holds only the project configuration.
 
 ## Project structure
 
@@ -47,7 +47,8 @@ src/
   components/   React UI (HUD, windows, overlays)
   routes/       TanStack routes and server endpoints
   assets/       sprites, music and sound
-supabase/       database migrations and configuration
+drizzle/        database migrations (migrations/) and the Drizzle Kit placeholder schema
+supabase/       backend project configuration (config.toml)
 ```
 
 Design rules for each area are documented in the `AGENTS.md` files throughout the repository — please read them before changing game logic. The key principle: **game state is derived, not stored.** Growth, villagers, goods and events are computed from seeds and the shared clock; the database stores only player decisions.
