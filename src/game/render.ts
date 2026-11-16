@@ -4183,7 +4183,7 @@ export function draw(
           c.fillStyle = `rgba(255,214,140,${sel ? 0.35 : pulse * 0.4})`; c.beginPath(); c.ellipse(px, py, 4, 2, 0, 0, 7); c.fill();
           c.strokeStyle = sel ? "rgba(255,226,160,0.95)" : "rgba(255,236,190,0.7)"; c.lineWidth = sel ? 0.8 : 0.6; c.stroke();
         }
-        const fig = (context: C) => q.mounted ? drawRider(context, px, py, q.dir[0], q.dir[1], 0, q.walking ? t * 0.8 : 0) : drawPerson(context, px, py, q, t, simpleFolk);
+        const fig = (context: C) => q.mounted ? drawRider(context, px, py, q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2, 0, q.walking ? t * 0.8 : 0) : drawPerson(context, px, py, q, t, simpleFolk);
         // rescued sheep trots alongside, on the side away from the viewer
         if (q.lead) { const sx = px - q.dir[0] * 2.2 + 2.4, sy = py - q.dir[1] * 1.1 - 0.6; drawSheep(c, sx, sy, q.dir[0] < 0, t + q.p.id * 997, q.walking, false, false); }
         // wading: feet vanish below the water line, a ripple ring rings the shins
@@ -4275,7 +4275,7 @@ export function draw(
     const [px, py] = iso(ownPose.x, ownPose.y);
     if (px > cs0x - 20 && px < cs1x + 20 && py > cs0y - 20 && py < cs1y + 30) {
       const q = ownPose;
-      q.mounted ? drawRider(c, px, py, q.dir[0], q.dir[1], 0, q.walking ? t * 0.8 : 0) : drawPerson(c, px, py, q, t, simpleFolk);
+      q.mounted ? drawRider(c, px, py, q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2, 0, q.walking ? t * 0.8 : 0) : drawPerson(c, px, py, q, t, simpleFolk);
     }
   }
   for (const [bx, by, gull, sd] of birds) drawBird(c, bx, by, gull === 1, sd);
