@@ -169,8 +169,11 @@ export const fieldRowImage = (ripe: boolean) => img(ripe ? wheatRow : cropRow);
 
 import riderUrl from "@/assets/sprites/rider.webp";
 import riderBackUrl from "@/assets/sprites/rider-back.webp";
+import horseUrl from "@/assets/sprites/horse-tethered.webp";
 import stallUrl from "@/assets/sprites/stall.webp";
 if (typeof window !== "undefined") { img(riderUrl); img(riderBackUrl); img(stallUrl); }
 /** 4-frame mounted messenger (front 3/4 facing right, rear 3/4 facing left) and a painted market stall. */
 export const riderImage = (back: boolean) => img(back ? riderBackUrl : riderUrl);
 export const stallImage = () => img(stallUrl);
+/** Saddled riding horse standing tethered by a knight's seat (faces right). */
+export const horseImage = () => img(horseUrl);
