@@ -689,15 +689,27 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     return () => { live = false; };
   }, [userId, isAdmin, realm]);
   // letter texts are only readable once signed in: on phones the session often arrives after the map load
-  useEffect(() => { setBodies({}); }, [userId]);
+  useEffect(() => {
+    setBodies({});
+  }, [userId]);
   useEffect(() => {
     if (!userId || !letters.length) return;
     let live = true;
     const epoch = rtGate.current.epochNow;
-    void mapRows<{ letter_id: string; body: string }>(letters.map((l) => l.id), (c) => supabase.from("letter_bodies").select("letter_id, body").in("letter_id", c), "letter_id").then((bs) => {
-      if (live && rtGate.current.isCurrent(epoch)) setBodies((old) => ({ ...old, ...Object.fromEntries(bs.map((b) => [b.letter_id, b.body])) }));
+    void mapRows<{ letter_id: string; body: string }>(
+      letters.map((l) => l.id),
+      (c) => supabase.from("letter_bodies").select("letter_id, body").in("letter_id", c),
+      "letter_id",
+    ).then((bs) => {
+      if (live && rtGate.current.isCurrent(epoch))
+        setBodies((old) => ({
+          ...old,
+          ...Object.fromEntries(bs.map((b) => [b.letter_id, b.body])),
+        }));
     });
-    return () => { live = false; };
+    return () => {
+      live = false;
+    };
   }, [userId, letters]);
   useEffect(() => {
     if (!userId) return;
