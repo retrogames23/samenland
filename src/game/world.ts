@@ -1065,6 +1065,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
   const tw = twinSites(seeds, now).get(ck);
   if (tw) { best = { kind: tw.kind, seed: tw.seed, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
   for (const s of seeds) {
+    if (now < Date.parse(s.created_at)) continue;
     if (!s.bought?.length) continue;
     const sp = specialSites(s).get(ck);
     if (!sp || now < sp.at) continue;
@@ -1082,6 +1083,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
   if (buildable(terrain(x, y))) {
     let bestD = Infinity;
     for (const s of seeds) {
+      if (now < Date.parse(s.created_at)) continue;
       const d = townDist(x, y, s);
       const age = effAge(s, seeds, now);
       const r = radiusOf(age);
