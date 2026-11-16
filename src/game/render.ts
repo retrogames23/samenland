@@ -183,7 +183,7 @@ const NO_SUB_SWAY = typeof location !== "undefined" && new URLSearchParams(locat
 function tree(c: C, x: number, y: number, s: number, t: number, v: number, sd: number, conifer = 0.5) {
   const sway = Math.sin(t / 1300 + v * 10) * 0.6;
   const k = treeKind(v, conifer);
-  if (drawNature(c, k, x, y, s, sway, hash(sd, 5, 5) > 0.5, t !== 0 && !NO_SUB_SWAY ? swayPx : 0)) return;
+  if (drawNature(c, k, x, y, s, sway, hash(sd, 5, 5) > 0.5, t !== 0 ? (NO_SUB_SWAY ? -swayPx : swayPx) : 0)) return;
   blob(c, x, y - 7 * s, 4 * s, hsl(100, 30, 40), sd, false);
 }
 let smokeWind = 0.3;

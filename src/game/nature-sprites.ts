@@ -1,5 +1,6 @@
 import { seasonalImage } from "./season-art";
 import { seasonKey } from "./season";
+import { pCount } from "./perf-probe";
 import grass from "@/assets/terrain/grass.jpg";
 import meadow from "@/assets/terrain/meadow.jpg";
 import forest from "@/assets/terrain/forest.jpg";
@@ -98,10 +99,11 @@ export function drawNature(c: C, k: NatureKind, x: number, y: number, scale: num
   }
   if (!c.imageSmoothingEnabled) c.imageSmoothingEnabled = true;
   const im = seasonalImage(i, k === "fir" ? "fir" : rock ? "building" : "leaf"), top = rock ? -h * 0.72 : -h + h * 0.02;
-  if (px > 0 && sway !== 0) { pCount("tree.n"); if (swayShiftPx(sway, top, px) < 1) { pCount("tree.sub"); sway = 0; } else pCount("tree.sway"); }
+  // px < 0: measuring baseline (?nosubsway) — count only, never suppress
+  if (px !== 0) { pCount("tree.n"); if (swayShiftPx(sway, top, Math.abs(px)) < 1) { pCount("tree.sub"); if (px > 0) sway = 0; } }
   if (!flip && Math.abs(sway) < 0.01) { c.drawImage(im, x - w / 2, y + top, w, h); return true; }
   // zero-save: one absolute matrix (world × translate × mirror/sway shear), then back to the world matrix
-  if (px > 0) pCount("tree.xform");
+  if (px !== 0) pCount("tree.xform");
   const B = c.getTransform(), fx = flip ? -1 : 1, sk = sway * 0.04;
   c.setTransform(B.a * fx, B.b * fx, B.a * sk + B.c, B.b * sk + B.d, B.a * x + B.c * y + B.e, B.b * x + B.d * y + B.f);
   c.drawImage(im, -w / 2, top, w, h);
