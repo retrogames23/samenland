@@ -3326,6 +3326,8 @@ function drawRareTree(c: C, x: number, y: number, kind: "cherry" | "quince", age
   c.restore();
 }
 
+/** ?noseedcull disables the display-only seed preselection, for before/after measurements only. */
+const NO_SEED_CULL = (() => { try { return new URLSearchParams(location.search).has("noseedcull"); } catch { return false; } })();
 const framePool = {
   behind: new Set<object>(),
   tiles: [] as { x: number; y: number; cx: number; cy: number; st: Structure | null }[],
@@ -3714,8 +3716,9 @@ export function draw(
   // the folk pass always used; every converted loop below draws only things inside that reach. The own steered mayor's town
   // and towns with a live remote mayor always stay in, however far he wanders.
   const nearSeeds = framePool.nearSeeds; nearSeeds.length = 0;
-  { const own = steer?.sid, own2 = ownMayorSid();
+  { const own = steeredMayor()?.sid, own2 = ownMayorSid();
     for (const sd of seeds) {
+      if (NO_SEED_CULL) { nearSeeds.push(sd); continue; }
       const r = reachOf(sd, radiusOf(viewAge(sd, seeds, now))) + 24;
       if (sd.x + r >= x0 && sd.x - r <= x1 && sd.y + r >= y0 && sd.y - r <= y1) nearSeeds.push(sd);
       else if (sd.id === own || sd.id === own2 || remoteMayor(sd.id)) nearSeeds.push(sd);
