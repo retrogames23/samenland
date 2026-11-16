@@ -1370,6 +1370,9 @@ function roadAt(x: number, y: number, seeds: Seed[], now: number) {
   return { link: r.link, i: r.i, bridge: r.link.water[r.i]! };
 }
 
+/** Test hook for historical tile occupancy. */
+export const roadAtForTest = (x: number, y: number, seeds: Seed[], now: number) => roadAt(x, y, seeds, now);
+
 /** Dry road tile directly beside a finished water crossing of the same trade road. */
 function bridgeHead(x: number, y: number, seeds: Seed[], now: number): boolean {
   const r = roadAt(x, y, seeds, now); if (!r || r.bridge) return false;

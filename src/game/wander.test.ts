@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { homeDraw, walkersOn, walkProgress, SPEED } from "./wander";
 import type { Link, Seed } from "./world";
 const s = (id: string, x: number): Seed => ({ id, x, y: 0, name: id, created_at: "2026-01-01T00:00:00Z" } as unknown as Seed);
-const l = { a: s("a", 0), b: s("b", 40), d: 40, since: 0, tiles: Array.from({ length: 40 }, (_, i) => [i, 0]), water: [] } as unknown as Link;
+const l = { a: s("a", 0), b: s("b", 40), d: 40, since: 0, baseBuild: 24 * 3.6e6, doneAt: 24 * 3.6e6, tiles: Array.from({ length: 40 }, (_, i) => [i, 0]), water: [] } as unknown as Link;
 describe("wanderers", () => {
   it("same walkers for the same road and day", () => { expect(walkersOn(l, 20500)).toEqual(walkersOn(l, 20500)); });
   it("journeymen appear on some but not all days", () => {
