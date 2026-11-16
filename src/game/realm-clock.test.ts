@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { _setPerfSource, initTimeSync, getSyncedTime, applySync, syncServerTime, clock, isLab } from "./time";
+import { _setPerfSource, initTimeSync, getSyncedTime, applySync, syncServerTime, clock, isLab, setRealm, setLabJump, labJump, LAB_EPOCH, LAB_SPEED } from "./time";
 
 let p = 0;
 const T0 = 1_800_000_000_000;
@@ -23,7 +23,7 @@ describe("realm clock", () => {
   });
   it("stays monotonic across repeated calls and syncs", () => {
     let prev = -Infinity;
-    for (let i = 0; i < 500; i++) {
+    for (let i = 0; i < 1000; i++) {
       p += 37; if (i % 25 === 0) applySync(T0 + p - 1000 + ((i * 7919) % 20000) - 10000, p - 50, p);
       const v = getSyncedTime(); expect(v).toBeGreaterThanOrEqual(prev); prev = v;
     }
@@ -36,5 +36,17 @@ describe("realm clock", () => {
   });
   it("explicit clock arguments stay untouched, lab off on public maps", () => {
     expect(clock(12345)).toBe(12345); expect(isLab()).toBe(false); expect(clock()).toBe(getSyncedTime());
+  });
+  it("lab map: no server request, lab time formula", async () => {
+    setRealm("lab"); setLabJump(2);
+    try {
+      let calls = 0;
+      expect(await syncServerTime(async () => { calls++; return { serverTime: T0 }; })).toBe(false);
+      expect(calls).toBe(0);
+      const r = LAB_EPOCH + 3_600_000;
+      expect(clock(r)).toBe(LAB_EPOCH + (r - LAB_EPOCH) * LAB_SPEED + labJump() * 3.6e6);
+      expect(clock(r)).toBe(r + 2 * 3.6e6);
+    } finally { setLabJump(0); setRealm("europe"); }
+    expect(isLab()).toBe(false);
   });
 });
