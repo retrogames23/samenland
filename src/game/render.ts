@@ -4391,6 +4391,7 @@ export function draw(
   for (const sd of seeds) {
     const [ix, iy] = iso(sd.x, sd.y);
     const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2 - 22 * z - 8 * dpr;
+    if (sx < -250 || sx > w + 250 || sy < -80 || sy > h + 80) continue;
     c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(sd.name, sx, sy);
     c.fillStyle = INK; c.fillText(sd.name, sx, sy);
   }
@@ -4402,6 +4403,7 @@ export function draw(
     const [ix, iy] = iso((l.a.x + l.b.x) / 2, (l.a.y + l.b.y) / 2);
     const sx = (ix - cam.x) * z + w / 2, sy = (iy - cam.y) * z + h / 2;
     const txt = `${l.a.name} ∞ ${l.b.name}`;
+    if (sx < -350 || sx > w + 350 || sy < -60 || sy > h + 60) continue;
     c.lineWidth = 4 * dpr; c.strokeStyle = "rgba(246,238,220,0.9)"; c.strokeText(txt, sx, sy);
     c.fillStyle = hsl(20, 45, 38); c.fillText(txt, sx, sy);
   }
