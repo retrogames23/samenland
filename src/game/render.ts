@@ -177,13 +177,11 @@ function doorV(c: C, p: ReturnType<typeof P>, u: number, v: number, sd: number, 
   shape(c, [p(u - w, v, 0), p(u + w, v, 0), p(u + w, v, hh), p(u - w, v, hh)], sd, col);
 }
 
-/** Device pixels per world unit of the live frame (zoom × dpr); 0 while baking, so baked art keeps its exact old sway. */
-let swayPx = 0;
 const NO_SUB_SWAY = typeof location !== "undefined" && new URLSearchParams(location.search).has("nosubsway");
-function tree(c: C, x: number, y: number, s: number, t: number, v: number, sd: number, conifer = 0.5) {
+function tree(c: C, x: number, y: number, s: number, t: number, v: number, sd: number, conifer = 0.5, px = 0) {
   const sway = Math.sin(t / 1300 + v * 10) * 0.6;
   const k = treeKind(v, conifer);
-  if (drawNature(c, k, x, y, s, sway, hash(sd, 5, 5) > 0.5, t !== 0 ? (NO_SUB_SWAY ? -swayPx : swayPx) : 0)) return;
+  if (drawNature(c, k, x, y, s, sway, hash(sd, 5, 5) > 0.5, t !== 0 ? (NO_SUB_SWAY ? -px : px) : 0)) return;
   blob(c, x, y - 7 * s, 4 * s, hsl(100, 30, 40), sd, false);
 }
 let smokeWind = 0.3;
@@ -2484,7 +2482,7 @@ function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Struct
   if (sp) c.drawImage(sp, cx - AGRI_W / 2, cy - AGRI_UP, AGRI_W, AGRI_H);
 }
 /** Wild trees, bushes, crags and ore rocks of one tile — the single source for every zoom level. */
-function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean, turf = true) {
+function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean, turf = true, px = 0) {
   if (inCourt(x, y)) return; // the estate keeps open lawns
   const tr = terrain(x, y);
   // lone boulders only; ore/bog-iron deposits stay invisible (they have no in-game use, loose heaps looked wrong)
@@ -2496,15 +2494,15 @@ function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number,
   // snow-free rock massif: broad overlapping cliff blocks on most tiles read as one continuous range
   if (tr === "mountain" && hash(x, y, 26) > 0.18) drawNature(g, "crag", cx + (hash(x, y, 28) - 0.5) * 8, cy + 6, 0.8 + hash(x, y, 27) * 0.35, 0, hash(x, y, 29) > 0.5);
   if (tr === "forest") {
-    if (hash(x, y, 19) > 0.35) tree(g, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6);
-    tree(g, cx - 5, cy + 3, 0.85 + hash(x, y, 17) * 0.35, t, hash(x, y, 18), x * 13 + y, 0.6);
+    if (hash(x, y, 19) > 0.35) tree(g, cx + 6, cy - 1, 0.75 + hash(x, y, 20) * 0.3, t, hash(x, y, 21), x * 17 + y, 0.6, px);
+    tree(g, cx - 5, cy + 3, 0.85 + hash(x, y, 17) * 0.35, t, hash(x, y, 18), x * 13 + y, 0.6, px);
   } else if (tr === "hill") { // upland: wind-shaped shrubs and small rock ledges, few trees
     const h = hash(x, y, 22);
-    if (h > 0.97) tree(g, cx, cy + 1, 0.8, t, hash(x, y, 23), x * 19 + y, 0.2);
+    if (h > 0.97) tree(g, cx, cy + 1, 0.8, t, hash(x, y, 23), x * 19 + y, 0.2, px);
     else if (h > 0.85) drawNature(g, "bush", cx + (hash(x, y, 24) - 0.5) * 12, cy + 2, 0.6 + hash(x, y, 25) * 0.4);
     else if (h > 0.76) drawNature(g, "boulder", cx + (hash(x, y, 24) - 0.5) * 10, cy + 3, 0.45 + hash(x, y, 25) * 0.35, 0, hash(x, y, 26) > 0.5);
   } else if (tr === "grass" || tr === "meadow") {
-    if (hash(x, y, 22) > 0.95) tree(g, cx, cy + 1, 0.9, t, hash(x, y, 23), x * 19 + y, 0.2);
+    if (hash(x, y, 22) > 0.95) tree(g, cx, cy + 1, 0.9, t, hash(x, y, 23), x * 19 + y, 0.2, px);
     else if (hash(x, y, 22) > 0.9) drawNature(g, "bush", cx + (hash(x, y, 24) - 0.5) * 12, cy + 2, 0.8 + hash(x, y, 25) * 0.5);
   }
 }
@@ -3378,11 +3376,11 @@ function flatCheck(x: number, y: number, st: Structure | null) {
   // paths and acres look at their neighbours: a change on the chunk edge also refreshes the chunk next door
   for (const [dx, dy] of NB8) { const n = flatCache.get((((y + dy) / FC) | 0) * 4096 + (((x + dx) / FC) | 0)); if (n) n.dirty = true; }
 }
-function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number) {
+function bakeFlat(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number, px = 0) {
   pBegin("flat.bake"); pCount("cache.flat.miss");
-  try { bakeFlatInner(e, ix, iy, q, seeds, now, t); } finally { pEnd(); }
+  try { bakeFlatInner(e, ix, iy, q, seeds, now, t, px); } finally { pEnd(); }
 }
-function bakeFlatInner(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number) {
+function bakeFlatInner(e: FlatChunk, ix: number, iy: number, q: number, seeds: Seed[], now: number, t: number, px = 0) {
   agriMiss = false;
   const X0 = ix * FC, Y0 = iy * FC, X1 = Math.min(MAP - 1, X0 + FC - 1), Y1 = Math.min(MAP - 1, Y0 + FC - 1);
   let any = false;
@@ -3400,7 +3398,7 @@ function bakeFlatInner(e: FlatChunk, ix: number, iy: number, q: number, seeds: S
   g.setTransform(q, 0, 0, q, -left * q, -top * q);
   for (let s = X0 + Y0; s <= X1 + Y1; s++) for (let x = Math.max(X0, s - Y1); x <= Math.min(X1, s - Y0); x++) {
     const y = s - x, [cx, cy] = iso(x, y);
-    flatTile(g, x, y, cx, cy, sts[(y - Y0) * FC + (x - X0)] ?? null, seeds, now, t);
+    flatTile(g, x, y, cx, cy, sts[(y - Y0) * FC + (x - X0)] ?? null, seeds, now, t, px);
   }
   cv.ox = left; cv.oy = top; e.cv = cv; e.bm?.close(); e.bm = null;
   // snapshot into an immutable bitmap: blitting it is a plain texture copy, not a replay of the recorded sprite draws
@@ -3466,7 +3464,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     if (stale && adm) staleAdmitted++;
     if (stale && adm && perfOn()) pCount(e.baked <= -1e9 ? "flat.staleNew" : e.dirty ? "flat.staleDirty" : e.q !== q ? "flat.staleQ" : e.sk !== sk ? "flat.staleSeason" : "flat.staleArt");
     if (perfOn()) { pCount("flat.chunksVisible"); if (stale && adm) pCount("flat.chunksStale"); if (e.dirty) pCount("flat.chunksDirty"); }
-    if (stale && adm && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; pCount("flat.bakeCount"); bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false; staleAdmitted--; }
+    if (stale && adm && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; pCount("flat.bakeCount"); bakeFlat(e, ix, iy, q, seeds, now, t, z); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false; staleAdmitted--; }
     if (e.empty && e.q === q) { flatSet.add(key); vBaked++; continue; }
     // soft fallback: while a re-bake is pending, keep showing the previous bake scaled (never live-draw the whole chunk)
     if (e.cv && e.sk === sk) { pCount("flat.chunksBlit"); c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); if (e.q === q) vBaked++; }
@@ -3484,7 +3482,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
       if (e && !e.dirty && e.q === q && e.sk === sk) continue;
       if (!e) { e = newFlat(); flatCache.set(key, e); }
       frameBakes++; pCount("flat.bakeCount"); pCount("flat.lookaheadBakes");
-      bakeFlat(e, ix, iy, q, seeds, now, t); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false;
+      bakeFlat(e, ix, iy, q, seeds, now, t, z); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false;
       total += heldBytes(e);
       break outer;
     }
@@ -3580,9 +3578,9 @@ function winterTrack(c: C, x: number, y: number, cx: number, cy: number, con: [n
   c.globalAlpha = 1;
 }
 /** Flat ground dressing of one tile (turf, ore rocks, paths, squares, acres) — drawn live or baked into a flat chunk. */
-function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number) {
+function flatTile(c: C, x: number, y: number, cx: number, cy: number, st: Structure | null, seeds: Seed[], now: number, t: number, z = 0) {
     const live = nearTown(x, y);
-    if (live) natureAt(c, x, y, cx, cy, t, false); // ore rocks
+    if (live) natureAt(c, x, y, cx, cy, t, false, true, z); // ore rocks
 
     if (pondsNow.has(y * MAP + x)) { drawPond(c, x, y, cx, cy); return; }
     if (!st) { if (live && !inCourt(x, y)) wildTurf(c, x, y, cx, cy, terrain(x, y)); return; }
@@ -3696,7 +3694,7 @@ export function draw(
   pBegin("near.setup");
   const t = performance.now(); setSpriteTime(t);
   const worldLinks = links(seeds); // one lookup per frame: the cache key itself serialises every seed
-  const z = cam.zoom * dpr; swayPx = z;
+  const z = cam.zoom * dpr;
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.fillStyle = hsl(205, 30, 58); c.fillRect(0, 0, w, h);
   c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
@@ -3787,7 +3785,7 @@ export function draw(
       if (!flatDone.has(((y / FC) | 0) * 4096 + ((x / FC) | 0))) {
         pCount("flat.unbakedTiles");
         // chunk not baked yet: on touch draw only a cheap base fill for the frame or two until the bake lands
-        if (!TOUCH) flatTile(c, x, y, cx, cy, st, seeds, now, t);
+        if (!TOUCH) flatTile(c, x, y, cx, cy, st, seeds, now, t, z);
         else if (st?.kind === "field" || st?.kind === "garden") { c.fillStyle = texture(c, st.kind === "field" ? fieldTex(x, y, st.seed, now) : "dirt") ?? hsl(44, 45, 66); diamond(c, cx, cy, 1.0); c.fill(); }
         else if (st && (PATHLIKE.has(st.kind) || st.kind === "square" || st.kind === "market" || st.kind === "well")) { c.fillStyle = texture(c, st.kind === "path" ? "dirt" : "cobble") ?? "#cdb084"; diamond(c, cx, cy, 0.7); c.fill(); }
       }
@@ -4167,7 +4165,7 @@ export function draw(
       else if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, FOOT2.has(st.kind) ? cy - TH / 2 : cy, st.v);
       continue; // forests and crags are baked into the ground chunks
     }
-    if (!st && (sharp || nearTown(x, y)) && !(outDone.has(((y / CH) | 0) * 4096 + ((x / CH) | 0)) && outskirt(x, y))) natureAt(c, x, y, cx, cy, t, true, false); // turf already lies in the flat pass
+    if (!st && (sharp || nearTown(x, y)) && !(outDone.has(((y / CH) | 0) * 4096 + ((x / CH) | 0)) && outskirt(x, y))) natureAt(c, x, y, cx, cy, t, true, false, z); // turf already lies in the flat pass
     pFE(); pFB("p2.animals");
     if (!original && !floodWild.get(y * MAP + x)?.flood && !inCourt(x, y)) {
       const animal = farmAnimalsAt(x, y, seeds, now, pondsNow);
