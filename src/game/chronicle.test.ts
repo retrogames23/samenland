@@ -23,9 +23,10 @@ describe("small milestones", () => {
     if (homes.length <= CHRON_DETAIL) expect(c.events.filter((e) => e.code === "house").length).toBe(homes.length);
     else expect(c.events.some((e) => e.code === "houses")).toBe(true);
   });
-  it("summarises more than six homes into one line", () => {
+  it("over long absences at most one homes line per day", () => {
     const c = chronicle(s, [s], t0, t0 + 120 * 864e5);
-    expect(c.events.filter((e) => e.code === "house").length).toBeLessThanOrEqual(CHRON_DETAIL);
+    const lines = c.events.filter((e) => e.code === "house" || e.code === "houses");
+    expect(new Set(lines.map((e) => Math.floor(e.at / 864e5))).size).toBe(lines.length);
   });
 });
 
