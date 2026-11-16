@@ -1018,8 +1018,9 @@ function drawLoad(c: C, x: number, y: number, dx: number, dy: number, g: TradeGo
 /** Mounted messenger: 4-frame painted trot, front sheet faces right, rear sheet faces left; hooves on the ground line. */
 /** St Martin: the shared rider sprite with his red cloak (half of it cut off for the beggar) over the shoulders. */
 function drawMartin(c: C, x: number, y: number, w: Walk, t: number) {
-  drawRider(c, x, y, w.dx, w.dy, 5, w.walking ? t : 0);
-  const sw = w.walking ? Math.sin(t / 160) * 0.3 : 0, d = screenFacing(w.dx, w.dy) < 0 ? 1 : -1;
+  const sx = w.dx - w.dy, sy = (w.dx + w.dy) / 2; // tile heading -> screen heading
+  drawRider(c, x, y, sx, sy, 5, w.walking ? t : 0);
+  const sw = w.walking ? Math.sin(t / 160) * 0.3 : 0, d = screenFacing(sx, sy) < 0 ? 1 : -1;
   c.fillStyle = "#a12f25"; c.beginPath(); c.moveTo(x - 0.8, y - 9.6); c.lineTo(x + 0.9, y - 9.6); c.lineTo(x + 0.6 + d * 1.8 + sw, y - 6.6); c.lineTo(x - 0.4 + d * 0.6, y - 6.9); c.closePath(); c.fill();
 }
 const RIDER_MS = 190;
@@ -4183,7 +4184,7 @@ export function draw(
           c.fillStyle = `rgba(255,214,140,${sel ? 0.35 : pulse * 0.4})`; c.beginPath(); c.ellipse(px, py, 4, 2, 0, 0, 7); c.fill();
           c.strokeStyle = sel ? "rgba(255,226,160,0.95)" : "rgba(255,236,190,0.7)"; c.lineWidth = sel ? 0.8 : 0.6; c.stroke();
         }
-        const fig = (context: C) => q.mounted ? drawRider(context, px, py, q.dir[0], q.dir[1], 0, q.walking ? t * 0.8 : 0) : drawPerson(context, px, py, q, t, simpleFolk);
+        const fig = (context: C) => q.mounted ? drawRider(context, px, py, q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2, 0, q.walking ? t * 0.8 : 0) : drawPerson(context, px, py, q, t, simpleFolk);
         // rescued sheep trots alongside, on the side away from the viewer
         if (q.lead) { const sx = px - q.dir[0] * 2.2 + 2.4, sy = py - q.dir[1] * 1.1 - 0.6; drawSheep(c, sx, sy, q.dir[0] < 0, t + q.p.id * 997, q.walking, false, false); }
         // wading: feet vanish below the water line, a ripple ring rings the shins
@@ -4275,7 +4276,7 @@ export function draw(
     const [px, py] = iso(ownPose.x, ownPose.y);
     if (px > cs0x - 20 && px < cs1x + 20 && py > cs0y - 20 && py < cs1y + 30) {
       const q = ownPose;
-      q.mounted ? drawRider(c, px, py, q.dir[0], q.dir[1], 0, q.walking ? t * 0.8 : 0) : drawPerson(c, px, py, q, t, simpleFolk);
+      q.mounted ? drawRider(c, px, py, q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2, 0, q.walking ? t * 0.8 : 0) : drawPerson(c, px, py, q, t, simpleFolk);
     }
   }
   for (const [bx, by, gull, sd] of birds) drawBird(c, bx, by, gull === 1, sd);
