@@ -1018,8 +1018,9 @@ function drawLoad(c: C, x: number, y: number, dx: number, dy: number, g: TradeGo
 /** Mounted messenger: 4-frame painted trot, front sheet faces right, rear sheet faces left; hooves on the ground line. */
 /** St Martin: the shared rider sprite with his red cloak (half of it cut off for the beggar) over the shoulders. */
 function drawMartin(c: C, x: number, y: number, w: Walk, t: number) {
-  drawRider(c, x, y, w.dx, w.dy, 5, w.walking ? t : 0);
-  const sw = w.walking ? Math.sin(t / 160) * 0.3 : 0, d = screenFacing(w.dx, w.dy) < 0 ? 1 : -1;
+  const sx = w.dx - w.dy, sy = (w.dx + w.dy) / 2; // tile heading -> screen heading
+  drawRider(c, x, y, sx, sy, 5, w.walking ? t : 0);
+  const sw = w.walking ? Math.sin(t / 160) * 0.3 : 0, d = screenFacing(sx, sy) < 0 ? 1 : -1;
   c.fillStyle = "#a12f25"; c.beginPath(); c.moveTo(x - 0.8, y - 9.6); c.lineTo(x + 0.9, y - 9.6); c.lineTo(x + 0.6 + d * 1.8 + sw, y - 6.6); c.lineTo(x - 0.4 + d * 0.6, y - 6.9); c.closePath(); c.fill();
 }
 const RIDER_MS = 190;
