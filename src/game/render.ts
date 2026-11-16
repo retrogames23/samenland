@@ -3882,7 +3882,9 @@ export function draw(
   // knights: the saddled horse stands by the seat unless the knight is out riding it
   if (folkOn) for (const sd of seeds) {
     if (!knightSeeds.has(sd.id) || riddenOut.has(sd.id)) continue;
-    const [hx, hy] = seatTile(sd), tx = hx + 1, ty = hy + 1;
+    const [hx, hy] = seatTile(sd), spot = ([[1, 1], [-1, 1], [1, 0], [0, 1], [-1, 0], [1, -1]] as const).map(([ox, oy]) => [hx + ox, hy + oy] as const).find(([a, b]) => freeGround(a, b) || ["street", "path", "square"].includes(structureAt(a, b, seeds, now)?.kind ?? ""));
+    if (!spot) continue;
+    const [tx, ty] = spot;
     if (tx < x0 - 2 || tx > x1 + 2 || ty < y0 - 2 || ty > y1 + 2) continue;
     const [px, py] = iso(tx, ty), fl = hash(sd.x, sd.y, 4417) < 0.5;
     addProp(ty * MAP + tx, () => drawTetheredHorse(c, px + 3, py + 1, t + sd.x * 97, fl));
