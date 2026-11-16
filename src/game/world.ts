@@ -1176,7 +1176,8 @@ export const ROAD_BUILD = 24;
 /** Build time of a decided road in hours: half an hour per tile of distance, at least 8 h (max reach 120 tiles → 60 h). Mirrored by DB road_done. */
 export const ROAD_MIN = 8, ROAD_PER_TILE = 0.5, ROAD_MAX = Math.max(ROAD_MIN, Math.round(TRADE_DIST * ROAD_PER_TILE));
 export const roadHours = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.max(ROAD_MIN, Math.round(Math.hypot(a.x - b.x, a.y - b.y) * ROAD_PER_TILE));
-export type Link = { a: Seed; b: Seed; d: number; since: number; build?: number; tiles: [number, number][]; water: boolean[] };
+/** since = start (t0), baseBuild = one-crew build time D, joinAt = effective counter-decision t1 (t0 <= t1 < t0 + D), doneAt = the single finish time. */
+export type Link = { a: Seed; b: Seed; d: number; since: number; baseBuild: number; joinAt?: number; doneAt: number; tiles: [number, number][]; water: boolean[] };
 
 let linkKey = "";
 let linkCache: Link[] = [];
@@ -1194,7 +1195,7 @@ function cachedLink(a: Seed, b: Seed, d: number): Link | null {
     p = l ? { tiles: l.tiles, water: l.water, since: l.since } : null;
     pathCache.set(k, p);
   }
-  return p ? { a, b, d, since: p.since, tiles: p.tiles, water: p.water } : null;
+  return p ? { a, b, d, since: p.since, baseBuild: ROAD_BUILD * 3.6e6, doneAt: p.since + ROAD_BUILD * 3.6e6, tiles: p.tiles, water: p.water } : null;
 }
 
 /** links() key per seeds array (same immutability assumption as seedsKey): building it was most of structureAt's cost. */
@@ -1216,7 +1217,7 @@ export function links(seeds: Seed[]): Link[] {
     if (gate === null) continue;
     const l = cachedLink(a, b, d);
     // player-decided roads start at the decision itself; only sample pairs wait for ROAD_AT
-    if (l) { if (gate !== -Infinity) { l.since = gate; l.build = roadDone(a, b)! - gate; } out.push(l); }
+    if (l) { if (gate !== -Infinity) { const k = roadKinetics(a, b)!; l.since = k.since; l.baseBuild = k.baseBuild; l.joinAt = k.joinAt; l.doneAt = k.doneAt; } out.push(l); }
   }
   const idx = new Map<number, { link: Link; i: number }>();
   for (const l of out) l.tiles.forEach(([x, y], i) => { const k = y * MAP + x; if (!idx.has(k)) idx.set(k, { link: l, i }); });
@@ -1243,19 +1244,24 @@ export function roadGate(a: Seed, b: Seed): number | null {
  * mayor also decides while it is still being built, both crews dig towards each other and the
  * remaining time halves. Null when no road has been decided.
  */
-export function roadDone(a: Seed, b: Seed): number | null {
-  const first = (x: Seed, y: Seed) => Math.min(Infinity, ...(x.roads ?? []).filter((r) => r.target === y.id).map((r) => r.at));
+export function roadKinetics(a: Seed, b: Seed, now = Infinity): { since: number; baseBuild: number; joinAt?: number; doneAt: number } | null {
+  // earliest decision per party (multiple rows: minimum wins), only decisions taken by `now`
+  const first = (x: Seed, y: Seed) => { let t = Infinity; for (const r of x.roads ?? []) if (r.target === y.id && r.at <= now) t = Math.min(t, r.at); return t; };
   const ta = first(a, b), tb = first(b, a), t0 = Math.min(ta, tb), t1 = Math.max(ta, tb);
   if (t0 === Infinity) return null;
-  const end = t0 + roadHours(a, b) * 3.6e6;
-  return t1 < end ? t1 + (end - t1) / 2 : end;
+  const baseBuild = roadHours(a, b) * 3.6e6, end = t0 + baseBuild;
+  return t1 < end ? { since: t0, baseBuild, joinAt: t1, doneAt: t1 + (end - t1) / 2 } : { since: t0, baseBuild, doneAt: end };
+}
+/** Finish time from all decisions, or (with `now`) only from decisions taken by then. */
+export function roadDone(a: Seed, b: Seed, now?: number): number | null {
+  return roadKinetics(a, b, now)?.doneAt ?? null;
 }
 /** A neighbour building a road towards s that s has not joined yet (one decision suffices; joining halves the rest). */
 export function roadIncoming(s: Seed, seeds: Seed[], now: number): { from: Seed; done: number } | null {
   for (const o of seeds) {
-    if (o.id === s.id || (s.roads ?? []).some((r) => r.target === o.id)) continue;
+    if (o.id === s.id || (s.roads ?? []).some((r) => r.target === o.id && r.at <= now)) continue;
     const r = (o.roads ?? []).find((x) => x.target === s.id && x.at <= now);
-    const done = r ? roadDone(s, o) : null;
+    const done = r ? roadDone(s, o, now) : null;
     if (r && done && now < done) return { from: o, done };
   }
   return null;
@@ -1279,7 +1285,7 @@ export const roadCandidates = (s: Seed, seeds: Seed[]) =>
 /** The road this village decided that is still being built (only one at a time), or null. */
 export function roadBuilding(s: Seed, now: number, seeds?: Seed[]): { target: string; at: number; done: number } | null {
   for (const r of (s.roads ?? []).filter((x) => x.at <= now && now < x.at + ROAD_MAX * 3.6e6).sort((a, b) => b.at - a.at)) {
-    const o = seeds?.find((x) => x.id === r.target), done = o ? roadDone(s, o) ?? r.at + roadHours(s, o) * 3.6e6 : r.at + ROAD_BUILD * 3.6e6;
+    const o = seeds?.find((x) => x.id === r.target), done = o ? roadDone(s, o, now) ?? r.at + roadHours(s, o) * 3.6e6 : r.at + ROAD_BUILD * 3.6e6;
     if (now < done) return { ...r, done };
   }
   return null;
@@ -1342,7 +1348,12 @@ function buildLink(a: Seed, b: Seed, d: number): Link | null {
 }
 
 /** 0..1 how much of the road exists. */
-export const roadProgress = (l: Link, now: number) => Math.max(0, Math.min(1, (now - l.since) / (l.build ?? ROAD_BUILD * 3.6e6)));
+export const roadProgress = (l: Link, now: number) => {
+  if (now <= l.since) return 0;
+  if (now >= l.doneAt) return 1;
+  const p = l.joinAt === undefined || now < l.joinAt ? (now - l.since) / l.baseBuild : (l.joinAt - l.since) / l.baseBuild + 2 * (now - l.joinAt) / l.baseBuild;
+  return Math.max(0, Math.min(1, p));
+};
 
 /** Seed a road tile is credited to (link.a), regardless of build progress — for exact pre-filters only. */
 export function roadOwnerAt(x: number, y: number, seeds: Seed[]): string | null {
@@ -1521,7 +1532,7 @@ export const TRANSIT_SHARE = 0.75, TRANSIT_HUB = 0.02;
 /** Gateway towns are natural hubs: their transit trade counts GATEWAY_HUB times (character strength). */
 export const GATEWAY_HUB = 1.5;
 export const hubBonus = (s: Seed) => TRANSIT_HUB * (s.user_id && townCharacter(s).main === "gateway" ? GATEWAY_HUB : 1);
-const roadDoneAt = (l: Link) => l.since + (l.build ?? ROAD_BUILD * 3.6e6);
+const roadDoneAt = (l: Link) => l.doneAt;
 const other = (l: Link, id: string) => (l.a.id === id ? l.b : l.a);
 export type Transit = { to: Seed; via: Seed; since: number; d: number; bonus: (now: number) => number };
 export function transitRoutes(s: Seed, seeds: Seed[]): Transit[] {
