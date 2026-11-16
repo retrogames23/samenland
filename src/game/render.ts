@@ -3339,6 +3339,7 @@ const framePool = {
   ord: new Map<number, number>(),
   birds: [] as [number, number, number, number][],
   nearLinks: [] as ReturnType<typeof links>,
+  nearSeeds: [] as Seed[],
 };
 
 /** Per-frame counters for the dev diagnostics HUD (mutated in place, no allocation). */
@@ -3709,6 +3710,17 @@ export function draw(
   const nearLinks = framePool.nearLinks; nearLinks.length = 0;
   { const M = Math.max(60, 120 / z); for (const l of worldLinks) { const bx = roadBox(l); if (bx[2] < cs0x - M || bx[0] > cs1x + M || bx[3] < cs0y - M || bx[1] > cs1y + M) continue; nearLinks.push(l); } }
   pCount("links.all", worldLinks.length); pCount("links.near", nearLinks.length);
+  // display-only seed preselection (order kept): each town's live reach + 24 tiles around the tile view box — the same bound
+  // the folk pass always used; every converted loop below draws only things inside that reach. The own steered mayor's town
+  // and towns with a live remote mayor always stay in, however far he wanders.
+  const nearSeeds = framePool.nearSeeds; nearSeeds.length = 0;
+  { const own = steer?.sid, own2 = ownMayorSid();
+    for (const sd of seeds) {
+      const r = reachOf(sd, radiusOf(viewAge(sd, seeds, now))) + 24;
+      if (sd.x + r >= x0 && sd.x - r <= x1 && sd.y + r >= y0 && sd.y - r <= y1) nearSeeds.push(sd);
+      else if (sd.id === own || sd.id === own2 || remoteMayor(sd.id)) nearSeeds.push(sd);
+    } }
+  pCount("seeds.all", seeds.length); pCount("seeds.near", nearSeeds.length);
   const L = framePool.lights; L.length = 0;
   beginLit(w, h, nightLevel(clock()) > 0.02);
   // pooled per-frame buffers: slots and maps are reused across frames to keep GC pauses out of the loop
@@ -3716,7 +3728,7 @@ export function draw(
   // flood water, fascines and silt also reach open meadow and the wild river bank (no structure there)
   pEnd(); pBegin("near.floodHits");
   const floodWild = floodMap; floodWild.clear();
-  for (const sd of seeds) { if (Math.abs(sd.x - (x0 + x1) / 2) > (x1 - x0) / 2 + 40 || Math.abs(sd.y - (y0 + y1) / 2) > (y1 - y0) / 2 + 40) continue;
+  for (const sd of nearSeeds) { if (Math.abs(sd.x - (x0 + x1) / 2) > (x1 - x0) / 2 + 40 || Math.abs(sd.y - (y0 + y1) / 2) > (y1 - y0) / 2 + 40) continue;
     for (const [k, v] of tileHits(sd, now)) if ((v.flood || v.silt || v.levee) && !floodWild.has(k)) floodWild.set(k, v); }
 
   const edges: GroundEdge[] = [];
@@ -3795,7 +3807,7 @@ export function draw(
   const riddenOut = new Set<string>();
   let ownPose: Pose | null = null, ownDrawn = false;
   lanternFolk.clear();
-  if (folkOn) for (const sd of seeds) {
+  if (folkOn) for (const sd of nearSeeds) {
     // generous margin: strollers and the steered mayor wander well beyond the built-up edge — never cull them at the border
     const r = reachOf(sd, radiusOf(viewAge(sd, seeds, now))) + 24;
     const mine = steer && steer.sid === sd.id && steer.x >= x0 - 2 && steer.x <= x1 + 2 && steer.y >= y0 - 2 && steer.y <= y1 + 2;
@@ -3828,7 +3840,7 @@ export function draw(
     pFE();
   }
   const robbers = framePool.robbers; robbers.clear();
-  if (detail) for (const sd of seeds) { const r = robberAt(sd, now); if (r) robbers.set(Math.round(r[1]) * MAP + Math.round(r[0]), r); }
+  if (detail) for (const sd of nearSeeds) { const r = robberAt(sd, now); if (r) robbers.set(Math.round(r[1]) * MAP + Math.round(r[0]), r); }
   const simpleFolk = cam.zoom < 2.2;
   const goal = mayorGoal(now), goalK = goal ? goal[1] * MAP + goal[0] : -1;
   // encounter props: the raised maypole on the square and the village's cows (derived in townOf)
@@ -3849,7 +3861,7 @@ export function draw(
   }
   const fz = feastOn(now), fzProps = !!fz && (FEASTS[fz].scene === "fire" || fz === "pentecost" || fz === "christmas" || fz === "epiphany" || fz === "martinmas");
   fzNow = fz; fzHour = worldHour(now); fzStars.clear();
-  if (detail) for (const sd of seeds) {
+  if (detail) for (const sd of nearSeeds) {
     if (!sd.decisions?.length && !fzProps) continue;
     const r = reachOf(sd, radiusOf(viewAge(sd, seeds, now))) + 2;
     if (sd.x + r < x0 || sd.x - r > x1 || sd.y + r < y0 || sd.y - r > y1) continue;
@@ -3889,7 +3901,7 @@ export function draw(
     if (tw.steg && now < tw.steg.done && (sd.decisions ?? []).some((d) => d.event === "steg" && d.at <= now)) { const a = tw.steg.a; addProp(a[1] * MAP + a[0], (cx, cy) => prop(c, "logs", cx + 4, cy + 1, 7)); }
   }
   // knights: the saddled horse stands by the seat unless the knight is out riding it
-  if (folkOn) for (const sd of seeds) {
+  if (folkOn) for (const sd of nearSeeds) {
     if (!knightSeeds.has(sd.id) || riddenOut.has(sd.id)) continue;
     const [hx, hy] = seatTile(sd), spot = ([[1, 1], [-1, 1], [1, 0], [0, 1], [-1, 0], [1, -1]] as const).map(([ox, oy]) => [hx + ox, hy + oy] as const).find(([a, b]) => freeGround(a, b) || ["street", "path", "square"].includes(structureAt(a, b, seeds, now)?.kind ?? ""));
     if (!spot) continue;
@@ -3900,7 +3912,7 @@ export function draw(
   }
   // supporter dogs: romp by the mayor's seat, heel when the mayor walks, sleep by the door at night
   dogSpots.clear();
-  if (folkOn) for (const sd of seeds) {
+  if (folkOn) for (const sd of nearSeeds) {
     if (!supportOwned.get(sd.id)?.has("dog")) continue;
     const [hx, hy] = seatTile(sd), mq = dogMayors.get(sd.id);
     const near = mq || (hx >= x0 - 4 && hx <= x1 + 4 && hy >= y0 - 4 && hy <= y1 + 4); if (!near) continue;
@@ -3944,7 +3956,7 @@ export function draw(
     }
   }
   // Allmende footbridge over the mill stream, once the village (or its carpenter) has finished it
-  if (detail) for (const sd of seeds) {
+  if (detail) for (const sd of nearSeeds) {
     if (!sd.decisions?.some((d) => d.event === "steg")) continue;
     const tw = townOf(sd, seeds, now), sg = tw.steg; if (!sg || now < sg.done) continue;
     const [ax, ay] = iso(sg.a[0], sg.a[1]), [bx, by] = iso(sg.b[0], sg.b[1]);
@@ -3970,7 +3982,7 @@ export function draw(
   };
   // the prince's messenger: rides in along the village's road, waits by the mayor's seat, rides off (pure from decree rows + clock)
   heraldSpots.clear();
-  if (folkOn && heraldRows.length) for (const sd of seeds) {
+  if (folkOn && heraldRows.length) for (const sd of nearSeeds) {
     const v = heraldVisit(heraldRows, sd.id, now); if (!v) continue;
     const [hx, hy] = seatTile(sd);
     if (hx < x0 - 20 || hx > x1 + 20 || hy < y0 - 20 || hy > y1 + 20) continue;
@@ -4109,7 +4121,7 @@ export function draw(
     // lodges exist only as bought "hunter" sites (specialSites): look them up instead of scanning every tile;
     // the same DEN_R + 2 margin keeps off-screen lodges sending hunters and game into view
     const M = DEN_R + 2;
-    for (const sd of seeds) for (const [k, v] of specialSites(sd)) {
+    for (const sd of nearSeeds) for (const [k, v] of specialSites(sd)) {
       if (v.kind !== "lodge") continue;
       const x = k % MAP, y = (k - x) / MAP;
       if (x < x0 - M || x > x1 + M || y < y0 - M || y > y1 + M) continue;
