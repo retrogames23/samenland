@@ -177,10 +177,13 @@ function doorV(c: C, p: ReturnType<typeof P>, u: number, v: number, sd: number, 
   shape(c, [p(u - w, v, 0), p(u + w, v, 0), p(u + w, v, hh), p(u - w, v, hh)], sd, col);
 }
 
+/** Device pixels per world unit of the live frame (zoom × dpr); 0 while baking, so baked art keeps its exact old sway. */
+let swayPx = 0;
+const NO_SUB_SWAY = typeof location !== "undefined" && new URLSearchParams(location.search).has("nosubsway");
 function tree(c: C, x: number, y: number, s: number, t: number, v: number, sd: number, conifer = 0.5) {
   const sway = Math.sin(t / 1300 + v * 10) * 0.6;
   const k = treeKind(v, conifer);
-  if (drawNature(c, k, x, y, s, sway, hash(sd, 5, 5) > 0.5)) return;
+  if (drawNature(c, k, x, y, s, sway, hash(sd, 5, 5) > 0.5, t !== 0 ? (NO_SUB_SWAY ? -swayPx : swayPx) : 0)) return;
   blob(c, x, y - 7 * s, 4 * s, hsl(100, 30, 40), sd, false);
 }
 let smokeWind = 0.3;
@@ -3693,7 +3696,7 @@ export function draw(
   pBegin("near.setup");
   const t = performance.now(); setSpriteTime(t);
   const worldLinks = links(seeds); // one lookup per frame: the cache key itself serialises every seed
-  const z = cam.zoom * dpr;
+  const z = cam.zoom * dpr; swayPx = z;
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.fillStyle = hsl(205, 30, 58); c.fillRect(0, 0, w, h);
   c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
