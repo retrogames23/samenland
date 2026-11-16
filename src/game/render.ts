@@ -1671,13 +1671,14 @@ function skyTint(c: C, w: number, h: number): number {
 }
 
 /** Display-only bitmap cache of each town's overview buildings: rebaked when its look can change (radius, step, resolution, purchases, season, coarse clock). */
-const OV_TICK = 30_000, OV_MAX = 48, OV_PX = 2048, OV_WARM = 15_000;
+const OV_TICK = 30_000, OV_PX = 2048, OV_WARM = 15_000;
+export const overviewCapacity = (seedCount: number) => Math.max(96, seedCount);
 const ovCache = new Map<string, { key: string; cv: HTMLCanvasElement | OffscreenCanvas; ox: number; oy: number; k: number }>();
 let ovT0 = -1;
 export function overviewKey(s: Pick<Seed, "id" | "bought">, Ri: number, step: number, k: number, now: number, warm = 0): string {
   return `${s.id}|${Ri}|${step}|${k}|${s.bought?.length ?? 0}|${seasonKey(now)}|${Math.floor(now / OV_TICK)}|${warm}`;
 }
-function drawOverviewTown(c: C, s: Seed, Ri: number, step: number, z: number, ix: number, iy: number, now: number, paint: (g: C) => void): boolean {
+function drawOverviewTown(c: C, s: Seed, Ri: number, step: number, z: number, ix: number, iy: number, now: number, maxEntries: number, paint: (g: C) => void): boolean {
   if (typeof document === "undefined" && typeof OffscreenCanvas === "undefined") return false;
   const pn = performance.now(); if (ovT0 < 0) ovT0 = pn;
   const warm = pn - ovT0 < OV_WARM ? Math.floor(pn / 2000) : 0; // sprites still arriving: rebake every 2 s at first
@@ -1702,7 +1703,7 @@ function drawOverviewTown(c: C, s: Seed, Ri: number, step: number, z: number, ix
     paint(g); pEnd();
     e = { key, cv, ox, oy, k: kk };
     ovCache.delete(s.id); ovCache.set(s.id, e);
-    while (ovCache.size > OV_MAX) { ovCache.delete(ovCache.keys().next().value!); pEvict("ovTown"); }
+    while (ovCache.size > maxEntries) { ovCache.delete(ovCache.keys().next().value!); pEvict("ovTown"); }
   } else { ovCache.delete(s.id); ovCache.set(s.id, e); pCount("cache.ovTown.hit"); }
   c.drawImage(e.cv as CanvasImageSource, e.ox, e.oy, e.cv.width / e.k, e.cv.height / e.k);
   return true;
@@ -1723,6 +1724,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
     drawGroundChunks(c, x0, x1, y0, y1, z, cam.x - w / 2 / z, cam.x + w / 2 / z, cam.y - h / 2 / z, cam.y + h / 2 / z, true);
   } else c.drawImage(overviewMap(), -(MAP * TW) / 2, 0, MAP * TW, MAP * TH);
   const px = 1 / z;
+  const maxEntries = overviewCapacity(seeds.length);
   c.lineJoin = "round"; c.lineCap = "round";
   for (const l of links(seeds)) {
     const p = roadProgress(l, now); if (p <= 0) continue;
@@ -1756,7 +1758,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
         else if (!FLAT.has(st.kind)) drawBuildingSprite(g, st.kind, cx, FOOT2.has(st.kind) ? cy - TH / 2 : cy, st.v);
       }
     };
-    if (!drawOverviewTown(c, s, Ri, step, z, ix, iy, now, paint)) paint(c);
+    if (!drawOverviewTown(c, s, Ri, step, z, ix, iy, now, maxEntries, paint)) paint(c);
   }
   { // the prince's seat, at true scale like the towns
     const cs0 = courtSite();
