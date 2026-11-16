@@ -1217,7 +1217,7 @@ export function links(seeds: Seed[]): Link[] {
     if (gate === null) continue;
     const l = cachedLink(a, b, d);
     // player-decided roads start at the decision itself; only sample pairs wait for ROAD_AT
-    if (l) { if (gate !== -Infinity) { const k = roadKinetics(a, b)!; l.since = k.since; l.baseBuild = k.baseBuild; l.joinAt = k.joinAt; l.doneAt = k.doneAt; } out.push(l); }
+    if (l) { if (gate !== -Infinity) { const k = roadKinetics(a, b)!; l.since = k.since; l.baseBuild = k.baseBuild; if (k.joinAt !== undefined) l.joinAt = k.joinAt; l.doneAt = k.doneAt; } out.push(l); }
   }
   const idx = new Map<number, { link: Link; i: number }>();
   for (const l of out) l.tiles.forEach(([x, y], i) => { const k = y * MAP + x; if (!idx.has(k)) idx.set(k, { link: l, i }); });
@@ -1344,7 +1344,8 @@ function buildLink(a: Seed, b: Seed, d: number): Link | null {
     tiles.push([x, y]); water.push(isWater(t));
   }
   if (deep > 6) return null; // no roads across the open sea
-  return { a, b, d, since: Math.max(Date.parse(a.created_at), Date.parse(b.created_at)) + ROAD_AT * 3.6e6, tiles, water };
+  const since = Math.max(Date.parse(a.created_at), Date.parse(b.created_at)) + ROAD_AT * 3.6e6;
+  return { a, b, d, since, baseBuild: ROAD_BUILD * 3.6e6, doneAt: since + ROAD_BUILD * 3.6e6, tiles, water };
 }
 
 /** 0..1 how much of the road exists. */
