@@ -18,7 +18,7 @@ import { useModeCursor } from "@/components/hooks/useModeCursor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type WonderFind } from "@/game/wonders";
-import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, signpostMap, type Camera } from "@/game/render";
+import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, setKnights, signpostMap, type Camera } from "@/game/render";
 /** Tiles within which strangers in a foreign village speak to the strolling mayor. */
 const MEET_TILES = 4;
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
@@ -910,7 +910,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         if (!live()) return;
         princelyRows.current = (pt.data ?? []) as PrincelyRow[]; setHeraldRows(princelyRows.current); bumpPrince((n) => n + 1);
         loadErrands(epoch);
-        mapRows<{ seed_id: string }>(ids, (c) => supabase.from("knighthoods").select("seed_id").in("seed_id", c), "seed_id").then((data) => { if (live()) knights.current = new Set(data.map((k) => k.seed_id)); });
+        mapRows<{ seed_id: string }>(ids, (c) => supabase.from("knighthoods").select("seed_id").in("seed_id", c), "seed_id").then((data) => { if (live()) { knights.current = new Set(data.map((k) => k.seed_id)); setKnights(knights.current); } });
         // only this player's own visits mark a town as seen — other players' visits must not block the welcome gift
         // (repeat visits are still reported once per session: they count for the prince's "visit" decree, never a second gift)
         // repeat visits persist as last_at — keep them after reload so the "visit" decree stays met (mirrors princely_task_met)
@@ -1723,7 +1723,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     const { data, error } = await rpc("princely_knight", { _seed: seedId });
     if (error || !data) { setDecree(P.fail); return; }
     if (data === "not_yet") { setDecree(P.notYet); return; }
-    knights.current = new Set([...knights.current, seedId]); bumpKnight((n) => n + 1);
+    knights.current = new Set([...knights.current, seedId]); setKnights(knights.current); bumpKnight((n) => n + 1);
     setDecree(P.dubbed(P.sir(female))); jingle("fanfare");
   };
   const [decree, setDecree] = useState<string | null>(null);

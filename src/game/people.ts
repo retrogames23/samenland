@@ -1209,7 +1209,7 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
 export const ORDER_SPEED = 0.34;
 /** Seconds the mayor waits at the goal before returning to the daily routine. */
 export const ORDER_IDLE = 50;
-type Order = { id: number; sid: string; from: Tile; to: Tile; at: number; v: number; pts: Tile[]; back?: { at: number; pts: Tile[] } | undefined };
+type Order = { id: number; sid: string; from: Tile; to: Tile; at: number; v: number; pts: Tile[]; mounted?: boolean; back?: { at: number; pts: Tile[] } | undefined };
 /** Seed id of the player's own village: its mayor always shows a parchment silhouette behind roofs (local-only). */
 let ownSid: string | null = null;
 export const setOwnMayor = (sid: string | null) => { ownSid = sid; };
@@ -1292,7 +1292,7 @@ export function commandMayor(p: Person, t: Town, seeds: Seed[], now: number, to:
   if (Math.abs(last[0] - g[0]) + Math.abs(last[1] - g[1]) > 0 && tiles.length <= 1) return false;
   const to2: Tile = last[0] === g[0] && last[1] === g[1] ? g : last;
   const pts: Tile[] = [from, ...tiles.slice(1, -1), to2];
-  order = { id: p.id, sid: p.seed.id, from, to: to2, at: now, v: hold ? DRIVE_SPEED : ORDER_SPEED, pts }; drive = null;
+  order = { id: p.id, sid: p.seed.id, from, to: to2, at: now, v: mounted ? DRIVE_SPEED * KNIGHT_SPEED : hold ? DRIVE_SPEED : ORDER_SPEED, pts, mounted }; drive = null;
   return true;
 }
 /** Current goal of the steered mayor, or null when idle (for the marker). */
@@ -1389,16 +1389,16 @@ function orderPose(p: Person, t: Town, seeds: Seed[], now: number, base: Pose): 
   const pts = o.pts;
   const secs = (now - o.at) / 1000, dd = secs * o.v, len = lenOf(pts);
   const q = along(pts, dd);
-  if (q && dd < len) return { ...base, ...q, visible: true, walking: true, act: "stroll", phase: dd / STRIDE, working: false };
-  if (hold || secs - len / o.v < ORDER_IDLE) { o.back = undefined; return { ...base, x: o.to[0], y: o.to[1], visible: true, walking: false, act: "stroll", dir: [1, 0.3], working: false }; }
+  if (q && dd < len) return { ...base, ...q, visible: true, walking: true, act: "stroll", phase: dd / STRIDE, working: false, mounted: !!o.mounted };
+  if (hold || secs - len / o.v < ORDER_IDLE) { o.back = undefined; return { ...base, x: o.to[0], y: o.to[1], visible: true, walking: false, act: "stroll", dir: [1, 0.3], working: false, mounted: !!o.mounted }; }
   // order done: walk visibly back into the routine instead of vanishing on the spot
   if (!o.back) {
     const goal = !base.visible || !freeAt(t, base.x, base.y, seeds) ? doorOf(t, [base.x, base.y], seeds) : [base.x, base.y] as Tile;
     const tiles = mayorRoute(t, [Math.round(o.to[0]), Math.round(o.to[1])], [Math.round(goal[0]), Math.round(goal[1])], seeds);
     o.back = { at: o.at + (len / o.v + ORDER_IDLE) * 1000, pts: [o.to, ...tiles.slice(1, -1), goal] };
   }
-  const bd = ((now - o.back.at) / 1000) * ORDER_SPEED, bq = along(o.back.pts, bd);
-  if (bq && bd < lenOf(o.back.pts)) return { ...base, ...bq, visible: true, walking: true, act: "stroll", phase: bd / STRIDE, working: false };
+  const bd = ((now - o.back.at) / 1000) * (o.mounted ? o.v : ORDER_SPEED), bq = along(o.back.pts, bd);
+  if (bq && bd < lenOf(o.back.pts)) return { ...base, ...bq, visible: true, walking: true, act: "stroll", phase: bd / STRIDE, working: false, mounted: !!o.mounted };
   order = null;
   return null;
 }

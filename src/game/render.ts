@@ -44,7 +44,7 @@ import { seasonKey, seasonAt } from "./season";
 import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
 import { townCharacter } from "./character";
-import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, stallImage, type Tex } from "./nature-sprites";
+import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, horseImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { folkImage, walkSheet, standSprite, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
@@ -2628,6 +2628,19 @@ let wonderFound = new Set<string>();
 let supportOwned = new Map<string, Set<string>>();
 /** Granted supporter rewards per village id (set by the UI). */
 export function setSupportOwned(m: Map<string, Set<string>>) { supportOwned = m; }
+/** Knighted villages (knighthoods rows): a saddled horse waits by the seat while the knight is on foot. */
+let knightSeeds: ReadonlySet<string> = new Set();
+export function setKnights(k: ReadonlySet<string>) { knightSeeds = k; }
+/** Tethered riding horse beside a knight's seat; faces right, hooves on the ground line. */
+function drawTetheredHorse(c: C, x: number, y: number, t: number, flip: boolean) {
+  const im = horseImage(); if (!im) return;
+  const H = 7.2, W = (im.naturalWidth / im.naturalHeight) * H, sway = Math.sin(t / 2300) * 0.08;
+  c.save(); c.translate(x, y); if (flip) c.scale(-1, 1);
+  c.fillStyle = "rgba(20,15,10,0.32)"; c.beginPath(); c.ellipse(0, -0.1, W * 0.38, 0.9, 0, 0, 7); c.fill();
+  c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  c.drawImage(im, -W / 2, -H + sway, W, H);
+  c.restore();
+}
 /** Last drawn dog position per village (world tiles), so the UI can react to clicks on it. */
 export const dogSpots = new Map<string, { x: number; y: number }>();
 const DOG_W = 2.1; // small curly dog: knee-high next to a 5.2-unit villager
@@ -2931,6 +2944,8 @@ function labEntries(): LabEntry[] {
   for (const [sit, dx, dy, walk] of [["Steht", 1, 0.3, false], ["Reitet", 1, 0.3, true], ["Reitet fort", 1, -1, true]] as const)
     out.push({ label: `Ritterschulze · ${sit}`, row: "Ritterschulze", sit, cat: "mayor", h: 11, w: 9, cfg: null,
       draw: (c, _h, ph) => { drawRider(c, 0, 0, dx, dy, 0, walk ? (ph / 6.2832) * 4 * RIDER_MS : 0); return 9; } });
+  out.push({ label: "Ritterpferd · Angebunden", row: "Ritterschulze", sit: "Pferd am Sitz", cat: "mayor", h: 9, w: 9, cfg: null,
+    draw: (c, _h, _ph, now) => { drawTetheredHorse(c, 0, 0, now, false); return 9; } });
   // animals, hunters and riders: real game draw calls at the origin; ph (radians) is turned into the distance / clock each one steps by
   const A = (row: string, sit: string, h: number, w: number, draw: (c: C, ph: number, now: number) => unknown): LabEntry =>
     ({ label: `${row} · ${sit}`, row, sit, cat: "animal", h, w, cfg: null, draw: (c, _h, ph, now) => (draw(c, ph, now) === false ? null : w) });
@@ -3770,6 +3785,7 @@ export function draw(
   const folkOn = cam.zoom >= 0.9; // villagers are sub-pixel below this; skipping them changes nothing visible
   const steer = steeredMayor();
   const dogMayors = new Map<string, Pose>();
+  const riddenOut = new Set<string>();
   let ownPose: Pose | null = null, ownDrawn = false;
   lanternFolk.clear();
   if (folkOn) for (const sd of seeds) {
@@ -3800,6 +3816,7 @@ export function draw(
       folk.get(k)!.push(q);
       if (q.p.role === "mayor" && sd.id === ownMayorSid()) ownPose = q;
       if (q.p.role === "mayor" && supportOwned.get(sd.id)?.has("dog")) dogMayors.set(sd.id, q);
+      if (q.p.role === "mayor" && q.mounted) riddenOut.add(sd.id);
     }
     pFE();
   }
@@ -3863,6 +3880,16 @@ export function draw(
     tw.pigs.forEach((pg, i) => addProp(pg[1] * MAP + pg[0], (cx, cy) => drawPig(c, cx, cy, now, pg[0] * 31 + pg[1] + i * 7)));
     // footbridge site: timber stacked on the bank while the crew works
     if (tw.steg && now < tw.steg.done && (sd.decisions ?? []).some((d) => d.event === "steg" && d.at <= now)) { const a = tw.steg.a; addProp(a[1] * MAP + a[0], (cx, cy) => prop(c, "logs", cx + 4, cy + 1, 7)); }
+  }
+  // knights: the saddled horse stands by the seat unless the knight is out riding it
+  if (folkOn) for (const sd of seeds) {
+    if (!knightSeeds.has(sd.id) || riddenOut.has(sd.id)) continue;
+    const [hx, hy] = seatTile(sd), spot = ([[1, 1], [-1, 1], [1, 0], [0, 1], [-1, 0], [1, -1]] as const).map(([ox, oy]) => [hx + ox, hy + oy] as const).find(([a, b]) => freeGround(a, b) || ["street", "path", "square"].includes(structureAt(a, b, seeds, now)?.kind ?? ""));
+    if (!spot) continue;
+    const [tx, ty] = spot;
+    if (tx < x0 - 2 || tx > x1 + 2 || ty < y0 - 2 || ty > y1 + 2) continue;
+    const [px, py] = iso(tx, ty), fl = hash(sd.x, sd.y, 4417) < 0.5;
+    addProp(ty * MAP + tx, () => drawTetheredHorse(c, px + 3, py + 1, t + sd.x * 97, fl));
   }
   // supporter dogs: romp by the mayor's seat, heel when the mayor walks, sleep by the door at night
   dogSpots.clear();
