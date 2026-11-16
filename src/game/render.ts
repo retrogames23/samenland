@@ -3848,7 +3848,7 @@ export function draw(
   const goal = mayorGoal(now), goalK = goal ? goal[1] * MAP + goal[0] : -1;
   // encounter props: the raised maypole on the square and the village's cows (derived in townOf)
   const props = framePool.props; props.clear();
-  const addProp = (k: number, f: (cx: number, cy: number) => void) => (props.get(k) ?? props.set(k, []).get(k)!).push(f);
+  const addProp = (k: number, f: (cx: number, cy: number) => void) => { pCount("props.added"); (props.get(k) ?? props.set(k, []).get(k)!).push(f); };
   // road crews join the tile depth order, so houses in front hide them instead of the crew floating on roofs
   if (detail) for (const l of nearLinks) {
     const prog = roadProgress(l, now);
