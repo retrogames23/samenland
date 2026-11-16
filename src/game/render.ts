@@ -3338,6 +3338,7 @@ const framePool = {
   occ: [] as number[], // flat [ti, left, top, right, bottom] of standing buildings
   ord: new Map<number, number>(),
   birds: [] as [number, number, number, number][],
+  nearLinks: [] as Link[],
 };
 
 /** Per-frame counters for the dev diagnostics HUD (mutated in place, no allocation). */
