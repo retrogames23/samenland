@@ -44,7 +44,7 @@ describe("twinSites direct point-in-time check", () => {
     for (const t of [T0 + Y3, T0 + Y3 + 1, T0 + 5 * 365 * DAY, T0 + 20 * 365 * DAY]) expect(twinSiteAt(p.l, p.seeds, t)).toBe(false);
   });
   it("blessings, charter and purchases shift touch identically", () => {
-    const a = mk("a", 306, 420, "b", { blessed: [T0 + 2 * DAY, T0 + 9 * DAY], charter: { path: "farm", at: T0 + 5 * DAY } as Seed["charter"], bought: ["fisher", "hunter", "granary", "herbs", "healer", "markethall"].map((item, i) => ({ item, at: i === 5 ? T0 + 7 * DAY : 0 })) });
+    const a = mk("a", 306, 420, "b", { blessed: [T0 + 2 * DAY, T0 + 9 * DAY], charter: { path: "farm", at: T0 + 5 * DAY }, bought: ["fisher", "hunter", "granary", "herbs", "healer", "markethall"].map((item, i) => ({ item, at: i === 5 ? T0 + 7 * DAY : 0 })) });
     const p = pair(a, mk("b", 343, 439, "a"));
     const t = twinSince(p.l, p.seeds)!; expect(t).toBeLessThanOrEqual(ts);
     const x = exactTouch(p.l, p.seeds);
