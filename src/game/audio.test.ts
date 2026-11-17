@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 
 // Minimal stand-in for the Web Audio API: every node/param accepts any call and chains.

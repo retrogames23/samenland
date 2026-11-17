@@ -5,7 +5,7 @@ import path from "node:path";
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: "jsdom",
+    environment: "node", // pure game logic; DOM-dependent files opt in with `// @vitest-environment jsdom`
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     testTimeout: 60000, // long 730-day town simulations exceed 20 s when run in parallel
