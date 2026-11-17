@@ -27,15 +27,15 @@ describe("twinSince content cache", () => {
       const seeds = variants[k]!(); const l = w.links(seeds)[0];
       expect(l ? w.twinSince(l, seeds) : "nolink", `${k}/${round}`).toEqual(ref[k]);
     }
-    expect(ref.laterRoad).not.toEqual(ref.base); // later road changes the touch moment (Roggenfeld–Dinkelwinkel case)
+    expect(ref["laterRoad"]).not.toEqual(ref["base"]); // later road changes the touch moment (Roggenfeld–Dinkelwinkel case)
   });
 
   it("a new array with identical content hits; changed content misses; size stays bounded", async () => {
     vi.resetModules(); const w = await import("./world");
-    const a = variants.base!(); w.twinSince(w.links(a)[0]!, a);
-    const m0 = w.sinceStats.misses, b = variants.base!(); w.twinSince(w.links(b)[0]!, b);
+    const a = variants["base"]!(); w.twinSince(w.links(a)[0]!, a);
+    const m0 = w.sinceStats.misses, b = variants["base"]!(); w.twinSince(w.links(b)[0]!, b);
     expect(w.sinceStats.misses).toBe(m0);
-    const c = variants.blessed!(); w.twinSince(w.links(c)[0]!, c);
+    const c = variants["blessed"]!(); w.twinSince(w.links(c)[0]!, c);
     expect(w.sinceStats.misses).toBe(m0 + 1);
     for (let i = 0; i < 40; i++) { const s = [mk("a", 306, { blessed: [T0 + i * 864e5] }), mk("b", 343)]; w.twinSince(w.links(s)[0]!, s); }
     expect(w.sinceStats.size()).toBeLessThanOrEqual(w.SINCE_MAX);
@@ -43,9 +43,9 @@ describe("twinSince content cache", () => {
 
   it("realm is part of the key", async () => {
     vi.resetModules(); const w = await import("./world");
-    const a = variants.base!(); w.twinSince(w.links(a)[0]!, a);
+    const a = variants["base"]!(); w.twinSince(w.links(a)[0]!, a);
     const m0 = w.sinceStats.misses;
-    const b = variants.base!().map((s) => ({ ...s, realm: "europe-2" as Seed["realm"] }) as Seed);
+    const b = variants["base"]!().map((s) => ({ ...s, realm: "europe-2" as Seed["realm"] }) as Seed);
     const l = w.links(b)[0]; if (l) w.twinSince(l, b);
     expect(w.sinceStats.misses).toBe(l ? m0 + 1 : m0);
   });
