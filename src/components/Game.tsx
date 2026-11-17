@@ -40,6 +40,7 @@ import type { DecisionKind } from "@/game/decision-order";
 import { Minimap } from "@/components/hud/Minimap";
 import { rideTime, letterArrives } from "@/game/wander";
 import { IslandRegister, type RegisterRow } from "@/components/hud/IslandRegister";
+type MoveRow = { id: string; seed_id: string; item: string; x: number; y: number; cost: number; created_at: string };
 type LetterRow = { id: string; from_seed: string; to_seed: string; created_at: string };
 import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
@@ -472,6 +473,13 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadSupport, mapGen]);
+  // relocations (Umsetzen) of the loaded map; reloaded with every map load, live inserts arrive via realtime
+  useEffect(() => {
+    const ids = mapIds.current; if (!ids.length) { setMoves([]); return; }
+    let dead = false;
+    void mapRows(ids, (c) => supabase.from("building_moves").select("id, seed_id, item, x, y, cost, created_at").in("seed_id", c)).then((rows) => { if (!dead) setMoves(rows as MoveRow[]); });
+    return () => { dead = true; };
+  }, [mapGen]);
   const [quitOpen, setQuitOpen] = useState(false);
   const [quitName, setQuitName] = useState("");
   const [quitting, setQuitting] = useState(false);
