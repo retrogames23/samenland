@@ -66,7 +66,7 @@ import { MayorEditor } from "@/components/MayorEditor";
 import { MAYOR } from "@/game/lang/mayor";
 import { ownHead, addressMayor, mayorWord, titleForm } from "@/game/lang/address";
 import { COURT } from "@/game/lang/court";
-import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, heraldSpots, isPlantedRare } from "@/game/render";
+import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, setHeraldQuiet, heraldSpots, isPlantedRare } from "@/game/render";
 import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT, UKRAINE_URL } from "@/game/lang/support";
@@ -1730,7 +1730,12 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const [herald, setHerald] = useState(false);
   const [, bumpHerald] = useState(0);
   /** Is the messenger in the village (riding in or waiting)? Derived by heraldVisit, the same visit the map draws. */
-  const heraldDue = (seedId: string) => { const v = heraldVisit(princelyRows.current, seedId, clock()); return !!v && v.phase !== "leave"; };
+  /** "Let the decrees rest": local only (presentation), cleared by asking at court. */
+  const [quiet, setQuiet] = useState<string[]>([]);
+  useEffect(() => { try { setQuiet(JSON.parse(localStorage.getItem("samenland-herald-quiet") ?? "[]")); } catch { /* ignore */ } }, []);
+  useEffect(() => { setHeraldQuiet(new Set(quiet)); }, [quiet]);
+  const setQuietFor = (seedId: string, on: boolean) => setQuiet((q) => { const n = on ? [...new Set([...q, seedId])] : q.filter((x) => x !== seedId); try { localStorage.setItem("samenland-herald-quiet", JSON.stringify(n)); } catch { /* ignore */ } return n; });
+  const heraldDue = (seedId: string) => { if (quiet.includes(seedId)) return false; const v = heraldVisit(princelyRows.current, seedId, clock()); return !!v && v.phase !== "leave"; };
   const openHerald = () => { setDecree(null); setHerald(true); jingle("fanfare"); };
   /** Tap on the own village's messenger (screen spot from the last frame). */
   const heraldHit = (e: { clientX: number; clientY: number }) => {
@@ -1741,6 +1746,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   };
   const askDecree = async (seedId: string) => {
     const P = PRINCELY[lang];
+    setQuietFor(seedId, false);
     const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: string | null; error: unknown }>;
     const { data, error } = await rpc("princely_audience", { _seed: seedId });
     if (error || !data) { setDecree(P.fail); return; }
@@ -3285,8 +3291,11 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         <Parchment title={HERALD[lang].title} later={HERALD[lang].leave} onLater={() => setHerald(false)}>
           <p className="text-sm italic leading-relaxed text-ink">{addr(HERALD[lang].arrive)}{honour(my) && <> · {honour(my)} {my?.owner}</>}</p>
           {decree ? <p className="mt-3 text-sm italic leading-relaxed text-ink">{decree}</p>
-            : <Button type="button" size="sm" className="mt-3 w-full" onClick={() => askDecree(my.id)}>📜 {HERALD[lang].ask}</Button>}
-          {decree && openTaskOf(princelyRows.current, my.id) && <p className="mt-2 text-xs italic text-muted-foreground">{HERALD[lang].read}</p>}
+            : <>
+              <Button type="button" size="sm" className="mt-3 w-full" onClick={() => askDecree(my.id)}>📜 {HERALD[lang].ask}</Button>
+              <Button type="button" size="sm" variant="outline" className="mt-2 w-full" onClick={() => { setQuietFor(my.id, true); setDecree(HERALD[lang].paused); }}>🌙 {HERALD[lang].pause}</Button>
+            </>}
+          {decree && decree !== HERALD[lang].paused && openTaskOf(princelyRows.current, my.id) && <p className="mt-2 text-xs italic text-muted-foreground">{HERALD[lang].read}</p>}
           <p className="mt-2 text-xs text-muted-foreground">{PRINCELY[lang].favour(favourOf(princelyRows.current, my.id), PRINCELY_COUNT)}</p>
         </Parchment>
       )}
@@ -3331,7 +3340,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               </div>
             )}
             {!questFold && my && (() => {
-              const o = openTaskOf(princelyRows.current, my.id); if (!o) return null;
+              const o = openTaskOf(princelyRows.current, my.id); if (!o || quiet.includes(my.id)) return null;
               const P = PRINCELY[lang], k = o.task as PrincelyKind;
               const flavour = k !== "court" ? edictText(lang, o.step) : null;
               return (
