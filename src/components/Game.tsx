@@ -246,6 +246,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   type EncRow = { id: string; seed_id: string; event: string; choice: string; cost: number; created_at: string };
   const [encounters, setEncounters] = useState<EncRow[]>([]);
   const [votes, setVotes] = useState<{ id: string; seed_id: string; partner_id: string; pact: string; created_at: string }[]>([]);
+  const [moves, setMoves] = useState<MoveRow[]>([]);
   const [works, setWorks] = useState<{ id: string; seed_id: string; partner_id: string; work: string; cost: number; created_at: string }[]>([]);
   const [pactOpen, setPactOpen] = useState(false);
   const [pactPick, setPactPick] = useState<PactKind | null>(null);
@@ -286,9 +287,11 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     const vo = new Map<string, NonNullable<Seed["votes"]>>(), wo = new Map<string, NonNullable<Seed["works"]>>();
     for (const v of votes) { if (!vo.has(v.seed_id)) vo.set(v.seed_id, []); vo.get(v.seed_id)!.push({ partner: v.partner_id, pact: v.pact as PactKind, at: Date.parse(v.created_at) }); }
     for (const w of works) { if (!wo.has(w.seed_id)) wo.set(w.seed_id, []); wo.get(w.seed_id)!.push({ partner: w.partner_id, work: w.work as WorkKind, cost: w.cost, at: Date.parse(w.created_at) }); }
+    const mo = new Map<string, NonNullable<Seed["moves"]>>();
+    for (const m of moves) { if (!mo.has(m.seed_id)) mo.set(m.seed_id, []); mo.get(m.seed_id)!.push({ item: m.item, x: m.x, y: m.y, at: Date.parse(m.created_at) }); }
     return rawSeeds.map((s0) => {
-      const v0 = vo.get(s0.id), w0 = wo.get(s0.id);
-      const s: Seed = v0 || w0 ? { ...s0, ...(v0 ? { votes: v0 } : {}), ...(w0 ? { works: w0 } : {}) } : s0;
+      const v0 = vo.get(s0.id), w0 = wo.get(s0.id), m0 = mo.get(s0.id);
+      const s: Seed = v0 || w0 || m0 ? { ...s0, ...(v0 ? { votes: v0 } : {}), ...(w0 ? { works: w0 } : {}), ...(m0 ? { moves: m0 } : {}) } : s0;
       const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id), fr0 = firstRoads.filter((f) => f.seed_id === s.id), fr = fr0.length ? fr0 : null, de = decs.get(s.id);
       if (!bl && !bo && !ch && !fr && !de) return s;
       return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { roads: fr.map((f) => ({ target: f.target_id, at: Date.parse(f.created_at) })).sort((a, b) => a.at - b.at) } : {}), ...(de ? { decisions: de.sort((a, b) => a.at - b.at) } : {}) };
@@ -307,7 +310,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       const aid = gifts.filter((g) => g.to_seed === s.id && g.kind === "aid").map((g) => Date.parse(g.created_at));
       return sent.length || aid.length ? { ...s, ...(sent.length ? { sent } : {}), ...(aid.length ? { aid } : {}) } : s;
     });
-  }, [rawSeeds, blessings, purchases, charters, firstRoads, encounters, votes, works, gifts, letters]);
+  }, [rawSeeds, blessings, purchases, charters, firstRoads, encounters, votes, works, gifts, letters, moves]);
   useEffect(() => { setSignposts(signs); }, [signs]);
   const [plantings, setPlantings] = useState<Planting[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -974,6 +977,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "plantings" }, held((p) => {
         const n = p.new as Planting; if (!onMap(n.seed_id)) return;
         setPlantings((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+      }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "building_moves" }, held((p) => {
+        const n = p.new as MoveRow; if (!onMap(n.seed_id)) return;
+        setMoves((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
       }))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "purchases" }, held((p) => {
         const n = p.new as Purchase; if (!onMap(n.seed_id)) return;
