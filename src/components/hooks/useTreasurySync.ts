@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { settleTreasury } from "@/lib/treasury.functions";
+import { coalescedRefresh } from "@/lib/treasury-refresh";
 import type { Seed } from "@/game/world";
 
 export type Accounting = Awaited<ReturnType<typeof settleTreasury>>;
@@ -11,18 +12,23 @@ export function useTreasurySync(my: Seed | undefined, userId: string | null | un
   const [accounting, setAccounting] = useState<Accounting | null>(null);
   const seedRef = useRef<string | null>(null);
   seedRef.current = my?.id ?? null;
-  const refreshTreasury = async () => {
+  const argsRef = useRef({ my, userId });
+  argsRef.current = { my, userId };
+  // one server call per refresh; a backlog beyond the server batch is booked by later refreshes
+  const runRef = useRef<(() => Promise<boolean>) | null>(null);
+  runRef.current ??= coalescedRefresh(async () => {
+    const { my, userId } = argsRef.current;
     if (!my || !userId || my.user_id !== userId) return false;
     const id = my.id;
     try {
-      let result = await treasuryFn({ data: { seed: id } });
-      for (let batch = 0; !result.settled && batch < 7; batch++) result = await treasuryFn({ data: { seed: id } });
+      const result = await treasuryFn({ data: { seed: id } });
       if (seedRef.current === id) setAccounting(result);
       return result.settled;
     } catch {
       return false;
     }
-  };
+  });
+  const refreshTreasury = () => runRef.current!();
   useEffect(() => {
     if (!my || !userId || my.user_id !== userId) { setAccounting(null); return; }
     void refreshTreasury();
