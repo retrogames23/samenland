@@ -1085,7 +1085,7 @@ function gridOf(p: Pick, seeds: Seed[], now: number): Map<number, number[]> {
   const grid = new Map<number, number[]>();
   seeds.forEach((s, i) => {
     if (now < Date.parse(s.created_at)) return;
-    const R = reachOf(s, radiusOf(effAge(s, seeds, now)) + 0.5) + 1;
+    const R = reachOf(s, radiusOf(effAgeUpper(s, seeds, now)) + 0.5) + 1;
     const cx0 = Math.floor((s.x - R) / PICK_CELL), cx1 = Math.floor((s.x + R) / PICK_CELL);
     const cy0 = Math.floor((s.y - R) / PICK_CELL), cy1 = Math.floor((s.y + R) / PICK_CELL);
     for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
@@ -1590,6 +1590,19 @@ export function effAge(s: Seed, seeds: Seed[], now: number) {
  *  in the window hits the effAge memo. Never use it for growth, tax, rank or anything mirrored by the server. */
 export const VIEW_AGE_STEP = 2000;
 export const viewAge = (s: Seed, seeds: Seed[], now: number) => effAge(s, seeds, Math.floor(now / VIEW_AGE_STEP) * VIEW_AGE_STEP);
+/** Prefilter-only upper bound on effAge for gridOf (never for growth, tax or display): twinHours is 0 unless twinSiteAt
+ *  holds, and its per-link rate is at most TWIN_BONUS + max pact + WORK_BONUS + BLESS_BONUS (0.35) since the younger
+ *  founding, times GROWTH_PACE. Calls no twinSince, so no bisection. */
+export const twinRateMax = () => TWIN_BONUS + Math.max(...Object.values(PACT_GROWTH)) + WORK_BONUS + BLESS_BONUS;
+export function effAgeUpper(s: Seed, seeds: Seed[], now: number) {
+  let h = 0;
+  for (const l of links(seeds)) {
+    if (l.a.id !== s.id && l.b.id !== s.id) continue;
+    if (!twinSiteAt(l, seeds, now)) continue;
+    h += Math.max(0, (now - Math.max(Date.parse(l.a.created_at), Date.parse(l.b.created_at))) / 3.6e6);
+  }
+  return effAgeBase(s, seeds, now) + (h > 0 ? twinRateMax() * GROWTH_PACE * h : 0);
+}
 function effAgeBase(s: Seed, seeds: Seed[], now: number) {
   let h = ageHours(s, now) + blessHours(s, now) + boonHours(s.decisions ?? [], now);
   if (s.charter?.path === "farm" && now > s.charter.at) h += (now - s.charter.at) / 3.6e6 * FARM_BONUS;
@@ -1769,7 +1782,7 @@ const pairHash = (l: Link) => hash(l.a.x + l.b.x, l.a.y + l.b.y, 21);
 /** twinSince results per world content (realm list + seedsKey, the same full key as links()), so new Seed[] instances
  *  of an identical historical state reuse them; any change to growth inputs yields a new key. Bounded LRU:
  *  SINCE_MAX covers a 7-day treasury batch plus live map/solo sets with headroom. */
-export const SINCE_MAX = 16;
+export const SINCE_MAX = 128;
 const sinceStore = new Map<string, Map<string, number | null>>();
 const sinceMemo = new WeakMap<Seed[], Map<string, number | null>>();
 export const sinceStats = { calls: 0, hits: 0, misses: 0, size: () => sinceStore.size };

@@ -62,3 +62,5 @@
 - structureAt spatial pick (picksOf/gridOf in world.ts): bought sites indexed by tile and towns bucketed by reachOf(s, r + 0.5) + 1, bound to the seeds array and exact `now`, candidates in seed-array order — keeps the tie-break and every claim; decision logic stays unchanged.
 
 - twinSites gates sites via twinSiteAt (direct point-in-time reach check, same founding and 3-year bounds as twinSince, may open <2 min earlier); every other twin mechanic keeps twinSince — sites hold no homes, so tax is unaffected.
+
+- Spatial pick prefilter: gridOf (world.ts) sizes cells with effAgeUpper (effAgeBase + max twin rate × GROWTH_PACE × hours since younger founding, only for links passing twinSiteAt) — no twinSince bisection; it may only add candidates, never feed growth, tax or display.
