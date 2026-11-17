@@ -163,7 +163,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ForgotForm, RecoveryDialog, ChangePasswordDialog, ChangeEmailDialog } from "@/components/dialogs/AccountDialogs";
-import { firstFreeSite, placeTap } from "@/game/placement";
+import { firstFreeSite, placeTap, footprint, footTileFree, goodSpots } from "@/game/placement";
 import { canMoveTo, moveBlock, moveCost, itemOfKind } from "@/game/relocate";
 import { RELOCATE } from "@/game/lang/relocate";
 import { saplingSpots } from "@/game/saplings";
@@ -338,6 +338,14 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   // true while `placing` picks a new spot for an already bought building (Umsetzen) instead of buying one
   const [moving, setMoving] = useState(false);
   useEffect(() => { if (!placing) setMoving(false); }, [placing]);
+  // faint hint of every good spot while placing — computed once per pick, not per frame
+  useEffect(() => {
+    const own = placing ? seeds.find((x) => x.id === mine) : undefined;
+    if (!placing || !own) { st.current.spots = []; return; }
+    const now = clock(), chk = moving ? canMoveTo : canPlaceSpecial;
+    st.current.spots = goodSpots(placing, own, seeds, now, (x, y) => chk(placing, x, y, own, seeds, now) === null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placing, moving, mine, seeds]);
   const [hover, setHover] = useState<[number, number] | null>(null);
   const tileInfoRef = useRef<HTMLDivElement>(null);
   const tileInfoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -601,7 +609,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     return () => { delete w.__labCam; };
   }, []);
   const sapCache = useRef<{ key: string; spots: [number, number][] }>({ key: "", spots: [] });
-  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, moving: false, ghost: null as [number, number] | null, walk: false });
+  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, moving: false, spots: [] as [number, number][], ghost: null as [number, number] | null, walk: false });
   st.current.walk = walk;
   st.current.seeds = seeds;
   st.current.placing = placing; st.current.moving = moving;
@@ -1174,9 +1182,18 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         ctx.setTransform(z, 0, 0, z, cv.width / 2 - c.x * z, cv.height / 2 - c.y * z);
         // 2×2 ensembles: show the whole four-tile footprint and draw at the same lifted anchor as the finished building
         const big = FOOT2.has(SPECIAL_KIND[s.placing]!), ay = big ? gy - 8 : gy, hw = big ? 32 : 16, hh = big ? 16 : 8;
-        ctx.beginPath(); ctx.moveTo(gx, ay - hh); ctx.lineTo(gx + hw, ay); ctx.lineTo(gx, ay + hh); ctx.lineTo(gx - hw, ay); ctx.closePath();
+        const diamond = (x: number, y: number) => { const [px, py] = iso(x, y); ctx.beginPath(); ctx.moveTo(px, py - 8); ctx.lineTo(px + 16, py); ctx.lineTo(px, py + 8); ctx.lineTo(px - 16, py); ctx.closePath(); };
+        // good spots nearby: a faint green wash so the player sees at a glance where the building may go
+        ctx.fillStyle = "rgba(90,190,90,0.16)";
+        for (const [sx, sy] of s.spots) { if (sx === gh[0] && sy === gh[1]) continue; diamond(sx, sy); ctx.fill(); }
         const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 320);
-        ctx.fillStyle = good ? `rgba(90,190,90,${0.3 + 0.15 * pulse})` : `rgba(210,70,60,${0.3 + 0.15 * pulse})`; ctx.fill();
+        // each covered tile on its own: red marks exactly the tile that blocks the building
+        const now0 = clock();
+        for (const [fx, fy] of footprint(s.placing, gh[0], gh[1])) {
+          const ok = good || footTileFree(fx, fy, s.seeds, now0) && !(fx === gh[0] && fy === gh[1]);
+          diamond(fx, fy); ctx.fillStyle = ok && good ? `rgba(90,190,90,${0.3 + 0.15 * pulse})` : ok ? `rgba(230,170,60,${0.3 + 0.15 * pulse})` : `rgba(210,70,60,${0.35 + 0.15 * pulse})`; ctx.fill();
+        }
+        ctx.beginPath(); ctx.moveTo(gx, ay - hh); ctx.lineTo(gx + hw, ay); ctx.lineTo(gx, ay + hh); ctx.lineTo(gx - hw, ay); ctx.closePath();
         // a bold rim (constant ~2.5 screen px) so the footprint reads even under roofs
         ctx.lineWidth = 2.5 / Math.max(0.5, c.zoom); ctx.strokeStyle = good ? "rgba(30,110,30,0.95)" : "rgba(150,30,25,0.95)"; ctx.stroke();
         const kind = SPECIAL_KIND[s.placing]!, gw = GHOST_WIDTH[kind];
