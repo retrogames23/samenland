@@ -24,7 +24,7 @@ export const es: Dict = {
   water: "Esto no es tierra firme.",
   near: (n) => `Demasiado cerca de ${n}.`,
   seedHint: { ok: (n: string) => `Tierra libre: pulsa para fundar ${n || "tu aldea"}`, hill: "Montañas: busca un valle", water: "Agua: busca tierra firme", near: (n: string, d: number) => `Demasiado cerca de ${n} (${d} casillas más)` },
-  plantAsk: { title: "¿Sembrar la semilla?", intro: (n: string) => `${n} debería echar raíces aquí.`, land: "Tierra", owner: "Regidor", spread: "Primer año", first: (r: number) => `hasta ${r} casillas de ancho`, nearest: "Aldea más cercana", near: (n: string, d: number) => `${n} · a ${d} casillas`, none: "ninguna otra aldea al alcance", ok: "Sí, sembrar aquí", wait: "Un momento…" },
+  plantAsk: { isle: "Islote apartado: ningún carro ni mercader os alcanzará por tierra, y el suelo para construir escasea. Los rangos superiores exigen rutas marítimas: cabaña de pescador junto al agua, ahumadero, muelle de la sal o faro.", title: "¿Sembrar la semilla?", intro: (n: string) => `${n} debería echar raíces aquí.`, land: "Tierra", owner: "Regidor", spread: "Primer año", first: (r: number) => `hasta ${r} casillas de ancho`, nearest: "Aldea más cercana", near: (n: string, d: number) => `${n} · a ${d} casillas`, none: "ninguna otra aldea al alcance", ok: "Sí, sembrar aquí", wait: "Un momento…" },
   since: "durante",
   buildings: "edificios",
   towns: "Aldeas",

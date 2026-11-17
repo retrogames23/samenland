@@ -1,3 +1,4 @@
+import { remoteIsle } from "@/game/island";
 import { dropSeedId, withoutSeed, withoutKeys, LoadGate, applySign, mergeRows, onIds, snapRows, refreshMap } from "@/game/realtime";
 import { allIn, allPages, allEither } from "@/lib/fetch-all";
 import { WalkStick } from "./WalkStick";
@@ -3095,6 +3096,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.nearest}</span><span className="text-right">{near ? t.plantAsk.near(near.name, Math.round(nd)) : t.plantAsk.none}</span></div>
             </div>
             <p className="mt-3 text-center text-xs text-muted-foreground">{TOWN_CHARACTER[lang].land[c]}</p>
+            {remoteIsle(px, py) && <p role="alert" className="mt-3 rounded-md border border-accent bg-accent/20 p-2 text-xs leading-snug">⚓ {t.plantAsk.isle}</p>}
             <div className="mt-3 space-y-1 rounded-md border border-border bg-muted/40 p-2 text-xs">
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].builds}</span><span className="text-right font-semibold">{WAY_BUILDS[c].map((k) => t.kind[k]).join(", ")}</span></div>
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].style}</span><span className="text-right">{FOUNDING[lang].look[c]}</span></div>
