@@ -1,4 +1,4 @@
-import { streetHouse } from "./street-layout";
+import { streetHouse, streetFront, streetHouseNeedsFront, type StreetFront } from "./street-layout";
 import { paintedFlame } from "./building-sprites";
 import { weatherAt, wetness, snowiness, stormDark, setWeatherPreview, type WeatherKind } from "./weather";
 import deerWalkUrl from "@/assets/sprites/deer-walk.webp";
@@ -86,7 +86,7 @@ import gardenerU from "@/assets/sprites/court/gardener.webp";
 import courtGroomU from "@/assets/sprites/court/groom.webp";
 import { heraldVisit, HERALD_RIDE_S, type PrincelyRow } from "./princely";
 import { pBegin, pEnd, pCount, pEvict, pCache, canvasBytes, pFB, pFE, pOps, perfFine, perfOn } from "./perf-probe";
-import { SEAT_KINDS, onGeoChange, hash, vnoise, structureAt, specialSites, soloSeeds, faceFlip, terrain, resourceAt, isWater, MAP, FLAT, FOOT2, links, roadProgress, isTwin, acreOf, ageHours, viewAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
+import { SEAT_KINDS, onGeoChange, hash, vnoise, structureAt, specialSites, soloSeeds, faceFlip, MIRROR_KINDS, terrain, resourceAt, isWater, MAP, FLAT, FOOT2, links, roadProgress, isTwin, acreOf, ageHours, viewAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
 export const iso = (x: number, y: number) => [(x - y) * (TW / 2), (x + y) * (TH / 2)] as const;
@@ -626,13 +626,13 @@ function huntFigures(lx: number, ly: number, out: Bucket, c: C, L?: Light[]) {
 const fenceCache = new Map<number, Path2D[]>();
 /** Visual house style from the town terrain character; plains keep the classic art. */
 const houseStyle = (s: Structure): HouseStyle | undefined => { const m = townCharacter(s.seed).main; return m === "grain" ? undefined : m; };
-function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
+function drawStructure(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[], front?: StreetFront | null) {
   const behind = s.build === undefined && isHomeKind(s.kind);
   // firewood is stacked against the north wall, so the house in front hides most of it
   if (behind) { const lv = woodpileLevel(renderNow), im = folkImage("woodpile"); if (im && hash(x, y, 81) < 0.7) {
     const w = 9, h = (w * im.naturalHeight) / im.naturalWidth, vis = 0.45 + 0.55 * lv, sx = cx - 7, sy = cy - 4;
     c.drawImage(im, 0, im.naturalHeight * (1 - vis), im.naturalWidth, im.naturalHeight * vis, sx - w / 2, sy - h * vis, w, h * vis); } }
-  pFB(s.build !== undefined ? "p2.s.site" : FLAT.has(s.kind) ? "p2.s.flatKind" : "p2.s.building"); drawStructureBase(c, s, cx, cy, x, y, t, L); pFE();
+  pFB(s.build !== undefined ? "p2.s.site" : FLAT.has(s.kind) ? "p2.s.flatKind" : "p2.s.building"); drawStructureBase(c, s, cx, cy, x, y, t, L, front); pFE();
   if (s.build === undefined) { pFB("p2.s.trace"); seasonalTrace(c, s, cx, cy, x, y, t, L); pFE(); }
 }
 /** Seasonal and craft traces in front of a finished structure (pure from tile, calendar and clock). */
@@ -698,7 +698,8 @@ function seatByRank(s: Structure): Structure {
   const kind = seatKindForRank(m.r);
   return kind === s.kind ? s : { ...s, kind };
 }
-function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[]) {
+/** front: street front already computed for this tile this frame (undefined = compute here). */
+function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number, y: number, t: number, L: Light[], front?: StreetFront | null) {
   s = seatByRank(s);
   const sd = x * 1000 + y;
   // 2×2 ensembles stand on their front tile: centre the sprite over all four tiles
@@ -708,7 +709,7 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
   // town bell: from the Kleinstadt seat (Amtshaus with bell gable) on, plus belfry, church and cathedral
   if (s.build === undefined && BELL_KINDS.has(s.kind) && lastSources.length < 200) lastSources.push({ x: cx, y: cy, k: "bell" });
   if (s.build !== undefined) { drawSite(c, s, cx, cy, t, true); return; }
-  const flip = faceFlip(s.kind, x, y, (i, j) => { const k = structureAt(i, j, renderSeeds, renderNow)?.kind; return !!k && PATHLIKE.has(k); });
+  const flip = faceFlip(s.kind, x, y, (i, j) => { const k = structureAt(i, j, renderSeeds, renderNow)?.kind; return !!k && PATHLIKE.has(k); }, front);
   const style = houseStyle(s);
   // free-standing objects without a plinth get a soft ground-contact shadow so they never look like floating
   if (GROUNDED.has(s.kind)) { c.fillStyle = "rgba(30,22,12,0.28)"; c.beginPath(); c.ellipse(cx + 0.5, cy + 3.2, 3.6, 1.5, 0, 0, 7); c.fill(); c.fillStyle = "rgba(30,22,12,0.14)"; c.beginPath(); c.ellipse(cx + 1.4, cy + 3.6, 4.6, 2, 0, 0, 7); c.fill(); }
@@ -4156,10 +4157,10 @@ export function draw(
     if (fineP) pCount(original ? "p2.tilesStruct" : "p2.tilesEmpty");
     pFB("p2.streetHouse");
     // Change only the paint used by this depth pass, never the simulation's tile.
-    const st = original ? streetHouse(original, x, y, (rx, ry) => {
-      const k = structureAt(rx, ry, seeds, now)?.kind;
-      return !!k && PATHLIKE.has(k);
-    }) : original;
+    // one street-front lookup per tile, shared by the paint substitution and the mirror decision
+    const isRoadT = (rx: number, ry: number) => { const k = structureAt(rx, ry, seeds, now)?.kind; return !!k && PATHLIKE.has(k); };
+    const front = original && (streetHouseNeedsFront(original) || (original.build === undefined && MIRROR_KINDS.has(original.kind))) ? streetFront(x, y, isRoadT) : undefined;
+    const st = original ? streetHouse(original, x, y, isRoadT, front) : original;
     pFE(); pFB("p2.sort");
     ord.set(y * MAP + x, ti);
     pFE(); pFB("p2.nature");
@@ -4251,7 +4252,7 @@ export function draw(
     }
     pFE(); pFB("p2.structure");
     if (st) {
-      drawStructure(c, st, cx, cy, x, y, t, L);
+      drawStructure(c, st, cx, cy, x, y, t, L, front);
       if (st.build === undefined && SEAT_KINDS.includes(st.kind) && supportOwned.get(st.seed.id)?.has("vane")) { const b = spriteBox(st.kind, st.v, houseStyle(st)); if (b) drawVane(c, cx, cy + b.base - b.h); }
       if (st.build === undefined && !FLAT.has(st.kind)) { const b = spriteBox(st.kind, st.v, houseStyle(st)); if (b && b.h > 8) { const oy = FOOT2.has(st.kind) ? cy - TH / 2 : cy; occ.push(ti, cx - b.w / 2, oy + b.base - b.h, cx + b.w / 2, oy + b.base - 2); } }
     }

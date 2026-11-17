@@ -1,6 +1,6 @@
 import { pSA } from "./perf-probe";
 import { FOOD_CRAFTS } from "./food-crafts";
-import { streetFront } from "./street-layout";
+import { streetFront, type StreetFront } from "./street-layout";
 import { worldDayStart } from "./time";
 import { nearCourt, resetCourt } from "./court";
 import { resetWonders } from "./wonders";
@@ -415,9 +415,9 @@ export const MIRROR_KINDS: ReadonlySet<Kind> = new Set(["hut", "farmhouse", "cot
  * Sprites face the lower-left (+y). Follow the neighbouring street axis on either side;
  * yard buildings without street contact share a stable four-tile block orientation.
  */
-export function faceFlip(kind: Kind, x: number, y: number, isRoad: (x: number, y: number) => boolean): boolean {
+export function faceFlip(kind: Kind, x: number, y: number, isRoad: (x: number, y: number) => boolean, pre?: StreetFront | null): boolean {
   if (!MIRROR_KINDS.has(kind)) return false;
-  const front = streetFront(x, y, isRoad);
+  const front = pre !== undefined ? pre : streetFront(x, y, isRoad);
   if (front) return front.axis === "x";
   // Back-yard buildings share a block orientation instead of checkerboard flips.
   return hash(Math.floor(x / 4), Math.floor(y / 4), 91) < 0.5;
