@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { overviewKey } from "./render";
+import { overviewCapacity, overviewKey } from "./render";
 
 const s = { id: "a", bought: [] } as never;
 const t = Date.UTC(2026, 5, 10, 12);
@@ -16,5 +16,16 @@ describe("overview town cache key", () => {
   });
   it("changes with the season", () => {
     expect(overviewKey(s, 10, 1, 1, t)).not.toBe(overviewKey(s, 10, 1, 1, Date.UTC(2026, 0, 10, 12)));
+  });
+});
+
+describe("overview town cache capacity", () => {
+  it("keeps at least 96 entries on small worlds", () => {
+    expect(overviewCapacity(48)).toBe(96);
+    expect(overviewCapacity(92)).toBe(96);
+  });
+  it("grows with every seed beyond the minimum", () => {
+    expect(overviewCapacity(100)).toBe(100);
+    expect(overviewCapacity(160)).toBe(160);
   });
 });
