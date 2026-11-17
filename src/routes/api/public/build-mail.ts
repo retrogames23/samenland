@@ -22,7 +22,7 @@ export const Route = createFileRoute("/api/public/build-mail")({
 
         const { allPages, allIn } = await import("@/lib/fetch-all");
         // user_id is the primary key of build_mail: unique keyset cursor
-        const opts = await allPages<{ user_id: string; lang: string }>(() => (supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient).from("build_mail").select("user_id, lang").eq("enabled", true), "user_id", 1000, "build_mail");
+        const opts = await allPages<{ user_id: string; lang: string; created_at: string }>(() => (supabaseAdmin as unknown as import("@supabase/supabase-js").SupabaseClient).from("build_mail").select("user_id, lang, created_at").eq("enabled", true), "user_id", 1000, "build_mail");
         if (!opts?.length) return Response.json({ sent: 0 });
         const seeds = await allIn<import("@/integrations/supabase/types").Tables<"seeds">>(opts.map((o) => o.user_id), (c) => supabaseAdmin.from("seeds").select("*").in("user_id", c).neq("realm", "lab"));
         if (!seeds?.length) return Response.json({ sent: 0 });
@@ -36,6 +36,7 @@ export const Route = createFileRoute("/api/public/build-mail")({
         const { runOutbox, rpcStore } = await import("@/lib/build-mail-outbox");
         const due: import("@/lib/build-mail-outbox").Due[] = [];
         for (const s0 of seeds) {
+          const optedAt = Date.parse(opts.find((o) => o.user_id === s0.user_id)?.created_at ?? "") || 0;
           const mine = (buys ?? []).filter((b) => b.seed_id === s0.id);
           if (!mine.length) continue;
           const ch = (chs ?? []).find((c) => c.seed_id === s0.id);
@@ -48,7 +49,7 @@ export const Route = createFileRoute("/api/public/build-mail")({
           setRealm((s0.realm ?? "europe") as import("@/game/time").Realm);
           const placed = new Set([...specialSites(s).values()].map((v) => v.at));
           for (const b of mine) {
-            if (!buildMailDue(s, b.item, Date.parse(b.created_at), placed, now, WINDOW)) continue;
+            if (!buildMailDue(s, b.item, Date.parse(b.created_at), placed, now, WINDOW, optedAt)) continue;
             due.push({ purchaseId: b.id, seedId: s0.id, userId: s0.user_id!, item: b.item, doneAt: buildMailDoneAt(s, b.item, Date.parse(b.created_at), placed)! });
           }
         }
