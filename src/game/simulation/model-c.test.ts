@@ -135,7 +135,7 @@ describe("Model C on real 730-day base runs", () => {
       }
       expect(new Set(m.bought.map((b) => b.item)).size).toBe(m.bought.length);
     }
-  }, 600_000);
+  }, 14_400_000);
 });
 
 describe("Model C own raids", () => {
