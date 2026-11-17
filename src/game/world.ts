@@ -979,19 +979,9 @@ export function specialSites(s: Seed): Map<number, Site> {
   const key = `${s.id}:${s.x}:${s.y}:${items.map((b) => `${b.item}${b.at}@${b.x ?? ""},${b.y ?? ""}`).join(",")}|${(s.moves ?? []).map((m) => `${m.item}${m.at}@${m.x},${m.y}`).join(",")}`;
   const hit = siteCache.get(key); if (hit) { if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, mv: s.moves, m: hit }); return hit; }
   const out = new Map<number, Site>();
-  // relocations (Umsetzen): the newest location first, so it owns its tiles; earlier spots stand until the next move
-  const moved = new Set<string>();
-  if (s.moves?.length) {
-    const ms = [...s.moves].filter((m) => SPECIAL_KIND[m.item] && items.some((b) => b.item === m.item)).sort((a, c) => a.at - c.at);
-    for (let i = ms.length - 1; i >= 0; i--) {
-      const m = ms[i]!, kind = SPECIAL_KIND[m.item]!, k = m.y * MAP + m.x;
-      const next = ms.slice(i + 1).find((o) => o.item === m.item);
-      if (out.has(k)) continue;
-      out.set(k, { kind, at: m.at, mv: true, ...(next ? { until: next.at } : {}) });
-      if (FOOT2.has(kind)) coverBack(out, m.x, m.y, m.at, next?.at);
-    }
-    for (const m of ms) moved.add(m.item);
-  }
+  // relocations (Umsetzen): original sites are placed exactly as before (no auto spot ever shifts), moves overlay them afterwards
+  const ms = (s.moves ?? []).filter((m) => SPECIAL_KIND[m.item] && items.some((b) => b.item === m.item)).sort((a, c) => a.at - c.at);
+  const moved = new Set(ms.map((m) => m.item));
   const firstMove = (item: string) => s.moves?.filter((m) => m.item === item).reduce((a, m) => Math.min(a, m.at), Infinity);
   const seen = new Set<string>();
   for (const b of [...items].sort((a, c) => a.at - c.at)) {
@@ -1024,6 +1014,12 @@ export function specialSites(s: Seed): Map<number, Site> {
       if (sc < bs) { bs = sc; best = k; }
     }
     if (best >= 0) { out.set(best, site(b.at)); if (big) coverBack(out, best % MAP, Math.floor(best / MAP), b.at, until); }
+  }
+  for (let i = 0; i < ms.length; i++) {
+    const m = ms[i]!, kind = SPECIAL_KIND[m.item]!;
+    const next = ms.slice(i + 1).find((o) => o.item === m.item);
+    out.set(m.y * MAP + m.x, { kind, at: m.at, mv: true, ...(next ? { until: next.at } : {}) });
+    if (FOOT2.has(kind)) for (const [i2, j] of FOOT2_BACK) out.set((m.y + j) * MAP + m.x + i2, { kind: "square", at: m.at, ...(next ? { until: next.at } : {}) });
   }
   if (siteCache.size > 200) siteCache.clear();
   siteCache.set(key, out);
