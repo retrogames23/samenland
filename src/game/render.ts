@@ -1043,6 +1043,9 @@ function drawRider(c: C, x: number, y: number, dx: number, dy: number, sd: numbe
 let heraldRows: PrincelyRow[] = [];
 /** Decree rows from the UI; the messenger's visit is derived from them and the clock. */
 export function setHeraldRows(r: PrincelyRow[]) { heraldRows = r; }
+/** Villages whose owner let the decrees rest on this device: their messenger stays away locally. */
+let heraldQuiet: ReadonlySet<string> = new Set();
+export function setHeraldQuiet(q: ReadonlySet<string>) { heraldQuiet = q; }
 /** Screen position of each village's messenger this frame (tap target). */
 export const heraldSpots = new Map<string, { x: number; y: number }>();
 const heraldPaths = new Map<string, [number, number][]>();
@@ -3992,6 +3995,7 @@ export function draw(
   // the prince's messenger: rides in along the village's road, waits by the mayor's seat, rides off (pure from decree rows + clock)
   heraldSpots.clear();
   if (folkOn && heraldRows.length) for (const sd of nearSeeds) {
+    if (heraldQuiet.has(sd.id)) continue;
     const v = heraldVisit(heraldRows, sd.id, now); if (!v) continue;
     const [hx, hy] = seatTile(sd);
     if (hx < x0 - 20 || hx > x1 + 20 || hy < y0 - 20 || hy > y1 + 20) continue;
