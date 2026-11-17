@@ -176,6 +176,7 @@ function ledger(s: Seed, purchases: Purchase[], gifts: Gift[], claims: QuestClai
   for (const p of purchases) if (p.seed_id === s.id) out.push([Date.parse(p.created_at), -p.cost]);
   for (const d of s.decisions ?? []) out.push([d.at, -d.cost]);
   for (const w of s.works ?? []) out.push([w.at, -w.cost]);
+  for (const m of s.moves ?? []) if (m.cost) out.push([m.at, -m.cost]);
   for (const g of gifts) if (g.to_seed === s.id || g.from_seed === s.id) out.push([Date.parse(g.created_at), g.to_seed === s.id ? g.amount : -g.amount]);
   for (const c of claims) if (c.seed_id === s.id) out.push([Date.parse(c.created_at), c.reward]);
   return out;
