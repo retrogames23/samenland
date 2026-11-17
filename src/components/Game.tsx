@@ -40,6 +40,7 @@ import type { DecisionKind } from "@/game/decision-order";
 import { Minimap } from "@/components/hud/Minimap";
 import { rideTime, letterArrives } from "@/game/wander";
 import { IslandRegister, type RegisterRow } from "@/components/hud/IslandRegister";
+type MoveRow = { id: string; seed_id: string; item: string; x: number; y: number; cost: number; created_at: string };
 type LetterRow = { id: string; from_seed: string; to_seed: string; created_at: string };
 import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
@@ -162,7 +163,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ForgotForm, RecoveryDialog, ChangePasswordDialog, ChangeEmailDialog } from "@/components/dialogs/AccountDialogs";
-import { firstFreeSite, placeTap } from "@/game/placement";
+import { firstFreeSite, placeTap, footprint, footTileFree, goodSpots } from "@/game/placement";
+import { canMoveTo, moveBlock, moveCost, itemOfKind } from "@/game/relocate";
+import { RELOCATE } from "@/game/lang/relocate";
 import { saplingSpots } from "@/game/saplings";
 import FigureLab from "@/components/FigureLab";
 import { feastOn, feastKey, type FeastCode } from "@/game/feasts";
@@ -246,6 +249,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   type EncRow = { id: string; seed_id: string; event: string; choice: string; cost: number; created_at: string };
   const [encounters, setEncounters] = useState<EncRow[]>([]);
   const [votes, setVotes] = useState<{ id: string; seed_id: string; partner_id: string; pact: string; created_at: string }[]>([]);
+  const [moves, setMoves] = useState<MoveRow[]>([]);
   const [works, setWorks] = useState<{ id: string; seed_id: string; partner_id: string; work: string; cost: number; created_at: string }[]>([]);
   const [pactOpen, setPactOpen] = useState(false);
   const [pactPick, setPactPick] = useState<PactKind | null>(null);
@@ -286,9 +290,11 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     const vo = new Map<string, NonNullable<Seed["votes"]>>(), wo = new Map<string, NonNullable<Seed["works"]>>();
     for (const v of votes) { if (!vo.has(v.seed_id)) vo.set(v.seed_id, []); vo.get(v.seed_id)!.push({ partner: v.partner_id, pact: v.pact as PactKind, at: Date.parse(v.created_at) }); }
     for (const w of works) { if (!wo.has(w.seed_id)) wo.set(w.seed_id, []); wo.get(w.seed_id)!.push({ partner: w.partner_id, work: w.work as WorkKind, cost: w.cost, at: Date.parse(w.created_at) }); }
+    const mo = new Map<string, NonNullable<Seed["moves"]>>();
+    for (const m of moves) { if (!mo.has(m.seed_id)) mo.set(m.seed_id, []); mo.get(m.seed_id)!.push({ item: m.item, x: m.x, y: m.y, at: Date.parse(m.created_at), cost: m.cost }); }
     return rawSeeds.map((s0) => {
-      const v0 = vo.get(s0.id), w0 = wo.get(s0.id);
-      const s: Seed = v0 || w0 ? { ...s0, ...(v0 ? { votes: v0 } : {}), ...(w0 ? { works: w0 } : {}) } : s0;
+      const v0 = vo.get(s0.id), w0 = wo.get(s0.id), m0 = mo.get(s0.id);
+      const s: Seed = v0 || w0 || m0 ? { ...s0, ...(v0 ? { votes: v0 } : {}), ...(w0 ? { works: w0 } : {}), ...(m0 ? { moves: m0 } : {}) } : s0;
       const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id), fr0 = firstRoads.filter((f) => f.seed_id === s.id), fr = fr0.length ? fr0 : null, de = decs.get(s.id);
       if (!bl && !bo && !ch && !fr && !de) return s;
       return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { roads: fr.map((f) => ({ target: f.target_id, at: Date.parse(f.created_at) })).sort((a, b) => a.at - b.at) } : {}), ...(de ? { decisions: de.sort((a, b) => a.at - b.at) } : {}) };
@@ -307,7 +313,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       const aid = gifts.filter((g) => g.to_seed === s.id && g.kind === "aid").map((g) => Date.parse(g.created_at));
       return sent.length || aid.length ? { ...s, ...(sent.length ? { sent } : {}), ...(aid.length ? { aid } : {}) } : s;
     });
-  }, [rawSeeds, blessings, purchases, charters, firstRoads, encounters, votes, works, gifts, letters]);
+  }, [rawSeeds, blessings, purchases, charters, firstRoads, encounters, votes, works, gifts, letters, moves]);
   useEffect(() => { setSignposts(signs); }, [signs]);
   const [plantings, setPlantings] = useState<Planting[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -329,6 +335,17 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const [auth, setAuth] = useState({ email: "", password: "", signup: false });
   const [mode, setMode] = useState<Mode>("look");
   const [placing, setPlacing] = useState<string | null>(null);
+  // true while `placing` picks a new spot for an already bought building (Umsetzen) instead of buying one
+  const [moving, setMoving] = useState(false);
+  useEffect(() => { if (!placing) setMoving(false); }, [placing]);
+  // faint hint of every good spot while placing — computed once per pick, not per frame
+  useEffect(() => {
+    const own = placing ? seeds.find((x) => x.id === mine) : undefined;
+    if (!placing || !own) { st.current.spots = []; return; }
+    const now = clock(), chk = moving ? canMoveTo : canPlaceSpecial;
+    st.current.spots = goodSpots(placing, own, seeds, now, (x, y) => chk(placing, x, y, own, seeds, now) === null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placing, moving, mine, seeds]);
   const [hover, setHover] = useState<[number, number] | null>(null);
   const tileInfoRef = useRef<HTMLDivElement>(null);
   const tileInfoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -469,6 +486,13 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadSupport, mapGen]);
+  // relocations (Umsetzen) of the loaded map; reloaded with every map load, live inserts arrive via realtime
+  useEffect(() => {
+    const ids = mapIds.current; if (!ids.length) { setMoves([]); return; }
+    let dead = false;
+    void mapRows(ids, (c) => supabase.from("building_moves").select("id, seed_id, item, x, y, cost, created_at").in("seed_id", c)).then((rows) => { if (!dead) setMoves(rows as MoveRow[]); });
+    return () => { dead = true; };
+  }, [mapGen]);
   const [quitOpen, setQuitOpen] = useState(false);
   const [quitName, setQuitName] = useState("");
   const [quitting, setQuitting] = useState(false);
@@ -585,10 +609,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     return () => { delete w.__labCam; };
   }, []);
   const sapCache = useRef<{ key: string; spots: [number, number][] }>({ key: "", spots: [] });
-  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, ghost: null as [number, number] | null, walk: false });
+  const st = useRef({ seeds, plantings: new Map<string, Planting>(), hover, mode, mine, placing: null as string | null, moving: false, spots: [] as [number, number][], ghost: null as [number, number] | null, walk: false });
   st.current.walk = walk;
   st.current.seeds = seeds;
-  st.current.placing = placing;
+  st.current.placing = placing; st.current.moving = moving;
   st.current.ghost = ghost;
   st.current.mode = mode;
   st.current.mine = mine;
@@ -975,6 +999,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         const n = p.new as Planting; if (!onMap(n.seed_id)) return;
         setPlantings((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
       }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "building_moves" }, held((p) => {
+        const n = p.new as MoveRow; if (!onMap(n.seed_id)) return;
+        setMoves((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
+      }))
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "purchases" }, held((p) => {
         const n = p.new as Purchase; if (!onMap(n.seed_id)) return;
         setPurchases((s) => (s.some((x) => x.id === n.id) ? s : [...s, n]));
@@ -1148,15 +1176,24 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       const gh = s.ghost ?? h;
       if (s.placing && gh && own) {
         // SimCity-style ghost: the building floats over the tile, tinted by whether it may stand there
-        const good = canPlaceSpecial(s.placing, gh[0], gh[1], own, s.seeds, clock()) === null;
+        const good = (s.moving ? canMoveTo : canPlaceSpecial)(s.placing, gh[0], gh[1], own, s.seeds, clock()) === null;
         const z = c.zoom * dpr.current, [gx, gy] = iso(gh[0], gh[1]);
         ctx.save();
         ctx.setTransform(z, 0, 0, z, cv.width / 2 - c.x * z, cv.height / 2 - c.y * z);
         // 2×2 ensembles: show the whole four-tile footprint and draw at the same lifted anchor as the finished building
         const big = FOOT2.has(SPECIAL_KIND[s.placing]!), ay = big ? gy - 8 : gy, hw = big ? 32 : 16, hh = big ? 16 : 8;
-        ctx.beginPath(); ctx.moveTo(gx, ay - hh); ctx.lineTo(gx + hw, ay); ctx.lineTo(gx, ay + hh); ctx.lineTo(gx - hw, ay); ctx.closePath();
+        const diamond = (x: number, y: number) => { const [px, py] = iso(x, y); ctx.beginPath(); ctx.moveTo(px, py - 8); ctx.lineTo(px + 16, py); ctx.lineTo(px, py + 8); ctx.lineTo(px - 16, py); ctx.closePath(); };
+        // good spots nearby: a faint green wash so the player sees at a glance where the building may go
+        ctx.fillStyle = "rgba(90,190,90,0.16)";
+        for (const [sx, sy] of s.spots) { if (sx === gh[0] && sy === gh[1]) continue; diamond(sx, sy); ctx.fill(); }
         const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 320);
-        ctx.fillStyle = good ? `rgba(90,190,90,${0.3 + 0.15 * pulse})` : `rgba(210,70,60,${0.3 + 0.15 * pulse})`; ctx.fill();
+        // each covered tile on its own: red marks exactly the tile that blocks the building
+        const now0 = clock();
+        for (const [fx, fy] of footprint(s.placing, gh[0], gh[1])) {
+          const ok = good || footTileFree(fx, fy, s.seeds, now0) && !(fx === gh[0] && fy === gh[1]);
+          diamond(fx, fy); ctx.fillStyle = ok && good ? `rgba(90,190,90,${0.3 + 0.15 * pulse})` : ok ? `rgba(230,170,60,${0.3 + 0.15 * pulse})` : `rgba(210,70,60,${0.35 + 0.15 * pulse})`; ctx.fill();
+        }
+        ctx.beginPath(); ctx.moveTo(gx, ay - hh); ctx.lineTo(gx + hw, ay); ctx.lineTo(gx, ay + hh); ctx.lineTo(gx - hw, ay); ctx.closePath();
         // a bold rim (constant ~2.5 screen px) so the footprint reads even under roofs
         ctx.lineWidth = 2.5 / Math.max(0.5, c.zoom); ctx.strokeStyle = good ? "rgba(30,110,30,0.95)" : "rgba(150,30,25,0.95)"; ctx.stroke();
         const kind = SPECIAL_KIND[s.placing]!, gw = GHOST_WIDTH[kind];
@@ -1478,7 +1515,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
 
   const my = seeds.find((s) => s.id === mine);
   const certifyFn = useServerFn(certifyMyRank);
-  const { accounting, setAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works]);
+  const { accounting, setAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works, moves]);
   const prepareSpend = async () => {
     // always book outstanding daily tax first — right after load `accounting` is still unknown
     if (await refreshTreasury()) return true;
@@ -2127,6 +2164,27 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     setPurchases((s) => [...s.filter((x) => x.id !== data.id && x.id !== tmpId), data]);
     if (/^chest[2-4]$/.test(item)) { jingle("coins"); setMsg(`${CHEST[lang].title}: ${CHEST[lang].levels[+item.slice(5) - 1]}`); } else if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
   };
+  /** Umsetzen: pay the carters, then the building is rebuilt on the chosen spot (the old one is cleared at once). */
+  const relocate = async (item: string, x: number, y: number) => {
+    if (!my) return;
+    const err = canMoveTo(item, x, y, my, seeds, clock());
+    if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore"]);
+    const block = moveBlock(my, item, clock());
+    if (block) return setMsg(RELOCATE[lang][block]);
+    tap(); setPlacing(null);
+    const tmpId = `pending-move-${item}-${Date.now()}`;
+    setMoves((s) => [...s, { id: tmpId, seed_id: my.id, item, x, y, cost: moveCost(item) ?? 0, created_at: new Date(clock()).toISOString() }]);
+    const rollback = (m: string) => { setMoves((s) => s.filter((p) => p.id !== tmpId)); setMsg(m); };
+    if (!await prepareSpend()) return rollback(t.buyFail);
+    const { data, error } = await supabase.from("building_moves").insert({ seed_id: my.id, user_id: userId!, item, x, y }).select("id, seed_id, item, x, y, cost, created_at").single();
+    if (error || !data) {
+      const m = error?.message ?? "";
+      return rollback(m.includes("not enough money") ? t.poor : m.includes("move cooldown") ? RELOCATE[lang].cooldown : m.includes("move busy") ? RELOCATE[lang].busy : t.buyFail);
+    }
+    setMoves((s) => [...s.filter((p) => p.id !== data.id && p.id !== tmpId), data as MoveRow]);
+    void refreshTreasury();
+    jingle("coins"); setMsg(RELOCATE[lang].done(t.items[item]![0]));
+  };
   useEffect(() => {
     if (!placing || !coarse) { setGhost(null); return; }
     const own = seeds.find((x) => x.id === mine); if (!own) return;
@@ -2748,7 +2806,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
             lastTap.current = { t: nowT, x: e.clientX, y: e.clientY };
           }
           if (d && !d.moved) {
-            if (placing) { const [px, py] = tileAt(e); return buy(placing, px, py); }
+            if (placing) { const [px, py] = tileAt(e); return moving ? relocate(placing, px, py) : buy(placing, px, py); }
             if (walk) {
               // stroll mode: tapping a person or house talks to them; elsewhere the mayor walks there
               if (heraldHit(e)) { openHerald(); return; }
@@ -3503,9 +3561,9 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       <div className="pointer-events-none absolute bottom-[calc(var(--dock-bottom)+4.5rem)] left-[var(--safe-l)] right-[var(--safe-r)] z-20 flex flex-col items-end space-y-2 text-sm md:bottom-52 ltr:md:left-auto ltr:md:right-3 rtl:md:right-auto rtl:md:left-3 md:w-80">
         {placing && coarse && ghost && (() => {
           const own = seeds.find((s) => s.id === mine);
-          const err = own ? canPlaceSpecial(placing, ghost[0], ghost[1], own, seeds, clock()) as keyof typeof t.place | null : "ground";
+          const err = own ? (moving ? canMoveTo : canPlaceSpecial)(placing, ghost[0], ghost[1], own, seeds, clock()) as keyof typeof t.place | null : "ground";
           const nudge = (dx: number, dy: number) => { const g: [number, number] = [ghost[0] + dx, ghost[1] + dy]; setGhost(g); placeFocus(g[0], g[1]); };
-          const price = MONUMENT_PRICE[placing] ?? ITEMS[placing as Item];
+          const price = moving ? moveCost(placing) ?? 0 : MONUMENT_PRICE[placing] ?? ITEMS[placing as Item];
           return (
             <div ref={placeBox} className="pointer-events-auto w-full space-y-2 rounded-md border-2 border-wood bg-card p-2 text-foreground shadow-[var(--shadow-panel)]">
               <div className="flex items-center gap-2">
@@ -3521,7 +3579,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               </div>
               <div className="flex gap-2">
                 <Button variant="secondary" className="h-11 flex-1" onClick={() => { setPlacing(null); setMsg(null); }}>{t.cancel}</Button>
-                <Button className="h-11 flex-[2]" disabled={!!err || cash < price} onClick={() => buy(placing, ghost[0], ghost[1])}>{t.place.here} · {t.taler(price)}</Button>
+                <Button className="h-11 flex-[2]" disabled={!!err || cash < price} onClick={() => moving ? relocate(placing, ghost[0], ghost[1]) : buy(placing, ghost[0], ghost[1])}>{moving ? RELOCATE[lang].here : t.place.here} · {t.taler(price)}</Button>
               </div>
             </div>
           );
@@ -3529,15 +3587,15 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         {placing && !(coarse && ghost) && (
           <div className="pointer-events-auto flex w-full max-w-xs items-center gap-2 rounded-md border-2 border-wood bg-card px-3 py-2 text-foreground shadow-[var(--shadow-panel)]">
             {spriteUrl(SPECIAL_KIND[placing]!) && <img src={spriteUrl(SPECIAL_KIND[placing]!)} alt="" className="h-10 w-10 object-contain" />}
-            <div className="flex-1 text-xs"><div className="font-semibold">{t.items[placing]![0]} · {t.taler(MONUMENT_PRICE[placing] ?? ITEMS[placing as Item])}</div>{t.place.hint}</div>
+            <div className="flex-1 text-xs"><div className="font-semibold">{t.items[placing]![0]} · {t.taler(moving ? moveCost(placing) ?? 0 : MONUMENT_PRICE[placing] ?? ITEMS[placing as Item])}</div>{moving ? RELOCATE[lang].hint : t.place.hint}</div>
             <Button size="sm" variant="secondary" onClick={() => { setPlacing(null); setMsg(null); }}>{t.cancel}</Button>
           </div>
         )}
         {placing && !coarse && hover && ptr && (() => {
           const own = seeds.find((s) => s.id === mine);
           if (!own) return null;
-          const err = canPlaceSpecial(placing, hover[0], hover[1], own, seeds, clock()) as keyof typeof t.place | null;
-          const txt = err ? (t.place[err] as string) ?? t.place.ground : t.place.hint;
+          const err = (moving ? canMoveTo : canPlaceSpecial)(placing, hover[0], hover[1], own, seeds, clock()) as keyof typeof t.place | null;
+          const txt = err ? (t.place[err] as string) ?? t.place.ground : moving ? RELOCATE[lang].hint : t.place.hint;
           return (
             <div className="pointer-events-none fixed z-50 max-w-[16rem] rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" ref={tipRef} style={{ left: (ptrRef.current ?? ptr)[0] + 18, top: (ptrRef.current ?? ptr)[1] + 18 }}>
               <span className={err ? "text-destructive" : "text-primary"}>{err ? "✕ " : "✓ "}</span>{txt}
@@ -3653,6 +3711,19 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                   {ins.residents.length > 0 && <div className="text-xs"><div className="font-semibold">{t.residents}</div>{list(ins.residents)}</div>}
                   {(() => { const pk = paintedKind(ins, seeds, clock()); return STUBE_KINDS.has(pk) && <Button type="button" size="sm" variant="outline" className="mt-1" onClick={() => { setStube({ ...ins, kind: pk }); setPlace(null); }}><Search className="me-1 h-4 w-4" />{STUBE[lang].look}</Button>; })()}
                   {ins.workers.length > 0 && <div className="text-xs"><div className="font-semibold">{t.workers}</div>{list(ins.workers)}</div>}
+                  {my && ins.seed.id === my.id && (() => {
+                    const item = itemOfKind(my, ins.kind); if (!item) return null;
+                    const rt = RELOCATE[lang], price = moveCost(item) ?? 0, block = moveBlock(my, item, clock());
+                    return (
+                      <div className="mt-1 text-xs">
+                        <Button type="button" size="sm" variant="outline" disabled={!!block || cash < price}
+                          onClick={() => { setPlace(null); setPlacing(item); setMoving(true); setMsg(rt.pick(t.items[item]![0])); focus(ins.x, ins.y); }}>
+                          {rt.button} · {t.taler(price)}
+                        </Button>
+                        <div className="mt-0.5 text-muted-foreground">{block ? rt[block] : rt.about}</div>
+                      </div>
+                    );
+                  })()}
                   {(() => {
                     const l = larderOf(ins.seed, seeds, clock());
                     const held = storedAt(ins.kind, [ins.x, ins.y], l);

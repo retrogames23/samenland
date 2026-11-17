@@ -827,6 +827,13 @@
       "when": 1794838122079,
       "tag": "0117_europe_verified_exceptions",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1794912300339,
+      "tag": "0118_building_moves",
+      "breakpoints": true
     }
   ]
 }
