@@ -248,7 +248,7 @@ export function walkChest(start: number, events: ChestEvent[], capAt: (t: number
 export function treasury(s: Seed, purchases: Purchase[], now: number, gifts: Gift[] = [], claims: QuestClaim[] = [], since = CAP_ALL_SINCE, seeds?: Seed[], receipts?: Readonly<Record<number, number>>) {
   if (!s.user_id || now < since) return legacyTreasury(s, purchases, now, gifts, claims);
   const T = since, pre = (iso: string) => Date.parse(iso) < T;
-  const pre0 = { ...s, decisions: (s.decisions ?? []).filter((d) => d.at < T), works: (s.works ?? []).filter((w) => w.at < T) };
+  const pre0 = { ...s, decisions: (s.decisions ?? []).filter((d) => d.at < T), works: (s.works ?? []).filter((w) => w.at < T), moves: (s.moves ?? []).filter((m) => m.at < T) };
   const start = legacyTreasury(pre0, purchases.filter((p) => pre(p.created_at)), T, gifts.filter((g) => pre(g.created_at)), claims.filter((c) => pre(c.created_at)), T);
   const ev: ChestEvent[] = [];
   const c0 = Date.parse(s.created_at);
