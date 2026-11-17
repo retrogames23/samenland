@@ -145,6 +145,47 @@ export type Database = {
         }
         Relationships: []
       }
+      building_moves: {
+        Row: {
+          cost: number
+          created_at: string
+          id: string
+          item: string
+          seed_id: string
+          user_id: string
+          x: number
+          y: number
+        }
+        Insert: {
+          cost?: number
+          created_at?: string
+          id?: string
+          item: string
+          seed_id: string
+          user_id: string
+          x: number
+          y: number
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          id?: string
+          item?: string
+          seed_id?: string
+          user_id?: string
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "building_moves_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       charters: {
         Row: {
           created_at: string
@@ -1378,6 +1419,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      move_price: { Args: { _item: string }; Returns: number }
       princely_audience: { Args: { _seed: string }; Returns: string }
       princely_errand: {
         Args: { _errand: string; _seed: string }
