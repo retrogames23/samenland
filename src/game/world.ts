@@ -1870,6 +1870,16 @@ function twinHours(s: Seed, seeds: Seed[], now: number) {
   }
   return h;
 }
+/** Direct point-in-time twin check for twinSites only (same bounds as twinSince: not before the younger town's founding,
+ *  and a pair that has not touched within three years never becomes a twin later). Because R(t) grows monotonically,
+ *  this equals isTwin except in the accepted window between the exact touch and twinSince's minute round-up, where the
+ *  gate sites may appear earlier: below 2 min (bisection stops at a 60 s bracket, then rounds up to the minute). twinSince/isTwin stay the reference for every other mechanic. */
+export function twinSiteAt(l: Link, seeds: Seed[], now: number) {
+  const lo = Math.max(Date.parse(l.a.created_at), Date.parse(l.b.created_at)), hi = lo + 3 * 365 * 864e5;
+  if (now < lo) return false;
+  const touch = (t: number) => radiusOf(effAgeBase(l.a, seeds, t)) + radiusOf(effAgeBase(l.b, seeds, t)) >= l.d;
+  return now > hi ? touch(hi) : touch(now);
+}
 /** Gate square, border well, market stalls and the joint building on the twin road's midpoint. Pure. */
 const siteMemo = new WeakMap<Seed[], { key: number; map: Map<number, { kind: Kind; seed: Seed }> }>();
 export function twinSites(seeds: Seed[], now: number) {
@@ -1877,7 +1887,7 @@ export function twinSites(seeds: Seed[], now: number) {
   if (c && c.key === key) return c.map;
   const map = new Map<number, { kind: Kind; seed: Seed }>();
   for (const l of links(seeds)) {
-    if (!isTwin(l, seeds, now) || l.tiles.length < 7) continue;
+    if (l.tiles.length < 7 || !twinSiteAt(l, seeds, now)) continue;
     const m = Math.floor(l.tiles.length / 2);
     const put = (i: number, kind: Kind, dx = 0, dy = 0) => {
       const t = l.tiles[i]; if (!t || l.water[i]) return;

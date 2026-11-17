@@ -60,3 +60,5 @@
 - Realm clock sync (time.ts getSyncedTime/applySync, time.functions.ts getServerTime, SSR loader in routes/index.tsx): clock() on public maps follows a server-anchored pair (T_ref, P_ref) on performance.now(), RTT/2 with outliers >800 ms dropped, corrections ahead jump, small lags hold, large lags slew at half speed — never backwards, so game time stays monotonic; lab keeps LAB_EPOCH/LAB_SPEED/labJump and never pings the server.
 - twinSince results are cached by world content (realm list + seedsKey, bounded LRU SINCE_MAX), never by Seed[] identity alone — rebuilt historical arrays reuse results while any changed growth input misses.
 - structureAt spatial pick (picksOf/gridOf in world.ts): bought sites indexed by tile and towns bucketed by reachOf(s, r + 0.5) + 1, bound to the seeds array and exact `now`, candidates in seed-array order — keeps the tie-break and every claim; decision logic stays unchanged.
+
+- twinSites gates sites via twinSiteAt (direct point-in-time reach check, same founding and 3-year bounds as twinSince, may open <2 min earlier); every other twin mechanic keeps twinSince — sites hold no homes, so tax is unaffected.
