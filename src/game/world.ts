@@ -982,7 +982,7 @@ export function specialSites(s: Seed): Map<number, Site> {
   // relocations (Umsetzen): original sites are placed exactly as before (no auto spot ever shifts), moves overlay them afterwards
   const ms = (s.moves ?? []).filter((m) => SPECIAL_KIND[m.item] && items.some((b) => b.item === m.item)).sort((a, c) => a.at - c.at);
   const moved = new Set(ms.map((m) => m.item));
-  const firstMove = (item: string) => s.moves?.filter((m) => m.item === item).reduce((a, m) => Math.min(a, m.at), Infinity);
+  const firstMove = (item: string) => ms.find((m) => m.item === item)?.at;
   const seen = new Set<string>();
   for (const b of [...items].sort((a, c) => a.at - c.at)) {
     if (seen.has(b.item)) continue; seen.add(b.item);
