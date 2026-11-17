@@ -64,3 +64,4 @@
 - twinSites gates sites via twinSiteAt (direct point-in-time reach check, same founding and 3-year bounds as twinSince, may open <2 min earlier); every other twin mechanic keeps twinSince — sites hold no homes, so tax is unaffected.
 
 - Spatial pick prefilter: gridOf (world.ts) sizes cells with effAgeUpper (effAgeBase + max twin rate × GROWTH_PACE × hours since younger founding, only for links passing twinSiteAt) — no twinSince bisection; it may only add candidates, never feed growth, tax or display.
+- effAge memo (world.ts ageMemo) keeps AGE_SLOTS timestamp slots per seed array (LRU) so now/now+1h lookups in structureAt never evict each other; [s] calls stay fresh arrays (no singleSeed) because in-place seed mutations cannot be invalidated safely.

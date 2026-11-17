@@ -1578,12 +1578,22 @@ export function speedOf(s: Seed, seeds: Seed[], now: number) {
 }
 
 /** Effective age: real age plus bonus hours accumulated since each road was founded (monotonic, deterministic). */
-const ageMemo = new WeakMap<Seed[], { now: number; m: Map<string, number> }>();
+/** Up to AGE_SLOTS timestamps per seed array (LRU, most recent first), so structureAt's now / now + 1h pairs never evict each other. */
+export const AGE_SLOTS = 4;
+type AgeSlot = { now: number; m: Map<string, number> };
+const ageMemo = new WeakMap<Seed[], AgeSlot[]>();
+/** Count of real effAge computations (cache misses); test/benchmark instrumentation only. */
+export const ageMemoStats = { misses: 0 };
 export function effAge(s: Seed, seeds: Seed[], now: number) {
-  let c = ageMemo.get(seeds);
-  if (!c || c.now !== now) { c = { now, m: new Map() }; ageMemo.set(seeds, c); }
+  let slots = ageMemo.get(seeds);
+  if (!slots) { slots = []; ageMemo.set(seeds, slots); }
+  let i = 0;
+  while (i < slots.length && slots[i]!.now !== now) i++;
+  let c: AgeSlot;
+  if (i < slots.length) { c = slots[i]!; if (i > 0) { slots.splice(i, 1); slots.unshift(c); } }
+  else { c = { now, m: new Map() }; slots.unshift(c); if (slots.length > AGE_SLOTS) slots.pop(); }
   let v = c.m.get(s.id);
-  if (v === undefined) { v = effAgeBase(s, seeds, now) + twinHours(s, seeds, now) * GROWTH_PACE; c.m.set(s.id, v); }
+  if (v === undefined) { ageMemoStats.misses++; v = effAgeBase(s, seeds, now) + twinHours(s, seeds, now) * GROWTH_PACE; c.m.set(s.id, v); }
   return v;
 }
 /** Display-only age for drawing (culling radius, overview, robber path): the clock rounded to VIEW_AGE_STEP so every frame
