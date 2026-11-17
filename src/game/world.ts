@@ -1047,6 +1047,39 @@ export const soloSeeds = (s: Seed): Seed[] => { let a = soloMemo.get(s); if (!a)
 /** Gated estate shares (people.ts estateSharesLive, same rule as resident tax); registered there to avoid an import cycle. */
 let estateHook: ((s: Seed, seeds: Seed[], now: number) => { skilled: number; wealthy: number } | null) | null = null;
 export const setEstateHook = (f: typeof estateHook) => { estateHook = f; };
+/**
+ * Exact spatial pre-selection for structureAt (no fixed radius): bought sites indexed by tile, and each
+ * town listed in the grid cells its reach box touches. townDist >= hypot(dx,dy)/k, so a tile with
+ * townDist <= r + 0.5 lies within reachOf(s, r + 0.5) real tiles. Candidates keep seed-array order (tie-break).
+ * Bound to the seeds array object and the exact `now`, so it can never outlive its inputs.
+ */
+const PICK_CELL = 32;
+type Pick = { now: number; sites: Map<number, number[]>; grid: Map<number, number[]> | null };
+const pickMemo = new WeakMap<Seed[], Pick>();
+function picksOf(seeds: Seed[], now: number): Pick {
+  let p = pickMemo.get(seeds);
+  if (p && p.now === now) return p;
+  const sites = new Map<number, number[]>();
+  seeds.forEach((s, i) => { if (s.bought?.length) for (const k of specialSites(s).keys()) { const a = sites.get(k); if (a) a.push(i); else sites.set(k, [i]); } });
+  p = { now, sites, grid: null }; pickMemo.set(seeds, p);
+  return p;
+}
+function gridOf(p: Pick, seeds: Seed[], now: number): Map<number, number[]> {
+  if (p.grid) return p.grid;
+  const grid = new Map<number, number[]>();
+  seeds.forEach((s, i) => {
+    if (now < Date.parse(s.created_at)) return;
+    const R = reachOf(s, radiusOf(effAge(s, seeds, now)) + 0.5) + 1;
+    const cx0 = Math.floor((s.x - R) / PICK_CELL), cx1 = Math.floor((s.x + R) / PICK_CELL);
+    const cy0 = Math.floor((s.y - R) / PICK_CELL), cy1 = Math.floor((s.y + R) / PICK_CELL);
+    for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+      const k = cy * 65536 + cx; const a = grid.get(k); if (a) a.push(i); else grid.set(k, [i]);
+    }
+  });
+  p.grid = grid;
+  return grid;
+}
+const NO_PICK: number[] = [];
 export function structureAt(x: number, y: number, seeds: Seed[], now: number): Structure | null {
   const tick = cacheTick(now);
   let scache: Map<number, Structure | null>;
@@ -1064,7 +1097,9 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
   let best: Structure | null = null;
   const tw = twinSites(seeds, now).get(ck);
   if (tw) { best = { kind: tw.kind, seed: tw.seed, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
-  for (const s of seeds) {
+  const pick = picksOf(seeds, now);
+  for (const si of pick.sites.get(ck) ?? NO_PICK) {
+    const s = seeds[si]!;
     if (now < Date.parse(s.created_at)) continue;
     if (!s.bought?.length) continue;
     const sp = specialSites(s).get(ck);
@@ -1082,7 +1117,8 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
   }
   if (buildable(terrain(x, y))) {
     let bestD = Infinity;
-    for (const s of seeds) {
+    for (const si of gridOf(pick, seeds, now).get(Math.floor(y / PICK_CELL) * 65536 + Math.floor(x / PICK_CELL)) ?? NO_PICK) {
+      const s = seeds[si]!;
       if (now < Date.parse(s.created_at)) continue;
       const d = townDist(x, y, s);
       const age = effAge(s, seeds, now);
