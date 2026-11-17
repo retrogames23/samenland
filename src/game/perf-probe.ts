@@ -30,7 +30,8 @@ const on: boolean = (() => {
 export const perfOn = () => on;
 /** ?perf=1&perfdetail=1: additional fine spans inside the depth/flat passes, structureAt call attribution
  *  and canvas draw-op counting. Kept separate so the coarse audit-1 spans stay comparable without this overhead. */
-const fine: boolean = on && (() => { try { return new URLSearchParams(location.search).get("perfdetail") === "1"; } catch { return false; } })();
+// ?bench=mid also needs the fine spans (flat.structureAt, flat.check, p2.*, folk.poses, setup.*)
+const fine: boolean = on && (() => { try { const q = new URLSearchParams(location.search); return q.get("perfdetail") === "1" || q.get("bench") === "mid"; } catch { return false; } })();
 export const perfFine = () => fine;
 /** ?perf=0 keeps the probe off but still exposes the benchmark camera hook, so overhead can be compared at the same scene. */
 export const perfCamOn = (): boolean => { try { return on || (typeof location !== "undefined" && new URLSearchParams(location.search).get("perf") === "0"); } catch { return false; } };
@@ -217,4 +218,71 @@ async function bench() {
 if (on && typeof window !== "undefined" && new URLSearchParams(location.search).get("bench") === "1" || on && typeof window !== "undefined" && new URLSearchParams(location.search).get("bench") === "flat") {
   const go = () => { if ((window as unknown as { __perfCam?: unknown }).__perfCam) setTimeout(() => void bench(), 8000); else setTimeout(go, 1000); };
   go();
+}
+
+/**
+ * ?perf=1&bench=mid — Mid-zoom profiling (zoom 0.8 only). Frame-counted: MID_WARM warm-up frames, then at least
+ * MID_MIN measured frames; starts automatically, or by hand via the small on-screen buttons / __perf.midStart() and
+ * __perf.midStop(). Exports raw per-frame rows plus per-span distributions and the top three exclusive shares.
+ * All aggregation runs only at export time, never inside the render loop.
+ */
+const MID_ZOOM = 0.8, MID_WARM = 20, MID_MIN = 120;
+let midState: "idle" | "warm" | "run" = "idle", midStart0 = 0, midLabel: HTMLElement | null = null;
+const stat = (a: number[]) => { const n = a.length, sum = a.reduce((x, y) => x + y, 0); return { n, total: sum, mean: n ? sum / n : 0, p50: pct(a, 50), p95: pct(a, 95), p99: pct(a, 99), max: n ? Math.max(...a) : 0 }; };
+function midExport() {
+  const fr = frames.slice(1);
+  const spanKeys = [...totals.keys()], countKeys = [...countTotals.keys()];
+  const spans: Record<string, unknown> = {};
+  for (const k of spanKeys) {
+    const a = totals.get(k)!, perF = fr.map((f) => f.spans[k]?.[1] ?? 0), perFi = fr.map((f) => f.spans[k]?.[0] ?? 0);
+    spans[k] = { calls: a.calls, callsPerFrame: a.calls / Math.max(1, frames.length), inclTotal: a.incl, exclTotal: a.excl, excl: stat(perF), incl: stat(perFi), meanPerCall: a.calls ? a.excl / a.calls : 0 };
+  }
+  const drawSum = fr.reduce((x, f) => x + f.draw, 0);
+  const top3 = spanKeys.map((k) => ({ span: k, exclTotal: totals.get(k)!.excl, shareOfDraw: drawSum ? totals.get(k)!.excl / drawSum : 0 })).sort((a, b) => b.exclTotal - a.exclTotal).slice(0, 3);
+  const counts: Record<string, unknown> = {}; for (const k of countKeys) counts[k] = stat(frames.map((f) => f.counts[k] ?? 0));
+  const out = {
+    kind: "samenland-mid-profile", version: 1,
+    device: { ua: navigator.userAgent, viewport: [innerWidth, innerHeight], dpr: devicePixelRatio, screen: [screen.width, screen.height] },
+    zoom: MID_ZOOM, warmupFrames: MID_WARM, measuredFrames: fr.length, seconds: fr.length ? (fr[fr.length - 1]!.t - frames[0]!.t) / 1000 : 0,
+    params: location.search, startedAt: new Date(performance.timeOrigin + midStart0).toISOString(),
+    drawTime: stat(fr.map((f) => f.draw)), frameInterval: stat(fr.map((f) => f.interval)), top3, spans, counts,
+    evictions: Object.fromEntries(evictions), caches: cacheSnap(), graphics: census(),
+    frames: frames.map((f) => ({ t: +f.t.toFixed(2), interval: +f.interval.toFixed(2), draw: +f.draw.toFixed(3), spans: f.spans, counts: f.counts })),
+  };
+  const blob = new Blob([JSON.stringify(out)], { type: "application/json" }), a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = `samenland-mid-${Date.now()}.json`; a.click();
+  return out;
+}
+const midSay = (s: string) => { if (midLabel) midLabel.textContent = s; };
+function midTick() {
+  if (midState === "idle") return;
+  const n = frames.length;
+  if (midState === "warm") { midSay(`Aufwärmen ${n}/${MID_WARM}`); if (n >= MID_WARM) { reset("mid"); midState = "run"; midStart0 = now(); } }
+  else { midSay(`Messung ${n} Frames${n > MID_MIN ? " – Stop möglich" : ""}`); if (n >= MID_MIN * 3) { midStop(); return; } }
+  setTimeout(midTick, 250);
+}
+function midStart() {
+  const camF = (window as unknown as { __perfCam?: (x: number, y: number, z: number) => void }).__perfCam;
+  if (!camF) { midSay("Kamera noch nicht bereit"); return; }
+  const [tx, ty] = (new URLSearchParams(location.search).get("benchtile") ?? "324,442").split(",").map(Number);
+  camF(tx!, ty!, MID_ZOOM); reset("mid.warm"); midState = "warm"; midTick();
+}
+function midStop() {
+  if (midState !== "run") { midSay(midState === "warm" ? "Noch im Aufwärmen" : "Keine Messung aktiv"); return null; }
+  if (frames.length <= MID_MIN) { midSay(`Erst ${frames.length}/${MID_MIN + 1} Frames`); return null; }
+  midState = "idle"; const r = midExport(); midSay(`Fertig: ${r.measuredFrames} Frames exportiert`); return r;
+}
+if (on && typeof window !== "undefined" && new URLSearchParams(location.search).get("bench") === "mid") {
+  Object.assign((window as unknown as { __perf: Record<string, unknown> }).__perf, { midStart, midStop });
+  const ui = () => {
+    const box = document.createElement("div");
+    box.style.cssText = "position:fixed;left:8px;top:50%;z-index:99999;display:flex;flex-direction:column;gap:6px;font:12px system-ui;background:rgba(0,0,0,.7);color:#fff;padding:8px;border-radius:8px";
+    const b = (t: string, f: () => void) => { const e = document.createElement("button"); e.textContent = t; e.style.cssText = "padding:6px 10px;border-radius:6px;background:#fff;color:#000"; e.onclick = f; box.appendChild(e); };
+    b("Mid-Messung starten", midStart); b("Stoppen & exportieren", () => void midStop());
+    midLabel = document.createElement("span"); midLabel.textContent = "Bereit (Zoom 0.8)"; box.appendChild(midLabel);
+    document.body.appendChild(box);
+    const go = () => { if ((window as unknown as { __perfCam?: unknown }).__perfCam) setTimeout(midStart, 6000); else setTimeout(go, 1000); };
+    if (new URLSearchParams(location.search).get("midauto") !== "0") go();
+  };
+  if (document.readyState === "loading") addEventListener("DOMContentLoaded", ui); else ui();
 }

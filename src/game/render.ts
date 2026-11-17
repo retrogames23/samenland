@@ -3695,7 +3695,7 @@ export function draw(
   if (cam.zoom < OVERVIEW_BELOW) { pBegin("overview"); try { return drawOverview(c, w, h, dpr, cam, seeds, now); } finally { pEnd(); } }
   pBegin("near.setup");
   const t = performance.now(); setSpriteTime(t);
-  const worldLinks = links(seeds); // one lookup per frame: the cache key itself serialises every seed
+  pFB("setup.links"); const worldLinks = links(seeds); pFE(); // one lookup per frame: the cache key itself serialises every seed
   const z = cam.zoom * dpr;
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.fillStyle = hsl(205, 30, 58); c.fillRect(0, 0, w, h);
@@ -3712,12 +3712,14 @@ export function draw(
   const cs0x = cam.x - w / 2 / z, cs1x = cam.x + w / 2 / z, cs0y = cam.y - h / 2 / z, cs1y = cam.y + h / 2 / z;
   // display-only road preselection: a superset of every per-loop road test below (roadBox ± 60 world units, or 120 screen px
   // converted through the zoom when that is wider), so roads, crews, bridges and traffic draw exactly as before
+  pFB("setup.nearLinks");
   const nearLinks = framePool.nearLinks; nearLinks.length = 0;
   { const M = Math.max(60, 120 / z); for (const l of worldLinks) { const bx = roadBox(l); if (bx[2] < cs0x - M || bx[0] > cs1x + M || bx[3] < cs0y - M || bx[1] > cs1y + M) continue; nearLinks.push(l); } }
-  pCount("links.all", worldLinks.length); pCount("links.near", nearLinks.length);
+  pCount("links.all", worldLinks.length); pCount("links.near", nearLinks.length); pFE();
   // display-only seed preselection (order kept): each town's live reach + 24 tiles around the tile view box — the same bound
   // the folk pass always used; every converted loop below draws only things inside that reach. The own steered mayor's town
   // and towns with a live remote mayor always stay in, however far he wanders.
+  pFB("setup.nearSeeds");
   const nearSeeds = framePool.nearSeeds; nearSeeds.length = 0;
   { const own = steeredMayor()?.sid, own2 = ownMayorSid();
     for (const sd of seeds) {
@@ -3726,7 +3728,7 @@ export function draw(
       if (sd.x + r >= x0 && sd.x - r <= x1 && sd.y + r >= y0 && sd.y - r <= y1) nearSeeds.push(sd);
       else if (sd.id === own || sd.id === own2 || remoteMayor(sd.id)) nearSeeds.push(sd);
     } }
-  pCount("seeds.all", seeds.length); pCount("seeds.near", nearSeeds.length);
+  pCount("seeds.all", seeds.length); pCount("seeds.near", nearSeeds.length); pFE();
   const L = framePool.lights; L.length = 0;
   beginLit(w, h, nightLevel(clock()) > 0.02);
   // pooled per-frame buffers: slots and maps are reused across frames to keep GC pauses out of the loop
