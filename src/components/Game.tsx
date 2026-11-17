@@ -1498,7 +1498,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
 
   const my = seeds.find((s) => s.id === mine);
   const certifyFn = useServerFn(certifyMyRank);
-  const { accounting, setAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works]);
+  const { accounting, setAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works, moves]);
   const prepareSpend = async () => {
     // always book outstanding daily tax first — right after load `accounting` is still unknown
     if (await refreshTreasury()) return true;
@@ -3694,6 +3694,19 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                   {ins.residents.length > 0 && <div className="text-xs"><div className="font-semibold">{t.residents}</div>{list(ins.residents)}</div>}
                   {(() => { const pk = paintedKind(ins, seeds, clock()); return STUBE_KINDS.has(pk) && <Button type="button" size="sm" variant="outline" className="mt-1" onClick={() => { setStube({ ...ins, kind: pk }); setPlace(null); }}><Search className="me-1 h-4 w-4" />{STUBE[lang].look}</Button>; })()}
                   {ins.workers.length > 0 && <div className="text-xs"><div className="font-semibold">{t.workers}</div>{list(ins.workers)}</div>}
+                  {my && ins.seed.id === my.id && (() => {
+                    const item = itemOfKind(my, ins.kind); if (!item) return null;
+                    const rt = RELOCATE[lang], price = moveCost(item) ?? 0, block = moveBlock(my, item, clock());
+                    return (
+                      <div className="mt-1 text-xs">
+                        <Button type="button" size="sm" variant="outline" disabled={!!block || cash < price}
+                          onClick={() => { setPlace(null); setPlacing(item); setMoving(true); setMsg(rt.pick(t.items[item]![0])); focus(ins.x, ins.y); }}>
+                          {rt.button} · {t.taler(price)}
+                        </Button>
+                        <div className="mt-0.5 text-muted-foreground">{block ? rt[block] : rt.about}</div>
+                      </div>
+                    );
+                  })()}
                   {(() => {
                     const l = larderOf(ins.seed, seeds, clock());
                     const held = storedAt(ins.kind, [ins.x, ins.y], l);
