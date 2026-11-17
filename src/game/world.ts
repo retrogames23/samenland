@@ -1873,7 +1873,7 @@ function twinHours(s: Seed, seeds: Seed[], now: number) {
 /** Direct point-in-time twin check for twinSites only (same bounds as twinSince: not before the younger town's founding,
  *  and a pair that has not touched within three years never becomes a twin later). Because R(t) grows monotonically,
  *  this equals isTwin except in the accepted window between the exact touch and twinSince's minute round-up, where the
- *  gate sites may appear up to ~60 s earlier. twinSince/isTwin stay the reference for every other mechanic. */
+ *  gate sites may appear earlier: below 2 min (bisection stops at a 60 s bracket, then rounds up to the minute). twinSince/isTwin stay the reference for every other mechanic. */
 export function twinSiteAt(l: Link, seeds: Seed[], now: number) {
   const lo = Math.max(Date.parse(l.a.created_at), Date.parse(l.b.created_at)), hi = lo + 3 * 365 * 864e5;
   if (now < lo) return false;

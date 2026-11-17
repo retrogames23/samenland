@@ -25,8 +25,8 @@ describe("twinSites direct point-in-time check", () => {
     for (const t of [T0 + 1000, tx - 60000, tx - 1, ts, ts + 1, ts + 60000, ts + 30 * DAY, T0 + Y3 - 1, T0 + Y3 + 10 * DAY])
       expect(twinSiteAt(l, seeds, t), String(t)).toBe(isTwin(l, seeds, t));
   });
-  it("activates up to one minute earlier between exact touch and the rounded twinSince (accepted)", () => {
-    expect(ts - tx).toBeGreaterThan(0); expect(ts - tx).toBeLessThanOrEqual(60000);
+  it("activates up to two minutes earlier between exact touch and the rounded twinSince (accepted)", () => {
+    expect(ts - tx).toBeGreaterThan(0); expect(ts - tx).toBeLessThan(120000);
     expect(isTwin(l, seeds, tx)).toBe(false); expect(twinSiteAt(l, seeds, tx)).toBe(true);
     expect(twinSiteAt(l, seeds, tx - 1)).toBe(false);
   });
@@ -38,8 +38,8 @@ describe("twinSites direct point-in-time check", () => {
     expect(twinSiteAt(p.l, p.seeds, t2)).toBe(true);
   });
   it("a pair not touching within three years never becomes a twin later", () => {
-    const p = pair(mk("a", 300, 420, "b"), mk("b", 368, 420, "a"));
-    if (!p.l) return;
+    const a0 = mk("a", 300, 420, "b", { bought: [] }), b0 = mk("b", 380, 420, "a", { bought: [] }), p = pair(a0, b0);
+    expect(p.l).toBeDefined();
     expect(twinSince(p.l, p.seeds)).toBeNull();
     for (const t of [T0 + Y3, T0 + Y3 + 1, T0 + 5 * 365 * DAY, T0 + 20 * 365 * DAY]) expect(twinSiteAt(p.l, p.seeds, t)).toBe(false);
   });
@@ -54,7 +54,7 @@ describe("twinSites direct point-in-time check", () => {
     const a = mk("a", 306, 420, "b"), b = mk("b", 343, 439, "a", { roads: [{ target: "a", at: T0 }, { target: "c", at: T0 }] }), c = mk("c", 385, 445, "b");
     const s3 = [a, b, c], ls = links(s3); expect(ls.length).toBeGreaterThanOrEqual(2);
     const times = ls.map((k) => twinSince(k, s3)).filter((t): t is number => t !== null);
-    for (const base of times) for (const t of [base - 60001, base, base + DAY]) for (const k of ls) expect(siteOn(k, s3, t), `${k.a.id}-${k.b.id}@${t}`).toBe(refOn(k, s3, t));
+    for (const base of times) for (const t of [base - 120000, base, base + DAY]) for (const k of ls) expect(siteOn(k, s3, t), `${k.a.id}-${k.b.id}@${t}`).toBe(refOn(k, s3, t));
   });
   it("links shorter than seven tiles never get twin sites", () => {
     const short = { ...l, tiles: l.tiles.slice(0, 6), water: l.water.slice(0, 6) };
