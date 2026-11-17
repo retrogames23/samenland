@@ -844,7 +844,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
           setIsAdmin(adm);
           const o = localStorage.getItem("samenland-realm") as Realm | null;
           if (adm && o && (REALMS.includes(o) || o === "lab")) { r = o; adminPick = true; }
-          if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
+          // the test map always opens in normal time: a stored jump (up to four Hansestädte) froze the tab on entry
+          if (r === "lab") { setLabJump(0); localStorage.setItem("samenland-lab-jump", "0"); }
           // an invite only steers newcomers: players with a village keep their own map
           const { data: mine } = await supabase.from("seeds").select("id, realm").eq("user_id", uid).limit(1);
           if (mine?.length) {
@@ -880,7 +881,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       if (realmRef.current !== r) { setChronOpen(false); setChron(null); setChronBanner(false); chronDone.current = null; }
       realmRef.current = r;
       setRealmState(r);
-      if (r === "lab") setLabJump(Number(localStorage.getItem("samenland-lab-jump") ?? 0));
+      if (r === "lab") { setLabJump(0); localStorage.setItem("samenland-lab-jump", "0"); }
       // charters and roads load together with the seeds, so no settled decision pops up again
       const a = await allRows(() => supabase.from("seeds").select("*").eq("realm", r), "chrono");
       if (!live()) return;
@@ -965,6 +966,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       const my = own ?? friend ?? oldest;
       if (my) focus(my.x, my.y);
       else focus(MAP / 2, MAP / 2);
+      // dense test cluster: enter close up so only one town is in view while the cold caches fill
+      if (r === "lab") { const zl = Math.max(cam.current.zoom, 2.6); cam.current.zoom = zl; target.current = { ...target.current, zoom: zl }; }
       if (!own && friend) setMsg(tRef.current.invite.welcome(friend.name));
       refSeed = null; // the welcome is only for the first map
       } finally { rtGate.current.end(epoch); }

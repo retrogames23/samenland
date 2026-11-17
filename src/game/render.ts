@@ -4142,7 +4142,8 @@ export function draw(
       if (st?.kind === "lodge" && st.build === undefined) huntFigures(x, y, hunt, c, L);
     }
     // free game is display only and about a pixel tall below this zoom; den stock and hunts are unaffected
-    if (cam.zoom >= WILD_FIGS_FROM) for (let y = Math.max(0, y0 - 4); y <= Math.min(MAP - 1, y1 + 4); y++) for (let x = Math.max(0, x0 - 4); x <= Math.min(MAP - 1, x1 + 4); x++) {
+    // cold start (fresh caches, flat chunks still unbaked): skip free game for that frame so the tab never stalls
+    if (cam.zoom >= WILD_FIGS_FROM && flatDone.size * FC * FC >= nTiles * 0.5) for (let y = Math.max(0, y0 - 4); y <= Math.min(MAP - 1, y1 + 4); y++) for (let x = Math.max(0, x0 - 4); x <= Math.min(MAP - 1, x1 + 4); x++) {
       if (wildCandidate(x, y, (a, b) => !!structureAt(a, b, seeds, now))) wildFigures(x, y, hunt, c);
     }
   }
