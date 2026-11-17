@@ -45,7 +45,7 @@ describe("twinSince content cache", () => {
     vi.resetModules(); const w = await import("./world");
     const a = variants.base!(); w.twinSince(w.links(a)[0]!, a);
     const m0 = w.sinceStats.misses;
-    const b = variants.base!().map((s) => ({ ...s, realm: "europe-2" }));
+    const b = variants.base!().map((s) => ({ ...s, realm: "europe-2" as Seed["realm"] }) as Seed);
     const l = w.links(b)[0]; if (l) w.twinSince(l, b);
     expect(w.sinceStats.misses).toBe(l ? m0 + 1 : m0);
   });
