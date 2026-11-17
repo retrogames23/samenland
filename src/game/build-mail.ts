@@ -14,9 +14,10 @@ export function buildMailDoneAt(s: Seed, item: string, at: number, placed: Set<n
 }
 
 /** Is the finish inside the enqueue window? Only decides enqueueing; once-only delivery is the DB outbox's job. */
-export function buildMailDue(s: Seed, item: string, at: number, placed: Set<number>, now: number, window: number): boolean {
+export function buildMailDue(s: Seed, item: string, at: number, placed: Set<number>, now: number, window: number, optedAt = 0): boolean {
   const done = buildMailDoneAt(s, item, at, placed);
-  return done != null && done <= now && done >= now - window;
+  // only buildings finished after the mayor asked for letters (small grace), never a backlog of older ones
+  return done != null && done <= now && done >= now - window && done >= optedAt - OPT_GRACE;
 }
 
 /** Outbox enqueue horizon: a cron outage up to CATCHUP is caught up (missing rows enqueued later, the
@@ -26,3 +27,6 @@ export const CATCHUP = 7 * 24 * 3600000;
 export function enqueueWindow(now: number): number {
   return Math.max(0, now - Math.max(MAIL_SINCE, now - CATCHUP));
 }
+
+/** Buildings finished just before opting in still get their letter. */
+export const OPT_GRACE = 15 * 60000;
