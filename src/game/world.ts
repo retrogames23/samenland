@@ -14,7 +14,7 @@ import { estateOf, estateHouse, RESIDENTIAL, setMonumentHook } from "./prosperit
 const ROAD_YIELDS: ReadonlySet<string> = new Set(["field", "garden", "pasture", "hay", "fence"]);
 export const MAP = 1024;
 
-export type Seed = { civicRoads?: CivicRoad[]; id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; realm?: Realm; mayor_gender?: string | null; mayor_age?: number | null; mayor_traits?: string[] | null; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; roads?: { target: string; at: number }[]; decisions?: Decision[]; votes?: { partner: string; pact: PactKind; at: number }[]; works?: { partner: string; work: WorkKind; cost: number; at: number }[]; sent?: { to: string; kind: "gift" | "aid" | "thanks"; at: number; id: string }[]; letters?: { to: string; at: number; id: string }[]; aid?: number[] };
+export type Seed = { civicRoads?: CivicRoad[]; id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; realm?: Realm; mayor_gender?: string | null; mayor_age?: number | null; mayor_traits?: string[] | null; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; roads?: { target: string; at: number }[]; decisions?: Decision[]; votes?: { partner: string; pact: PactKind; at: number }[]; works?: { partner: string; work: WorkKind; cost: number; at: number }[]; sent?: { to: string; kind: "gift" | "aid" | "thanks"; at: number; id: string }[]; letters?: { to: string; at: number; id: string }[]; aid?: number[]; moves?: { item: string; x: number; y: number; at: number }[] };
 export type Planting = { id: string; seed_id: string; kind: "tree" | "flower" | "lantern" | "cherry" | "quince"; x: number; y: number; created_at: string };
 export type CivicRoad = { at: number };
 
@@ -949,40 +949,59 @@ export function monumentDone(s: Seed, _seeds: Seed[], key: MonumentKey): number 
 }
 /** The tile of each bought building kind of a seed (pure). */
 export function specialTile(s: Seed, kind: Kind): [number, number] | null {
-  for (const [k, v] of specialSites(s)) if (v.kind === kind) return [k % MAP, Math.floor(k / MAP)];
-  return null;
+  let old: [number, number] | null = null;
+  for (const [k, v] of specialSites(s)) if (v.kind === kind) { if (v.until == null) return [k % MAP, Math.floor(k / MAP)]; old ??= [k % MAP, Math.floor(k / MAP)]; }
+  return old;
 }
 /** Farm charter: +5 % growth from the day it was sealed. */
 export const FARM_BONUS = 0.05;
 export const SPECIAL_BUILD = 6 * 3600000;
 const CORE_SPOTS = new Set([...Object.keys(CORE), ...LANDMARKS.map((l) => `${l.dx},${l.dy}`), "0,0"]);
-const siteCache = new Map<string, Map<number, { kind: Kind; at: number }>>();
+/** A bought site; `until` = moved away at that time, `mv` = rebuilt here by a relocation (plain build phase). */
+export type Site = { kind: Kind; at: number; until?: number; mv?: true };
+const siteCache = new Map<string, Map<number, Site>>();
 /** Ensembles painted as whole complexes (courtyards, wings) stand on 2×2 tiles: the sprite sits on the
  * front (south) tile, the three tiles behind become its paved ground ("square") — nothing else grows there. */
 export const FOOT2: ReadonlySet<Kind> = new Set<Kind>(["beginenhof", "university", "orangery", "factory"]);
 const FOOT2_BACK: [number, number][] = [[-1, 0], [0, -1], [-1, -1]];
-function coverBack(out: Map<number, { kind: Kind; at: number }>, x: number, y: number, at: number) {
-  for (const [i, j] of FOOT2_BACK) { const k = (y + j) * MAP + x + i; if (!out.has(k)) out.set(k, { kind: "square", at }); }
+function coverBack(out: Map<number, Site>, x: number, y: number, at: number, until?: number) {
+  for (const [i, j] of FOOT2_BACK) { const k = (y + j) * MAP + x + i; if (!out.has(k)) out.set(k, { kind: "square", at, ...(until != null ? { until } : {}) }); }
 }
 /**
  * Where each bought building stands: a pure function of the seed and its purchases. The fishery
  * looks for the shore, the healer for the forest edge, the school for the village core, the granary for the fields.
  */
-const siteQuick = new WeakMap<object, { id: string; x: number; y: number; m: Map<number, { kind: Kind; at: number }> }>();
-export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
+const siteQuick = new WeakMap<object, { id: string; x: number; y: number; mv: unknown; m: Map<number, Site> }>();
+export function specialSites(s: Seed): Map<number, Site> {
   const quick = s.bought ? siteQuick.get(s.bought) : undefined;
-  if (quick && quick.id === s.id && quick.x === s.x && quick.y === s.y) return quick.m;
+  if (quick && quick.id === s.id && quick.x === s.x && quick.y === s.y && quick.mv === s.moves) return quick.m;
   const items = (s.bought ?? []).filter((b) => SPECIAL_KIND[b.item]);
-  const key = `${s.id}:${s.x}:${s.y}:${items.map((b) => `${b.item}${b.at}@${b.x ?? ""},${b.y ?? ""}`).join(",")}`;
-  const hit = siteCache.get(key); if (hit) { if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, m: hit }); return hit; }
-  const out = new Map<number, { kind: Kind; at: number }>();
+  const key = `${s.id}:${s.x}:${s.y}:${items.map((b) => `${b.item}${b.at}@${b.x ?? ""},${b.y ?? ""}`).join(",")}|${(s.moves ?? []).map((m) => `${m.item}${m.at}@${m.x},${m.y}`).join(",")}`;
+  const hit = siteCache.get(key); if (hit) { if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, mv: s.moves, m: hit }); return hit; }
+  const out = new Map<number, Site>();
+  // relocations (Umsetzen): the newest location first, so it owns its tiles; earlier spots stand until the next move
+  const moved = new Set<string>();
+  if (s.moves?.length) {
+    const ms = [...s.moves].filter((m) => SPECIAL_KIND[m.item] && items.some((b) => b.item === m.item)).sort((a, c) => a.at - c.at);
+    for (let i = ms.length - 1; i >= 0; i--) {
+      const m = ms[i]!, kind = SPECIAL_KIND[m.item]!, k = m.y * MAP + m.x;
+      const next = ms.slice(i + 1).find((o) => o.item === m.item);
+      if (out.has(k)) continue;
+      out.set(k, { kind, at: m.at, mv: true, ...(next ? { until: next.at } : {}) });
+      if (FOOT2.has(kind)) coverBack(out, m.x, m.y, m.at, next?.at);
+    }
+    for (const m of ms) moved.add(m.item);
+  }
+  const firstMove = (item: string) => s.moves?.filter((m) => m.item === item).reduce((a, m) => Math.min(a, m.at), Infinity);
   const seen = new Set<string>();
   for (const b of [...items].sort((a, c) => a.at - c.at)) {
     if (seen.has(b.item)) continue; seen.add(b.item);
     const kind = SPECIAL_KIND[b.item]!;
     const big = FOOT2.has(kind);
     // the player chose the spot in the build preview (for 2×2 ensembles: the front tile)
-    if (b.x != null && b.y != null && !out.has(b.y * MAP + b.x)) { out.set(b.y * MAP + b.x, { kind, at: b.at }); if (big) coverBack(out, b.x, b.y, b.at); continue; }
+    const until = moved.has(b.item) ? firstMove(b.item) : undefined;
+    const site = (at: number): Site => ({ kind, at, ...(until != null ? { until } : {}) });
+    if (b.x != null && b.y != null && !out.has(b.y * MAP + b.x)) { out.set(b.y * MAP + b.x, site(b.at)); if (big) coverBack(out, b.x, b.y, b.at, until); continue; }
     let best = -1, bs = Infinity;
     for (let dy = -9; dy <= 9; dy++) for (let dx = -9; dx <= 9; dx++) {
       const x = s.x + dx, y = s.y + dy, d = Math.hypot(dx, dy), k = y * MAP + x;
@@ -1004,11 +1023,11 @@ export function specialSites(s: Seed): Map<number, { kind: Kind; at: number }> {
       if (kind === "herberge") sc += pathAt(x + 1, y, s, 20000, 10) || pathAt(x, y + 1, s, 20000, 10) ? -3 : 0;
       if (sc < bs) { bs = sc; best = k; }
     }
-    if (best >= 0) { out.set(best, { kind, at: b.at }); if (big) coverBack(out, best % MAP, Math.floor(best / MAP), b.at); }
+    if (best >= 0) { out.set(best, site(b.at)); if (big) coverBack(out, best % MAP, Math.floor(best / MAP), b.at, until); }
   }
   if (siteCache.size > 200) siteCache.clear();
   siteCache.set(key, out);
-  if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, m: out });
+  if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, mv: s.moves, m: out });
   return out;
 }
 /** Cache key that changes whenever seed positions, ages or purchases change. */
@@ -1025,6 +1044,7 @@ const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => [s.id, s.x, s.y, s.creat
   tup(s.votes?.map((v) => `${v.partner}@${v.pact}@${v.at}`)),
   tup(s.works?.map((w) => `${w.partner}@${w.work}@${w.cost}@${w.at}`)),
   tup(s.aid?.map(String)),
+  tup(s.moves?.map((m) => `${m.item}@${m.at}@${m.x}.${m.y}`)),
   tup(s.sent?.map((g) => `${g.to}@${g.kind}@${g.at}`)),
   tup(s.civicRoads?.map((c) => String(c.at))),
 ].join(":")).join(";");
@@ -1103,11 +1123,11 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     if (now < Date.parse(s.created_at)) continue;
     if (!s.bought?.length) continue;
     const sp = specialSites(s).get(ck);
-    if (!sp || now < sp.at) continue;
+    if (!sp || now < sp.at || (sp.until != null && now >= sp.until)) continue;
     // the fire-order rack gives way once the fire-hook shed is bought
     if (sp.kind === "firerack" && s.bought.some((b) => b.item === "firehouse" && b.at <= now)) continue;
     if (sp.kind === "square") { best = { kind: "square", seed: s, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
-    const mk = MONUMENT_BY_KIND.get(sp.kind);
+    const mk = sp.mv ? undefined : MONUMENT_BY_KIND.get(sp.kind);
     const mill = sawmillUp(s, seeds, now);
     const p = mk ? monumentProgress(s, now, mk) : (workClock(now) - workClock(sp.at)) / specialBuild(s, mill, sp.at);
     const doneAt = p < 1 ? (mk ? monumentDone(s, seeds, mk) ?? undefined : specialDone(s, seeds, sp.at)) : undefined;
