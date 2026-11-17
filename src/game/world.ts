@@ -1714,12 +1714,29 @@ export const PACT_GROWTH: Record<PactKind, number> = { trade: 0.1, shield: 0, cu
 const WORK_KIND: Record<WorkKind, Kind> = { bridge: "gatehouse", hall: "markethall", tower: "church" };
 const pairHash = (l: Link) => hash(l.a.x + l.b.x, l.a.y + l.b.y, 21);
 
+/** twinSince results per world content (realm list + seedsKey, the same full key as links()), so new Seed[] instances
+ *  of an identical historical state reuse them; any change to growth inputs yields a new key. Bounded LRU:
+ *  SINCE_MAX covers a 7-day treasury batch plus live map/solo sets with headroom. */
+export const SINCE_MAX = 16;
+const sinceStore = new Map<string, Map<string, number | null>>();
 const sinceMemo = new WeakMap<Seed[], Map<string, number | null>>();
+export const sinceStats = { calls: 0, hits: 0, misses: 0, size: () => sinceStore.size };
+function sinceMap(seeds: Seed[]) {
+  let m = sinceMemo.get(seeds);
+  if (m) return m;
+  const key = `${seeds.map((s) => s.realm ?? "").join(",")}#${seedsKey(seeds)}`;
+  m = sinceStore.get(key);
+  if (m) sinceStore.delete(key);
+  else { m = new Map(); if (sinceStore.size >= SINCE_MAX) sinceStore.delete(sinceStore.keys().next().value!); }
+  sinceStore.set(key, m); sinceMemo.set(seeds, m);
+  return m;
+}
 /** First moment (minute precision) the outskirts of both towns touch; null if not within three years. Pure. */
 export function twinSince(l: Link, seeds: Seed[]): number | null {
-  let m = sinceMemo.get(seeds); if (!m) { m = new Map(); sinceMemo.set(seeds, m); }
+  const m = sinceMap(seeds); sinceStats.calls++;
   const k = `${l.a.id}|${l.b.id}`;
-  if (m.has(k)) return m.get(k)!;
+  if (m.has(k)) { sinceStats.hits++; return m.get(k)!; }
+  sinceStats.misses++;
   const touch = (t: number) => radiusOf(effAgeBase(l.a, seeds, t)) + radiusOf(effAgeBase(l.b, seeds, t)) >= l.d;
   let lo = Math.max(Date.parse(l.a.created_at), Date.parse(l.b.created_at)), hi = lo + 3 * 365 * 864e5;
   let r: number | null = null;
