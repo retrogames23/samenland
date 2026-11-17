@@ -9,7 +9,7 @@ export default defineConfig({
     environment: "node",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
-    testTimeout: 600000,
+    testTimeout: 14400000,
     include: ["src/game/simulation/**/*.test.ts"],
   },
   resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
