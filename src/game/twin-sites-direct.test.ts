@@ -57,8 +57,16 @@ describe("twinSites direct point-in-time check", () => {
     for (const base of times) for (const t of [base - 120000, base, base + DAY]) for (const k of ls) expect(siteOn(k, s3, t), `${k.a.id}-${k.b.id}@${t}`).toBe(refOn(k, s3, t));
   });
   it("links shorter than seven tiles never get twin sites", () => {
-    const short = { ...l, tiles: l.tiles.slice(0, 6), water: l.water.slice(0, 6) };
-    expect(short.tiles.length < 7 && refOn(short, seeds, ts + DAY)).toBe(false);
+    // real world state: two towns five tiles apart get a six-tile road that is otherwise a valid twin
+    const p = pair(mk("a", 306, 420, "b"), mk("b", 311, 420, "a")), t = twinSince(p.l, p.seeds)! + DAY;
+    expect(p.l.tiles.length).toBeLessThan(7);
+    expect(twinSiteAt(p.l, p.seeds, t)).toBe(true);
+    // without the length filter a gate would land on a dry tile around the midpoint
+    const m = Math.floor(p.l.tiles.length / 2);
+    expect([m - 1, m, m + 1].some((i) => !p.l.water[i])).toBe(true);
+    const sites = twinSites(p.seeds, t);
+    for (const [x, y] of p.l.tiles) expect(sites.has(y * MAP + x)).toBe(false);
+    expect(sites.size).toBe(0);
   });
   it("twin sites hold no taxable homes and tax is identical outside the minute window", () => {
     const t = ts + 60 * DAY, sites = twinSites(seeds, t); expect(sites.size).toBeGreaterThan(0);
