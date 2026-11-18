@@ -20,11 +20,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type WonderFind } from "@/game/wonders";
 import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, setKnights, signpostMap, type Camera } from "@/game/render";
+/** Stroll position kept across reloads (browser only, never stored on the server). */
+const STROLL_KEY = "samenland-stroll", STROLL_TTL = 30 * 60e3;
 /** Tiles within which strangers in a foreign village speak to the strolling mayor. */
 const MEET_TILES = 4;
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
 import { townRank, rankInput, nextRankNeed, roadsFor } from "@/game/rank";
-import { townOf, poseOf, jobKey, weddingFocus, kinOf, FETE_SECS, commandMayor, driveMayor, clearMayorOrder, parkMayor, mayorAway, setMounted, setStrollHold, setOwnMayor, citizensOf, isHomeKind, type Person } from "@/game/people";
+import { townOf, poseOf, jobKey, weddingFocus, kinOf, FETE_SECS, commandMayor, driveMayor, restoreDrive, clearMayorOrder, parkMayor, mayorAway, setMounted, setStrollHold, setOwnMayor, citizensOf, isHomeKind, type Person } from "@/game/people";
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { banter } from "@/game/banter";
 import { weddingJoy, weddingLive } from "@/game/weddings";
@@ -400,6 +402,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   type Tab = "build" | "rituals" | "signs" | "towns" | "plant";
   const [tab, setTab] = useState<Tab | null>(null);
   const [walk, setWalk] = useState(false);
+  const walkWas = useRef(false);
+  useEffect(() => { if (walkWas.current && !walk) try { localStorage.removeItem(STROLL_KEY); } catch { /* ignore */ } walkWas.current = walk; }, [walk]);
   const stick = useRef({ dx: 0, dy: 0 });
   const [authOpen, setAuthOpen] = useState(false);
   const [forgot, setForgot] = useState(false);
@@ -966,6 +970,14 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       const my = own ?? friend ?? oldest;
       if (my) focus(my.x, my.y);
       else focus(MAP / 2, MAP / 2);
+      // a stroll interrupted by a reload resumes where the mayor stood (local-only, expires after STROLL_TTL)
+      if (own) try {
+        const sv = JSON.parse(localStorage.getItem(STROLL_KEY) ?? "null") as { sid: string; x: number; y: number; t: number } | null;
+        if (sv && sv.sid === own.id && Date.now() - sv.t < STROLL_TTL) {
+          const me = townOf(own, ss, clock()).people.find((q) => q.role === "mayor");
+          if (me) { restoreDrive(me.id, own.id, sv.x, sv.y); focus(sv.x, sv.y); camFree.current = false; setWalk(true); }
+        } else localStorage.removeItem(STROLL_KEY);
+      } catch { /* ignore */ }
       // dense test cluster: enter close up so only one town is in view while the cold caches fill
       if (r === "lab") { const zl = Math.max(cam.current.zoom, 2.6); cam.current.zoom = zl; target.current = { ...target.current, zoom: zl }; }
       if (!own && friend) setMsg(tRef.current.invite.welcome(friend.name));
@@ -1258,7 +1270,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     };
     const onKeyUp = (e: KeyboardEvent) => keys.delete(e.key.toLowerCase());
     const onBlur = () => keys.clear();
-    let lastPan = performance.now(), walkDriven = false;
+    let lastPan = performance.now(), walkDriven = false, strollSaved = 0;
     panStep = () => {
       const now = performance.now(), dt = Math.min(50, now - lastPan); lastPan = now;
       { const pd = panDelta.current; if (pd.dx || pd.dy) { cam.current.x -= pd.dx / cam.current.zoom; cam.current.y -= pd.dy / cam.current.zoom; pd.dx = 0; pd.dy = 0; } }
@@ -1278,6 +1290,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
             if (keys.size || held) { driveMayor(me, tw, S.seeds, nw, dx + dy, dy - dx, dt / 1000); walkDriven = true; }
             else if (walkDriven) { driveMayor(me, tw, S.seeds, nw, 0, 0, dt / 1000); walkDriven = false; }
             const q = poseOf(me, tw, S.seeds, nw), [ix, iy] = iso(q.x, q.y), k = 1 - Math.exp(-dt / 220);
+            if (now - strollSaved > 2000) { strollSaved = now; try { localStorage.setItem(STROLL_KEY, JSON.stringify({ sid: my.id, x: q.x, y: q.y, t: Date.now() })); } catch { /* storage full/blocked */ } }
             for (const o of S.seeds) if (o.id !== my.id && !visitSeen.current.has(o.id) && Math.hypot(q.x - o.x, q.y - o.y) <= radiusOf((nw - Date.parse(o.created_at)) / 36e5)) { visitSeen.current.add(o.id); visitFn.current(o, my); }
             for (const w of wonders()) if (!wonderSeen.current.has(w.key) && Math.hypot(q.x - w.x, q.y - w.y) <= WONDER_REACH) { wonderSeen.current.add(w.key); wonderFn.current(w.key, w.kind, my); }
             { const near = atCourt(q.x, q.y); if (near !== courtNear.current) { courtNear.current = near; setNearCourt(near); } }

@@ -1345,6 +1345,8 @@ export function driveMayor(p: Person, t: Town, seeds: Seed[], now: number, dx: n
   drive.dir = [dx / len, dy / len];
 }
 export const stopDrive = () => { drive = null; };
+/** After a page reload: put the own mayor back where the stroll left him (local-only, from browser storage). */
+export function restoreDrive(id: number, sid: string, x: number, y: number) { drive = { id, sid, x, y, dir: [1, 0.3], moving: false, dist: 0 }; order = null; }
 /** Own steered mayor right now (for the live broadcast), or null when following the routine. */
 export function ownStroll(): { sid: string; x: number; y: number; dir: [number, number]; walking: boolean; dist: number } | null {
   if (drive) return { sid: drive.sid, x: drive.x, y: drive.y, dir: drive.dir, walking: drive.moving, dist: drive.dist };
