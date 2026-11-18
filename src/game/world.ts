@@ -1613,7 +1613,27 @@ export function effAgeUpper(s: Seed, seeds: Seed[], now: number) {
   }
   return effAgeBase(s, seeds, now) + (h > 0 ? twinRateMax() * GROWTH_PACE * h : 0);
 }
+/** Exact memo of the pure effAgeBase per seed array and timestamp (LRU of BASE_SLOTS timestamps).
+ *  One historical rank check (people.ts seatFete) asks the same seed/time pair many times through
+ *  gridOf/twinSites → twinSiteAt → touch; the value depends only on (seed rows, seeds array, now), so reuse is bit-identical. */
+export const BASE_SLOTS = 16;
+const baseMemo = new WeakMap<Seed[], AgeSlot[]>();
+/** Test switch: false bypasses the memo (reference path for equality tests). */
+export const baseMemoCfg = { on: true, misses: 0 };
 function effAgeBase(s: Seed, seeds: Seed[], now: number) {
+  if (!baseMemoCfg.on) return effAgeBaseRaw(s, seeds, now);
+  let slots = baseMemo.get(seeds);
+  if (!slots) { slots = []; baseMemo.set(seeds, slots); }
+  let i = 0;
+  while (i < slots.length && slots[i]!.now !== now) i++;
+  let c: AgeSlot;
+  if (i < slots.length) { c = slots[i]!; if (i > 0) { slots.splice(i, 1); slots.unshift(c); } }
+  else { c = { now, m: new Map() }; slots.unshift(c); if (slots.length > BASE_SLOTS) slots.pop(); }
+  let v = c.m.get(s.id);
+  if (v === undefined) { baseMemoCfg.misses++; v = effAgeBaseRaw(s, seeds, now); c.m.set(s.id, v); }
+  return v;
+}
+function effAgeBaseRaw(s: Seed, seeds: Seed[], now: number) {
   let h = ageHours(s, now) + blessHours(s, now) + boonHours(s.decisions ?? [], now);
   if (s.charter?.path === "farm" && now > s.charter.at) h += (now - s.charter.at) / 3.6e6 * FARM_BONUS;
   const base = h;

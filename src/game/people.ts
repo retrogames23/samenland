@@ -700,15 +700,24 @@ export function estateSharesLive(s: Seed, seeds: Seed[], now: number) {
   return sh;
 }
 setEstateHook(estateSharesLive);
-const RANK_STEP = 15 * 60e3, rankMemo = new Map<string, number>();
+const RANK_STEP = 15 * 60e3;
+/** Historical ranks per map content (seedsKey: every growth/household input), then `${seed}:${t}`.
+ *  The old key `${id}:${t}:${seeds.length}` kept stale ranks when rows changed at an unchanged village count
+ *  (snapshot refresh after a sleeping tab, moved buildings). Only the last RANK_KEYS contents are kept. */
+const RANK_KEYS = 4, rankMemo = new Map<string, Map<string, number>>();
+export const rankMemoStats = { hits: 0, misses: 0 };
 const SEAT_OF = (r: number) => (r >= 4 ? "townhall" : r === 3 ? "seat3" : r === 2 ? "seat2" : "seat1") as Kind;
 function rankAtStep(s: Seed, seeds: Seed[], t: number) {
-  const k = `${s.id}:${t}:${seeds.length}`; let r = rankMemo.get(k);
-  if (r == null) { inRank = true; try { r = rankHook!(s, seeds, t); } finally { inRank = false; } if (rankMemo.size > 4000) rankMemo.clear(); rankMemo.set(k, r); }
+  const sk = seedsKey(seeds);
+  let m = rankMemo.get(sk);
+  if (!m) { m = new Map(); rankMemo.set(sk, m); if (rankMemo.size > RANK_KEYS) rankMemo.delete(rankMemo.keys().next().value!); }
+  const k = `${s.id}:${t}`; let r = m.get(k);
+  if (r == null) { rankMemoStats.misses++; inRank = true; try { r = rankHook!(s, seeds, t); } finally { inRank = false; } if (m.size > 4000) m.clear(); m.set(k, r); }
+  else rankMemoStats.hits++;
   return r;
 }
 /** Player towns: the seat is rebuilt when the real rank rises (never by elapsed time) — the latest such moment within the window. */
-function seatFete(s: Seed, seeds: Seed[], now: number): { at: number; tile: Tile; kind: Kind } | null {
+export function seatFete(s: Seed, seeds: Seed[], now: number): { at: number; tile: Tile; kind: Kind } | null {
   if (!rankHook || inRank) return null;
   let tile: Tile | null = null;
   for (const [k, list] of landmarkSpots(s)) if (list.some((j) => SEAT_KINDS.includes(LANDMARKS[j]!.kind))) { const [dx, dy] = k.split(",").map(Number); tile = [s.x + dx!, s.y + dy!]; break; }
