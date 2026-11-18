@@ -706,9 +706,14 @@ const RANK_STEP = 15 * 60e3;
  *  (snapshot refresh after a sleeping tab, moved buildings). Only the last RANK_KEYS contents are kept. */
 const RANK_KEYS = 4, rankMemo = new Map<string, Map<string, number>>();
 export const rankMemoStats = { hits: 0, misses: 0 };
+const rkMemo = new WeakMap<Seed[], string>();
+/** Tests only: forget every cached historical rank so a reference run really recomputes. */
+export const resetRankMemo = () => { rankMemo.clear(); };
 const SEAT_OF = (r: number) => (r >= 4 ? "townhall" : r === 3 ? "seat3" : r === 2 ? "seat2" : "seat1") as Kind;
 function rankAtStep(s: Seed, seeds: Seed[], t: number) {
-  const sk = seedsKey(seeds);
+  // realm list + content: rank reads terrain (biome per realm) and links(), whose own key is the same
+  let sk = rkMemo.get(seeds);
+  if (sk === undefined) { sk = `${seeds.map((x) => x.realm ?? "").join(",")}#${seedsKey(seeds)}`; rkMemo.set(seeds, sk); }
   let m = rankMemo.get(sk);
   if (!m) { m = new Map(); rankMemo.set(sk, m); if (rankMemo.size > RANK_KEYS) rankMemo.delete(rankMemo.keys().next().value!); }
   const k = `${s.id}:${t}`; let r = m.get(k);
