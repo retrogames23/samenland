@@ -2517,7 +2517,7 @@ function groundChunk(ix: number, iy: number, q: number, sk: string): HTMLCanvasE
   const hit = chunkCache.get(key);
   if (hit) { chunkCache.delete(key); chunkCache.set(key, hit); pCount("cache.ground.hit"); return hit; }
   pCount("cache.ground.miss"); pBegin("ground.bake");
-  try { return groundChunkBake(key, ix, iy, q); } finally { pEnd(); }
+  try { return groundChunkBake(key, ix, iy, q); } catch (e) { console.warn("ground bake failed", e); return null; } finally { pEnd(); }
 }
 function groundChunkBake(key: string, ix: number, iy: number, q: number): HTMLCanvasElement | null {
   const X0 = ix * CH, Y0 = iy * CH, X1 = Math.min(MAP - 1, X0 + CH - 1), Y1 = Math.min(MAP - 1, Y0 + CH - 1);
@@ -2525,7 +2525,12 @@ function groundChunkBake(key: string, ix: number, iy: number, q: number): HTMLCa
   const left = iso(X0, Y1)[0] - TW, right = iso(X1, Y0)[0] + TW, top = iso(X0, Y0)[1] - TH - PAD_TOP, bottom = iso(X1, Y1)[1] + TH;
   const cv = document.createElement("canvas");
   cv.width = Math.ceil((right - left) * q); cv.height = Math.ceil((bottom - top) * q);
-  const g = cv.getContext("2d")!;
+  const g = cv.getContext("2d");
+  if (!g) { // browser refused a new canvas (memory pressure, e.g. Firefox): free old chunks, caller paints a fallback
+    cv.width = cv.height = 0;
+    for (let i = 0; i < 40 && chunkCache.size; i++) { const k = chunkCache.keys().next().value!; const o = chunkCache.get(k)!; o.width = o.height = 0; chunkCache.delete(k); pEvict("ground"); }
+    return null;
+  }
   g.setTransform(q, 0, 0, q, -left * q, -top * q);
   // fill only this chunk's diamond so neighbouring chunks never double-paint
   g.save();
@@ -2620,7 +2625,11 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
     }
     if (!cached) { baked++; frameBakes++; }
     const cv = groundChunk(ix, iy, q, sk) as (HTMLCanvasElement & { ox: number; oy: number }) | null;
-    if (cv) { c.drawImage(cv, cv.ox, cv.oy, cv.width / q, cv.height / q); drawn++; }
+    if (cv && cv.width > 0) { c.drawImage(cv, cv.ox, cv.oy, cv.width / q, cv.height / q); drawn++; }
+    else { // bake failed: never let the sea colour show through on land — paint the chunk's ground live
+      try { c.save(); drawGround(c, X0, Math.min(MAP - 1, X1), Y0, Math.min(MAP - 1, Y1), 0, false); c.restore(); }
+      catch { c.restore(); const [a, b] = iso(X0 + CH / 2, Y0 + CH / 2); c.fillStyle = "#7a8a50"; c.beginPath(); c.moveTo(a, b - CH * TH / 2); c.lineTo(a + CH * TW / 2, b); c.lineTo(a, b + CH * TH / 2); c.lineTo(a - CH * TW / 2, b); c.fill(); }
+    }
   }
   return drawn;
 }
