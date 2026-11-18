@@ -2000,6 +2000,12 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   // Dörfer-Liste: Rang + Bonus je Dorf teuer (townRank) – im Leerlauf häppchenweise berechnen und 5 min cachen
   const townsTick = Math.floor(now / 300000);
   useEffect(() => { if (my) setChronRead(Number(localStorage.getItem(`samenland-chron-read-${my.id}`) ?? clock())); }, [my?.id]);
+  // a chronicle belongs to one village: drop the cached one when the own village changes (abandon + refound in the same tab)
+  const chronOf = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = chronOf.current; chronOf.current = my?.id ?? null;
+    if (prev && prev !== my?.id) { setChron(null); setChronOpen(false); setChronBanner(false); setScribe(undefined); }
+  }, [my?.id]);
   const chronNews = useMemo(() => {
     if (!owner || !my || chronRead == null || seeds.length === 0) return false;
     const c = chronicle(my, seeds, chronRead, slow);
