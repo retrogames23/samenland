@@ -26,7 +26,7 @@ import { nightLevel } from "./sun";
 import { fieldLook, farmTask } from "./rotation";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { geoKey, MAP, hash, structureAt, setEstateHook, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, exchangeMerchants, operaMerchants, specialDone, specialTile, stepsPaid, cathedralDone, universityDone, DOM_NURSES, type TradeGood, type Seed, type Kind } from "./world";
+import { geoKey, MAP, hash, structureAt, setEstateHook, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, exchangeMerchants, operaMerchants, specialDone, specialTile, stepsPaid, cathedralDone, universityDone, DOM_NURSES, pondTiles, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -1201,7 +1201,20 @@ export function poseOf(p: Person, t: Town, seeds: Seed[], now: number): Pose {
   // standing still: no drifting – only turning to look around now and then (per-person rhythm)
   const look = 20 + hash(p.id, 3, 813) * 25;
   const face = hash(p.id, Math.floor((tt + p.id * 7.3) / look), 813) < 0.5 ? 1 : -1;
+  if (e.act === "work" && p.job === "fisher") { const w = waterDir(e.place[0], e.place[1], seeds); if (w) return { ...base, dir: w, working: true }; }
   return { ...base, dir: [face, 0.3], working: e.act === "work" };
+}
+/** Fishers cast towards the nearest water or carp pond (tile-space heading), never with their back to it. */
+export function waterDir(x: number, y: number, seeds: Seed[]): [number, number] | null {
+  const ponds = pondTiles(seeds);
+  let best: [number, number] | null = null, bd = Infinity;
+  for (let j = -4; j <= 4; j++) for (let i = -4; i <= 4; i++) {
+    const tx = Math.round(x) + i, ty = Math.round(y) + j;
+    if (!isWater(terrain(tx, ty)) && !ponds.has(ty * MAP + tx)) continue;
+    const dx = tx - x, dy = ty - y, d = Math.hypot(dx, dy);
+    if (d > 0.01 && d < bd) { bd = d; best = [dx / d, dy / d]; }
+  }
+  return best;
 }
 
 // ---------------- the player's own mayor ----------------

@@ -20,3 +20,15 @@ describe("craft scenes", () => {
     expect(breadOut(23)).toBe(false);
   });
 });
+
+import { waterDir } from "./people";
+import { setRealm } from "./time";
+describe("fisher faces the water", () => {
+  it("Schlehenburg's fisher looks at his carp pond to the south-west", () => {
+    setRealm("europe-2");
+    const s = { id: "7a3b0ac1-ee19-439c-86b6-f4107dd8efae", name: "S", owner: "M", x: 571, y: 552, hue: 1, created_at: "2026-11-14T14:39:59Z", user_id: "u", bought: [{ item: "fisher", at: 1, x: 569, y: 555 }] } as never;
+    const d = waterDir(569, 554, [s])!;
+    expect(d[0]).toBeLessThan(0); expect(d[1]).toBeGreaterThan(0);
+    setRealm("europe");
+  });
+});
