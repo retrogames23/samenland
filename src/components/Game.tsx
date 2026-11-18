@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type WonderFind } from "@/game/wonders";
 import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, setKnights, signpostMap, type Camera } from "@/game/render";
 /** Stroll position kept across reloads (browser only, never stored on the server). */
-const STROLL_KEY = "samenland-stroll", STROLL_TTL = 30 * 60e3;
+const STROLL_KEY = "samenland-stroll", STROLL_TTL = 30 * 60e3, VIEW_KEY = "samenland-view";
 /** Tiles within which strangers in a foreign village speak to the strolling mayor. */
 const MEET_TILES = 4;
 const pkey = (p: { id: number; seed: { id: string } }) => `${p.seed.id}:${p.id}`;
@@ -598,8 +598,13 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     return () => document.removeEventListener("fullscreenchange", on);
   }, []);
   // start over the settled heartland, never the empty ocean at tile (0,0)
-  const cam = useRef<Camera>((() => { const [x, y] = iso(500, 500); return { x, y, zoom: 2.6 }; })());
-  const target = useRef({ zoom: 2.6, ax: 0, ay: 0 });
+  // a reload resumes the last view of this tab (sessionStorage), so the camera never idles over open sea while towns load
+  const cam = useRef<Camera>((() => {
+    try { const v = JSON.parse(sessionStorage.getItem(VIEW_KEY) ?? "null") as Camera | null; if (v && isFinite(v.x) && isFinite(v.y) && isFinite(v.zoom)) return { x: v.x, y: v.y, zoom: v.zoom }; } catch { /* ignore */ }
+    const [x, y] = iso(500, 500); return { x, y, zoom: 2.6 };
+  })());
+  useEffect(() => { const id = setInterval(() => { try { const c = cam.current; sessionStorage.setItem(VIEW_KEY, JSON.stringify({ x: c.x, y: c.y, zoom: c.zoom })); } catch { /* ignore */ } }, 2000); return () => clearInterval(id); }, []);
+  const target = useRef({ zoom: cam.current.zoom, ax: 0, ay: 0 });
   // terrain QA only: window.__labCam(tileX, tileY, zoom?) jumps the camera, exists solely while realm "lab" is loaded
   useEffect(() => {
     const w = window as unknown as { __labCam?: (x: number, y: number, z?: number) => boolean };
