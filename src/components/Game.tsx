@@ -536,6 +536,15 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   });
   // swaps the map in place (admin realm switch) — no page reload, no splash
   const loadRealmRef = useRef<((r: Realm) => Promise<void>) | null>(null);
+  // one init shares each per-user read (P.3b.1): the start sequence and the userId effects reuse the same promise
+  const userReads = useRef(new Map<string, Promise<unknown>>());
+  const shared = <T,>(key: string, run: () => PromiseLike<T>): Promise<T> => {
+    const m = userReads.current; let p = m.get(key) as Promise<T> | undefined;
+    if (!p) { p = Promise.resolve(run()); m.set(key, p); p.catch(() => m.delete(key)); setTimeout(() => m.delete(key), 10000); }
+    return p;
+  };
+  const rolesOf = (uid: string) => shared(`roles:${uid}`, () => supabase.from("user_roles").select("role").eq("user_id", uid));
+  const ownSeedOf = (uid: string) => shared(`own:${uid}`, () => supabase.from("seeds").select("*").eq("user_id", uid).limit(1));
   const [view, setView] = useState({ x: MAP / 2, y: MAP / 2, span: 40 });
   const [who, setWho] = useState<Person | null>(null);
   const [editMayor, setEditMayor] = useState(false);
@@ -692,9 +701,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     if (!userId) { setHome(null); return; }
     let live = true;
     setHome(null);
-    let q = supabase.from("seeds").select("*").eq("user_id", userId);
-    if (isAdmin) q = q.eq("realm", realm);
-    q.limit(1).then(async ({ data }) => {
+    const q = isAdmin ? supabase.from("seeds").select("*").eq("user_id", userId).eq("realm", realm).limit(1) : ownSeedOf(userId);
+    Promise.resolve(q).then(async ({ data }) => {
       if (!live) return;
       if (data?.[0]) {
         const h = data[0] as Seed;
@@ -781,7 +789,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   useEffect(() => {
     if (!userId) { setIsAdmin(false); return; }
     let live = true;
-    supabase.from("user_roles").select("role").eq("user_id", userId).then(({ data }) => {
+    rolesOf(userId).then(({ data }) => {
       if (!live) return;
       const adm = !!data?.some((x) => x.role === "admin");
       setIsAdmin(adm);
@@ -843,7 +851,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         uid = sess?.user.id ?? null;
         sessMail = sess?.user.email ?? null;
         if (uid) {
-          const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+          perfMark("auth");
+          // roles and own seed depend only on uid: read both at once, shared with the userId effects
+          const [{ data: roles }, { data: mine }] = await Promise.all([rolesOf(uid), ownSeedOf(uid)]);
+          perfMark("own-seed");
           const adm = !!roles?.some((x) => x.role === "admin");
           setIsAdmin(adm);
           const o = localStorage.getItem("samenland-realm") as Realm | null;
@@ -851,7 +862,6 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
           // the test map always opens in normal time: a stored jump (up to four Hansestädte) froze the tab on entry
           if (r === "lab") { setLabJump(0); localStorage.setItem("samenland-lab-jump", "0"); }
           // an invite only steers newcomers: players with a village keep their own map
-          const { data: mine } = await supabase.from("seeds").select("id, realm").eq("user_id", uid).limit(1);
           if (mine?.length) {
             hasHome = true;
             localStorage.removeItem("samenland-ref");
@@ -877,6 +887,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       // a newer map load supersedes this one: after that, this load must not touch any state
       const epoch = rtGate.current.begin();
       const live = () => rtGate.current.isCurrent(epoch);
+      perfMark("loadRealm");
       try {
       if (!uid) uid = (await supabase.auth.getSession()).data.session?.user.id ?? null;
       if (!live()) return;
@@ -887,7 +898,9 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       setRealmState(r);
       if (r === "lab") { setLabJump(0); localStorage.setItem("samenland-lab-jump", "0"); }
       // charters and roads load together with the seeds, so no settled decision pops up again
+      perfMark("seeds-start");
       const a = await allRows(() => supabase.from("seeds").select("*").eq("realm", r), "chrono");
+      perfMark("seeds-end");
       if (!live()) return;
       const ids = a.data.map((x) => x.id);
       mapIds.current = ids;
@@ -964,6 +977,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       setPurchases(snapRows(pu.data ?? [], (x) => keep(x.seed_id)));
       setSigns(snapRows((sg.data ?? []) as Signpost[], (x) => keep(x.seed_id)));
       setSeeds(snapRows(ss, (x) => x.realm === r));
+      perfMark("primary");
       setPlantings(snapRows((b.data ?? []) as Planting[], (x) => keep(x.seed_id)));
       // visitors without a village first see the oldest (most grown) town of this map
       const oldest = [...ss].sort((p, q) => Date.parse(p.created_at) - Date.parse(q.created_at))[0];
@@ -3783,4 +3797,6 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
 
 // The data API returns at most 1000 rows per request — page through growing tables so no claim is ever missed.
 const mapRows = allIn;
+// startup timeline (P.3b.1): marks share the navigation origin; read via performance.getEntriesByType("mark")
+const perfMark = (n: string) => { try { performance.mark(`p3:${n}`); } catch { /* ignore */ } };
 const allRows = async <T = any,>(q: () => any, key = "id") => ({ data: await allPages<T>(q, key) }); // eslint-disable-line @typescript-eslint/no-explicit-any
