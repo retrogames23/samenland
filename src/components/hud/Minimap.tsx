@@ -1,13 +1,15 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { Realm } from "@/game/time";
 import { MAP, terrain, type Seed } from "@/game/world";
 
 const N = 96;
 const PAL: Record<string, string> = { deep: "#2f5566", water: "#4f7f8a", sand: "#cdb98a", forest: "#4d6a3a", mountain: "#857a6c", rock: "#857a6c", grass: "#7f9a52", hill: "#8f8a5a", fertile: "#6f8a42", meadow: "#8aa45a" };
 
 /** Top-down overview of the whole map; click jumps the camera. */
-export function Minimap({ seeds, mine, view, onJump }: { seeds: Seed[]; mine: string | null; view: { x: number; y: number; span: number }; onJump: (x: number, y: number) => void }) {
+export function Minimap({ realm, seeds, mine, view, onJump }: { realm: Realm; seeds: Seed[]; mine: string | null; view: { x: number; y: number; span: number }; onJump: (x: number, y: number) => void }) {
   const bg = useRef<HTMLCanvasElement | null>(null);
   const ref = useRef<HTMLCanvasElement>(null);
+  const [bgGen, setBgGen] = useState(0);
   useEffect(() => {
     const c = document.createElement("canvas");
     c.width = c.height = N;
@@ -17,7 +19,8 @@ export function Minimap({ seeds, mine, view, onJump }: { seeds: Seed[]; mine: st
       g.fillRect(i, j, 1, 1);
     }
     bg.current = c;
-  }, []);
+    setBgGen((n) => n + 1);
+  }, [realm]); // terrain differs per map: rebake when the realm switches
   useEffect(() => {
     const cv = ref.current; if (!cv || !bg.current) return;
     const g = cv.getContext("2d")!, W = cv.width, k = W / MAP;
@@ -30,7 +33,7 @@ export function Minimap({ seeds, mine, view, onJump }: { seeds: Seed[]; mine: st
     const sp = Math.max(6, view.span * k);
     g.strokeStyle = "#f4ead2"; g.lineWidth = 1.5;
     g.strokeRect(view.x * k - sp / 2, view.y * k - sp / 2, sp, sp);
-  }, [seeds, mine, view]);
+  }, [seeds, mine, view, bgGen]);
   return (
     <canvas
       ref={ref}
