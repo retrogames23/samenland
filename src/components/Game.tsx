@@ -926,13 +926,15 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
           if (live()) setBodies((old) => ({ ...old, ...Object.fromEntries(bs.map((b) => [b.letter_id, b.body])) }));
         }); }
       const ss = (a.data ?? []) as Seed[];
+      const meId = uid ? ss.find((s) => s.user_id === uid)?.id ?? null : null;
       Promise.all([
-        mapRows(ids, (c) => supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at").in("seed_id", c)).then((data) => ({ data })),
-        mapRows(ids, (c) => supabase.from("market_sales").select("id, seed_id, day, reward, created_at").in("seed_id", c)).then((data) => ({ data })),
-        // signed-in only (RLS): guests would just get 401s
-        // either side on this map keeps cross-map partners (an invite or visit may come from another map)
-        (uid ? allEither<{ id: string; referrer_seed: string; referee_seed: string; reward: number; created_at: string }>(ids, ["referrer_seed", "referee_seed"], (col, c) => supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at").in(col, c)) : Promise.resolve([])).then((data) => ({ data })),
-        (uid ? allEither<{ id: string; visitor_seed: string; visited_seed: string; reward: number; created_at: string; last_at: string | null }>(ids, ["visitor_seed", "visited_seed"], (col, c) => supabase.from("village_visits").select("id, visitor_seed, visited_seed, reward, created_at, last_at").in(col, c)) : Promise.resolve([])).then((data) => ({ data })),
+        // private rows: only the own village (P.2b) — never realm-wide, guests query nothing
+        (meId ? allPages(() => supabase.from("quest_claims").select("id, seed_id, quest, reward, created_at").eq("seed_id", meId)) : Promise.resolve([])).then((data) => ({ data: data as { id: string; seed_id: string; quest: string; reward: number; created_at: string }[] })),
+        (meId ? allPages(() => supabase.from("market_sales").select("id, seed_id, day, reward, created_at").eq("seed_id", meId)) : Promise.resolve([])).then((data) => ({ data: data as { id: string; seed_id: string; day: string; reward: number; created_at: string }[] })),
+        // both sides of an invite in one OR query (partners may live on another map)
+        (meId ? allPages(() => supabase.from("referrals").select("id, referrer_seed, referee_seed, reward, created_at").or(`referrer_seed.eq.${meId},referee_seed.eq.${meId}`)) : Promise.resolve([])).then((data) => ({ data: data as { id: string; referrer_seed: string; referee_seed: string; reward: number; created_at: string }[] })),
+        // only visits made by the own village count (visitClaims / repeatVisits / decree)
+        (meId ? allPages(() => supabase.from("village_visits").select("id, visitor_seed, visited_seed, reward, created_at, last_at").eq("visitor_seed", meId)) : Promise.resolve([])).then((data) => ({ data: data as { id: string; visitor_seed: string; visited_seed: string; reward: number; created_at: string; last_at: string | null }[] })),
         allRows<unknown>(() => supabase.from("wonder_finds").select("id, seed_id, site, realm, first, reward, created_at").eq("realm", r)),
         mapRows<unknown>(ids, (c) => supabase.from("princely_tasks").select("id, seed_id, step, task, reward, accepted_at, done_at").in("seed_id", c)).then((data) => ({ data })),
       ]).then(([q, m, rf, vv, wf, pt]) => {
