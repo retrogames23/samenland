@@ -50,6 +50,7 @@ import { scribeGreeting } from "@/lib/chronicle.functions";
 import { deleteAccount } from "@/lib/account.functions";
 import { certifyMyRank } from "@/lib/treasury.functions";
 import { useTreasurySync } from "@/components/hooks/useTreasurySync";
+import { civicRoadsOf } from "@/game/civic-roads";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText, MoreHorizontal, Feather } from "lucide-react";
 import logoUrl from "@/assets/logo-keimling.png";
@@ -128,7 +129,6 @@ import {
   roadCandidates, roadHours,
   roadBuilding,
   roadIncoming,
-  roadDone,
   type Seed,
   canPlaceSpecial,
   SPECIAL_KIND,
@@ -295,20 +295,15 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     for (const w of works) { if (!wo.has(w.seed_id)) wo.set(w.seed_id, []); wo.get(w.seed_id)!.push({ partner: w.partner_id, work: w.work as WorkKind, cost: w.cost, at: Date.parse(w.created_at) }); }
     const mo = new Map<string, NonNullable<Seed["moves"]>>();
     for (const m of moves) { if (!mo.has(m.seed_id)) mo.set(m.seed_id, []); mo.get(m.seed_id)!.push({ item: m.item, x: m.x, y: m.y, at: Date.parse(m.created_at), cost: m.cost }); }
+    const civic = civicRoadsOf(rawSeeds, firstRoads);
     return rawSeeds.map((s0) => {
       const v0 = vo.get(s0.id), w0 = wo.get(s0.id), m0 = mo.get(s0.id);
       const s: Seed = v0 || w0 || m0 ? { ...s0, ...(v0 ? { votes: v0 } : {}), ...(w0 ? { works: w0 } : {}), ...(m0 ? { moves: m0 } : {}) } : s0;
       const bl = by.get(s.id), bo = buys.get(s.id), ch = charters.find((c) => c.seed_id === s.id), fr0 = firstRoads.filter((f) => f.seed_id === s.id), fr = fr0.length ? fr0 : null, de = decs.get(s.id);
       if (!bl && !bo && !ch && !fr && !de) return s;
       return { ...s, ...(bl ? { blessed: bl.sort((a, b) => a - b) } : {}), ...(bo ? { bought: bo.sort((a, b) => a.at - b.at) } : {}), ...(ch ? { charter: { path: ch.path as CharterPath, at: Date.parse(ch.created_at) } } : {}), ...(fr ? { roads: fr.map((f) => ({ target: f.target_id, at: Date.parse(f.created_at) })).sort((a, b) => a.at - b.at) } : {}), ...(de ? { decisions: de.sort((a, b) => a.at - b.at) } : {}) };
-    }).map((s) => {
-      const civicRoads = rawSeeds.filter(o => o.id !== s.id).flatMap(o => {
-        const a = { ...s, roads: firstRoads.filter(r => r.seed_id === s.id).map(r => ({ target: r.target_id, at: Date.parse(r.created_at) })) };
-        const b = { ...o, roads: firstRoads.filter(r => r.seed_id === o.id).map(r => ({ target: r.target_id, at: Date.parse(r.created_at) })) };
-        const at = roadDone(a, b);
-        return at === null ? [] : [{ at }];
-      });
-      s = { ...s, civicRoads };
+    }).map((s, i) => {
+      s = { ...s, civicRoads: civic[i]! };
       const lt = letters.filter((g) => g.from_seed === s.id).map((g) => ({ id: g.id, to: g.to_seed, at: Date.parse(g.created_at) }));
       return lt.length ? { ...s, letters: lt } : s;
     }).map((s) => {
