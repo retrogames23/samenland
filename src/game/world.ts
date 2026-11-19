@@ -2114,3 +2114,5 @@ export const CHARTER_FIT: Record<Character, CharterPath> = { plains: "farm", for
 export const charterReady = (createdAt: string, now: number) => (now - Date.parse(createdAt)) / 3.6e6 >= CHARTER_FROM;
 export const charterFits = (c: Character, p: CharterPath) => CHARTER_FIT[c] === p;
 setMonumentHook((s, at, key) => monumentProgress(s, at, key as MonumentKey) >= 1);
+/** Test-only read access to two internal functions (twin regression tests compare against the pre-P.8d reference). Never call from game code. */
+export const __twinTestHooks = { effAgeBase, twinHours };
