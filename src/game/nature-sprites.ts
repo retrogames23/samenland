@@ -1,4 +1,4 @@
-import { seasonalImage } from "./season-art";
+import { seasonalImage, lastWasProvisional } from "./season-art";
 import { seasonKey } from "./season";
 import { pCount } from "./perf-probe";
 import grass from "@/assets/terrain/grass.jpg";
@@ -51,7 +51,7 @@ export function texture(c: C, t: Tex, shift = 0, bare = false): CanvasPattern | 
   if (!p) {
     const i = img(TEX[t]); if (!i) return null;
     p = c.createPattern(seasonalImage(i, bare ? "track" : texRole(t)), "repeat") ?? undefined; if (!p) return null;
-    if (pats.size > 44) pats.clear(); pats.set(key, p);
+    if (!lastWasProvisional()) { if (pats.size > 44) pats.clear(); pats.set(key, p); } // stand-in patterns are never cached
   }
   const s = SPAN[t] / 816;
   TEX_M.setMatrixValue("none");
@@ -124,6 +124,7 @@ export function texSample(t: Tex) {
   const i = img(TEX[t]); if (!i) return null;
   const n = 64, cv = document.createElement("canvas"); cv.width = cv.height = n;
   const g = cv.getContext("2d", { willReadFrequently: true })!; g.drawImage(seasonalImage(i, texRole(t)), 0, 0, n, n);
+  if (lastWasProvisional()) return null;
   const r = { d: g.getImageData(0, 0, n, n).data, n }; if (samples.size > 44) samples.clear(); samples.set(key, r); return r;
 }
 export const allTexturesReady = () => (Object.keys(TEX) as Tex[]).every((t) => texSample(t));

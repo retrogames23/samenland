@@ -39,7 +39,7 @@ import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
 import { houseLit, candleFlicker, lampStrength } from "./night";
 import { sunTimes, nightLevel, duskGlow } from "./sun";
 const sunNow = () => sunTimes(clock());
-import { setArtTime, seasonalImage } from "./season-art";
+import { setArtTime, seasonalImage, standIns } from "./season-art";
 import { seasonKey, seasonAt } from "./season";
 import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
@@ -2532,6 +2532,7 @@ function groundChunkBake(key: string, ix: number, iy: number, q: number): HTMLCa
     return null;
   }
   g.setTransform(q, 0, 0, q, -left * q, -top * q);
+  const si0 = standIns();
   // fill only this chunk's diamond so neighbouring chunks never double-paint
   g.save();
   const a = iso(X0 - 0.5, Y0 - 0.5), b = iso(X1 + 0.5, Y0 - 0.5), d = iso(X1 + 0.5, Y1 + 0.5), e = iso(X0 - 0.5, Y1 + 0.5);
@@ -2545,7 +2546,7 @@ function groundChunkBake(key: string, ix: number, iy: number, q: number): HTMLCa
     const [cx, cy] = iso(x, y);
     natureAt(g, x, y, cx, cy, 0, true);
   }
-  if (!allTexturesReady() || !natureReady()) missing = true;
+  if (!allTexturesReady() || !natureReady() || standIns() !== si0) missing = true;
   (cv as HTMLCanvasElement & { ox?: number; oy?: number }).ox = left;
   (cv as HTMLCanvasElement & { ox?: number; oy?: number }).oy = top;
   if (missing) return cv; // not cached: re-bake once images have loaded
@@ -2588,14 +2589,14 @@ function drawOutskirts(c: C, x0: number, x1: number, y0: number, y1: number, z: 
         const left = iso(X0, Y1)[0] - TW * 2, right = iso(X1, Y0)[0] + TW * 2, top = iso(X0, Y0)[1] - TH - PAD_TOP - 30, bottom = iso(X1, Y1)[1] + TH + 12;
         const n = document.createElement("canvas") as HTMLCanvasElement & { ox: number; oy: number; bm?: ImageBitmap };
         n.width = Math.ceil((right - left) * q); n.height = Math.ceil((bottom - top) * q);
-        const g = n.getContext("2d")!; g.setTransform(q, 0, 0, q, -left * q, -top * q);
+        const g = n.getContext("2d")!; g.setTransform(q, 0, 0, q, -left * q, -top * q); const si0 = standIns();
         for (let d = X0 + Y0; d <= X1 + Y1; d++) for (let x = Math.max(X0, d - Y1); x <= Math.min(X1, d - Y0); x++) {
           const y = d - x;
           if (!nearTown(x, y) || !outskirt(x, y) || sparePlanted(x, y, structureAt(x, y, seeds, now))) continue;
           const [px, py] = iso(x, y); natureAt(g, x, y, px, py, 0, true, false);
         }
         n.ox = left; n.oy = top;
-        if (!allTexturesReady() || !natureReady()) continue; // art loading: stay live, retry later
+        if (!allTexturesReady() || !natureReady() || standIns() !== si0) continue; // art loading: stay live, retry later
         cv = n; outCache.set(key, cv);
         if (typeof createImageBitmap === "function") void createImageBitmap(n).then((bm) => { n.bm = bm; }, () => {});
         for (const k of outCache.keys()) { if (outCache.size <= 160) break; if (!k.startsWith(`${ix},${iy},`)) { outCache.get(k)?.bm?.close(); outCache.delete(k); } }
@@ -3482,7 +3483,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
     if (stale && adm) staleAdmitted++;
     if (stale && adm && perfOn()) pCount(e.baked <= -1e9 ? "flat.staleNew" : e.dirty ? "flat.staleDirty" : e.q !== q ? "flat.staleQ" : e.sk !== sk ? "flat.staleSeason" : "flat.staleArt");
     if (perfOn()) { pCount("flat.chunksVisible"); if (stale && adm) pCount("flat.chunksStale"); if (e.dirty) pCount("flat.chunksDirty"); }
-    if (stale && adm && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; pCount("flat.bakeCount"); bakeFlat(e, ix, iy, q, seeds, now, t, z); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false; staleAdmitted--; }
+    if (stale && adm && bakes < 1 && frameBakes < 1) { bakes++; frameBakes++; pCount("flat.bakeCount"); { const si0 = standIns(); bakeFlat(e, ix, iy, q, seeds, now, t, z); e.full = ready && !agriMiss && standIns() === si0; } e.q = q; e.sk = sk; e.baked = t; e.dirty = false; staleAdmitted--; }
     if (e.empty && e.q === q) { flatSet.add(key); vBaked++; continue; }
     // soft fallback: while a re-bake is pending, keep showing the previous bake scaled (never live-draw the whole chunk)
     if (e.cv && e.sk === sk) { pCount("flat.chunksBlit"); c.drawImage(e.bm ?? e.cv, e.cv.ox, e.cv.oy, e.cv.width / e.q, e.cv.height / e.q); flatSet.add(key); if (e.q === q) vBaked++; }
@@ -3500,7 +3501,7 @@ function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z:
       if (e && !e.dirty && e.q === q && e.sk === sk) continue;
       if (!e) { e = newFlat(); flatCache.set(key, e); }
       frameBakes++; pCount("flat.bakeCount"); pCount("flat.lookaheadBakes");
-      bakeFlat(e, ix, iy, q, seeds, now, t, z); e.q = q; e.sk = sk; e.full = ready && !agriMiss; e.baked = t; e.dirty = false;
+      { const si0 = standIns(); bakeFlat(e, ix, iy, q, seeds, now, t, z); e.full = ready && !agriMiss && standIns() === si0; } e.q = q; e.sk = sk; e.baked = t; e.dirty = false;
       total += heldBytes(e);
       break outer;
     }
