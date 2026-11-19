@@ -1868,6 +1868,7 @@ export function twinSince(l: Link, seeds: Seed[]): number | null {
 }
 /** Two towns whose outskirts touch become a twin town. */
 export function isTwin(l: Link, seeds: Seed[], now: number) {
+  if (!twinSiteAt(l, seeds, now)) return false; // no touch yet ⇒ twinSince > now (monotone R), skips the bisection
   const t = twinSince(l, seeds);
   return t !== null && now >= t;
 }
@@ -1881,6 +1882,7 @@ const latest = <T extends { partner: string; at: number }>(xs: T[] | undefined, 
 export function pactOf(s: Seed, o: Seed, seeds: Seed[], now: number): { kind: PactKind; at: number } | null {
   const l = links(seeds).find((k) => (k.a.id === s.id && k.b.id === o.id) || (k.a.id === o.id && k.b.id === s.id));
   if (!l) return null;
+  if (!twinSiteAt(l, seeds, now)) return null;
   const ts = twinSince(l, seeds); if (ts === null || now < ts) return null;
   const mine = latest(s.votes, o.id, now), theirs = latest(o.votes, s.id, now);
   let r: { kind: PactKind; at: number } | null = null;
@@ -1922,6 +1924,7 @@ function twinHours(s: Seed, seeds: Seed[], now: number) {
   let h = 0;
   for (const l of links(seeds)) {
     if (l.a.id !== s.id && l.b.id !== s.id) continue;
+    if (!twinSiteAt(l, seeds, now)) continue;
     const ts = twinSince(l, seeds); if (ts === null || now < ts) continue;
     const o = l.a.id === s.id ? l.b : l.a;
     h += TWIN_BONUS * (now - ts) / 3.6e6;

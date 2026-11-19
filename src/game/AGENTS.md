@@ -62,6 +62,7 @@
 - structureAt spatial pick (picksOf/gridOf in world.ts): bought sites indexed by tile and towns bucketed by reachOf(s, r + 0.5) + 1, bound to the seeds array and exact `now`, candidates in seed-array order — keeps the tie-break and every claim; decision logic stays unchanged.
 
 - twinSites gates sites via twinSiteAt (direct point-in-time reach check, same founding and 3-year bounds as twinSince, may open <2 min earlier); every other twin mechanic keeps twinSince — sites hold no homes, so tax is unaffected.
+- isTwin, twinHours and pactOf first gate on twinSiteAt(now) and only then apply the exact minute-rounded twinSince (monotone reach ⇒ no touch means ts > now) — skips future bisections that evicted the current baseMemo slot; twinSince itself and chronicle stay unchanged.
 
 - Spatial pick prefilter: gridOf (world.ts) sizes cells with effAgeUpper (effAgeBase + max twin rate × GROWTH_PACE × hours since younger founding, only for links passing twinSiteAt) — no twinSince bisection; it may only add candidates, never feed growth, tax or display.
 - effAge memo (world.ts ageMemo) keeps AGE_SLOTS timestamp slots per seed array (LRU) so now/now+1h lookups in structureAt never evict each other; [s] calls stay fresh arrays (no singleSeed) because in-place seed mutations cannot be invalidated safely.
