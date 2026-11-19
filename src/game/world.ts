@@ -1072,6 +1072,11 @@ export const setEstateHook = (f: typeof estateHook) => { estateHook = f; };
 const PICK_CELL = 32;
 type Pick = { now: number; sites: Map<number, number[]>; grid: Map<number, number[]> | null };
 const pickMemo = new WeakMap<Seed[], Pick>();
+/** Test/measurement switches: cheap = gridOf sized by effAgeBound (no effAgeBase), lazyTwin = twin sites per region
+ *  via the midpoint index; false restores the previous reference paths. Counters are diagnostics only. */
+export const pickCfg = { cheap: true, lazyTwin: true, gridSeeds: 0, twinLinks: 0, twinCells: 0 };
+/** Test helper: forget cached structureAt results so a reference and an optimised pass never share entries. */
+export function clearStructureCaches() { scaches.clear(); lastCache = null; lastSeeds = null; }
 function picksOf(seeds: Seed[], now: number): Pick {
   let p = pickMemo.get(seeds);
   if (p && p.now === now) return p;
@@ -1085,7 +1090,8 @@ function gridOf(p: Pick, seeds: Seed[], now: number): Map<number, number[]> {
   const grid = new Map<number, number[]>();
   seeds.forEach((s, i) => {
     if (now < Date.parse(s.created_at)) return;
-    const R = reachOf(s, radiusOf(effAgeUpper(s, seeds, now)) + 0.5) + 1;
+    pickCfg.gridSeeds++;
+    const R = reachOf(s, radiusOf(pickCfg.cheap ? effAgeBound(s, seeds, now) : effAgeUpper(s, seeds, now)) + 0.5) + 1;
     const cx0 = Math.floor((s.x - R) / PICK_CELL), cx1 = Math.floor((s.x + R) / PICK_CELL);
     const cy0 = Math.floor((s.y - R) / PICK_CELL), cy1 = Math.floor((s.y + R) / PICK_CELL);
     for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
@@ -1111,7 +1117,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
   if (c !== undefined) { pSA(false); return c; }
   pSA(true);
   let best: Structure | null = null;
-  const tw = twinSites(seeds, now).get(ck);
+  const tw = pickCfg.lazyTwin ? twinSiteGet(ck, seeds, now) : twinSites(seeds, now).get(ck);
   if (tw) { best = { kind: tw.kind, seed: tw.seed, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
   const pick = picksOf(seeds, now);
   for (const si of pick.sites.get(ck) ?? NO_PICK) {
@@ -1604,6 +1610,38 @@ export const viewAge = (s: Seed, seeds: Seed[], now: number) => effAge(s, seeds,
  *  holds, and its per-link rate is at most TWIN_BONUS + max pact + WORK_BONUS + BLESS_BONUS (0.35) since the younger
  *  founding, times GROWTH_PACE. Calls no twinSince, so no bisection. */
 export const twinRateMax = () => TWIN_BONUS + Math.max(...Object.values(PACT_GROWTH)) + WORK_BONUS + BLESS_BONUS;
+/** Links touching each seed, in links() order (built once per links array). */
+const bySeedMemo = new WeakMap<Link[], Map<string, Link[]>>();
+export function linksOfSeed(seeds: Seed[], id: string): Link[] {
+  const ls = links(seeds); let m = bySeedMemo.get(ls);
+  if (!m) { m = new Map(); for (const l of ls) for (const k of [l.a.id, l.b.id]) { const a = m.get(k); if (a) a.push(l); else m.set(k, [l]); } bySeedMemo.set(ls, m); }
+  return m.get(id) ?? [];
+}
+/** Cheap prefilter-only bound on effAge for gridOf; reads only the seed's own rows and its own links (no effAgeBase,
+ *  no twinSiteAt, no twinSince). Proof sketch (each step is ≥ the real term):
+ *  - careCeiling(v) ≤ v; base is computed exactly (age + bless + boons + farm);
+ *  - trade extra = base·softTrade(..) ≤ max(0,base)·max(TRADE_CAP, max OPERA_CEIL_MAX) (tradeCapOf is capped by OPERA_CEIL_MAX);
+ *  - mentorHours ≤ min(age, MENTOR_SPAN)·MENTOR_RATE;
+ *  - twinHours per link ≤ (TWIN_BONUS + max pact + WORK_BONUS)·H + blessHours(s), with H the hours since the earliest of
+ *    the younger founding and every vote/work row of the pair (twinSince, pact `at` and work done are never earlier). */
+export function effAgeBound(s: Seed, seeds: Seed[], now: number) {
+  const age = ageHours(s, now), bless = blessHours(s, now);
+  let base = age + bless + boonHours(s.decisions ?? [], now);
+  if (s.charter?.path === "farm" && now > s.charter.at) base += (now - s.charter.at) / 3.6e6 * FARM_BONUS;
+  const ceil = Math.max(TRADE_CAP, ...OPERA_CEIL_MAX);
+  let h = base + Math.max(0, base) * ceil + Math.min(age, MENTOR_SPAN) * MENTOR_RATE;
+  const rate = TWIN_BONUS + Math.max(...Object.values(PACT_GROWTH)) + WORK_BONUS;
+  let tw = 0;
+  for (const l of linksOfSeed(seeds, s.id)) {
+    const o = l.a.id === s.id ? l.b : l.a;
+    let t0 = Math.max(Date.parse(l.a.created_at), Date.parse(l.b.created_at));
+    for (const r of [...(s.votes ?? []), ...(s.works ?? [])]) if (r.partner === o.id) t0 = Math.min(t0, r.at);
+    for (const r of [...(o.votes ?? []), ...(o.works ?? [])]) if (r.partner === s.id) t0 = Math.min(t0, r.at);
+    if (now <= t0) continue;
+    tw += rate * (now - t0) / 3.6e6 + bless;
+  }
+  return Math.max(0, h) * GROWTH_PACE + tw * GROWTH_PACE + 1e-6;
+}
 export function effAgeUpper(s: Seed, seeds: Seed[], now: number) {
   let h = 0;
   for (const l of links(seeds)) {
@@ -1975,6 +2013,58 @@ export function twinSites(seeds: Seed[], now: number) {
   }
   siteMemo.set(seeds, { key, map });
   return map;
+}
+/** Regional twin sites: links indexed by midpoint cell; a tile's entry only comes from links whose midpoint lies within
+ *  2 tiles, so a cell is evaluated from the neighbouring midpoints in links() order (same last-writer as twinSites).
+ *  Per seeds array an LRU of TW_SLOTS ticks, each reusing the first `now` of its tick like twinSites. */
+const TW_CELL = 8, TW_SLOTS = 16;
+const midMemo = new WeakMap<Link[], Map<number, number[]>>();
+const twLazy = new WeakMap<Seed[], { key: number; now: number; cells: Map<number, Map<number, { kind: Kind; seed: Seed }>> }[]>();
+export function twinSiteGet(ck: number, seeds: Seed[], now: number) {
+  const ls = links(seeds);
+  let mid = midMemo.get(ls);
+  if (!mid) {
+    mid = new Map();
+    ls.forEach((l, i) => { if (l.tiles.length < 7) return; const [x, y] = l.tiles[Math.floor(l.tiles.length / 2)]!;
+      const k = Math.floor(y / TW_CELL) * 65536 + Math.floor(x / TW_CELL); const a = mid.get(k); if (a) a.push(i); else mid.set(k, [i]); });
+    midMemo.set(ls, mid);
+  }
+  const key = cacheTick(now);
+  let slots = twLazy.get(seeds); if (!slots) { slots = []; twLazy.set(seeds, slots); }
+  let si = slots.findIndex((c) => c.key === key), slot;
+  if (si < 0) { slot = { key, now, cells: new Map() }; slots.unshift(slot); if (slots.length > TW_SLOTS) slots.pop(); }
+  else { slot = slots[si]!; if (si > 0) { slots.splice(si, 1); slots.unshift(slot); } }
+  const x = ck % MAP, y = Math.floor(ck / MAP), cx = Math.floor(x / TW_CELL), cy = Math.floor(y / TW_CELL), cell = cy * 65536 + cx;
+  let map = slot.cells.get(cell);
+  if (!map) {
+    map = new Map(); pickCfg.twinCells++;
+    const t = slot.now, idx: number[] = [];
+    for (let yy = cy - 1; yy <= cy + 1; yy++) for (let xx = cx - 1; xx <= cx + 1; xx++) for (const i of mid.get(yy * 65536 + xx) ?? []) idx.push(i);
+    idx.sort((a, b) => a - b);
+    const x0 = cx * TW_CELL, y0 = cy * TW_CELL;
+    for (const i of idx) {
+      const l = ls[i]!; pickCfg.twinLinks++;
+      if (!twinSiteAt(l, seeds, t)) continue;
+      const m = Math.floor(l.tiles.length / 2);
+      const put = (j: number, kind: Kind, dx = 0, dy = 0) => {
+        const tt = l.tiles[j]; if (!tt || l.water[j]) return;
+        const px = tt[0] + dx, py = tt[1] + dy;
+        if (px < x0 || px >= x0 + TW_CELL || py < y0 || py >= y0 + TW_CELL) return;
+        if (dx || dy) { if (!buildable(terrain(px, py))) return; }
+        map!.set(py * MAP + px, { kind, seed: j < m ? l.a : l.b });
+      };
+      put(m, "well"); put(m - 1, "square"); put(m + 1, "square");
+      if (marketHours(t)) { put(m - 2, "market"); put(m + 2, "market"); }
+      const w = workOf(l.a, l.b, t);
+      if (w.work && w.done !== null && t >= w.done) {
+        const [ax, ay] = l.tiles[m - 1]!, [bx, by] = l.tiles[m + 1]!;
+        const px = -Math.sign(by - ay) * 2, py = Math.sign(bx - ax) * 2;
+        put(m, WORK_KIND[w.work], px || 2, py);
+      }
+    }
+    slot.cells.set(cell, map);
+  }
+  return map.get(ck);
 }
 /** Twin pair whose gate stands on (or next to) this tile. */
 export function twinGateAt(x: number, y: number, seeds: Seed[], now: number) {

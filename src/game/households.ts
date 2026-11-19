@@ -1,7 +1,7 @@
 import { townCharacter } from "./character";
 import { dwellingSlots, MAX_SLOTS } from "./density";
 import { leaversOf } from "./wander";
-import { hash, structureAt, reachOf, radiusOf, effAge, townDist, specialSites, twinSites, roadOwnerAt, MAP, type Seed, type Kind } from "./world";
+import { hash, structureAt, twinSiteGet, pickCfg, reachOf, radiusOf, effAge, townDist, specialSites, twinSites, roadOwnerAt, MAP, type Seed, type Kind } from "./world";
 
 export type HomeTile = [number, number];
 export const HOME_SIZES: Partial<Record<Kind, readonly [number, number]>> = { hut: [2, 2], suburb: [2, 4], farmhouse: [2, 4], cottage: [2, 3], townhouse: [2, 4], townhouse2: [2, 4], fachwerk: [2, 5], steinhaus: [2, 5], handwerker: [2, 4], patrician: [2, 5], villa: [2, 4], tenement: [4, 8], inn: [2, 2], bakery: [2, 2] };
@@ -37,9 +37,9 @@ export function townTiles(s: Seed, seeds: Seed[], now: number) {
   const byKind = new Map<Kind, HomeTile[]>(), sites: HomeTile[] = [];
   // Exact pre-filter: structureAt only gives this town a tile inside townDist <= rad + 0.5,
   // unless the tile is one of its bought sites, a twin-town site or a trade-road tile credited to it — those are always checked.
-  const own = specialSites(s), twins = twinSites(seeds, now);
+  const own = specialSites(s), twins = pickCfg.lazyTwin ? null : twinSites(seeds, now);
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    if (townDist(x, y, s) > rad + 0.5) { const k = y * MAP + x; if (!own.has(k) && twins.get(k)?.seed.id !== s.id && roadOwnerAt(x, y, seeds) !== s.id) continue; }
+    if (townDist(x, y, s) > rad + 0.5) { const k = y * MAP + x; if (!own.has(k) && (twins ? twins.get(k) : twinSiteGet(k, seeds, now))?.seed.id !== s.id && roadOwnerAt(x, y, seeds) !== s.id) continue; }
     const st = structureAt(x, y, seeds, now);
     if (!st || st.seed.id !== s.id) continue;
     if (st.build !== undefined) { sites.push([x, y]); continue; }
