@@ -2851,7 +2851,9 @@ function drawSheetFrame(c: C, sheet: HTMLImageElement, f: number, fw: number, ww
 }
 
 /** Dev sprite lab: one row per figure, one card per situation it meets in the game — drawn by the real game paths. */
-export type LabOpts = { boxes: boolean; lines: boolean; weather: WeatherKind | null };
+export type LabOpts = { boxes: boolean; lines: boolean; weather: WeatherKind | null; dir?: [number, number] | undefined; walk?: boolean | undefined };
+/** Treadmill overrides for villager entries (lab only): tile heading and walking flag, as the game's Pose carries them. */
+let labDir: [number, number] | null = null, labWalk: boolean | null = null;
 export type LabCat = "mayor" | "court" | "folk" | "robe" | "kids" | "animal" | "feast" | "road";
 type LabEntry = { label: string; row: string; sit: string; cat: LabCat; h: number; w?: number; night?: boolean; wx?: WeatherKind | undefined; cfg: FigureConfig | null; draw: (c: C, h: number, ph: number, now: number) => number | null };
 const LAB_SEED = { id: "lab", hue: 30, bought: [], x: 0, y: 0 } as unknown as Seed;
@@ -2867,7 +2869,7 @@ function labEntries(): LabEntry[] {
       looks: { skin: 0, hair: 0, shirt: 0, pants: 0, hat: false, stick: false }, estate: o.estate } as unknown as Person;
     for (const sit of sits) {
       const walking = sit === "walk" || sit === "carry" || sit === "lantern" || sit === "rain" || sit === "storm";
-      const pose = (ph: number): Pose => ({ p, x: 0, y: 0, visible: true, walking, dir: [1, 0], phase: ph, act: sit === "work" ? "work" : "stroll",
+      const pose = (ph: number): Pose => ({ p, x: 0, y: 0, visible: true, walking: walking && (labWalk ?? true), dir: labDir ?? [1, 0], phase: ph, act: sit === "work" ? "work" : "stroll",
         working: sit === "work", talk: null, talkTurn: false, carry: sit === "carry" || sit === "carryStand" ? "grain" : null, dest: null, festive: o.festive, bucket: sit === "bucket" });
       const k = folkOf(pose(0)), robe = SKIRTS.has(k);
       const work = sit === "work", big = work ? (JOB_WORK[job]?.scale ?? 1.3) : 1;
@@ -3114,8 +3116,9 @@ export function drawLabFigure(c: C, i: number, x: number, y: number, z: number, 
   c.save(); c.translate(x, y); c.scale(z, z); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   // the card's own weather (rain/storm/snow column) or the cabinet-wide choice; restored so the map keeps its sky
   const rn = renderNow; renderNow = now; setWeatherPreview(e.wx ?? o.weather);
+  labDir = o.dir ?? null; labWalk = o.walk ?? null;
   let w: number | null = null;
-  try { w = e.draw(c, e.h, ph, now); } finally { setWeatherPreview(null); renderNow = rn; c.restore(); }
+  try { w = e.draw(c, e.h, ph, now); } finally { setWeatherPreview(null); renderNow = rn; labDir = null; labWalk = null; c.restore(); }
   if (w == null) return;
   const h = e.h * z, ww = w * z, g = e.cfg;
   c.lineWidth = 1;
