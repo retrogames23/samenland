@@ -22,3 +22,4 @@
 - [x] Phase C: server-synchronisierte, monotone Realm-Uhr abgeschlossen und abgenommen
 - [x] ovCache-Kapazität an die Seed-Zahl angepasst; lokale Maxout-/Kontrollmessungen, Bildvergleiche und vollständige QS abgeschlossen
 - [ ] Verbindliche iPhone-Safari-Nachmessung des ovCache-Fixes – wartet auf die neue Messdatei vom Gerät
+- [x] Auftrag 8: Produktionsbriefing, acht Posenbeschreibungen, Stil-/Qualitätsreferenz, Sheet-Vorgaben und manueller Produktionsprozess; keine Produktivassets oder Renderer-Änderungen
