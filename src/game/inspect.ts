@@ -9,18 +9,35 @@ const PAVED: ReadonlySet<string> = new Set(["square", "street", "path", "road", 
 /** Only really tall buildings reach two tiles back on screen. */
 const TALL: ReadonlySet<string> = new Set(["church", "factory", "cathedral", "belfry", "townhall", "seat3", "patrician", "steinhaus", "fachwerk", "guildtower", "lighthouse", "university", "opera", "exchange", "beginenhof", "orangery"]);
 
+/** Tiles in front of the click to try, nearest first; offsets beyond [2,2] only match 2×2 ensembles (their sprite covers them). */
+const INSPECT_OFFSETS: readonly (readonly [number, number])[] = [
+  [0, 0], [1, 1], [1, 0], [0, 1], [2, 2],
+  [2, 1], [1, 2], [2, 0], [0, 2], [3, 1], [1, 3], [3, 2], [2, 3], [3, 3], [4, 2], [2, 4], [3, 4], [4, 3],
+];
+
+/** True when a 2×2 ensemble's wide sprite is painted over this tile (so a tap means the building, not the ground). */
+export function ensembleOver(x: number, y: number, seeds: Seed[], now: number): boolean {
+  for (const [dx, dy] of INSPECT_OFFSETS) {
+    const st = structureAt(x + dx, y + dy, seeds, now);
+    if (st && FOOT2.has(st.kind) && st.build === undefined) return true;
+  }
+  return false;
+}
+
 export type Inspect = { x: number; y: number; kind: Kind; seed: Seed; build: number | null; doneAt: number | null; residents: Person[]; workers: Person[] };
 
 /** Building or site under a click. Sprites rise above their tile, so tiles in front (+x/+y) are tried too. */
 export function inspectAt(x: number, y: number, seeds: Seed[], now: number): Inspect | null {
-  for (const [dx, dy] of [[0, 0], [1, 1], [1, 0], [0, 1], [2, 2]] as const) {
+  for (const [dx, dy] of INSPECT_OFFSETS) {
     let tx = x + dx, ty = y + dy;
     let st = structureAt(tx, ty, seeds, now);
     // the paved back tiles of a 2×2 ensemble belong to the building on its front tile
     const owner = st?.kind === "square" ? ensembleFront(tx, ty, st, seeds, now) : null;
     if (owner) { tx = owner[0]; ty = owner[1]; st = owner[2]; }
     if (!dx && !dy && st && PAVED.has(st.kind)) return null;
-    if (dx === 2 && st && !TALL.has(st.kind)) continue;
+    // wide 2×2 ensembles paint up to four tiles back; ordinary tall houses reach two
+    if ((dx > 2 || dy > 2 || dx !== dy) && (dx >= 2 || dy >= 2) && st && !FOOT2.has(st.kind)) continue;
+    if (dx === 2 && dy === 2 && st && !TALL.has(st.kind)) continue;
     // a click on an own garden/pasture opens it, never the roof of a neighbour
     const own = !dx && !dy && !!st && LOW.has(st.kind);
     if (!st || (!own && FLAT.has(st.kind) && st.kind !== "market" && st.kind !== "field")) continue;

@@ -30,7 +30,7 @@ import { townOf, poseOf, jobKey, weddingFocus, kinOf, FETE_SECS, commandMayor, d
 import { traitsOf, thoughtOf } from "@/game/traits";
 import { banter } from "@/game/banter";
 import { weddingJoy, weddingLive } from "@/game/weddings";
-import { inspectAt, paintedKind, type Inspect } from "@/game/inspect";
+import { inspectAt, ensembleOver, paintedKind, type Inspect } from "@/game/inspect";
 import { larderOf, storedAt, chainOf, boonsOf, type Ware } from "@/game/goods";
 import { WareIcon } from "@/components/hud/WareIcon";
 import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, Crown, X, LogIn, Footprints } from "lucide-react";
@@ -2892,8 +2892,9 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               // every animal standing here answers with its own call (cow moos, sheep bleat, hens cluck …)
               const beasts = tileFacts(tx, ty, seeds, clock(), isPlantedRare(st.current.plantings, tx, ty)).animals;
               // a click on a pasture means the herd, never a house whose roof rises over it
+              // …unless a 2×2 ensemble's wide sprite is painted over this pasture
               { const here = structureAt(tx, ty, seeds, clock());
-                if (here?.kind === "pasture" && here.build === undefined) { animalCall(beasts.includes("cow") ? "cow" : "sheep", pan); setWho(null); setPlace(null); return; } }
+                if (here?.kind === "pasture" && here.build === undefined && !ensembleOver(tx, ty, seeds, clock())) { animalCall(beasts.includes("cow") ? "cow" : "sheep", pan); setWho(null); setPlace(null); return; } }
               const beast = beasts[0];
               // send your mayor to a walkable tile of your own village; when he is selected this wins over nearby roofs
               const sendMayor = () => { const my = seeds.find((x) => x.id === mine); if (!my) return false;
@@ -2903,7 +2904,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               if (who?.role === "mayor" && who.seed.id === mine && sendMayor()) return;
               const ins0 = inspectAt(tx, ty, seeds, clock());
               const ins = ins0 && isPlantedRare(st.current.plantings, ins0.x, ins0.y) ? null : ins0;
-              if (ins) { if (beast) animalCall(beast, pan); else tap(pan); setWho(null); knock(ins); return setPlace(ins); }
+              if (ins) { if (beast && !FOOT2.has(ins.kind)) animalCall(beast, pan); else tap(pan); setWho(null); knock(ins); return setPlace(ins); }
               const hadCard = !!who || !!place;
               setPlace(null); setWho(null);
               if (!hadCard && sendMayor()) return;
