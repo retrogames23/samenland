@@ -67,3 +67,5 @@
 - effAge memo (world.ts ageMemo) keeps AGE_SLOTS timestamp slots per seed array (LRU) so now/now+1h lookups in structureAt never evict each other; [s] calls stay fresh arrays (no singleSeed) because in-place seed mutations cannot be invalidated safely.
 - civicRoads come from civicRoadsOf (civic-roads.ts): first_roads grouped once, only decided pairs evaluated, output aligned with seed order; civic-roads.test.ts proves equality with the former all-pairs reference in __ref — keep both identical.
 - Seat-fete rank history (people.ts seatFete/rankAtStep): rankMemo is keyed by realm list + seedsKey content (rank reads per-realm terrain), never by village count, and effAgeBase is an exact per-(seeds array, now) LRU memo (BASE_SLOTS, baseMemoCfg test switch) — the 2.5 h / 15 min scan stays complete because rank is not provably monotone (leavers empty houses).
+
+- transitRoutes/hubRoutes are memoized per (seeds array, links() result, Seed object) with frozen results; transitRoutesRaw/hubRoutesRaw stay the reference (route-memo.test.ts) — both read no clock, so the memo never needs a time key.

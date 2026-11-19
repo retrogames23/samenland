@@ -1684,7 +1684,30 @@ export const hubBonus = (s: Seed) => TRANSIT_HUB * (s.user_id && townCharacter(s
 const roadDoneAt = (l: Link) => l.doneAt;
 const other = (l: Link, id: string) => (l.a.id === id ? l.b : l.a);
 export type Transit = { to: Seed; via: Seed; since: number; d: number; bonus: (now: number) => number };
+/** Exact memo of transitRoutes/hubRoutes per seeds array AND per links() result: both are pure in (s, seeds) and read
+ *  only the link set and the queried Seed object (keyed by object, so a changed copy never reuses a closure) (no `now`), so a new seeds array or any new link set recomputes. Results are frozen (never mutated). */
+type RouteMemo = { ls: Link[]; t: Map<Seed, readonly Transit[]>; h: Map<Seed, readonly { since: number }[]> };
+const routeMemo = new WeakMap<Seed[], RouteMemo>();
+export const routeMemoCfg = { on: true, transitMisses: 0, hubMisses: 0, hits: 0 };
+function routeSlot(seeds: Seed[]): RouteMemo {
+  const ls = links(seeds); let m = routeMemo.get(seeds);
+  if (!m || m.ls !== ls) { m = { ls, t: new Map(), h: new Map() }; routeMemo.set(seeds, m); }
+  return m;
+}
 export function transitRoutes(s: Seed, seeds: Seed[]): Transit[] {
+  if (!routeMemoCfg.on) return transitRoutesRaw(s, seeds);
+  const m = routeSlot(seeds); let v = m.t.get(s);
+  if (v) routeMemoCfg.hits++; else { routeMemoCfg.transitMisses++; v = Object.freeze(transitRoutesRaw(s, seeds)); m.t.set(s, v); }
+  return v as Transit[];
+}
+export function hubRoutes(s: Seed, seeds: Seed[]): { since: number }[] {
+  if (!routeMemoCfg.on) return hubRoutesRaw(s, seeds);
+  const m = routeSlot(seeds); let v = m.h.get(s);
+  if (v) routeMemoCfg.hits++; else { routeMemoCfg.hubMisses++; v = Object.freeze(hubRoutesRaw(s, seeds)); m.h.set(s, v); }
+  return v as { since: number }[];
+}
+/** Uncached reference (also used by the equality tests). */
+export function transitRoutesRaw(s: Seed, seeds: Seed[]): Transit[] {
   const ls = links(seeds), direct = new Set(ls.filter((l) => l.a.id === s.id || l.b.id === s.id).map((l) => other(l, s.id).id));
   const best = new Map<string, Transit>();
   for (const l1 of ls) {
@@ -1703,7 +1726,7 @@ export function transitRoutes(s: Seed, seeds: Seed[]): Transit[] {
   return [...best.values()];
 }
 /** Pairs of neighbours that trade through `s` (not linked directly), with the time both roads stood. */
-export function hubRoutes(s: Seed, seeds: Seed[]): { since: number }[] {
+export function hubRoutesRaw(s: Seed, seeds: Seed[]): { since: number }[] {
   const ls = links(seeds), mine = ls.filter((l) => l.a.id === s.id || l.b.id === s.id), out: { since: number }[] = [];
   for (let i = 0; i < mine.length; i++) for (let j = i + 1; j < mine.length; j++) {
     const a = other(mine[i]!, s.id), b = other(mine[j]!, s.id);
