@@ -2487,6 +2487,14 @@ function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Struct
   const sp = agriSprite(a, key + seasonKey(now));
   if (sp) c.drawImage(sp, cx - AGRI_W / 2, cy - AGRI_UP, AGRI_W, AGRI_H);
 }
+/** A building stands just in front (south) of this tile, so a wild tree here would be cut by its walls — keep it clear (display only). */
+function roofInFront(x: number, y: number, seeds: Seed[], now: number): boolean {
+  for (const [i, j] of [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2], [2, 2], [2, 0], [0, 2]] as const) {
+    const st = structureAt(x + i, y + j, seeds, now);
+    if (st && !FLAT.has(st.kind) && (i + j <= 2 && i < 2 && j < 2 || FOOT2.has(st.kind))) return true;
+  }
+  return false;
+}
 /** Wild trees, bushes, crags and ore rocks of one tile — the single source for every zoom level. */
 function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean, turf = true, px = 0) {
   if (inCourt(x, y)) return; // the estate keeps open lawns
@@ -2593,7 +2601,7 @@ function drawOutskirts(c: C, x0: number, x1: number, y0: number, y1: number, z: 
         for (let d = X0 + Y0; d <= X1 + Y1; d++) for (let x = Math.max(X0, d - Y1); x <= Math.min(X1, d - Y0); x++) {
           const y = d - x;
           if (!nearTown(x, y) || !outskirt(x, y) || sparePlanted(x, y, structureAt(x, y, seeds, now))) continue;
-          const [px, py] = iso(x, y); natureAt(g, x, y, px, py, 0, true, false);
+          const [px, py] = iso(x, y); natureAt(g, x, y, px, py, 0, !roofInFront(x, y, seeds, now), false);
         }
         n.ox = left; n.oy = top;
         if (!allTexturesReady() || !natureReady() || standIns() !== si0) continue; // art loading: stay live, retry later
@@ -4191,7 +4199,7 @@ export function draw(
       else if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, FOOT2.has(st.kind) ? cy - TH / 2 : cy, st.v);
       continue; // forests and crags are baked into the ground chunks
     }
-    if (!st && (sharp || nearTown(x, y)) && !(outDone.has(((y / CH) | 0) * 4096 + ((x / CH) | 0)) && outskirt(x, y))) natureAt(c, x, y, cx, cy, t, true, false, z); // turf already lies in the flat pass
+    if (!st && (sharp || nearTown(x, y)) && !(outDone.has(((y / CH) | 0) * 4096 + ((x / CH) | 0)) && outskirt(x, y))) natureAt(c, x, y, cx, cy, t, !roofInFront(x, y, seeds, now), false, z); // turf already lies in the flat pass
     pFE(); pFB("p2.animals");
     if (!original && !floodWild.get(y * MAP + x)?.flood && !inCourt(x, y)) {
       const animal = farmAnimalsAt(x, y, seeds, now, pondsNow);

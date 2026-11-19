@@ -1,5 +1,5 @@
 import { streetHouse } from "./street-layout";
-import { structureAt, FLAT, type Kind, type Seed } from "./world";
+import { structureAt, FLAT, FOOT2, type Kind, type Seed, type Structure } from "./world";
 import { townOf, type Person } from "./people";
 
 const LOW: ReadonlySet<string> = new Set(["coop", "hut", "well", "hay", "fence", "campfire", "stall", "garden", "field", "market", "pasture", "herbhut"]);
@@ -7,15 +7,18 @@ const LOW: ReadonlySet<string> = new Set(["coop", "hut", "well", "hay", "fence",
 /** Paved open ground: a tap here means the ground itself, never a roof from the tile in front. */
 const PAVED: ReadonlySet<string> = new Set(["square", "street", "path", "road", "avenue", "bridge"]);
 /** Only really tall buildings reach two tiles back on screen. */
-const TALL: ReadonlySet<string> = new Set(["church", "factory", "cathedral", "belfry", "townhall", "seat3", "patrician", "steinhaus", "fachwerk", "guildtower", "lighthouse", "university", "opera", "exchange"]);
+const TALL: ReadonlySet<string> = new Set(["church", "factory", "cathedral", "belfry", "townhall", "seat3", "patrician", "steinhaus", "fachwerk", "guildtower", "lighthouse", "university", "opera", "exchange", "beginenhof", "orangery"]);
 
 export type Inspect = { x: number; y: number; kind: Kind; seed: Seed; build: number | null; doneAt: number | null; residents: Person[]; workers: Person[] };
 
 /** Building or site under a click. Sprites rise above their tile, so tiles in front (+x/+y) are tried too. */
 export function inspectAt(x: number, y: number, seeds: Seed[], now: number): Inspect | null {
   for (const [dx, dy] of [[0, 0], [1, 1], [1, 0], [0, 1], [2, 2]] as const) {
-    const tx = x + dx, ty = y + dy;
-    const st = structureAt(tx, ty, seeds, now);
+    let tx = x + dx, ty = y + dy;
+    let st = structureAt(tx, ty, seeds, now);
+    // the paved back tiles of a 2×2 ensemble belong to the building on its front tile
+    const owner = st?.kind === "square" ? ensembleFront(tx, ty, st, seeds, now) : null;
+    if (owner) { tx = owner[0]; ty = owner[1]; st = owner[2]; }
     if (!dx && !dy && st && PAVED.has(st.kind)) return null;
     if (dx === 2 && st && !TALL.has(st.kind)) continue;
     // a click on an own garden/pasture opens it, never the roof of a neighbour
@@ -31,6 +34,15 @@ export function inspectAt(x: number, y: number, seeds: Seed[], now: number): Ins
       residents: build === null ? people.filter((p) => p.home[0] === tx && p.home[1] === ty) : [],
       workers: people.filter((p) => p.home !== p.work && near(p.work, build === null ? 0 : 1.5) && (build === null || p.job === "builder")),
     };
+  }
+  return null;
+}
+
+/** Front tile of the 2×2 ensemble whose paved back tile this is (same village), else null. */
+function ensembleFront(x: number, y: number, sq: Structure, seeds: Seed[], now: number): [number, number, Structure] | null {
+  for (const [i, j] of [[1, 0], [0, 1], [1, 1]] as const) {
+    const f = structureAt(x + i, y + j, seeds, now);
+    if (f && FOOT2.has(f.kind) && f.seed.id === sq.seed.id) return [x + i, y + j, f];
   }
   return null;
 }

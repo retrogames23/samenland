@@ -2142,6 +2142,8 @@ export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, see
     const b = structureAt(xx, yy, seeds, now);
     if (b && !agri(b.kind)) return "taken";
   }
+  // 2×2 ensembles paint beyond their diamond: keep one free ring between them and any other bought building
+  if (bigClash(kind, x, y, seeds)) return "taken";
   // the carp pond must not cover a standing building (it would be hidden yet still block the way)
   if (kind === "fishery" && !waterBeside(x, y)) { const p = pondSpot(x, y); if (p) { const b = structureAt(p[0], p[1], seeds, now); if (b && !agri(b.kind)) return "taken"; } }
   // away from water the fisher digs a carp pond beside his hut, so it needs one free neighbour tile
@@ -2149,6 +2151,23 @@ export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, see
   return null;
 }
 
+/** Tiles of a placement (2×2 for ensembles) and their one-tile ring; a clash when another bought site of a different kind
+ * sits in the ring of a 2×2 ensemble — so wide courtyard sprites never paint over a neighbouring bought house. */
+function bigClash(kind: Kind, x: number, y: number, seeds: Seed[]): boolean {
+  const big = FOOT2.has(kind);
+  const x0 = big ? x - 2 : x - 1, y0 = big ? y - 2 : y - 1, x1 = x + 1, y1 = y + 1;
+  for (const o of seeds) {
+    if (!o.bought?.length) continue;
+    for (const [k, v] of specialSites(o)) {
+      if (v.until != null || v.kind === kind) continue;
+      const sx = k % MAP, sy = Math.floor(k / MAP);
+      if (sx < x0 || sx > x1 || sy < y0 || sy > y1) continue;
+      // a plain building only clashes with a 2×2 ensemble (its front tile or its paved back tiles)
+      if (big || FOOT2.has(v.kind) || v.kind === "square") return true;
+    }
+  }
+  return false;
+}
 const waterBeside = (x: number, y: number) => {
   for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) if (isWater(terrain(x + i, y + j))) return true;
   return false;
