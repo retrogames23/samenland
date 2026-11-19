@@ -122,7 +122,7 @@ import patWarmWomanAlt from "@/assets/sprites/stube/pat-warm-woman-b.webp";
 import seatUrl from "@/assets/sprites/stube/seat.webp";
 import { stubeFigureKey, stubeOf, SWADDLE_AGE, STUBE_SLOTS, PATRICIAN_SLOTS, BODY_ANCHORS, FURNITURE, anchorBottom, anchorX, furnitureY, type StubePlace, type StubeLayoutKey, type Furniture, type BodyAnchor } from "@/game/stube";
 import { clock } from "@/game/time";
-import { nightLevel } from "@/game/sun";
+import { viewNight as nightLevel } from "@/game/sun";
 import { STUBE } from "@/game/lang/stube";
 import type { Lang } from "@/game/i18n";
 import type { Person } from "@/game/people";

@@ -37,7 +37,7 @@ import { huntScene, lodgeDens, denOk, wildCandidate, denBeast, denFate, startle,
 import { roadMotion, screenFacing } from "./motion";
 import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
 import { houseLit, candleFlicker, lampStrength } from "./night";
-import { sunTimes, nightLevel, duskGlow } from "./sun";
+import { sunTimes, viewNight as nightLevel, viewGlow as duskGlow } from "./sun";
 const sunNow = () => sunTimes(clock());
 import { setArtTime, seasonalImage, standIns } from "./season-art";
 import { seasonKey, seasonAt } from "./season";

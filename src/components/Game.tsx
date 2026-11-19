@@ -89,6 +89,8 @@ import { HERALD, edictText, DECREE_HEAD, DECREE_STATUS } from "@/game/lang/edict
 import { princelyClaims, favourOf, openTaskOf, heraldVisit, decreeMet, heraldArrives, PRINCELY_COUNT, type PrincelyRow, type PrincelyKind } from "@/game/princely";
 import { courtPoses, courtCenter, atCourt, audienceHost, errandNear, ERRANDS, type AudienceHost, type Errand } from "@/game/court";
 import { BUGS } from "@/game/lang/bugs";
+import { ALWAYS_DAY } from "@/game/lang/daylight";
+import { isAlwaysDay, setAlwaysDay } from "@/game/sun";
 import { Beer, ChevronDown, MapPin, Dices, Music, Wheat, Heart, Coins } from "lucide-react";
 import { setMusic, setTavernMusic } from "@/game/music";
 import { MUSIC } from "@/game/lang/music";
@@ -3016,6 +3018,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                 <Button size="sm" variant="secondary" className="w-full" onClick={() => { setDeskOpen(true); setSettings(false); }}>🎛 {lang === "de" ? "Steuerungspult" : "Control desk"}</Button>
               </>)}
             </>)}
+            <label className="flex cursor-pointer items-center gap-2 text-xs">
+              <input type="checkbox" defaultChecked={isAlwaysDay()} onChange={(e) => setAlwaysDay(e.target.checked)} className="accent-primary" />
+              ☀ {ALWAYS_DAY[lang]}
+            </label>
             {userId && home && (
               <label className="flex cursor-pointer items-center gap-2 text-xs">
                 <input type="checkbox" checked={mailOn} onChange={(e) => toggleMail(e.target.checked)} className="accent-primary" />

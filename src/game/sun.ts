@@ -49,3 +49,12 @@ export function duskGlow(now: number): number {
   const hr = worldHour(now), t = sunTimes(now);
   return Math.max(0, 1 - Math.abs(hr - (t.set + 0.2)) / 1.4) + Math.max(0, 1 - Math.abs(hr - (t.rise - 0.1)) / 1.1);
 }
+
+// "Always day" (accessibility, local-only display): the sky never darkens on this client.
+// Villager routines keep using nightLevel, so every player still sees the same people.
+let alwaysDay = typeof localStorage !== "undefined" && localStorage.getItem("samenland-always-day") === "1";
+export const isAlwaysDay = () => alwaysDay;
+export function setAlwaysDay(on: boolean) { alwaysDay = on; try { localStorage.setItem("samenland-always-day", on ? "1" : "0"); } catch { /* ignore */ } }
+/** Darkness as drawn on screen: 0 when "always day" is on. */
+export const viewNight = (now: number) => alwaysDay ? 0 : nightLevel(now);
+export const viewGlow = (now: number) => alwaysDay ? 0 : duskGlow(now);
