@@ -18,12 +18,11 @@ export const Route = createFileRoute("/api/public/bug-digest")({
         const rows = data ?? [];
         if (!rows.length) return Response.json({ sent: 0 });
         const items = [];
-        const emails = new Set<string>();
         for (const r of rows) {
           const { data: seed } = await db.from("seeds").select("name, owner").eq("user_id", r.user_id).maybeSingle();
           const { data: u } = await supabaseAdmin.auth.admin.getUserById(r.user_id);
           const email = u?.user?.email ?? "";
-          if (email) emails.add(email);
+
           const shots: string[] = [];
           for (const p of r.shots ?? []) {
             const { data: s } = await db.storage.from("bug-shots").createSignedUrl(p, 7 * 86400);
@@ -40,8 +39,7 @@ export const Route = createFileRoute("/api/public/bug-digest")({
         const day = new Date().toISOString().slice(0, 10);
         await sendTemplateEmail("bug-digest", "stephan.doerner@posteo.de", {
           templateData: { items },
-          // One reporter that day → "Reply" goes straight to them.
-          ...(emails.size === 1 ? { replyTo: [...emails][0] } : {}),
+          // No Reply-To with the player's address: it triggered a bounce at the inbox provider; addresses are in the mail body.
           idempotencyKey: `bug-digest-${day}-${rows[rows.length - 1]!.id}`,
         });
         await db.from("bug_reports").update({ sent_at: new Date().toISOString() }).in("id", rows.map((r) => r.id));

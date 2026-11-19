@@ -15,6 +15,7 @@ import { Route as ApiPublicBugDigestRouteImport } from './routes/api/public/bug-
 import { Route as ApiPublicBuildMailRouteImport } from './routes/api/public/build-mail'
 import { Route as ApiPublicChestMailRouteImport } from './routes/api/public/chest-mail'
 import { Route as ApiPublicIdleSweepRouteImport } from './routes/api/public/idle-sweep'
+import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
@@ -50,6 +51,11 @@ const ApiPublicIdleSweepRoute = ApiPublicIdleSweepRouteImport.update({
   path: '/api/public/idle-sweep',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
+  id: '/lovable/email/events',
+  path: '/lovable/email/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/api/public/build-mail': typeof ApiPublicBuildMailRoute
   '/api/public/chest-mail': typeof ApiPublicChestMailRoute
   '/api/public/idle-sweep': typeof ApiPublicIdleSweepRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/api/public/build-mail': typeof ApiPublicBuildMailRoute
   '/api/public/chest-mail': typeof ApiPublicChestMailRoute
   '/api/public/idle-sweep': typeof ApiPublicIdleSweepRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/api/public/build-mail': typeof ApiPublicBuildMailRoute
   '/api/public/chest-mail': typeof ApiPublicChestMailRoute
   '/api/public/idle-sweep': typeof ApiPublicIdleSweepRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/api/public/build-mail'
     | '/api/public/chest-mail'
     | '/api/public/idle-sweep'
+    | '/lovable/email/events'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/api/public/build-mail'
     | '/api/public/chest-mail'
     | '/api/public/idle-sweep'
+    | '/lovable/email/events'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/api/public/build-mail'
     | '/api/public/chest-mail'
     | '/api/public/idle-sweep'
+    | '/lovable/email/events'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   ApiPublicBuildMailRoute: typeof ApiPublicBuildMailRoute
   ApiPublicChestMailRoute: typeof ApiPublicChestMailRoute
   ApiPublicIdleSweepRoute: typeof ApiPublicIdleSweepRoute
+  LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -206,6 +219,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIdleSweepRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/events': {
+      id: '/lovable/email/events'
+      path: '/lovable/email/events'
+      fullPath: '/lovable/email/events'
+      preLoaderRoute: typeof LovableEmailEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -244,6 +264,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBuildMailRoute: ApiPublicBuildMailRoute,
   ApiPublicChestMailRoute: ApiPublicChestMailRoute,
   ApiPublicIdleSweepRoute: ApiPublicIdleSweepRoute,
+  LovableEmailEventsRoute: LovableEmailEventsRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
