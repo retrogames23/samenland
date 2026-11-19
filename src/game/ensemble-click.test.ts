@@ -8,7 +8,7 @@ const now = Date.parse("2026-06-01T12:00:00Z");
 describe("2×2 ensembles", () => {
   it("a click on a paved back tile opens the Beginenhof", () => {
     const s = seed([{ item: "beginen", at: 0, x: 605, y: 604 }]);
-    for (const [x, y] of [[604, 604], [605, 603], [604, 603]]) expect(inspectAt(x, y, [s], now)?.kind).toBe("beginenhof");
+    for (const [x, y] of [[604, 604], [605, 603], [604, 603]] as const) expect(inspectAt(x, y, [s], now)?.kind).toBe("beginenhof");
   });
   it("a Beginenhof cannot be placed right beside a bought hostel", () => {
     const s = seed([{ item: "herberge", at: 0, x: 605, y: 602 }]);
