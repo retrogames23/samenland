@@ -1070,35 +1070,41 @@ export const setEstateHook = (f: typeof estateHook) => { estateHook = f; };
  * Bound to the seeds array object and the exact `now`, so it can never outlive its inputs.
  */
 const PICK_CELL = 32;
-type Pick = { now: number; sites: Map<number, number[]>; grid: Map<number, number[]> | null };
-const pickMemo = new WeakMap<Seed[], Pick>();
+type Pick = { now: number; sites: Map<number, number[]>; grid: Map<number, number[]> | null; rb: Float64Array | null };
+const pickMemo = new WeakMap<Seed[], Pick[]>();
+export const PICK_SLOTS = 16;
 /** Test/measurement switches: cheap = gridOf sized by effAgeBound (no effAgeBase), lazyTwin = twin sites per region
  *  via the midpoint index; false restores the previous reference paths. Counters are diagnostics only. */
-export const pickCfg = { cheap: true, lazyTwin: true, gridSeeds: 0, twinLinks: 0, twinCells: 0 };
+export const pickCfg = { cheap: true, lazyTwin: true, distPre: true, slots: PICK_SLOTS, gridSeeds: 0, twinLinks: 0, twinCells: 0, gridBuilds: 0, preSkips: 0 };
 /** Test helper: forget cached structureAt results so a reference and an optimised pass never share entries. */
 export function clearStructureCaches() { scaches.clear(); lastCache = null; lastSeeds = null; }
 function picksOf(seeds: Seed[], now: number): Pick {
-  let p = pickMemo.get(seeds);
-  if (p && p.now === now) return p;
+  let slots = pickMemo.get(seeds); if (!slots) { slots = []; pickMemo.set(seeds, slots); }
+  const i = slots.findIndex((c) => c.now === now);
+  if (i >= 0) { const c = slots[i]!; if (i > 0) { slots.splice(i, 1); slots.unshift(c); } return c; }
   const sites = new Map<number, number[]>();
   seeds.forEach((s, i) => { if (s.bought?.length) for (const k of specialSites(s).keys()) { const a = sites.get(k); if (a) a.push(i); else sites.set(k, [i]); } });
-  p = { now, sites, grid: null }; pickMemo.set(seeds, p);
+  const p: Pick = { now, sites, grid: null, rb: null };
+  slots.unshift(p); while (slots.length > Math.max(1, pickCfg.slots)) slots.pop();
   return p;
 }
 function gridOf(p: Pick, seeds: Seed[], now: number): Map<number, number[]> {
   if (p.grid) return p.grid;
+  pickCfg.gridBuilds++;
   const grid = new Map<number, number[]>();
+  const rb = new Float64Array(seeds.length);
   seeds.forEach((s, i) => {
     if (now < Date.parse(s.created_at)) return;
     pickCfg.gridSeeds++;
-    const R = reachOf(s, radiusOf(pickCfg.cheap ? effAgeBound(s, seeds, now) : effAgeUpper(s, seeds, now)) + 0.5) + 1;
+    rb[i] = radiusOf(pickCfg.cheap ? effAgeBound(s, seeds, now) : effAgeUpper(s, seeds, now));
+    const R = reachOf(s, rb[i]! + 0.5) + 1;
     const cx0 = Math.floor((s.x - R) / PICK_CELL), cx1 = Math.floor((s.x + R) / PICK_CELL);
     const cy0 = Math.floor((s.y - R) / PICK_CELL), cy1 = Math.floor((s.y + R) / PICK_CELL);
     for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
       const k = cy * 65536 + cx; const a = grid.get(k); if (a) a.push(i); else grid.set(k, [i]);
     }
   });
-  p.grid = grid;
+  p.grid = grid; p.rb = rb;
   return grid;
 }
 const NO_PICK: number[] = [];
@@ -1143,6 +1149,8 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
       const s = seeds[si]!;
       if (now < Date.parse(s.created_at)) continue;
       const d = townDist(x, y, s);
+      // safe prefilter: rb is radiusOf of the grid's bound (effAgeBound or effAgeUpper, both ≥ effAge), radiusOf is monotone, so r ≤ rb; skips only candidates the check below skips too
+      if (pickCfg.distPre && (d >= bestD || d > pick.rb![si]! + 0.5)) { pickCfg.preSkips++; continue; }
       const age = effAge(s, seeds, now);
       const r = radiusOf(age);
       if (d > r + 0.5 || d >= bestD) continue;
