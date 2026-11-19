@@ -19,7 +19,7 @@ import { useModeCursor } from "@/components/hooks/useModeCursor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type WonderFind } from "@/game/wonders";
-import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setSignposts, setWonderFound, setKnights, signpostMap, type Camera } from "@/game/render";
+import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setBakeHold, setSignposts, setWonderFound, setKnights, signpostMap, type Camera } from "@/game/render";
 /** Stroll position kept across reloads (browser only, never stored on the server). */
 const STROLL_KEY = "samenland-stroll", STROLL_TTL = 30 * 60e3, VIEW_KEY = "samenland-view";
 /** Tiles within which strangers in a foreign village speak to the strolling mayor. */
@@ -603,9 +603,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   }, []);
   // start over the settled heartland, never the empty ocean at tile (0,0)
   // a reload resumes the last view of this tab (sessionStorage), so the camera never idles over open sea while towns load
+  const bakeInit = useRef(false); // P.5a: hold baking once, only for the provisional default view
   const cam = useRef<Camera>((() => {
     try { const v = JSON.parse(sessionStorage.getItem(VIEW_KEY) ?? "null") as Camera | null; if (v && isFinite(v.x) && isFinite(v.y) && isFinite(v.zoom)) return { x: v.x, y: v.y, zoom: v.zoom }; } catch { /* ignore */ }
-    const [x, y] = iso(500, 500); return { x, y, zoom: 2.6 };
+    const [x, y] = iso(500, 500); if (!bakeInit.current) { bakeInit.current = true; setBakeHold(true); } return { x, y, zoom: 2.6 };
   })());
   useEffect(() => { const id = setInterval(() => { try { const c = cam.current; sessionStorage.setItem(VIEW_KEY, JSON.stringify({ x: c.x, y: c.y, zoom: c.zoom })); } catch { /* ignore */ } }, 2000); return () => clearInterval(id); }, []);
   const target = useRef({ zoom: cam.current.zoom, ax: 0, ay: 0 });
@@ -986,6 +987,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       const my = own ?? friend ?? oldest;
       if (my) focus(my.x, my.y);
       else focus(MAP / 2, MAP / 2);
+      setBakeHold(false); // P.5a: final start view known — bake from here on
       // a stroll interrupted by a reload resumes where the mayor stood (local-only, expires after STROLL_TTL)
       if (own) try {
         const sv = JSON.parse(localStorage.getItem(STROLL_KEY) ?? "null") as { sid: string; x: number; y: number; t: number } | null;
@@ -998,7 +1000,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       if (r === "lab") { const zl = Math.max(cam.current.zoom, 2.6); cam.current.zoom = zl; target.current = { ...target.current, zoom: zl }; }
       if (!own && friend) setMsg(tRef.current.invite.welcome(friend.name));
       refSeed = null; // the welcome is only for the first map
-      } finally { rtGate.current.end(epoch); }
+      } finally { setBakeHold(false); rtGate.current.end(epoch); }
       };
       loadRealmRef.current = loadRealm;
       await loadRealm(r);

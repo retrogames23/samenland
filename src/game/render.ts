@@ -2606,6 +2606,9 @@ function drawOutskirts(c: C, x0: number, x1: number, y0: number, y1: number, z: 
     outDone.add(iy * 4096 + ix);
   }
 }
+/** P.5a: while the initial camera is still provisional, no chunk is baked (placeholders only). */
+let bakeHold = false;
+export function setBakeHold(on: boolean) { bakeHold = on; }
 function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false): number {
   const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow) + (labEdge() ? `|e${labEdge()!.core},${labEdge()!.grain}${labEdge()!.v2 ? "v2" : ""}` : "");
   let baked = 0, drawn = 0;
@@ -3753,7 +3756,7 @@ export function draw(
     for (const [k, v] of tileHits(sd, now)) if ((v.flood || v.silt || v.levee) && !floodWild.has(k)) floodWild.set(k, v); }
 
   const edges: GroundEdge[] = [];
-  frameBakes = 0;
+  frameBakes = bakeHold ? 1 : 0;
   pEnd(); pBegin("near.ground");
   renderStats.chunks = drawGroundChunks(c, x0, x1, y0, y1, z, cs0x, cs1x, cs0y, cs1y);
   // frayed edges: a few grass tufts and pebbles breaking up the borderline
