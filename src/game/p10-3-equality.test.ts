@@ -29,9 +29,10 @@ const bigWorld = (): Seed[] => {
   const r = rnd(7), out: Seed[] = [];
   for (let i = 0; i < 24; i++) out.push(mk(`s${i}`, 150 + Math.floor(r() * 650), 150 + Math.floor(r() * 650), [],
     { created_at: new Date(T0 + Math.floor(r() * 90) * DAY).toISOString() }));
-  for (const s of out) s.roads = out.filter((o) => o !== s && Math.hypot(o.x - s.x, o.y - s.y) < 90).map((o) => ({ target: o.id, at: T0 })) as Seed["roads"];
+  for (const s of out) s.roads = out.filter((o) => o !== s && Math.hypot(o.x - s.x, o.y - s.y) < 90).map((o) => ({ target: o.id, at: T0 })) as NonNullable<Seed["roads"]>;
   return out;
 };
+const tt = (v: ReturnType<typeof townTiles>) => JSON.stringify({ ...v, byKind: [...v.byKind.entries()] }, (_k, x) => (x && typeof x === "object" && "created_at" in x ? x.id : x));
 const copy = (w: Seed[]) => w.map((s) => ({ ...s }));
 const snap = (seeds: Seed[], t: number, x0: number, y0: number, x1: number, y1: number) => {
   const out: string[] = [];
@@ -66,8 +67,8 @@ describe("P.10.3 structureAt / townTiles / rankInput equal to reference", () => 
         const R = Math.ceil(reachOf(s, radiusOf(effAge(s, W, t)) + 0.5)) + 3;
         const box = [s.x - R, s.y - R, s.x + R, s.y + R] as const;
         const A = copy(W), B = copy(W);
-        const ref = withRef(() => ({ st: snap(A, t, ...box), tt: JSON.stringify([...townTiles(s, A, t).tiles ?? []]), ri: JSON.stringify(rankInput(s, A, t)) }));
-        const opt = { st: snap(B, t, ...box), tt: JSON.stringify([...townTiles(s, B, t).tiles ?? []]), ri: JSON.stringify(rankInput(s, B, t)) };
+        const ref = withRef(() => ({ st: snap(A, t, ...box), tt: tt(townTiles(s, A, t)), ri: JSON.stringify(rankInput(s, A, t)) }));
+        const opt = { st: snap(B, t, ...box), tt: tt(townTiles(s, B, t)), ri: JSON.stringify(rankInput(s, B, t)) };
         expect(opt.st).toEqual(ref.st); expect(opt.tt).toBe(ref.tt); expect(opt.ri).toBe(ref.ri);
       }
     }

@@ -2024,10 +2024,10 @@ export function twinSiteGet(ck: number, seeds: Seed[], now: number) {
   const ls = links(seeds);
   let mid = midMemo.get(ls);
   if (!mid) {
-    mid = new Map();
+    const mm = new Map<number, number[]>(); mid = mm;
     ls.forEach((l, i) => { if (l.tiles.length < 7) return; const [x, y] = l.tiles[Math.floor(l.tiles.length / 2)]!;
-      const k = Math.floor(y / TW_CELL) * 65536 + Math.floor(x / TW_CELL); const a = mid.get(k); if (a) a.push(i); else mid.set(k, [i]); });
-    midMemo.set(ls, mid);
+      const k = Math.floor(y / TW_CELL) * 65536 + Math.floor(x / TW_CELL); const a = mm.get(k); if (a) a.push(i); else mm.set(k, [i]); });
+    midMemo.set(ls, mm);
   }
   const key = cacheTick(now);
   let slots = twLazy.get(seeds); if (!slots) { slots = []; twLazy.set(seeds, slots); }
