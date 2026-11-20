@@ -23,3 +23,5 @@
 - [x] ovCache-Kapazität an die Seed-Zahl angepasst; lokale Maxout-/Kontrollmessungen, Bildvergleiche und vollständige QS abgeschlossen
 - [ ] Verbindliche iPhone-Safari-Nachmessung des ovCache-Fixes – wartet auf die neue Messdatei vom Gerät
 - [x] Auftrag 8: Produktionsbriefing, acht Posenbeschreibungen, Stil-/Qualitätsreferenz, Sheet-Vorgaben und manueller Produktionsprozess; keine Produktivassets oder Renderer-Änderungen
+- [x] Freimarkt-Karte aus „Bauen" nach „Zuwendung" verschoben; Anzeige auf Desktop und Handy geprüft, Auslösen mit echtem Kauf getestet
+- [x] Sonnenmodul: Immer-Tag-Lesen abfangen, damit Rang-Käufe (auch Freimarkt) auf dem Server nicht mehr ablehnen; Rückwärts-Test ergänzt

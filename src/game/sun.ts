@@ -52,7 +52,13 @@ export function duskGlow(now: number): number {
 
 // "Always day" (accessibility, local-only display): the sky never darkens on this client.
 // Villager routines keep using nightLevel, so every player still sees the same people.
-let alwaysDay = typeof localStorage !== "undefined" && localStorage.getItem("samenland-always-day") === "1";
+// Server contexts (SSR, workerd) expose a localStorage global whose access throws NotSupportedError,
+// so the read must be guarded by try/catch, not only by a typeof check.
+const readAlwaysDay = (): boolean => {
+  try { return typeof localStorage !== "undefined" && localStorage.getItem("samenland-always-day") === "1"; }
+  catch { return false; }
+};
+let alwaysDay = readAlwaysDay();
 export const isAlwaysDay = () => alwaysDay;
 export function setAlwaysDay(on: boolean) { alwaysDay = on; try { localStorage.setItem("samenland-always-day", on ? "1" : "0"); } catch { /* ignore */ } }
 /** Darkness as drawn on screen: 0 when "always day" is on. */

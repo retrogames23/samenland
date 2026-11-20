@@ -2421,27 +2421,6 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
             );
           })}
           {my && (() => {
-            const fm = FREIMARKT[lang], locked = myStage < FREIMARKT_RANK;
-            const mine = purchases.filter((p) => p.seed_id === my.id && isFreimarkt(p.item));
-            const rows = { bought: mine.map((p) => ({ item: p.item, at: Date.parse(p.created_at) })) };
-            const last = rows.bought.reduce((m, b) => Math.max(m, b.at), -Infinity);
-            const ready = freimarktReady(rows), openLeft = last + FREIMARKT_LEN - now;
-            return (
-              <div key="freimarkt" className={`rounded-md border border-brass/60 bg-brass/10 p-2 ${locked ? "opacity-60" : ""}`}>
-                <div className="flex items-center gap-2"><span className="flex-1 font-semibold">🎪 {fm.title}</span><span className="text-xs text-muted-foreground">{t.taler(FREIMARKT_PRICE)}</span></div>
-                <div className="text-xs text-muted-foreground">{fm.intro}</div>
-                <div className="mt-1 text-xs">{fm.benefit}</div>
-                <div className="mt-1.5">
-                  {locked ? <span className="text-xs text-muted-foreground">🔒 {t.needStage(t.stages[FREIMARKT_RANK] ?? "")}</span>
-                    : openLeft > 0 ? <span className="text-xs font-semibold text-primary">{fm.open(Math.ceil(openLeft / 3.6e6))}</span>
-                    : now < ready ? <span className="text-xs text-muted-foreground">{fm.wait(Math.ceil((ready - now) / 864e5))}</span>
-                    : <Button size="sm" className="h-7 w-full" disabled={cash < FREIMARKT_PRICE} onClick={() => void buy(nextFreimarkt(mine.map((p) => p.item)))}>{fm.call} · {t.taler(FREIMARKT_PRICE)}</Button>}
-                  <div className="mt-0.5 text-[10px] text-muted-foreground">{fm.voluntary}</div>
-                </div>
-              </div>
-            );
-          })()}
-          {my && (() => {
             const ft = FOUNTAIN[lang], locked = myStage < FOUNTAIN_RANK;
             const paid = purchases.filter((p) => p.seed_id === my.id && isFountain(p.item)).map((p) => p.item);
             const next = nextFountainStep(paid), chain = fountainChain(my), total = FOUNTAIN_STEPS.reduce((a, k) => a + FOUNTAIN_PRICE[k], 0);
@@ -2528,6 +2507,27 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                 <Button size="sm" variant="secondary" onClick={() => ring("well")}>{t.decorateWell}</Button>
               </div>
             )}
+            {(() => {
+              const fm = FREIMARKT[lang], locked = myStage < FREIMARKT_RANK;
+              const mine = purchases.filter((p) => p.seed_id === my.id && isFreimarkt(p.item));
+              const rows = { bought: mine.map((p) => ({ item: p.item, at: Date.parse(p.created_at) })) };
+              const last = rows.bought.reduce((m, b) => Math.max(m, b.at), -Infinity);
+              const ready = freimarktReady(rows), openLeft = last + FREIMARKT_LEN - now;
+              return (
+                <div key="freimarkt" className={`rounded-md border border-brass/60 bg-brass/10 p-2 ${locked ? "opacity-60" : ""}`}>
+                  <div className="flex items-center gap-2"><span className="flex-1 font-semibold">🎪 {fm.title}</span><span className="text-xs text-muted-foreground">{t.taler(FREIMARKT_PRICE)}</span></div>
+                  <div className="text-xs text-muted-foreground">{fm.intro}</div>
+                  <div className="mt-1 text-xs">{fm.benefit}</div>
+                  <div className="mt-1.5">
+                    {locked ? <span className="text-xs text-muted-foreground">🔒 {t.needStage(t.stages[FREIMARKT_RANK] ?? "")}</span>
+                      : openLeft > 0 ? <span className="text-xs font-semibold text-primary">{fm.open(Math.ceil(openLeft / 3.6e6))}</span>
+                      : now < ready ? <span className="text-xs text-muted-foreground">{fm.wait(Math.ceil((ready - now) / 864e5))}</span>
+                      : <Button size="sm" className="h-7 w-full" disabled={cash < FREIMARKT_PRICE} onClick={() => void buy(nextFreimarkt(mine.map((p) => p.item)))}>{fm.call} · {t.taler(FREIMARKT_PRICE)}</Button>}
+                    <div className="mt-0.5 text-[10px] text-muted-foreground">{fm.voluntary}</div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         );
       })()}
