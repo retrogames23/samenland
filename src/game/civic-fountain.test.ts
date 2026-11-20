@@ -83,3 +83,29 @@ describe("Marktbrunnen placement", () => {
     expect(pickFountainTile(seat, centre, (x, y) => kinds.get(`${x},${y}`) ?? null, free)).toEqual(a);
   });
 });
+
+describe("Marktbrunnen placement cases", () => {
+  const seat: [number, number] = [100, 100], centre: [number, number] = [98, 102];
+  const pick = (kinds: Map<string, string>, free = (_x: number, _y: number) => true) => pickFountainTile(seat, centre, (x, y) => kinds.get(`${x},${y}`) ?? null, free);
+  const fill = (k: string) => { const m = new Map<string, string>(); for (let dy = -10; dy <= 10; dy++) for (let dx = -10; dx <= 10; dx++) m.set(`${100 + dx},${100 + dy}`, k); return m; };
+  it("occupied market square: stands on open ground beside the market", () => {
+    const m = new Map([["101,100", "square"], ["97,102", "well"]]);
+    const t = pick(m, (x, y) => !(x === 101 && y === 100))!;
+    expect(m.has(`${t[0]},${t[1]}`)).toBe(false);
+    expect(Math.min(Math.abs(t[0] - 97) + Math.abs(t[1] - 102), Math.abs(t[0] - 101) + Math.abs(t[1] - 100))).toBe(1);
+  });
+  it("beside the village well", () => {
+    expect(pick(new Map([["98,102", "well"]]))).toEqual([98, 101]);
+  });
+  it("well surrounded: free open ground by the seat", () => {
+    const m = new Map([["98,102", "well"], ["97,102", "cottage"], ["99,102", "cottage"], ["98,101", "field"], ["98,103", "field"]]);
+    const t = pick(m)!;
+    expect(m.has(`${t[0]},${t[1]}`)).toBe(false);
+    expect(Math.max(Math.abs(t[0] - 100), Math.abs(t[1] - 100))).toBe(1);
+  });
+  it("no suitable tile: null", () => { expect(pick(fill("field"))).toBeNull(); });
+  it("same tiles in a different insertion order give the same result", () => {
+    const e: [string, string][] = [["99,100", "square"], ["101,100", "square"], ["100,99", "cottage"], ["98,102", "well"]];
+    expect(pick(new Map(e))).toEqual(pick(new Map([...e].reverse())));
+  });
+});

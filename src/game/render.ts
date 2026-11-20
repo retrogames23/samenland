@@ -2749,7 +2749,11 @@ function drawMarketFountain(c: C, steps: number, cx: number, cy: number, L: Ligh
   const im = huntIm(`market-fountain-${steps}`, u); if (!im) return;
   const w = FOUNTAIN_W, h = (w * im.naturalHeight) / im.naturalWidth;
   // foundation: the tile is paved with the market's own world-anchored cobbles, so the basin stands on stone
-  if (!paved) { c.fillStyle = texture(c, "cobble") ?? "#b9a27c"; diamond(c, cx, cy, 0.8); c.fill(); }
+  if (!paved) {
+    // a small public place: full-tile cobbles meeting the neighbouring ways, edge softened by a darker kerb ring
+    c.fillStyle = texture(c, "cobble") ?? "#b9a27c"; diamond(c, cx, cy, 1); c.fill();
+    c.save(); c.globalAlpha = 0.28; c.strokeStyle = "#4a3a26"; c.lineWidth = 0.8; diamond(c, cx, cy, 0.97); c.stroke(); c.restore();
+  }
   // contact shadow hugging the plinth, pushed down-right (light from top-left) — never a loose floating oval
   c.save(); c.globalAlpha = 0.42; c.fillStyle = "#2a2116";
   c.beginPath(); c.ellipse(cx + 1.2, cy + 0.9, w * 0.5, w * 0.24, 0, 0, Math.PI * 2); c.fill();
