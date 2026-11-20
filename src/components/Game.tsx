@@ -98,6 +98,7 @@ import { THANKS, OSS } from "@/game/lang/thanks";
 import { TILEINFO } from "@/game/lang/tileinfo";
 import { tileFacts } from "@/game/tile-info";
 import { RENAME } from "@/game/lang/rename";
+import { renameDaysLeft, renameReadyAt } from "@/game/rename";
 import { paymentsEnvOrNull } from "@/lib/stripe";
 import { PRINCELY } from "@/game/lang/princely";
 import { HERALD, edictText, DECREE_HEAD, DECREE_STATUS } from "@/game/lang/edicts";
@@ -450,21 +451,32 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   };
   const [renameName, setRenameName] = useState("");
   const [renameErr, setRenameErr] = useState("");
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameBusy, setRenameBusy] = useState(false);
   const [renameSkip, setRenameSkip] = useState<string | null>(null);
   useEffect(() => { try { setRenameSkip(localStorage.getItem("samenland:rename-skip")); } catch { setRenameSkip(""); } }, []);
   const mySeed = seeds.find((s) => s.id === mine);
   const dupOf = mySeed && renameSkip !== null && renameSkip !== mySeed.id + ":" + mySeed.name
     ? seeds.find((o) => o.id !== mySeed.id && o.name.trim().toLowerCase() === mySeed.name.trim().toLowerCase() && o.created_at < mySeed.created_at) : undefined;
+  const renameDays = renameDaysLeft(renameReadyAt(mySeed?.renamed_at), Date.now());
+  const closeRename = () => { setRenameOpen(false); setRenameErr(""); };
+  const openRename = () => { if (!mySeed) return; setRenameName(mySeed.name); setRenameErr(""); setRenameOpen(true); setSettings(false); };
   const skipRename = () => { if (!mySeed) return; const k = mySeed.id + ":" + mySeed.name; try { localStorage.setItem("samenland:rename-skip", k); } catch { /* ignore */ } setRenameSkip(k); };
   const saveRename = async () => {
-    if (!mySeed) return;
+    if (!mySeed || renameBusy) return;
     const n = renameName.trim();
     if (n.length < 2 || n.length > 32) { setRenameErr(RENAME[lang].bad); return; }
+    if (n === mySeed.name) { if (dupOf) skipRename(); else closeRename(); return; }
+    if (renameDays > 0) { setRenameErr(RENAME[lang].cooldown(renameDays)); return; }
     if (seeds.some((o) => o.id !== mySeed.id && o.name.trim().toLowerCase() === n.toLowerCase())) { setRenameErr(RENAME[lang].taken); return; }
+    setRenameBusy(true);
     const { error } = await supabase.rpc("rename_seed", { p_seed: mySeed.id, p_name: n });
-    if (error) { setRenameErr(/taken/.test(error.message) ? RENAME[lang].taken : error.message); return; }
-    setSeeds((ss) => ss.map((x) => (x.id === mySeed.id ? { ...x, name: n } : x)));
-    setRenameErr("");
+    setRenameBusy(false);
+    if (error) { setRenameErr(/taken/.test(error.message) ? RENAME[lang].taken : /cooldown/.test(error.message) ? RENAME[lang].cooldown(Math.max(1, renameDays)) : error.message); return; }
+    const renamed_at = new Date().toISOString();
+    setSeeds((ss) => ss.map((x) => (x.id === mySeed.id ? { ...x, name: n, renamed_at } : x)));
+    closeRename();
+    toast.success(RENAME[lang].saved(n));
   };
   const [bugOpen, setBugOpen] = useState(false);
   const [deskOpen, setDeskOpen] = useState(false);
@@ -3265,6 +3277,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
             <Button asChild size="sm" variant="secondary" className="w-full"><a href={UKRAINE_URL[lang]} target="_blank" rel="noopener noreferrer" onClick={() => setSettings(false)}>🇺🇦 {SUPPORT[lang].ukraine}</a></Button>
             <Button size="sm" variant="secondary" className="w-full" onClick={() => { setSettings(false); if (userId) setSupportOpen(true); else setAuthOpen(true); }}>🌱 {SUPPORT[lang].button}</Button>
             {userId && home && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setInviteOpen(true); setSettings(false); }}>✉ {t.invite.button}</Button>}
+            {userId && home && <Button size="sm" variant="secondary" className="w-full" onClick={openRename}>✎ {RENAME[lang].change}</Button>}
             {userId && home && <button type="button" className="w-full rounded border border-destructive/40 px-2 py-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => { setQuitOpen(true); setSettings(false); }}>{t.quit.button}</button>}
             {userId && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setAcct("pw"); setSettings(false); }}>🔑 {t.account.changePw}</Button>}
             {userId && <Button size="sm" variant="secondary" className="w-full" onClick={() => { setAcct("mail"); setSettings(false); }}>✉ {t.account.changeMail}</Button>}
@@ -3443,16 +3456,17 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
           </div>
         </Parchment>
       )}
-      {dupOf && mySeed && (
-        <Parchment title={RENAME[lang].title} later={RENAME[lang].later} onLater={skipRename}>
+      {(dupOf || renameOpen) && mySeed && (
+        <Parchment title={dupOf ? RENAME[lang].title : RENAME[lang].manualTitle} later={dupOf ? RENAME[lang].later : t.cancel} onLater={dupOf ? skipRename : closeRename}>
           <div className="space-y-3 text-center text-ink">
-            <p>{RENAME[lang].body(mySeed.name)}</p>
+            <p>{dupOf ? RENAME[lang].body(mySeed.name) : RENAME[lang].manualBody}</p>
+            {renameDays > 0 && <p className="text-sm text-ink/70">{RENAME[lang].cooldown(renameDays)}</p>}
             <div className="flex items-center gap-2">
               <Input maxLength={32} value={renameName} placeholder={t.townName} onChange={(e) => { setRenameName(e.target.value); setRenameErr(""); }} />
               <button type="button" onClick={() => { setRenameName(suggestTownName(seeds.map((s) => s.name), Math.random, renameName)); setRenameErr(""); }} aria-label={t.townName} title={t.townName} className="hit relative shrink-0 rounded-md border border-border p-2 text-muted-foreground hover:text-foreground"><Dices className="h-4 w-4" /></button>
             </div>
             {renameErr && <p className="text-sm text-destructive">{renameErr}</p>}
-            <Button onClick={() => void saveRename()}>{RENAME[lang].save}</Button>
+            <Button disabled={renameBusy || renameDays > 0} onClick={() => void saveRename()}>{RENAME[lang].save}</Button>
           </div>
         </Parchment>
       )}

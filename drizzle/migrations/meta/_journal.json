@@ -883,6 +883,13 @@
       "when": 1795176944073,
       "tag": "0125_nothilfe_purchase_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1795205650446,
+      "tag": "0126_allow_owner_seed_rename_with_cooldown",
+      "breakpoints": true
     }
   ]
 }

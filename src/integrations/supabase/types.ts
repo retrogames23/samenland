@@ -873,6 +873,7 @@ export type Database = {
           name: string
           owner: string
           realm: string
+          renamed_at: string | null
           user_id: string | null
           x: number
           y: number
@@ -887,6 +888,7 @@ export type Database = {
           name: string
           owner: string
           realm?: string
+          renamed_at?: string | null
           user_id?: string | null
           x: number
           y: number
@@ -901,6 +903,7 @@ export type Database = {
           name?: string
           owner?: string
           realm?: string
+          renamed_at?: string | null
           user_id?: string | null
           x?: number
           y?: number
