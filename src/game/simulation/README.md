@@ -11,6 +11,13 @@
 
 **Saturation states:** 1 `strategyDoneDay` (profile's last purchase), 2 `unlockedDoneDay` (everything unlocked at the current rank bought), 3 `saturationDay` (every legal investment of the town bought) with `idleDays` until the end.
 
+## Build times (Bauzeiten)
+Every purchase is written to `seed.bought` at the simulated moment (day start, 00:00 UTC). All effects inside the run read the production functions through those rows, so build times are already applied exactly as in the live game: `specialDone` (6 work hours × craft charter ½ × Herberge 0.85 × Holzfällerlager 0.75 × sawmill 0.85 × Zunftturm, then Bauhütte windows ×1.5 on the remaining work and Freimarkt pull-forward) and `monumentChain` (each step starts when paid or when the previous step stands). Effects that wait for completion (`stepsDone`, `monumentProgress`, `cathedralDone`, `schuettingDone`, `operaDone`, `lighthouseDone`, Wohlstand via the monument hook) see the same finish times as the map and the tax server. Effects that count from payment in the live game (care gate, household capacity, Wohlstand works, sickness boons, prices) also count from payment here. The engine does not re-implement any of this.
+
+`SimResult.builds` reports, per bought building and monument step, the paid day, the day it stands and the hours in between (report only, no feedback into the run). Tests: `build-times.test.ts`.
+
+Known limits: the run steps in whole days; purchase builds take hours (about 2–6 work hours), so a finish time never moves a daily tax or rank row — removing every Bauhütte row leaves tax, growth and rank unchanged. Rank is recounted every `RANK_EVERY` days (default 10). Not modelled: Freimarkt purchases, Nothilfe, neighbour aid, gifts, encounters, blessings.
+
 ## Model C (voluntary municipal projects)
 `bun src/game/simulation/model-c.ts <profile|all> <charter|all> <location|base> [tax_only|surplus_only|hybrid|all] [rate|all] [days]`
 Replays the base run's daily rows (real residentTax, chest caps) and adds a voluntary tax diversion (default 0 %, only from Handelsstadt, only while a project is chosen) and/or manual donations: on login days from Handelsstadt, 50 % of the balance above the profile reserve after regular purchases (rounded down), capped by the open local project amount. Prints CSV; the `errors` column counts days where a balance identity failed (must be 0). Catalog: 12 projects, 374,500 Mark local share, 490,000 Mark total value.
