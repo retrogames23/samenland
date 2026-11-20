@@ -18,6 +18,7 @@ import { setRealm } from "../time";
 import { TWIN_WORKS, type Seed, type CharterPath } from "../world";
 import { LOCATIONS, VISIT_GIFT, WONDER_FIND } from "./profiles";
 import type { Booking, DayRow, Profile, SimConfig, SimResult } from "./types";
+import { VORHABEN, VORHABEN_KEYS, vorhabenPrice } from "../vorhaben";
 
 const DAY = 86400000;
 /** Quest index → town rank the quest's milestone needs (assumption: other quest conditions are met by then). */
@@ -113,6 +114,7 @@ export function simulate(cfg: SimConfig): SimResult {
     ledger.push({ day, kind: "debit", source: item, amount: cost, booked: -cost, lost: 0, balance, cap: caps[chest]! });
     return true;
   };
+  const rep: Record<string, number> = {}, repAt: Record<string, number> = {}; let lastTax = 0;
   let saturation: number | null = null, unlockedDone: number | null = null, pop = 0, hh = 0;
 
   for (day = 1; day <= days; day++) {
@@ -128,7 +130,7 @@ export function simulate(cfg: SimConfig): SimResult {
     }
     const t = residentTax(seed, [...seeds], now);
     pop = t.population; hh = t.households;
-    credit("tax", t.income);
+    credit("tax", t.income); lastTax = t.income;
     const weds = weddingDates(seed, now);
     for (const w of weds.slice(wedSeen)) credit("dowry", w.dowry);
     wedSeen = weds.length;
@@ -140,7 +142,17 @@ export function simulate(cfg: SimConfig): SimResult {
       for (let i = 0; i < Math.min(3 * P.loginEvery, perDay(P.wondersPerWeek)); i++) credit("wonder", WONDER_FIND);
       for (let i = 0; i < perDay(P.visitsPerWeek); i++) credit("visit", VISIT_GIFT);
 
+      const before = bought.length;
       chest = attemptPurchases({ day, rank, chest, profile: P, charter: cfg.charter, way, owned, buy });
+      // Gemeindevorhaben (vorhaben.ts) — ASSUMPTION: profiles with repeat=true pay each one as soon as its pause is over
+      // and the reserve allows; Bauhütte only on a day with a fresh build, paving only for finished roads.
+      if (P.repeat) for (const k of VORHABEN_KEYS) {
+        const price = vorhabenPrice(k, rank, lastTax); if (!price || rank < VORHABEN[k].rank) continue;
+        if (k === "bauhuette" && bought.length === before) continue;
+        if (k === "pflaster" && (rep[k] ?? 0) >= seed.roads!.filter((r) => r.at <= now - 10 * DAY).length) continue;
+        if (k !== "pflaster" && now - (repAt[k] ?? -Infinity) < VORHABEN[k].gap) continue;
+        if (buy(`${k}${(rep[k] ?? 0) + 1}`, price)) { rep[k] = (rep[k] ?? 0) + 1; repAt[k] = now; }
+      }
     }
     // raids: last event of the moment, loss taken from the chest (never below 0), as in walkChest
     const rs = raids(seed, now);

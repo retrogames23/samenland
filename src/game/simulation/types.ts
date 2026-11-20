@@ -21,6 +21,8 @@ export type Profile = {
   princeEvery: number | null;
   /** Wonder finds per week (50 Mark each) and visits per week (assumed 60 Mark gift). */
   wondersPerWeek: number; visitsPerWeek: number;
+  /** Pays repeatable Gemeindevorhaben (vorhaben.ts) when due (default false = baseline behaviour). */
+  repeat?: boolean;
 };
 
 export type SimConfig = {

@@ -21,6 +21,7 @@ import { worldHour, worldWeekday } from "./time";
 const worldHourOf = worldHour;
 import { seasonAt } from "./season";
 import { sickChance } from "./sickness";
+import { vorhabenTimes } from "./vorhaben";
 import { wetness, shelters } from "./weather";
 import { nightLevel } from "./sun";
 import { fieldLook, farmTask } from "./rotation";
@@ -751,6 +752,9 @@ export function inauguration(s: Seed, seeds: Seed[], now: number): { at: number;
     const tl = specialTile(s, kind); if (tl) bb = { at: done, tile: tl, kind };
   }
   if (sf && sf.at <= now && (!bb || sf.at > bb.at)) bb = sf;
+  // Bürgerfest (vorhaben.ts): the whole town gathers before the mayor's seat when the fest is opened
+  const fz = player ? vorhabenTimes(s, "fest").filter((a) => a <= now && a > now - FETE_WIN).pop() : undefined;
+  if (fz !== undefined && (!bb || fz > bb.at)) for (const [k, list] of landmarkSpots(s)) { const j = list.find((i) => SEAT_KINDS.includes(LANDMARKS[i]!.kind)); if (j !== undefined) { const [dx, dy] = k.split(",").map(Number); bb = { at: fz, tile: [s.x + dx!, s.y + dy!], kind: LANDMARKS[j]!.kind }; break; } }
   if (li < 0) return bb;
   let tile: Tile | null = null;
   for (const [k, list] of landmarkSpots(s)) if (list.includes(li) && !list.some((j) => j !== li && LANDMARKS[j]!.at > LANDMARKS[li]!.at && LANDMARKS[j]!.at - 96 <= a1)) { const [dx, dy] = k.split(",").map(Number); tile = [s.x + dx!, s.y + dy!]; break; }
