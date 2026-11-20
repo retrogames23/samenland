@@ -23,6 +23,7 @@ STANCE_GAIN = 1.2  # contact frames (0, 2) must spread the feet >= 20 % wider th
 
 def frames_of(path):
     name = path.rsplit("/", 1)[-1].removesuffix(".webp")
+    if name.endswith("-walk8"): return 8
     return 4 if name.endswith("-walk4") or name in FOUR else 6
 
 def check(path):
@@ -63,6 +64,18 @@ def check(path):
             contact, passing = min(stance[0], stance[2]), max(stance[1], stance[3])
             if contact < passing * STANCE_GAIN:
                 errs.append(f"no stride: contact feet {contact}px vs passing {passing}px (legs barely move)")
+        if n == 8 and len(stance) == 8 and "folk/" in path:
+            # heel strikes 0/4 vs mid-swing 2/6
+            contact, passing = min(stance[0], stance[4]), max(stance[2], stance[6])
+            if contact < passing * STANCE_GAIN:
+                errs.append(f"no stride: contact feet {contact}px vs passing {passing}px (legs barely move)")
+            if "-walk8" in path:
+                if W != 1280 or H != 240: errs.append(f"sheet {W}x{H}, expected 1280x240")
+                if a[238:].any(): errs.append("rows 238-239 not transparent")
+                for i, b in enumerate(bots):
+                    if b not in (236, 237): errs.append(f"frame {i} ground row {b}, expected 237 (±1 soft sole edge)")
+                for i, t in enumerate(tiles):
+                    if t[:, 0].any() or t[:, -1].any(): errs.append(f"frame {i} touches frame edge")
         for i in range(len(tiles) - 1):
             if tiles[i].shape == tiles[i + 1].shape and (tiles[i] == tiles[i + 1]).all():
                 errs.append(f"frames {i}/{i + 1} identical")

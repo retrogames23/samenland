@@ -505,6 +505,7 @@ export function walkShift(im: HTMLImageElement, f: number): number {
 }
 /** Clean 4-step cycle frame for pre-registered sheets (one 2π = two steps). */
 const step4 = (ph: number) => Math.floor(((((ph / 6.2832) % 1) + 1) % 1) * 4) & 3;
+export const step8 = (ph: number) => Math.floor(((((ph / 6.2832) % 1) + 1) % 1) * 8) & 7;
 function sheetFrame(c: C, im: HTMLImageElement, f: number, X: number, Y: number, h: number, flip: boolean, rot = 0, alpha = 1, centre = false, n = 4) {
   const fw = im.naturalWidth / n, w = (h * fw) / im.naturalHeight, ox = centre ? walkShift(im, f) * w : 0;
   c.save(); c.globalAlpha *= alpha; c.translate(X, Y); if (flip) c.scale(-1, 1); if (rot) c.rotate(rot);
@@ -1411,8 +1412,8 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const frameOf = (fw: number) => { void fw; return gaitFrame(ph); };
   if (sheet) {
     // real painted walk cycle: frame follows the stride phase (one 2π = two steps)
-    const n = walkFramesOf(k), fw = sheet.naturalWidth / n, f = n === 4 ? step4(ph) : frameOf(fw), sh = hgt * walkScaleOf(k);
-    const ww = (sh * fw) / sheet.naturalHeight, dx = n === 4 ? 0 : -(frameShift(sheet)[f] ?? 0) * ww;
+    const n = walkFramesOf(k), fw = sheet.naturalWidth / n, f = n === 4 ? step4(ph) : n === 8 ? step8(ph) : frameOf(fw), sh = hgt * walkScaleOf(k);
+    const ww = (sh * fw) / sheet.naturalHeight, dx = n === 4 || n === 8 ? 0 : -(frameShift(sheet)[f] ?? 0) * ww;
     drawSheetFrame(c, sheet, f, fw, ww, sh, dx);
   } else if (legs) {
     // modular figure: one hip-registered painted leg cycle shared by all trades, trade torso on top
@@ -1430,11 +1431,11 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     c.transform(sx, 0, lean, sy, 0, 0);
     // real standing pose: both boots planted side by side under the trade torso (no frozen mid-stride)
     // whole-body figures stand in the passing frame of their own walk sheet (feet together, same body as walking)
-    const ws4 = !q.working && walkFramesOf(k) === 4 && k !== "toddler" ? walkSheet(k) : null;
+    const ws4 = !q.working && (walkFramesOf(k) === 4 || walkFramesOf(k) === 8) && k !== "toddler" ? walkSheet(k) : null;
     const stand = !ws4 && !q.working && k !== "watchman" && legsFor(q) ? folkImage("legsStand") : null;
     const st = ws4 ? standSprite(k) : null;
     if (st) { const sh = hgt * walkScaleOf(k) * 0.985, sw = (sh * st.naturalWidth) / st.naturalHeight; c.drawImage(st, -sw / 2, -sh, sw, sh); }
-    else if (ws4) { const sfw = ws4.naturalWidth / 4, sh = hgt * walkScaleOf(k); drawSheetFrame(c, ws4, 1, sfw, (sh * sfw) / ws4.naturalHeight, sh, 0); }
+    else if (ws4) { const sfw = ws4.naturalWidth / walkFramesOf(k), sh = hgt * walkScaleOf(k); drawSheetFrame(c, ws4, 1, sfw, (sh * sfw) / ws4.naturalHeight, sh, 0); }
     else if (stand) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, stand, 0, w, hgt, HIPS[k] ?? DEFAULT_FIG);
     else c.drawImage(im, -w / 2, -hgt, w, hgt);
   }

@@ -38,3 +38,20 @@ describe("painted walk sheets", () => {
     });
   }
 });
+
+describe("8-step citizen walk (man)", () => {
+  it("man uses the 8-frame sheet, other figures keep their counts", async () => {
+    const { walkFramesOf } = await import("./folk-sprites");
+    expect(walkFramesOf("man")).toBe(8);
+    expect(walkFramesOf("wealthy")).toBe(4);
+    expect(walkFramesOf("toddler")).toBe(4);
+    expect(walkFramesOf("child")).toBe(6);
+  });
+  it("step8 visits 0..7 in order per stride cycle and wraps 7 -> 0", async () => {
+    const { step8 } = await import("./render");
+    const seen: number[] = [];
+    for (let i = 0; i < 800; i++) { const f = step8((i / 400) * 6.2832); if (seen[seen.length - 1] !== f) seen.push(f); }
+    expect(seen).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7]);
+    expect(step8(-0.1)).toBe(7);
+  });
+});
