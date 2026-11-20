@@ -99,7 +99,7 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   }
   for (const b of s.bought ?? []) {
     // treasury and guild upgrades are no buildings – no completion feast
-    if (/^(chest|rank)\d$/.test(b.item)) continue;
+    if (/^(chest|rank|fountain)\d$/.test(b.item)) continue;
     // monuments are celebrated once, when the last paid step is finished
     const mk = monumentOf(b.item);
     if (mk && b.item !== `${mk}${MONUMENT_DEFS[mk].n}`) continue;

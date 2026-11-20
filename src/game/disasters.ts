@@ -1,6 +1,7 @@
 import { labEvent } from "./lab-ctl";
 import { aidFactor } from "./gifts";
 import { townCharacter } from "./character";
+import { fountainDone, fountainTiles, fountainBurn, FOUNTAIN_CORE } from "./civic-fountain";
 /** Stone-built hill towns: fires start less often and spread to fewer roofs. */
 export const STONE_FIRE = 0.6;
 /**
@@ -64,8 +65,10 @@ export function fires(s: Seed, now: number): Fire[] {
     const bs = stepsDone(s, "belfry", at), bell = bs >= 1 ? BELFRY_FIRE[Math.min(bs, 3) - 1]! : 1;
     const n = Math.max(1, (guarded ? 1 : water ? 2 : order ? 2 + Math.floor(rnd(s.id, w, 15) * 2) : 3 + Math.floor(rnd(s.id, w, 15) * 2)) - (stone ? 1 : 0) - (bs >= 2 ? 1 : 0));
     const nb = [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
-    const tiles = nb.slice(0, n + 2).map(([i, j]) => (y + j!) * MAP + x + i!);
-    const burn = guarded ? 0.5 * H : order ? (water ? 1 * H : 2.5 * H) : water ? 1.5 * H : 4 * H;
+    // Marktbrunnen (finished steps only): 1 halves the burning tiles in the market core, 2 shortens the fire there
+    const fs = fountainDone(s, at), core = d <= FOUNTAIN_CORE;
+    const tiles = nb.slice(0, fountainTiles(n + 2, fs, core)).map(([i, j]) => (y + j!) * MAP + x + i!);
+    const burn = (guarded ? 0.5 * H : order ? (water ? 1 * H : 2.5 * H) : water ? 1.5 * H : 4 * H) * fountainBurn(fs, core);
     out.push({ at, end: at + burn * bell, tiles, x, y, guarded, water, ...(order ? { order } : {}), dead: rnd(s.id, w, 16) < fireDeadRisk(guarded, water, order, bs) });
   }
   const lf = labEvent("fire");

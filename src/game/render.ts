@@ -60,6 +60,7 @@ import { oxWalk, martinWalk, herdsmanWalk, type Walk } from "./feast-walkers";
 import { activeRaid, RAID_LEN, tileHits, type TileHit } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
 import { decorMap, seatTile, type RewardKey } from "./supporter";
+import { fountainDone } from "./civic-fountain";
 import { dogStep, dogTile, dogSleepsOutside, type DogPose } from "./dog";
 import dogTrotU from "@/assets/sprites/support/dog-trot.webp";
 import dogSitU from "@/assets/sprites/support/dog-sit.webp";
@@ -2717,6 +2718,36 @@ function drawSupport(c: C, k: RewardKey, cx: number, cy: number, L: Light[], nig
   c.drawImage(im, cx - w / 2, cy + 6 - h, w, h);
   if (k === "statue") L.push({ x: cx, y: cy - h * 0.6, r: 2.5 });
 }
+
+// ---------------- Marktbrunnen (civic-fountain.ts): finished steps stand on a free tile by the market ----------------
+const fountainSpot = new Map<string, { k: string; tile: number | null; at: number }>();
+function fountainMap(seeds: Seed[], now: number): Map<number, number> | null {
+  let out: Map<number, number> | null = null;
+  for (const s of seeds) {
+    if (!s.user_id || !(s.bought ?? []).some((b) => b.item === "fountain1")) continue;
+    const n = fountainDone(s, now); if (!n) continue;
+    const k = `${s.x},${s.y}`; let m = fountainSpot.get(s.id);
+    if (!m || m.k !== k || now - m.at > 6e5) {
+      let tile: number | null = null;
+      for (let r = 1; r <= 4 && tile == null; r++) for (let dy = -r; dy <= r && tile == null; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const x = s.x + dx, y = s.y + dy;
+        if (!structureAt(x, y, seeds, now) && !isWater(terrain(x, y))) { tile = y * MAP + x; break; }
+      }
+      m = { k, tile, at: now }; fountainSpot.set(s.id, m);
+    }
+    if (m.tile != null) (out ??= new Map()).set(m.tile, n);
+  }
+  return out;
+}
+/** Step 1 Brunnenkump (small), step 2 Wasserkunst, step 3 column with coat of arms: the same stone fountain grows. */
+function drawMarketFountain(c: C, steps: number, cx: number, cy: number, L: Light[], night: boolean) {
+  const u = SUPPORT_ART.fountain, w0 = SUPPORT_W.fountain; if (!u || !w0) return;
+  const im = huntIm("support-fountain", u); if (!im) return;
+  const w = w0 * ([0.85, 1.05, 1.25][steps - 1] ?? 1), h = (w * im.naturalHeight) / im.naturalWidth;
+  c.drawImage(im, cx - w / 2, cy + 6 - h, w, h);
+  if (night && steps >= 3) L.push({ x: cx, y: cy - h * 0.5, r: 3 });
+}
 function drawVane(c: C, cx: number, top: number) {
   const u = SUPPORT_ART.vane, w = SUPPORT_W.vane!; if (!u) return;
   const im = huntIm("support-vane", u); if (!im) return;
@@ -4178,6 +4209,7 @@ export function draw(
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
   const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
   // supporter decorations: one lookup per frame instead of a fresh cache key per empty tile
+  const fountains = fountainMap(seeds, now);
   const decor = supportOwned.size ? decorMap(seeds, supportOwned, now, MAP) : null, decorNight = worldHour(now) >= 19 || worldHour(now) < 7;
   type Item = Body & { q?: Pose; sh?: { k: number; m: ReturnType<typeof sheepSpots>[number]["m"] } };
   const fineP = perfFine();
@@ -4307,6 +4339,7 @@ export function draw(
     if (!st) { const cp = courtPieces().get(y * MAP + x); if (cp) drawCourtPiece(c, cp, cx, cy, L, t); for (const q of courtFigures(t).get(y * MAP + x) ?? []) drawCourtFigure(c, q, t); }
     if (!st) { const wk = wonderMap().get(y * MAP + x); if (wk) drawWonder(c, wk, cx, cy, t, !wonderFound.has(`${wk}:${x}:${y}`), L); }
     if (!st && decor) { const dk = decor.get(y * MAP + x); if (dk) drawSupport(c, dk, cx, cy, L, decorNight); }
+    if (!st && fountains) { const fk = fountains.get(y * MAP + x); if (fk) drawMarketFountain(c, fk, cx, cy, L, decorNight); }
     { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
     if (y * MAP + x === goalK) {
       // golden waymark where the player's mayor is heading

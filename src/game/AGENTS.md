@@ -70,3 +70,4 @@
 - Seat-fete rank history (people.ts seatFete/rankAtStep): rankMemo is keyed by realm list + seedsKey content (rank reads per-realm terrain), never by village count, and effAgeBase is an exact per-(seeds array, now) LRU memo (BASE_SLOTS, baseMemoCfg test switch) — the 2.5 h / 15 min scan stays complete because rank is not provably monotone (leavers empty houses).
 
 - transitRoutes/hubRoutes are memoized per (seeds array, links() result, Seed object) with frozen results; transitRoutesRaw/hubRoutesRaw stay the reference (route-memo.test.ts) — both read no clock, so the memo never needs a time key.
+- Marktbrunnen (civic-fountain.ts): only purchase rows fountain1..3 are stored (DB purchase_guard: prices, order, Handelsstadt certificate, per-village advisory lock, unique index); build chain, fire effect in fires() and map art derive from them — no income, change TS and guard together.

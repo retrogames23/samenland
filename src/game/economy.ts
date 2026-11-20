@@ -7,6 +7,7 @@ import { residentTax } from "./resident-tax";
 import { questEarned, type QuestClaim } from "./quests";
 import { activeBoons } from "./encounters";
 import { raidLoss, raids, floodFood, ITEM_RANK } from "./disasters";
+import { FOUNTAIN_RANK, isFountain } from "./civic-fountain";
 import { dowryEarned, weddingDates, festJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
 import { speedParts, radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, monumentOf, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
 
@@ -400,6 +401,8 @@ export function titleBoons(s: Seed, purchases: { seed_id: string; item: string }
 export function needRankOf(item: string): number {
   const mk = monumentOf(item);
   if (mk) return /1$/.test(item) ? MONUMENT_RANK[mk] : 0;
+  if (item === "fountain1") return FOUNTAIN_RANK;
+  if (isFountain(item)) return 0;
   return ({ ...TITLE_STAGE, ...CHEST_STAGE, ...RANK_STAGE } as Record<string, number>)[item] ?? ITEM_RANK[item] ?? 0;
 }
 export const rankAllows = (item: string, townRank: number) => townRank >= needRankOf(item);
