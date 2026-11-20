@@ -176,6 +176,15 @@ export const walkSheet = (k: FolkSprite) => { const w = WALKS[k]; return w ? fol
 /** Closed-feet standing pictures for walk sheets whose passing frame is still half open (same body and clothes, same height). */
 export const STANDS: Partial<Record<FolkSprite, FolkSprite>> = { mason: "mason", porter: "porterStand" as FolkSprite };
 export const standSprite = (k: FolkSprite) => { const s = STANDS[k]; return s ? folkImage(s) : null; };
+/** Standing picture taken from a walk sheet: [sheet, frames, frame]. 8-step cycles never supply their own stand pose
+ *  (frame 1 of man-walk8 is mid-stride); the man keeps his pre-walk8 stand (passing frame 1 of man-walk4) until a
+ *  dedicated stand asset exists — then add it to STANDS instead. */
+const STAND_SHEETS: Partial<Record<FolkSprite, FolkSprite>> = { man: "manWalk4" };
+export function standSheetOf(k: FolkSprite): [FolkSprite, number, number] | null {
+  const own = STAND_SHEETS[k]; if (own) return [own, 4, 1];
+  if (WALK4.has(k) && k !== "toddler") { const w = WALKS[k]; return w ? [w, 4, 1] : null; }
+  return null;
+}
 
 /** Trade work cycles keyed by job (fishers and smiths wear ordinary clothes, so the sprite alone can't pick them).
  *  scale: frame height relative to figure height (rods/raised hammers reach above the head); per: cycle ms. */
