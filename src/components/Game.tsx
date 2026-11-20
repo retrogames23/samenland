@@ -2929,8 +2929,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         const W = WAYSIDE_TEXT[lang], e = W.enc[way.key], n = e.nodes[wayNode as keyof typeof e.nodes] as { say: string } | undefined;
         const next = WAY_GRAPH[WAYSIDE[way.key].tree][wayNode] ?? [];
         return (
-          <div data-walk role="dialog" aria-label={e.title} className="parchment absolute inset-x-0 top-[10%] z-50 mx-auto max-h-[80dvh] w-[min(28rem,92vw)] overflow-y-auto rounded-md px-5 py-4 text-ink shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95">
-            <img src={WAY_VIGNETTE[vignetteOf(way.key)]} alt="" width={640} height={434} className="mx-auto mb-2 w-full max-w-[20rem] rounded-sm mix-blend-multiply [mask-image:radial-gradient(ellipse_at_center,black_60%,transparent_100%)]" />
+          <div data-walk role="dialog" aria-label={e.title} className="parchment absolute inset-x-0 top-[10%] z-50 mx-auto max-h-[80dvh] w-[min(28rem,92vw)] overflow-y-auto overflow-x-hidden rounded-md px-5 py-4 text-ink shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95">
+            <img src={WAY_VIGNETTE[vignetteOf(way.key)]} alt="" width={768} height={480} className="parchment-art -mx-5 -mt-4 mb-1 block aspect-[16/10] w-[calc(100%+2.5rem)] max-w-none object-cover object-[50%_15%]" />
             <div className="text-center font-display text-2xl leading-none">{e.title}</div>
             <div className="mx-auto my-2 h-px w-2/3 bg-ink/30" />
             <p className="text-sm italic leading-relaxed">{n?.say}</p>
