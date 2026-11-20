@@ -58,3 +58,28 @@ describe("Marktbrunnen mit Wasserkunst", () => {
     expect(attributes(b, [b], [], at).wealth).toBe(attributes(a, [a], [], at).wealth);
   });
 });
+
+import { pickFountainTile } from "./civic-fountain";
+describe("Marktbrunnen placement", () => {
+  const seat: [number, number] = [100, 100], centre: [number, number] = [90, 90];
+  it("prefers a paved square tile next to the mayor's seat", () => {
+    const kinds = new Map([["101,101", "cottage"], ["99,100", "square"], ["101,100", "square"]]);
+    const t = pickFountainTile(seat, centre, (x, y) => kinds.get(`${x},${y}`) ?? null, () => true);
+    expect(t).toEqual([99, 100]);
+  });
+  it("never stands on a field or beside a house when falling back to free ground", () => {
+    const kinds = new Map<string, string>();
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) kinds.set(`${100 + dx},${100 + dy}`, "field");
+    kinds.set("100,98", "cottage");
+    const t = pickFountainTile(seat, centre, (x, y) => kinds.get(`${x},${y}`) ?? null, () => true)!;
+    expect(kinds.get(`${t[0]},${t[1]}`)).toBeUndefined();
+    for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) expect(["field", "cottage"]).not.toContain(kinds.get(`${t[0] + i!},${t[1] + j!}`));
+  });
+  it("is deterministic and skips tiles taken by decorations", () => {
+    const kinds = new Map([["99,100", "square"], ["101,100", "square"]]);
+    const free = (x: number, y: number) => !(x === 99 && y === 100);
+    const a = pickFountainTile(seat, centre, (x, y) => kinds.get(`${x},${y}`) ?? null, free);
+    expect(a).toEqual([101, 100]);
+    expect(pickFountainTile(seat, centre, (x, y) => kinds.get(`${x},${y}`) ?? null, free)).toEqual(a);
+  });
+});

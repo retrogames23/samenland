@@ -40,3 +40,26 @@ export const fountainTiles = (tiles: number, steps: number, core: boolean) => (s
 /** Step 2 (Wasserkunst): bucket chains start sooner — fires in the market core are put out 25 % faster. */
 export const FOUNTAIN_BURN = 0.75;
 export const fountainBurn = (steps: number, core: boolean) => (steps >= 2 && core ? FOUNTAIN_BURN : 1);
+
+/** Tile offsets nearest first (rings 1–6, fixed order) — deterministic placement. */
+const RING: [number, number][] = [];
+for (let r = 1; r <= 6; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r) RING.push([dx, dy]);
+const OPEN = new Set(["street", "path", "square"]);
+const MARKET = new Set(["square", "well", "market"]);
+/**
+ * Fountain tile (display only): 1) a paved market square tile by the seat, else by the founding point, within 6 tiles, 2) free ground beside the well/market (village market place), 3) free dry ground by the seat whose
+ * neighbours are open (never pressed into a house, field or yard), 4) any free dry tile by the founding point.
+ * `kindAt` returns the structure kind or null; `free` says the tile is dry, buildable and not taken by a decoration.
+ */
+export function pickFountainTile(seat: [number, number], centre: [number, number], kindAt: (x: number, y: number) => string | null, free: (x: number, y: number) => boolean): [number, number] | null {
+  const open = (x: number, y: number) => { const k = kindAt(x, y); return k == null || OPEN.has(k); };
+  const neighboursOpen = (x: number, y: number) => [[1, 0], [-1, 0], [0, 1], [0, -1]].every(([i, j]) => open(x + i!, y + j!));
+  // the market square: paved tiles by the seat first, then around the founding point (squares grow from there)
+  for (const o of [seat, centre]) for (const [dx, dy] of RING) { const x = o[0] + dx, y = o[1] + dy; if (kindAt(x, y) === "square" && free(x, y)) return [x, y]; }
+  // villages without paved squares: the open ground beside the well or market stalls is the market place
+  const byMarket = (x: number, y: number) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([i, j]) => MARKET.has(kindAt(x + i!, y + j!) ?? ""));
+  for (const o of [seat, centre]) for (const [dx, dy] of RING) { const x = o[0] + dx, y = o[1] + dy; if (kindAt(x, y) == null && free(x, y) && byMarket(x, y)) return [x, y]; }
+  for (const [dx, dy] of RING) { const x = seat[0] + dx, y = seat[1] + dy; if (kindAt(x, y) == null && free(x, y) && neighboursOpen(x, y)) return [x, y]; }
+  for (const [dx, dy] of RING) { const x = centre[0] + dx, y = centre[1] + dy; if (kindAt(x, y) == null && free(x, y)) return [x, y]; }
+  return null;
+}

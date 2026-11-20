@@ -60,7 +60,7 @@ import { oxWalk, martinWalk, herdsmanWalk, type Walk } from "./feast-walkers";
 import { activeRaid, RAID_LEN, tileHits, type TileHit } from "./disasters";
 import { wonders, type WonderKind } from "./wonders";
 import { decorMap, seatTile, type RewardKey } from "./supporter";
-import { fountainDone } from "./civic-fountain";
+import { fountainDone, pickFountainTile } from "./civic-fountain";
 import { dogStep, dogTile, dogSleepsOutside, type DogPose } from "./dog";
 import dogTrotU from "@/assets/sprites/support/dog-trot.webp";
 import dogSitU from "@/assets/sprites/support/dog-sit.webp";
@@ -76,6 +76,9 @@ import { courtPieces, courtPoses, inCourt, courtSite, courtCenter, COURT_LAYOUT,
 import castleU from "@/assets/sprites/court/castle.webp";
 import stableU from "@/assets/sprites/court/stable.webp";
 import fountainU from "@/assets/sprites/court/fountain.webp";
+import fountain1U from "@/assets/sprites/cohesive/marktbrunnen-1.webp";
+import fountain2U from "@/assets/sprites/cohesive/marktbrunnen-2.webp";
+import fountain3U from "@/assets/sprites/cohesive/marktbrunnen-3.webp";
 import pavilionU from "@/assets/sprites/court/pavilion.webp";
 import parterreU from "@/assets/sprites/court/rosegarden.webp";
 import princeU from "@/assets/sprites/court/prince.webp";
@@ -2721,32 +2724,39 @@ function drawSupport(c: C, k: RewardKey, cx: number, cy: number, L: Light[], nig
 
 // ---------------- Marktbrunnen (civic-fountain.ts): finished steps stand on a free tile by the market ----------------
 const fountainSpot = new Map<string, { k: string; tile: number | null; at: number }>();
-function fountainMap(seeds: Seed[], now: number): Map<number, number> | null {
+function fountainMap(seeds: Seed[], now: number, decor: Map<number, unknown> | null): Map<number, number> | null {
   let out: Map<number, number> | null = null;
   for (const s of seeds) {
     if (!s.user_id || !(s.bought ?? []).some((b) => b.item === "fountain1")) continue;
     const n = fountainDone(s, now); if (!n) continue;
     const k = `${s.x},${s.y}`; let m = fountainSpot.get(s.id);
     if (!m || m.k !== k || now - m.at > 6e5) {
-      let tile: number | null = null;
-      for (let r = 1; r <= 4 && tile == null; r++) for (let dy = -r; dy <= r && tile == null; dy++) for (let dx = -r; dx <= r; dx++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-        const x = s.x + dx, y = s.y + dy;
-        if (!structureAt(x, y, seeds, now) && !isWater(terrain(x, y))) { tile = y * MAP + x; break; }
-      }
-      m = { k, tile, at: now }; fountainSpot.set(s.id, m);
+      const kindAt = (x: number, y: number) => structureAt(x, y, seeds, now)?.kind ?? null;
+      const free = (x: number, y: number) => !isWater(terrain(x, y)) && !decor?.has(y * MAP + x) && !wonderMap().has(y * MAP + x);
+      const t = pickFountainTile(seatTile(s), [s.x, s.y], kindAt, free);
+      m = { k, tile: t ? t[1] * MAP + t[0] : null, at: now }; fountainSpot.set(s.id, m);
     }
     if (m.tile != null) (out ??= new Map()).set(m.tile, n);
   }
   return out;
 }
-/** Step 1 Brunnenkump (small), step 2 Wasserkunst, step 3 column with coat of arms: the same stone fountain grows. */
-function drawMarketFountain(c: C, steps: number, cx: number, cy: number, L: Light[], night: boolean) {
-  const u = SUPPORT_ART.fountain, w0 = SUPPORT_W.fountain; if (!u || !w0) return;
-  const im = huntIm("support-fountain", u); if (!im) return;
-  const w = w0 * ([0.85, 1.05, 1.25][steps - 1] ?? 1), h = (w * im.naturalHeight) / im.naturalWidth;
-  c.drawImage(im, cx - w / 2, cy + 6 - h, w, h);
-  if (night && steps >= 3) L.push({ x: cx, y: cy - h * 0.5, r: 3 });
+/** Three own build states on one shared crop (basin never shifts): Brunnenkump, Wasserkunst, column with arms. */
+const FOUNTAIN_ART = [fountain1U, fountain2U, fountain3U];
+/** World width of the basin sprite: about three citizens across, like the village well's scale. */
+const FOUNTAIN_W = 17;
+function drawMarketFountain(c: C, steps: number, cx: number, cy: number, L: Light[], night: boolean, paved: boolean) {
+  const u = FOUNTAIN_ART[Math.min(3, steps) - 1]; if (!u) return;
+  const im = huntIm(`market-fountain-${steps}`, u); if (!im) return;
+  const w = FOUNTAIN_W, h = (w * im.naturalHeight) / im.naturalWidth;
+  // foundation: the tile is paved with the market's own world-anchored cobbles, so the basin stands on stone
+  if (!paved) { c.fillStyle = texture(c, "cobble") ?? "#b9a27c"; diamond(c, cx, cy, 0.8); c.fill(); }
+  // contact shadow hugging the plinth, pushed down-right (light from top-left) — never a loose floating oval
+  c.save(); c.globalAlpha = 0.42; c.fillStyle = "#2a2116";
+  c.beginPath(); c.ellipse(cx + 1.2, cy + 0.9, w * 0.5, w * 0.24, 0, 0, Math.PI * 2); c.fill();
+  c.globalAlpha = 0.5; c.beginPath(); c.ellipse(cx + 0.6, cy + 0.5, w * 0.46, w * 0.2, 0, 0, Math.PI * 2); c.fill(); c.restore();
+  // sprite bottom (front corner of the basin) sits on the tile's front half, so the plinth meets the paving
+  c.drawImage(im, cx - w / 2, cy + w * 0.26 - h, w, h);
+  if (night && steps >= 3) L.push({ x: cx, y: cy - h * 0.55, r: 3 });
 }
 function drawVane(c: C, cx: number, top: number) {
   const u = SUPPORT_ART.vane, w = SUPPORT_W.vane!; if (!u) return;
@@ -4209,8 +4219,8 @@ export function draw(
   const birds = framePool.birds; birds.length = 0; // gulls over the coast, crows over fields, drawn on top
   const occ = framePool.occ, ord = framePool.ord; occ.length = 0; ord.clear();
   // supporter decorations: one lookup per frame instead of a fresh cache key per empty tile
-  const fountains = fountainMap(seeds, now);
   const decor = supportOwned.size ? decorMap(seeds, supportOwned, now, MAP) : null, decorNight = worldHour(now) >= 19 || worldHour(now) < 7;
+  const fountains = fountainMap(seeds, now, decor);
   type Item = Body & { q?: Pose; sh?: { k: number; m: ReturnType<typeof sheepSpots>[number]["m"] } };
   const fineP = perfFine();
   for (let ti = 0; ti < nTiles; ti++) {
@@ -4232,7 +4242,7 @@ export function draw(
       else if (st && !FLAT.has(st.kind)) drawBuildingSprite(c, st.kind, cx, FOOT2.has(st.kind) ? cy - TH / 2 : cy, st.v);
       continue; // forests and crags are baked into the ground chunks
     }
-    if (!st && (sharp || nearTown(x, y)) && !(outDone.has(((y / CH) | 0) * 4096 + ((x / CH) | 0)) && outskirt(x, y))) natureAt(c, x, y, cx, cy, t, !roofInFront(x, y, seeds, now), false, z); // turf already lies in the flat pass
+    if (!st && !fountains?.has(y * MAP + x) && (sharp || nearTown(x, y)) && !(outDone.has(((y / CH) | 0) * 4096 + ((x / CH) | 0)) && outskirt(x, y))) natureAt(c, x, y, cx, cy, t, !roofInFront(x, y, seeds, now), false, z); // turf already lies in the flat pass
     pFE(); pFB("p2.animals");
     if (!original && !floodWild.get(y * MAP + x)?.flood && !inCourt(x, y)) {
       const animal = farmAnimalsAt(x, y, seeds, now, pondsNow);
@@ -4339,7 +4349,7 @@ export function draw(
     if (!st) { const cp = courtPieces().get(y * MAP + x); if (cp) drawCourtPiece(c, cp, cx, cy, L, t); for (const q of courtFigures(t).get(y * MAP + x) ?? []) drawCourtFigure(c, q, t); }
     if (!st) { const wk = wonderMap().get(y * MAP + x); if (wk) drawWonder(c, wk, cx, cy, t, !wonderFound.has(`${wk}:${x}:${y}`), L); }
     if (!st && decor) { const dk = decor.get(y * MAP + x); if (dk) drawSupport(c, dk, cx, cy, L, decorNight); }
-    if (!st && fountains) { const fk = fountains.get(y * MAP + x); if (fk) drawMarketFountain(c, fk, cx, cy, L, decorNight); }
+    if ((!st || st.kind === "square") && fountains) { const fk = fountains.get(y * MAP + x); if (fk) drawMarketFountain(c, fk, cx, cy, L, decorNight, !!st); }
     { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
     if (y * MAP + x === goalK) {
       // golden waymark where the player's mayor is heading
