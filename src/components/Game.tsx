@@ -72,7 +72,7 @@ import { MAYOR } from "@/game/lang/mayor";
 import { ownHead, addressMayor, mayorWord, titleForm } from "@/game/lang/address";
 import { COURT } from "@/game/lang/court";
 import { setWayside, lastWayside } from "@/game/render";
-import { waysideNear, freeLand, readWayMem, markMet, WAYSIDE, WAY_GRAPH, type Wayside } from "@/game/wayside";
+import { waysideNear, freeLand, readWayMem, markMet, WAYSIDE, WAY_GRAPH, WAY_PROP, type Wayside } from "@/game/wayside";
 import { WAYSIDE_TEXT } from "@/game/lang/wayside";
 import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, setHeraldQuiet, heraldSpots, isPlantedRare } from "@/game/render";
 import { DOG } from "@/game/lang/dog";
@@ -1872,7 +1872,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       const nw = clock(), w = waysideNear(me.q.x, me.q.y, nw, readWayMem(userId), (x, y) => freeLand(x, y, st.current.seeds, nw));
       if (w?.id !== wayRef.current?.id || w?.key !== wayRef.current?.key) {
         wayRef.current = w; setWay(w);
-        setWayside(w ? { x: w.x, y: w.y, fig: WAYSIDE[w.key].fig, carry: (WAYSIDE[w.key] as { carry?: string }).carry, sd: Math.abs((w.x * 977 + w.y * 131) | 0) } : null);
+        setWayside(w ? { x: w.x, y: w.y, fig: WAYSIDE[w.key].fig, carry: (WAYSIDE[w.key] as { carry?: string }).carry, prop: WAY_PROP[w.key], sd: Math.abs((w.x * 977 + w.y * 131) | 0) } : null);
       }
     };
     tick(); const h = setInterval(tick, 2000); return () => clearInterval(h);

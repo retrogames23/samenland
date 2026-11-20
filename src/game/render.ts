@@ -2,6 +2,12 @@ import { streetHouse, streetFront, streetHouseNeedsFront, type StreetFront } fro
 import { paintedFlame } from "./building-sprites";
 import { weatherAt, wetness, snowiness, stormDark, setWeatherPreview, type WeatherKind } from "./weather";
 import deerWalkUrl from "@/assets/sprites/deer-walk.webp";
+import wayCross from "@/assets/sprites/wayside/cross.webp.asset.json";
+import wayLetter from "@/assets/sprites/wayside/letter.webp.asset.json";
+import waySnare from "@/assets/sprites/wayside/snare.webp.asset.json";
+import wayKiln from "@/assets/sprites/wayside/kiln.webp.asset.json";
+import wayPeat from "@/assets/sprites/wayside/peat.webp.asset.json";
+import wayBasket from "@/assets/sprites/wayside/basket.webp.asset.json";
 import deerGrazeUrl from "@/assets/sprites/deer-graze.webp";
 import boarWalkUrl from "@/assets/sprites/boar-walk.webp";
 import hunterUrl from "@/assets/sprites/folk/hunter.webp";
@@ -1246,7 +1252,13 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
 /** Screen-space people currently drawn (for clicking). */
 /** Screen-space traders on trade roads (for clicking). */
 /** Wayside encounter waiting by the stroll (set by Game.tsx from wayside.ts); its world position is reported for tapping. */
-let waysideNow: { x: number; y: number; fig: string; carry?: string | undefined; sd: number } | null = null;
+let waysideNow: { x: number; y: number; fig: string; carry?: string | undefined; prop?: string | undefined; sd: number } | null = null;
+/** Painted encounter props: url + drawn width in world px, feet at the anchor (sprites end at their base). */
+const WAY_PROPS: Record<string, { u: string; w: number; dx: number; dy: number }> = {
+  cross: { u: wayCross.url, w: 7, dx: -9, dy: -2 }, letter: { u: wayLetter.url, w: 8, dx: 7, dy: 3 },
+  snare: { u: waySnare.url, w: 9, dx: -6, dy: 1 }, kiln: { u: wayKiln.url, w: 26, dx: -18, dy: -4 },
+  peat: { u: wayPeat.url, w: 13, dx: 10, dy: 0 }, basket: { u: wayBasket.url, w: 6, dx: 7, dy: 1 },
+};
 export const setWayside = (w: typeof waysideNow) => { waysideNow = w; };
 export const lastWayside: { x: number; y: number }[] = [];
 export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean; walker?: Walker; stall?: boolean; free?: boolean }[] = [];
@@ -4182,6 +4194,11 @@ export function draw(
     const w = waysideNow, [wx, wy] = iso(w.x, w.y);
     if (wx > cs0x - 40 && wx < cs1x + 40 && wy > cs0y - 40 && wy < cs1y + 40) {
       const id = `way:${w.sd}`;
+      const pp = w.prop ? WAY_PROPS[w.prop] : undefined, pim = pp ? huntIm("wp:" + w.prop, pp.u) : null;
+      if (pp && pim) {
+        const px = wx + pp.dx, py = wy + pp.dy, ph = pp.w * pim.naturalHeight / pim.naturalWidth;
+        roadProp(px, py, 1, (cx) => { cx.drawImage(pim, px - pp.w / 2, py - ph, pp.w, ph); if (w.prop === "kiln") smoke(cx, px, py - ph + 1, t, w.sd, 0.3); }, false, id + ":p");
+      }
       if (w.fig === "cart") roadProp(wx, wy, 1, () => drawCart(c, wx, wy, -1, 0.5, 0, w.sd, "", 0, id), true, id);
       else if (w.fig === "rider") roadProp(wx, wy, 1, (cx) => drawRider(cx, wx, wy, -1, 0.5, w.sd, 0), true, id);
       else if (w.fig === "deer" || w.fig === "boar") {

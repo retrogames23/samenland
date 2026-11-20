@@ -15,6 +15,11 @@ export const WAYSIDE = {
   hirschkalb: { fig: "deer", tree: "beast" }, frischling: { fig: "boar", tree: "beast" }, rothirsch: { fig: "deer", tree: "beast" }, bache: { fig: "boar", tree: "beast" },
 } as const satisfies Record<string, { fig: WayFig; tree: WayTree; carry?: "bundle" | "log" }>;
 export type WayKey = keyof typeof WAYSIDE;
+/** Painted scene prop beside the figure (render.ts WAY_PROPS), display only. */
+export type WayProp = "cross" | "letter" | "snare" | "kiln" | "peat" | "basket";
+export const WAY_PROP: Partial<Record<WayKey, WayProp>> = {
+  pilger: "cross", moench: "cross", brief: "letter", hirschkalb: "snare", frischling: "snare", koehler: "kiln", torf: "peat", kraemer: "basket",
+};
 export const WAY_KEYS = Object.keys(WAYSIDE) as WayKey[];
 /** Dialogue graph: each node lists the follow-up nodes; leaving is always possible on top. */
 export const WAY_GRAPH: Record<WayTree, Record<string, string[]>> = {
