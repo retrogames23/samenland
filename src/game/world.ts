@@ -7,6 +7,7 @@ import { resetWonders } from "./wonders";
 import { townCharacter, resetCharacters, type TownWay } from "./character";
 import { biomeKey, type Biome } from "./biome";
 import { marketBoost } from "./freimarkt";
+import { bauhuetteDone } from "./vorhaben";
 import { clock, cacheTick, worldHour, worldWeekday, workClock, workDone, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
@@ -941,7 +942,7 @@ export const specialBuild = (s: Seed, mill = false, at = Infinity) => buildWith(
 /** When a bought (non-monument) building started at `at` is finished – same rule as structureAt. */
 export function specialDone(s: Seed, seeds: Seed[], at: number): number {
   // builders rest at night (workClock), the day shift makes up for it
-  return marketBoost(s, at, doneWith(s, seeds, at, guildtowerDone(s, at)));
+  return marketBoost(s, at, bauhuetteDone(s, at, doneWith(s, seeds, at, guildtowerDone(s, at))));
 }
 /** When a fully paid monument is finished (last step + build time, same rule as structureAt), or null while steps are missing. */
 export function monumentDone(s: Seed, _seeds: Seed[], key: MonumentKey): number | null {

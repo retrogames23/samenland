@@ -149,8 +149,7 @@ export function simulate(cfg: SimConfig): SimResult {
       if (P.repeat) for (const k of VORHABEN_KEYS) {
         const price = vorhabenPrice(k, rank, lastTax); if (!price || rank < VORHABEN[k].rank) continue;
         if (k === "bauhuette" && bought.length === before) continue;
-        if (k === "pflaster" && (rep[k] ?? 0) >= seed.roads!.filter((r) => r.at <= now - 10 * DAY).length) continue;
-        if (k !== "pflaster" && now - (repAt[k] ?? -Infinity) < VORHABEN[k].gap) continue;
+        if (now - (repAt[k] ?? -Infinity) < VORHABEN[k].gap) continue;
         if (buy(`${k}${(rep[k] ?? 0) + 1}`, price)) { rep[k] = (rep[k] ?? 0) + 1; repAt[k] = now; }
       }
     }

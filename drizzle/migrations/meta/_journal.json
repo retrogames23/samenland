@@ -862,6 +862,13 @@
       "when": 1795168786632,
       "tag": "0122_vorhaben_price_scales_with_tax",
       "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1795169571700,
+      "tag": "0123_bauhuette_only_guard",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,6 @@ import { stepsPaid, stepsDone, cathedralDone, CATHEDRAL_WINTER, ORANGERY_SICK, t
 import { seasonAt } from "./season";
 import { festJoy } from "./weddings";
 import { CULTURE_SICK, BEGINEN_SICK } from "./prosperity";
-import { careFactor } from "./vorhaben";
 
 /** Plain summer chance that a household has a sick member in a SICK_DAYS window. */
 export const SICK_BASE = 0.06;
@@ -32,6 +31,5 @@ export function sickChance(s: Seed, at: number): number {
   ];
   const risk = SICK_BASE + SICK_WINTER * seasonAt(at).winter * (stepsDone(s, "harvest", at) >= 3 ? 0.5 : 1)
     * (cathedralDone(s, at) >= 5 ? CATHEDRAL_WINTER : 1);
-  // Armenspeisung halves, Bürgerfest clears (vorhaben.ts, derived from paid rows)
-  return careFactor(s, at) * boons.reduce((r, b) => r * (1 - b / SICK_BASE), risk);
+  return boons.reduce((r, b) => r * (1 - b / SICK_BASE), risk);
 }

@@ -5,7 +5,6 @@
  * rebuild after fire/flood are derived from those rows and the clock — never stored. No growth, rank or tax formula changes.
  */
 import type { Seed } from "./world";
-import { vorhabenTimes, VORHABEN } from "./vorhaben";
 
 /** Mirrors DB purchase_guard. */
 export const FREIMARKT_PRICE = 150;
@@ -31,8 +30,6 @@ export function freimarktReady(s: Pick<Seed, "bought">): number { const ts = tim
 export function marketHelp(s: Pick<Seed, "bought">, from: number, to: number): number {
   let ms = 0;
   for (const a of times(s)) ms += Math.max(0, Math.min(to, a + FREIMARKT_LEN) - Math.max(from, a));
-  // Bauhütte (vorhaben.ts): hired carpenters for its whole span
-  for (const a of vorhabenTimes(s, "bauhuette")) ms += Math.max(0, Math.min(to, a + VORHABEN.bauhuette.len) - Math.max(from, a));
   return ms;
 }
 /** One-time carpenter help per market for a bought build already running when the market is called. */
@@ -43,6 +40,6 @@ export const MARKET_BOOST = 12 * H;
  * market itself. Builds started after a market are untouched; each market counts only once per build.
  */
 export function marketBoost(s: Pick<Seed, "bought">, at: number, done: number): number {
-  for (const a of [...times(s), ...vorhabenTimes(s, "bauhuette")].sort((x, y) => x - y)) if (a > at && a < done) done = Math.max(a, done - MARKET_BOOST);
+  for (const a of times(s)) if (a > at && a < done) done = Math.max(a, done - MARKET_BOOST);
   return done;
 }

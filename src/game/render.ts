@@ -37,7 +37,6 @@ import { huntScene, lodgeDens, denOk, wildCandidate, denBeast, denFate, startle,
 import { roadMotion, screenFacing } from "./motion";
 import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
 import { freimarktOpen } from "./freimarkt";
-import { vorhabenOpen, isPaved } from "./vorhaben";
 import { houseLit, candleFlicker, lampStrength } from "./night";
 import { sunTimes, viewNight as nightLevel, viewGlow as duskGlow } from "./sun";
 const sunNow = () => sunTimes(clock());
@@ -982,11 +981,8 @@ function drawRoadRibbon(c: C, l: { tiles: [number, number][] }, seeds: Seed[], n
     }
   } else {
     c.strokeStyle = "rgba(70,52,30,0.16)"; c.lineWidth = 6.6; c.stroke(rb.path); // trodden, soft verge
-    // Wegeausbau (vorhaben.ts): a paved road gets the market's world-anchored cobbles and a darker kerb
-    const pv = "a" in l && seeds.some((sd) => sd.bought?.some((x) => x.item.startsWith("pflaster"))) && isPaved(l as Link, links(seeds), now);
-    if (pv) { c.strokeStyle = "rgba(60,48,34,0.35)"; c.lineWidth = 5.2; c.stroke(rb.path); }
-    c.strokeStyle = pv ? texture(c, "cobble") ?? "#b9a27c" : dirt; c.lineWidth = 4.6; c.stroke(rb.path);
-    if (!pv) { c.strokeStyle = "rgba(60,45,28,0.10)"; c.lineWidth = 1.4; c.stroke(rb.path); } // worn centre line
+    c.strokeStyle = dirt; c.lineWidth = 4.6; c.stroke(rb.path);
+    c.strokeStyle = "rgba(60,45,28,0.10)"; c.lineWidth = 1.4; c.stroke(rb.path); // worn centre line
   }
   c.restore();
   if (!rb.blades) { // verge tufts and pebbles are static: two cached paths, two draw calls per road
@@ -4178,7 +4174,7 @@ export function draw(
   c.globalAlpha = 1;
 
   // Saturday market: visiting traders set up painted stalls on the host village's square around the well, 9–17 realm time
-  const freeMkts = seeds.filter((sd) => sd.bought && (freimarktOpen(sd, now) || vorhabenOpen(sd, "fest", now)));
+  const freeMkts = seeds.filter((sd) => sd.bought && (freimarktOpen(sd, now)));
   if (marketOpen(now) || freeMkts.length) {
     const guests = new Map<Seed, Seed[]>();
     // Freimarkt: the headman's extra market day fills the own square with stalls for 24 hours
