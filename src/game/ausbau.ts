@@ -39,3 +39,16 @@ export function nextAusbau(base: AusbauBase, paid: Iterable<string>): string | n
   if (!p.has(base)) return null;
   return AUSBAU_STEPS[base].find((k) => !p.has(k)) ?? null;
 }
+
+export type AusbauStatus = "bought" | "needBase" | "needPrevious" | "needRank" | "poor" | "available";
+/** Display state of one concrete upgrade; the database guard remains authoritative for the purchase. */
+export function ausbauStatus(base: AusbauBase, item: string, paid: Iterable<string>, rank: number, cash: number): AusbauStatus {
+  const p = new Set(paid);
+  if (p.has(item)) return "bought";
+  if (!p.has(base)) return "needBase";
+  const index = AUSBAU_STEPS[base].indexOf(item);
+  if (index > 0 && !p.has(AUSBAU_STEPS[base][index - 1]!)) return "needPrevious";
+  if (rank < (AUSBAU_RANK[item] ?? 0)) return "needRank";
+  if (cash < (AUSBAU_PRICE[item] ?? Infinity)) return "poor";
+  return "available";
+}

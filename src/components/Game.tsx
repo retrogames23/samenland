@@ -80,7 +80,7 @@ import { FREIMARKT } from "@/game/lang/freimarkt";
 import { VORHABEN_T } from "@/game/lang/vorhaben";
 import { VORHABEN, VORHABEN_KEYS, vorhabenOf, vorhabenPrice, nextVorhaben, vorhabenReady, lastDayTax } from "@/game/vorhaben";
 import { FREIMARKT_PRICE, FREIMARKT_RANK, FREIMARKT_LEN, isFreimarkt, nextFreimarkt, freimarktReady } from "@/game/freimarkt";
-import { AUSBAU_BASES, AUSBAU_STEPS, AUSBAU_PRICE, AUSBAU_RANK, isAusbau, nextAusbau } from "@/game/ausbau";
+import { AUSBAU_BASES, AUSBAU_STEPS, AUSBAU_PRICE, AUSBAU_RANK, ausbauStatus, isAusbau } from "@/game/ausbau";
 import { AUSBAU } from "@/game/lang/ausbau";
 import { FOUNTAIN_STEPS, FOUNTAIN_PRICE, FOUNTAIN_DAYS, FOUNTAIN_RANK, fountainChain, nextFountainStep, isFountain } from "@/game/civic-fountain";
 import { Survey } from "@/components/Survey";
@@ -1560,7 +1560,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
 
   const my = seeds.find((s) => s.id === mine);
   const certifyFn = useServerFn(certifyMyRank);
-  const { accounting, setAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works, moves]);
+  const { accounting, setAccounting, refreshAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works, moves]);
   const prepareSpend = async () => {
     // always book outstanding daily tax first — right after load `accounting` is still unknown
     if (await refreshTreasury()) return true;
@@ -2211,9 +2211,23 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     const needRank = needRankOf(item);
     if (needRank > 0) { try { await certifyFn({ data: { seed: my.id } }); } catch { return rollback(t.buyFail); } }
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null }).select("id, seed_id, item, cost, created_at, x, y").single();
-    if (error || !data) return rollback(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
+    if (error || !data) {
+      const m = error?.message ?? "";
+      if (isAusbau(item)) {
+        const at = AUSBAU[lang];
+        if (m.includes("step already paid")) return rollback(at.bought);
+        if (m.includes("previous step open")) return rollback(item.endsWith("2") ? at.needBase : at.needPrevious);
+        if (m.includes("rank too low")) return rollback(t.needStage(t.stages[AUSBAU_RANK[item]!] ?? ""));
+      }
+      return rollback(m.includes("not enough money") ? t.poor : t.buyFail);
+    }
     setPurchases((s) => [...s.filter((x) => x.id !== data.id && x.id !== tmpId), data]);
-    if (isFreimarkt(item)) { jingle("fanfare"); setMsg(FREIMARKT[lang].paidMsg); } else if (isAusbau(item)) { jingle("coins"); setMsg(AUSBAU[lang].paidMsg(AUSBAU[lang].steps[item]![0])); } else if (vorhabenOf(item)) { jingle("coins"); setMsg(VORHABEN_T[lang].paid(VORHABEN_T[lang].items[vorhabenOf(item)!].title)); } else if (isFountain(item)) { jingle("fanfare"); setMsg(FOUNTAIN[lang].paidMsg(FOUNTAIN[lang].steps[FOUNTAIN_STEPS.indexOf(item)]!)); } else if (/^chest[2-4]$/.test(item)) { jingle("coins"); setMsg(`${CHEST[lang].title}: ${CHEST[lang].levels[+item.slice(5) - 1]}`); } else if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
+    const fresh = isAusbau(item) ? await refreshAccounting() : null;
+    if (isFreimarkt(item)) { jingle("fanfare"); setMsg(FREIMARKT[lang].paidMsg); } else if (isAusbau(item)) {
+      const at = AUSBAU[lang], base = AUSBAU_BASES.find((b) => AUSBAU_STEPS[b].includes(item)) ?? "backhaus";
+      const balance = fresh?.seed === my.id ? fresh.balance : Math.max(0, cash - data.cost);
+      jingle("coins"); setMsg(at.paidMsg(at.names[base], at.steps[item]![0], at.steps[item]![1], t.taler(data.cost), t.taler(balance)));
+    } else if (vorhabenOf(item)) { jingle("coins"); setMsg(VORHABEN_T[lang].paid(VORHABEN_T[lang].items[vorhabenOf(item)!].title)); } else if (isFountain(item)) { jingle("fanfare"); setMsg(FOUNTAIN[lang].paidMsg(FOUNTAIN[lang].steps[FOUNTAIN_STEPS.indexOf(item)]!)); } else if (/^chest[2-4]$/.test(item)) { jingle("coins"); setMsg(`${CHEST[lang].title}: ${CHEST[lang].levels[+item.slice(5) - 1]}`); } else if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
   };
   /** Umsetzen: pay the carters, then the building is rebuilt on the chosen spot (the old one is cleared at once). */
   const relocate = async (item: string, x: number, y: number) => {
@@ -2430,22 +2444,33 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               <div key="ausbau" className="rounded-md border border-brass/60 bg-brass/10 p-2">
                 <div className="font-semibold">🔨 {at.title}</div>
                 <div className="text-xs text-muted-foreground">{at.intro}</div>
-                <div className="mt-1 space-y-1.5">
-                  {AUSBAU_BASES.map((b) => { const next = nextAusbau(b, paid), has = paid.includes(b), lvl = AUSBAU_STEPS[b].filter((k) => paid.includes(k)).length;
+                <div className="mt-2 space-y-2">
+                  {AUSBAU_BASES.map((b) => AUSBAU_STEPS[b].map((k, i) => {
+                    const status = ausbauStatus(b, k, paid, myStage, cash), price = AUSBAU_PRICE[k]!;
                     return (
-                      <div key={b} className="text-xs">
-                        <div className="flex items-center gap-2"><span className="flex-1 font-semibold">{at.names[b]} · {lvl + 1}/3</span>{next && <span className="text-muted-foreground">{t.taler(AUSBAU_PRICE[next]!)}</span>}</div>
-                        {!has ? <div className="text-muted-foreground">{at.needBase}</div>
-                          : !next ? <div className="font-semibold text-primary">✓ {at.done}</div>
-                          : <>
-                            <div><span className="font-semibold">{at.steps[next]![0]}:</span> {at.steps[next]![1]}</div>
-                            {myStage < AUSBAU_RANK[next]! ? <div className="text-muted-foreground">🔒 {t.needStage(t.stages[AUSBAU_RANK[next]!] ?? "")}</div>
-                              : <Button size="sm" className="mt-0.5 h-7 w-full" disabled={cash < AUSBAU_PRICE[next]!} onClick={() => void buy(next)}>{at.pay} · {t.taler(AUSBAU_PRICE[next]!)}</Button>}
-                          </>}
+                      <div key={k} data-ausbau-step={k} className="rounded border border-brass/35 bg-card/45 p-2 text-xs">
+                        <div className="flex items-start gap-2">
+                          <span className="flex-1 font-semibold">{at.names[b]} · {at.stage(i + 2)}</span>
+                          <span className="shrink-0 text-muted-foreground">{t.taler(price)}</span>
+                        </div>
+                        <div className="mt-0.5 font-semibold">{at.steps[k]![0]}</div>
+                        <div className="mt-0.5">{at.steps[k]![1]}</div>
+                        <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{at.baseReq(at.names[b])}<br />{t.needStage(t.stages[AUSBAU_RANK[k]!] ?? "")}</div>
+                        <div className="mt-1.5">
+                          {status === "bought" ? <span className="font-semibold text-primary">✓ {at.bought}</span>
+                            : status === "needBase" ? <span className="text-muted-foreground">🔒 {at.needBase}</span>
+                            : status === "needPrevious" ? <span className="text-muted-foreground">🔒 {at.needPrevious}</span>
+                            : status === "needRank" ? <span className="text-muted-foreground">🔒 {t.needStage(t.stages[AUSBAU_RANK[k]!] ?? "")}</span>
+                            : <>
+                              {status === "poor" && <div className="mb-1 text-muted-foreground">{t.poor}</div>}
+                              <Button size="sm" className="h-8 w-full" disabled={status === "poor"} onClick={() => void buy(k)}>{status === "available" ? `${at.available} · ` : ""}{at.pay} · {t.taler(price)}</Button>
+                            </>}
+                        </div>
                       </div>
-                    ); })}
+                    );
+                  }))}
                 </div>
-                <div className="mt-1 text-[10px] text-muted-foreground">{at.voluntary}</div>
+                <div className="mt-2 text-[10px] text-muted-foreground">{at.voluntary}</div>
               </div>
             );
           })()}
@@ -3717,7 +3742,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         </div>
       )}
 
-      <div className="pointer-events-none absolute bottom-[calc(var(--dock-bottom)+4.5rem)] left-[var(--safe-l)] right-[var(--safe-r)] z-20 flex flex-col items-end space-y-2 text-sm md:bottom-52 ltr:md:left-auto ltr:md:right-3 rtl:md:right-auto rtl:md:left-3 md:w-80">
+      <div className="pointer-events-none absolute bottom-[calc(var(--dock-bottom)+4.5rem)] left-[var(--safe-l)] right-[var(--safe-r)] z-40 flex flex-col items-end space-y-2 text-sm md:bottom-52 ltr:md:left-auto ltr:md:right-3 rtl:md:right-auto rtl:md:left-3 md:w-80">
         {placing && coarse && ghost && (() => {
           const own = seeds.find((s) => s.id === mine);
           const err = own ? (moving ? canMoveTo : canPlaceSpecial)(placing, ghost[0], ghost[1], own, seeds, clock()) as keyof typeof t.place | null : "ground";

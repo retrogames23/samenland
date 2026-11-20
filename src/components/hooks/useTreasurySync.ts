@@ -15,20 +15,21 @@ export function useTreasurySync(my: Seed | undefined, userId: string | null | un
   const argsRef = useRef({ my, userId });
   argsRef.current = { my, userId };
   // one server call per refresh; a backlog beyond the server batch is booked by later refreshes
-  const runRef = useRef<(() => Promise<boolean>) | null>(null);
+  const runRef = useRef<(() => Promise<Accounting | null>) | null>(null);
   runRef.current ??= coalescedRefresh(async () => {
     const { my, userId } = argsRef.current;
-    if (!my || !userId || my.user_id !== userId) return false;
+    if (!my || !userId || my.user_id !== userId) return null;
     const id = my.id;
     try {
       const result = await treasuryFn({ data: { seed: id } });
       if (seedRef.current === id) setAccounting(result);
-      return result.settled;
+      return result;
     } catch {
-      return false;
+      return null;
     }
   });
-  const refreshTreasury = () => runRef.current!();
+  const refreshAccounting = () => runRef.current!();
+  const refreshTreasury = async () => (await refreshAccounting())?.settled ?? false;
   useEffect(() => {
     if (!my || !userId || my.user_id !== userId) { setAccounting(null); return; }
     void refreshTreasury();
@@ -37,5 +38,5 @@ export function useTreasurySync(my: Seed | undefined, userId: string | null | un
     // Refresh from authoritative rows, never from pointer/camera changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [my, userId, ...deps]);
-  return { accounting, setAccounting, refreshTreasury };
+  return { accounting, setAccounting, refreshAccounting, refreshTreasury };
 }
