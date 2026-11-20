@@ -841,6 +841,13 @@
       "when": 1795161022943,
       "tag": "0119_market_fountain",
       "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1795165929407,
+      "tag": "0120_freimarkt_purchase_guard",
+      "breakpoints": true
     }
   ]
 }

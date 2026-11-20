@@ -76,6 +76,8 @@ import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT, UKRAINE_URL } from "@/game/lang/support";
 import { FOUNTAIN } from "@/game/lang/fountain";
+import { FREIMARKT } from "@/game/lang/freimarkt";
+import { FREIMARKT_PRICE, FREIMARKT_RANK, FREIMARKT_LEN, isFreimarkt, nextFreimarkt, freimarktReady } from "@/game/freimarkt";
 import { FOUNTAIN_STEPS, FOUNTAIN_PRICE, FOUNTAIN_DAYS, FOUNTAIN_RANK, fountainChain, nextFountainStep, isFountain } from "@/game/civic-fountain";
 import { Survey } from "@/components/Survey";
 import { Stube, STUBE_KINDS, type StubeKind } from "@/components/Stube";
@@ -2207,7 +2209,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) return rollback(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
     setPurchases((s) => [...s.filter((x) => x.id !== data.id && x.id !== tmpId), data]);
-    if (isFountain(item)) { jingle("fanfare"); setMsg(FOUNTAIN[lang].paidMsg(FOUNTAIN[lang].steps[FOUNTAIN_STEPS.indexOf(item)]!)); } else if (/^chest[2-4]$/.test(item)) { jingle("coins"); setMsg(`${CHEST[lang].title}: ${CHEST[lang].levels[+item.slice(5) - 1]}`); } else if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
+    if (isFreimarkt(item)) { jingle("fanfare"); setMsg(FREIMARKT[lang].paidMsg); } else if (isFountain(item)) { jingle("fanfare"); setMsg(FOUNTAIN[lang].paidMsg(FOUNTAIN[lang].steps[FOUNTAIN_STEPS.indexOf(item)]!)); } else if (/^chest[2-4]$/.test(item)) { jingle("coins"); setMsg(`${CHEST[lang].title}: ${CHEST[lang].levels[+item.slice(5) - 1]}`); } else if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
   };
   /** Umsetzen: pay the carters, then the building is rebuilt on the chosen spot (the old one is cleared at once). */
   const relocate = async (item: string, x: number, y: number) => {
@@ -2418,6 +2420,27 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               </div>
             );
           })}
+          {my && (() => {
+            const fm = FREIMARKT[lang], locked = myStage < FREIMARKT_RANK;
+            const mine = purchases.filter((p) => p.seed_id === my.id && isFreimarkt(p.item));
+            const rows = { bought: mine.map((p) => ({ item: p.item, at: Date.parse(p.created_at) })) };
+            const last = rows.bought.reduce((m, b) => Math.max(m, b.at), -Infinity);
+            const ready = freimarktReady(rows), openLeft = last + FREIMARKT_LEN - now;
+            return (
+              <div key="freimarkt" className={`rounded-md border border-brass/60 bg-brass/10 p-2 ${locked ? "opacity-60" : ""}`}>
+                <div className="flex items-center gap-2"><span className="flex-1 font-semibold">🎪 {fm.title}</span><span className="text-xs text-muted-foreground">{t.taler(FREIMARKT_PRICE)}</span></div>
+                <div className="text-xs text-muted-foreground">{fm.intro}</div>
+                <div className="mt-1 text-xs">{fm.benefit}</div>
+                <div className="mt-1.5">
+                  {locked ? <span className="text-xs text-muted-foreground">🔒 {t.needStage(t.stages[FREIMARKT_RANK] ?? "")}</span>
+                    : openLeft > 0 ? <span className="text-xs font-semibold text-primary">{fm.open(Math.ceil(openLeft / 3.6e6))}</span>
+                    : now < ready ? <span className="text-xs text-muted-foreground">{fm.wait(Math.ceil((ready - now) / 864e5))}</span>
+                    : <Button size="sm" className="h-7 w-full" disabled={cash < FREIMARKT_PRICE} onClick={() => void buy(nextFreimarkt(mine.map((p) => p.item)))}>{fm.call} · {t.taler(FREIMARKT_PRICE)}</Button>}
+                  <div className="mt-0.5 text-[10px] text-muted-foreground">{fm.voluntary}</div>
+                </div>
+              </div>
+            );
+          })()}
           {my && (() => {
             const ft = FOUNTAIN[lang], locked = myStage < FOUNTAIN_RANK;
             const paid = purchases.filter((p) => p.seed_id === my.id && isFountain(p.item)).map((p) => p.item);

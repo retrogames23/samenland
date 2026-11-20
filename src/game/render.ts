@@ -36,6 +36,7 @@ import { sheepSpots, separate, keepRight, FOOT, type Body } from "./space";
 import { huntScene, lodgeDens, denOk, wildCandidate, denBeast, denFate, startle, DEN_R, type Den, type Beast } from "./wildlife";
 import { roadMotion, screenFacing } from "./motion";
 import { walkersNow, walkProgress, marketOpen, type Walker } from "./wander";
+import { freimarktOpen } from "./freimarkt";
 import { houseLit, candleFlicker, lampStrength } from "./night";
 import { sunTimes, viewNight as nightLevel, viewGlow as duskGlow } from "./sun";
 const sunNow = () => sunTimes(clock());
@@ -4164,9 +4165,12 @@ export function draw(
   c.globalAlpha = 1;
 
   // Saturday market: visiting traders set up painted stalls on the host village's square around the well, 9–17 realm time
-  if (marketOpen(now)) {
+  const freeMkts = seeds.filter((sd) => sd.bought && freimarktOpen(sd, now));
+  if (marketOpen(now) || freeMkts.length) {
     const guests = new Map<Seed, Seed[]>();
-    for (const l of worldLinks) {
+    // Freimarkt: the headman's extra market day fills the own square with stalls for 24 hours
+    for (const sd of freeMkts) guests.set(sd, [sd, sd]);
+    if (marketOpen(now)) for (const l of worldLinks) {
       if (l.tiles.length < 7 || roadProgress(l, now) < 1) continue;
       for (const [h, g] of [[l.a, l.b], [l.b, l.a]] as const) { const arr = guests.get(h) ?? []; arr.push(g); guests.set(h, arr); }
     }

@@ -1,6 +1,7 @@
 import { labEvent } from "./lab-ctl";
 import { aidFactor } from "./gifts";
 import { townCharacter } from "./character";
+import { marketHelp } from "./freimarkt";
 import { fountainDone, fountainTiles, fountainBurn, FOUNTAIN_CORE } from "./civic-fountain";
 /** Stone-built hill towns: fires start less often and spread to fewer roofs. */
 export const STONE_FIRE = 0.6;
@@ -210,22 +211,24 @@ export function tileHits(s: Seed, now: number): Map<number, TileHit> {
   const m = new Map<number, TileHit>();
   for (const f of fires(s, now)) {
     const k = aidFactor(s.aid, f.end) * craftRepair(s, f.end);
-    if (now >= f.end + FIRE_REBUILD / k) continue;
+    const fb = now < f.end ? 0 : ((now - f.end + marketHelp(s, f.end, now)) * k) / FIRE_REBUILD;
+    if (fb >= 1) continue;
     for (const t of f.tiles) {
       if (now < f.end) m.set(t, { fire: true });
-      else if (!f.guarded) m.set(t, { build: ((now - f.end) * k) / FIRE_REBUILD });
+      else if (!f.guarded) m.set(t, { build: fb });
     }
   }
   for (const f of floods(s, now)) {
     const k = aidFactor(s.aid, f.end) * craftRepair(s, f.end);
-    if (now >= f.end + Math.max(SILT_LEN, FLOOD_REBUILD / k)) continue;
+    const wb = now < f.end ? 0 : ((now - f.end + marketHelp(s, f.end, now)) * k) / FLOOD_REBUILD;
+    if (now >= f.end + SILT_LEN && wb >= 1) continue;
     // the fascine wall grows during the flood and is cleared away a day after the water drains
     if (now < f.end + DAY) { const lv = now < f.end ? Math.min(1, (now - f.at) / ((f.end - f.at) / 3)) : 1 - (now - f.end) / DAY; if (lv > 0.05) for (const t of floodFront(f).levee) m.set(t, { ...m.get(t), levee: lv }); }
     if (now < f.end) { for (const t of f.tiles) { const w = floodLevel(f, t, now); if (w > 0.02) m.set(t, { ...m.get(t), flood: true, wet: w }); } }
     else {
       const sl = 1 - (now - f.end) / SILT_LEN;
       if (sl > 0) for (const t of f.tiles) m.set(t, { ...m.get(t), silt: sl });
-      if (now < f.end + FLOOD_REBUILD / k) for (const t of f.ruined) m.set(t, { ...m.get(t), build: ((now - f.end) * k) / FLOOD_REBUILD });
+      if (wb < 1) for (const t of f.ruined) m.set(t, { ...m.get(t), build: wb });
     }
   }
   if (tcache.size > 200) tcache.clear();
