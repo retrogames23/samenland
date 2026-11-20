@@ -48,7 +48,7 @@ type LetterRow = { id: string; from_seed: string; to_seed: string; created_at: s
 import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
 import { deleteAccount } from "@/lib/account.functions";
-import { certifyMyRank } from "@/lib/treasury.functions";
+import { certifyMyRank, callNothilfe } from "@/lib/treasury.functions";
 import { useTreasurySync } from "@/components/hooks/useTreasurySync";
 import { civicRoadsOf } from "@/game/civic-roads";
 import { useServerFn } from "@tanstack/react-start";
@@ -77,6 +77,9 @@ import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT, UKRAINE_URL } from "@/game/lang/support";
 import { FOUNTAIN } from "@/game/lang/fountain";
 import { FREIMARKT } from "@/game/lang/freimarkt";
+import { NOTHILFE } from "@/game/lang/nothilfe";
+import { NOTHILFE_PRICE, NOTHILFE_RANK, nothilfeItem } from "@/game/nothilfe";
+import { activeRuins } from "@/game/disasters";
 import { VORHABEN_T } from "@/game/lang/vorhaben";
 import { VORHABEN, VORHABEN_KEYS, vorhabenOf, vorhabenPrice, nextVorhaben, vorhabenReady, lastDayTax } from "@/game/vorhaben";
 import { FREIMARKT_PRICE, FREIMARKT_RANK, FREIMARKT_LEN, isFreimarkt, nextFreimarkt, freimarktReady } from "@/game/freimarkt";
@@ -1560,6 +1563,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
 
   const my = seeds.find((s) => s.id === mine);
   const certifyFn = useServerFn(certifyMyRank);
+  const nothilfeFn = useServerFn(callNothilfe);
   const { accounting, setAccounting, refreshAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works, moves]);
   const prepareSpend = async () => {
     // always book outstanding daily tax first — right after load `accounting` is still unknown
@@ -2229,6 +2233,23 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       jingle("coins"); setMsg(at.paidMsg(at.names[base], at.steps[item]![0], at.steps[item]![1], t.taler(data.cost), t.taler(balance)));
     } else if (vorhabenOf(item)) { jingle("coins"); setMsg(VORHABEN_T[lang].paid(VORHABEN_T[lang].items[vorhabenOf(item)!].title)); } else if (isFountain(item)) { jingle("fanfare"); setMsg(FOUNTAIN[lang].paidMsg(FOUNTAIN[lang].steps[FOUNTAIN_STEPS.indexOf(item)]!)); } else if (/^chest[2-4]$/.test(item)) { jingle("coins"); setMsg(`${CHEST[lang].title}: ${CHEST[lang].levels[+item.slice(5) - 1]}`); } else if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
   };
+  /** Zimmerleute-Nothilfe: the server recomputes the ruin and books it; nothing is trusted from the client. */
+  const aidBusy = useRef(false);
+  const callAid = async (kind: "f" | "w", at: number) => {
+    if (!my || aidBusy.current) return;
+    aidBusy.current = true; tap();
+    try {
+      const nt = NOTHILFE[lang];
+      if (!await prepareSpend()) return setMsg(t.buyFail);
+      const r = await nothilfeFn({ data: { seed: my.id, kind, at } }).catch(() => null);
+      if (!r) return setMsg(t.buyFail);
+      if (!r.ok) return setMsg(r.code === "poor" ? t.poor : r.code === "already" ? nt.already : r.code === "noRuin" ? nt.noRuin : r.code === "rank" ? t.needStage(t.stages[NOTHILFE_RANK] ?? "") : t.buyFail);
+      setPurchases((s) => [...s.filter((x) => x.id !== r.row.id), r.row]);
+      const fresh = await refreshAccounting();
+      const balance = fresh?.seed === my.id ? fresh.balance : Math.max(0, cash - r.row.cost);
+      jingle("coins"); setMsg(nt.ok(r.row.cost, Math.max(1, Math.ceil(r.left / 3.6e6)), t.taler(balance)));
+    } finally { aidBusy.current = false; }
+  };
   /** Umsetzen: pay the carters, then the building is rebuilt on the chosen spot (the old one is cleared at once). */
   const relocate = async (item: string, x: number, y: number) => {
     if (!my) return;
@@ -2561,6 +2582,29 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                 <Button size="sm" variant="secondary" onClick={() => ring("well")}>{t.decorateWell}</Button>
               </div>
             )}
+            {(() => {
+              const nt = NOTHILFE[lang], locked = myStage < NOTHILFE_RANK, ruins = activeRuins(my, now);
+              const paidOf = (k: "f" | "w", at: number) => purchases.some((p) => p.seed_id === my.id && p.item === nothilfeItem(k, at));
+              const hrs = (ms: number) => Math.max(1, Math.ceil(ms / 3.6e6));
+              return (
+                <div key="nothilfe" data-testid="nothilfe-card" className={`rounded-md border border-border bg-card/60 p-2 ${locked ? "opacity-60" : ""}`}>
+                  <div className="flex items-center gap-2"><span className="flex-1 font-semibold">🪚 {nt.title}</span><span className="text-xs text-muted-foreground">{t.taler(NOTHILFE_PRICE)}</span></div>
+                  <div className="text-xs text-muted-foreground">{nt.intro}</div>
+                  {locked ? <div className="mt-1.5 text-xs text-muted-foreground">🔒 {t.needStage(t.stages[NOTHILFE_RANK] ?? "")}</div>
+                    : ruins.length === 0 ? <div className="mt-1.5 text-xs text-muted-foreground">{nt.none}</div>
+                    : <div className="mt-1.5 grid gap-1.5">{ruins.map((r) => { const done = paidOf(r.kind, r.at); return (
+                      <div key={`${r.kind}${Math.floor(r.at)}`} className="rounded border border-border p-1.5 text-xs">
+                        <div className="font-semibold">{r.kind === "f" ? "🔥 " + nt.fire : "🌊 " + nt.flood}</div>
+                        <div>{nt.left(hrs(r.left))}</div>
+                        {done ? <div className="font-semibold text-primary">{nt.paid}</div> : <>
+                          <div className="text-muted-foreground">{nt.effect(hrs(r.left / 2))}</div>
+                          <Button size="sm" className="mt-1 h-7 w-full" disabled={cash < NOTHILFE_PRICE} onClick={() => void callAid(r.kind, Math.floor(r.at))}>{nt.call} · {t.taler(NOTHILFE_PRICE)}</Button>
+                        </>}
+                      </div>); })}</div>}
+                  <div className="mt-0.5 text-[10px] text-muted-foreground">{nt.voluntary}</div>
+                </div>
+              );
+            })()}
             {(() => {
               const fm = FREIMARKT[lang], locked = myStage < FREIMARKT_RANK;
               const mine = purchases.filter((p) => p.seed_id === my.id && isFreimarkt(p.item));

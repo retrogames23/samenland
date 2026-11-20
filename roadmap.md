@@ -26,3 +26,4 @@
 - [x] Freimarkt-Karte aus „Bauen" nach „Zuwendung" verschoben; Anzeige auf Desktop und Handy geprüft, Auslösen mit echtem Kauf getestet
 - [x] Sonnenmodul: Immer-Tag-Lesen abfangen, damit Rang-Käufe (auch Freimarkt) auf dem Server nicht mehr ablehnen; Rückwärts-Test ergänzt
 - [x] Sechs Gemeindebau-Ausbaustufen: vollständige mobile Menükarte, konkrete Kauf-/Fehlermeldungen, echte Käufe samt Wirkung, Serverbestand und Wiederholschutz abgenommen
+- [x] Zimmerleute-Nothilfe bei Brand und Flut (80 Mark ab Weiler, Restzeit halbiert) – echter Kauf offen, bis eine eigene Ruine besteht

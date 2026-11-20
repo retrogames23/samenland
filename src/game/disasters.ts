@@ -2,6 +2,7 @@ import { labEvent } from "./lab-ctl";
 import { aidFactor } from "./gifts";
 import { townCharacter } from "./character";
 import { marketHelp } from "./freimarkt";
+import { helpedProgress, nothilfeAt, type NotKind } from "./nothilfe";
 import { fountainDone, fountainTiles, fountainBurn, FOUNTAIN_CORE } from "./civic-fountain";
 /** Stone-built hill towns: fires start less often and spread to fewer roofs. */
 export const STONE_FIRE = 0.6;
@@ -203,6 +204,31 @@ export function floodFront(f: Flood): { levee: number[]; x: number; y: number } 
   let sx = 0, sy = 0; for (const t of pool) { sx += t % MAP; sy += Math.floor(t / MAP); }
   return { levee, x: sx / pool.length, y: sy / pool.length };
 }
+/**
+ * Rebuild progress (0..1) of one fire ("f") or flood ("w") ruin: aid and craft charter scale the base time once,
+ * a Freimarkt adds working hours, a Zimmerleute-Nothilfe (nothilfe.ts) halves whatever remained at payment.
+ */
+export function rebuildProgress(s: Seed, kind: NotKind, f: { at: number; end: number }, now: number): number {
+  if (now < f.end) return 0;
+  const k = aidFactor(s.aid, f.end) * craftRepair(s, f.end), len = kind === "f" ? FIRE_REBUILD : FLOOD_REBUILD;
+  const raw = (t: number) => t < f.end ? 0 : ((t - f.end + marketHelp(s, f.end, t)) * k) / len;
+  return helpedProgress(raw, nothilfeAt(s, kind, f.at), f.end, now);
+}
+/** Real time until the ruin stands again (0 when done), found by bisection on the pure progress curve. */
+export function rebuildLeft(s: Seed, kind: NotKind, f: { at: number; end: number }, now: number): number {
+  if (rebuildProgress(s, kind, f, now) >= 1) return 0;
+  let lo = Math.max(now, f.end), hi = lo + 4 * (kind === "f" ? FIRE_REBUILD : FLOOD_REBUILD);
+  for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (rebuildProgress(s, kind, f, m) >= 1) hi = m; else lo = m; }
+  return hi - now;
+}
+export type Ruin = { kind: NotKind; at: number; end: number; x: number; y: number; progress: number; left: number };
+/** Ruins being rebuilt right now (fire not guarded, flood with ruined houses) — the only targets of a Nothilfe. */
+export function activeRuins(s: Seed, now: number): Ruin[] {
+  const out: Ruin[] = [];
+  for (const f of fires(s, now)) if (!f.guarded && f.tiles.length && now >= f.end) { const p = rebuildProgress(s, "f", f, now); if (p < 1) out.push({ kind: "f", at: f.at, end: f.end, x: f.x, y: f.y, progress: p, left: rebuildLeft(s, "f", f, now) }); }
+  for (const f of floods(s, now)) if (f.ruined.length && now >= f.end) { const p = rebuildProgress(s, "w", f, now); if (p < 1) { const t = f.ruined[0]!; out.push({ kind: "w", at: f.at, end: f.end, x: t % MAP, y: Math.floor(t / MAP), progress: p, left: rebuildLeft(s, "w", f, now) }); } }
+  return out;
+}
 const tcache = new Map<string, Map<number, TileHit>>();
 /** What disasters do to each tile right now: burning, rebuilding after fire/flood, or under water. */
 export function tileHits(s: Seed, now: number): Map<number, TileHit> {
@@ -210,8 +236,7 @@ export function tileHits(s: Seed, now: number): Map<number, TileHit> {
   const hit = tcache.get(key); if (hit) return hit;
   const m = new Map<number, TileHit>();
   for (const f of fires(s, now)) {
-    const k = aidFactor(s.aid, f.end) * craftRepair(s, f.end);
-    const fb = now < f.end ? 0 : ((now - f.end + marketHelp(s, f.end, now)) * k) / FIRE_REBUILD;
+    const fb = rebuildProgress(s, "f", f, now);
     if (fb >= 1) continue;
     for (const t of f.tiles) {
       if (now < f.end) m.set(t, { fire: true });
@@ -219,8 +244,7 @@ export function tileHits(s: Seed, now: number): Map<number, TileHit> {
     }
   }
   for (const f of floods(s, now)) {
-    const k = aidFactor(s.aid, f.end) * craftRepair(s, f.end);
-    const wb = now < f.end ? 0 : ((now - f.end + marketHelp(s, f.end, now)) * k) / FLOOD_REBUILD;
+    const wb = rebuildProgress(s, "w", f, now);
     if (now >= f.end + SILT_LEN && wb >= 1) continue;
     // the fascine wall grows during the flood and is cleared away a day after the water drains
     if (now < f.end + DAY) { const lv = now < f.end ? Math.min(1, (now - f.at) / ((f.end - f.at) / 3)) : 1 - (now - f.end) / DAY; if (lv > 0.05) for (const t of floodFront(f).levee) m.set(t, { ...m.get(t), levee: lv }); }

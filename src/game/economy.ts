@@ -1,3 +1,4 @@
+import { isNothilfe, NOTHILFE_RANK } from "./nothilfe";
 import type { TownWay } from "./character";
 import { giftBalance, type Gift } from "./gifts";
 import { FOOD_CRAFTS } from "./food-crafts";
@@ -407,6 +408,7 @@ export function needRankOf(item: string): number {
   if (item === "fountain1") return FOUNTAIN_RANK;
   if (isFountain(item)) return 0;
   if (isFreimarkt(item)) return FREIMARKT_RANK;
+  if (isNothilfe(item)) return NOTHILFE_RANK;
   if (item in AUSBAU_RANK) return AUSBAU_RANK[item]!;
   { const v = vorhabenOf(item); if (v) return VORHABEN[v].rank; }
   return ({ ...TITLE_STAGE, ...CHEST_STAGE, ...RANK_STAGE } as Record<string, number>)[item] ?? ITEM_RANK[item] ?? 0;

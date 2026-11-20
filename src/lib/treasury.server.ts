@@ -131,3 +131,28 @@ export async function calculateTreasury(id: string, realm: string) {
   for (const r of rec) receipts[r.day] = r.income;
   return { seed:id, balance, daily:daily?.income ?? 0, population:daily?.population ?? 0, earned:completed, active:!!cut.data, settled, receipts };
 }
+/** Books one Zimmerleute-Nothilfe after recomputing the event on the server; the DB guard checks price, rank, money and once-only. */
+export async function bookNothilfe(id: string, realm: string, userId: string, kind: "f" | "w", at: number) {
+  const input = await loadEconomyInput(realm);
+  const { setRealm } = await import("@/game/time");
+  const { townRank, rankInput } = await import("@/game/rank");
+  const { activeRuins } = await import("@/game/disasters");
+  const { nothilfeItem } = await import("@/game/nothilfe");
+  setRealm(realm as Realm);
+  const now = Date.now(), seeds = economyWorldAt(input, now), seed = seeds.find(s => s.id === id);
+  if (!seed) throw new Error("Missing village");
+  const item = nothilfeItem(kind, at);
+  if ((seed.bought ?? []).some(b => b.item === item)) return { ok: false as const, code: "already" };
+  const ruin = activeRuins(seed, now).find(r => r.kind === kind && Math.floor(r.at) === at);
+  if (!ruin) return { ok: false as const, code: "noRuin" };
+  const { seaWays } = await import("@/game/world");
+  const rank = townRank(seed, seeds, now), citizens = rankInput(seed, seeds, now).citizens, ways = seaWays(seed, now);
+  const { error: ce } = await supabaseAdmin.from("rank_certificates").upsert({ seed_id: id, rank, citizens, ways, certified_at: new Date(now).toISOString() }, { onConflict: "seed_id" });
+  if (ce) throw new Error("Rank certificate failed");
+  const { data, error } = await supabaseAdmin.from("purchases").insert({ seed_id: id, user_id: userId, item, x: null, y: null }).select("id, seed_id, item, cost, created_at, x, y").single();
+  if (error || !data) {
+    const m = error?.message ?? "";
+    return { ok: false as const, code: m.includes("not enough money") ? "poor" : m.includes("rank too low") ? "rank" : m.includes("already") || m.includes("duplicate") ? "already" : "fail" };
+  }
+  return { ok: true as const, row: data, left: ruin.left / 2 };
+}
