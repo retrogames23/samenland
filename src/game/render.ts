@@ -1125,6 +1125,15 @@ function drawHerald(c: C, x: number, y: number, dx: number, dy: number, gait: nu
   }
   c.restore();
 }
+/** Freimarkt flag: the village pennant on a pole marks the proclaimed market peace (same painted pole/cloth as plot pennants). */
+function drawMarketFlag(c: C, bx: number, by: number, hue: number, t: number) {
+  const pole = folkImage("bannerPole"), cloth = bannerCloth(hue); if (!pole || !cloth) return;
+  const h = 17, w = (h * pole.naturalWidth) / pole.naturalHeight, sway = Math.sin(t / 700 + hue) * 0.05, ox = -w * 0.195;
+  c.fillStyle = "rgba(20,15,10,0.25)"; c.beginPath(); c.ellipse(bx + 1, by, 2, 0.6, 0, 0, 7); c.fill();
+  c.save(); c.translate(bx, by); c.drawImage(pole, ox, -h, w, h);
+  c.translate(ox + w * 0.2, -h * 0.85); c.transform(1, sway, 0, 1 + sway * 0.5, 0, 0);
+  c.drawImage(cloth, -w * 0.2, -h * 0.15, w, h); c.restore();
+}
 /** Painted market stall standing on the verge (y = ground line). */
 function drawStall(c: C, x: number, y: number, flip: boolean) {
   const im = stallImage(); if (!im) return;
@@ -1236,7 +1245,7 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
 // ---------------- villagers ----------------
 /** Screen-space people currently drawn (for clicking). */
 /** Screen-space traders on trade roads (for clicking). */
-export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean; walker?: Walker; stall?: boolean }[] = [];
+export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean; walker?: Walker; stall?: boolean; free?: boolean }[] = [];
 export const lastPeople: { x: number; y: number; q: Pose }[] = [];
 // slot pool behind lastPeople: entries are reused across frames instead of allocating one per villager per frame
 const peopleSlots: { x: number; y: number; q: Pose }[] = [];
@@ -4178,8 +4187,8 @@ export function draw(
     for (const [host, gs] of guests) {
       const [hx, hy] = iso(host.x, host.y);
       if (hx < cs0x - 80 || hx > cs1x + 80 || hy < cs0y - 80 || hy > cs1y + 80) continue;
-      const want = Math.min(4, gs.length * 2);
-      let placed = 0;
+      const want = Math.min(4, gs.length * 2), free = freeMkts.includes(host);
+      let placed = 0, flag = !free;
       for (const [dx, dy] of RING) {
         if (placed >= want) break;
         const tx = host.x + dx, ty = host.y + dy;
@@ -4189,11 +4198,14 @@ export function draw(
         if (st && (st.kind === "field" || st.kind === "pasture" || st.kind === "garden" || st.kind === "bridge")) continue;
         const owner = gs[placed % gs.length]!;
         const [X, Y] = iso(tx, ty);
+        // Freimarkt: the village's market flag (market peace) and the carpenters' timber stand by the first stall
+        if (!flag) { flag = true; addProp(ty * MAP + tx, (cx, cy) => drawMarketFlag(c, cx - 7, cy + 3, host.hue, t)); }
+        if (free && owner === host && placed % 2 === 1) addProp(ty * MAP + tx, (cx, cy) => { const im = folkImage("woodpile"); if (im) { const h = 6, w = (h * im.naturalWidth) / im.naturalHeight; c.drawImage(im, cx + 4, cy + 3 - h, w, h); } });
         const fl = hash(tx, ty, 77) < 0.5;
         // bound to its own tile: houses further south are drawn later and hide it, never the other way round
         addProp(ty * MAP + tx, (cx, cy) => drawStall(c, cx, cy + 2, fl));
         const ex = tradeProfile(owner, now).exports;
-        lastTraders.push({ x: X, y: Y, from: owner.name, to: host.name, good: ex[0] ?? null, cart: false, stall: true });
+        lastTraders.push({ x: X, y: Y, from: owner.name, to: host.name, good: ex[0] ?? null, cart: false, stall: true, free: free && owner === host });
         placed++;
       }
     }

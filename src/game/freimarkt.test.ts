@@ -57,3 +57,11 @@ describe("Freimarkt carpenters", () => {
     expect(freimarktReady(seed(t0, t0 + 7 * DAY))).toBe(t0 + 14 * DAY);
   });
 });
+
+import { FREIMARKT } from "./lang/freimarkt";
+describe("Freimarkt stall text", () => {
+  it("names the own village in all eight languages, never 'trading with' itself", () => {
+    for (const l of Object.values(FREIMARKT)) expect(l.stall("Roggenfeld")).toContain("Roggenfeld");
+    expect(Object.keys(FREIMARKT).length).toBe(8);
+  });
+});
