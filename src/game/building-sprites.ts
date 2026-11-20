@@ -530,8 +530,8 @@ function millSailsAt(c: CanvasRenderingContext2D, x: number, y: number, d: numbe
 function waterWheel(c: CanvasRenderingContext2D, x: number, y: number, r: number, t: number, sd: number) {
   const a = t / 1800 + sd;
   // the building sprite has an empty wheel pit with shaft; this is the only wheel. Its plane runs parallel to the
-  // pit wall (the +26.6° ground axis). Overshot: water drops on the top far side, so the wheel turns clockwise on screen.
-  c.save(); c.translate(x, y); c.transform(0.58, -0.29, 0, 1, 0, 0);
+  // pit wall (screen down-right, +26.6°). Overshot: water drops on the top far side, so the wheel turns clockwise on screen.
+  c.save(); c.translate(x, y); c.transform(0.58, 0.29, 0, 1, 0, 0); // plane along the down-right ground axis, perpendicular to the up-left shaft
   if (wheelImg?.complete && wheelImg.naturalWidth) {
     c.rotate(a); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
     c.drawImage(seasonalImage(wheelImg), -r * 1.05, -r * 1.05, r * 2.1, r * 2.1);
