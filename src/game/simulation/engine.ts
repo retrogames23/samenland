@@ -15,7 +15,7 @@ import { townCharacter, type TownWay } from "../character";
 import { residentTax } from "../resident-tax";
 import { householdsOf } from "../households";
 import { setRealm } from "../time";
-import { TWIN_WORKS, type Seed, type CharterPath } from "../world";
+import { TWIN_WORKS, SPECIAL_KIND, monumentOf, monumentChain, specialDone, type Seed, type CharterPath } from "../world";
 import { LOCATIONS, VISIT_GIFT, WONDER_FIND } from "./profiles";
 import type { Booking, DayRow, Profile, SimConfig, SimResult } from "./types";
 import { AUSBAU_BASES, AUSBAU_STEPS, AUSBAU_PRICE, AUSBAU_RANK } from "../ausbau";
@@ -179,15 +179,41 @@ export function simulate(cfg: SimConfig): SimResult {
       lostShare: inc ? +(rows.reduce((a, r) => a + r.lost, 0) / inc).toFixed(3) : 0, balanceEnd: rows.at(-1)?.balance ?? balance };
   };
   const h = hanse ?? days, s = saturation ?? days;
+  const builds = buildTimes(seed, seeds, c0);
   const housing = housingOf(seed, seeds, c0 + days * DAY);
   return { profile: P.key, charter: cfg.charter, location: cfg.location, way, days, hansestadtDay: hanse, rankDays,
     strategyDoneDay: bought.at(-1)?.day ?? null, unlockedDoneDay: unlockedDone, saturationDay: saturation, idleDays: saturation === null ? 0 : days - saturation,
-    volume, overflowDays: daily.filter((r) => r.lost > 0).length, population: pop, households: hh, housing,
+    builds, volume, overflowDays: daily.filter((r) => r.lost > 0).length, population: pop, households: hh, housing,
     firstOverflowDay: firstOverflow, regularOverflowDay: regular, gross, booked, lost, spent, finalBalance: balance,
     taxShare: +((bySource["tax"] ?? 0) / gross).toFixed(3), lostShare: +(lost / gross).toFixed(3), bySource, bought,
     remaining: all.filter((o) => !owned.has(o.item)).map((o) => o.item),
     phases: [phase("bis Hansestadt", 1, h), phase("Hansestadt bis Sättigung", h + 1, Math.max(h, s)), phase("nach Sättigung", Math.max(h, s) + 1, days)],
     daily, ledger };
+}
+
+/**
+ * Report only: when each bought building and monument step physically stands, taken from the production functions
+ * (specialDone = structureAt rule incl. craft charter, Herberge, Holzfällerlager, sawmill, Zunftturm, Bauhütte and
+ * Freimarkt; monumentChain for monument steps). Nothing is re-implemented here and nothing feeds back into the run:
+ * every effect inside the run already reads these same functions through seed.bought. Items without a build phase
+ * (chests, guild ranks, titles, Ausbaustufen, Gemeindevorhaben) are left out.
+ */
+export function buildTimes(seed: Seed, seeds: Seed[], c0: number): SimResult["builds"] {
+  const out: SimResult["builds"] = [];
+  const chains = new Map<string, ReturnType<typeof monumentChain>>();
+  const stepIdx = new Map<string, number>();
+  for (const b of [...(seed.bought ?? [])].sort((a, c) => a.at - c.at)) {
+    const key = monumentOf(b.item);
+    let done: number | null = null;
+    if (key) {
+      if (!chains.has(key)) chains.set(key, monumentChain(seed, key));
+      const i = stepIdx.get(key) ?? 0; stepIdx.set(key, i + 1);
+      done = chains.get(key)![i]?.done ?? null;
+    } else if (SPECIAL_KIND[b.item]) done = specialDone(seed, seeds, b.at);
+    if (done === null) continue;
+    out.push({ item: b.item, paidDay: (b.at - c0) / DAY, doneDay: +((done - c0) / DAY).toFixed(3), hours: +((done - b.at) / 3.6e6).toFixed(2) });
+  }
+  return out;
 }
 
 /** Report only (final day): physical dwellings, households per building kind, dwellings by number of families. */
