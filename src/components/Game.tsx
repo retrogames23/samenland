@@ -72,7 +72,8 @@ import { MAYOR } from "@/game/lang/mayor";
 import { ownHead, addressMayor, mayorWord, titleForm } from "@/game/lang/address";
 import { COURT } from "@/game/lang/court";
 import { setWayside, lastWayside } from "@/game/render";
-import { waysideNear, freeLand, readWayMem, markMet, WAYSIDE, WAY_GRAPH, WAY_PROP, type Wayside } from "@/game/wayside";
+import { waysideNear, freeLand, readWayMem, markMet, WAYSIDE, WAY_GRAPH, WAY_PROP, vignetteOf, type Wayside } from "@/game/wayside";
+import { WAY_VIGNETTE } from "@/game/wayside-vignettes";
 import { WAYSIDE_TEXT } from "@/game/lang/wayside";
 import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, setHeraldQuiet, heraldSpots, isPlantedRare } from "@/game/render";
 import { DOG } from "@/game/lang/dog";
@@ -2929,6 +2930,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         const next = WAY_GRAPH[WAYSIDE[way.key].tree][wayNode] ?? [];
         return (
           <div data-walk role="dialog" aria-label={e.title} className="parchment absolute inset-x-0 top-[10%] z-50 mx-auto max-h-[80dvh] w-[min(28rem,92vw)] overflow-y-auto rounded-md px-5 py-4 text-ink shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95">
+            <img src={WAY_VIGNETTE[vignetteOf(way.key)]} alt="" width={640} height={434} className="mx-auto mb-2 w-full max-w-[20rem] rounded-sm mix-blend-multiply [mask-image:radial-gradient(ellipse_at_center,black_60%,transparent_100%)]" />
             <div className="text-center font-display text-2xl leading-none">{e.title}</div>
             <div className="mx-auto my-2 h-px w-2/3 bg-ink/30" />
             <p className="text-sm italic leading-relaxed">{n?.say}</p>

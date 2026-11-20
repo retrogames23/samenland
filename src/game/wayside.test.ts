@@ -30,3 +30,14 @@ describe("wayside encounters", () => {
     for (const l of LANGS) expect(WAYSIDE_TEXT[l].ui.leave).toBeTruthy();
   });
 });
+
+import { vignetteOf } from "./wayside";
+describe("wayside vignettes", () => {
+  it("maps figures to fitting woodcuts", () => {
+    expect(vignetteOf("hirschkalb")).toBe("beast");
+    expect(vignetteOf("salzfuhre")).toBe("cart");
+    expect(vignetteOf("brief")).toBe("rider");
+    expect(vignetteOf("koehler")).toBe("craft");
+    expect(vignetteOf("pilger")).toBe("walker");
+  });
+});

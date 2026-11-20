@@ -72,3 +72,14 @@ export function markMet(uid: string | null, key: WayKey, now: number): WayMemory
   try { localStorage.setItem(`${MEM_KEY}:${uid ?? ""}`, JSON.stringify(m)); } catch { /* storage blocked */ }
   return m;
 }
+
+/** Woodcut vignette shown atop the wayside parchment (display only). */
+export type WayVignette = "walker" | "cart" | "rider" | "beast" | "craft";
+export function vignetteOf(k: WayKey): WayVignette {
+  const f = WAYSIDE[k].fig;
+  if (f === "deer" || f === "boar") return "beast";
+  if (f === "cart") return "cart";
+  if (f === "rider" || k === "brief") return "rider";
+  if (k === "koehler" || k === "torf") return "craft";
+  return "walker";
+}
