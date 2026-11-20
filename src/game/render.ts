@@ -1245,6 +1245,10 @@ function drawCart(c: C, x: number, y: number, dx: number, dy: number, _bob: numb
 // ---------------- villagers ----------------
 /** Screen-space people currently drawn (for clicking). */
 /** Screen-space traders on trade roads (for clicking). */
+/** Wayside encounter waiting by the stroll (set by Game.tsx from wayside.ts); its world position is reported for tapping. */
+let waysideNow: { x: number; y: number; fig: string; carry?: string | undefined; sd: number } | null = null;
+export const setWayside = (w: typeof waysideNow) => { waysideNow = w; };
+export const lastWayside: { x: number; y: number }[] = [];
 export const lastTraders: { x: number; y: number; from: string; to: string; good: TradeGood | null; cart: boolean; walker?: Walker; stall?: boolean; free?: boolean }[] = [];
 export const lastPeople: { x: number; y: number; q: Pose }[] = [];
 // slot pool behind lastPeople: entries are reused across frames instead of allocating one per villager per frame
@@ -1857,7 +1861,7 @@ function drawBoat(c: C, x: number, y: number, flip: boolean, t: number, sd: numb
 /** Traveller on the open road: a real villager figure with stick and hat, striding along the road. */
 const CARRY_OF: Record<TradeGood, Pose["carry"]> = { grain: "grain", wool: "bundle", wood: "log", timber: "planks", ore: "stone", stone: "stone", fish: "bundle", salt: "flour", hides: "bundle", cloth: "bundle", ironware: "bundle", beer: "bread" };
 const travellers = new Map<number, Pose["p"]>();
-function drawWanderer(c: C, x: number, y: number, dx: number, dy: number, t: number, sd: number, carry: Pose["carry"] = null, festive?: Pose["festive"]) {
+function drawWanderer(c: C, x: number, y: number, dx: number, dy: number, t: number, sd: number, carry: Pose["carry"] = null, festive?: Pose["festive"], stand = false) {
   let p = travellers.get(sd);
   if (!p) {
     p = {
@@ -1870,7 +1874,7 @@ function drawWanderer(c: C, x: number, y: number, dx: number, dy: number, t: num
   // screen direction → tile direction (inverse of the iso projection used by the figure)
   const d0 = (dx + 2 * dy) / 2, d1 = (2 * dy - dx) / 2;
   const q: Pose = {
-    p, x: 0, y: 0, visible: true, walking: true, dir: [d0, d1], phase: (t / 1000) * Math.PI * 2 * 0.95,
+    p, x: 0, y: 0, visible: true, walking: !stand, dir: [d0, d1], phase: stand ? 0 : (t / 1000) * Math.PI * 2 * 0.95,
     act: "work", working: false, talk: null, talkTurn: false, carry, dest: null, festive,
   };
   drawPerson(c, x, y, q, t, false);
@@ -4172,6 +4176,21 @@ export function draw(
     c.globalAlpha = 1;
   }
   c.globalAlpha = 1;
+
+  lastWayside.length = 0;
+  if (waysideNow) {
+    const w = waysideNow, [wx, wy] = iso(w.x, w.y);
+    if (wx > cs0x - 40 && wx < cs1x + 40 && wy > cs0y - 40 && wy < cs1y + 40) {
+      const id = `way:${w.sd}`;
+      if (w.fig === "cart") roadProp(wx, wy, 1, () => drawCart(c, wx, wy, -1, 0.5, 0, w.sd, "", 0, id), true, id);
+      else if (w.fig === "rider") roadProp(wx, wy, 1, (cx) => drawRider(cx, wx, wy, -1, 0.5, w.sd, 0), true, id);
+      else if (w.fig === "deer" || w.fig === "boar") {
+        const walkIm = huntIm(w.fig === "deer" ? "dw" : "bw", w.fig === "deer" ? deerWalkUrl : boarWalkUrl), standIm = w.fig === "deer" ? huntIm("dg", deerGrazeUrl) : null;
+        if (walkIm) roadProp(wx, wy, 1, (cx) => drawBeast(cx, walkIm, standIm, wx, wy, w.fig === "deer" ? 4.9 : 2.7, false, 0, 0, Math.floor(t / 1500) % 8 < 5 ? (Math.floor(t / 650) & 1) : 2), true, id);
+      } else roadProp(wx, wy, 1, (cx) => drawWanderer(cx, wx, wy, -1, 0.5, t, w.sd, (w.carry ?? null) as Pose["carry"], undefined, true), true, id);
+      lastWayside.push({ x: wx, y: wy });
+    }
+  }
 
   // Saturday market: visiting traders set up painted stalls on the host village's square around the well, 9–17 realm time
   const freeMkts = seeds.filter((sd) => sd.bought && (freimarktOpen(sd, now)));

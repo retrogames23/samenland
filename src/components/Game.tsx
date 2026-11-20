@@ -71,6 +71,9 @@ import { MayorEditor } from "@/components/MayorEditor";
 import { MAYOR } from "@/game/lang/mayor";
 import { ownHead, addressMayor, mayorWord, titleForm } from "@/game/lang/address";
 import { COURT } from "@/game/lang/court";
+import { setWayside, lastWayside } from "@/game/render";
+import { waysideNear, freeLand, readWayMem, markMet, WAYSIDE, WAY_GRAPH, type Wayside } from "@/game/wayside";
+import { WAYSIDE_TEXT } from "@/game/lang/wayside";
 import { setCourtLabel, setSupportOwned, dogSpots, iso as dogIso, setHeraldRows, setHeraldQuiet, heraldSpots, isPlantedRare } from "@/game/render";
 import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
@@ -1856,6 +1859,38 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     setDecree(data === "swapped" ? P.swapped : data === "wait" ? P.wait : P.open(P.task.court));
   };
   useEffect(() => { if (!audience && !herald) setDecree(null); }, [audience, herald]);
+  // ---- wayside encounters on the stroll: rare, derived placement; only "met" marks are kept in this browser ----
+  const [way, setWay] = useState<Wayside | null>(null);
+  const [wayNode, setWayNode] = useState<string | null>(null);
+  const wayRef = useRef<Wayside | null>(null);
+  useEffect(() => {
+    if (!walk) { wayRef.current = null; setWay(null); setWayNode(null); setWayside(null); return; }
+    const tick = () => {
+      if (wayNode) return;
+      const me = lastPeople.find((o) => o.q.p.role === "mayor" && o.q.p.seed.id === mine);
+      if (!me) return;
+      const nw = clock(), w = waysideNear(me.q.x, me.q.y, nw, readWayMem(userId), (x, y) => freeLand(x, y, st.current.seeds, nw));
+      if (w?.id !== wayRef.current?.id || w?.key !== wayRef.current?.key) {
+        wayRef.current = w; setWay(w);
+        setWayside(w ? { x: w.x, y: w.y, fig: WAYSIDE[w.key].fig, carry: (WAYSIDE[w.key] as { carry?: string }).carry, sd: Math.abs((w.x * 977 + w.y * 131) | 0) } : null);
+      }
+    };
+    tick(); const h = setInterval(tick, 2000); return () => clearInterval(h);
+  }, [walk, mine, userId, wayNode]);
+  const wayLeave = () => { const w = wayRef.current; if (w) markMet(userId, w.key, clock()); wayRef.current = null; setWay(null); setWayNode(null); setWayside(null); };
+  /** Tapped the wayside figure: talk when the mayor stands close, otherwise walk over first. */
+  const wayTap = (e: React.PointerEvent) => {
+    const w = wayRef.current, f = lastWayside[0]; if (!w || !f) return false;
+    const r = canvasRef.current!.getBoundingClientRect(), c = cam.current;
+    const wx = (e.clientX - r.left - r.width / 2) / c.zoom + c.x, wy = (e.clientY - r.top - r.height / 2) / c.zoom + c.y;
+    if (Math.hypot(f.x - wx, f.y - 3 - wy) > Math.max(6, 22 / c.zoom)) return false;
+    const me = lastPeople.find((o) => o.q.p.role === "mayor" && o.q.p.seed.id === mine);
+    if (me && Math.hypot(me.q.x - w.x, me.q.y - w.y) <= 3.5) { setWayNode("start"); return true; }
+    const my = seeds.find((x) => x.id === mine);
+    if (my) { const nw = clock(), tw = townOf(my, seeds, nw), mp = tw.people.find((q) => q.role === "mayor"); if (mp) commandMayor(mp, tw, seeds, nw, [w.x + 1, w.y]); }
+    setMsg(WAYSIDE_TEXT[lang].ui.far);
+    return true;
+  };
   useEffect(() => { if (!walk) { courtGoal.current = null; courtNear.current = false; setNearCourt(false); setAudience(null); errNear.current = null; setNearErrand(null); } }, [walk]);
   useEffect(() => { if (!errandNote) return; const h = setTimeout(() => setErrandNote(null), 9000); return () => clearTimeout(h); }, [errandNote]);
   useEffect(() => { if (!visitNote) return; const h = setTimeout(() => setVisitNote(null), 9000); return () => clearTimeout(h); }, [visitNote]);
@@ -2296,6 +2331,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       if (labOpen) return setLabOpen(false);
       if (supportOpen) return setSupportOpen(false);
       if (bugOpen) return setBugOpen(false);
+      if (wayNode) return wayLeave();
       if (herald) return setHerald(false); if (thanks) return setThanks(false);
       if (imprint) return setImprint(false);
       if (inviteOpen) return setInviteOpen(false);
@@ -2888,6 +2924,21 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
           <WoodButton label={COURT[lang].ask} onClick={() => { setAudience(audienceHost(worldHour(clock()))); jingle("fanfare"); }} className="h-11 px-4"><span className="text-sm font-semibold">👑 {COURT[lang].ask}</span></WoodButton>
         </div>
       )}
+      {walk && way && wayNode && (() => {
+        const W = WAYSIDE_TEXT[lang], e = W.enc[way.key], n = e.nodes[wayNode as keyof typeof e.nodes] as { say: string } | undefined;
+        const next = WAY_GRAPH[WAYSIDE[way.key].tree][wayNode] ?? [];
+        return (
+          <div data-walk role="dialog" aria-label={e.title} className="parchment absolute inset-x-0 top-[10%] z-50 mx-auto max-h-[80dvh] w-[min(28rem,92vw)] overflow-y-auto rounded-md px-5 py-4 text-ink shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95">
+            <div className="text-center font-display text-2xl leading-none">{e.title}</div>
+            <div className="mx-auto my-2 h-px w-2/3 bg-ink/30" />
+            <p className="text-sm italic leading-relaxed">{n?.say}</p>
+            <div className="mt-3 flex flex-col gap-2">
+              {next.map((k) => { const o = e.nodes[k as keyof typeof e.nodes] as { ask?: string }; return <Button key={k} type="button" size="sm" variant="outline" className="h-auto whitespace-normal py-2 text-start" onClick={() => setWayNode(k)}>{o.ask}</Button>; })}
+              <button type="button" onClick={wayLeave} className="hit relative mt-1 self-center font-display text-lg text-ink/70 underline decoration-ink/30 underline-offset-4 hover:text-ink">{W.ui.leave}</button>
+            </div>
+          </div>
+        );
+      })()}
       {walk && audience && (
         <div data-walk role="dialog" aria-label={COURT[lang].ask} className="absolute inset-x-0 top-[12%] z-50 mx-auto w-[min(26rem,90vw)] rounded-md border-2 border-wood bg-card px-5 py-4 text-foreground shadow-[var(--shadow-panel)] animate-in fade-in zoom-in-95">
           <div className="text-center font-display text-lg font-bold">{COURT[lang][audience]}</div>
@@ -3032,6 +3083,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
             if (walk) {
               // stroll mode: tapping a person or house talks to them; elsewhere the mayor walks there
               if (heraldHit(e)) { openHerald(); return; }
+              if (wayTap(e)) return;
               if (talkTo(e)) return;
               const [tx, ty] = tileAt(e), my = seeds.find((x) => x.id === mine);
               if (my) { const nw = clock(), tw = townOf(my, seeds, nw), me = tw.people.find((q) => q.role === "mayor"); if (me && commandMayor(me, tw, seeds, nw, [tx, ty])) tap((e.clientX / window.innerWidth) * 2 - 1); }
