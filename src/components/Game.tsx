@@ -80,6 +80,8 @@ import { FREIMARKT } from "@/game/lang/freimarkt";
 import { VORHABEN_T } from "@/game/lang/vorhaben";
 import { VORHABEN, VORHABEN_KEYS, vorhabenOf, vorhabenPrice, nextVorhaben, vorhabenReady, lastDayTax } from "@/game/vorhaben";
 import { FREIMARKT_PRICE, FREIMARKT_RANK, FREIMARKT_LEN, isFreimarkt, nextFreimarkt, freimarktReady } from "@/game/freimarkt";
+import { AUSBAU_BASES, AUSBAU_STEPS, AUSBAU_PRICE, AUSBAU_RANK, isAusbau, nextAusbau } from "@/game/ausbau";
+import { AUSBAU } from "@/game/lang/ausbau";
 import { FOUNTAIN_STEPS, FOUNTAIN_PRICE, FOUNTAIN_DAYS, FOUNTAIN_RANK, fountainChain, nextFountainStep, isFountain } from "@/game/civic-fountain";
 import { Survey } from "@/components/Survey";
 import { Stube, STUBE_KINDS, type StubeKind } from "@/components/Stube";
@@ -2211,7 +2213,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) return rollback(error?.message?.includes("not enough money") ? t.poor : t.buyFail);
     setPurchases((s) => [...s.filter((x) => x.id !== data.id && x.id !== tmpId), data]);
-    if (isFreimarkt(item)) { jingle("fanfare"); setMsg(FREIMARKT[lang].paidMsg); } else if (vorhabenOf(item)) { jingle("coins"); setMsg(VORHABEN_T[lang].paid(VORHABEN_T[lang].items[vorhabenOf(item)!].title)); } else if (isFountain(item)) { jingle("fanfare"); setMsg(FOUNTAIN[lang].paidMsg(FOUNTAIN[lang].steps[FOUNTAIN_STEPS.indexOf(item)]!)); } else if (/^chest[2-4]$/.test(item)) { jingle("coins"); setMsg(`${CHEST[lang].title}: ${CHEST[lang].levels[+item.slice(5) - 1]}`); } else if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
+    if (isFreimarkt(item)) { jingle("fanfare"); setMsg(FREIMARKT[lang].paidMsg); } else if (isAusbau(item)) { jingle("coins"); setMsg(AUSBAU[lang].paidMsg(AUSBAU[lang].steps[item]![0])); } else if (vorhabenOf(item)) { jingle("coins"); setMsg(VORHABEN_T[lang].paid(VORHABEN_T[lang].items[vorhabenOf(item)!].title)); } else if (isFountain(item)) { jingle("fanfare"); setMsg(FOUNTAIN[lang].paidMsg(FOUNTAIN[lang].steps[FOUNTAIN_STEPS.indexOf(item)]!)); } else if (/^chest[2-4]$/.test(item)) { jingle("coins"); setMsg(`${CHEST[lang].title}: ${CHEST[lang].levels[+item.slice(5) - 1]}`); } else if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
   };
   /** Umsetzen: pay the carters, then the building is rebuilt on the chosen spot (the old one is cleared at once). */
   const relocate = async (item: string, x: number, y: number) => {
@@ -2422,6 +2424,31 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               </div>
             );
           })}
+          {my && (() => {
+            const at = AUSBAU[lang], paid = purchases.filter((p) => p.seed_id === my.id).map((p) => p.item);
+            return (
+              <div key="ausbau" className="rounded-md border border-brass/60 bg-brass/10 p-2">
+                <div className="font-semibold">🔨 {at.title}</div>
+                <div className="text-xs text-muted-foreground">{at.intro}</div>
+                <div className="mt-1 space-y-1.5">
+                  {AUSBAU_BASES.map((b) => { const next = nextAusbau(b, paid), has = paid.includes(b), lvl = AUSBAU_STEPS[b].filter((k) => paid.includes(k)).length;
+                    return (
+                      <div key={b} className="text-xs">
+                        <div className="flex items-center gap-2"><span className="flex-1 font-semibold">{at.names[b]} · {lvl + 1}/3</span>{next && <span className="text-muted-foreground">{t.taler(AUSBAU_PRICE[next]!)}</span>}</div>
+                        {!has ? <div className="text-muted-foreground">{at.needBase}</div>
+                          : !next ? <div className="font-semibold text-primary">✓ {at.done}</div>
+                          : <>
+                            <div><span className="font-semibold">{at.steps[next]![0]}:</span> {at.steps[next]![1]}</div>
+                            {myStage < AUSBAU_RANK[next]! ? <div className="text-muted-foreground">🔒 {t.needStage(t.stages[AUSBAU_RANK[next]!] ?? "")}</div>
+                              : <Button size="sm" className="mt-0.5 h-7 w-full" disabled={cash < AUSBAU_PRICE[next]!} onClick={() => void buy(next)}>{at.pay} · {t.taler(AUSBAU_PRICE[next]!)}</Button>}
+                          </>}
+                      </div>
+                    ); })}
+                </div>
+                <div className="mt-1 text-[10px] text-muted-foreground">{at.voluntary}</div>
+              </div>
+            );
+          })()}
           {my && (() => {
             const ft = FOUNTAIN[lang], locked = myStage < FOUNTAIN_RANK;
             const paid = purchases.filter((p) => p.seed_id === my.id && isFountain(p.item)).map((p) => p.item);

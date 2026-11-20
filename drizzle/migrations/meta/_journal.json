@@ -869,6 +869,13 @@
       "when": 1795169571700,
       "tag": "0123_bauhuette_only_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 124,
+      "version": "7",
+      "when": 1795173886513,
+      "tag": "0124_ausbau_stufen_guard",
+      "breakpoints": true
     }
   ]
 }

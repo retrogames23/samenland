@@ -18,6 +18,7 @@ import { setRealm } from "../time";
 import { TWIN_WORKS, type Seed, type CharterPath } from "../world";
 import { LOCATIONS, VISIT_GIFT, WONDER_FIND } from "./profiles";
 import type { Booking, DayRow, Profile, SimConfig, SimResult } from "./types";
+import { AUSBAU_BASES, AUSBAU_STEPS, AUSBAU_PRICE, AUSBAU_RANK } from "../ausbau";
 import { VORHABEN, VORHABEN_KEYS, vorhabenPrice } from "../vorhaben";
 
 const DAY = 86400000;
@@ -71,6 +72,7 @@ export function attemptPurchases(ctx: PurchaseCtx): number {
   }
   if (P.titles) for (const k of ["title1", "title2", "title3"] as const) if (rank >= TITLE_STAGE[k] && (k === "title1" || owned.has(k === "title2" ? "title1" : "title2"))) buy(k, TITLE_PRICE[k]);
   if (P.civic) for (const it of CIVIC) if (rank >= (ITEM_RANK[it] ?? 0)) buy(it, ITEMS[it as keyof typeof ITEMS]);
+  if (P.ausbau) for (const b of AUSBAU_BASES) for (const k of AUSBAU_STEPS[b]) if (owned.has(b) && rank >= AUSBAU_RANK[k]! && (k.endsWith("2") || owned.has(`${b}2`))) buy(k, AUSBAU_PRICE[k]!);
   if (P.way) for (const it of [...WAY_SMALL, ...WAY_BIG]) if (canBuyWay(it as Item, way) && rank >= (ITEM_RANK[it] ?? 0)) buy(it, ITEMS[it as keyof typeof ITEMS]);
   if (P.monumentsFrom !== null && day >= P.monumentsFrom) for (const m of [WAY_MON[way], ...MON_ORDER]) {
     if (rank < MONUMENTS[m].rank) continue;

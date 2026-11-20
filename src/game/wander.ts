@@ -1,3 +1,4 @@
+import { ausbauLevel, herbergeWalz } from "./ausbau";
 import { NAMES_F, NAMES_M, SURNAMES } from "./names";
 /**
  * People between villages: journeymen (Wandergesellen) and messengers walking the trade roads.
@@ -53,8 +54,9 @@ export function walkersOn(l: Link, d: number): Walker[] {
       name: names[Math.floor(hash(sd, 2, 1504) * names.length)]!, craft: CRAFTS[Math.floor(hash(sd, 3, 1504) * CRAFTS.length)]! });
   };
   // a Gesellenherberge at either end draws journeymen on the Walz more often (purchase rows only, so all clients agree)
-  const inn = [l.a, l.b].some((t) => t.bought?.some((b) => b.item === "herberge" && b.at <= d * DAY));
-  if (hash(sn, d, 1501) < (inn ? HERBERGE_WALZ : 0.3)) add("journeyman", 0);
+  // upgraded inns (Ausbau, ausbau.ts) draw even more; the better end counts
+  const walz = Math.max(0.3, ...[l.a, l.b].map((t) => (ausbauLevel(t, "herberge", d * DAY) ? herbergeWalz(t, d * DAY) : 0)));
+  if (hash(sn, d, 1501) < walz) add("journeyman", 0);
   // a finished university chancery (step 2) at either end sends letters more often: 0.6 → 0.72
   if (hash(sn, d, 1505) < MESSENGER_DAY * (uniChancery(l, d) ? UNIVERSITY_MESSENGER : 1)) add("messenger", 1);
   // a bride from one town marries into the neighbour and walks over in her wedding dress (~every 25 days per road)

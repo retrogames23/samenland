@@ -1,3 +1,4 @@
+import { backhausGrain, granaryExtra } from "./ausbau";
 import { structureAt, seedsKey, stepsDone, lighthouseDone, HARVEST_GRAIN, type Kind, type Seed } from "./world";
 import { townOf, type Job, type Person } from "./people";
 import { seasonAt } from "./season";
@@ -126,14 +127,14 @@ export function larderOf(s: Seed, seeds: Seed[], now: number): Larder {
   const eaters = t.people.length;
   // one meal a head, more in the cold months
   // a communal bakehouse bakes for everyone at once: a tenth less grain goes to waste
-  const served = serveMeals(made, mealNeed(eaters, winterHunger(s, now), sw.winter, byKind.has("backhaus")));
+  const served = serveMeals(made, mealNeed(eaters, winterHunger(s, now), sw.winter, false) * (byKind.has("backhaus") ? backhausGrain(s, now) : 1));
   for (const [w, v] of served.take) add(used, w, v);
   let need = served.left;
   // porridge: left-over grain fills the remaining hunger (after the mills took their share)
   if (need > 0) add(used, "grain", Math.min(need, Math.max(0, (made.get("grain") ?? 0) - (used.get("grain") ?? 0))));
   add(used, "herbs", Math.min(made.get("herbs") ?? 0, t.people.filter((p) => p.sick).length));
   const h = worldHour(now), done = workDone(h), eaten = Math.min(1, Math.max(0, (h - 6) / 15));
-  const cap = Math.round(grainCap(byKind) * (1 + HARVEST_GRAIN[Math.min(3, stepsDone(s, "harvest", now))]!)) + (s.charter?.path === "farm" && (s.bought ?? []).some((b) => b.item === "rank2") ? 40 : 0);
+  const cap = (byKind.has("granary") ? granaryExtra(s, now) : 0) + Math.round(grainCap(byKind) * (1 + HARVEST_GRAIN[Math.min(3, stepsDone(s, "harvest", now))]!)) + (s.charter?.path === "farm" && (s.bought ?? []).some((b) => b.item === "rank2") ? 40 : 0);
   const flows: Flow[] = [];
   for (const w of WARES) {
     const m = made.get(w) ?? 0, u = used.get(w) ?? 0;

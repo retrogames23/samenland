@@ -23,6 +23,8 @@ export type Profile = {
   wondersPerWeek: number; visitsPerWeek: number;
   /** Pays repeatable Gemeindevorhaben (vorhaben.ts) when due (default false = baseline behaviour). */
   repeat?: boolean;
+  /** Buys permanent Ausbaustufen (ausbau.ts) once the base building stands (default false = baseline). */
+  ausbau?: boolean;
 };
 
 export type SimConfig = {

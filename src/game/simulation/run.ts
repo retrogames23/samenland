@@ -13,7 +13,7 @@ const out = process.env["SIM_OUT"] ?? "/tmp/sim-out";
 mkdirSync(out, { recursive: true });
 for (const pk of ps) for (const ck of cs) for (const lk of ls) {
   const t = Date.now();
-  const r = simulate({ profile: { ...PROFILES[pk as keyof typeof PROFILES], repeat: process.env["REPEAT"] === "1" }, charter: ck as CharterPath, location: lk, days: +d, rankEvery: +(process.env["RANK_EVERY"] ?? 10) });
+  const r = simulate({ profile: { ...PROFILES[pk as keyof typeof PROFILES], repeat: process.env["REPEAT"] === "1", ausbau: process.env["AUSBAU"] === "1" }, charter: ck as CharterPath, location: lk, days: +d, rankEvery: +(process.env["RANK_EVERY"] ?? 10) });
   writeFileSync(`${out}/${pk}-${ck}-${lk}.json`, JSON.stringify(r));
   console.log(pk, ck, lk, r.way, `hanse=${r.hansestadtDay}`, `sat=${r.saturationDay}`, `lost=${r.lostShare}`, `${((Date.now() - t) / 1000).toFixed(0)}s`);
 }
