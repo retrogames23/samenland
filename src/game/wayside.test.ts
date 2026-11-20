@@ -34,7 +34,10 @@ describe("wayside encounters", () => {
 import { vignetteOf } from "./wayside";
 describe("wayside vignettes", () => {
   it("maps figures to fitting woodcuts", () => {
-    expect(vignetteOf("hirschkalb")).toBe("beast");
+    expect(vignetteOf("hirschkalb")).toBe("fawn");
+    expect(vignetteOf("frischling")).toBe("piglet");
+    expect(vignetteOf("rothirsch")).toBe("stag");
+    expect(vignetteOf("bache")).toBe("sow");
     expect(vignetteOf("salzfuhre")).toBe("cart");
     expect(vignetteOf("brief")).toBe("rider");
     expect(vignetteOf("koehler")).toBe("craft");

@@ -74,9 +74,14 @@ export function markMet(uid: string | null, key: WayKey, now: number): WayMemory
 }
 
 /** Woodcut vignette shown atop the wayside parchment (display only). */
-export type WayVignette = "walker" | "cart" | "rider" | "beast" | "craft";
+export type WayVignette = "walker" | "cart" | "rider" | "beast" | "craft" | "fawn" | "piglet" | "stag" | "sow";
 export function vignetteOf(k: WayKey): WayVignette {
   const f = WAYSIDE[k].fig;
+  // one animal per scene, matching the text: snared fawn / snared piglet, free stag, sow with litter
+  if (k === "hirschkalb") return "fawn";
+  if (k === "frischling") return "piglet";
+  if (k === "rothirsch") return "stag";
+  if (k === "bache") return "sow";
   if (f === "deer" || f === "boar") return "beast";
   if (f === "cart") return "cart";
   if (f === "rider" || k === "brief") return "rider";
