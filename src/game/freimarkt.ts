@@ -32,3 +32,14 @@ export function marketHelp(s: Pick<Seed, "bought">, from: number, to: number): n
   for (const a of times(s)) ms += Math.max(0, Math.min(to, a + FREIMARKT_LEN) - Math.max(from, a));
   return ms;
 }
+/** One-time carpenter help per market for a bought build already running when the market is called. */
+export const MARKET_BOOST = 12 * H;
+/**
+ * Finish time of a bought build started at `at` that would normally finish at `done`: each market called while the
+ * site was already running (at < market < done) pulls the finish forward once by MARKET_BOOST, never before the
+ * market itself. Builds started after a market are untouched; each market counts only once per build.
+ */
+export function marketBoost(s: Pick<Seed, "bought">, at: number, done: number): number {
+  for (const a of times(s)) if (a > at && a < done) done = Math.max(a, done - MARKET_BOOST);
+  return done;
+}

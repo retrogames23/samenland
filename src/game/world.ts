@@ -6,6 +6,7 @@ import { nearCourt, resetCourt } from "./court";
 import { resetWonders } from "./wonders";
 import { townCharacter, resetCharacters, type TownWay } from "./character";
 import { biomeKey, type Biome } from "./biome";
+import { marketBoost } from "./freimarkt";
 import { clock, cacheTick, worldHour, worldWeekday, workClock, workDone, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
@@ -940,7 +941,7 @@ export const specialBuild = (s: Seed, mill = false, at = Infinity) => buildWith(
 /** When a bought (non-monument) building started at `at` is finished – same rule as structureAt. */
 export function specialDone(s: Seed, seeds: Seed[], at: number): number {
   // builders rest at night (workClock), the day shift makes up for it
-  return doneWith(s, seeds, at, guildtowerDone(s, at));
+  return marketBoost(s, at, doneWith(s, seeds, at, guildtowerDone(s, at)));
 }
 /** When a fully paid monument is finished (last step + build time, same rule as structureAt), or null while steps are missing. */
 export function monumentDone(s: Seed, _seeds: Seed[], key: MonumentKey): number | null {
@@ -1137,7 +1138,9 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     if (sp.kind === "square") { best = { kind: "square", seed: s, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
     const mk = sp.mv ? undefined : MONUMENT_BY_KIND.get(sp.kind);
     const mill = sawmillUp(s, seeds, now);
-    const p = mk ? monumentProgress(s, now, mk) : (workClock(now) - workClock(sp.at)) / specialBuild(s, mill, sp.at);
+    const p0 = mk ? monumentProgress(s, now, mk) : (workClock(now) - workClock(sp.at)) / specialBuild(s, mill, sp.at);
+    // Freimarkt carpenters may finish a running site early (marketBoost inside specialDone)
+    const p = !mk && p0 < 1 && specialDone(s, seeds, sp.at) <= now ? 1 : p0;
     const doneAt = p < 1 ? (mk ? monumentDone(s, seeds, mk) ?? undefined : specialDone(s, seeds, sp.at)) : undefined;
     best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p, doneAt } : {}) };
     scache.set(ck, best);

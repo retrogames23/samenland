@@ -32,3 +32,28 @@ describe("Freimarkt", () => {
     expect(marketHelp({ bought: [] }, 0, t0)).toBe(0);
   });
 });
+
+import { marketBoost, MARKET_BOOST } from "./freimarkt";
+import { aidFactor } from "./gifts";
+describe("Freimarkt carpenters", () => {
+  const m = t0 + 10 * H;
+  it("shortens a build already running by 12 hours, never before the market", () => {
+    expect(MARKET_BOOST).toBe(12 * H);
+    expect(marketBoost(seed(m), t0, t0 + 30 * H)).toBe(t0 + 18 * H);
+    expect(marketBoost(seed(m), t0, t0 + 15 * H)).toBe(m);
+  });
+  it("leaves builds started after the market unchanged", () => {
+    expect(marketBoost(seed(m), m + 1, m + 30 * H)).toBe(m + 30 * H);
+    expect(marketBoost(seed(m), t0, m - 1)).toBe(m - 1);
+  });
+  it("applies the same market only once", () => {
+    expect(marketBoost(seed(m), t0, t0 + 60 * H)).toBe(t0 + 48 * H);
+    // two markets a week apart: a long build is helped once by each, never twice by the same
+    expect(marketBoost(seed(m, m + 7 * DAY), t0, t0 + 200 * H)).toBe(m + 7 * DAY);
+  });
+  it("keeps the rebuild help and the weekly lock", () => {
+    expect(marketHelp(seed(m), m, m + 24 * H)).toBe(24 * H);
+    expect(aidFactor(undefined, m)).toBe(1);
+    expect(freimarktReady(seed(t0, t0 + 7 * DAY))).toBe(t0 + 14 * DAY);
+  });
+});
