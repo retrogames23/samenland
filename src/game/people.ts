@@ -26,7 +26,7 @@ import { nightLevel } from "./sun";
 import { fieldLook, farmTask } from "./rotation";
 // Villagers: a pure, deterministic function of the seed, its buildings and the clock.
 // Nothing is stored — every client computes the same people at the same spot.
-import { geoKey, MAP, hash, structureAt, setEstateHook, soloSeeds, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, exchangeMerchants, operaMerchants, specialDone, specialTile, stepsPaid, cathedralDone, universityDone, DOM_NURSES, pondTiles, type TradeGood, type Seed, type Kind } from "./world";
+import { geoKey, MAP, hash, structureAt, setEstateHook, soloSeeds, links, acreOf, effAge, radiusOf, reachOf, terrain, buildable, isWater, bornAt, speedOf, seedsKey, FLAT, tradePartners, LANDMARKS, SEAT_KINDS, landmarkSpots, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, exchangeMerchants, operaMerchants, specialDone, specialTile, stepsPaid, cathedralDone, universityDone, DOM_NURSES, pondTiles, type TradeGood, type Seed, type Kind } from "./world";
 
 export type Sex = "f" | "m";
 export type Job =
@@ -1318,7 +1318,9 @@ export function commandMayor(p: Person, t: Town, seeds: Seed[], now: number, to:
   const last = tiles[tiles.length - 1] ?? a;
   if (Math.abs(last[0] - g[0]) + Math.abs(last[1] - g[1]) > 0 && tiles.length <= 1) return false;
   const to2: Tile = last[0] === g[0] && last[1] === g[1] ? g : last;
-  const pts: Tile[] = [from, ...tiles.slice(1, -1), to2];
+  // water stretches follow the drawn deck: drop the stair-stepped tiles between the two bank tiles
+  const raw: Tile[] = [from, ...tiles.slice(1, -1), to2], pts: Tile[] = [];
+  for (const q of raw) { if (pts.length > 0 && q !== to2 && isWater(terrain(Math.round(q[0]), Math.round(q[1])))) continue; pts.push(q); }
   order = { id: p.id, sid: p.seed.id, from, to: to2, at: now, v: mounted ? DRIVE_SPEED * KNIGHT_SPEED : hold ? DRIVE_SPEED : ORDER_SPEED, pts, mounted }; drive = null;
   return true;
 }
@@ -1349,6 +1351,32 @@ let mounted = false;
 export const setMounted = (v: boolean) => { mounted = v; };
 type Drive = { id: number; sid: string; x: number; y: number; dir: [number, number]; moving: boolean; dist: number };
 let drive: Drive | null = null;
+/** Straight bridge decks (bank tile to bank tile) exactly as the renderer draws them; cached per seed array. */
+const spanMemo = new WeakMap<Seed[], [Tile, Tile][]>();
+function bridgeSpans(seeds: Seed[]): [Tile, Tile][] {
+  const hit = spanMemo.get(seeds); if (hit) return hit;
+  const out: [Tile, Tile][] = [];
+  for (const l of links(seeds)) {
+    const n = l.tiles.length;
+    for (let i = 0; i < n; i++) {
+      if (!l.water[i]) continue;
+      let j = i; while (j + 1 < n && l.water[j + 1]) j++;
+      out.push([l.tiles[Math.max(0, i - 1)]!, l.tiles[Math.min(n - 1, j + 1)]!]); i = j;
+    }
+  }
+  spanMemo.set(seeds, out); return out;
+}
+const nearSeg = (x: number, y: number, a: Tile, b: Tile, w: number) => {
+  const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1;
+  const f = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2));
+  return Math.hypot(a[0] + dx * f - x, a[1] + dy * f - y) <= w;
+};
+/** Over water the steered mayor stays on the drawn deck, not on the stair-stepped logic tiles beside it. */
+export function onDeck(t: Town, x: number, y: number, seeds: Seed[]): boolean {
+  if (!isWater(terrain(Math.round(x), Math.round(y)))) return true;
+  if (t.steg && t.now >= t.steg.done && nearSeg(x, y, t.steg.a, t.steg.b, 0.4)) return true;
+  return bridgeSpans(seeds).some(([a, b]) => nearSeg(x, y, a, b, 0.4));
+}
 /** Stroll mode: steer the own mayor directly by a tile-space direction; local-only, never stored. Walls and water block. */
 export function driveMayor(p: Person, t: Town, seeds: Seed[], now: number, dx: number, dy: number, dt: number) {
   if (p.role !== "mayor") return;
@@ -1364,7 +1392,7 @@ export function driveMayor(p: Person, t: Town, seeds: Seed[], now: number, dx: n
   const onRoad = mounted && (() => { const k = structureAt(Math.round(drive.x), Math.round(drive.y), seeds, now)?.kind; return k === "street" || k === "road" || k === "path" || k === "square" || k === "bridge"; })();
   const v = DRIVE_SPEED * (mounted ? KNIGHT_SPEED * (onRoad ? KNIGHT_ROAD : 1) : 1);
   const s = (v * Math.min(dt, 0.1)) / len, nx = drive.x + dx * s, ny = drive.y + dy * s;
-  const ok = (x: number, y: number) => x >= 1 && y >= 1 && x < MAP - 1 && y < MAP - 1 && freeAt(t, x, y, seeds);
+  const ok = (x: number, y: number) => x >= 1 && y >= 1 && x < MAP - 1 && y < MAP - 1 && freeAt(t, x, y, seeds) && onDeck(t, x, y, seeds);
   if (ok(nx, ny)) { drive.x = nx; drive.y = ny; }
   else if (ok(nx, drive.y)) drive.x = nx;
   else if (ok(drive.x, ny)) drive.y = ny;
