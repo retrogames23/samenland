@@ -13,11 +13,12 @@ it("imports the sun module when localStorage access throws", async () => {
     get() { throw new Error("LocalStorage is not supported in this context."); },
   });
   try {
-    const mod = await import("./sun?throwing-storage");
+    // computed specifier: a fresh module instance, so the top-level read really runs again
+    const mod = await import("./sun" + "?throwing-storage");
     expect(typeof mod.sunTimes).toBe("function");
     expect(mod.isAlwaysDay()).toBe(false);
   } finally {
     if (original) Object.defineProperty(globalThis, "localStorage", original);
-    else delete (globalThis as Record<string, unknown>).localStorage;
+    else delete (globalThis as Record<string, unknown>)["localStorage"];
   }
 });
