@@ -11,6 +11,8 @@ import { townOf, citizensOf } from "./people";
 import { journeymenTo, bridesOf, movesOf, letterArrives } from "./wander";
 import { seasonAt, type Season } from "./season";
 import { orphanStays, type OrphanChoice } from "./orphan";
+import { isAusbau } from "./ausbau";
+import { isNothilfe } from "./nothilfe";
 
 export type ChronEvent =
   | { at: number; code: "stage"; stage: number }
@@ -99,7 +101,7 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   }
   for (const b of s.bought ?? []) {
     // treasury and guild upgrades are no buildings – no completion feast
-    if (/^(chest|rank|fountain)\d$/.test(b.item) || /^(freimarkt|bauhuette|armen|fest|pflaster)\d+$/.test(b.item)) continue;
+    if (/^(chest|rank|fountain)\d$/.test(b.item) || /^(freimarkt|bauhuette|armen|fest|pflaster)\d+$/.test(b.item) || isAusbau(b.item) || isNothilfe(b.item)) continue;
     // monuments are celebrated once, when the last paid step is finished
     const mk = monumentOf(b.item);
     if (mk && b.item !== `${mk}${MONUMENT_DEFS[mk].n}`) continue;

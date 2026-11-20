@@ -37,6 +37,16 @@ describe("completion feasts", () => {
     const c = chronicle(v, [v], t0, t0 + 3 * 864e5);
     expect(c.events.filter((e) => e.code === "bought").length).toBe(0);
   });
+  it("permanent upgrades never appear as finished buildings", () => {
+    const v: Seed = { ...s, bought: ["backhaus2", "backhaus3", "herberge2", "herberge3", "granary2", "granary3"].map((item) => b(item, 1)) };
+    const c = chronicle(v, [v], t0, t0 + 3 * 864e5);
+    expect(c.events.filter((e) => e.code === "bought")).toEqual([]);
+  });
+  it("emergency carpenters never appear as finished buildings", () => {
+    const v: Seed = { ...s, bought: [b("nothilfe-f1763654400000", 1), b("nothilfe-w1763654400000", 1.1)] };
+    const c = chronicle(v, [v], t0, t0 + 3 * 864e5);
+    expect(c.events.filter((e) => e.code === "bought")).toEqual([]);
+  });
   it("a monument is celebrated once, only after its last step is built", () => {
     const part: Seed = { ...s, bought: [b("theater1", 1), b("theater2", 1.1)] };
     expect(chronicle(part, [part], t0, t0 + 6 * 864e5).events.filter((e) => e.code === "bought").length).toBe(0);
