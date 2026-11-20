@@ -1,4 +1,4 @@
-import { canPlaceSpecial, specialSites, monumentOf, monumentDone, specialDone, SPECIAL_KIND, MAP, type Seed } from "./world";
+import { canPlaceSpecial, specialSites, monumentOf, monumentDone, specialDone, SPECIAL_KIND, MAP, FOOT2, FOOT2_BACK, type Seed } from "./world";
 
 const H = 3600000, DAY = 24 * H;
 /** One relocation per building per week (mirrors DB building_move_guard). */
@@ -46,4 +46,17 @@ export function canMoveTo(item: string, x: number, y: number, s: Seed, seeds: Se
   if (e) return e;
   if (specialSites(s).has(y * MAP + x)) return "taken";
   return null;
+}
+
+type Check = (item: string, x: number, y: number, s: Seed, seeds: Seed[], now: number) => string | null;
+type Planted = { x: number; y: number }[] | Map<string, unknown>;
+/** A planted tree (cherry, quince, …) occupies its tile: no bought building may be placed or moved onto it (or onto a 2×2 back tile). */
+export function treeGuard(check: Check, planted: Planted): Check {
+  const has = (x: number, y: number) => planted instanceof Map ? planted.has(`${x},${y}`) : planted.some((p) => p.x === x && p.y === y);
+  return (item, x, y, s, seeds, now) => {
+    const kind = SPECIAL_KIND[item];
+    const tiles: [number, number][] = [[x, y], ...(kind && FOOT2.has(kind) ? FOOT2_BACK.map(([i, j]) => [x + i, y + j] as [number, number]) : [])];
+    if (tiles.some(([a, b]) => has(a, b))) return "taken";
+    return check(item, x, y, s, seeds, now);
+  };
 }

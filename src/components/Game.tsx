@@ -180,7 +180,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ForgotForm, RecoveryDialog, ChangePasswordDialog, ChangeEmailDialog } from "@/components/dialogs/AccountDialogs";
 import { firstFreeSite, placeTap, footprint, footTileFree, goodSpots } from "@/game/placement";
-import { canMoveTo, moveBlock, moveCost, itemOfKind } from "@/game/relocate";
+import { canMoveTo, moveBlock, moveCost, itemOfKind, treeGuard } from "@/game/relocate";
 import { RELOCATE } from "@/game/lang/relocate";
 import { saplingSpots } from "@/game/saplings";
 import FigureLab from "@/components/FigureLab";
@@ -353,7 +353,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   useEffect(() => {
     const own = placing ? seeds.find((x) => x.id === mine) : undefined;
     if (!placing || !own) { st.current.spots = []; return; }
-    const now = clock(), chk = moving ? canMoveTo : canPlaceSpecial;
+    const now = clock(), chk = treeGuard(moving ? canMoveTo : canPlaceSpecial, plantings);
     st.current.spots = goodSpots(placing, own, seeds, now, (x, y) => chk(placing, x, y, own, seeds, now) === null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [placing, moving, mine, seeds]);
@@ -1223,7 +1223,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       const gh = s.ghost ?? h;
       if (s.placing && gh && own) {
         // SimCity-style ghost: the building floats over the tile, tinted by whether it may stand there
-        const good = (s.moving ? canMoveTo : canPlaceSpecial)(s.placing, gh[0], gh[1], own, s.seeds, clock()) === null;
+        const good = treeGuard(s.moving ? canMoveTo : canPlaceSpecial, s.plantings)(s.placing, gh[0], gh[1], own, s.seeds, clock()) === null;
         const z = c.zoom * dpr.current, [gx, gy] = iso(gh[0], gh[1]);
         ctx.save();
         ctx.setTransform(z, 0, 0, z, cv.width / 2 - c.x * z, cv.height / 2 - c.y * z);
@@ -2199,7 +2199,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const buy = async (item: string, x?: number, y?: number) => {
     if (!my) return;
     if (x != null && y != null) {
-      const err = canPlaceSpecial(item, x, y, my, seeds, clock());
+      const err = treeGuard(canPlaceSpecial, plantings)(item, x, y, my, seeds, clock());
       if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore"]);
     }
     // instant feedback: sound, close placement and show the site right away; the server confirms or we roll back
@@ -2253,7 +2253,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   /** Umsetzen: pay the carters, then the building is rebuilt on the chosen spot (the old one is cleared at once). */
   const relocate = async (item: string, x: number, y: number) => {
     if (!my) return;
-    const err = canMoveTo(item, x, y, my, seeds, clock());
+    const err = treeGuard(canMoveTo, plantings)(item, x, y, my, seeds, clock());
     if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore"]);
     const block = moveBlock(my, item, clock());
     if (block) return setMsg(RELOCATE[lang][block]);
@@ -3789,7 +3789,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       <div className="pointer-events-none absolute bottom-[calc(var(--dock-bottom)+4.5rem)] left-[var(--safe-l)] right-[var(--safe-r)] z-40 flex flex-col items-end space-y-2 text-sm md:bottom-52 ltr:md:left-auto ltr:md:right-3 rtl:md:right-auto rtl:md:left-3 md:w-80">
         {placing && coarse && ghost && (() => {
           const own = seeds.find((s) => s.id === mine);
-          const err = own ? (moving ? canMoveTo : canPlaceSpecial)(placing, ghost[0], ghost[1], own, seeds, clock()) as keyof typeof t.place | null : "ground";
+          const err = own ? treeGuard(moving ? canMoveTo : canPlaceSpecial, plantings)(placing, ghost[0], ghost[1], own, seeds, clock()) as keyof typeof t.place | null : "ground";
           const nudge = (dx: number, dy: number) => { const g: [number, number] = [ghost[0] + dx, ghost[1] + dy]; setGhost(g); placeFocus(g[0], g[1]); };
           const price = moving ? moveCost(placing) ?? 0 : MONUMENT_PRICE[placing] ?? ITEMS[placing as Item];
           return (
@@ -3822,7 +3822,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         {placing && !coarse && hover && ptr && (() => {
           const own = seeds.find((s) => s.id === mine);
           if (!own) return null;
-          const err = (moving ? canMoveTo : canPlaceSpecial)(placing, hover[0], hover[1], own, seeds, clock()) as keyof typeof t.place | null;
+          const err = treeGuard(moving ? canMoveTo : canPlaceSpecial, plantings)(placing, hover[0], hover[1], own, seeds, clock()) as keyof typeof t.place | null;
           const txt = err ? (t.place[err] as string) ?? t.place.ground : moving ? RELOCATE[lang].hint : t.place.hint;
           return (
             <div className="pointer-events-none fixed z-50 max-w-[16rem] rounded-md border-2 border-wood bg-card px-2 py-1 text-xs text-foreground shadow-[var(--shadow-panel)]" ref={tipRef} style={{ left: (ptrRef.current ?? ptr)[0] + 18, top: (ptrRef.current ?? ptr)[1] + 18 }}>

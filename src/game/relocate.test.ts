@@ -53,3 +53,13 @@ describe("moving a bought building", () => {
     expect(moveBlock({ ...base, bought: [{ item: "backhaus", at: NOW - H }] }, "backhaus", NOW)).toBe("unbuilt");
   });
 });
+
+import { treeGuard } from "./relocate";
+describe("planted trees block building", () => {
+  it("refuses a tile with a planted tree, passes others through", () => {
+    const ok = () => null;
+    const g = treeGuard(ok, [{ x: 351, y: 478 }]);
+    expect(g("fireorder", 351, 478, {} as never, [], 0)).toBe("taken");
+    expect(g("fireorder", 355, 481, {} as never, [], 0)).toBeNull();
+  });
+});

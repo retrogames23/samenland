@@ -965,7 +965,7 @@ const siteCache = new Map<string, Map<number, Site>>();
 /** Ensembles painted as whole complexes (courtyards, wings) stand on 2×2 tiles: the sprite sits on the
  * front (south) tile, the three tiles behind become its paved ground ("square") — nothing else grows there. */
 export const FOOT2: ReadonlySet<Kind> = new Set<Kind>(["beginenhof", "university", "orangery", "factory"]);
-const FOOT2_BACK: [number, number][] = [[-1, 0], [0, -1], [-1, -1]];
+export const FOOT2_BACK: [number, number][] = [[-1, 0], [0, -1], [-1, -1]];
 function coverBack(out: Map<number, Site>, x: number, y: number, at: number, until?: number) {
   for (const [i, j] of FOOT2_BACK) { const k = (y + j) * MAP + x + i; if (!out.has(k)) out.set(k, { kind: "square", at, ...(until != null ? { until } : {}) }); }
 }
