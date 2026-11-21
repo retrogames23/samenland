@@ -34,3 +34,11 @@ export function weddingReceiptRows(s: Seed, now: number): WeddingReceiptRow[] {
     version: WEDDING_RECEIPT_VERSION,
   }));
 }
+
+/**
+ * True when exactly the indices 0..n-1 are booked. With the (seed_id, wedding_index) primary key and
+ * indices >= 0, "count == n and highest == n-1" proves it, so a hole (or a stray extra index) is never
+ * mistaken for a complete set, and it needs only two cheap queries instead of reading every row.
+ */
+export const receiptsComplete = (count: number, highest: number | null, n: number) =>
+  n === 0 ? count === 0 : count === n && highest === n - 1;

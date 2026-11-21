@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { economyWorldAt, type EconomyWorld } from "@/game/economy-world";
 import { residentTax } from "@/game/resident-tax";
 import type { Seed } from "@/game/world";
-import { weddingReceiptRows } from "@/game/wedding-receipts";
+import { weddingReceiptRows, receiptsComplete } from "@/game/wedding-receipts";
 import type { Realm } from "@/game/time";
 
 const DAY = 86400000;
@@ -98,10 +98,13 @@ const RECEIPT_CHUNK = 500;
 export async function settleWeddings(seed: Seed, now: number): Promise<number> {
   const rows = weddingReceiptRows(seed, now);
   if (!rows.length) return 0;
-  const booked = await supabaseAdmin.from("wedding_receipts").select("wedding_index", { count: "exact", head: true }).eq("seed_id", seed.id);
-  if (booked.error) throw new Error("Wedding receipts read failed");
-  // Indices are gap-free from 0, so as many rows as the calendar has means nothing is missing.
-  if ((booked.count ?? 0) >= rows.length) return 0;
+  const [top, booked] = await Promise.all([
+    supabaseAdmin.from("wedding_receipts").select("wedding_index").eq("seed_id", seed.id).order("wedding_index", { ascending: false }).limit(1).maybeSingle(),
+    supabaseAdmin.from("wedding_receipts").select("wedding_index", { count: "exact", head: true }).eq("seed_id", seed.id),
+  ]);
+  if (top.error || booked.error) throw new Error("Wedding receipts read failed");
+  // Exactly 0..n-1 present means nothing is missing; any hole is re-sent (key + ignoreDuplicates keep it safe).
+  if (receiptsComplete(booked.count ?? 0, top.data?.wedding_index ?? null, rows.length)) return 0;
   for (let i = 0; i < rows.length; i += RECEIPT_CHUNK) {
     const { error } = await supabaseAdmin.from("wedding_receipts").upsert(rows.slice(i, i + RECEIPT_CHUNK), { onConflict: "seed_id,wedding_index", ignoreDuplicates: true });
     if (error) throw new Error("Wedding settlement failed");
