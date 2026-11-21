@@ -18,7 +18,7 @@ import { getServerTime } from "@/game/time.functions";
 import { useModeCursor } from "@/components/hooks/useModeCursor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { wonders, wonderClaims, firstFinder, daysSince, WONDER_REACH, type WonderFind } from "@/game/wonders";
+import { wonders, wonderClaims, firstFinder, daysSince, ownSites, WONDER_REACH, type WonderFind } from "@/game/wonders";
 import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setBakeHold, setSignposts, setWonderFound, setKnights, signpostMap, type Camera } from "@/game/render";
 /** Stroll position kept across reloads (browser only, never stored on the server). */
 const STROLL_KEY = "samenland-stroll", STROLL_TTL = 30 * 60e3, VIEW_KEY = "samenland-view";
@@ -992,7 +992,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         // repeat visits persist as last_at — keep them after reload so the "visit" decree stays met (mirrors princely_task_met)
         { const me = ss.find((s) => uid && s.user_id === uid); repeatVisits.current = [...new Set([...repeatVisits.current, ...(vv.data ?? []).filter((x) => me && x.visitor_seed === me.id && x.last_at).map((x) => x.last_at as string)])]; }
         wonderRows.current = (wf.data ?? []) as unknown as WonderFind[];
-        syncWonders();
+        syncWonders(meId);
         setClaims([...(q.data ?? []), ...visitClaims(vv.data ?? []), ...wonderClaims(wonderRows.current), ...(m.data ?? []).map((x) => ({ id: x.id, seed_id: x.seed_id, quest: `market:${x.day}`, reward: x.reward, created_at: x.created_at }) as QuestClaim), ...referralClaims(rf.data ?? []), ...princelyClaims(princelyRows.current)]);
         setClaimsReady(true);
         // tell the inviter once when a friend has answered the call
@@ -1951,10 +1951,12 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const wonderRows = useRef<WonderFind[]>([]);
   const wonderSeen = useRef(new Set<string>());
   const wonderFn = useRef<(key: string, kind: string, my: Seed) => void>(() => {});
-  const syncWonders = () => {
-    const mine = st.current.seeds.find((s) => userId && s.user_id === userId);
-    const own = new Set(wonderRows.current.filter((r) => mine && r.seed_id === mine.id).map((r) => r.site));
-    wonderSeen.current = new Set(own); setWonderFound(own);
+  // the own village's discoveries: the explorer map shows no golden glimmer on these any more (survives reload)
+  const ownFound = useRef(new Set<string>());
+  const syncWonders = (seedId?: string | null) => {
+    const id = seedId !== undefined ? seedId : st.current.seeds.find((s) => userId && s.user_id === userId)?.id ?? null;
+    const own = ownSites(wonderRows.current, id);
+    ownFound.current = own; wonderSeen.current = new Set(own); setWonderFound(new Set(own));
   };
   useEffect(() => { syncWonders(); }, [my?.id, userId]);
   wonderFn.current = (key, kind, my) => {
@@ -1970,7 +1972,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
             setVisitNote(o && o.task === "wonder" ? `${P.tired} ${P.ready}` : P.tired);
           }
         } else {
-          // reward 0: this village already logged the site — say so instead of staying silent
+          // reward 0: this village already logged the site — say so, and stop the glimmer here too
+          ownFound.current.add(key); setWonderFound(new Set(ownFound.current));
           setVisitNote(P.seen);
         }
         return;
