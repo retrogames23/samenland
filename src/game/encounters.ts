@@ -28,7 +28,7 @@ export const ENCOUNTERS = {
   tinker: { mend: { cost: 15, fx: { h: 72, food: 5 } }, scrap: { cost: -15, fx: {} }, pass: { cost: 0, fx: {} } },
   well: { dig: { cost: 50, fx: { h: 168, health: 15 } }, dowser: { cost: 15, fx: { h: 72, health: 8 } } },
   fair: { stall: { cost: 40, fx: { h: 96, food: 9 } }, visit: { cost: 10, fx: { h: 48, health: 8 } }, stay: { cost: 0, fx: {} } },
-  cow: { show: { cost: 10, fx: { h: 72, food: 5 } }, sell: { cost: -30, fx: {} }, keep: { cost: 0, fx: { h: 96, food: 8 } } },
+  cow: { show: { cost: 10, fx: { h: 72, health: 5 } }, sell: { cost: -30, fx: {} }, keep: { cost: 0, fx: { h: 96, food: 8 } } },
   painter: { portrait: { cost: 45, fx: { h: 168, health: 6 } }, sign: { cost: 15, fx: { h: 72, health: 3 } }, pass: { cost: 0, fx: {} } },
   flood: { dam: { cost: 40, fx: { h: 120, food: 12 } }, meadow: { cost: 0, fx: { h: 72, food: 5 } } },
   tithe: { pay: { cost: 25, fx: { h: 168, health: 8 } }, bargain: { cost: 10, fx: {} }, plead: { cost: 0, fx: {} } },

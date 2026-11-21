@@ -118,4 +118,16 @@ describe("encounter effects are all effective (Wohlstand comes only from prosper
     expect(ENCOUNTERS.wolf.hunter.fx).toEqual({ h: 72, food: 8 });
     expect(ENCOUNTERS.hansetag.gefolge.fx).toEqual({ h: 168, health: 5, food: 9 });
   });
+  it("no option that costs Mark is strictly worse than another option of the same encounter", () => {
+    const f = (c: { cost: number; fx: { h?: number; food?: number; health?: number; growth?: number } }) => [-c.cost, c.fx.h ?? 0, c.fx.food ?? 0, c.fx.health ?? 0, c.fx.growth ?? 0];
+    const bad: string[] = [];
+    for (const { ev, c, ch } of all) {
+      if (ch.cost <= 0 || !Object.keys(ch.fx).length) continue; // effect-less options have other mechanics
+      for (const o of all.filter((x) => x.ev === ev && x.c !== c)) {
+        const a = f(ch), b = f(o.ch);
+        if (b.every((v, i) => v >= a[i]!) && b.some((v, i) => v > a[i]!)) bad.push(`${ev}.${c} < ${o.c}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
 });
