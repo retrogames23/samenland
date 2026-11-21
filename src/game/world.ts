@@ -8,7 +8,7 @@ import { townCharacter, resetCharacters, type TownWay } from "./character";
 import { biomeKey, type Biome } from "./biome";
 import { marketBoost } from "./freimarkt";
 import { bauhuetteDone } from "./vorhaben";
-import { clock, cacheTick, worldHour, worldWeekday, workClock, workDone, type Realm } from "./time";
+import { clock, cacheTick, worldHour, worldWeekday, workClock, workDone, realmGen, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
 import { estateOf, estateHouse, RESIDENTIAL, setMonumentHook } from "./prosperity";
@@ -780,10 +780,9 @@ export type MonumentKey = keyof typeof MONUMENT_DEFS;
 export const MONUMENT_KEYS = Object.keys(MONUMENT_DEFS) as MonumentKey[];
 export const monumentSteps = (k: MonumentKey) => Array.from({ length: MONUMENT_DEFS[k].n }, (_, i) => `${k}${i + 1}`);
 /** Which monument a purchase item belongs to (e.g. "opera3" → "opera"), or null. */
-export const monumentOf = (item: string): MonumentKey | null => {
-  const m = /^([a-z]+)(\d)$/.exec(item); const k = m?.[1] as MonumentKey | undefined;
-  return k && k in MONUMENT_DEFS && +m![2]! >= 1 && +m![2]! <= MONUMENT_DEFS[k].n ? k : null;
-};
+/** Exactly the strings the former pattern test /^([a-z]+)(\d)$/ with 1 ≤ digit ≤ n accepted: one entry per monument step. */
+const MONUMENT_ITEMS = new Map<string, MonumentKey>(MONUMENT_KEYS.flatMap((k) => monumentSteps(k).map((i) => [i, k] as const)));
+export const monumentOf = (item: string): MonumentKey | null => MONUMENT_ITEMS.get(item) ?? null;
 export const MONUMENT_BY_KIND = new Map<Kind, MonumentKey>(MONUMENT_KEYS.map((k) => [MONUMENT_DEFS[k].kind, k]));
 export const SPECIAL_KIND: Record<string, Kind> = { backhaus: "backhaus", herberge: "herberge", badestube: "badestube", beginen: "beginenhof", fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", fireorder: "firerack", guard: "guardhouse", hunter: "lodge", herbs: "herbhut", woodcamp: "woodcamp", bigstore: "bigstore", millrow: "millrow", stonemason: "stonemason", hammerworks: "hammerworks", smokehouse: "smokehouse", saltquay: "saltquay",
   ...Object.fromEntries(MONUMENT_KEYS.map((k) => [`${k}1`, MONUMENT_DEFS[k].kind])) };
@@ -803,8 +802,64 @@ export function monumentProgress(s: Seed, now: number, key: MonumentKey = "belfr
  *  chronicle and finish letter share one sawmill decision and one finish time. */
 /** Set while a lighthouse chain is evaluated (see lighthouseDone). */
 const lightBusy = new Set<string>();
-export function monumentChain(s: Seed, key: MonumentKey, until = Infinity): { at: number; start: number; done: number }[] {
-  const out: { at: number; start: number; done: number }[] = [];
+type ChainStep = { at: number; start: number; done: number };
+/**
+ * Evaluation scope for one synchronous top-level computation (residentTax): while it runs, build chains of
+ * monuments and the Zunftturm sequence are computed once and reused. Validity:
+ * - entries live only until the outermost scope returns, so seed rows pushed or replaced afterwards are never met
+ *   by an old chain (nothing inside a scope mutates seeds; residentTax is pure);
+ * - keyed by the seed object, the monument and the recursion-guard state of that seed (lightBusy, exBusy, operaBusy,
+ *   harvestBusy, domBusy, uniBusy), because a chain evaluated inside a guard reads that monument's effects as 0;
+ * - a chain is extended lazily in purchase order: step i depends only on step i-1 and the town, so the steps paid by
+ *   `until` are exactly the first ones of the full sorted list; re-entry into an entry being extended falls back to
+ *   the plain computation. any setRealm call inside a scope drops the memo.
+ */
+type ChainMemo = { ats: number[]; out: ChainStep[]; busy: boolean };
+type GuildMemo = { paid: number[]; done: number[]; busy: boolean };
+let scopeDepth = 0;
+let chainMemo: WeakMap<Seed, Map<string, ChainMemo | GuildMemo>> | null = null, memoRealm = 0;
+/** Test switch: false runs every chain without the memo (reference path for equality tests). */
+export const chainMemoCfg = { on: true, hits: 0, misses: 0 };
+export function withChainMemo<T>(f: () => T): T {
+  if (!chainMemoCfg.on) return f();
+  if (scopeDepth++ === 0) { chainMemo = new WeakMap(); memoRealm = realmGen(); }
+  try { return f(); } finally { if (--scopeDepth === 0) chainMemo = null; }
+}
+const guardState = (id: string) =>
+  (lightBusy.has(id) ? 1 : 0) | (exBusy.has(id) ? 2 : 0) | (operaBusy.has(id) ? 4 : 0) | (harvestBusy.has(id) ? 8 : 0) | (domBusy.has(id) ? 16 : 0) | (uniBusy.has(id) ? 32 : 0);
+function memoOf<T extends ChainMemo | GuildMemo>(s: Seed, k: string, make: () => T): T | null {
+  if (!chainMemo) return null;
+  if (memoRealm !== realmGen()) { chainMemo = new WeakMap(); memoRealm = realmGen(); }
+  let m = chainMemo.get(s);
+  if (!m) { m = new Map(); chainMemo.set(s, m); }
+  const key = `${k}|${guardState(s.id)}`;
+  let e = m.get(key) as T | undefined;
+  if (!e) { e = make(); m.set(key, e); }
+  return e.busy ? null : e;
+}
+export function monumentChain(s: Seed, key: MonumentKey, until = Infinity): ChainStep[] {
+  const e = memoOf<ChainMemo>(s, key, () => ({ ats: (s.bought ?? []).filter((b) => monumentOf(b.item) === key && b.at <= Infinity).map((b) => b.at).sort((a, b) => a - b), out: [], busy: false }));
+  if (!e) return chainRaw(s, key, until);
+  let n = 0;
+  while (n < e.ats.length && e.ats[n]! <= until) n++;
+  if (n > e.out.length) {
+    chainMemoCfg.misses++;
+    const guard = key === "lighthouse" && !lightBusy.has(s.id);
+    if (guard) lightBusy.add(s.id);
+    e.busy = true;
+    try {
+      let prev = e.out.length ? e.out[e.out.length - 1]!.done : -Infinity;
+      for (let i = e.out.length; i < n; i++) {
+        const at = e.ats[i]!, start = Math.max(at, prev); prev = specialDone(s, [s], start); e.out.push({ at, start, done: prev });
+      }
+    } finally { e.busy = false; if (guard) lightBusy.delete(s.id); }
+  } else chainMemoCfg.hits++;
+  const out: ChainStep[] = [];
+  for (let i = 0; i < n; i++) { const c = e.out[i]!; out.push({ at: c.at, start: c.start, done: c.done }); }
+  return out;
+}
+function chainRaw(s: Seed, key: MonumentKey, until: number): ChainStep[] {
+  const out: ChainStep[] = [];
   let prev = -Infinity;
   const guard = key === "lighthouse" && !lightBusy.has(s.id);
   if (guard) lightBusy.add(s.id);
@@ -923,6 +978,21 @@ export const careHealthExtra = (s: Seed, now: number, own: Set<string>) => (cath
 /** Finished Zunftturm steps at time t: each step is built after the previous one with only the steps already
  *  standing at its own start speeding it — the tower never speeds its own running step. Pure, no recursion. */
 export function guildtowerDone(s: Seed, t: number): number {
+  const e = memoOf<GuildMemo>(s, "guildtower#", () => ({ paid: (s.bought ?? []).filter((b) => monumentOf(b.item) === "guildtower").map((b) => b.at).sort((a, b) => a - b), done: [], busy: false }));
+  if (!e || e.paid.some((a) => !(a <= Infinity))) return guildtowerRaw(s, t);
+  let prev = -Infinity, n = 0;
+  for (let i = 0; i < e.paid.length; i++) {
+    const start = Math.max(e.paid[i]!, prev); if (start > t) break;
+    if (i >= e.done.length) {
+      e.busy = true;
+      try { e.done.push(doneWith(s, [s], start, i)); } finally { e.busy = false; }
+    }
+    prev = e.done[i]!;
+    if (prev <= t) n++; else break;
+  }
+  return n;
+}
+function guildtowerRaw(s: Seed, t: number): number {
   const paid = (s.bought ?? []).filter((b) => monumentOf(b.item) === "guildtower").map((b) => b.at).sort((a, b) => a - b);
   let prev = -Infinity, n = 0;
   for (const at of paid) {

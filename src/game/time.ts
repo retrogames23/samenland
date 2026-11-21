@@ -41,18 +41,51 @@ function makeFmt(z: string) {
   return new Intl.DateTimeFormat("en-GB", { timeZone: z, hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
 }
 let cache = { min: -1, base: 0 };
+/** Per UTC hour (minute index / 60): local minute of day at the hour's first minute, or IRREGULAR when the local
+ *  clock does not advance minute by minute across that hour (DST switch or any other offset change inside it). */
+let hours = new Map<number, number>();
+const IRREGULAR = -1, HOURS_MAX = 200000, SAFE_MS = 8.64e15 - 864e5;
+let realmSet = 0;
+/** Counts setRealm calls (any realm change of biome, lab mode or time zone); memo scopes compare it. */
+export const realmGen = () => realmSet;
 export function setRealm(r: Realm) {
+  realmSet++;
   lab = r === "lab";
   setBiome(r);
   if (REALM_TZ[r] === tz) return;
   tz = REALM_TZ[r];
   fmt = makeFmt(tz);
   cache = { min: -1, base: 0 };
+  hours = new Map();
 }
 export const worldTz = () => tz;
+/** Local hour and minute (as minute of day) the realm formatter shows for the whole minute `min`. */
+function localMinute(min: number): number {
+  const p = fmt.formatToParts(new Date(min * 60000));
+  const g = (t: string) => Number(p.find((x) => x.type === t)?.value ?? 0);
+  return g("hour") * 60 + g("minute");
+}
 /** Hour of day (fractional) in the current realm's time for timestamp `now`. */
 export function worldHour(now: number): number {
   const min = Math.floor(now / 60000);
+  // Fast path: the formatter is asked once at the first and once at the last minute of each UTC hour. When the
+  // local clock advanced by exactly 59 minutes in between, no offset change lies in that hour and every minute of it
+  // reads first + k (wrapping at midnight) — the same hour and minute fields the formatter would print. Hours that
+  // contain a DST switch (or any other offset change) are marked IRREGULAR and use the formatter for every minute.
+  if (Math.abs(now) < SAFE_MS) {
+    const h = Math.floor(min / 60);
+    let first = hours.get(h);
+    if (first === undefined) {
+      const a = localMinute(h * 60), b = localMinute(h * 60 + 59);
+      first = a >= 0 && a < 1440 && b === (a + 59) % 1440 ? a : IRREGULAR;
+      if (hours.size >= HOURS_MAX) hours.clear();
+      hours.set(h, first);
+    }
+    if (first !== IRREGULAR) {
+      const l = (first + min - h * 60) % 1440;
+      return Math.floor(l / 60) + (l % 60) / 60 + (now - min * 60000) / 3.6e6;
+    }
+  }
   if (min !== cache.min) {
     const p = fmt.formatToParts(new Date(min * 60000));
     const g = (t: string) => Number(p.find((x) => x.type === t)?.value ?? 0);
