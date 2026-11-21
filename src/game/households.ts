@@ -33,11 +33,19 @@ export const foodCapacity = (s: Seed, byKind: Map<Kind, unknown[]>, now: number,
 
 export function townTiles(s: Seed, seeds: Seed[], now: number) {
   const rad = radiusOf(effAge(s, seeds, now)), r = reachOf(s, rad);
-  const x0 = Math.floor(s.x - r - 2), x1 = Math.ceil(s.x + r + 2), y0 = Math.floor(s.y - r - 2), y1 = Math.ceil(s.y + r + 2);
+  let x0 = Math.floor(s.x - r - 2), x1 = Math.ceil(s.x + r + 2), y0 = Math.floor(s.y - r - 2), y1 = Math.ceil(s.y + r + 2);
   const byKind = new Map<Kind, HomeTile[]>(), sites: HomeTile[] = [];
   // Exact pre-filter: structureAt only gives this town a tile inside townDist <= rad + 0.5,
   // unless the tile is one of its bought sites, a twin-town site or a trade-road tile credited to it — those are always checked.
   const own = specialSites(s), twins = pickCfg.lazyTwin ? null : twinSites(seeds, now);
+  // A bought site may stand beyond the growth radius (the fisher's hut sits at the shore, up to 16 tiles out; auto spots reach 9):
+  // widen the scan box to still-standing own sites, otherwise a young village never sees its hut and hires no fisher.
+  for (const [k, v] of own) {
+    if (v.until != null && now >= v.until) continue;
+    const ox = k % MAP, oy = Math.floor(k / MAP);
+    if (ox < x0) x0 = ox; if (ox > x1) x1 = ox;
+    if (oy < y0) y0 = oy; if (oy > y1) y1 = oy;
+  }
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     if (townDist(x, y, s) > rad + 0.5) { const k = y * MAP + x; if (!own.has(k) && (twins ? twins.get(k) : twinSiteGet(k, seeds, now))?.seed.id !== s.id && roadOwnerAt(x, y, seeds) !== s.id) continue; }
     const st = structureAt(x, y, seeds, now);
