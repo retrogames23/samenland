@@ -13,6 +13,7 @@ export const fr: Dict = {
   needNames: "Renseignez d'abord le village, le nom du bailli et son rôle.",
   clickLand: "Cliquez à présent sur une terre libre.",
   plantFail: "La graine n'a point pris. Veuillez réessayer.",
+  realmFull: { moving: "Cette île est entièrement peuplée. Nous cherchons pour toi une place libre sur une autre île.", none: "Cette île n'a plus de place et aucune autre île n'est libre pour le moment. Réessaie plus tard.", fail: "Le passage à une autre île a échoué. Recharge la page et réessaie." },
   mayorFind: "Vers votre bailli",
   alreadyHave: "Vous possédez déjà un village – chaque joueur ne reçoit qu'une seule graine.",
   planted: (n) => `${n} a été semé. Premier pas : bénissez le puits (touchez la place du village) ou décidez d'une route commerciale dans le menu de construction. Il grandit sans vous.`,

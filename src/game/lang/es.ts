@@ -13,6 +13,7 @@ export const es: Dict = {
   needNames: "Indica primero la aldea, el nombre del alcalde y su papel.",
   clickLand: "Ahora pulsa en una porción de tierra libre.",
   plantFail: "No se pudo sembrar. Por favor, inténtalo de nuevo.",
+  realmFull: { moving: "Esta isla está completamente poblada. Estamos buscando un lugar libre para ti en otra isla.", none: "Esta isla ya no tiene sitio y ahora mismo no hay otra isla libre. Inténtalo de nuevo más tarde.", fail: "No se pudo pasar a otra isla. Recarga la página e inténtalo de nuevo." },
   mayorFind: "Ir a tu alcalde",
   alreadyHave: "Ya posees una aldea; cada jugador recibe exactamente una semilla.",
   planted: (n) => `${n} ha sido sembrada. Primer paso: bendice el pozo (toca la plaza del pueblo) o decide una ruta comercial en el menú de construcción. Crecerá aun sin ti.`,

@@ -13,7 +13,7 @@ import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind }
 import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
 /** Accounts that always found their village on Europa I (Altenland), bypassing the overflow to Europa II. */
 const FORCE_EUROPE = new Set(["victoria.halper@gmail.com", "johanna.mellentin@gmail.com"]);
-import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, openRealm, initTimeSync, syncServerTime, SYNC_EVERY, type Realm } from "@/game/time";
+import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, openRealm, isRealmFull, nextOpenRealm, initTimeSync, syncServerTime, SYNC_EVERY, type Realm } from "@/game/time";
 import { getServerTime } from "@/game/time.functions";
 import { useModeCursor } from "@/components/hooks/useModeCursor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -1540,6 +1540,23 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     }
   };
 
+  /** The database refused this map as full (realm_full): continue the founding on the next map of the chain with room, reusing openRealm and loadRealm. */
+  const moveOnFromFullRealm = async () => {
+    const from = realmRef.current;
+    setMsg(t.realmFull.moving);
+    try {
+      // same read as the initial map choice; the refused map is skipped even if this count lags behind
+      const rows = await allRows<{ id: string; realm: string }>(() => supabase.from("seeds").select("id, realm").in("realm", REALMS));
+      const counts = new Map<string, number>();
+      for (const x of rows.data) counts.set(x.realm, (counts.get(x.realm) ?? 0) + 1);
+      const next = nextOpenRealm(from, (q) => counts.get(q) ?? 0);
+      if (!next) { setMode("look"); return setMsg(t.realmFull.none); }
+      await loadRealmRef.current?.(next);
+      if (realmRef.current !== next) { setMode("look"); return setMsg(t.realmFull.fail); }
+      setMode("seed");
+    } catch { setMode("look"); setMsg(t.realmFull.fail); }
+  };
+
   /** Planting only after the player confirms the spot on the parchment. */
   const plantNow = async () => {
     if (!plantAsk || !userId) return;
@@ -1551,12 +1568,15 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       .select()
       .single();
     setPlanting(false);
-    // whatever the outcome, the seed is no longer held in the hand
+    // the chosen spot is map-specific and no longer held; the form (town, mayor, address) is kept
+    const full = isRealmFull(error);
     setPlantAsk(null);
     setPtr(null);
     setHover(null); st.current.hover = null;
-    setMode("look");
+    // a full map keeps the founder in seed mode so they can place the village on the next map
+    setMode(full ? "seed" : "look");
     if (error?.code === "23505") { setTab(null); return setMsg(t.alreadyHave); }
+    if (full) return moveOnFromFullRealm();
     if (error || !data) return setMsg(t.plantFail);
     setHome(data as Seed);
     setSeeds((s) => [...s, data as Seed]);
