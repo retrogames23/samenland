@@ -13,11 +13,12 @@ export function farmAnimalKind(f: { free: boolean; nearVillage: boolean; oak: bo
   return f.oak && f.autumn ? "pig" : null;
 }
 /** Sparse tile-local dressing; no town scan, no stored herd and no economic inputs. */
-export function farmAnimalsAt(x: number, y: number, seeds: Seed[], now: number, ponds?: Set<number>): FarmAnimal | null {
+export function farmAnimalsAt(x: number, y: number, seeds: Seed[], now: number, ponds?: Set<number>, onFire?: (x: number, y: number) => boolean): FarmAnimal | null {
   if (animalsSleeping(now) || hash(x, y, 1510) >= 0.12) return null;
   if (!seeds.some(s => Math.hypot(x - s.x, y - s.y) <= 18)) return null;
   const tr = terrain(x, y);
-  if (isWater(tr) || tr === "mountain" || structureAt(x, y, seeds, now) || ponds?.has(y * MAP + x)) return null;
+  // never on a campfire, a bonfire or a pond (structures already cover campfires; the fire check covers the feast bonfire)
+  if (isWater(tr) || tr === "mountain" || structureAt(x, y, seeds, now) || ponds?.has(y * MAP + x) || onFire?.(x, y)) return null;
   const open = tr !== "forest";
   let shore = false, hutBeside = false;
   if (open) for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]] as const) {

@@ -52,7 +52,7 @@ import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
 import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, horseImage, stallImage, type Tex } from "./nature-sprites";
-import { townOf, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
+import { townOf, onFireTile, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { folkImage, walkSheet, standSprite, standSheetOf, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
@@ -4301,7 +4301,7 @@ export function draw(
     if (!st && !fountains?.has(y * MAP + x) && (sharp || nearTown(x, y)) && !(outDone.has(((y / CH) | 0) * 4096 + ((x / CH) | 0)) && outskirt(x, y))) natureAt(c, x, y, cx, cy, t, !roofInFront(x, y, seeds, now), false, z); // turf already lies in the flat pass
     pFE(); pFB("p2.animals");
     if (!original && !floodWild.get(y * MAP + x)?.flood && !inCourt(x, y)) {
-      const animal = farmAnimalsAt(x, y, seeds, now, pondsNow);
+      const animal = farmAnimalsAt(x, y, seeds, now, pondsNow, (fx, fy) => onFireTile(fx, fy, seeds, now));
       if (animal) drawFarmAnimal(c, animal, cx, cy, now, x * 31 + y);
     }
     if (st?.kind === "coop" && st.build === undefined) drawHens(c, cx, cy, x * 31 + y);

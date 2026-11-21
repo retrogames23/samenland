@@ -7,7 +7,7 @@ import { isDen, denOk, denBeast } from "./wildlife";
 import { worldHour, isWorkHour } from "./time";
 
 const WILD_OK = new Set(["forest", "meadow", "grass", "hill", "fertile"]);
-import { townOf } from "./people";
+import { townOf, onFireTile } from "./people";
 import type { Animal, Effect } from "./lang/tileinfo";
 
 export type TileFacts = { terrain: Terrain; kind: string | null; seed: string | null; animals: Animal[]; effects: Effect[] };
@@ -30,7 +30,7 @@ export function tileFacts(x: number, y: number, seeds: Seed[], now: number, plan
   if (kind === "pasture" && st && st.build === undefined && st.v > 0.35) animals.add(herdAt(x, y));
   if (kind === "coop") animals.add("hen");
   if (!st?.flood && !inCourt(x, y)) {
-    const animal = farmAnimalsAt(x, y, seeds, now, pondTiles(seeds));
+    const animal = farmAnimalsAt(x, y, seeds, now, pondTiles(seeds), (fx, fy) => onFireTile(fx, fy, seeds, now));
     if (animal) animals.add(animal);
   }
   const sd = st?.seed ?? null;
