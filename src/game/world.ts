@@ -1049,15 +1049,43 @@ function coverBack(out: Map<number, Site>, x: number, y: number, at: number, unt
  * Where each bought building stands: a pure function of the seed and its purchases. The fishery
  * looks for the shore, the healer for the forest edge, the school for the village core, the granary for the fields.
  */
-/** Fast path keyed by the bought array. It also remembers length and last row, so a list grown in place
- *  (push) is never answered with the old sites — that once froze bought buildings in the simulation. */
-const siteQuick = new WeakMap<object, { id: string; x: number; y: number; mv: unknown; n: number; last: unknown; m: Map<number, Site> }>();
+/** Seed inputs are immutable (src/game/AGENTS.md): every identity-keyed memo (seedsKey, soloSeeds, picksOf, effAge, …)
+ *  assumes a changed village arrives as a new Seed object in a new array. Outside production builds (tests, simulation,
+ *  dev server) everything such a memo has seen is frozen, so an in-place change throws at the writer instead of answering
+ *  from a stale cache. Production builds skip the freeze, so a missed writer can never break a player's game. */
+export const seedGuard = { on: !import.meta.env?.PROD };
+export function lockSeed(s: Seed): Seed {
+  if (!seedGuard.on || Object.isFrozen(s)) return s;
+  for (const v of Object.values(s)) if (v && typeof v === "object") { if (Array.isArray(v)) for (const r of v) if (r && typeof r === "object") Object.freeze(r); Object.freeze(v); }
+  return Object.freeze(s);
+}
+export function lockSeeds(seeds: Seed[]): void { if (seedGuard.on && !Object.isFrozen(seeds)) { for (const s of seeds) lockSeed(s); Object.freeze(seeds); } }
+/** Fast path keyed by the bought array, verified element by element against a flat copy of every bought and move row
+ *  (item, at, x, y): a list grown, edited or replaced in place is never answered with old sites — that once froze bought
+ *  buildings in the simulation. */
+const siteQuick = new WeakMap<object, { id: string; x: number; y: number; rows: unknown[]; m: Map<number, Site> }>();
+const siteRows = (s: Seed): unknown[] => {
+  const r: unknown[] = [];
+  for (const b of s.bought ?? []) r.push(b.item, b.at, b.x, b.y);
+  r.push(null);
+  for (const m of s.moves ?? []) r.push(m.item, m.at, m.x, m.y);
+  return r;
+};
+function sameRows(r: unknown[], s: Seed): boolean {
+  const B = s.bought ?? [], M = s.moves ?? [];
+  if (r.length !== 4 * (B.length + M.length) + 1) return false;
+  let i = 0;
+  for (const b of B) if (r[i++] !== b.item || r[i++] !== b.at || r[i++] !== b.x || r[i++] !== b.y) return false;
+  if (r[i++] !== null) return false;
+  for (const m of M) if (r[i++] !== m.item || r[i++] !== m.at || r[i++] !== m.x || r[i++] !== m.y) return false;
+  return true;
+}
 export function specialSites(s: Seed): Map<number, Site> {
   const quick = s.bought ? siteQuick.get(s.bought) : undefined;
-  if (quick && quick.id === s.id && quick.x === s.x && quick.y === s.y && quick.mv === s.moves && quick.n === s.bought!.length && quick.last === s.bought![s.bought!.length - 1]) return quick.m;
+  if (quick && quick.id === s.id && quick.x === s.x && quick.y === s.y && sameRows(quick.rows, s)) return quick.m;
   const items = (s.bought ?? []).filter((b) => SPECIAL_KIND[b.item]);
   const key = `${s.id}:${s.x}:${s.y}:${items.map((b) => `${b.item}${b.at}@${b.x ?? ""},${b.y ?? ""}`).join(",")}|${(s.moves ?? []).map((m) => `${m.item}${m.at}@${m.x},${m.y}`).join(",")}`;
-  const hit = siteCache.get(key); if (hit) { if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, mv: s.moves, n: s.bought.length, last: s.bought[s.bought.length - 1], m: hit }); return hit; }
+  const hit = siteCache.get(key); if (hit) { if (s.bought) { lockSeed(s); siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, rows: siteRows(s), m: hit }); } return hit; }
   const out = new Map<number, Site>();
   // relocations (Umsetzen): original sites are placed exactly as before (no auto spot ever shifts), moves overlay them afterwards
   const ms = (s.moves ?? []).filter((m) => SPECIAL_KIND[m.item] && items.some((b) => b.item === m.item)).sort((a, c) => a.at - c.at);
@@ -1103,12 +1131,12 @@ export function specialSites(s: Seed): Map<number, Site> {
   }
   if (siteCache.size > 200) siteCache.clear();
   siteCache.set(key, out);
-  if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, mv: s.moves, n: s.bought.length, last: s.bought[s.bought.length - 1], m: out });
+  if (s.bought) { lockSeed(s); siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, rows: siteRows(s), m: out }); }
   return out;
 }
 /** Cache key that changes whenever seed positions, ages or purchases change. */
 const skMemo = new WeakMap<Seed[], string>();
-export const seedsKey = (seeds: Seed[]) => { let k = skMemo.get(seeds); if (k === undefined) { k = seedsKeyRaw(seeds); skMemo.set(seeds, k); } return k; };
+export const seedsKey = (seeds: Seed[]) => { let k = skMemo.get(seeds); if (k === undefined) { lockSeeds(seeds); k = seedsKeyRaw(seeds); skMemo.set(seeds, k); } return k; };
 const tup = (xs: string[] | undefined) => (xs ?? []).slice().sort().join("/");
 /** Full content fingerprint of every seed input that drives growth, buildings, households and citizens (sorted tuples, order-independent). */
 const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => [s.id, s.x, s.y, s.created_at, s.user_id ?? "",
@@ -1139,7 +1167,7 @@ const scaches = new Map<string, Map<number, Structure | null>>();
 let lastSeeds: Seed[] | null = null, lastTick = -1, lastCache: Map<number, Structure | null> | null = null;
 const soloMemo = new WeakMap<Seed, Seed[]>();
 /** Stable one-element seed list, so per-village queries hit the same cache every frame. */
-export const soloSeeds = (s: Seed): Seed[] => { let a = soloMemo.get(s); if (!a) { a = [s]; soloMemo.set(s, a); } return a; };
+export const soloSeeds = (s: Seed): Seed[] => { let a = soloMemo.get(s); if (!a) { a = [lockSeed(s)]; lockSeeds(a); soloMemo.set(s, a); } return a; };
 /** Gated estate shares (people.ts estateSharesLive, same rule as resident tax); registered there to avoid an import cycle. */
 let estateHook: ((s: Seed, seeds: Seed[], now: number) => { skilled: number; wealthy: number } | null) | null = null;
 export const setEstateHook = (f: typeof estateHook) => { estateHook = f; };
@@ -1159,7 +1187,7 @@ export const pickCfg = { cheap: true, lazyTwin: true, distPre: true, slots: PICK
 /** Test helper: forget cached structureAt results so a reference and an optimised pass never share entries. */
 export function clearStructureCaches() { scaches.clear(); lastCache = null; lastSeeds = null; }
 function picksOf(seeds: Seed[], now: number): Pick {
-  let slots = pickMemo.get(seeds); if (!slots) { slots = []; pickMemo.set(seeds, slots); }
+  let slots = pickMemo.get(seeds); if (!slots) { lockSeeds(seeds); slots = []; pickMemo.set(seeds, slots); }
   const i = slots.findIndex((c) => c.now === now);
   if (i >= 0) { const c = slots[i]!; if (i > 0) { slots.splice(i, 1); slots.unshift(c); } return c; }
   const sites = new Map<number, number[]>();
@@ -1682,7 +1710,7 @@ const ageMemo = new WeakMap<Seed[], AgeSlot[]>();
 export const ageMemoStats = { misses: 0 };
 export function effAge(s: Seed, seeds: Seed[], now: number) {
   let slots = ageMemo.get(seeds);
-  if (!slots) { slots = []; ageMemo.set(seeds, slots); }
+  if (!slots) { lockSeeds(seeds); slots = []; ageMemo.set(seeds, slots); }
   let i = 0;
   while (i < slots.length && slots[i]!.now !== now) i++;
   let c: AgeSlot;
@@ -1751,7 +1779,7 @@ export const baseMemoCfg = { on: true, misses: 0 };
 function effAgeBase(s: Seed, seeds: Seed[], now: number) {
   if (!baseMemoCfg.on) return effAgeBaseRaw(s, seeds, now);
   let slots = baseMemo.get(seeds);
-  if (!slots) { slots = []; baseMemo.set(seeds, slots); }
+  if (!slots) { lockSeeds(seeds); slots = []; baseMemo.set(seeds, slots); }
   let i = 0;
   while (i < slots.length && slots[i]!.now !== now) i++;
   let c: AgeSlot;
@@ -1819,7 +1847,7 @@ const routeMemo = new WeakMap<Seed[], RouteMemo>();
 export const routeMemoCfg = { on: true, transitMisses: 0, hubMisses: 0, hits: 0 };
 function routeSlot(seeds: Seed[]): RouteMemo {
   const ls = links(seeds); let m = routeMemo.get(seeds);
-  if (!m || m.ls !== ls) { m = { ls, t: new Map(), h: new Map() }; routeMemo.set(seeds, m); }
+  if (!m || m.ls !== ls) { lockSeeds(seeds); m = { ls, t: new Map(), h: new Map() }; routeMemo.set(seeds, m); }
   return m;
 }
 export function transitRoutes(s: Seed, seeds: Seed[]): Transit[] {
@@ -2101,7 +2129,7 @@ export function twinSites(seeds: Seed[], now: number) {
       put(m, WORK_KIND[w.work], px || 2, py);
     }
   }
-  siteMemo.set(seeds, { key, map });
+  lockSeeds(seeds); siteMemo.set(seeds, { key, map });
   return map;
 }
 /** Regional twin sites: links indexed by midpoint cell; a tile's entry only comes from links whose midpoint lies within
@@ -2120,7 +2148,7 @@ export function twinSiteGet(ck: number, seeds: Seed[], now: number) {
     midMemo.set(ls, mm);
   }
   const key = cacheTick(now);
-  let slots = twLazy.get(seeds); if (!slots) { slots = []; twLazy.set(seeds, slots); }
+  let slots = twLazy.get(seeds); if (!slots) { lockSeeds(seeds); slots = []; twLazy.set(seeds, slots); }
   let si = slots.findIndex((c) => c.key === key), slot;
   if (si < 0) { slot = { key, now, cells: new Map() }; slots.unshift(slot); if (slots.length > TW_SLOTS) slots.pop(); }
   else { slot = slots[si]!; if (si > 0) { slots.splice(si, 1); slots.unshift(slot); } }

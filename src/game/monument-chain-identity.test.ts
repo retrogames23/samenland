@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { monumentChain, monumentDone, stepsPaid, stepsDone, guildtowerDone, specialDone, effAge, careFoodExtra, lighthouseDone, schuettingDone, operaDone, monumentProgress, withChainMemo, chainMemoCfg, MONUMENT_KEYS, MONUMENT_DEFS } from "./world";
+import { monumentChain, monumentDone, stepsPaid, stepsDone, guildtowerDone, specialDone, effAge, careFoodExtra, lighthouseDone, schuettingDone, operaDone, monumentProgress, withChainMemo, chainMemoCfg, seedGuard, MONUMENT_KEYS, MONUMENT_DEFS } from "./world";
 import { residentTax } from "./resident-tax";
 import { prosperityAt } from "./prosperity";
 import { setRealm, type Realm } from "./time";
@@ -11,7 +11,7 @@ import { SCENARIOS, C0, DAY, H, steps, times, probe, both, town } from "./__ref/
  * on the reference path; all timestamps and tax figures must be exactly equal. The heaviest town (all general
  * monuments at once) runs in Testebene 3: src/game/simulation/monument-chain-identity.test.ts.
  */
-afterEach(() => { chainMemoCfg.on = true; setRealm("europe"); });
+afterEach(() => { chainMemoCfg.on = true; seedGuard.on = true; setRealm("europe"); });
 
 describe("monument chain memo is identical to the plain computation", () => {
   it("the scenarios cover all ten monuments with every step", () => {
@@ -53,7 +53,9 @@ describe("monument chain memo is identical to the plain computation", () => {
     });
   }
 
+  // mutates a cached seed in place on purpose (the memo must still follow), so the dev freeze (world.ts seedGuard) is off here
   it("changed seed data after a cached evaluation: purchases, charter, woodcamp, Herberge, Bauhütte, Freimarkt", () => {
+    seedGuard.on = false;
     const seeds = SCENARIOS[1]!.seeds(), s = seeds[0]!, t = C0 + 320 * DAY;
     const check = () => { const r = both(() => ({ tax: residentTax(s, [...seeds], t), p: probe(seeds, t) })); expect(r.memo).toEqual(r.ref); return r.ref; };
     const before = check();

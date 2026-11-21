@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { specialSites, clearStructureCaches, type Seed } from "./world";
+import { specialSites, clearStructureCaches, seedsKey, soloSeeds, seedGuard, type Seed } from "./world";
 import { householdsOf } from "./households";
 import { rankInput } from "./rank";
 import { economyWorldAt, type EconomyWorld } from "./economy-world";
@@ -20,18 +20,20 @@ const town = (bought: { item: string; day: number }[], roads = true): Seed[] => 
   const nb = (id: string, dx: number): Seed => ({ id, name: id, owner: "nb", x: x + dx, y, hue: 0, realm: "europe", created_at: new Date(c0 - 60 * DAY).toISOString() });
   return [s, nb("nb1", 15), nb("nb2", -15)];
 };
+/** Runs fn with the dev freeze off, so the cache itself (not the guard) must notice an in-place change. */
+const unguarded = (fn: () => void) => { const on = seedGuard.on; seedGuard.on = false; try { fn(); } finally { seedGuard.on = on; } };
 const count = (seeds: Seed[], now: number) => { const h = householdsOf(seeds[0]!, seeds, now); return { homes: h.length, citizens: h.reduce((n, q) => n + q.size, 0) }; };
 
 describe("dwellings never depend on earlier calls (state isolation)", () => {
   setRealm("europe");
-  it("specialSites sees a purchase appended in place exactly like a fresh copy", () => {
+  it("specialSites sees a purchase appended in place exactly like a fresh copy", () => unguarded(() => {
     const s: Seed = { id: "00000000-iso", name: "I", owner: "i", x, y, hue: 0, realm: "europe", user_id: "u", created_at: new Date(c0).toISOString(), bought: [{ item: "hunter", at: c0 + DAY }] };
     expect(specialSites(s).size).toBe(1);
     s.bought!.push({ item: "school", at: c0 + 2 * DAY });
     const fresh = specialSites({ ...s, bought: [...s.bought!] });
     expect(fresh.size).toBe(2);
     expect(specialSites(s)).toEqual(fresh);
-  });
+  }));
   const days = 60, now = c0 + days * DAY;
   const r = simulate({ profile: { ...PROFILES.regelmaessig, repeat: true, ausbau: true }, charter: "farm", location: "workshop", days, rankEvery: 10 });
   it("the simulation reports the households a fresh computation gives for its own purchases", () => {
@@ -67,5 +69,62 @@ describe("dwellings never depend on earlier calls (state isolation)", () => {
     T.setRealm("europe");
     const seeds = town(r.bought), h = H.householdsOf(seeds[0]!, seeds, now);
     expect({ homes: h.length, citizens: h.reduce((n, q) => n + q.size, 0) }).toEqual(warm);
+  });
+});
+
+// The four in-place gaps found in the PR 15 review. specialSites compares every bought and move row element by element;
+// outside production builds every seed a cache has seen is frozen, so in-place writers fail loudly and copy-on-write works.
+describe("seed inputs are immutable: in-place changes never answer from a stale cache", () => {
+  setRealm("europe");
+  const mk = (): Seed => ({ id: "00000000-gap", name: "G", owner: "g", x, y, hue: 0, realm: "europe", user_id: "u", created_at: new Date(c0).toISOString(),
+    bought: [{ item: "hunter", at: c0 + DAY }, { item: "herbs", at: c0 + 2 * DAY }] });
+  const kinds = (m: Map<number, { kind: string }>) => [...m.values()].map((v) => v.kind).sort();
+  const copy = (s: Seed): Seed => ({ ...s, bought: s.bought!.map((b) => ({ ...b })), ...(s.moves ? { moves: s.moves.map((m) => ({ ...m })) } : {}) });
+  it("the guard is active in tests and in the simulation", () => expect(seedGuard.on).toBe(true));
+  it("gap 1: a middle row replaced in place (same length, same last row)", () => {
+    unguarded(() => {
+      const s = mk(); specialSites(s);
+      s.bought![0] = { item: "school", at: c0 + DAY };
+      expect(kinds(specialSites(s))).toEqual(kinds(specialSites(copy(s))));
+      expect(kinds(specialSites(s))).toContain("school");
+    });
+    const s = mk(); specialSites(s);
+    expect(() => { s.bought![0] = { item: "school", at: c0 + DAY }; }).toThrow(TypeError);
+  });
+  it("gap 2: a field of a bought row (player-chosen spot) changed in place", () => {
+    unguarded(() => {
+      const s = mk(); specialSites(s);
+      s.bought![1]!.x = x + 4; s.bought![1]!.y = y - 3;
+      expect([...specialSites(s).keys()]).toEqual([...specialSites(copy(s)).keys()]);
+      expect(specialSites(s).has((y - 3) * 1024 + x + 4)).toBe(true);
+    });
+    const s = mk(); specialSites(s);
+    expect(() => { s.bought![1]!.x = x + 4; }).toThrow(TypeError);
+  });
+  it("gap 3: a relocation pushed into moves in place", () => {
+    const tile = (y + 3) * 1024 + x + 4;
+    unguarded(() => {
+      const s = { ...mk(), moves: [] as NonNullable<Seed["moves"]> }; specialSites(s);
+      s.moves.push({ item: "hunter", x: x + 4, y: y + 3, at: c0 + 5 * DAY });
+      expect(specialSites(s).has(tile)).toBe(true);
+      expect(specialSites(s)).toEqual(specialSites(copy(s)));
+    });
+    const s = { ...mk(), moves: [] as NonNullable<Seed["moves"]> }; specialSites(s);
+    expect(() => s.moves.push({ item: "hunter", x: x + 4, y: y + 3, at: c0 + 5 * DAY })).toThrow(TypeError);
+  });
+  it("gap 4: seedsKey, soloSeeds and pick memos on a reused array: in-place writes throw, copy-on-write gets new keys", () => {
+    const s = mk(), arr = [s], k1 = seedsKey(arr), solo = soloSeeds(s), ks = seedsKey(solo);
+    expect(() => { s.bought = [...s.bought!, { item: "school", at: c0 + 3 * DAY }]; }).toThrow(TypeError);
+    expect(() => s.bought!.push({ item: "school", at: c0 + 3 * DAY })).toThrow(TypeError);
+    expect(() => arr.push(mk())).toThrow(TypeError);
+    expect(() => { arr[0] = mk(); }).toThrow(TypeError);
+    expect(() => solo.push(mk())).toThrow(TypeError);
+    expect(seedsKey(arr)).toBe(k1);
+    const s2 = { ...s, bought: [...s.bought!, { item: "school", at: c0 + 3 * DAY }] };
+    expect(seedsKey([s2])).not.toBe(k1);
+    expect(seedsKey([s2])).toBe(seedsKey([copy(s2)]));
+    expect(soloSeeds(s2)).not.toBe(solo);
+    expect(seedsKey(soloSeeds(s2))).not.toBe(ks);
+    expect(kinds(specialSites(s2))).toContain("school");
   });
 });
