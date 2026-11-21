@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { specialSites, clearStructureCaches, type Seed } from "./world";
-import { householdsOf } from "./households";
+import { householdsOf, housingSince } from "./households";
 import { rankInput } from "./rank";
 import { economyWorldAt, type EconomyWorld } from "./economy-world";
 import { setRealm } from "./time";
@@ -21,9 +21,9 @@ const town = (bought: { item: string; day: number }[], roads = true): Seed[] => 
   const nb = (id: string, dx: number): Seed => ({ id, name: id, owner: "nb", x: x + dx, y, hue: 0, realm: "europe", created_at: new Date(c0 - 60 * DAY).toISOString() });
   return [s, nb("nb1", 15), nb("nb2", -15)];
 };
-// The simulation founds its village after the Bauhütte cutover (engine.ts); identical inputs therefore include that cutover.
-const SINCE = bauhuetteGrowth.since, asSim = () => { bauhuetteGrowth.since = c0; };
-afterAll(() => { bauhuetteGrowth.since = SINCE; });
+// The simulation founds its village after the Bauhütte and housing cutovers (engine.ts); identical inputs therefore include that cutover.
+const SINCE = bauhuetteGrowth.since, HOUSING = housingSince.at, asSim = () => { bauhuetteGrowth.since = c0; housingSince.at = c0; };
+afterAll(() => { bauhuetteGrowth.since = SINCE; housingSince.at = HOUSING; });
 const count = (seeds: Seed[], now: number) => { const h = householdsOf(seeds[0]!, seeds, now); return { homes: h.length, citizens: h.reduce((n, q) => n + q.size, 0) }; };
 
 describe("dwellings never depend on earlier calls (state isolation)", () => {
@@ -56,10 +56,11 @@ describe("dwellings never depend on earlier calls (state isolation)", () => {
     clearStructureCaches();
     expect(count(town(r.bought), now)).toEqual(first);
   });
-  it("a simulation leaves the Bauhütte cutover as it found it", () => {
-    const before = bauhuetteGrowth.since;
+  it("a simulation leaves the Bauhütte and housing cutovers as it found them", () => {
+    const before = bauhuetteGrowth.since, housing = housingSince.at;
     simulate({ profile: { ...PROFILES.sparsam, repeat: true, ausbau: true }, charter: "farm", location: "workshop", days: 5, rankEvery: 10 });
     expect(bauhuetteGrowth.since).toBe(before);
+    expect(housingSince.at).toBe(housing);
   });
   it("the server path (economyWorldAt) counts the same dwellings and rank as directly built seeds", () => {
     const iso = (t: number) => new Date(t).toISOString();
@@ -76,7 +77,7 @@ describe("dwellings never depend on earlier calls (state isolation)", () => {
     const warm = count(town(r.bought), now);
     vi.resetModules();
     const T = await import("./time"), H = await import("./households"), V = await import("./vorhaben");
-    T.setRealm("europe"); V.bauhuetteGrowth.since = c0;
+    T.setRealm("europe"); V.bauhuetteGrowth.since = c0; H.housingSince.at = c0;
     const seeds = town(r.bought), h = H.householdsOf(seeds[0]!, seeds, now);
     expect({ homes: h.length, citizens: h.reduce((n, q) => n + q.size, 0) }).toEqual(warm);
   });

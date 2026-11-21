@@ -83,10 +83,10 @@ export function attemptPurchases(ctx: PurchaseCtx): number {
 }
 
 /** Runs one scenario. The cutover it sets for its own village is restored afterwards, so a simulation never changes
- *  what later computations in the same process see (results must not depend on an earlier run). */
+ *  what later computations in the same process see (Bauhütte and housing cutover) (results must not depend on an earlier run). */
 export function simulate(cfg: SimConfig): SimResult {
-  const since = bauhuetteGrowth.since;
-  try { return simulateRun(cfg); } finally { bauhuetteGrowth.since = since; }
+  const since = bauhuetteGrowth.since, housing = housingSince.at;
+  try { return simulateRun(cfg); } finally { bauhuetteGrowth.since = since; housingSince.at = housing; }
 }
 function simulateRun(cfg: SimConfig): SimResult {
   setRealm("europe");
