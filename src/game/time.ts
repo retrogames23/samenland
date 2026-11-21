@@ -45,7 +45,11 @@ let cache = { min: -1, base: 0 };
  *  clock does not advance minute by minute across that hour (DST switch or any other offset change inside it). */
 let hours = new Map<number, number>();
 const IRREGULAR = -1, HOURS_MAX = 200000, SAFE_MS = 8.64e15 - 864e5;
+let realmSet = 0;
+/** Counts setRealm calls (any realm change of biome, lab mode or time zone); memo scopes compare it. */
+export const realmGen = () => realmSet;
 export function setRealm(r: Realm) {
+  realmSet++;
   lab = r === "lab";
   setBiome(r);
   if (REALM_TZ[r] === tz) return;

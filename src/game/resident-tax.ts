@@ -1,6 +1,6 @@
 import { householdsOf, type Household } from "./households";
 import { estateAt, estateOf, sharesAt, ESTATE_TAX, sickLoss } from "./prosperity";
-import type { Seed } from "./world";
+import { withChainMemo, type Seed } from "./world";
 import { sickChance } from "./sickness";
 
 /** Legacy assessment by plain wealth shares (kept for callers/tests that pass wealth only). */
@@ -18,7 +18,11 @@ export function taxSharesAt(s: Seed, seeds: Seed[], at: number, knownCitizens?: 
 }
 
 /** Tax follows occupied families. Visitors and the mayor's separately spawned avatar are not taxpayers. */
+/** Runs inside one monument-chain memo scope (world.ts withChainMemo): pure, so every chain is computed once per call. */
 export function residentTax(s: Seed, seeds: Seed[], at: number) {
+  return withChainMemo(() => residentTaxRaw(s, seeds, at));
+}
+function residentTaxRaw(s: Seed, seeds: Seed[], at: number) {
   const homes = householdsOf(s, seeds, at);
   const population = homes.reduce((n, h) => n + h.size, 0);
   const assessed = assessHomesWith(homes, taxSharesAt(s, seeds, at, population).shares);
