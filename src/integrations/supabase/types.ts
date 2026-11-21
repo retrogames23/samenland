@@ -1538,6 +1538,13 @@ export type Database = {
         Args: { _at: string; _seed: string }
         Returns: number
       }
+      village_last_seen: {
+        Args: { _seeds: string[] }
+        Returns: {
+          days_ago: number
+          seed_id: string
+        }[]
+      }
       village_raid_list: {
         Args: { _from: string; _seed: string; _to: string }
         Returns: {

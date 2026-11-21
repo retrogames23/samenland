@@ -925,6 +925,13 @@
       "when": 1795291200004,
       "tag": "0131_village_last_seen",
       "breakpoints": true
+    },
+    {
+      "idx": 132,
+      "version": "7",
+      "when": 1795291200005,
+      "tag": "0132_village_last_seen_apply",
+      "breakpoints": true
     }
   ]
 }
