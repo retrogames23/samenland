@@ -12,9 +12,9 @@ const de: T = {
   },
   choices: {
     "werber:fodder": "Den Hafer geben, damit sie weiterziehen", "werber:quarter": "Die Knechte über den Winter einquartieren",
-    "weser:carts": "Zwei Gespanne für den Tross stellen", "weser:ransom": "Die Spanndienste mit Geld ablösen",
-    "sund:buy": "Salz und Eisen für das Dorf kaufen", "sund:shelter": "Kaufmann und Schiffer beherbergen", "sund:pass": "Abwarten, bis die Preise fallen",
-    "ablass:give": "Eine Gabe aus der Gemeindekasse spenden", "ablass:sermon": "Nur die Predigt anhören",
+    "weser:carts": "Zwei Gespanne für den Tross stellen", "weser:ransom": "Sich von den Spanndiensten freistellen lassen",
+    "sund:buy": "Salz und Eisen gegen Korn eintauschen", "sund:shelter": "Kaufmann und Schiffer beherbergen", "sund:pass": "Abwarten, bis die Preise fallen",
+    "ablass:give": "Eine Gabe im Namen der Gemeinde spenden", "ablass:sermon": "Nur die Predigt anhören",
   },
 };
 const en: T = {
@@ -26,9 +26,9 @@ const en: T = {
   },
   choices: {
     "werber:fodder": "Give the oats, so they ride on", "werber:quarter": "Quarter the men over winter",
-    "weser:carts": "Send two teams for the baggage train", "weser:ransom": "Buy off the carting duty with coin",
-    "sund:buy": "Buy salt and iron for the village", "sund:shelter": "Lodge the merchant and his skipper", "sund:pass": "Wait until prices fall",
-    "ablass:give": "Give an offering from the village chest", "ablass:sermon": "Only hear the sermon",
+    "weser:carts": "Send two teams for the baggage train", "weser:ransom": "Get the village released from the carting duty",
+    "sund:buy": "Trade grain for salt and iron", "sund:shelter": "Lodge the merchant and his skipper", "sund:pass": "Wait until prices fall",
+    "ablass:give": "Give an offering on behalf of the village", "ablass:sermon": "Only hear the sermon",
   },
 };
 const fr: T = {
@@ -40,9 +40,9 @@ const fr: T = {
   },
   choices: {
     "werber:fodder": "Donner l'avoine pour qu'ils repartent", "werber:quarter": "Loger les hommes pour l'hiver",
-    "weser:carts": "Fournir deux attelages au convoi", "weser:ransom": "Racheter la corvée à prix d'argent",
-    "sund:buy": "Acheter sel et fer pour le village", "sund:shelter": "Héberger le marchand et son patron", "sund:pass": "Attendre que les prix baissent",
-    "ablass:give": "Donner une offrande de la caisse commune", "ablass:sermon": "Écouter seulement le prêche",
+    "weser:carts": "Fournir deux attelages au convoi", "weser:ransom": "Faire exempter le village de la corvée",
+    "sund:buy": "Troquer du grain contre sel et fer", "sund:shelter": "Héberger le marchand et son patron", "sund:pass": "Attendre que les prix baissent",
+    "ablass:give": "Donner une offrande au nom du village", "ablass:sermon": "Écouter seulement le prêche",
   },
 };
 const es: T = {
@@ -54,9 +54,9 @@ const es: T = {
   },
   choices: {
     "werber:fodder": "Dar la avena para que sigan su camino", "werber:quarter": "Alojar a los hombres durante el invierno",
-    "weser:carts": "Aportar dos yuntas a la impedimenta", "weser:ransom": "Redimir el acarreo con dinero",
-    "sund:buy": "Comprar sal y hierro para la aldea", "sund:shelter": "Hospedar al mercader y a su patrón", "sund:pass": "Esperar a que bajen los precios",
-    "ablass:give": "Dar una ofrenda de la caja común", "ablass:sermon": "Solo escuchar el sermón",
+    "weser:carts": "Aportar dos yuntas a la impedimenta", "weser:ransom": "Lograr que eximan a la aldea del acarreo",
+    "sund:buy": "Trocar grano por sal y hierro", "sund:shelter": "Hospedar al mercader y a su patrón", "sund:pass": "Esperar a que bajen los precios",
+    "ablass:give": "Dar una ofrenda en nombre de la aldea", "ablass:sermon": "Solo escuchar el sermón",
   },
 };
 const ar: T = {
@@ -68,9 +68,9 @@ const ar: T = {
   },
   choices: {
     "werber:fodder": "إعطاء الشعير ليمضوا", "werber:quarter": "إيواء الرجلين طوال الشتاء",
-    "weser:carts": "تقديم عربتين للقافلة", "weser:ransom": "افتداء خدمة النقل بالمال",
-    "sund:buy": "شراء الملح والحديد للقرية", "sund:shelter": "استضافة التاجر وربّانه", "sund:pass": "الانتظار حتى تنخفض الأسعار",
-    "ablass:give": "تقديم هبة من صندوق القرية", "ablass:sermon": "الاستماع إلى الموعظة فقط",
+    "weser:carts": "تقديم عربتين للقافلة", "weser:ransom": "استعفاء القرية من خدمة النقل",
+    "sund:buy": "مقايضة الحبوب بالملح والحديد", "sund:shelter": "استضافة التاجر وربّانه", "sund:pass": "الانتظار حتى تنخفض الأسعار",
+    "ablass:give": "تقديم هبة باسم القرية", "ablass:sermon": "الاستماع إلى الموعظة فقط",
   },
 };
 const hi: T = {
@@ -82,9 +82,9 @@ const hi: T = {
   },
   choices: {
     "werber:fodder": "जई दे दो, ताकि वे आगे बढ़ें", "werber:quarter": "सिपाहियों को सर्दी भर ठहराओ",
-    "weser:carts": "रसद के लिए दो गाड़ियाँ दो", "weser:ransom": "ढुलाई की सेवा पैसे देकर छुड़ाओ",
-    "sund:buy": "गाँव के लिए नमक और लोहा ख़रीदो", "sund:shelter": "व्यापारी और नाविक को ठहराओ", "sund:pass": "दाम गिरने तक रुको",
-    "ablass:give": "गाँव की तिजोरी से दान दो", "ablass:sermon": "केवल उपदेश सुनो",
+    "weser:carts": "रसद के लिए दो गाड़ियाँ दो", "weser:ransom": "गाँव को ढुलाई की सेवा से छूट दिलाओ",
+    "sund:buy": "अनाज देकर नमक और लोहा लो", "sund:shelter": "व्यापारी और नाविक को ठहराओ", "sund:pass": "दाम गिरने तक रुको",
+    "ablass:give": "गाँव की ओर से दान दो", "ablass:sermon": "केवल उपदेश सुनो",
   },
 };
 const zh: T = {
@@ -96,9 +96,9 @@ const zh: T = {
   },
   choices: {
     "werber:fodder": "给燕麦，让他们继续上路", "werber:quarter": "让兵丁在村里过冬",
-    "weser:carts": "为辎重队出两副车马", "weser:ransom": "用钱折抵运输劳役",
-    "sund:buy": "为村子买下盐和铁", "sund:shelter": "收留商人和船长", "sund:pass": "等价格回落",
-    "ablass:give": "从村库中捐一份献金", "ablass:sermon": "只听讲道",
+    "weser:carts": "为辎重队出两副车马", "weser:ransom": "设法让村子免除运输劳役",
+    "sund:buy": "用粮食换盐和铁", "sund:shelter": "收留商人和船长", "sund:pass": "等价格回落",
+    "ablass:give": "以村子的名义捐献", "ablass:sermon": "只听讲道",
   },
 };
 const ja: T = {
@@ -110,9 +110,9 @@ const ja: T = {
   },
   choices: {
     "werber:fodder": "燕麦を渡して立ち去ってもらう", "werber:quarter": "兵を冬の間泊める",
-    "weser:carts": "輜重に二組の荷車を出す", "weser:ransom": "運送の務めを金で済ませる",
-    "sund:buy": "村のために塩と鉄を買う", "sund:shelter": "商人と船頭を泊める", "sund:pass": "値が下がるまで待つ",
-    "ablass:give": "村の金庫から献金する", "ablass:sermon": "説教だけ聞く",
+    "weser:carts": "輜重に二組の荷車を出す", "weser:ransom": "村を運送の務めから免じてもらう",
+    "sund:buy": "穀物と塩・鉄を交換する", "sund:shelter": "商人と船頭を泊める", "sund:pass": "値が下がるまで待つ",
+    "ablass:give": "村として献納する", "ablass:sermon": "説教だけ聞く",
   },
 };
 export const HISTORY_TEXT: Record<Lang, T> = { de, en, fr, es, ar, hi, zh, ja };

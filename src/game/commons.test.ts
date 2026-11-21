@@ -20,9 +20,9 @@ describe("Allmende questions", () => {
   it("are never drawn as visitors", () => {
     for (const k of ["hutewald", "backtag", "steg"]) expect(EVENT_KEYS).not.toContain(k);
   });
-  it("prices: oven 10, carpenter 40, everything else free", () => {
-    expect(choiceOf("backtag", "bake")?.cost).toBe(10);
-    expect(choiceOf("steg", "carpenter")?.cost).toBe(40);
+  it("all Allmende answers are free (scenes only, no real effect)", () => {
+    expect(choiceOf("backtag", "bake")?.cost).toBe(0);
+    expect(choiceOf("steg", "carpenter")?.cost).toBe(0);
     expect(choiceOf("steg", "together")?.cost).toBe(0);
     expect(choiceOf("hutewald", "mast")?.cost).toBe(0);
   });
@@ -65,10 +65,10 @@ describe("Allmende questions", () => {
 
 describe("Village life around 1500", () => {
   it("prices mirror the database guard", () => {
-    expect(choiceOf("zaun", "holz")?.cost).toBe(10);
-    expect(choiceOf("flur", "hilfe")?.cost).toBe(8);
-    expect(choiceOf("scharwerk", "dingen")?.cost).toBe(25);
-    expect(choiceOf("pfingsten", "preis")?.cost).toBe(12);
+    expect(choiceOf("zaun", "holz")?.cost).toBe(0);
+    expect(choiceOf("flur", "hilfe")?.cost).toBe(0);
+    expect(choiceOf("scharwerk", "dingen")?.cost).toBe(0);
+    expect(choiceOf("pfingsten", "preis")?.cost).toBe(0);
     for (const [e, c] of [["zaun", "buss"], ["zaun", "pfand"], ["flur", "schau"], ["plaggen", "mass"], ["plaggen", "laub"], ["schelte", "widerruf"], ["schelte", "spende"], ["scharwerk", "aufgebot"], ["pfingsten", "reigen"], ["lichtstube", "reigen"], ["lichtstube", "andacht"]] as const) expect(choiceOf(e, c)?.cost).toBe(0);
   });
   it("are never drawn as visitors", () => {
@@ -96,11 +96,11 @@ describe("Village life around 1500", () => {
     expect(v.other!.home).not.toEqual(v.asker!.home);
   });
   it("second set: prices mirror the database guard", () => {
-    expect(choiceOf("besthaupt", "loesen")?.cost).toBe(20);
-    expect(choiceOf("funken", "lehm")?.cost).toBe(8);
-    expect(choiceOf("rotte", "bier")?.cost).toBe(6);
-    expect(choiceOf("wolfspur", "fallen")?.cost).toBe(10);
-    expect(choiceOf("miete", "korn")?.cost).toBe(10);
+    expect(choiceOf("besthaupt", "loesen")?.cost).toBe(0);
+    expect(choiceOf("funken", "lehm")?.cost).toBe(0);
+    expect(choiceOf("rotte", "bier")?.cost).toBe(0);
+    expect(choiceOf("wolfspur", "fallen")?.cost).toBe(0);
+    expect(choiceOf("miete", "korn")?.cost).toBe(0);
   });
   it("second set keeps its season: wolf tracks in winter, swarms in early summer", () => {
     expect(lifeSeason("wolfspur", Date.parse("2027-01-10T12:00:00Z"))).toBe(true);
@@ -136,9 +136,9 @@ describe("town life (Kleinstadt on)", () => {
     expect(commonsOptions(s, [], 1000, at, 5)).toContain("hansetag");
   });
   it("charges the agreed prices", () => {
-    expect(choiceOf("hansetag", "gefolge")?.cost).toBe(80);
-    expect(choiceOf("kaper", "geleit")?.cost).toBe(60);
-    expect(choiceOf("seuche", "absondern")?.cost).toBe(30);
+    expect(choiceOf("hansetag", "gefolge")?.cost).toBe(0);
+    expect(choiceOf("kaper", "geleit")?.cost).toBe(0);
+    expect(choiceOf("seuche", "absondern")?.cost).toBe(0);
     expect(choiceOf("brot", "busse")?.cost).toBe(-10);
   });
 });

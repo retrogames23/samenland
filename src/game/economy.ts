@@ -6,7 +6,6 @@ import { civicWealth, estateAssessment, sickLoss, sickTaxRate, prosperityAt } fr
 import { householdsOf } from "./households";
 import { residentTax } from "./resident-tax";
 import { questEarned, type QuestClaim } from "./quests";
-import { activeBoons } from "./encounters";
 import { raidLoss, raids, floodFood, ITEM_RANK } from "./disasters";
 import { FOUNTAIN_RANK, isFountain } from "./civic-fountain";
 import { FREIMARKT_RANK, isFreimarkt } from "./freimarkt";
@@ -296,7 +295,8 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
     + Math.min(15, trade * (path === "trade" ? 8 : 5)) + (path === "farm" ? 15 : 0));
   const health = clamp(HEALTH_BASE + (food - 50) * 0.3 + k * ((has("healer") ? 20 : 0) + (has("herbs") ? HERBS_HEALTH : 0) + (has("library") ? 10 : 0))
     + (path === "culture" ? 15 : 0) + (near("healer") ? 15 : 0) + (shield ? 10 : 0));
-  const b = activeBoons(s.decisions ?? [], now);
+  // encounters give no food/health bar values any more (only real growth via boonHours)
+  const b = { food: 0, health: 0 };
   const rb = rankBoons(s, purchases); b.food += rb.food; b.health += rb.health;
   const tb = titleBoons(s, purchases); b.food += tb.food; b.health += tb.health;
   for (const k of MONUMENT_KEYS) {
