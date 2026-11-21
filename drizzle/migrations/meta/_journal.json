@@ -911,6 +911,13 @@
       "when": 1795291200002,
       "tag": "0129_princely_road_fallback_court",
       "breakpoints": true
+    },
+    {
+      "idx": 130,
+      "version": "7",
+      "when": 1795291200003,
+      "tag": "0130_building_moves_hide_owner",
+      "breakpoints": true
     }
   ]
 }
