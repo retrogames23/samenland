@@ -112,6 +112,7 @@ import { setMusic, setTavernMusic } from "@/game/music";
 import { MUSIC } from "@/game/lang/music";
 import { suggestTownName } from "@/game/town-names";
 import { seasonAt } from "@/game/season";
+import { frameDue } from "@/game/frame-rate";
 import { setScene, setSound, unlock, audioRunning, animalCall, hm, tap, bell, jingle, disposeAudio } from "@/game/audio";
 import {
   canPlant,
@@ -1136,7 +1137,16 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       const [x, y] = iso(tx, ty); cam.current = { x, y, zoom }; target.current = { zoom, ax: cv.width / 2, ay: cv.height / 2 }; camFree.current = true;
     };
     let panStep = () => {};
+    // battery: cap the draw cadence (60 fps active, 30 fps at rest, see frame-rate.ts); input wakes the loop at once
+    let lastDraw = -1, lastInput = performance.now();
+    const wake = () => { lastInput = performance.now(); };
+    const WAKE = ["pointerdown", "pointermove", "wheel", "keydown", "touchstart"] as const;
+    for (const e of WAKE) window.addEventListener(e, wake, { capture: true, passive: true });
+    const pace = !(perfCamOn() || isLab());
     const loop = () => {
+      const tn = performance.now();
+      if (pace && !document.hidden && !frameDue(tn, lastDraw, lastInput, Math.abs(target.current.zoom - cam.current.zoom) > 0.0005)) { raf = requestAnimationFrame(loop); return; }
+      lastDraw = tn;
       panStep(); // keyboard pan + fling share the draw frame (one rAF loop)
       const c = cam.current,
         tg = target.current;
@@ -1384,6 +1394,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     window.addEventListener("blur", onBlur);
     return () => {
       cancelAnimationFrame(raf); document.removeEventListener("visibilitychange", onHide);
+      for (const e of WAKE) window.removeEventListener(e, wake, { capture: true });
       window.removeEventListener("resize", resize);
       ro?.disconnect();
       window.removeEventListener("keydown", onKeyDown);
