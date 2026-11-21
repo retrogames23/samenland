@@ -145,6 +145,18 @@ export type Town = {
 const SERVICE: ReadonlySet<Kind> = new Set(["bakery", "inn", "mill", "watermill", "church", "chapel", "market", "infirmary", "school"] as Kind[]);
 /** Share of unemployed adults who farm: high in villages, low in cities. */
 export const farmShare = (r: number) => (r < 15 ? 0.8 : r < 30 ? 0.45 : 0.25);
+/** Fire tiles farm animals must keep off: a village campfire (its +1/+1 core tile) and, during a fire feast, the bonfire of a village nearby. */
+export function onFireTile(x: number, y: number, seeds: Seed[], now: number): boolean {
+  for (const s of seeds) if (s.x + 1 === x && s.y + 1 === y) return true;
+  const feast = feastOn(now);
+  if (!feast || FEASTS[feast].scene !== "fire") return false;
+  for (const s of seeds) {
+    if (Math.hypot(x - s.x, y - s.y) > 18) continue;
+    const b = townOf(s, seeds, now).bonfire;
+    if (b && b[0] === x && b[1] === y) return true;
+  }
+  return false;
+}
 const towns = new Map<string, Town>();
 export function townOf(s: Seed, seeds: Seed[], now: number): Town {
   const key = `${s.id}|${cacheTick(now)}|${labEvent("wedding") ?? 0}|${seedsKey(seeds)}`;
@@ -341,22 +353,33 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   const bonfire: Tile | null = feast && FEASTS[feast].scene === "fire" ? nearFree(plays.length ? plays[Math.floor(hash(s.x, s.y, 1411) * plays.length)]! : meet, s.x * 11 + s.y * 3) : null;
   const fireRack: Tile | null = fireRackUp(s, now) ? nearFree(meet, s.x * 13 + s.y * 5 + 7) : null;
   const cows: Tile[] = [];
-  // a cow never stands on ploughland or in a garden: open meadow first, else woodland pasture (Waldweide) at the forest edge
+  // fire tiles animals keep off: the village campfire (stage 0/1 sits on the +1/+1 core tile) and the Easter/St John's bonfire
+  const campfire: Tile = [s.x + 1, s.y + 1];
+  const onFire = (x: number, y: number) => (x === campfire[0] && y === campfire[1]) || (!!bonfire && x === bonfire[0] && y === bonfire[1]);
+  // a cow never stands on ploughland, in a garden or on a fire: open meadow first, else woodland pasture (Waldweide) at the forest edge
   const cowOpen = (x: number, y: number, wood: boolean) => {
-    const t = terrain(x, y); if (!buildable(t) || (t === "forest") !== wood) return false;
+    const t = terrain(x, y); if (!buildable(t) || (t === "forest") !== wood || onFire(x, y)) return false;
     const st = structureAt(x, y, seeds, now); return !st || st.kind === "pasture" || st.kind === "square" || st.kind === "market";
   };
-  const cowSpot = (c: Tile, k: number): Tile => {
+  // null when no free tile is near: the cow is left out rather than placed on a fire
+  const cowSpot = (c: Tile, k: number): Tile | null => {
     for (const wood of [false, true]) for (let i = 0; i < 24; i++) {
       const a = hash(k, i, 1401) * Math.PI * 2, d = 1 + hash(k, i, 1402) * (wood ? 3 : 2.2);
       const x = Math.round(c[0] + Math.cos(a) * d), y = Math.round(c[1] + Math.sin(a) * d);
       if (cowOpen(x, y, wood)) return [x, y];
     }
-    return c;
+    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+      const x = c[0] + dx, y = c[1] + dy;
+      if (cowOpen(x, y, false) || cowOpen(x, y, true)) return [x, y];
+    }
+    return null;
   };
   for (let i = 0, n = cowsOf(decs, now); i < n && i < 3; i++) {
     const pas = byKind.get("pasture") ?? [];
-    cows.push(cowSpot(pas.length ? pas[i % pas.length]! : meet, s.x * 13 + s.y + i * 101));
+    // no pasture yet: start off the fire, toward the village edge
+    const base: Tile = pas.length ? pas[i % pas.length]! : onFire(meet[0], meet[1]) ? [s.x + 1, s.y - 2] : meet;
+    const spot = cowSpot(base, s.x * 13 + s.y + i * 101);
+    if (spot) cows.push(spot);
   }
   // raising the maypole / maypole games: half the village gathers on the square for an hour
   const mp = decs.filter((d) => d.event === "maypole" && now >= d.at && now - d.at < 2 * 3600e3).pop();
