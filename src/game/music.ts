@@ -74,8 +74,10 @@ function play(m: Exclude<Mood, null>) {
   const list = PLAYLISTS[m];
   if (!el) { el = new Audio(); el.preload = "auto"; el.addEventListener("ended", () => { if (!mood) return; el!.src = nextSong(mood, el!.src); if (active) void el!.play().catch(() => {}); }); }
   deck = shuffled(list); idx = 0; el.src = nextSong(m); el.loop = list.length === 1; el.volume = 0;
-  void el.play().then(() => { if (mood === m && active) ramp(VOL); else hardStop(); }).catch(() => {});
+  void el.play().then(() => { if (mood === m && active) ramp(VOL); else hardStop(); }).catch(blocked);
 }
+/** A refused start (autoplay) is retried on the next gesture or clock tick; logged in development only. */
+function blocked(e: unknown) { if (import.meta.env.DEV) console.warn("music: start blocked", e); }
 function hardStop() {
   clearInterval(fade);
   if (el) { el.pause(); el.volume = 0; }
@@ -85,7 +87,7 @@ function sync() {
   // Off: pause but keep mood + src so switching back on resumes at the same second.
   if (!want) { hardStop(); return; }
   if (want === mood && el?.src) {
-    if (el.paused) { el.volume = 0; const m = want; void el.play().then(() => { if (mood === m && active) ramp(VOL); else hardStop(); }).catch(() => {}); }
+    if (el.paused) { el.volume = 0; const m = want; void el.play().then(() => { if (mood === m && active) ramp(VOL); else hardStop(); }).catch(blocked); }
     return;
   }
   mood = want;
