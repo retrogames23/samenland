@@ -830,9 +830,9 @@ export function kinOf(p: Person, t: Town) {
 /** Imported trade good → what it looks like when carried, which buildings take it in. */
 const IMPORT_TO: Record<TradeGood, [Good, Kind[], Dest]> = {
   grain: ["grain", ["mill", "watermill", "granary"], "mill"], wood: ["log", ["sawmill", "warehouse"], "sawmill"], timber: ["planks", [], "site"],
-  ore: ["stone", ["smithy", "steamworks"], "store"], stone: ["stone", [], "site"], fish: ["bundle", ["inn", "market"], "inn"], salt: ["flour", ["inn", "bakery"], "inn"],
-  wool: ["bundle", ["manufactory", "workshop"], "store"], hides: ["bundle", ["workshop", "market"], "store"], cloth: ["bundle", ["market", "markethall"], "market"],
-  ironware: ["bundle", ["market", "warehouse"], "market"], beer: ["bread", ["inn"], "inn"],
+  ore: ["stone", ["smithy", "steamworks"], "store"], stone: ["stone", [], "site"], fish: ["bundle", ["inn", "market", "markethall"], "inn"], salt: ["flour", ["inn", "bakery"], "inn"],
+  wool: ["bundle", ["manufactory", "workshop"], "store"], hides: ["bundle", ["workshop", "market", "markethall"], "store"], cloth: ["bundle", ["market", "markethall"], "market"],
+  ironware: ["bundle", ["market", "markethall", "warehouse"], "market"], beer: ["bread", ["inn"], "inn"],
 };
 /** Deterministic supply chains: who carries which good from where to where during work hours. */
 function assignHauls(people: Person[], byKind: Map<Kind, Tile[]>, sites: Tile[], front: (t: Tile) => Tile | null, well: Tile, imports: TradeGood[] = []) {
@@ -840,6 +840,7 @@ function assignHauls(people: Person[], byKind: Map<Kind, Tile[]>, sites: Tile[],
   const nearest = (from: Tile, list: Tile[]) => list.reduce<Tile | null>((b, c) => (!b || d(from, c) < d(from, b) ? c : b), null);
   const kinds = (...k: Kind[]) => k.flatMap((x) => byKind.get(x) ?? []);
   const siteFront = (from: Tile) => { const st = nearest(from, sites); return st ? (front(st) ?? st) : null; };
+  const isHall = (t: Tile | null) => !!t && (byKind.get("markethall") ?? []).some((x) => x[0] === t[0] && x[1] === t[1]);
   const used = new Set<string>();
   for (const p of people) {
     if (!p.work) continue;
@@ -851,9 +852,9 @@ function assignHauls(people: Person[], byKind: Map<Kind, Tile[]>, sites: Tile[],
     const at = (k: Kind) => (byKind.get(k) ?? []).some((x) => x[0] === w[0] && x[1] === w[1]);
     // way buildings send their own goods into town: grain sacks, smoked fish, ironware, salt
     if (p.job === "carter" && at("bigstore")) go(nearest(w, kinds("bakery", "mill", "inn")), true, "grain", "mill");
-    else if (p.job === "fisher" && at("smokehouse")) go(nearest(w, kinds("inn", "market")), true, "bundle", "inn");
-    else if (p.job === "smith" && at("hammerworks")) { const st = siteFront(w), mk = nearest(w, kinds("market", "warehouse")); if (mk) go(mk, true, "bundle", "market"); else if (st) go(st, false, "bundle", "site"); }
-    else if (p.job === "merchant" && at("saltquay")) go(nearest(w, kinds("bakery", "inn", "market")), true, "flour", "inn");
+    else if (p.job === "fisher" && at("smokehouse")) { const to = nearest(w, kinds("inn", "market", "markethall")); go(to, true, "bundle", isHall(to) ? "market" : "inn"); }
+    else if (p.job === "smith" && at("hammerworks")) { const st = siteFront(w), mk = nearest(w, kinds("market", "markethall", "warehouse")); if (mk) go(mk, true, "bundle", "market"); else if (st) go(st, false, "bundle", "site"); }
+    else if (p.job === "merchant" && at("saltquay")) { const to = nearest(w, kinds("bakery", "inn", "market", "markethall")); go(to, true, "flour", isHall(to) ? "market" : "inn"); }
     else if (p.job === "woodcutter") {
       const mill = nearest(w, kinds("sawmill"));
       if (mill) go(mill, true, "log", "sawmill"); else { const st = siteFront(w); go(st ?? well, false, "log", st ? "site" : "store"); }
@@ -861,7 +862,7 @@ function assignHauls(people: Person[], byKind: Map<Kind, Tile[]>, sites: Tile[],
       const st = siteFront(w); go(st ?? well, false, "stone", st ? "site" : "store");
     } else if (p.job === "sawyer" && !used.has(`saw${w}`)) {
       used.add(`saw${w}`);
-      const st = siteFront(w), store = nearest(w, kinds("warehouse", "market"));
+      const st = siteFront(w), store = nearest(w, kinds("warehouse", "market", "markethall"));
       if (st) go(st, false, "planks", "site"); else if (store) go(store, true, "planks", "store");
     } else if (p.job === "farmer" && h < 0.5) {
       const m = nearest(w, kinds("mill", "watermill")); go(m, true, "grain", "mill", false);
@@ -869,8 +870,8 @@ function assignHauls(people: Person[], byKind: Map<Kind, Tile[]>, sites: Tile[],
       used.add(`mil${w}`); go(nearest(w, kinds("bakery")), true, "flour", "bakery");
     } else if (p.job === "baker" && !used.has(`bak${w}`)) {
       used.add(`bak${w}`);
-      const inn = nearest(w, kinds("inn")), mk = nearest(w, kinds("market"));
-      if (inn) go(inn, true, "bread", "inn"); else if (mk) go(mk, false, "bread", "market");
+      const inn = nearest(w, kinds("inn")), mk = nearest(w, kinds("market", "markethall"));
+      if (inn) go(inn, true, "bread", "inn"); else if (mk) go(mk, isHall(mk), "bread", "market");
     }
     else if ((p.job === "carter" || p.job === "merchant") && imports.length && h < 0.7) {
       // unload goods brought in by traders: from market / kontor to the workshop that needs them
