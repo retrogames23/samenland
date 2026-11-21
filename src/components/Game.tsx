@@ -2526,7 +2526,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               {my && (() => {
                 const n = titleOf(my, purchases), blk = titleBlock(my, purchases, myStage), step = TITLE_STEPS[Math.min(n, 2)]!;
                 const why = blk === "age" ? t.office.need.age(t.stages[[3, 4, 5][n] ?? 5] ?? "") : blk === "rank" ? t.office.need.rank(t.rank.ranks[TITLE_RANK[step] - 1] ?? "") : blk === "charter" ? t.office.need.charter : "";
-                const fmt = (b: Partial<Record<string, number>>) => Object.entries(b).map(([k, v]) => `+${v} ${t.office.stat[k] ?? k}`).join(", ");
+                // wealth bonuses only raise civicWealth (dowry, wedding rhythm), never the HUD Wohlstand — say so, without a number
+                const fmt = (b: Partial<Record<string, number>>) => Object.entries(b).map(([k, v]) => (k === "wealth" ? t.office.dowry : `+${v} ${t.office.stat[k] ?? k}`)).join(", ");
                 return (
                   <div className="mt-2 border-t border-brass/40 pt-2">
                     <div className="font-semibold">📜 {t.office.title}</div>

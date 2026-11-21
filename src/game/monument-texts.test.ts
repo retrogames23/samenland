@@ -8,7 +8,7 @@ const lines = (key: string) => files.flatMap((src) => src.split("\n").filter((l)
 const WEALTH = [/\+\d+ Wohlstand/, /\+\d+ prosperity/, /\+\d+ prospérité/, /\+\d+ prosperidad/, /\+\d+ رخاء/, /\+\d+ समृद्धि/, /\+\d+繁荣/, /繁栄\+\d+/];
 
 describe("monument texts", () => {
-  for (const k of ["belfry1", "theater1", "cathedral1", "university1", "exchange1", "guildtower1", "lighthouse1"]) {
+  for (const k of ["belfry1", "theater1", "cathedral1", "university1", "exchange1", "guildtower1", "lighthouse1", "orangery1", "opera1", "harvest1"]) {
     it(`${k}: all eight languages present, no fixed prosperity points`, () => {
       const ls = lines(k);
       expect(ls).toHaveLength(8);
