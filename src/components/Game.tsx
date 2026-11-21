@@ -85,7 +85,7 @@ import { NOTHILFE } from "@/game/lang/nothilfe";
 import { NOTHILFE_PRICE, NOTHILFE_RANK, nothilfeItem } from "@/game/nothilfe";
 import { activeRuins } from "@/game/disasters";
 import { VORHABEN_T } from "@/game/lang/vorhaben";
-import { VORHABEN, VORHABEN_KEYS, vorhabenOf, vorhabenPrice, nextVorhaben, vorhabenReady, lastDayTax } from "@/game/vorhaben";
+import { VORHABEN, VORHABEN_KEYS, vorhabenOf, vorhabenPrice, nextVorhaben, vorhabenReady, lastDayTax, bauhuetteCareHint } from "@/game/vorhaben";
 import { FREIMARKT_PRICE, FREIMARKT_RANK, FREIMARKT_LEN, isFreimarkt, nextFreimarkt, freimarktReady } from "@/game/freimarkt";
 import { AUSBAU_BASES, AUSBAU_STEPS, AUSBAU_PRICE, AUSBAU_RANK, ausbauStatus, isAusbau } from "@/game/ausbau";
 import { AUSBAU } from "@/game/lang/ausbau";
@@ -161,6 +161,7 @@ import {
   FOOT2,
   TRADE_DIST,
   seedsKey,
+  careSoftCap,
 } from "@/game/world";
 const PATH_ICON: Record<string, string> = { trade: "⚖️", craft: "🔨", culture: "📜", farm: "🌾" };
 const CHAR_ICON: Record<TownWay, string> = { grain: "🌾", workshop: "⚒", gateway: "⚓" };
@@ -2743,6 +2744,9 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                         <div className="flex items-center gap-2"><span className="flex-1 font-semibold">{it.title}</span>{!locked && <span className="text-xs text-muted-foreground">{t.taler(price)}</span>}</div>
                         <div className="text-xs text-muted-foreground">{it.intro}</div>
                         <div className="mt-1 text-xs">{it.benefit}</div>
+                        {k === "bauhuette" && !locked && bauhuetteCareHint(effAge(my, seeds, now), careSoftCap(my, now)) && (
+                          <div className="mt-1 rounded border border-border bg-muted/40 p-1.5 text-[11px]">{vt.careHint}</div>
+                        )}
                         <div className="mt-1.5">
                           {locked ? <span className="text-xs text-muted-foreground">🔒 {t.needStage(t.stages[def.rank] ?? "")}</span>
                             : openLeft > 0 ? <span className="text-xs font-semibold text-primary">{vt.open(Math.ceil(openLeft / 3.6e6))}</span>
