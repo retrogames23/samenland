@@ -33,6 +33,7 @@ import { weddingJoy, weddingLive } from "@/game/weddings";
 import { inspectAt, ensembleOver, paintedKind, type Inspect } from "@/game/inspect";
 import { larderOf, storedAt, chainOf, boonsOf, type Ware } from "@/game/goods";
 import { WareIcon } from "@/components/hud/WareIcon";
+import { JoyRing } from "@/components/hud/JoyRing";
 import { Maximize2, Minimize2, Volume2, VolumeX, Hammer, Bell, Signpost as SignIcon, Map as MapIcon, Sprout, Settings, Plus, Minus, Home, Crown, X, LogIn, Footprints } from "lucide-react";
 import { Panel, WoodButton } from "@/components/hud/Panel";
 import { Parchment, WaxSeal, buzz } from "@/components/hud/Parchment";
@@ -3254,6 +3255,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                   );
                 })}
               </button>
+              {my && weddingJoy(my, now) && <JoyRing title={t.fest.joy} text={t.fest.joyText} lang={lang} className="lg:hidden" />}
               <div className="hidden gap-3 lg:flex">
                 {(["food", "health", "wealth"] as const).map((k) => (
                   <div key={k} className="w-24 text-xs" title={k === "food" && larder ? t.goods.food(larder.food, residents) : undefined}>
@@ -3261,7 +3263,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                     <div className="h-1.5 rounded bg-muted"><div className="h-full rounded bg-primary" style={{ width: `${at[k]}%` }} /></div>
                   </div>
                 ))}
-                {my && weddingJoy(my, now) && <span className="self-center text-xs text-primary" title={t.fest.joy}>💍</span>}
+                {my && weddingJoy(my, now) && <JoyRing title={t.fest.joy} text={t.fest.joyText} lang={lang} />}
               </div>
             </>
           ) : !userId ? (
