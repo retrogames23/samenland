@@ -939,6 +939,13 @@
       "when": 1795296572535,
       "tag": "0133_seed_created_now_and_hide_stripe_session",
       "breakpoints": true
+    },
+    {
+      "idx": 134,
+      "version": "7",
+      "when": 1795302545995,
+      "tag": "0134_encounters_free_without_effect_apply",
+      "breakpoints": true
     }
   ]
 }
