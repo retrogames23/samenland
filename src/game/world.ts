@@ -1888,11 +1888,19 @@ export function careMissing(s: Seed, now: number) {
   return { stage: st, food: Math.max(0, need[0] - f), health: Math.max(0, need[1] - hl),
     foodItems: CARE_FOOD.filter((i) => !own.has(i)), healthItems: CARE_HEALTH.filter((i) => !own.has(i)) };
 }
+/** Share of the next era's threshold from which the care ceiling starts to brake growth. */
+export const CARE_SOFT = 0.9;
+/** Growth age from which careCeiling brakes a town's growth now (CARE_SOFT × next era), or null when care allows every era.
+ *  The same value careCeiling uses — exported so the UI can warn without re-deriving the care gate. */
+export function careSoftCap(s: Seed, now: number): number | null {
+  const st = careStage(s, now);
+  return st >= 5 ? null : STAGES[st + 1]!.from * CARE_SOFT;
+}
 /** Soft ceiling: a neglected town levels off just below the next era and resumes as soon as care is bought. */
 function careCeiling(s: Seed, now: number, v: number) {
   const st = careStage(s, now);
   if (st >= 5) return v;
-  const ceil = STAGES[st + 1]!.from, c0 = ceil * 0.9;
+  const ceil = STAGES[st + 1]!.from, c0 = ceil * CARE_SOFT;
   if (v <= c0) return v;
   return c0 + (ceil - c0 - 1) * (1 - Math.exp(-(v - c0) / (ceil * 0.3)));
 }

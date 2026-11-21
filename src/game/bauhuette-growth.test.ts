@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { bauhuetteGrowth, bauhuetteHours } from "./vorhaben";
-import { effAge, effAgeBound, speedParts, GROWTH_PACE, type Seed } from "./world";
+import { bauhuetteGrowth, bauhuetteHours, bauhuetteCareHint, BAUHUETTE_CARE_NEAR } from "./vorhaben";
+import { effAge, effAgeBound, speedParts, careSoftCap, careStage, CARE_SOFT, STAGES, GROWTH_PACE, type Seed } from "./world";
 import { setRealm } from "./time";
 
 const H = 3.6e6, D = 864e5;
@@ -11,6 +11,8 @@ afterEach(() => { bauhuetteGrowth.since = SINCE; bauhuetteGrowth.rate = RATE; })
 describe("Bauhütte growth hours (P0)", () => {
   it("starts at +200 % and has a fixed cutover", () => {
     expect(RATE).toBe(2);
+    // RELEASE BLOCKER: 2026-12-01 is a placeholder, not a decided publish date. Before release, set
+    // bauhuetteGrowth.since to the exact publish moment and change this expectation with it.
     expect(new Date(SINCE).toISOString()).toBe("2026-12-01T00:00:00.000Z");
   });
   it("accrues rate × hours for exactly 48 h after payment, nothing before or after", () => {
@@ -44,7 +46,7 @@ describe("Bauhütte growth in effAge", () => {
   setRealm("europe");
   const c0 = SINCE + 2 * D;
   // Sample towns (no user_id) are never care-gated and connect by themselves, so trade is active here.
-  const town = (bought: Seed["bought"]): Seed => ({ id: "aaaa0000-bh", name: "A", owner: "x", x: 300, y: 420, hue: 0, realm: "europe", created_at: new Date(c0).toISOString(),
+  const town = (bought: NonNullable<Seed["bought"]>): Seed => ({ id: "aaaa0000-bh", name: "A", owner: "x", x: 300, y: 420, hue: 0, realm: "europe", created_at: new Date(c0).toISOString(),
     charter: { path: "farm", at: c0 + D }, blessed: [c0 + 3 * D], bought });
   const nb: Seed = { id: "bbbb0000-bh", name: "B", owner: "y", x: 345, y: 420, hue: 0, realm: "europe", created_at: new Date(c0 - 90 * D).toISOString() };
   const now = c0 + 60 * D;
@@ -62,5 +64,39 @@ describe("Bauhütte growth in effAge", () => {
   });
   it("effAgeBound stays an upper bound with Bauhütte growth", () => {
     for (const t of [c0 + 6 * D, c0 + 11 * D, now]) expect(effAgeBound(hired, [hired, nb], t)).toBeGreaterThanOrEqual(effAge(hired, [hired, nb], t));
+  });
+});
+
+describe("Bauhütte care hint (display only)", () => {
+  setRealm("europe");
+  const t0 = SINCE + 2 * D;
+  const player = (bought: NonNullable<Seed["bought"]> = []): Seed => ({ id: "cccc0000-bh", name: "C", owner: "z", user_id: "u-c", x: 300, y: 420, hue: 0, realm: "europe",
+    created_at: new Date(t0).toISOString(), bought });
+  it("careSoftCap is the point where careCeiling starts to brake: CARE_SOFT × next era, null when care allows every era", () => {
+    const p = player();
+    const st = careStage(p, t0);
+    expect(st).toBeLessThan(5);
+    expect(careSoftCap(p, t0)).toBe(STAGES[st + 1]!.from * CARE_SOFT);
+    const sample: Seed = { ...p, user_id: null };
+    expect(careSoftCap(sample, t0)).toBeNull();
+  });
+  it("a care-gated player town never grows past its next era, and effAge levels off above careSoftCap", () => {
+    const p = player();
+    const cap = careSoftCap(p, t0)!, next = cap / CARE_SOFT;
+    const late = effAge(p, [p], t0 + 900 * D);
+    expect(late).toBeGreaterThan(cap);
+    expect(late).toBeLessThan(next);
+  });
+  it("the hint shows from BAUHUETTE_CARE_NEAR × soft cap on and never without a cap", () => {
+    expect(bauhuetteCareHint(100, null)).toBe(false);
+    expect(bauhuetteCareHint(1e9, null)).toBe(false);
+    expect(bauhuetteCareHint(1000 * BAUHUETTE_CARE_NEAR - 1, 1000)).toBe(false);
+    expect(bauhuetteCareHint(1000 * BAUHUETTE_CARE_NEAR, 1000)).toBe(true);
+    expect(bauhuetteCareHint(1200, 1000)).toBe(true);
+  });
+  it("shows for an unsupplied player town late on, not for a young one", () => {
+    const p = player();
+    expect(bauhuetteCareHint(effAge(p, [p], t0 + 10 * D), careSoftCap(p, t0 + 10 * D))).toBe(false);
+    expect(bauhuetteCareHint(effAge(p, [p], t0 + 900 * D), careSoftCap(p, t0 + 900 * D))).toBe(true);
   });
 });

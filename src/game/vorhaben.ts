@@ -24,8 +24,10 @@ export const BAUHUETTE_SPEED = 1.5;
  * count, so earlier Bauhütten keep exactly their old effect. Windows are merged (overlap never counts twice), and
  * world.ts adds these hours outside every other bonus (trade, blessing, boons, farm, mentor, twins), so nothing
  * amplifies them; only GROWTH_PACE and the care ceiling apply, like to every growth hour.
- * `since` MUST be the publish moment (or later) — set it when publishing. The simulation sets it to the
- * founding of its new village (a player who starts after publication); tests may override it, nothing else.
+ * `since` MUST be the exact publish moment — set it when publishing. RELEASE BLOCKER: 2026-12-01T00:00:00Z is a
+ * placeholder, not a decided date (publication not yet scheduled); never publish with it unchanged. Rows paid before
+ * `since` never gain growth. The simulation sets it to the founding of its new village (a player who starts after
+ * publication); tests may override it, nothing else.
  */
 export const bauhuetteGrowth = { since: Date.parse("2026-12-01T00:00:00Z"), rate: 2 };
 /** Extra growth hours (before GROWTH_PACE) accumulated by `now` from Bauhütte windows paid since bauhuetteGrowth.since. */
@@ -83,3 +85,8 @@ export function bauhuetteDone(s: Pick<Seed, "bought">, at: number, done: number)
   }
   return Math.min(done, workDone(cur, rem));
 }
+/** Display only: share of the care soft cap (world.ts careSoftCap) from which the Bauhütte card warns that missing care
+ *  will brake its growth. Never used by any mechanic. */
+export const BAUHUETTE_CARE_NEAR = 0.9;
+/** True when the town is within reach of (or already at) the growth age where the care gate brakes growth. */
+export const bauhuetteCareHint = (age: number, softCap: number | null) => softCap !== null && age >= softCap * BAUHUETTE_CARE_NEAR;
