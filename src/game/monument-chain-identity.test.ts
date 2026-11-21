@@ -1,9 +1,9 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { monumentChain, monumentDone, stepsPaid, guildtowerDone, specialDone, effAge, withChainMemo, chainMemoCfg, MONUMENT_KEYS, MONUMENT_DEFS } from "./world";
+import { monumentChain, monumentDone, stepsPaid, stepsDone, guildtowerDone, specialDone, effAge, careFoodExtra, lighthouseDone, schuettingDone, operaDone, monumentProgress, withChainMemo, chainMemoCfg, MONUMENT_KEYS, MONUMENT_DEFS } from "./world";
 import { residentTax } from "./resident-tax";
 import { prosperityAt } from "./prosperity";
 import { setRealm, type Realm } from "./time";
-import { SCENARIOS, C0, DAY, H, steps, times, probe, both } from "./__ref/monument-fixtures";
+import { SCENARIOS, C0, DAY, H, steps, times, probe, both, town } from "./__ref/monument-fixtures";
 
 /**
  * Identity of the monument-chain memo (world.ts withChainMemo) with the plain computation (chainMemoCfg.on = false):
@@ -92,5 +92,28 @@ describe("monument chain memo is identical to the plain computation", () => {
     const t = C0 + 380 * DAY;
     const r = both(() => [residentTax(seeds[0]!, [...seeds], t), withChainMemo(() => residentTax(seeds[0]!, [...seeds], t + DAY)), effAge(seeds[0]!, [...seeds], t)]);
     expect(r.memo).toEqual(r.ref);
+  });
+  /* Guard-state cases: chains run against the town alone, so a guard can only change a chain through the sawmill check
+   * (effAge >= SAWMILL_AGE 2400). Without food crafts the care gate keeps effAge below Kleinstadt (2160) until the
+   * monument's own careFoodExtra (harvest step 1, lighthouse step 1) lifts it to stage 3. A memo key without the
+   * guard state (harvestBusy / lightBusy) returns wrong values here (checked by mutation: 4 of 40 and 54 of 60 cases).
+   * exBusy, operaBusy, domBusy and uniBusy cannot change a chain of the town alone (trade is 0, health only moves the
+   * gate above stage 3, whose ceiling lies above the sawmill age); they stay in the key in case those limits change. */
+  it("harvestBusy matters: Erntedankhalle in a town without food crafts, care query before the chain", () => {
+    const s = town("gh1", [500, 340], "farm", [["herbs", 1], ...steps("harvest", 3, 300, 0)])[0]!;
+    const ts = Array.from({ length: 40 }, (_, i) => C0 + 300 * DAY + i * 2 * H);
+    const r = both(() => ts.map((t) => [careFoodExtra(s, t), stepsDone(s, "harvest", t), monumentProgress(s, t, "harvest")]));
+    expect(r.memo).toEqual(r.ref);
+    expect(new Set(r.ref.map((x) => x[1])).size).toBeGreaterThan(1); // steps finish inside the window
+  });
+
+  it("lightBusy matters: Leuchtturm with Schütting or Artushof in a town without food crafts", () => {
+    for (const k of ["exchange", "opera"] as const) for (const le of [0, 1, 2]) {
+      const s = town(`gl-${k}-${le}`, [200, 200], "trade", [["herbs", 1], ["lighthouse1", 300], ["lighthouse2", 300 + le], ["lighthouse3", 300 + le + 0.05],
+        [`${k}1`, 300 + le + 0.15], [`${k}2`, 300 + le + 0.3], [`${k}3`, 300 + le + 0.32], [`${k}4`, 300 + le + 0.34]])[0]!;
+      const ts = Array.from({ length: 30 }, (_, i) => C0 + 300 * DAY + i * 3 * H);
+      const r = both(() => ts.map((t) => [lighthouseDone(s, t), stepsDone(s, k, t), k === "exchange" ? schuettingDone(s, t) : operaDone(s, t), monumentProgress(s, t, k)]));
+      expect(r.memo).toEqual(r.ref);
+    }
   });
 });
