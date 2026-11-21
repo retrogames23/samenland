@@ -1,0 +1,1 @@
+COMMENT ON FUNCTION public.wedding_receipt_diff(uuid) IS 'Shadow check: receipts vs. SQL wedding calendar; zero rows = agreement.';

@@ -1282,6 +1282,44 @@ export type Database = {
           },
         ]
       }
+      wedding_receipts: {
+        Row: {
+          dowry: number
+          is_grand: boolean
+          is_town: boolean
+          occurred_at: string
+          seed_id: string
+          version: number
+          wedding_index: number
+        }
+        Insert: {
+          dowry: number
+          is_grand: boolean
+          is_town: boolean
+          occurred_at: string
+          seed_id: string
+          version?: number
+          wedding_index: number
+        }
+        Update: {
+          dowry?: number
+          is_grand?: boolean
+          is_town?: boolean
+          occurred_at?: string
+          seed_id?: string
+          version?: number
+          wedding_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wedding_receipts_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wonder_finds: {
         Row: {
           created_at: string
@@ -1548,6 +1586,16 @@ export type Database = {
         }[]
       }
       visit_reward: { Args: { _age_hours: number }; Returns: number }
+      wedding_receipt_diff: {
+        Args: { _seed: string }
+        Returns: {
+          idx: number
+          receipt_at: string
+          receipt_dowry: number
+          sql_at: string
+          sql_dowry: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user"
