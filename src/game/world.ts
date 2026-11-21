@@ -497,8 +497,14 @@ export function waterNearby(x: number, y: number): boolean {
   for (let j = -3; j <= 3 && !water; j++) for (let i = -3; i <= 3; i++) if (Math.hypot(i,j) <= 3 && isWater(terrain(x+i,y+j))) { water = true; break; }
   waterNearCache.set(key, water); return water;
 }
+/** birthAt per exact town distance. The key is d itself: a rounded key would hand every later distance in the same
+ *  bucket the value of whichever distance (of any town) was asked first, so houses, households and tax would depend on
+ *  what the process computed before. Bounded; clearing is safe because each value depends on its key only. */
 const birthCache = new Map<number, number>();
-const tileBirth = (d: number) => { const key = Math.round(d * d); let h = birthCache.get(key); if (h === undefined) { h = birthAt(d); birthCache.set(key, h); } return h; };
+export const BIRTH_CACHE_MAX = 1 << 20;
+export const tileBirth = (d: number) => { let h = birthCache.get(d); if (h === undefined) { h = birthAt(d); if (birthCache.size >= BIRTH_CACHE_MAX) birthCache.clear(); birthCache.set(d, h); } return h; };
+/** Test hook: start from an empty tile-birth cache (fresh process). */
+export const resetBirthCache = () => birthCache.clear();
 
 function seedNum(s: Seed) { let h = 0; for (const ch of s.id) h = (h * 31 + ch.charCodeAt(0)) | 0; return h; }
 
