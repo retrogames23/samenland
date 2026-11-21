@@ -13,7 +13,10 @@ export const createSupportCheckout = createServerFn({ method: "POST" })
     if (!Array.isArray(d.rewards) || !d.rewards.every((k) => (REWARD_KEYS as string[]).includes(k)) || !allowedSet(d.priceId as SupportPrice, d.rewards)) throw new Error("Reward not available for this amount");
     if (!/^[0-9a-f-]{36}$/.test(d.seedId)) throw new Error("Invalid village");
     if (d.environment !== "sandbox" && d.environment !== "live") throw new Error("Invalid environment");
-    if (!/^https?:\/\//.test(d.returnUrl) || d.returnUrl.length > 500) throw new Error("Invalid return url");
+    let host = "";
+    try { const u = new URL(d.returnUrl); if (u.protocol === "https:" || u.hostname === "localhost") host = u.hostname; } catch { /* invalid */ }
+    const okHost = host === "samenland.app" || host === "www.samenland.app" || host === "localhost" || host.endsWith(".lovable.app") || host.endsWith(".lovableproject.com");
+    if (!okHost || d.returnUrl.length > 500) throw new Error("Invalid return url");
     return d;
   })
   .handler(async ({ data, context }): Promise<Result> => {

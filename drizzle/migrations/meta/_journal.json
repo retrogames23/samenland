@@ -932,6 +932,13 @@
       "when": 1795291200005,
       "tag": "0132_village_last_seen_apply",
       "breakpoints": true
+    },
+    {
+      "idx": 133,
+      "version": "7",
+      "when": 1795296572535,
+      "tag": "0133_seed_created_now_and_hide_stripe_session",
+      "breakpoints": true
     }
   ]
 }
