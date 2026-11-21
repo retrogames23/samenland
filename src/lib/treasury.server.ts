@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { economyWorldAt, type EconomyWorld } from "@/game/economy-world";
 import { residentTax } from "@/game/resident-tax";
 import type { Seed } from "@/game/world";
+import { weddingReceiptRows } from "@/game/wedding-receipts";
 import type { Realm } from "@/game/time";
 
 const DAY = 86400000;
@@ -85,6 +86,29 @@ export async function bookedDays(id: string, first: number): Promise<{ has(d: nu
   return new Set(all.map(r => r.day));
 }
 
+/** Rows per upsert request; far below the Data API cap. */
+const RECEIPT_CHUNK = 500;
+/**
+ * Freezes the village's wedding calendar (src/game/weddings.ts, the single source of truth) into
+ * wedding_receipts. Idempotent: the (seed_id, wedding_index) key plus ignoreDuplicates means an existing
+ * receipt is never rewritten and parallel settlements cannot double-book. SHADOW STAGE: nothing in the
+ * database reads these rows yet; wedding_receipt_diff() compares them with the SQL calendar.
+ * Returns the number of rows sent (0 when everything was already booked).
+ */
+export async function settleWeddings(seed: Seed, now: number): Promise<number> {
+  const rows = weddingReceiptRows(seed, now);
+  if (!rows.length) return 0;
+  const booked = await supabaseAdmin.from("wedding_receipts").select("wedding_index", { count: "exact", head: true }).eq("seed_id", seed.id);
+  if (booked.error) throw new Error("Wedding receipts read failed");
+  // Indices are gap-free from 0, so as many rows as the calendar has means nothing is missing.
+  if ((booked.count ?? 0) >= rows.length) return 0;
+  for (let i = 0; i < rows.length; i += RECEIPT_CHUNK) {
+    const { error } = await supabaseAdmin.from("wedding_receipts").upsert(rows.slice(i, i + RECEIPT_CHUNK), { onConflict: "seed_id,wedding_index", ignoreDuplicates: true });
+    if (error) throw new Error("Wedding settlement failed");
+  }
+  return rows.length;
+}
+
 export async function calculateTreasury(id: string, realm: string) {
   const now = Date.now();
   const cut = await supabaseAdmin.from("tax_cutover").select("at").eq("singleton", true).maybeSingle();
@@ -119,6 +143,8 @@ export async function calculateTreasury(id: string, realm: string) {
   const currentSeeds = economyWorldAt(input, now), current = currentSeeds.find(s => s.id===id);
   setRealm(realm as Realm);
   const daily = current ? residentTax(current, currentSeeds, now) : null;
+  // Shadow stage: record wedding receipts, but never let this affect the balance or fail the sync.
+  if (current) { try { await settleWeddings(current, now); } catch (e) { console.error("Wedding receipts (shadow) failed", e); } }
   const { data:balance, error:balanceError } = await supabaseAdmin.rpc("village_balance", {_seed:id});
   if (balanceError || balance==null) throw new Error("Balance unavailable");
   const { data:confirmed, error:confirmationError } = await supabaseAdmin.rpc("village_receipt_total", {_seed:id});

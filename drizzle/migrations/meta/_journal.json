@@ -890,6 +890,13 @@
       "when": 1795205650446,
       "tag": "0126_allow_owner_seed_rename_with_cooldown",
       "breakpoints": true
+    },
+    {
+      "idx": 127,
+      "version": "7",
+      "when": 1795291200000,
+      "tag": "0127_wedding_receipts",
+      "breakpoints": true
     }
   ]
 }
