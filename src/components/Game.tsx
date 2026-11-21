@@ -13,7 +13,7 @@ import { AID_TALER, GIFT_TALER, sentToday, thankable, type Gift, type GiftKind }
 import { giftReadKey, mergeGiftReads, parseGiftReads } from "@/game/gift-read";
 /** Accounts that always found their village on Europa I (Altenland), bypassing the overflow to Europa II. */
 const FORCE_EUROPE = new Set(["victoria.halper@gmail.com", "johanna.mellentin@gmail.com"]);
-import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, openRealm, isRealmFull, nextOpenRealm, initTimeSync, syncServerTime, SYNC_EVERY, type Realm } from "@/game/time";
+import { REALMS, REALM_TZ, detectRealm, setRealm, clock, worldHour, isSunday, isLab, labJump, setLabJump, LAB_SPEED, gameDate, workDone, openRealm, isRealmFull, nextOpenRealm, initTimeSync, syncServerTime, wakeSync, SYNC_EVERY, type Realm } from "@/game/time";
 import { getServerTime } from "@/game/time.functions";
 import { useModeCursor } from "@/components/hooks/useModeCursor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -878,7 +878,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     const onVis = () => {
       if (document.visibilityState === "visible") {
         supabase.auth.startAutoRefresh();
-        void syncServerTime(() => getServerTime());
+        void wakeSync(() => getServerTime());
         supabase.auth.getSession().then(({ data }) => { if (data.session) setUserId(data.session.user.id); });
         // decisions made on another device while this tab slept
         if (mapIds.current.length) refreshPop.current();
@@ -886,6 +886,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     };
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("pageshow", onVis);
+    window.addEventListener("focus", onVis);
     (async () => {
       let r = detectRealm();
       let uid: string | null = null;
@@ -1126,6 +1127,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       sub.subscription.unsubscribe();
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("pageshow", onVis);
+      window.removeEventListener("focus", onVis);
     };
   }, []);
 
