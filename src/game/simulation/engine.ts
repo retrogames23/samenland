@@ -19,7 +19,7 @@ import { TWIN_WORKS, type Seed, type CharterPath } from "../world";
 import { LOCATIONS, VISIT_GIFT, WONDER_FIND } from "./profiles";
 import type { Booking, DayRow, Profile, SimConfig, SimResult } from "./types";
 import { AUSBAU_BASES, AUSBAU_STEPS, AUSBAU_PRICE, AUSBAU_RANK } from "../ausbau";
-import { VORHABEN, VORHABEN_KEYS, vorhabenPrice } from "../vorhaben";
+import { VORHABEN, VORHABEN_KEYS, vorhabenPrice, bauhuetteGrowth } from "../vorhaben";
 
 const DAY = 86400000;
 /** Quest index → town rank the quest's milestone needs (assumption: other quest conditions are met by then). */
@@ -86,6 +86,8 @@ export function simulate(cfg: SimConfig): SimResult {
   setRealm("europe");
   const days = cfg.days ?? 730, every = cfg.rankEvery ?? 10, P = cfg.profile;
   const c0 = Date.parse(cfg.start ?? "2026-11-12T00:00:00Z");
+  // ASSUMPTION: the simulated village is founded after the Bauhütte growth went live, so every Bauhütte it pays counts.
+  bauhuetteGrowth.since = c0;
   const [x, y] = LOCATIONS[cfg.location]!.at;
   const way = townCharacter({ x, y }).main;
   const seed: Seed = { id: `00000000-sim-${P.key}-${cfg.charter}-${cfg.location}`, name: "Sim", owner: "sim", x, y, hue: 0, realm: "europe", user_id: "sim",
@@ -146,13 +148,13 @@ export function simulate(cfg: SimConfig): SimResult {
       for (let i = 0; i < Math.min(3 * P.loginEvery, perDay(P.wondersPerWeek)); i++) credit("wonder", WONDER_FIND);
       for (let i = 0; i < perDay(P.visitsPerWeek); i++) credit("visit", VISIT_GIFT);
 
-      const before = bought.length;
       chest = attemptPurchases({ day, rank, chest, profile: P, charter: cfg.charter, way, owned, buy });
       // Gemeindevorhaben (vorhaben.ts) — ASSUMPTION: profiles with repeat=true pay each one as soon as its pause is over
-      // and the reserve allows; Bauhütte only on a day with a fresh build, paving only for finished roads.
+      // and the reserve allows. Since the Bauhütte buys growth, profiles that invest in civic works (civic=true) hire it
+      // whenever the pause is over; thrifty profiles (civic=false) never do.
       if (P.repeat) for (const k of VORHABEN_KEYS) {
         const price = vorhabenPrice(k, rank, lastTax); if (!price || rank < VORHABEN[k].rank) continue;
-        if (k === "bauhuette" && bought.length === before) continue;
+        if (k === "bauhuette" && !P.civic) continue;
         if (now - (repAt[k] ?? -Infinity) < VORHABEN[k].gap) continue;
         if (buy(`${k}${(rep[k] ?? 0) + 1}`, price)) { rep[k] = (rep[k] ?? 0) + 1; repAt[k] = now; }
       }

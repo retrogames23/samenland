@@ -18,6 +18,29 @@ export const VORHABEN: Record<VorhabenKey, { rank: number; prices: readonly numb
 };
 /** Work speed on bought builds while a Bauhütte is hired (+50 %). */
 export const BAUHUETTE_SPEED = 1.5;
+/**
+ * Growth from a hired Bauhütte (P0 "Bauhütte kauft Wachstum"): for BAUHUETTE_LEN after payment the village gains
+ * `rate` extra growth hours per real hour (rate 2 = +200 % of plain base growth). Only rows paid at or after `since`
+ * count, so earlier Bauhütten keep exactly their old effect. Windows are merged (overlap never counts twice), and
+ * world.ts adds these hours outside every other bonus (trade, blessing, boons, farm, mentor, twins), so nothing
+ * amplifies them; only GROWTH_PACE and the care ceiling apply, like to every growth hour.
+ * `since` MUST be the publish moment (or later) — set it when publishing. The simulation sets it to the
+ * founding of its new village (a player who starts after publication); tests may override it, nothing else.
+ */
+export const bauhuetteGrowth = { since: Date.parse("2026-12-01T00:00:00Z"), rate: 2 };
+/** Extra growth hours (before GROWTH_PACE) accumulated by `now` from Bauhütte windows paid since bauhuetteGrowth.since. */
+export function bauhuetteHours(s: Pick<Seed, "bought">, now: number): number {
+  const { since, rate } = bauhuetteGrowth;
+  if (!rate) return 0;
+  let ms = 0, end = -Infinity;
+  for (const a of vorhabenTimes(s, "bauhuette")) {
+    if (a < since || a > now) continue;
+    const from = Math.max(a, end), to = Math.min(now, a + VORHABEN.bauhuette.len);
+    if (to > from) ms += to - from;
+    end = Math.max(end, a + VORHABEN.bauhuette.len);
+  }
+  return (ms / H) * rate;
+}
 export const VORHABEN_KEYS = Object.keys(VORHABEN) as VorhabenKey[];
 const RE = /^(bauhuette)([1-9][0-9]*)$/;
 export const vorhabenOf = (item: string): VorhabenKey | null => (RE.exec(item)?.[1] as VorhabenKey | undefined) ?? null;

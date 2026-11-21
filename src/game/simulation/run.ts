@@ -6,6 +6,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { simulate } from "./engine";
 import { PROFILES, LOCATIONS, BASE_LOCATIONS, PROBE_LOCATIONS } from "./profiles";
 import type { CharterPath } from "../world";
+import { bauhuetteGrowth } from "../vorhaben";
+// Calibration only: BH_RATE overrides the Bauhütte growth rate for this run.
+if (process.env["BH_RATE"] !== undefined) bauhuetteGrowth.rate = +process.env["BH_RATE"];
 const [p = "all", c = "all", l = "base", d = "730"] = process.argv.slice(2);
 const ps = p === "all" ? Object.keys(PROFILES) : p.split(","), cs = c === "all" ? ["farm", "craft", "trade", "culture"] : c.split(",");
 const ls = l === "base" ? BASE_LOCATIONS : l === "probes" ? PROBE_LOCATIONS : l === "all" ? Object.keys(LOCATIONS) : l.split(",");
