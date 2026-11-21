@@ -4,12 +4,15 @@ import type { Seed } from "@/game/world";
 import type { Ware } from "@/game/goods";
 import type { Lang } from "@/game/i18n";
 import { REGISTER } from "@/game/lang/register";
+import { seenText } from "@/game/seen";
 import { WareIcon } from "./WareIcon";
 
 export type RegisterRow = {
   seed: Seed; ready: boolean; rank: string; way: string; wayKey: string;
   citizens: number; homes: number; wares: Ware[];
   link: "road" | "building" | null; rideMin: number | null; dist: number | null; mine: boolean;
+  /** Calendar days since the mayor last visited (null = unknown, hint left out). */
+  seenDays?: number | null;
 };
 const WAY_MARK: Record<string, string> = { grain: "🌾", workshop: "⚒️", gateway: "⚓" };
 
@@ -71,7 +74,7 @@ export function IslandRegister({ lang, island, rows, wayNames, onGo, details }: 
                   <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
                 </button>
               </div>
-              {isOpen && <div className="mt-1 border-t border-border pt-1">{details(s)}</div>}
+              {isOpen && <div className="mt-1 border-t border-border pt-1">{seenText(lang, r.seenDays) && <p className="px-2 pb-1 text-xs text-muted-foreground">{seenText(lang, r.seenDays)}</p>}{details(s)}</div>}
             </li>
           );
         })}
