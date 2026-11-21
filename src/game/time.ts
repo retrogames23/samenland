@@ -153,7 +153,7 @@ let sT = 0, sP = 0;                   // best server estimate anchor
 let last = -Infinity;                 // lastDeliveredClock
 let syncInFlight = false;
 /** Test hook: replace the monotonic source and reset sync state. */
-export function _setPerfSource(f: () => number) { perfNow = f; synced = false; last = -Infinity; rate = 1; syncInFlight = false; }
+export function _setPerfSource(f: () => number) { perfNow = f; synced = false; last = -Infinity; rate = 1; syncInFlight = false; wakeAt = -Infinity; }
 export function initTimeSync(serverTime: number) {
   const p = perfNow();
   tRef = sT = serverTime; pRef = sP = p; rate = 1; synced = true;
@@ -172,9 +172,9 @@ export function getSyncedTime(): number {
   return v;
 }
 /** Apply one measured sample (exported for tests). Returns false when discarded. */
-export function applySync(serverTime: number, pStart: number, pEnd: number): boolean {
+export function applySync(serverTime: number, pStart: number, pEnd: number, rttMax = SYNC_RTT_MAX): boolean {
   const rtt = pEnd - pStart;
-  if (rtt < 0 || rtt > SYNC_RTT_MAX) return false;
+  if (rtt < 0 || rtt > rttMax) return false;
   const tEst = serverTime + rtt / 2;
   if (!synced) { tRef = sT = tEst; pRef = sP = pEnd; rate = 1; synced = true; return true; }
   const cur = getSyncedTime();             // current displayed time at pEnd (≈ now)
@@ -183,15 +183,31 @@ export function applySync(serverTime: number, pStart: number, pEnd: number): boo
   else { tRef = cur; pRef = pEnd; rate = cur - tEst <= HOLD_MAX ? 0 : SLEW_RATE; } // hold or slew, never back
   return true;
 }
+/** A request that never answers (frozen connection after standby) must not block every later sync. */
+export const SYNC_TIMEOUT = 8000;
 /** NTP-lite re-sync against the server; parallel calls are dropped. */
-export async function syncServerTime(fetchTime: () => Promise<{ serverTime: number }>): Promise<boolean> {
+export async function syncServerTime(fetchTime: () => Promise<{ serverTime: number }>, rttMax = SYNC_RTT_MAX): Promise<boolean> {
   if (syncInFlight || lab) return false;
   syncInFlight = true;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const p0 = perfNow();
-    const { serverTime } = await fetchTime();
-    return applySync(serverTime, p0, perfNow());
-  } catch { return false; } finally { syncInFlight = false; }
+    const { serverTime } = await Promise.race([fetchTime(), new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new Error("sync timeout")), SYNC_TIMEOUT); })]);
+    return applySync(serverTime, p0, perfNow(), rttMax);
+  } catch { return false; } finally { clearTimeout(timer); syncInFlight = false; }
+}
+/** Phones stop performance.now() while the page sleeps, so the anchored clock falls behind. On wake the first answer is often
+ * slow (radio and connection come back), which the 800 ms filter would drop and leave the old time standing for the next 10 minutes.
+ * So the wake sync accepts a slower answer once (error ≤ RTT/2, invisible for day and night) and refines with a normal sample shortly after. */
+export const WAKE_RTT_MAX = 4000, WAKE_REFINE_MS = 2500, WAKE_DEDUPE_MS = 1000;
+let wakeAt = -Infinity;
+export async function wakeSync(fetchTime: () => Promise<{ serverTime: number }>): Promise<boolean> {
+  const p = perfNow();
+  if (lab || p - wakeAt < WAKE_DEDUPE_MS) return false;
+  wakeAt = p;
+  const ok = await syncServerTime(fetchTime, WAKE_RTT_MAX);
+  setTimeout(() => { void syncServerTime(fetchTime); }, WAKE_REFINE_MS);
+  return ok;
 }
 /** Bucket for structure/town caches: one game minute, or ~1 real second while time is warped. */
 export const cacheTick = (now: number) => Math.floor(now / Math.max(60000, LAB_SPEED * 1000));
