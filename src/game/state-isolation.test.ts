@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { specialSites, clearStructureCaches, type Seed } from "./world";
 import { householdsOf } from "./households";
 import { rankInput } from "./rank";
 import { economyWorldAt, type EconomyWorld } from "./economy-world";
 import { setRealm } from "./time";
 import { simulate } from "./simulation/engine";
+import { bauhuetteGrowth } from "./vorhaben";
 import { PROFILES, LOCATIONS } from "./simulation/profiles";
 
 // Same inputs and the same moment must give the same dwellings in every context: fresh process, repeated calls,
@@ -20,6 +21,9 @@ const town = (bought: { item: string; day: number }[], roads = true): Seed[] => 
   const nb = (id: string, dx: number): Seed => ({ id, name: id, owner: "nb", x: x + dx, y, hue: 0, realm: "europe", created_at: new Date(c0 - 60 * DAY).toISOString() });
   return [s, nb("nb1", 15), nb("nb2", -15)];
 };
+// The simulation founds its village after the Bauhütte cutover (engine.ts); identical inputs therefore include that cutover.
+const SINCE = bauhuetteGrowth.since, asSim = () => { bauhuetteGrowth.since = c0; };
+afterAll(() => { bauhuetteGrowth.since = SINCE; });
 const count = (seeds: Seed[], now: number) => { const h = householdsOf(seeds[0]!, seeds, now); return { homes: h.length, citizens: h.reduce((n, q) => n + q.size, 0) }; };
 
 describe("dwellings never depend on earlier calls (state isolation)", () => {
@@ -35,6 +39,7 @@ describe("dwellings never depend on earlier calls (state isolation)", () => {
   const days = 60, now = c0 + days * DAY;
   const r = simulate({ profile: { ...PROFILES.regelmaessig, repeat: true, ausbau: true }, charter: "farm", location: "workshop", days, rankEvery: 10 });
   it("the simulation reports the households a fresh computation gives for its own purchases", () => {
+    asSim();
     const after = count(town(r.bought), now);
     clearStructureCaches();
     const cleared = count(town(r.bought), now);
@@ -42,6 +47,7 @@ describe("dwellings never depend on earlier calls (state isolation)", () => {
     expect({ homes: r.households, citizens: r.population }).toEqual(cleared);
   });
   it("repeated calls and other moments or a simulation in between leave the result unchanged", () => {
+    asSim();
     const first = count(town(r.bought), now);
     expect(count(town(r.bought), now)).toEqual(first);
     for (const d of [5, 30, 45, days - 1]) count(town(r.bought), c0 + d * DAY);
@@ -49,6 +55,11 @@ describe("dwellings never depend on earlier calls (state isolation)", () => {
     expect(count(town(r.bought), now)).toEqual(first);
     clearStructureCaches();
     expect(count(town(r.bought), now)).toEqual(first);
+  });
+  it("a simulation leaves the Bauhütte cutover as it found it", () => {
+    const before = bauhuetteGrowth.since;
+    simulate({ profile: { ...PROFILES.sparsam, repeat: true, ausbau: true }, charter: "farm", location: "workshop", days: 5, rankEvery: 10 });
+    expect(bauhuetteGrowth.since).toBe(before);
   });
   it("the server path (economyWorldAt) counts the same dwellings and rank as directly built seeds", () => {
     const iso = (t: number) => new Date(t).toISOString();
@@ -61,10 +72,11 @@ describe("dwellings never depend on earlier calls (state isolation)", () => {
     expect(rankInput(server[0]!, server, now)).toEqual(rankInput(direct[0]!, direct, now));
   });
   it("fresh module state (as in a new process) gives the same result as this process after the simulation", async () => {
+    asSim();
     const warm = count(town(r.bought), now);
     vi.resetModules();
-    const T = await import("./time"), H = await import("./households");
-    T.setRealm("europe");
+    const T = await import("./time"), H = await import("./households"), V = await import("./vorhaben");
+    T.setRealm("europe"); V.bauhuetteGrowth.since = c0;
     const seeds = town(r.bought), h = H.householdsOf(seeds[0]!, seeds, now);
     expect({ homes: h.length, citizens: h.reduce((n, q) => n + q.size, 0) }).toEqual(warm);
   });

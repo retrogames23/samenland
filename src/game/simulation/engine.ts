@@ -82,7 +82,13 @@ export function attemptPurchases(ctx: PurchaseCtx): number {
   return chest;
 }
 
+/** Runs one scenario. The cutover it sets for its own village is restored afterwards, so a simulation never changes
+ *  what later computations in the same process see (results must not depend on an earlier run). */
 export function simulate(cfg: SimConfig): SimResult {
+  const since = bauhuetteGrowth.since;
+  try { return simulateRun(cfg); } finally { bauhuetteGrowth.since = since; }
+}
+function simulateRun(cfg: SimConfig): SimResult {
   setRealm("europe");
   const days = cfg.days ?? 730, every = cfg.rankEvery ?? 10, P = cfg.profile;
   const c0 = Date.parse(cfg.start ?? "2026-11-12T00:00:00Z");
