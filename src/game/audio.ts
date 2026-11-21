@@ -318,6 +318,8 @@ const onVisibility = () => {
   if (document.hidden) void ctx.suspend(); else if (enabled) void ctx.resume();
 };
 if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisibility);
+/** True once the browser lets the audio context run (after a user gesture). */
+export function audioRunning() { return !!ctx && ctx.state === "running"; }
 export function unlock() { if (enabled && ctx && ctx.state !== "running") void ctx.resume(); }
 /** Stops the clock; the audio thread is only suspended (the module is a singleton reused on remount). */
 export function disposeAudio() { clearInterval(timer); timer = 0; if (ctx?.state === "running") void ctx.suspend(); }

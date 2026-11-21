@@ -112,7 +112,7 @@ import { setMusic, setTavernMusic } from "@/game/music";
 import { MUSIC } from "@/game/lang/music";
 import { suggestTownName } from "@/game/town-names";
 import { seasonAt } from "@/game/season";
-import { setScene, setSound, unlock, animalCall, hm, tap, bell, jingle, disposeAudio } from "@/game/audio";
+import { setScene, setSound, unlock, audioRunning, animalCall, hm, tap, bell, jingle, disposeAudio } from "@/game/audio";
 import {
   canPlant,
   MIN_SEED_DISTANCE,
@@ -592,13 +592,26 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const [fs, setFs] = useState(false);
   const [sound, setSoundOn] = useState(false);
   const soundRef = useRef(false); soundRef.current = sound;
+  // music remembers its own choice; sound off always silences it, sound on restores the last choice
+  const [music, setMusicOn] = useState(true);
+  const musicRef = useRef(true); musicRef.current = music;
+  // Browsers only allow audio after a user gesture; the first one may be a key press, a touch or a click.
+  // The listener stays armed until the audio context is really running, and reads the stored choices (refs may be stale).
   useEffect(() => {
     const on = localStorage.getItem("samenland.sound") !== "off";
-    setSoundOn(on);
+    const m = localStorage.getItem("samenland.music") !== "off";
+    setSoundOn(on); setMusicOn(m); musicRef.current = m;
     if (!on) return;
-    const first = () => { setSound(true); unlock(); };
-    window.addEventListener("pointerdown", first, { once: true });
-    return () => window.removeEventListener("pointerdown", first);
+    const events = ["pointerdown", "keydown", "touchstart"] as const;
+    const opts = { capture: true, passive: true } as const;
+    const gesture = () => {
+      if (localStorage.getItem("samenland.sound") === "off") return;
+      setSound(true); unlock();
+      setMusic(localStorage.getItem("samenland.music") !== "off");
+      if (audioRunning()) events.forEach((e) => window.removeEventListener(e, gesture, opts));
+    };
+    events.forEach((e) => window.addEventListener(e, gesture, opts));
+    return () => events.forEach((e) => window.removeEventListener(e, gesture, opts));
   }, []);
   useEffect(() => () => disposeAudio(), []);
   const toggleSound = () => {
@@ -606,17 +619,6 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     localStorage.setItem("samenland.sound", on ? "on" : "off");
     setMusic(on && musicRef.current);
   };
-  // music remembers its own choice; sound off always silences it, sound on restores the last choice
-  const [music, setMusicOn] = useState(true);
-  const musicRef = useRef(true); musicRef.current = music;
-  useEffect(() => {
-    const m = localStorage.getItem("samenland.music") !== "off";
-    setMusicOn(m); musicRef.current = m;
-    if (!m || localStorage.getItem("samenland.sound") === "off") return;
-    const first = () => setMusic(soundRef.current && musicRef.current);
-    window.addEventListener("pointerdown", first, { once: true });
-    return () => { window.removeEventListener("pointerdown", first); };
-  }, []);
   useEffect(() => () => setMusic(false), []);
   const toggleMusic = () => {
     if (!sound) return;
