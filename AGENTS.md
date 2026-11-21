@@ -9,6 +9,19 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
+## Grundsatz: Jede Ausgabe muss einen spielmechanischen Gegenwert haben
+Jede Aktion, Investition, Begegnungsentscheidung oder sonstige Spielerentscheidung, die Mark kostet, muss einen konkreten, tatsächlich wirksamen spielmechanischen Nutzen bieten.
+
+* Der angekündigte Effekt muss im Spiel tatsächlich eintreten.
+* Der Nutzen muss für den Spieler nachvollziehbar und seiner Ausgabe angemessen sein.
+* Kostenpflichtige Optionen dürfen nicht wirkungslos sein oder lediglich einen nicht vorhandenen Effekt versprechen.
+* Eine kostenpflichtige Option darf nicht durch eine kostenlose, ansonsten gleichwertige Option vollständig entwertet werden.
+* Rein erzählerische Entscheidungen ohne spielmechanischen Nutzen müssen kostenlos sein.
+
+Das gilt für alle Spielsysteme: Gebäude, Monumente, Begegnungen, Sonderaktionen, Erweiterungen und künftige Funktionen.
+
+Leitfrage vor jeder kostenpflichtigen Funktion: Warum sollte ein Spieler dafür Mark ausgeben, und welchen konkreten spielmechanischen Vorteil erhält er dafür?
+
 ## Samenland game
 - Settlement street order is paint-only in street-layout.ts and the render depth pass; never feed its substitute house kind into simulation or taxation, preserving every existing household, job and balance.
 - Identity/density rules: src/game/AGENTS.md; legacy trade unchanged.
