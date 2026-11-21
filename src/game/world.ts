@@ -2268,7 +2268,8 @@ export function pondTiles(seeds: Seed[]): Set<number> {
   const key = seedsKey(seeds); const hit = pondCache.get(key); if (hit) return hit;
   const out = new Set<number>();
   for (const s of seeds) for (const [k, v] of specialSites(s)) {
-    if (v.kind !== "fishery") continue;
+    // a hut moved away (until) no longer has its pond: only the rebuilt hut digs a new one
+    if (v.kind !== "fishery" || v.until != null) continue;
     const x = k % MAP, y = Math.floor(k / MAP);
     if (waterBeside(x, y)) continue;
     const p = pondSpot(x, y); if (p) out.add(p[1] * MAP + p[0]);
