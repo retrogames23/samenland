@@ -61,5 +61,8 @@ export function firstFinder(rows: WonderFind[], site: string, realm: string): Wo
   for (const r of rows) if (r.site === site && r.realm === realm && (!best || r.created_at < best.created_at)) best = r;
   return best;
 }
+/** Sites this village has discovered (its own rows only, any other village's find is not this village's status). */
+export const ownSites = (rows: WonderFind[], seedId: string | null | undefined): Set<string> =>
+  new Set(seedId ? rows.filter((r) => r.seed_id === seedId).map((r) => r.site) : []);
 /** Whole days since the first discovery (0 = today). */
 export const daysSince = (iso: string, now: number) => Math.max(0, Math.floor((now - Date.parse(iso)) / 864e5));
