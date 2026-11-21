@@ -6,69 +6,70 @@ import type { Seed } from "./world";
  * function of (seed id, day); only the chosen answer is stored. Effects are temporary boons derived from
  * the decision timestamp, so every client computes the same bonuses. Costs mirror the database guard.
  */
-export type Effect = { h?: number; growth?: number; food?: number; health?: number };
+/** Only real, derived effects: growth hours via boonHours; h also sets the orphan's stay (orphan.ts). */
+export type Effect = { h?: number; growth?: number };
 export type Choice = { cost: number; fx: Effect };
 export const ENCOUNTERS = {
-  journeyman: { host: { cost: 30, fx: { h: 72, growth: 0.15 } }, settle: { cost: 80, fx: { h: 168, growth: 0.08, food: 3 } }, pass: { cost: 0, fx: {} } },
-  merchant: { market: { cost: 50, fx: { h: 48, food: 9 } }, inn: { cost: 20, fx: { h: 48, health: 8 } }, pass: { cost: 0, fx: {} } },
-  boundary: { common: { cost: 0, fx: { h: 72, health: 10 } }, award: { cost: -20, fx: {} }, tavern: { cost: 10, fx: { h: 72, health: 8, food: 3 } } },
-  ruin: { shrine: { cost: 60, fx: { h: 120, growth: 0.1, health: 5 } }, stones: { cost: 0, fx: { h: 48, health: 3 } } },
-  harvest: { feast: { cost: 40, fx: { h: 48, food: 10, health: 10 } }, store: { cost: 0, fx: { h: 96, food: 15 } } },
-  healer: { invite: { cost: 35, fx: { h: 96, health: 15 } }, pass: { cost: 0, fx: {} } },
-  minstrel: { play: { cost: 15, fx: { h: 48, health: 8 } }, pass: { cost: 0, fx: {} } },
-  widow: { shelter: { cost: 40, fx: { h: 168, growth: 0.06 } }, alms: { cost: 10, fx: { h: 48, health: 5 } }, pass: { cost: 0, fx: {} } },
-  monk: { teach: { cost: 25, fx: { h: 96, food: 10 } }, copy: { cost: 45, fx: { h: 120, growth: 0.08 } }, pass: { cost: 0, fx: {} } },
-  storm: { repair: { cost: 30, fx: { h: 72, health: 10 } }, together: { cost: 0, fx: { h: 48, health: 5 } } },
-  wolf: { fence: { cost: 35, fx: { h: 120, food: 10 } }, hunter: { cost: 20, fx: { h: 72, food: 8 } }, wait: { cost: 0, fx: {} } },
-  wedding: { gift: { cost: 25, fx: { h: 72, health: 13 } }, feast: { cost: 60, fx: { h: 120, growth: 0.1, health: 5 } }, congrat: { cost: 0, fx: { h: 24, health: 3 } } },
-  bees: { hive: { cost: 15, fx: { h: 168, food: 8 } }, leave: { cost: 0, fx: {} } },
-  surveyor: { guide: { cost: 0, fx: { h: 48, food: 3 } }, map: { cost: 40, fx: { h: 168, growth: 0.05 } } },
-  pilgrims: { lodge: { cost: 30, fx: { h: 72, health: 6 } }, water: { cost: 0, fx: { h: 24, health: 3 } } },
-  orphan: { adopt: { cost: 20, fx: { h: 168, growth: 0.05, health: 5 } }, apprentice: { cost: 0, fx: { h: 96, food: 3 } } },
-  tinker: { mend: { cost: 15, fx: { h: 72, food: 5 } }, scrap: { cost: -15, fx: {} }, pass: { cost: 0, fx: {} } },
-  well: { dig: { cost: 50, fx: { h: 168, health: 15 } }, dowser: { cost: 15, fx: { h: 72, health: 8 } } },
-  fair: { stall: { cost: 40, fx: { h: 96, food: 9 } }, visit: { cost: 10, fx: { h: 48, health: 8 } }, stay: { cost: 0, fx: {} } },
-  cow: { show: { cost: 10, fx: { h: 72, health: 5 } }, sell: { cost: -30, fx: {} }, keep: { cost: 0, fx: { h: 96, food: 8 } } },
-  painter: { portrait: { cost: 45, fx: { h: 168, health: 6 } }, sign: { cost: 15, fx: { h: 72, health: 3 } }, pass: { cost: 0, fx: {} } },
-  flood: { dam: { cost: 40, fx: { h: 120, food: 12 } }, meadow: { cost: 0, fx: { h: 72, food: 5 } } },
-  tithe: { pay: { cost: 25, fx: { h: 168, health: 8 } }, bargain: { cost: 10, fx: {} }, plead: { cost: 0, fx: {} } },
-  nursery: { cherry: { cost: 40, fx: { h: 168, health: 5 } }, quince: { cost: 35, fx: { h: 168, food: 8 } }, pass: { cost: 0, fx: {} } },
-  maypole: { pole: { cost: 20, fx: { h: 96, health: 10 } }, games: { cost: 0, fx: { h: 48, health: 5 } } },
+  journeyman: { host: { cost: 30, fx: { h: 72, growth: 0.15 } }, settle: { cost: 80, fx: { h: 168, growth: 0.08 } }, pass: { cost: 0, fx: {} } },
+  merchant: { market: { cost: 0, fx: {} }, inn: { cost: 0, fx: {} }, pass: { cost: 0, fx: {} } },
+  boundary: { common: { cost: 0, fx: {} }, award: { cost: -20, fx: {} }, tavern: { cost: 0, fx: {} } },
+  ruin: { shrine: { cost: 60, fx: { h: 120, growth: 0.1 } }, stones: { cost: 0, fx: {} } },
+  harvest: { feast: { cost: 0, fx: {} }, store: { cost: 0, fx: {} } },
+  healer: { invite: { cost: 0, fx: {} }, pass: { cost: 0, fx: {} } },
+  minstrel: { play: { cost: 0, fx: {} }, pass: { cost: 0, fx: {} } },
+  widow: { shelter: { cost: 40, fx: { h: 168, growth: 0.06 } }, alms: { cost: 0, fx: {} }, pass: { cost: 0, fx: {} } },
+  monk: { teach: { cost: 0, fx: {} }, copy: { cost: 45, fx: { h: 120, growth: 0.08 } }, pass: { cost: 0, fx: {} } },
+  storm: { repair: { cost: 0, fx: {} }, together: { cost: 0, fx: {} } },
+  wolf: { fence: { cost: 0, fx: {} }, hunter: { cost: 0, fx: {} }, wait: { cost: 0, fx: {} } },
+  wedding: { gift: { cost: 0, fx: {} }, feast: { cost: 60, fx: { h: 120, growth: 0.1 } }, congrat: { cost: 0, fx: {} } },
+  bees: { hive: { cost: 0, fx: {} }, leave: { cost: 0, fx: {} } },
+  surveyor: { guide: { cost: 0, fx: {} }, map: { cost: 40, fx: { h: 168, growth: 0.05 } } },
+  pilgrims: { lodge: { cost: 0, fx: {} }, water: { cost: 0, fx: {} } },
+  orphan: { adopt: { cost: 20, fx: { h: 168, growth: 0.05 } }, apprentice: { cost: 0, fx: { h: 96 } } },
+  tinker: { mend: { cost: 0, fx: {} }, scrap: { cost: -15, fx: {} }, pass: { cost: 0, fx: {} } },
+  well: { dig: { cost: 0, fx: {} }, dowser: { cost: 0, fx: {} } },
+  fair: { stall: { cost: 0, fx: {} }, visit: { cost: 0, fx: {} }, stay: { cost: 0, fx: {} } },
+  cow: { show: { cost: 0, fx: {} }, sell: { cost: -30, fx: {} }, keep: { cost: 0, fx: {} } },
+  painter: { portrait: { cost: 0, fx: {} }, sign: { cost: 0, fx: {} }, pass: { cost: 0, fx: {} } },
+  flood: { dam: { cost: 0, fx: {} }, meadow: { cost: 0, fx: {} } },
+  tithe: { pay: { cost: 0, fx: {} }, bargain: { cost: 0, fx: {} }, plead: { cost: 0, fx: {} } },
+  nursery: { cherry: { cost: 0, fx: {} }, quince: { cost: 0, fx: {} }, pass: { cost: 0, fx: {} } },
+  maypole: { pole: { cost: 0, fx: {} }, games: { cost: 0, fx: {} } },
   // Allmende questions (commons.ts): asked by residents about once a week, never drawn as visitors
-  hutewald: { mast: { cost: 0, fx: { h: 168, food: 10 } }, wild: { cost: 0, fx: { h: 168, food: 4, health: 4 } } },
-  backtag: { bake: { cost: 10, fx: { h: 168, health: 10, food: 4 } }, home: { cost: 0, fx: {} } },
-  steg: { together: { cost: 0, fx: { h: 96, health: 8 } }, carpenter: { cost: 40, fx: { h: 96, food: 5 } } },
+  hutewald: { mast: { cost: 0, fx: {} }, wild: { cost: 0, fx: {} } },
+  backtag: { bake: { cost: 0, fx: {} }, home: { cost: 0, fx: {} } },
+  steg: { together: { cost: 0, fx: {} }, carpenter: { cost: 0, fx: {} } },
   // village life around 1500 (commons.ts LIFE): disputes, common work and pastimes, same weekly slot
-  zaun: { buss: { cost: 0, fx: { h: 72, health: 6 } }, holz: { cost: 10, fx: { h: 96, food: 8 } }, pfand: { cost: 0, fx: { h: 48, food: 2 } } },
-  flur: { schau: { cost: 0, fx: { h: 72, health: 6 } }, hilfe: { cost: 8, fx: { h: 96, food: 8 } } },
-  plaggen: { mass: { cost: 0, fx: { h: 168, food: 4, health: 4 } }, laub: { cost: 0, fx: { h: 120, food: 8 } } },
-  schelte: { widerruf: { cost: 0, fx: { h: 96, health: 8 } }, spende: { cost: 0, fx: { h: 96, health: 8 } } },
-  scharwerk: { aufgebot: { cost: 0, fx: { h: 96, health: 6, food: 4 } }, dingen: { cost: 25, fx: { h: 168, food: 10 } } },
-  pfingsten: { preis: { cost: 12, fx: { h: 72, health: 12 } }, reigen: { cost: 0, fx: { h: 48, health: 6 } } },
-  lichtstube: { reigen: { cost: 0, fx: { h: 120, growth: 0.05, health: 4 } }, andacht: { cost: 0, fx: { h: 96, health: 5 } } },
-  besthaupt: { loesen: { cost: 20, fx: { h: 168, food: 6, health: 6 } }, bitte: { cost: 0, fx: { h: 72, health: 4 } }, geben: { cost: 0, fx: { h: 96, health: 5 } } },
-  schwarm: { teilen: { cost: 0, fx: { h: 120, food: 4, health: 4 } }, korb: { cost: 0, fx: { h: 96, food: 6 } }, pfarrer: { cost: 0, fx: { h: 72, health: 6 } } },
-  funken: { kalt: { cost: 0, fx: { h: 72, health: 6 } }, helfer: { cost: 0, fx: { h: 96, health: 8 } }, lehm: { cost: 8, fx: { h: 120, health: 8 } } },
-  rotte: { kuhle: { cost: 0, fx: { h: 96, health: 6 } }, unten: { cost: 0, fx: { h: 72, health: 5 } }, bier: { cost: 6, fx: { h: 72, health: 8 } } },
-  wolfspur: { treib: { cost: 0, fx: { h: 96, food: 6 } }, stall: { cost: 0, fx: { h: 120, food: 4, health: 2 } }, fallen: { cost: 10, fx: { h: 168, food: 8 } } },
-  frevel: { pflanz: { cost: 0, fx: { h: 168, food: 4, health: 2 } }, pfand: { cost: 0, fx: { h: 96, food: 2 } }, warn: { cost: 0, fx: { h: 48, health: 4 } } },
-  miete: { arbeit: { cost: 0, fx: { h: 96, food: 4, health: 2 } }, korn: { cost: 10, fx: { h: 120, health: 8 } }, stein: { cost: 0, fx: { h: 48, food: 2 } } },
+  zaun: { buss: { cost: 0, fx: {} }, holz: { cost: 0, fx: {} }, pfand: { cost: 0, fx: {} } },
+  flur: { schau: { cost: 0, fx: {} }, hilfe: { cost: 0, fx: {} } },
+  plaggen: { mass: { cost: 0, fx: {} }, laub: { cost: 0, fx: {} } },
+  schelte: { widerruf: { cost: 0, fx: {} }, spende: { cost: 0, fx: {} } },
+  scharwerk: { aufgebot: { cost: 0, fx: {} }, dingen: { cost: 0, fx: {} } },
+  pfingsten: { preis: { cost: 0, fx: {} }, reigen: { cost: 0, fx: {} } },
+  lichtstube: { reigen: { cost: 0, fx: { h: 120, growth: 0.05 } }, andacht: { cost: 0, fx: {} } },
+  besthaupt: { loesen: { cost: 0, fx: {} }, bitte: { cost: 0, fx: {} }, geben: { cost: 0, fx: {} } },
+  schwarm: { teilen: { cost: 0, fx: {} }, korb: { cost: 0, fx: {} }, pfarrer: { cost: 0, fx: {} } },
+  funken: { kalt: { cost: 0, fx: {} }, helfer: { cost: 0, fx: {} }, lehm: { cost: 0, fx: {} } },
+  rotte: { kuhle: { cost: 0, fx: {} }, unten: { cost: 0, fx: {} }, bier: { cost: 0, fx: {} } },
+  wolfspur: { treib: { cost: 0, fx: {} }, stall: { cost: 0, fx: {} }, fallen: { cost: 0, fx: {} } },
+  frevel: { pflanz: { cost: 0, fx: {} }, pfand: { cost: 0, fx: {} }, warn: { cost: 0, fx: {} } },
+  miete: { arbeit: { cost: 0, fx: {} }, korn: { cost: 0, fx: {} }, stein: { cost: 0, fx: {} } },
   // town life from Kleinstadt (commons.ts CITY): market police, guilds, beer, gate, watch; sea and Hanse from Handelsstadt
-  brot: { busse: { cost: -10, fx: { h: 72, food: 2 } }, spital: { cost: 0, fx: { h: 96, health: 8 } } },
-  stoerer: { zunft: { cost: 0, fx: { h: 96, food: 4 } }, dulden: { cost: -10, fx: { h: 96, growth: 0.03 } } },
-  bier: { zoll: { cost: 0, fx: { h: 120, food: 4 } }, frei: { cost: -10, fx: { h: 72, health: 6 } } },
-  torschluss: { zu: { cost: 0, fx: { h: 72, health: 6 } }, nachzoll: { cost: -8, fx: { h: 48, food: 2 } } },
-  wache: { pflicht: { cost: 0, fx: { h: 120, health: 8 } }, loskauf: { cost: -15, fx: { h: 96, food: 2 } } },
-  kaper: { geleit: { cost: 60, fx: { h: 168, food: 8 } }, selbst: { cost: 0, fx: { h: 48, food: 2 } } },
-  gast: { streng: { cost: 0, fx: { h: 120, food: 5 } }, frei: { cost: 0, fx: { h: 96, growth: 0.04 } } },
-  hansetag: { gefolge: { cost: 80, fx: { h: 168, health: 5, food: 9 } }, vollmacht: { cost: 15, fx: { h: 96, food: 4 } } },
-  strand: { berge: { cost: 0, fx: { h: 120, food: 5 } }, fischer: { cost: 0, fx: { h: 96, food: 8, health: 4 } } },
-  seuche: { absondern: { cost: 30, fx: { h: 168, health: 15 } }, offen: { cost: 0, fx: { h: 72, food: 4 } } },
+  brot: { busse: { cost: -10, fx: {} }, spital: { cost: 0, fx: {} } },
+  stoerer: { zunft: { cost: 0, fx: {} }, dulden: { cost: -10, fx: { h: 96, growth: 0.03 } } },
+  bier: { zoll: { cost: 0, fx: {} }, frei: { cost: -10, fx: {} } },
+  torschluss: { zu: { cost: 0, fx: {} }, nachzoll: { cost: -8, fx: {} } },
+  wache: { pflicht: { cost: 0, fx: {} }, loskauf: { cost: -15, fx: {} } },
+  kaper: { geleit: { cost: 0, fx: {} }, selbst: { cost: 0, fx: {} } },
+  gast: { streng: { cost: 0, fx: {} }, frei: { cost: 0, fx: { h: 96, growth: 0.04 } } },
+  hansetag: { gefolge: { cost: 0, fx: {} }, vollmacht: { cost: 0, fx: {} } },
+  strand: { berge: { cost: 0, fx: {} }, fischer: { cost: 0, fx: {} } },
+  seuche: { absondern: { cost: 0, fx: {} }, offen: { cost: 0, fx: {} } },
   // historical news 1500/1501 (HISTORY below): dated, once per village, mirrored by DB encounter_guard
-  werber: { fodder: { cost: 30, fx: { h: 120, health: 8 } }, quarter: { cost: 0, fx: { h: 72, food: 3 } } },
-  weser: { carts: { cost: 0, fx: { h: 96, food: 3 } }, ransom: { cost: 40, fx: { h: 168, health: 10 } } },
-  sund: { buy: { cost: 45, fx: { h: 168, food: 7 } }, shelter: { cost: 15, fx: { h: 96, health: 8 } }, pass: { cost: 0, fx: {} } },
-  ablass: { give: { cost: 25, fx: { h: 168, health: 12 } }, sermon: { cost: 0, fx: { h: 48, health: 4 } } },
+  werber: { fodder: { cost: 0, fx: {} }, quarter: { cost: 0, fx: {} } },
+  weser: { carts: { cost: 0, fx: {} }, ransom: { cost: 0, fx: {} } },
+  sund: { buy: { cost: 0, fx: {} }, shelter: { cost: 0, fx: {} }, pass: { cost: 0, fx: {} } },
+  ablass: { give: { cost: 0, fx: {} }, sermon: { cost: 0, fx: {} } },
 } as const satisfies Record<string, Record<string, Choice>>;
 export type EventKey = keyof typeof ENCOUNTERS;
 /**
@@ -183,16 +184,6 @@ export function pendingEncounter(seed: Pick<Seed, "id" | "created_at"> & Partial
   return eventOf(seed.id, past.length, ctx);
 }
 
-/** Sum of attribute boons active at `now`. */
-export function activeBoons(decisions: Decision[], now: number) {
-  const r = { food: 0, health: 0 };
-  for (const d of decisions) {
-    const fx = choiceOf(d.event, d.choice)?.fx;
-    if (!fx?.h || d.at > now || now - d.at >= fx.h * 3.6e6) continue;
-    r.food += fx.food ?? 0; r.health += fx.health ?? 0;
-  }
-  return r;
-}
 /** Extra growth hours accumulated from encounter boons (monotonic, like the blessing). */
 export function boonHours(decisions: Decision[], now: number) {
   let h = 0;

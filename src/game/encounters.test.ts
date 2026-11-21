@@ -1,6 +1,6 @@
 import { weddingTimes } from "./weddings";
 import { describe, it, expect } from "vitest";
-import { eventOf, eventWeight, pendingEncounter, activeBoons, boonHours, ENCOUNTERS, encounterGap } from "./encounters";
+import { eventOf, eventWeight, pendingEncounter, boonHours, ENCOUNTERS, encounterGap } from "./encounters";
 import { treasury, START_TALER } from "./economy";
 const t0 = Date.UTC(2026, 9, 1, 12), H = 3.6e6, seed = { id: "s", name: "S", owner: "o", x: 0, y: 0, hue: 0, created_at: new Date(t0).toISOString() };
 describe("encounters", () => {
@@ -24,11 +24,11 @@ describe("encounters", () => {
     expect(treasury({ ...seed, decisions: d }, [], t0)).toBe(START_TALER - 30);
     expect(boonHours(d, t0 + 200 * H)).toBeCloseTo(72 * 0.15);
   });
-  it("awarding the meadow earns 20 Taler; boons expire", () => {
+  it("awarding the meadow earns 20 Taler; growth boons stop with their duration", () => {
     expect(treasury({ ...seed, decisions: [{ event: "boundary", choice: "award", cost: -20, at: t0 }] }, [], t0)).toBe(START_TALER + 20);
-    const d = [{ event: "healer", choice: "invite", cost: 35, at: t0 }];
-    expect(activeBoons(d, t0 + H).health).toBe(15);
-    expect(activeBoons(d, t0 + 97 * H).health).toBe(0);
+    const d = [{ event: "ruin", choice: "shrine", cost: 60, at: t0 }];
+    expect(boonHours(d, t0 + 120 * H)).toBeCloseTo(12);
+    expect(boonHours(d, t0 + 500 * H)).toBeCloseTo(12);
   });
 });
 
@@ -89,45 +89,5 @@ describe("historical news 1500/1501", () => {
   });
   it("windows follow the real dates of 1501 (game year = real year - 526)", () => {
     expect(new Date(HISTORY.find((h) => h.key === "weser")!.from).toISOString().slice(0, 10)).toBe("2027-05-25");
-  });
-});
-
-describe("encounter effects are all effective (Wohlstand comes only from prosperityAt)", () => {
-  const all = Object.entries(ENCOUNTERS as Record<string, Record<string, { cost: number; fx: { h?: number; food?: number; health?: number; growth?: number } }>>)
-    .flatMap(([ev, cs]) => Object.entries(cs).map(([c, ch]) => ({ ev, c, ch })));
-  it("no choice carries a wealth effect any more", () => {
-    expect(all.filter(({ ch }) => "wealth" in (ch.fx as object))).toEqual([]);
-  });
-  it("every choice with an effect lasts and changes food, health or growth", () => {
-    for (const { ev, c, ch } of all) {
-      const keys = Object.keys(ch.fx);
-      if (!keys.length) continue;
-      expect(ch.fx.h, `${ev}.${c} needs a duration`).toBeGreaterThan(0);
-      expect(!!(ch.fx.food || ch.fx.health || ch.fx.growth), `${ev}.${c} must change something`).toBe(true);
-    }
-  });
-  it("formerly wealth-only choices now give a real boon", () => {
-    const d = (event: string, choice: string) => [{ event, choice, cost: 0, at: t0 }];
-    expect(activeBoons(d("tinker", "mend"), t0 + H)).toEqual({ food: 5, health: 0 });
-    expect(activeBoons(d("ruin", "stones"), t0 + H)).toEqual({ food: 0, health: 3 });
-    expect(activeBoons(d("fair", "stall"), t0 + H)).toEqual({ food: 9, health: 0 });
-    // a boon still ends with its duration
-    expect(activeBoons(d("tinker", "mend"), t0 + 73 * H)).toEqual({ food: 0, health: 0 });
-  });
-  it("choices that already had food or health keep them and add the replacement on top", () => {
-    expect(ENCOUNTERS.wolf.hunter.fx).toEqual({ h: 72, food: 8 });
-    expect(ENCOUNTERS.hansetag.gefolge.fx).toEqual({ h: 168, health: 5, food: 9 });
-  });
-  it("no option that costs Mark is strictly worse than another option of the same encounter", () => {
-    const f = (c: { cost: number; fx: { h?: number; food?: number; health?: number; growth?: number } }) => [-c.cost, c.fx.h ?? 0, c.fx.food ?? 0, c.fx.health ?? 0, c.fx.growth ?? 0];
-    const bad: string[] = [];
-    for (const { ev, c, ch } of all) {
-      if (ch.cost <= 0 || !Object.keys(ch.fx).length) continue; // effect-less options have other mechanics
-      for (const o of all.filter((x) => x.ev === ev && x.c !== c)) {
-        const a = f(ch), b = f(o.ch);
-        if (b.every((v, i) => v >= a[i]!) && b.some((v, i) => v > a[i]!)) bad.push(`${ev}.${c} < ${o.c}`);
-      }
-    }
-    expect(bad).toEqual([]);
   });
 });

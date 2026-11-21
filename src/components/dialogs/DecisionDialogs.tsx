@@ -31,9 +31,8 @@ export function EncounterDialog({ t, lang, my, seeds, slow, cash, later, decide,
 }) {
   const ev = pendingAll(my, my.decisions ?? [], clock(), effAge(my, seeds, clock()), townRank(my, seeds, slow));
   const fxText = (e: string, c: string) => {
-    const ch = choiceOf(e, c)!; const f = ch.fx as { h?: number; growth?: number; food?: number; health?: number };
-    const parts = [f.growth ? t.enc.growth(Math.round(f.growth * 100)) : "", f.food ? `+${f.food} ${t.enc.food}` : "", f.health ? `+${f.health} ${t.enc.health}` : ""].filter(Boolean);
-    return parts.length && f.h ? `${parts.join(" · ")} · ${t.enc.lasts(f.h)}` : parts.join(" · ");
+    const f = choiceOf(e, c)!.fx as { h?: number; growth?: number };
+    return f.growth && f.h ? `${t.enc.growth(Math.round(f.growth * 100))} · ${t.enc.lasts(f.h)}` : "";
   };
   const created = Date.parse(my.created_at);
   return (
