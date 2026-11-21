@@ -5,21 +5,23 @@ import { profileOf } from "@/game/profile";
 import { PROFILE } from "@/game/lang/profile";
 import { MAYOR } from "@/game/lang/mayor";
 import type { DICT, Lang } from "@/game/i18n";
+import { seenText } from "@/game/seen";
 import type { Seed } from "@/game/world";
 
 type T = (typeof DICT)["de"];
 
-export function TownProfile({ t, lang, town, me, seeds, now, onLook, onClose }: { t: T; lang: Lang; town: Seed; me: Seed | null; seeds: Seed[]; now: number; onLook: () => void; onClose: () => void }) {
+export function TownProfile({ t, lang, town, me, seeds, now, seenDays, onLook, onClose }: { t: T; lang: Lang; town: Seed; me: Seed | null; seeds: Seed[]; now: number; seenDays?: number | null; onLook: () => void; onClose: () => void }) {
   const p = profileOf(town, me, seeds, now), d = PROFILE[lang], m = MAYOR[lang];
   const g = (xs: string[]) => xs.map((x) => t.trade.goods[x] ?? x).join(", ");
   const kind = (k: string) => t.kind[k as keyof typeof t.kind] ?? (t.kinds as Record<string, string>)[k] ?? k;
   const role = town.mayor_gender === "w" ? m.w : town.mayor_gender === "d" ? m.d : m.m;
   const traits = (town.mayor_traits ?? []).map((k) => (t.person.traits as Record<string, string>)[k] ?? k);
   const row = (a: string, b: string) => <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{a}</span><span className="text-end">{b}</span></div>;
-  const v = p.vs;
+  const v = p.vs, seen = seenText(lang, seenDays);
   return (
     <Parchment wide title={town.name} later={t.close} onLater={onClose}>
       <p className="text-center text-sm italic">{t.stages[p.rank]} · {d.people(p.citizens, p.homes)}</p>
+      {seen && <p className="mt-1 text-center text-xs text-muted-foreground">{seen}</p>}
       <div className="mt-3 space-y-1 text-sm">
         {row(role, [town.owner, town.mayor_age ? m.years(town.mayor_age) : "", ...traits].filter(Boolean).join(" · "))}
         {row(d.charter, p.charter ? t.charter.paths[p.charter]?.[0] ?? p.charter : d.noCharter)}

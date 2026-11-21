@@ -812,6 +812,22 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     if (!userId) return;
     (supabase as unknown as import("@supabase/supabase-js").SupabaseClient).rpc("touch_activity", { _lang: lang }).then(() => {});
   }, [userId, lang]);
+  // "last seen in town" hints for the towns tab and the profile: whole days only, fetched via village_last_seen;
+  // when the function is not there (yet) the hint is simply left out
+  const [seenDays, setSeenDays] = useState<Record<string, number>>({});
+  const seenKey = useRef("");
+  useEffect(() => {
+    if (!userId || (tab !== "towns" && !profile) || !seeds.length) return;
+    const key = `${realm}|${seeds.length}|${Math.floor(Date.now() / 600000)}`;
+    if (seenKey.current === key) return;
+    seenKey.current = key;
+    (supabase as unknown as import("@supabase/supabase-js").SupabaseClient).rpc("village_last_seen", { _seeds: seeds.slice(0, 300).map((x) => x.id) }).then(({ data, error }) => {
+      if (error || !Array.isArray(data)) return;
+      const m: Record<string, number> = {};
+      for (const r of data as { seed_id: string; days_ago: number }[]) if (typeof r.days_ago === "number") m[r.seed_id] = r.days_ago;
+      setSeenDays(m);
+    });
+  }, [userId, tab, profile, seeds, realm]);
   const toggleMail = async (on: boolean) => {
     if (!userId) return;
     setMailOn(on);
@@ -2876,7 +2892,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         const rows: RegisterRow[] = seeds.map((s) => { const tc = townsCache.current.get(s.id), mine = !!my && s.id === my.id;
           const road = !!my && !mine && lk.some((l) => nw >= l.since && ((l.a.id === my.id && l.b.id === s.id) || (l.b.id === my.id && l.a.id === s.id)));
           return { seed: s, ready: !!tc, rank: tc ? t.stages[tc.rank] ?? "" : "", way: TOWN_CHARACTER[lang].names[wayOf(s)], wayKey: wayOf(s), citizens: tc?.citizens ?? 0, homes: tc?.homes ?? 0, wares: tc?.wares ?? [],
-            link: road ? "road" : rb?.target === s.id ? "building" : null, rideMin: my && !mine ? Math.round(rideTime(my, s) / 60000) : null, dist: my ? Math.hypot(my.x - s.x, my.y - s.y) : null, mine };
+            link: road ? "road" : rb?.target === s.id ? "building" : null, rideMin: my && !mine ? Math.round(rideTime(my, s) / 60000) : null, dist: my ? Math.hypot(my.x - s.x, my.y - s.y) : null, mine, seenDays: seenDays[s.id] ?? null };
         });
         return <IslandRegister lang={lang} island={ISLAND[realm] ?? ISLAND.europe} rows={rows} wayNames={TOWN_CHARACTER[lang].names as Record<string, string>}
           onGo={(s) => { setTab(null); glideTo(s.x, s.y, LOOK_TOWN); }}
@@ -3612,7 +3628,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       {charterOpen && my && <CharterDialog t={t} my={my} now={now} pick={charterPick} setPick={setCharterPick} later={later} seal={sealCharter} />}
 
       {profile && (
-        <TownProfile t={t} lang={lang} town={seeds.find((x) => x.id === profile.id) ?? profile} me={my ?? null} seeds={seeds} now={clock()} onClose={() => setProfile(null)} onLook={() => { glideTo(profile.x, profile.y, LOOK_TOWN); setProfile(null); }} />
+        <TownProfile t={t} lang={lang} town={seeds.find((x) => x.id === profile.id) ?? profile} me={my ?? null} seeds={seeds} now={clock()} seenDays={seenDays[profile.id] ?? null} onClose={() => setProfile(null)} onLook={() => { glideTo(profile.x, profile.y, LOOK_TOWN); setProfile(null); }} />
       )}
       {rollOpen && my && myTown && (
         <VillageRoll t={t} lang={lang} town={myTown} hue={my.hue} character={<><CharacterDetails seed={my} lang={lang} /><div className="mt-2"><Outlook t={t} lang={lang} my={my} seeds={seeds} now={slow} rank={myRank} charter={myCharter} way={wayOf(my)} /></div>{guestbook}</>} onClose={() => setRollOpen(false)} onPick={(p) => {
