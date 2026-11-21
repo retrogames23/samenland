@@ -91,3 +91,31 @@ describe("historical news 1500/1501", () => {
     expect(new Date(HISTORY.find((h) => h.key === "weser")!.from).toISOString().slice(0, 10)).toBe("2027-05-25");
   });
 });
+
+describe("encounter effects are all effective (Wohlstand comes only from prosperityAt)", () => {
+  const all = Object.entries(ENCOUNTERS as Record<string, Record<string, { cost: number; fx: { h?: number; food?: number; health?: number; growth?: number } }>>)
+    .flatMap(([ev, cs]) => Object.entries(cs).map(([c, ch]) => ({ ev, c, ch })));
+  it("no choice carries a wealth effect any more", () => {
+    expect(all.filter(({ ch }) => "wealth" in (ch.fx as object))).toEqual([]);
+  });
+  it("every choice with an effect lasts and changes food, health or growth", () => {
+    for (const { ev, c, ch } of all) {
+      const keys = Object.keys(ch.fx);
+      if (!keys.length) continue;
+      expect(ch.fx.h, `${ev}.${c} needs a duration`).toBeGreaterThan(0);
+      expect(!!(ch.fx.food || ch.fx.health || ch.fx.growth), `${ev}.${c} must change something`).toBe(true);
+    }
+  });
+  it("formerly wealth-only choices now give a real boon", () => {
+    const d = (event: string, choice: string) => [{ event, choice, cost: 0, at: t0 }];
+    expect(activeBoons(d("tinker", "mend"), t0 + H)).toEqual({ food: 5, health: 0 });
+    expect(activeBoons(d("ruin", "stones"), t0 + H)).toEqual({ food: 0, health: 3 });
+    expect(activeBoons(d("fair", "stall"), t0 + H)).toEqual({ food: 9, health: 0 });
+    // a boon still ends with its duration
+    expect(activeBoons(d("tinker", "mend"), t0 + 73 * H)).toEqual({ food: 0, health: 0 });
+  });
+  it("choices that already had food or health keep them and add the replacement on top", () => {
+    expect(ENCOUNTERS.wolf.hunter.fx).toEqual({ h: 72, food: 8 });
+    expect(ENCOUNTERS.hansetag.gefolge.fx).toEqual({ h: 168, health: 5, food: 9 });
+  });
+});
