@@ -13,7 +13,7 @@ import { PRINCELY_REWARDS } from "../princely";
 import { townRank } from "../rank";
 import { townCharacter, type TownWay } from "../character";
 import { residentTax } from "../resident-tax";
-import { householdsOf } from "../households";
+import { householdsOf, housingSince } from "../households";
 import { setRealm } from "../time";
 import { TWIN_WORKS, type Seed, type CharterPath } from "../world";
 import { LOCATIONS, VISIT_GIFT, WONDER_FIND } from "./profiles";
@@ -88,6 +88,8 @@ export function simulate(cfg: SimConfig): SimResult {
   const c0 = Date.parse(cfg.start ?? "2026-11-12T00:00:00Z");
   // ASSUMPTION: the simulated village is founded after the Bauhütte growth went live, so every Bauhütte it pays counts.
   bauhuetteGrowth.since = c0;
+  // ASSUMPTION: likewise founded after the P1-1 housing cutover, so every bought housing perk counts from purchase.
+  housingSince.at = c0;
   const [x, y] = LOCATIONS[cfg.location]!.at;
   const way = townCharacter({ x, y }).main;
   const seed: Seed = { id: `00000000-sim-${P.key}-${cfg.charter}-${cfg.location}`, name: "Sim", owner: "sim", x, y, hue: 0, realm: "europe", user_id: "sim",

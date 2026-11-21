@@ -1,7 +1,7 @@
 import { townCharacter } from "./character";
-import { dwellingSlots, MAX_SLOTS } from "./density";
+import { dwellingSlots, MAX_SLOTS, type HousingPerks } from "./density";
 import { leaversOf } from "./wander";
-import { hash, structureAt, twinSiteGet, pickCfg, reachOf, radiusOf, effAge, townDist, specialSites, twinSites, roadOwnerAt, MAP, type Seed, type Kind } from "./world";
+import { guildtowerDone, hash, structureAt, twinSiteGet, pickCfg, reachOf, radiusOf, effAge, townDist, specialSites, twinSites, roadOwnerAt, MAP, type Seed, type Kind } from "./world";
 
 export type HomeTile = [number, number];
 export const HOME_SIZES: Partial<Record<Kind, readonly [number, number]>> = { hut: [2, 2], suburb: [2, 4], farmhouse: [2, 4], cottage: [2, 3], townhouse: [2, 4], townhouse2: [2, 4], fachwerk: [2, 5], steinhaus: [2, 5], handwerker: [2, 4], patrician: [2, 5], villa: [2, 4], tenement: [4, 8], inn: [2, 2], bakery: [2, 2] };
@@ -15,10 +15,25 @@ export const farmFloor = (r: number) => Math.floor(FARM_FLOOR_SHARE * Math.PI * 
 /** The same virtual food catchment for every character; slopes feed it with gardens/dairy,
  * shores with fishing, plains with grain. Existing exceptionally rich farms keep their yield. */
 export const foodCatchment = (r: number) => Math.ceil(Math.PI * r * r);
+/** P1-1 Wohnraum cutover. Housing perks (and the two new food stores) act only at moments >= since, so every state
+ *  before it — households, citizens, rank, tax — stays exactly as it was. Buildings bought earlier gain the perk from
+ *  `since` on (adding only, never taking away). RELEASE BLOCKER: 2026-12-01T00:00:00Z is a placeholder, not a decided
+ *  date; set it to the exact publish moment. The simulation sets it to its founding; tests may override it. */
+export const housingSince = { at: Date.parse("2026-12-01T00:00:00Z") };
+const SMALL_WAY = ["bigstore", "stonemason", "smokehouse"], BIG_WAY = ["millrow", "hammerworks", "saltquay"];
+/** Great granary and fish hall feed households like the other food crafts (FEED_FOOD_ITEM each), from housingSince. */
+export const HOUSING_FOOD = ["bigstore", "smokehouse"];
+/** What the town's bought buildings add to its dwellings at `now` (all off before housingSince or before purchase). */
+export function housingPerks(s: Seed, now: number): HousingPerks {
+  const on = now >= housingSince.at;
+  const own = new Set(on ? (s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item) : []);
+  return { woodcamp: own.has("woodcamp"), herberge: own.has("herberge"), wayEarly: SMALL_WAY.some((i) => own.has(i)),
+    wayBig: BIG_WAY.some((i) => own.has(i)), saltquay: own.has("saltquay"), shift: on ? guildtowerDone(s, now) : 0 };
+}
 function capacityAt(s: Seed, byKind: Map<Kind, unknown[]>, now: number, r: number, catchment: (r: number) => number) {
   if (!s.user_id) return Infinity;
   const own = new Set((s.bought ?? []).filter(b => b.at <= now).map(b => b.item));
-  const food = ["fisher", "hunter", "granary", "dairy", "markethall", "guildhall"].filter(i => own.has(i)).length;
+  const food = ["fisher", "hunter", "granary", "dairy", "markethall", "guildhall"].filter(i => own.has(i)).length + (now >= housingSince.at ? HOUSING_FOOD.filter(i => own.has(i)).length : 0);
   const health = ["herbs", "healer", "library"].filter(i => own.has(i)).length;
   // System B (household capacity): long-term carrying limit, year-round and independent of the momentary larder.
   // Winter acts only on larder stock and sickness — never on this capacity or on growth (FEED_WINTER is unused here).
@@ -79,11 +94,11 @@ export function occupiedHomes(s: Seed, seeds: Seed[], now: number, byKind: Map<K
   // Retain every established ground-floor family before filling new apartments.
   // Food is a shared household budget: additional floors never create free meals.
   if (!s.user_id) return occupied;
-  const way = townCharacter(s).main;
+  const way = townCharacter(s).main, perks = housingPerks(s, now);
   const extra: Household[] = [];
   for (let unit = 1; unit < MAX_SLOTS; unit++) for (const h of occupied) {
     if (occupied.length + extra.length >= cap) break;
-    if (dwellingSlots(way, h.kind, r) <= unit) continue;
+    if (dwellingSlots(way, h.kind, r, perks) <= unit) continue;
     const range = HOME_SIZES[h.kind];
     if (!range) continue;
     const size = range[0] + Math.floor(hash(h.home[0], h.home[1], 400 + unit * 40) * (range[1] - range[0] + 1));
