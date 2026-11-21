@@ -1467,6 +1467,7 @@ export type Database = {
         Returns: number
       }
       princely_knight: { Args: { _seed: string }; Returns: string }
+      princely_road_open: { Args: { _seed: string }; Returns: boolean }
       princely_swap: { Args: { _seed: string }; Returns: string }
       princely_task_def: {
         Args: { _step: number }
