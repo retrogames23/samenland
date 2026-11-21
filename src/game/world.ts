@@ -1049,13 +1049,15 @@ function coverBack(out: Map<number, Site>, x: number, y: number, at: number, unt
  * Where each bought building stands: a pure function of the seed and its purchases. The fishery
  * looks for the shore, the healer for the forest edge, the school for the village core, the granary for the fields.
  */
-const siteQuick = new WeakMap<object, { id: string; x: number; y: number; mv: unknown; m: Map<number, Site> }>();
+/** Fast path keyed by the bought array. It also remembers length and last row, so a list grown in place
+ *  (push) is never answered with the old sites — that once froze bought buildings in the simulation. */
+const siteQuick = new WeakMap<object, { id: string; x: number; y: number; mv: unknown; n: number; last: unknown; m: Map<number, Site> }>();
 export function specialSites(s: Seed): Map<number, Site> {
   const quick = s.bought ? siteQuick.get(s.bought) : undefined;
-  if (quick && quick.id === s.id && quick.x === s.x && quick.y === s.y && quick.mv === s.moves) return quick.m;
+  if (quick && quick.id === s.id && quick.x === s.x && quick.y === s.y && quick.mv === s.moves && quick.n === s.bought!.length && quick.last === s.bought![s.bought!.length - 1]) return quick.m;
   const items = (s.bought ?? []).filter((b) => SPECIAL_KIND[b.item]);
   const key = `${s.id}:${s.x}:${s.y}:${items.map((b) => `${b.item}${b.at}@${b.x ?? ""},${b.y ?? ""}`).join(",")}|${(s.moves ?? []).map((m) => `${m.item}${m.at}@${m.x},${m.y}`).join(",")}`;
-  const hit = siteCache.get(key); if (hit) { if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, mv: s.moves, m: hit }); return hit; }
+  const hit = siteCache.get(key); if (hit) { if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, mv: s.moves, n: s.bought.length, last: s.bought[s.bought.length - 1], m: hit }); return hit; }
   const out = new Map<number, Site>();
   // relocations (Umsetzen): original sites are placed exactly as before (no auto spot ever shifts), moves overlay them afterwards
   const ms = (s.moves ?? []).filter((m) => SPECIAL_KIND[m.item] && items.some((b) => b.item === m.item)).sort((a, c) => a.at - c.at);
@@ -1101,7 +1103,7 @@ export function specialSites(s: Seed): Map<number, Site> {
   }
   if (siteCache.size > 200) siteCache.clear();
   siteCache.set(key, out);
-  if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, mv: s.moves, m: out });
+  if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, mv: s.moves, n: s.bought.length, last: s.bought[s.bought.length - 1], m: out });
   return out;
 }
 /** Cache key that changes whenever seed positions, ages or purchases change. */
