@@ -31,6 +31,15 @@ export function openRealm(r: Realm, count: (r: Realm) => number): Realm {
   for (let n = REALM_NEXT[r]; n && count(r) >= REALM_FULL; n = REALM_NEXT[r]) r = n;
   return r;
 }
+/** True only for the DB realm_full_guard refusal (SQLSTATE P0001, message "realm_full"); other P0001 errors are not a full map. */
+export function isRealmFull(e: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  return !!e && e.code === "P0001" && /(^|[^\w])realm_full([^\w]|$)/.test(e.message ?? "");
+}
+/** Where a founder goes after the database refused `r` as full: the first map of the chain after `r` with room (via openRealm), or null when `r` ends its chain. */
+export function nextOpenRealm(r: Realm, count: (r: Realm) => number): Realm | null {
+  const n = REALM_NEXT[r];
+  return n ? openRealm(n, count) : null;
+}
 export function detectRealm(): Realm {
   return realmForOffset(-new Date().getTimezoneOffset() / 60);
 }
