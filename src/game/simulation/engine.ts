@@ -112,7 +112,9 @@ export function simulate(cfg: SimConfig): SimResult {
   const buy = (item: string, cost: number, reserve = P.reserve) => {
     if (owned.has(item) || balance < cost + reserve) return false;
     balance -= cost; spent += cost; daySpent += cost; invested += cost; owned.add(item);
-    seed.bought!.push({ item, at: c0 + day * DAY }); bought.push({ item, day, cost });
+    // New arrays, never in-place pushes: seed inputs are cached by array identity (world.ts specialSites/siteQuick),
+    // exactly like client and server, which rebuild every list when data changes.
+    seed.bought = [...seed.bought!, { item, at: c0 + day * DAY }]; bought.push({ item, day, cost });
     ledger.push({ day, kind: "debit", source: item, amount: cost, booked: -cost, lost: 0, balance, cap: caps[chest]! });
     return true;
   };
@@ -122,8 +124,8 @@ export function simulate(cfg: SimConfig): SimResult {
   for (day = 1; day <= days; day++) {
     const now = c0 + day * DAY;
     dayIncome = dayTax = dayBooked = dayLost = daySpent = dayRaid = 0;
-    if (day === 14) { seed.roads!.push({ target: "nb1", at: now }); seed.civicRoads!.push({ at: now }); }
-    if (day === 45) { seed.roads!.push({ target: "nb2", at: now }); seed.civicRoads!.push({ at: now }); }
+    if (day === 14) { seed.roads = [...seed.roads!, { target: "nb1", at: now }]; seed.civicRoads = [...seed.civicRoads!, { at: now }]; }
+    if (day === 45) { seed.roads = [...seed.roads!, { target: "nb2", at: now }]; seed.civicRoads = [...seed.civicRoads!, { at: now }]; }
     if (hanse === null && (day % every === 0 || day === 1)) {
       const r = townRank(seed, [...seeds], now);
       for (let k = rank + 1; k <= r; k++) rankDays[k] = day;
