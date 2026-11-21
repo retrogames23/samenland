@@ -780,10 +780,9 @@ export type MonumentKey = keyof typeof MONUMENT_DEFS;
 export const MONUMENT_KEYS = Object.keys(MONUMENT_DEFS) as MonumentKey[];
 export const monumentSteps = (k: MonumentKey) => Array.from({ length: MONUMENT_DEFS[k].n }, (_, i) => `${k}${i + 1}`);
 /** Which monument a purchase item belongs to (e.g. "opera3" → "opera"), or null. */
-export const monumentOf = (item: string): MonumentKey | null => {
-  const m = /^([a-z]+)(\d)$/.exec(item); const k = m?.[1] as MonumentKey | undefined;
-  return k && k in MONUMENT_DEFS && +m![2]! >= 1 && +m![2]! <= MONUMENT_DEFS[k].n ? k : null;
-};
+/** Exactly the strings the former pattern test /^([a-z]+)(\d)$/ with 1 ≤ digit ≤ n accepted: one entry per monument step. */
+const MONUMENT_ITEMS = new Map<string, MonumentKey>(MONUMENT_KEYS.flatMap((k) => monumentSteps(k).map((i) => [i, k] as const)));
+export const monumentOf = (item: string): MonumentKey | null => MONUMENT_ITEMS.get(item) ?? null;
 export const MONUMENT_BY_KIND = new Map<Kind, MonumentKey>(MONUMENT_KEYS.map((k) => [MONUMENT_DEFS[k].kind, k]));
 export const SPECIAL_KIND: Record<string, Kind> = { backhaus: "backhaus", herberge: "herberge", badestube: "badestube", beginen: "beginenhof", fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", fireorder: "firerack", guard: "guardhouse", hunter: "lodge", herbs: "herbhut", woodcamp: "woodcamp", bigstore: "bigstore", millrow: "millrow", stonemason: "stonemason", hammerworks: "hammerworks", smokehouse: "smokehouse", saltquay: "saltquay",
   ...Object.fromEntries(MONUMENT_KEYS.map((k) => [`${k}1`, MONUMENT_DEFS[k].kind])) };
