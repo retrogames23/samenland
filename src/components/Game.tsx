@@ -1989,15 +1989,22 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const wonderFn = useRef<(key: string, kind: string, my: Seed) => void>(() => {});
   // the own village's discoveries: the explorer map shows no golden glimmer on these any more (survives reload)
   const ownFound = useRef(new Set<string>());
+  // claims still waiting for the DB, and sites the DB already knew ("seen" though the loaded rows lacked them, e.g. a
+  // reload that raced the insert): a rebuild from wonderRows must neither fire a second claim nor bring the glimmer back
+  const wonderBusy = useRef(new Set<string>());
+  const wonderKnown = useRef(new Set<string>()); // `${seedId}|${site}`
   const syncWonders = (seedId?: string | null) => {
     const id = seedId !== undefined ? seedId : st.current.seeds.find((s) => userId && s.user_id === userId)?.id ?? null;
     const own = ownSites(wonderRows.current, id);
-    ownFound.current = own; wonderSeen.current = new Set(own); setWonderFound(new Set(own));
+    for (const k of wonderKnown.current) { const [sid, site] = k.split("|"); if (sid === id && site) own.add(site); }
+    ownFound.current = own; wonderSeen.current = new Set([...own, ...wonderBusy.current]); setWonderFound(new Set(own));
   };
   useEffect(() => { syncWonders(); }, [my?.id, userId]);
   wonderFn.current = (key, kind, my) => {
     if (!owner || my.user_id !== userId) { wonderSeen.current.delete(key); return; }
+    wonderBusy.current.add(key);
     (supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: number | null; error: unknown }>)("claim_wonder", { _seed: my.id, _site: key }).then(({ data, error }) => {
+      wonderBusy.current.delete(key);
       if (error || !data) {
         const P = PRINCELY[lang], o = openTaskOf(princelyRows.current, my.id);
         if (error) {
@@ -2009,14 +2016,14 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
           }
         } else {
           // reward 0: this village already logged the site — say so, and stop the glimmer here too
-          ownFound.current.add(key); setWonderFound(new Set(ownFound.current));
+          wonderKnown.current.add(`${my.id}|${key}`); ownFound.current.add(key); setWonderFound(new Set(ownFound.current));
           setVisitNote(P.seen);
         }
         return;
       }
       const realm = my.realm ?? "europe", before = firstFinder(wonderRows.current, key, realm);
       const row: WonderFind = { id: `local-w-${key}`, seed_id: my.id, site: key, realm, first: !before, reward: data, created_at: new Date().toISOString() };
-      wonderRows.current = [...wonderRows.current, row]; syncWonders();
+      wonderRows.current = [...wonderRows.current, row]; wonderKnown.current.add(`${my.id}|${key}`); syncWonders();
       setClaims((c) => [...c, ...wonderClaims([row])]);
       jingle("fanfare"); setTimeout(() => jingle("coins"), 700);
       const name = t.wonder.names[kind] ?? kind;
