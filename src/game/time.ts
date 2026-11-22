@@ -153,14 +153,34 @@ let tRef = 0, pRef = 0, rate = 1;     // displayed clock: tRef + (p - pRef) * ra
 let sT = 0, sP = 0;                   // best server estimate anchor
 let last = -Infinity;                 // lastDeliveredClock
 let syncInFlight = false;
-/** Test hook: replace the monotonic source and reset sync state. */
-export function _setPerfSource(f: () => number) { perfNow = f; synced = false; last = -Infinity; rate = 1; syncInFlight = false; wakeAt = -Infinity; }
+/** Phones stop performance.now() while asleep, the system clock keeps running. When the system clock has run more
+ *  than SLEEP_GAP ms ahead of performance.now() between two reads, the page slept: the game clock skips that time at
+ *  once instead of showing the old hour until the server answers. Only the elapsed time is used, so a wrongly set
+ *  device clock does no harm; a backwards change of the system clock is ignored. */
+export const SLEEP_GAP = 2000;
+let wallNow: () => number = () => Date.now();
+let lastW = NaN, lastP = NaN;
+/** Test hook: replace the monotonic source (and optionally the system clock) and reset sync state. */
+export function _setPerfSource(f: () => number, w: () => number = () => Date.now()) { perfNow = f; wallNow = w; lastW = lastP = NaN; synced = false; last = -Infinity; rate = 1; syncInFlight = false; wakeAt = -Infinity; }
+/** Time slept since the last read (ms, 0 when awake); remembers this read. */
+function slept(p: number): number {
+  const w = wallNow(), gap = w - lastW - (p - lastP);
+  lastW = w; lastP = p;
+  return gap > SLEEP_GAP ? gap : 0;
+}
 export function initTimeSync(serverTime: number) {
   const p = perfNow();
+  slept(p);
   tRef = sT = serverTime; pRef = sP = p; rate = 1; synced = true;
 }
 export function getSyncedTime(): number {
   const p = perfNow();
+  const gap = slept(p);
+  if (gap) {
+    // move both anchors forward by the slept time: displayed and server estimate stay as far apart as before
+    tRef = (rate === 1 ? tRef + (p - pRef) : tRef + (p - pRef) * rate) + gap; pRef = p;
+    sT += gap;
+  }
   let v: number;
   if (rate === 1) v = tRef + (p - pRef);
   else {
@@ -192,9 +212,12 @@ export async function syncServerTime(fetchTime: () => Promise<{ serverTime: numb
   syncInFlight = true;
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const p0 = perfNow();
+    const p0 = perfNow(), w0 = wallNow();
     const { serverTime } = await Promise.race([fetchTime(), new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new Error("sync timeout")), SYNC_TIMEOUT); })]);
-    return applySync(serverTime, p0, perfNow(), rttMax);
+    const p1 = perfNow();
+    // the page slept while the request was open: the answer is from before the sleep and would pull the clock back
+    if (wallNow() - w0 - (p1 - p0) > SLEEP_GAP) return false;
+    return applySync(serverTime, p0, p1, rttMax);
   } catch { return false; } finally { clearTimeout(timer); syncInFlight = false; }
 }
 /** Phones stop performance.now() while the page sleeps, so the anchored clock falls behind. On wake the first answer is often
