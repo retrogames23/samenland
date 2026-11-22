@@ -2598,8 +2598,11 @@ function roofInFront(x: number, y: number, seeds: Seed[], now: number): boolean 
   return false;
 }
 /** Wild trees, bushes, crags and ore rocks of one tile — the single source for every zoom level. */
+/** No wild nature (trees, crags, boulders) on this tile: estate lawns, and dug carp ponds, which have no structure
+ *  of their own (sparePlanted reports null) and so used to get the tile's wild tree drawn into the water. */
+export const natureBlocked = (x: number, y: number, ponds: ReadonlySet<number>) => inCourt(x, y) || ponds.has(y * MAP + x);
 function natureAt(g: C, x: number, y: number, cx: number, cy: number, t: number, free: boolean, turf = true, px = 0) {
-  if (inCourt(x, y)) return; // the estate keeps open lawns
+  if (natureBlocked(x, y, pondsNow)) return;
   const tr = terrain(x, y);
   // lone boulders only; ore/bog-iron deposits stay invisible (they have no in-game use, loose heaps looked wrong)
   if ((tr === "hill" || tr === "mountain") && resourceAt(x, y) === "stone") {
@@ -4562,7 +4565,7 @@ export function draw(
     if (!st) { const wk = wonderMap().get(y * MAP + x); if (wk) drawWonder(c, wk, cx, cy, t, !wonderFound.has(`${wk}:${x}:${y}`), L); }
     if (!st && decor) { const dk = decor.get(y * MAP + x); if (dk) drawSupport(c, dk, cx, cy, L, decorNight); }
     if ((!st || st.kind === "square") && fountains) { const fk = fountains.get(y * MAP + x); if (fk) drawMarketFountain(c, fk, cx, cy, L, decorNight, !!st); }
-    { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
+    { const pl = plantings.get(`${x},${y}`); if (pl && (pl.kind === "cherry" || pl.kind === "quince") && !st && !pondsNow.has(y * MAP + x)) drawRareTree(c, cx, cy, pl.kind, (now - Date.parse(pl.created_at)) / 3.6e6, now, t, x * 31 + y); }
     if (y * MAP + x === goalK) {
       // golden waymark where the player's mayor is heading
       const pu = 1 + Math.sin(now / 260) * 0.08;
