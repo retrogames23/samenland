@@ -49,6 +49,7 @@ import { sunTimes, viewNight as nightLevel, viewGlow as duskGlow } from "./sun";
 const sunNow = () => sunTimes(clock());
 import { setArtTime, seasonalImage, standIns } from "./season-art";
 import { chunkKey, pickChunk, nextShown } from "./ground-chunks";
+import { FLOW_BLOCK, STREAKS, flowBlock, flowPatch, streakAt, zoomKeep } from "./river-flow";
 import { seasonKey, seasonAt } from "./season";
 import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
@@ -1805,6 +1806,7 @@ function drawOverview(c: C, w: number, h: number, dpr: number, cam: Camera, seed
     const y0 = Math.max(0, Math.min(...cs.map((p) => p[1])) - 2), y1 = Math.min(MAP - 1, Math.max(...cs.map((p) => p[1])) + 8);
     c.drawImage(overviewMap(), -(MAP * TW) / 2, 0, MAP * TW, MAP * TH); // under not-yet-baked chunks
     drawGroundChunks(c, x0, x1, y0, y1, z, cam.x - w / 2 / z, cam.x + w / 2 / z, cam.y - h / 2 / z, cam.y + h / 2 / z, true);
+    drawRiverFlow(c, x0, x1, y0, y1, z, performance.now(), cam.x - w / 2 / z, cam.x + w / 2 / z, cam.y - h / 2 / z, cam.y + h / 2 / z);
   } else c.drawImage(overviewMap(), -(MAP * TW) / 2, 0, MAP * TW, MAP * TH);
   const px = 1 / z;
   const maxEntries = overviewCapacity(seeds.length);
@@ -2696,6 +2698,63 @@ function drawOutskirts(c: C, x0: number, x1: number, y0: number, y1: number, z: 
   }
 }
 type BakedChunk = HTMLCanvasElement & { ox: number; oy: number };
+// ---- river current: a live overlay on the baked water (river-flow.ts), the only moving part of the river surface ----
+const FLOW_A = [0.08, 0.15, 0.22, 0.3, 0.38], FLOW_GLINT = [0.2, 0.36, 0.52];
+const crestBuckets: number[][] = FLOW_A.map(() => []), troughBuckets: number[][] = FLOW_A.map(() => []), glintBuckets: number[][] = FLOW_GLINT.map(() => []);
+/** Small wave crests lie across the current and drift downstream along each reach, fading in and out (no popping, no
+ *  fixed beat); a darker trough rides just upstream of each crest; light bands travel with the water; sun glints wink
+ *  on the surface. Density thins smoothly with zoom, so the current stays readable from afar at little cost.
+ *  Batched into a few strokes per frame; nothing is allocated per tile. */
+function drawRiverFlow(c: C, x0: number, x1: number, y0: number, y1: number, z: number, t: number, vx0: number, vx1: number, vy0: number, vy1: number) {
+  const keep = Math.min(1, Math.max(0.22, z / 1.1)), glints = z > 0.8;
+  const lw = Math.min(3.2, Math.max(0.22, 1.25 / z)), half = Math.min(0.75, Math.max(0.2, 0.16 + 0.22 / Math.sqrt(z)));
+  for (const b of crestBuckets) b.length = 0; for (const b of troughBuckets) b.length = 0; for (const b of glintBuckets) b.length = 0;
+  const bx0 = Math.floor(Math.max(0, x0) / FLOW_BLOCK), bx1 = Math.floor(Math.min(MAP - 1, x1) / FLOW_BLOCK);
+  const by0 = Math.floor(Math.max(0, y0) / FLOW_BLOCK), by1 = Math.floor(Math.min(MAP - 1, y1) / FLOW_BLOCK);
+  let n = 0;
+  for (let by = by0; by <= by1; by++) for (let bx = bx0; bx <= bx1; bx++) {
+    if (groundHoles.has(by * 4096 + bx)) continue; // water not painted yet under this block
+    const B = flowBlock(bx, by); if (!B) continue;
+    const X0 = bx * FLOW_BLOCK, Y0 = by * FLOW_BLOCK, X1 = X0 + FLOW_BLOCK, Y1 = Y0 + FLOW_BLOCK;
+    if (iso(X1, Y0)[0] + TW < vx0 || iso(X0, Y1)[0] - TW > vx1 || iso(X1, Y1)[1] + TH < vy0 || iso(X0, Y0)[1] - TH > vy1) continue;
+    for (let i = 0; i < B.n; i++) {
+      const x = B.x[i]!, y = B.y[i]!, fl: [number, number] = [B.fx[i]!, B.fy[i]!], sp = B.sp[i]!, room = B.room[i]!;
+      const patch = flowPatch(x, y, t, fl, sp);
+      // screen vectors per tile: along the current (f) and across it (q)
+      const fx = (fl[0] - fl[1]) * TW / 2, fy = (fl[0] + fl[1]) * TH / 2, qx = (-fl[1] - fl[0]) * TW / 2, qy = (-fl[1] + fl[0]) * TH / 2;
+      for (let j = 0; j < STREAKS; j++) {
+        const kz = zoomKeep(x, y, j, keep); if (kz <= 0 || room < 0.2) continue;
+        const st = streakAt(x, y, j, t, sp, fl, room), a = st.a * kz * (0.2 + 1.1 * patch);
+        if (a < 0.08) continue;
+        const bi = Math.min(FLOW_A.length - 1, Math.floor(a * 4.2)), [px, py] = iso(st.px, st.py), bow = 0.12;
+        const h = Math.min(half * (0.7 + 0.6 * hash(x, y, 1010 + j)), room * 0.6);
+        crestBuckets[bi]!.push(px - qx * h, py - qy * h, px + fx * bow, py + fy * bow, px + qx * h, py + qy * h); n++;
+        const ux = px - fx * 0.07, uy = py - fy * 0.07;
+        troughBuckets[bi]!.push(ux - qx * h * 0.9, uy - qy * h * 0.9, ux + fx * bow, uy + fy * bow, ux + qx * h * 0.9, uy + qy * h * 0.9);
+      }
+      if (glints && hash(x, y, 1020) < 0.3) {
+        const g = streakAt(x, y, 7, t * 0.55, sp, fl), tw = vnoise(t / 650 + x * 0.37, y * 0.41, 1021), a = g.a * g.a * Math.max(0, tw * 1.6 - 0.6) * keep;
+        if (a > 0.05) { const [px, py] = iso(g.px, g.py); glintBuckets[Math.min(2, Math.floor(a * 3))]!.push(px, py); }
+      }
+    }
+  }
+  if (!n) return;
+  c.save(); c.lineCap = "round";
+  const curves = (b: number[]) => { c.beginPath(); for (let k = 0; k < b.length; k += 6) { c.moveTo(b[k]!, b[k + 1]!); c.quadraticCurveTo(b[k + 2]!, b[k + 3]!, b[k + 4]!, b[k + 5]!); } c.stroke(); };
+  c.lineWidth = lw * 1.6;
+  troughBuckets.forEach((b, i) => { if (!b.length) return; c.strokeStyle = `rgba(12,36,46,${(FLOW_A[i]! * 0.5).toFixed(3)})`; curves(b); });
+  // foam ridge: a soft wide body, then a brighter narrow core
+  c.lineWidth = lw * 2.2;
+  crestBuckets.forEach((b, i) => { if (!b.length) return; c.strokeStyle = `rgba(200,222,218,${(FLOW_A[i]! * 0.45).toFixed(3)})`; curves(b); });
+  c.lineWidth = lw * 0.9;
+  crestBuckets.forEach((b, i) => { if (!b.length) return; c.strokeStyle = `rgba(236,244,238,${FLOW_A[i]})`; curves(b); });
+  const gs = lw * 1.2;
+  glintBuckets.forEach((b, i) => { if (!b.length) return; c.fillStyle = `rgba(255,250,228,${FLOW_GLINT[i]})`; for (let k = 0; k < b.length; k += 2) c.fillRect(b[k]! - gs, b[k + 1]! - gs * 0.5, gs * 2, gs); });
+  c.restore();
+  pCount("flow.crests", n);
+}
+/** Ground chunks painted only as a placeholder this frame (CH = FLOW_BLOCK, so one key per flow block). */
+const groundHoles = new Set<number>();
 /** Season key the ground chunks currently show (P2b swap, see ground-chunks.ts). */
 let shownSk = "";
 const chunkHas = (k: string) => chunkCache.has(k);
@@ -2705,6 +2764,7 @@ export function setBakeHold(on: boolean) { bakeHold = on; }
 function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false): number {
   const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow) + (labEdge() ? `|e${labEdge()!.core},${labEdge()!.grain}${labEdge()!.v2 ? "v2" : ""}` : "");
   let baked = 0, drawn = 0, missing = 0, vis = 0;
+  groundHoles.clear();
   const cx0 = Math.floor(x0 / CH), cx1 = Math.floor(x1 / CH), cy0 = Math.floor(y0 / CH), cy1 = Math.floor(y1 / CH);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
     const iy = s - ix;
@@ -2731,6 +2791,7 @@ function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, 
       catch { c.restore(); }
     }
     if (far) continue; // overview bitmap already underneath
+    groundHoles.add(iy * 4096 + ix); // placeholder only: no river current may be drawn over it
     const [a, b] = iso(X0 + CH / 2, Y0 + CH / 2); c.fillStyle = "#7a8a50"; c.beginPath(); c.moveTo(a, b - CH * TH / 2); c.lineTo(a + CH * TW / 2, b); c.lineTo(a, b + CH * TH / 2); c.lineTo(a - CH * TW / 2, b); c.fill();
   }
   shownSk = nextShown(shownSk, sk, missing, vis, CHUNK_CAP);
@@ -3903,6 +3964,8 @@ export function draw(
   frameBakes = bakeHold ? 1 : 0;
   pEnd(); pBegin("near.ground");
   renderStats.chunks = drawGroundChunks(c, x0, x1, y0, y1, z, cs0x, cs1x, cs0y, cs1y);
+  pEnd(); pBegin("near.riverFlow");
+  drawRiverFlow(c, x0, x1, y0, y1, z, t, cs0x, cs1x, cs0y, cs1y);
   // frayed edges: a few grass tufts and pebbles breaking up the borderline
   if (detail) {
     for (const e of edges) {
