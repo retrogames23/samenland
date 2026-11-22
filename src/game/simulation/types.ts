@@ -72,6 +72,9 @@ export type SimResult = {
   taxShare: number; lostShare: number;
   bySource: Record<string, number>;
   bought: { item: string; day: number; cost: number }[];
+  /** Bought buildings and monument steps: paid day, day they physically stand (production specialDone / monumentChain)
+   *  and hours from payment to completion (incl. waiting for the previous monument step). Report only. */
+  builds: { item: string; paidDay: number; doneDay: number; hours: number }[];
   remaining: string[];
   /** Averages per phase: before Hansestadt, Hansestadt → saturation, after saturation. */
   phases: { name: string; from: number; to: number; incomePerDay: number; spentPerDay: number; lostShare: number; balanceEnd: number }[];
