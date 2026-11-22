@@ -7,7 +7,7 @@ import { resetWonders } from "./wonders";
 import { townCharacter, resetCharacters, type TownWay } from "./character";
 import { biomeKey, type Biome } from "./biome";
 import { marketBoost } from "./freimarkt";
-import { bauhuetteDone } from "./vorhaben";
+import { bauhuetteDone, bauhuetteHours } from "./vorhaben";
 import { clock, cacheTick, worldHour, worldWeekday, workClock, workDone, realmGen, type Realm } from "./time";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
@@ -1751,6 +1751,7 @@ export function linksOfSeed(seeds: Seed[], id: string): Link[] {
 /** Cheap prefilter-only bound on effAge for gridOf; reads only the seed's own rows and its own links (no effAgeBase,
  *  no twinSiteAt, no twinSince). Proof sketch (each step is ≥ the real term):
  *  - careCeiling(v) ≤ v; base is computed exactly (age + bless + boons + farm);
+ *  - bauhuetteHours (vorhaben.ts) is added exactly, outside the trade ceiling, as in effAgeBaseRaw;
  *  - trade extra = base·softTrade(..) ≤ max(0,base)·max(TRADE_CAP, max OPERA_CEIL_MAX) (tradeCapOf is capped by OPERA_CEIL_MAX);
  *  - mentorHours ≤ min(age, MENTOR_SPAN)·MENTOR_RATE;
  *  - twinHours per link ≤ (TWIN_BONUS + max pact + WORK_BONUS)·H + blessHours(s), with H the hours since the earliest of
@@ -1760,7 +1761,7 @@ export function effAgeBound(s: Seed, seeds: Seed[], now: number) {
   let base = age + bless + boonHours(s.decisions ?? [], now);
   if (s.charter?.path === "farm" && now > s.charter.at) base += (now - s.charter.at) / 3.6e6 * FARM_BONUS;
   const ceil = Math.max(TRADE_CAP, ...OPERA_CEIL_MAX);
-  let h = base + Math.max(0, base) * ceil + Math.min(age, MENTOR_SPAN) * MENTOR_RATE;
+  let h = base + Math.max(0, base) * ceil + Math.min(age, MENTOR_SPAN) * MENTOR_RATE + bauhuetteHours(s, now);
   const rate = TWIN_BONUS + Math.max(...Object.values(PACT_GROWTH)) + WORK_BONUS;
   let tw = 0;
   for (const l of linksOfSeed(seeds, s.id)) {
@@ -1818,7 +1819,8 @@ function effAgeBaseRaw(s: Seed, seeds: Seed[], now: number) {
   for (const r of hubRoutes(s, seeds)) if (now > r.since) h += hubBonus(s) * (now - r.since) / 3.6e6;
   // neighbour bonuses: full value up to TRADE_CAP of the town's own age, then a soft curve up to the town's ceiling
   const extra = base > 0 ? base * softTrade(Math.max(0, h - base) / base, tradeCapOf(s, now)) : 0;
-  return careCeiling(s, now, (base + extra + mentorHours(s, seeds, now)) * GROWTH_PACE);
+  // Bauhütte growth (vorhaben.ts): plain hours added outside trade, blessing, boons, farm and mentor — never amplified by them
+  return careCeiling(s, now, (base + extra + mentorHours(s, seeds, now) + bauhuetteHours(s, now)) * GROWTH_PACE);
 }
 /** Trade counts in full up to TRADE_CAP; above it, extra trade only approaches the town's ceiling (soft curve, never a wall). */
 export const TRADE_CAP = 0.35;
@@ -1929,11 +1931,19 @@ export function careMissing(s: Seed, now: number) {
   return { stage: st, food: Math.max(0, need[0] - f), health: Math.max(0, need[1] - hl),
     foodItems: CARE_FOOD.filter((i) => !own.has(i)), healthItems: CARE_HEALTH.filter((i) => !own.has(i)) };
 }
+/** Share of the next era's threshold from which the care ceiling starts to brake growth. */
+export const CARE_SOFT = 0.9;
+/** Growth age from which careCeiling brakes a town's growth now (CARE_SOFT × next era), or null when care allows every era.
+ *  The same value careCeiling uses — exported so the UI can warn without re-deriving the care gate. */
+export function careSoftCap(s: Seed, now: number): number | null {
+  const st = careStage(s, now);
+  return st >= 5 ? null : STAGES[st + 1]!.from * CARE_SOFT;
+}
 /** Soft ceiling: a neglected town levels off just below the next era and resumes as soon as care is bought. */
 function careCeiling(s: Seed, now: number, v: number) {
   const st = careStage(s, now);
   if (st >= 5) return v;
-  const ceil = STAGES[st + 1]!.from, c0 = ceil * 0.9;
+  const ceil = STAGES[st + 1]!.from, c0 = ceil * CARE_SOFT;
   if (v <= c0) return v;
   return c0 + (ceil - c0 - 1) * (1 - Math.exp(-(v - c0) / (ceil * 0.3)));
 }
