@@ -1493,8 +1493,25 @@ export const roadAllowed = (s: Seed, o: Seed, seeds: Seed[]) => {
   const d = Math.hypot(o.x - s.x, o.y - s.y);
   return d <= roadReach(s, seeds) || (d <= TRADE_DIST && (o.roads ?? []).some((r) => r.target === s.id));
 };
+/**
+ * Longest bridge a NEW trade road may need. River crossings stay short (95 % of sampled roads need at most 4 water tiles,
+ * almost all at most 10); longer runs cross open sea and look like a pier across the sea. Existing roads are untouched:
+ * buildLink keeps its own rule (at most 6 deep tiles), this limit only filters which new roads are offered.
+ */
+export const MAX_BRIDGE = 10;
+/** Longest run of water tiles on the road path a–b (the same A* and cache as built roads), or null when no road can be built. */
+export function roadBridge(a: Seed, b: Seed): number | null {
+  const l = cachedLink(a, b, Math.hypot(a.x - b.x, a.y - b.y));
+  if (!l) return null;
+  let run = 0, max = 0;
+  for (const w of l.water) { run = w ? run + 1 : 0; if (run > max) max = run; }
+  return max;
+}
+/** Can a new trade road a–b be built without a sea-crossing bridge? */
+export const roadReachable = (a: Seed, b: Seed) => { const r = roadBridge(a, b); return r !== null && r <= MAX_BRIDGE; };
+/** New road partners: in reach, no decision yet, and reachable over land or with a river bridge (never across open sea). */
 export const roadCandidates = (s: Seed, seeds: Seed[]) =>
-  seeds.filter((o) => roadAllowed(s, o, seeds) && roadGate(s, o) === null)
+  seeds.filter((o) => roadAllowed(s, o, seeds) && roadGate(s, o) === null && roadReachable(s, o))
     .sort((p, q) => Math.hypot(p.x - s.x, p.y - s.y) - Math.hypot(q.x - s.x, q.y - s.y));
 /** The road this village decided that is still being built (only one at a time), or null. */
 export function roadBuilding(s: Seed, now: number, seeds?: Seed[]): { target: string; at: number; done: number } | null {

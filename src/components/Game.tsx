@@ -3436,6 +3436,9 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         const c = wayOf({ x: px, y: py });
         let near: Seed | null = null, nd = Infinity;
         for (const s of seeds) { const d = Math.hypot(px - s.x, py - s.y); if (d < nd) { nd = d; near = s; } }
+        // the same check as the road menu: reach and a real road path without a sea bridge (fixed probe id/date keeps the path cache warm)
+        const probe = { id: "plant-probe", name: "", owner: "", x: px, y: py, hue: 0, realm, user_id: userId, roads: [], created_at: new Date(0).toISOString() } as unknown as Seed;
+        const roadable = roadCandidates(probe, [...seeds, probe]).length > 0;
         return (
           <Parchment image={ART["surveyor"]} title={t.plantAsk.title} later={t.cancel} onLater={() => setPlantAsk(null)} action={<Button type="button" size="sm" disabled={planting} onClick={plantNow}>{planting ? t.plantAsk.wait : t.plantAsk.ok}</Button>}>
             <p className="mt-2 text-center font-display text-xl leading-snug">{t.plantAsk.intro(form.name.trim())}</p>
@@ -3447,7 +3450,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
             </div>
             <p className="mt-3 text-center text-xs text-muted-foreground">{TOWN_CHARACTER[lang].land[c]}</p>
             {remoteIsle(px, py) && <p role="alert" className="mt-3 rounded-md border border-accent bg-accent/20 p-2 text-xs leading-snug">⚓ {t.plantAsk.isle}</p>}
-            {nd > TRADE_DIST && <p role="status" className="mt-3 rounded-md border border-border bg-muted/40 p-2 text-xs leading-snug">{t.plantAsk.farOff(TRADE_DIST)}</p>}
+            {!roadable && <p role="status" className="mt-3 rounded-md border border-border bg-muted/40 p-2 text-xs leading-snug">{t.plantAsk.farOff(TRADE_DIST)}</p>}
             <div className="mt-3 space-y-1 rounded-md border border-border bg-muted/40 p-2 text-xs">
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].builds}</span><span className="text-right font-semibold">{WAY_BUILDS[c].map((k) => t.kind[k]).join(", ")}</span></div>
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].style}</span><span className="text-right">{FOUNDING[lang].look[c]}</span></div>
