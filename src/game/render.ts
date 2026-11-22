@@ -1,5 +1,6 @@
 import { streetHouse, streetFront, streetHouseNeedsFront, type StreetFront } from "./street-layout";
-import { paintedFlame } from "./building-sprites";
+import { paintedFlame, roofLine } from "./building-sprites";
+import { FIRE, blazeSpots, fireLevel, glowSprite, lampSprite, noise1, puffSprite, soft, swing } from "./fire";
 import { weatherAt, wetness, snowiness, stormDark, setWeatherPreview, type WeatherKind } from "./weather";
 import deerWalkUrl from "@/assets/sprites/deer-walk.webp";
 import wayCross from "@/assets/sprites/wayside/cross.webp.asset.json";
@@ -198,20 +199,20 @@ function tree(c: C, x: number, y: number, s: number, t: number, v: number, sd: n
 }
 let smokeWind = 0.3;
 /** Soft drifting smoke haze: feathered puffs with no hard edge, fading as they rise. */
-function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1) {
+/** Rising puffs from a cached soft sprite (no gradient per puff and frame); `dark` = soot from a burning roof. */
+function smoke(c: C, x: number, y: number, t: number, sd: number, big = 1, dark = false, density = 0.22) {
+  const sp = puffSprite(dark);
   for (let i = 0; i < 5; i++) {
     const ph = (t / (3600 * big) + hash(sd, 1, 1) + i / 5) % 1;
     const wd = smokeWind;
     const px = x + ph * (2 + 14 * wd) * big + Math.sin(ph * 5 + sd) * 1.2, py = y - ph * (18 - 10 * wd) * big, r = (1.6 + ph * 4.5) * big;
-    const a = 0.22 * Math.sin(Math.PI * Math.min(1, ph * 1.3));
-    const g = c.createRadialGradient(px, py, 0, px, py, r);
-    g.addColorStop(0, `rgba(214,210,202,${a})`); g.addColorStop(1, "rgba(214,210,202,0)");
-    c.fillStyle = g; c.fillRect(px - r, py - r, r * 2, r * 2);
+    soft(c, sp, px, py, r, density * Math.sin(Math.PI * Math.min(1, ph * 1.3)));
   }
 }
 
 /** win: a small window pane (rendered as a warm rectangle), otherwise an open flame/forge. */
-export type Light = { x: number; y: number; r: number; building?: { kind: Kind; variant: number; seed: number; flip?: boolean; style?: HouseStyle | undefined } };
+/** fl: the light's own flicker (fires pass their fireLevel-based value so the light moves with the flame; default candle). */
+export type Light = { x: number; y: number; r: number; fl?: number; building?: { kind: Kind; variant: number; seed: number; flip?: boolean; style?: HouseStyle | undefined } };
 
 /** Local clock hour, cached per second (house lights depend on it). */
 let hrCache = { at: 0, hr: 12 };
@@ -421,20 +422,65 @@ const VENTS: Partial<Record<Kind, { cw: number; smoke: [number, number, number][
   woodcamp: { cw: 480, smoke: [[322, 318, 0.55], [326, 316, 0.4]] },
   lighthouse: { cw: 352, smoke: [[120, 4, 0.7]], fire: [[118, 40, 1.4]] },
 };
-/** Small living flame (forge, oven mouth, fire bowl): warm amber tongues added with light, never pink. */
-function glowFlame(c: C, x: number, y: number, h: number, t: number, sd: number) {
-  const op = c.globalCompositeOperation; c.globalCompositeOperation = "lighter";
-  const fl = 0.8 + 0.12 * Math.sin(t / 120 + sd) + 0.08 * Math.sin(t / 53 + sd * 2);
-  const g = c.createRadialGradient(x, y - h * 0.3, 0, x, y - h * 0.3, h * 1.1);
-  g.addColorStop(0, `rgba(255,170,70,${0.35 * fl})`); g.addColorStop(1, "rgba(255,140,40,0)");
-  c.fillStyle = g; c.fillRect(x - h * 1.1, y - h * 1.4, h * 2.2, h * 2.2);
-  c.globalCompositeOperation = op; paintedFlame(c, x, y, h * 0.9, t, sd, 2);
+/** Small living flame (forge, oven mouth, fire bowl): warm amber tongues added with light, never pink.
+ *  Glow, flame and the returned light flicker share one intensity (fireLevel). */
+function glowFlame(c: C, x: number, y: number, h: number, t: number, sd: number): number {
+  const lvl = fireLevel("hearth", t, sd), op = c.globalCompositeOperation;
+  c.globalCompositeOperation = "lighter";
+  soft(c, glowSprite(), x, y - h * 0.3, h * 1.1, 0.35 * swing(lvl, FIRE.hearth.glow));
+  c.globalCompositeOperation = op; paintedFlame(c, x, y, h * 0.9, t, sd, 2, "hearth");
+  return swing(lvl, FIRE.hearth.light);
 }
+/** Draws on the frame and, after dark, on the light layer too, so flames stay bright above the night grade
+ *  (buildings drawn later erase it there like window light). */
+function withLit(c: C, f: (cc: C) => void) {
+  f(c);
+  if (lit) { lit.c.save(); lit.c.setTransform(c.getTransform()); lit.c.globalCompositeOperation = "source-over"; f(lit.c); lit.c.restore(); }
+}
+/** Open fire on the ground (feast bonfire on its log pile): flames, glow, sparks and smoke, light moving with them. */
 function drawFire(c: C, cx: number, cy: number, t: number, sd: number, L: Light[]) {
+  const lvl = fireLevel("campfire", t, sd);
   smoke(c, cx + 2, cy - 22, t * 2.5, sd, 1.6); smoke(c, cx - 3, cy - 18, t * 2, sd + 7, 1.2);
-  paintedFlame(c, cx, cy - 2, 20, t, sd, 3);
-  for (let i = 0; i < 4; i++) { const ph = (t / 900 + i / 4 + hash(sd, i, 8)) % 1; c.fillStyle = `rgba(255,190,90,${1 - ph})`; c.fillRect(cx + Math.sin(ph * 6 + i) * 6, cy - 16 - ph * 22, 0.6, 0.6); }
-  L.push({ x: cx, y: cy - 10, r: 26 });
+  const op = c.globalCompositeOperation; c.globalCompositeOperation = "lighter";
+  soft(c, glowSprite(), cx, cy - 4, 16, 0.3 * swing(lvl, FIRE.campfire.glow), 9);
+  c.globalCompositeOperation = op;
+  withLit(c, (cc) => paintedFlame(cc, cx, cy - 1, 20, t, sd, 3, "campfire"));
+  for (let i = 0; i < 4; i++) { const ph = (t / 900 + i / 4 + hash(sd, i, 8)) % 1; c.fillStyle = `rgba(255,190,90,${(1 - ph) * (0.5 + 0.5 * lvl)})`; c.fillRect(cx + (noise1(t / 700 + i * 2.7, i) - 0.5) * 12, cy - 16 - ph * 22, 0.6, 0.6); }
+  L.push({ x: cx, y: cy - 10, r: 26, fl: swing(lvl, FIRE.campfire.light) });
+}
+/** A burning house, keyed to its own painting: roof line (fractions of the actual image, mirrored with it), flame
+ *  size from its height. Main tongues are drawn *before* the house with their roots inside the roof, so the painted
+ *  roof hides the root and the fire breaks through it — never perched on the ridge or floating in front of a wall. */
+function blazeGeom(s: Structure, cx: number, cy: number, flip: boolean, style: HouseStyle | undefined, sd: number) {
+  const rl = roofLine(s.kind, cx, cy, s.v, flip, style); if (!rl) return null;
+  const spots = blazeSpots(rl.width, sd), fh = Math.min(28, Math.max(10, rl.height * 0.55));
+  let ridge = rl.at(0.5);
+  for (const u of spots) { const p = rl.at(u); if (p[1] < ridge[1]) ridge = p; }
+  return { rl, spots, fh, ridge };
+}
+/** Before the house sprite: the tongues rising from inside the roof (frame and night light layer). */
+function drawBlazeBehind(c: C, s: Structure, cx: number, cy: number, flip: boolean, style: HouseStyle | undefined, t: number, sd: number) {
+  const g = blazeGeom(s, cx, cy, flip, style, sd); if (!g) return;
+  const root = g.rl.height * 0.13;
+  withLit(c, (cc) => g.spots.forEach((u, i) => { const [px, py] = g.rl.at(u); paintedFlame(cc, px, py + root, (g.fh + root) * (i % 2 ? 0.8 : 1), t, sd + i * 0.37, 2, "blaze"); }));
+}
+/** After the house sprite: glowing windows, a tongue licking on the roof face, glow, soot, sparks and the cast light —
+ *  all driven by the same intensity. Falls back to a ground fire while the painting is still loading. */
+function drawBlaze(c: C, s: Structure, cx: number, cy: number, flip: boolean, style: HouseStyle | undefined, t: number, sd: number, L: Light[]) {
+  const g = blazeGeom(s, cx, cy, flip, style, sd);
+  if (!g) { drawFire(c, cx, cy, t, sd, L); return; }
+  const { rl, spots, fh, ridge } = g, lvl = fireLevel("blaze", t, sd), F = FIRE.blaze;
+  // heat in the walls: the house's own window mask lit from inside, stronger when the fire surges
+  if (hasNightSprite(s.kind)) withLit(c, (cc) => { const op = cc.globalCompositeOperation; cc.globalCompositeOperation = "lighter"; drawBuildingNight(cc, s.kind, cx, cy, s.v, 0.55 + 0.45 * lvl, flip, style); cc.globalCompositeOperation = op; });
+  // one smaller tongue on the roof face, rooted well inside the roof surface
+  const mid = spots[Math.floor(spots.length / 2)]!, [mx, my] = rl.at(mid);
+  withLit(c, (cc) => paintedFlame(cc, mx + rl.width * 0.04, my + rl.height * 0.1, fh * 0.42, t, sd + 2.9, 1, "blaze"));
+  const op = c.globalCompositeOperation; c.globalCompositeOperation = "lighter";
+  soft(c, glowSprite(), cx, rl.top + rl.height * 0.4, rl.width * 0.75, 0.28 * swing(lvl, F.glow), rl.height * 0.6);
+  for (let i = 0; i < 6; i++) { const ph = (t / 1300 + i / 6 + hash(sd, i, 8)) % 1; c.fillStyle = `rgba(255,${200 - ph * 70},90,${(1 - ph) * (0.45 + 0.55 * lvl)})`; c.fillRect(ridge[0] + (noise1(t / 800 + i * 2.3, i) - 0.5) * rl.width * 0.5 + ph * 3, ridge[1] - fh * 0.4 - ph * fh * 1.3, 0.55, 0.55); }
+  c.globalCompositeOperation = op;
+  smoke(c, ridge[0], ridge[1] - fh * 0.75, t * 1.4, sd, Math.max(1.2, rl.height / 18), true, 0.3);
+  L.push({ x: cx, y: rl.top + rl.height * 0.4, r: Math.max(18, rl.width * 1.1), fl: swing(lvl, F.light) });
 }
 const floodMap = new Map<number, TileHit>();
 /** Water depth 0..1 under a world point this frame (flooded tiles only). */
@@ -729,15 +775,16 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
   // plinthless thatched hut: soft contact shadow along the foundation, cast down-right (light from upper left)
   if (s.kind === "hut" && !s.flood) { c.fillStyle = "rgba(30,22,12,0.22)"; c.beginPath(); c.ellipse(cx + 0.8, cy + 3.4, 9.6, 3.2, 0, 0, 7); c.fill(); c.fillStyle = "rgba(30,22,12,0.12)"; c.beginPath(); c.ellipse(cx + 2, cy + 4.2, 11, 3.8, 0, 0, 7); c.fill(); }
   if (s.flood && !FLAT.has(s.kind)) drawReflection(c, s, cx, cy, t, flip, style);
+  if (s.fire) drawBlazeBehind(c, s, cx, cy, flip, style, t, sd);
   if (drawBuildingSprite(c, s.kind, cx, cy, s.v, 1, flip, style)) {
     // window light lives on its own layer: every building drawn later (in front) erases the lights behind it
     if (lit) { lit.c.setTransform(c.getTransform()); lit.c.globalCompositeOperation = "destination-out"; drawBuildingSprite(lit.c, s.kind, cx, cy, s.v, 1, flip, style); }
     if (s.kind === "campfire") {
-      L.push({x:cx,y:cy-3,r:7}); smoke(c,cx,cy-6,t,sd,0.25);
+      L.push({ x: cx, y: cy - 3, r: 7, fl: swing(fireLevel("campfire", t, x * 7 + y * 13), FIRE.campfire.light) }); smoke(c, cx, cy - 6, t, sd, 0.25);
     }
     // plain thatched hut: hearth smoke rises animated from the roof hole (no chimney, painted smoke removed)
     if (s.kind === "hut" && !style && !s.fire) smoke(c, cx + (flip ? 0.33 : -0.33), cy - 4.6, t, sd, 0.35);
-    if (s.fire) drawFire(c, cx, cy, t, sd, L);
+    if (s.fire) drawBlaze(c, s, cx, cy, flip, style, t, sd, L);
     if (hasNightSprite(s.kind) && (houseLit(s.kind, sd, localHour(), sunNow().rise, sunNow().set) || (stormDark(renderNow) > 0.4 && STORM_LIT.has(s.kind) && localHour() >= 7 && localHour() < 20) || (isHomeKind(s.kind) && (sickLit(x, y) || christmasNight(renderNow))))) {
       if (lit) { lit.c.globalCompositeOperation = "source-over"; drawBuildingNight(lit.c, s.kind, cx, cy, s.v, candleFlicker(t, sd) * lampStrength(s.kind), flip, style); }
     }
@@ -757,7 +804,7 @@ function drawStructureBase(c: C, s: Structure, cx: number, cy: number, x: number
       if (b) {
         const k = b.w / vents.cw, at = (u: number, v: number): [number, number] => [cx + (flip ? -1 : 1) * (u * k - b.w / 2), cy + b.base - b.h + v * k];
         for (const [u, v, big] of vents.smoke) { const [px, py] = at(u, v); smoke(c, px, py, t, sd + u, big); }
-        for (const [u, v, h] of vents.fire ?? []) { const [px, py] = at(u, v); glowFlame(c, px, py, h * k * 40, t, sd + u); L.push({ x: px, y: py - 1, r: 8 }); }
+        for (const [u, v, h] of vents.fire ?? []) { const [px, py] = at(u, v), fl = glowFlame(c, px, py, h * k * 40, t, sd + u); L.push({ x: px, y: py - 1, r: 8, fl }); }
       }
     } else if (s.kind === "steamworks" || s.kind === "inn") smoke(c, cx + 4, cy - 18, t, sd, 0.6);
     return;
@@ -4521,7 +4568,7 @@ export function draw(
       const r = l.r * z * 2.2;
       if (sx < -r || sy < -r || sx > w + r || sy > h + r) continue;
       // Window light is painted from the actual image, never guessed wall coordinates.
-      const fl = candleFlicker(t, l.building?.seed ?? l.x * 7 + l.y * 13);
+      const fl = l.fl ?? candleFlicker(t, l.building?.seed ?? l.x * 7 + l.y * 13);
       if (l.building) {
         c.save();
         c.setTransform(z, 0, 0, z, w / 2 - cam.x * z, h / 2 - cam.y * z);
@@ -4529,11 +4576,7 @@ export function draw(
         c.restore();
         continue;
       }
-      const g = c.createRadialGradient(sx, sy, 0, sx, sy, r);
-      g.addColorStop(0, `rgba(255,190,100,${0.7 * night * fl})`);
-      g.addColorStop(0.25, `rgba(255,150,60,${0.32 * night * fl})`);
-      g.addColorStop(1, "rgba(255,130,50,0)");
-      c.fillStyle = g; c.fillRect(sx - r, sy - r, r * 2, r * 2);
+      soft(c, lampSprite(), sx, sy, r, night * fl); // cached light pool, scaled by alpha (same stops as before)
     }
     c.globalCompositeOperation = "source-over";
   }
