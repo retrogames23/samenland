@@ -1,5 +1,6 @@
 import { seasonalImage, lastWasProvisional } from "./season-art";
 import { seasonKey } from "./season";
+import { RIDGE, ROWS_PER_TILE, ROW_ALONG, ROW_PERIOD, lineOffset, rowHeightFactor, rowPhase } from "./field-rows";
 import { pCount } from "./perf-probe";
 import grass from "@/assets/terrain/grass.jpg";
 import meadow from "@/assets/terrain/meadow.jpg";
@@ -174,6 +175,72 @@ import wheatRow from "@/assets/sprites/wheat-row.webp";
 import cropRow from "@/assets/sprites/crop-row.webp";
 /** Painted standing crop rows stamped along acre furrows (wheat: horizontal row; crops: ridge running up-right). */
 export const fieldRowImage = (ripe: boolean) => img(ripe ? wheatRow : cropRow);
+
+import rowGreen from "@/assets/terrain/row-green.webp";
+import rowRipe from "@/assets/terrain/row-ripe.webp";
+import rowStubble from "@/assets/terrain/row-stubble.webp";
+import rowFurrow from "@/assets/terrain/row-furrow.webp";
+/** Continuous crop rows (scripts/gen-field-rows.py): one painted furrow strip per look, tiling along the row. */
+export type RowKind = "green" | "ripe" | "stubble" | "furrow";
+const ROWS: Record<RowKind, string> = { green: rowGreen, ripe: rowRipe, stubble: rowStubble, furrow: rowFurrow };
+/** Strip pixels per tile of row length (the 1024-px strip repeats every 2.2 tiles) and strip height in pixels. */
+export const ROW_PX = 1024 / ROW_ALONG, ROW_STRIP_H = 128;
+const rowPats = new Map<string, CanvasPattern>();
+const ROW_M = typeof DOMMatrix !== "undefined" ? new DOMMatrix() : (null as unknown as DOMMatrix);
+export const rowImagesReady = () => (Object.values(ROWS) as string[]).every((u) => !!img(u));
+/** Seasonal row pattern (repeat-x), cached per season key like the ground textures; null while art is loading. */
+export function rowPattern(c: C, k: RowKind): CanvasPattern | null {
+  const key = `${k}:${seasonKey(artNow)}`;
+  let p = rowPats.get(key);
+  if (!p) {
+    const i = img(ROWS[k]); if (!i) return null;
+    p = c.createPattern(seasonalImage(i, "field"), "repeat-x") ?? undefined; if (!p) return null;
+    if (!lastWasProvisional()) { if (rowPats.size > 24) rowPats.clear(); rowPats.set(key, p); }
+  }
+  return p;
+}
+/** One pre-composed crop surface per look, row direction and season: all rows of a 2.2 × 4-tile period drawn back to
+ *  front with plants upright on screen, pre-sheared into a small canvas whose repeat axes are the period vectors. A
+ *  single world-anchored fill then paints any acre tile seamlessly (same pixels everywhere, no seams, no depth order
+ *  issues between tiles). ~0.2 MB each; rebuilt only when the season key changes. */
+const SURF_PX = 7, TW2 = 16, TH2 = 8;
+const surfaces = new Map<string, CanvasPattern>();
+export function rowSurface(c: C, k: RowKind, along: boolean, height: number, shade: string): CanvasPattern | null {
+  const key = `${k}|${+along}|${height}|${seasonKey(artNow)}`;
+  const hit = surfaces.get(key); if (hit) return hit;
+  if (typeof document === "undefined" || typeof DOMMatrix === "undefined") return null;
+  // while the strip's seasonal recolour is still running, compose nothing (the caller marks the chunk for a re-bake);
+  // never build a throw-away surface per call
+  const strip = rowPattern(c, k); if (!strip || lastWasProvisional()) return null;
+  // world vectors per tile along the row (U) and across it (V); period A = U·2.2, B = V·4
+  const U: [number, number] = along ? [TW2, TH2] : [-TW2, TH2], V: [number, number] = along ? [-TW2, TH2] : [TW2, TH2];
+  const A: [number, number] = [U[0] * ROW_ALONG, U[1] * ROW_ALONG], per = ROW_PERIOD / ROWS_PER_TILE, B: [number, number] = [V[0] * per, V[1] * per];
+  const W = Math.ceil(Math.hypot(A[0], A[1]) * SURF_PX), H = Math.ceil(Math.hypot(B[0], B[1]) * SURF_PX);
+  const M = new DOMMatrix([A[0] / W, A[1] / W, B[0] / H, B[1] / H, 0, 0]);
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const g = cv.getContext("2d"); if (!g) return null;
+  g.setTransform(M.inverse()); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+  g.fillStyle = strip;
+  // lines back to front (V points down-screen); enough lines and length to cover the period with its wrap margins
+  for (let line = -ROW_PERIOD; line <= ROW_PERIOD * 2 + ROWS_PER_TILE; line++) {
+    const v = lineOffset(line), bx = V[0] * v, by = V[1] * v, hh = height * rowHeightFactor(line, along);
+    placeRow(strip, 0, rowPhase(line, along), hh);
+    g.save(); g.transform(U[0], U[1], 0, 1, bx, by);
+    g.fillRect(-ROW_ALONG * 2, -hh, ROW_ALONG * 5, hh + 0.2);
+    if (line % RIDGE === 0) { g.globalCompositeOperation = "source-atop"; g.fillStyle = shade; g.fillRect(-ROW_ALONG * 2, -hh * 0.55, ROW_ALONG * 5, hh * 0.55 + 0.2); g.globalCompositeOperation = "source-over"; g.fillStyle = strip; }
+    g.restore();
+  }
+  const p = c.createPattern(cv, "repeat"); if (!p) return null;
+  p.setTransform(M);
+  if (surfaces.size > 24) surfaces.clear(); surfaces.set(key, p);
+  return p;
+}
+/** Places a row pattern in the row's local frame (s along the row in tiles, h up in world units): strip pixel u maps
+ *  to world row position (u - phase) / ROW_PX, so rows run on seamlessly from tile to tile. */
+export function placeRow(p: CanvasPattern, s0: number, phasePx: number, height: number) {
+  ROW_M.setMatrixValue("none");
+  p.setTransform(ROW_M.translateSelf(-s0 - phasePx / ROW_PX, -height).scaleSelf(1 / ROW_PX, height / ROW_STRIP_H));
+}
 
 import riderUrl from "@/assets/sprites/rider.webp";
 import riderBackUrl from "@/assets/sprites/rider-back.webp";
