@@ -429,6 +429,7 @@ export const buildTime = (at: number) => Math.min(96, Math.max(1.5, at * 0.06));
 export const HOUSE_BUILD = 0.6;
 /** Site progress of one tile evaluation; owned by the caller, never shared module state. */
 type BuildOut = { p: number; at: number };
+export const WELL_DIG = 0.15;
 /** Homes that may be mirrored so their front turns toward the street (pure, all clients agree). */
 export const MIRROR_KINDS: ReadonlySet<Kind> = new Set(["hut", "farmhouse", "cottage", "townhouse", "townhouse2", "fachwerk", "steinhaus", "handwerker", "patrician", "villa", "tenement", "suburb", "barn", "workshop", "stall", "coop"]);
 /**
@@ -728,7 +729,14 @@ function barnOfYard(x: number, y: number, s: Seed, age: number, r: number, stage
 }
 function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: number, raw = false, out?: BuildOut): Kind | null {
   const dx = x - s.x, dy = y - s.y, stage = stageOf(age);
-  if (dx === 0 && dy === 0) return age < 0.15 ? "campfire" : "well";
+  // the village well is dug during the first 9 minutes: a building site, not a second campfire next to the core one at (+1,+1)
+  if (dx === 0 && dy === 0) {
+    if (age < WELL_DIG && out) {
+      out.p = age / WELL_DIG;
+      out.at = WELL_DIG;
+    }
+    return "well";
+  }
   const core = CORE[`${dx},${dy}`];
   if (core) {
     if (age < 0.05 && core !== "hut") return null;
