@@ -6,7 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 const URL = process.env["BUILD_MAIL_TEST_PG"];
 if (!URL && (process.env["CI"] || process.env["REQUIRE_PG"])) throw new Error("BUILD_MAIL_TEST_PG missing: realm guard DB tests must run");
 const d = URL ? describe : describe.skip;
-const GUARD = readFileSync(new globalThis.URL("../../drizzle/migrations/0117_europe_verified_exceptions.sql", import.meta.url), "utf8");
+const GUARD = readFileSync(new globalThis.URL("../../drizzle/migrations/0135_europa_iv_realm_guard.sql", import.meta.url), "utf8");
 
 const VICTORIA = "00000000-0000-0000-0000-0000000000a1";
 const JOHANNA = "00000000-0000-0000-0000-0000000000a2";
@@ -66,8 +66,9 @@ d("realm_full_guard (real PostgreSQL)", () => {
     expect(await found(ADMIN, "europe")).toBe("ok");
     expect(await found(ADMIN, "europe-2")).toBe("ok");
   });
-  it("other realm limits are unchanged", async () => {
-    expect(await found(STRANGER, "europe-3")).toBe("ok"); // terminal map not guarded (step 2)
+  it("chained maps refuse from 60, the last map stays open", async () => {
+    expect(await found(STRANGER, "europe-3")).toBe("realm_full"); // Europa III now leads on to Europa IV
+    expect(await found(STRANGER, "europe-4")).toBe("ok"); // terminal map not guarded
     await sql`alter table public.seeds disable trigger seeds_realm_full`;
     await sql`delete from public.seeds where realm = 'europe-2' and ctid in (select ctid from public.seeds where realm = 'europe-2' limit 1)`;
     await sql`alter table public.seeds enable trigger seeds_realm_full`;

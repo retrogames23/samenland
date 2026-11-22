@@ -27,10 +27,12 @@ describe("nextOpenRealm", () => {
   });
   it("follows the chain past further full maps via openRealm", () => {
     expect(nextOpenRealm("europe", full("europe", "europe-2"))).toBe("europe-3");
+    expect(nextOpenRealm("europe", full("europe", "europe-2", "europe-3"))).toBe("europe-4");
     expect(nextOpenRealm("europe", full("europe", "europe-2"))).toBe(openRealm("europe-2", full("europe-2")));
   });
   it("is null where the chain ends", () => {
-    expect(nextOpenRealm("europe-3", () => 0)).toBeNull();
+    expect(nextOpenRealm("europe-3", () => 0)).toBe("europe-4");
+    expect(nextOpenRealm("europe-4", () => 0)).toBeNull();
     expect(nextOpenRealm("asia-2", () => REALM_FULL)).toBeNull();
   });
   it("never returns the refused map and always terminates", () => {

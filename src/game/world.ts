@@ -72,6 +72,7 @@ const ANCHORS: Record<Biome, [number, number][]> = {
   westwild: [[304, 405], [330, 354]],
   westwood: [[297, 415]],
   heath: [[374, 379], [404, 411]],
+  weser: [],
 };
 const ANCHOR_R = 30;
 function anchorNear(x: number, y: number, r: number) {
@@ -93,6 +94,7 @@ function heightAt(x: number, y: number) {
   if (geo === "halligen") return heightHalligen(x, y);
   if (geo === "bodden") return heightBodden(x, y);
   if (geo === "moor") return heightMoor(x, y);
+  if (geo === "weser") return heightWeser(x, y);
   const h = geo === "westwild" ? heightFjords(x, y) : geo === "westwood" ? heightCoastPlain(x, y) : heightArchipelago(x, y);
   return protect(x, y, h);
 }
@@ -168,6 +170,22 @@ function heightMoor(x: number, y: number) {
   const rim = Math.max(0, 1 - Math.abs(d - 0.27) / 0.08) * 0.14;
   const ridge = 1 - Math.abs(fbm(x / 100, y / 100, 925) * 2 - 1);
   return fbm(x / 85, y / 85, 901) * 0.68 + ridge * ridge * 0.16 + rim - edge;
+}
+/**
+ * Weserau (Europa IV): a tall island crossed north to south by a meandering river with a broad, low meadow valley (Aue);
+ * wooded sandstone hill ridges rise on both banks, highest away from the river.
+ */
+function heightWeser(x: number, y: number) {
+  const wx = x + (fbm(x / 150, y / 150, 1021) - 0.5) * 130, wy = y + (fbm(x / 150, y / 150, 1022) - 0.5) * 130;
+  const cx = wx / MAP - 0.5, cy = wy / MAP - 0.5, ang = Math.atan2(cy, cx);
+  const coast = 0.8 + (vnoise(Math.cos(ang) * 4 + 110, Math.sin(ang) * 4 + 110, 1023) - 0.5) * 0.3;
+  const edge = Math.max(0, Math.hypot(cx * 1.2, cy) * 2 - coast) * 2.2;
+  const bend = cx + 0.03 - Math.sin(cy * 6 + 0.5) * 0.05; // the river winds from north to south
+  const river = Math.max(0, 1 - Math.abs(bend) / 0.018) * (cy < 0.36 ? 1 : 0); // opens into the sea in the north, rises in the south
+  const aue = Math.max(0, 1 - Math.abs(bend) / 0.11); // flat meadow valley along the river
+  const ridge = 1 - Math.abs(fbm(x / 90, y / 90, 1025) * 2 - 1);
+  const hills = ridge * ridge * (0.2 + Math.min(0.24, Math.max(0, Math.abs(bend) - 0.08) * 0.9));
+  return fbm(x / 95, y / 95, 1001) * 0.64 + 0.04 + hills - aue * 0.06 - edge - river * 0.6;
 }
 /** West isles: a long, tilted island with ragged fjords and a granite spine along its eastern side. */
 function heightFjords(x: number, y: number) {

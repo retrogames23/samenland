@@ -337,7 +337,7 @@ export const es: Dict = {
     gate: (a, b) => `Puerta comunal entre ${a} y ${b}`,
   },
   hud: { walk: "Paseo", walkExit: "Terminar paseo", walkHome: "Volver a casa", walkFollow: "Seguir al alcalde", walkHint: "WASD/flechas o toca el suelo · Esc para salir", build: "Construir", rituals: "Cuidados", signs: "Postes", towns: "Aldeas", plant: "Sembrar semilla", settings: "Ajustes", menu: "Menú", zoomIn: "Acercar", zoomOut: "Alejar", close: "Cerrar", noTown: "Siembra primero tu semilla.", login: "Inicia sesión para fundar una aldea.", language: "Idioma", realm: "Mapa (admin)" },
-  realms: { "us-west": "América Occidental", "us-east": "América Oriental", "us-west-2": "América Occidental II", "us-east-2": "América Oriental II", "europe-3": "Europa III", "asia-2": "Asia-Pacífico II", europe: "Europa", "europe-2": "Europa II", asia: "Asia-Pacífico", lab: "Mapa de pruebas" },
+  realms: { "us-west": "América Occidental", "us-east": "América Oriental", "us-west-2": "América Occidental II", "us-east-2": "América Oriental II", "europe-3": "Europa III", "europe-4": "Europa IV", "asia-2": "Asia-Pacífico II", europe: "Europa", "europe-2": "Europa II", asia: "Asia-Pacífico", lab: "Mapa de pruebas" },
   lab: { title: (k: number) => (k > 1 ? `Cámara rápida ${k}× · saltar a` : "Tiempo normal · saltar a"), note: "Solo administradores. El salto computa desde el inicio del mapa de pruebas." },
   perDay: (n: number) => `+${n}/día`,
   nextTax: (h: string, d: string) => `Próxima recaudación a las ${h} (en ${d})`,
