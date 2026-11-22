@@ -49,12 +49,13 @@ import { sunTimes, viewNight as nightLevel, viewGlow as duskGlow } from "./sun";
 const sunNow = () => sunTimes(clock());
 import { setArtTime, seasonalImage, standIns } from "./season-art";
 import { chunkKey, pickChunk, nextShown } from "./ground-chunks";
+import { flatQ } from "./field-rows";
 import { FLOW_BLOCK, STREAKS, flowBlock, flowPatch, streakAt, zoomKeep } from "./river-flow";
 import { seasonKey, seasonAt } from "./season";
 import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
 import { townCharacter } from "./character";
-import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, oxWalkImage, planksPattern, riderImage, horseImage, stallImage, type Tex } from "./nature-sprites";
+import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, rowSurface, rowImagesReady, type RowKind, oxWalkImage, planksPattern, riderImage, horseImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, onFireTile, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { folkImage, walkSheet, standSprite, standSheetOf, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
@@ -115,7 +116,13 @@ type Pt = [number, number];
 
 const INK = "rgba(34,26,18,0.72)";
 /** Base texture of a field tile under the three-field rotation. */
-const LOOK_TEX: Record<Look, Tex> = { green: "crops", ripe: "wheat", stubble: "wheat", ploughed: "fertileAcker", fallow: "grass" };
+/** Ground under a field: the soil shows between the painted rows (drawFieldRows); fallow stays grassland. */
+const LOOK_TEX: Record<Look, Tex> = { green: "fertileAcker", ripe: "fertileAcker", stubble: "fertileAcker", ploughed: "fertileAcker", fallow: "grass" };
+/** Painted row strip per field look (fallow has none) and its standing height in world units. */
+const ROW_OF: Partial<Record<Look, RowKind>> = { green: "green", ripe: "ripe", stubble: "stubble", ploughed: "furrow" };
+/** Strip heights (world units). Row spacing on screen is ~1.33 units, so crop and stubble strips close the stand (their
+ *  own painted ground fills the space to the next row); winter rye and furrows leave the soil showing between them. */
+const ROW_H: Record<RowKind | "winter", number> = { green: 2.4, ripe: 3.0, stubble: 1.5, furrow: 0.85, winter: 1.3 };
 /** Scythe only on ripe grain; gardens and pastures keep their usual work cycle. */
 const farmReaps = (p: { work: [number, number] | null; seed: Seed }, now: number) => { const w = p.work!, st = structureAt(w[0], w[1], soloSeeds(p.seed), now); return st?.kind !== "field" || farmTask(fieldLook(acreOf(w[0], w[1], p.seed).id, now)) === "reap"; };
 const fieldTex = (x: number, y: number, s: Seed, now: number): Tex => LOOK_TEX[fieldLook(acreOf(x, y, s).id, now)];
@@ -2400,7 +2407,7 @@ function acrePath(c: C, cx: number, cy: number, hx: number, hy: number, outer: b
   c.closePath();
   return q;
 }
-type AgriSpec = { kind: "field" | "garden" | "pasture"; ripe: boolean; look?: Look | undefined; along: boolean; outer: boolean[]; winter: boolean; hx: number; hy: number; k2: number };
+type AgriSpec = { kind: "field" | "garden" | "pasture"; ripe: boolean; look?: Look | undefined; along: boolean; outer: boolean[]; winter: boolean; hx: number; hy: number; k2: number; strips?: boolean };
 /** Furrows, plants, wattle, bean poles, tufts and troughs — everything except the textured base fill. */
 let gCabbage: HTMLImageElement | null = null, gLeek: HTMLImageElement | null = null, gBeans: HTMLImageElement | null = null;
 let pastureClover: HTMLImageElement | null = null, pastureTussock: HTMLImageElement | null = null;
@@ -2439,7 +2446,7 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
       c.strokeStyle = "rgba(92,62,36,0.55)"; c.lineWidth = 2.4; c.beginPath(); c.moveTo(a0[0], a0[1]); c.lineTo(a1[0], a1[1]); c.stroke();
       c.strokeStyle = "rgba(168,128,84,0.35)"; c.lineWidth = 0.9; c.beginPath(); c.moveTo(a0[0] - 0.2, a0[1] - 0.7); c.lineTo(a1[0] - 0.2, a1[1] - 0.7); c.stroke();
     }
-  } else {
+  } else if (!a.strips) {
     for (let k = -2; k <= 2; k++) {
       const f = k / 4, [a0, a1] = along ? [pp(-0.6, f), pp(0.6, f)] : [pp(f, -0.6), pp(f, 0.6)];
       c.strokeStyle = "rgba(35,24,12,0.38)"; c.lineWidth = 1.3; c.beginPath(); c.moveTo(a0[0], a0[1] + 0.9); c.lineTo(a1[0], a1[1] + 0.9); c.stroke();
@@ -2477,6 +2484,8 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
       for (let n = 0; n < 7; n++) { const [px, py] = pp((hash(x, y, 810 + n) - 0.5) * 0.9, (hash(x, y, 820 + n) - 0.5) * 0.9); for (let b = -1; b <= 1; b++) { c.moveTo(px + b * 0.3, py); c.lineTo(px + b * 0.45, py - 0.7); } }
       c.stroke();
       c.fillStyle = "rgba(230,215,120,0.85)"; for (let n = 0; n < 4; n++) { const [px, py] = pp((hash(x, y, 830 + n) - 0.5) * 0.9, (hash(x, y, 840 + n) - 0.5) * 0.9); c.beginPath(); c.arc(px, py - 0.8, 0.35, 0, 7); c.fill(); }
+    } else if (a.strips) {
+      // stubble, furrows and standing crop are continuous painted rows (drawFieldRows), only the balk is added here
     } else if (a.look === "stubble") {
       // reaped rows: pale straw stubble with a dark foot, plus a few loose straw wisps
       for (let k = -3; k <= 3; k++) for (let m = -6; m <= 6; m++) {
@@ -2501,7 +2510,7 @@ function agriDetail(c: C, cx: number, cy: number, a: AgriSpec) {
         c.fillStyle = "rgba(150,110,70,0.6)"; c.beginPath(); c.ellipse(px - 0.1, py - 0.1, r * 0.7, r * 0.32, 0, 0, 7); c.fill();
       }
     }
-    if (row && !a.winter && grows) {
+    if (row && !a.winter && grows && !a.strips) {
       const w = ripe ? 3.4 : 3.1, hgt = (w * row.height) / row.width, flipRow = !along;
       for (let k = -3; k <= 3; k++) for (let m = -5; m <= 5; m += 2) {
         const f = k / 6, gg = m * 0.085 + (hash(x * 5 + k, y * 3 + m, 640) - 0.5) * 0.05;
@@ -2531,7 +2540,7 @@ function agriSprite(a: AgriSpec, key: string): HTMLCanvasElement | null {
   let cv = agriSprites.get(key);
   if (cv) return cv;
   // plant art not loaded yet: draw nothing cached (the fill is still shown) and retry next frame
-  if (a.kind !== "pasture" && !a.winter && !fieldRowImage(a.kind === "field" && a.ripe)) { agriMiss = true; return null; }
+  if (a.kind !== "pasture" && !a.winter && !a.strips && !fieldRowImage(a.kind === "field" && a.ripe)) { agriMiss = true; return null; }
   if (a.kind === "garden" && !a.winter && !(gCabbage && gLeek && gBeans)) { agriMiss = true; return null; }
   if (a.kind === "pasture" && !(pastureClover && pastureTussock)) { agriMiss = true; return null; }
   cv = document.createElement("canvas"); cv.width = AGRI_W * AGRI_S; cv.height = AGRI_H * AGRI_S;
@@ -2540,6 +2549,15 @@ function agriSprite(a: AgriSpec, key: string): HTMLCanvasElement | null {
   agriSprites.set(key, cv);
   while (agriSprites.size > 500) agriSprites.delete(agriSprites.keys().next().value!);
   return cv;
+}
+/** Grain around 1500 is broadcast-sown on ridged strips (Wölbäcker), never drilled: the rows overlap into a closed
+ *  stand, and every third one lies a little lower and darker — the furrow between two ridges. */
+const RIDGE_SHADE = "rgba(42,30,12,0.16)";
+/** Crop rows over one acre tile: a single world-anchored fill with the pre-composed surface (nature-sprites
+ *  rowSurface) — rows run on unbroken across the whole acre, cost like the old base fill plus sprite. */
+function drawFieldRows(c: C, cx: number, cy: number, hx: number, hy: number, outer: boolean[], along: boolean, kind: RowKind, height: number) {
+  const p = rowSurface(c, kind, along, height, RIDGE_SHADE); if (!p) { agriMiss = true; return; }
+  acrePath(c, cx, cy, hx, hy, outer); c.fillStyle = p; c.fill();
 }
 /** One farmland tile: a textured base fill (few ops) plus one cached detail sprite. */
 function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Structure, seeds: Seed[], now: number) {
@@ -2563,8 +2581,10 @@ function drawAgri(c: C, x: number, y: number, cx: number, cy: number, st: Struct
       c.fillStyle = texture(c, "fertileGarten") ?? hsl(25, 35, 30); c.fill();
       c.globalAlpha = 0.5; c.fillStyle = texture(c, "dirt") ?? hsl(30, 35, 55); c.fill(); c.globalAlpha = 1;
     } else { c.fillStyle = texture(c, LOOK_TEX[look!]) ?? hsl(ripe ? 44 : 80, 50, 60); c.fill(); if (look === "stubble") { c.globalAlpha = 0.35; c.fillStyle = texture(c, "dirt") ?? hsl(30, 35, 55); c.fill(); c.globalAlpha = 1; } }
-    a = { kind: st.kind as "field" | "garden", ripe, look, along: ac.along, outer, winter, hx, hy, k2: 0 };
-    key = `${st.kind[0]}${look ?? ""}${+ac.along}${outer.map((o) => +o).join("")}${+winter}|${v}`;
+    const rows = st.kind === "field" && look ? ROW_OF[look] : undefined;
+    if (rows) drawFieldRows(c, cx, cy, hx, hy, outer, ac.along, rows, look === "green" && winter ? ROW_H.winter : ROW_H[rows]);
+    a = { kind: st.kind as "field" | "garden", ripe, look, along: ac.along, outer, winter, hx, hy, k2: 0, strips: !!rows };
+    key = `${st.kind[0]}${look ?? ""}${+ac.along}${outer.map((o) => +o).join("")}${+winter}${rows ? "s" : ""}|${v}`;
   }
   const sp = agriSprite(a, key + seasonKey(now));
   if (sp) c.drawImage(sp, cx - AGRI_W / 2, cy - AGRI_UP, AGRI_W, AGRI_H);
@@ -3642,6 +3662,7 @@ function bakeFlatInner(e: FlatChunk, ix: number, iy: number, q: number, seeds: S
 // touch devices: cap bake resolution (4x chunks at DPR 2-3 exceed mobile canvas memory)
 const TOUCH = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
 const FLAT_QMAX = TOUCH ? 2 : 4;
+
 /** Flat cache budget in estimated pixel-buffer bytes (canvas + bitmap counted separately, both may coexist);
  *  ?flatbudget=<MB> overrides it for measurements. An estimate of buffer sizes, not measured RAM/GPU use. */
 const FLAT_BUDGET = (() => {
@@ -3671,7 +3692,7 @@ const visKeys: number[] = [], visPrio = new Map<number, number>(), admitted = ne
 function drawFlatChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, seeds: Seed[], now: number, t: number): Set<number> {
   flatSet.clear();
   // near zoom: bake farmland/paths at screen resolution so acres stay as crisp as the buildings
-  const q = Math.min(FLAT_QMAX, z > 3.2 ? 4 : z > 1.6 ? 2.5 : z > 0.6 ? 1 : 0.5), sk = seasonKey(now) + ":" + waySnow(now), ready = allTexturesReady() && natureReady();
+  const q = flatQ(z, FLAT_QMAX), sk = seasonKey(now) + ":" + waySnow(now), ready = allTexturesReady() && natureReady() && rowImagesReady();
   const cx0 = Math.floor(x0 / FC), cx1 = Math.floor(x1 / FC), cy0 = Math.floor(y0 / FC), cy1 = Math.floor(y1 / FC);
   const est = flatEstBytes(q);
   // 1. admission: visible chunks sorted by distance to the view centre (tie: key) fill the budget in that fixed
