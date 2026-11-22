@@ -33,8 +33,8 @@ describe("Zukunftsdörfer wirken nicht zurück", () => {
     }
     expect(built).toBeGreaterThan(10);
   });
-  it("C: at its founding moment B gets its usual campfire", () => {
-    expect(structureAt(B.x, B.y, [B], BORN_B)?.kind).toBe("campfire");
+  it("C: at its founding moment B gets its usual well site", () => {
+    expect(structureAt(B.x, B.y, [B], BORN_B)?.kind).toBe("well");
     expect(structureAt(B.x, B.y, [A, B], BORN_B + 3600e3 * 24)?.seed.id).toBe(B.id);
   });
 });
