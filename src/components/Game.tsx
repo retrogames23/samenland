@@ -18,7 +18,7 @@ import { getServerTime } from "@/game/time.functions";
 import { useModeCursor } from "@/components/hooks/useModeCursor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { wonders, wonderClaims, firstFinder, daysSince, ownSites, WONDER_REACH, type WonderFind } from "@/game/wonders";
+import { wonders, wonderClaims, firstFinder, daysSince, ownSites, nextWonderAt, WONDER_REACH, type WonderFind } from "@/game/wonders";
 import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setBakeHold, setSignposts, setWonderFound, setKnights, signpostMap, type Camera } from "@/game/render";
 /** Stroll position kept across reloads (browser only, never stored on the server). */
 const STROLL_KEY = "samenland-stroll", STROLL_TTL = 30 * 60e3, VIEW_KEY = "samenland-view";
@@ -1989,15 +1989,22 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const wonderFn = useRef<(key: string, kind: string, my: Seed) => void>(() => {});
   // the own village's discoveries: the explorer map shows no golden glimmer on these any more (survives reload)
   const ownFound = useRef(new Set<string>());
+  // claims still waiting for the DB, and sites the DB already knew ("seen" though the loaded rows lacked them, e.g. a
+  // reload that raced the insert): a rebuild from wonderRows must neither fire a second claim nor bring the glimmer back
+  const wonderBusy = useRef(new Set<string>());
+  const wonderKnown = useRef(new Set<string>()); // `${seedId}|${site}`
   const syncWonders = (seedId?: string | null) => {
     const id = seedId !== undefined ? seedId : st.current.seeds.find((s) => userId && s.user_id === userId)?.id ?? null;
     const own = ownSites(wonderRows.current, id);
-    ownFound.current = own; wonderSeen.current = new Set(own); setWonderFound(new Set(own));
+    for (const k of wonderKnown.current) { const [sid, site] = k.split("|"); if (sid === id && site) own.add(site); }
+    ownFound.current = own; wonderSeen.current = new Set([...own, ...wonderBusy.current]); setWonderFound(new Set(own));
   };
   useEffect(() => { syncWonders(); }, [my?.id, userId]);
   wonderFn.current = (key, kind, my) => {
     if (!owner || my.user_id !== userId) { wonderSeen.current.delete(key); return; }
+    wonderBusy.current.add(key);
     (supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, string>) => PromiseLike<{ data: number | null; error: unknown }>)("claim_wonder", { _seed: my.id, _site: key }).then(({ data, error }) => {
+      wonderBusy.current.delete(key);
       if (error || !data) {
         const P = PRINCELY[lang], o = openTaskOf(princelyRows.current, my.id);
         if (error) {
@@ -2005,18 +2012,20 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
           if (/too many/.test(String((error as { message?: string }).message ?? ""))) {
             // daily limit: keep the site quiet until reload so the note isn't repeated every frame
             wonderSeen.current.add(key);
-            setVisitNote(o && o.task === "wonder" ? `${P.tired} ${P.ready}` : P.tired);
+            // the limit is a rolling 24 h (not the calendar day): name the time more finds are possible
+            const at = nextWonderAt(wonderRows.current, my.id, clock()), when = at == null ? null : new Date(at).toLocaleString(lang, new Date(at).toDateString() === new Date().toDateString() ? { hour: "2-digit", minute: "2-digit" } : { weekday: "short", hour: "2-digit", minute: "2-digit" });
+            setVisitNote(o && o.task === "wonder" ? `${P.tired(when)} ${P.ready}` : P.tired(when));
           }
         } else {
           // reward 0: this village already logged the site — say so, and stop the glimmer here too
-          ownFound.current.add(key); setWonderFound(new Set(ownFound.current));
+          wonderKnown.current.add(`${my.id}|${key}`); ownFound.current.add(key); setWonderFound(new Set(ownFound.current));
           setVisitNote(P.seen);
         }
         return;
       }
       const realm = my.realm ?? "europe", before = firstFinder(wonderRows.current, key, realm);
       const row: WonderFind = { id: `local-w-${key}`, seed_id: my.id, site: key, realm, first: !before, reward: data, created_at: new Date().toISOString() };
-      wonderRows.current = [...wonderRows.current, row]; syncWonders();
+      wonderRows.current = [...wonderRows.current, row]; wonderKnown.current.add(`${my.id}|${key}`); syncWonders();
       setClaims((c) => [...c, ...wonderClaims([row])]);
       jingle("fanfare"); setTimeout(() => jingle("coins"), 700);
       const name = t.wonder.names[kind] ?? kind;
