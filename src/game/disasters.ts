@@ -11,7 +11,7 @@ export const STONE_FIRE = 0.6;
  * and purchases (fire house, town guard). Nothing is stored: every client sees the same fire at the same moment.
  * Raid losses are mirrored by the database function village_raids, so the treasury stays tamper-proof.
  */
-import { structureAt, stepsDone, terrain, isWater, waterNearby, riverDistAt, radiusOf, reachOf, ageHours, MAP, type Seed } from "./world";
+import { structureAt, clearStructureCaches, stepsDone, terrain, isWater, waterNearby, riverDistAt, radiusOf, reachOf, ageHours, MAP, type Seed } from "./world";
 
 const H = 3.6e6, DAY = 864e5, WEEK = 7 * DAY;
 export const FIRE_CHANCE = 0.3, FIRE_CHANCE_GUARDED = 0.08;
@@ -96,7 +96,11 @@ function labFireSpot(s: Seed, at: number): [number, number] {
       const st = structureAt(s.x + i, s.y + j, [s], at);
       if (st && st.build === undefined && canBurn(st.kind)) { bd = d; spot = [s.x + i, s.y + j]; }
     }
-  } finally { scanning = false; }
+  } finally {
+    scanning = false;
+    // the scan saw the town without this fire: drop what structureAt memoized meanwhile, or the fire stayed hidden until the minute turned
+    clearStructureCaches();
+  }
   spotCache.set(key, spot); return spot;
 }
 
@@ -232,7 +236,8 @@ export function activeRuins(s: Seed, now: number): Ruin[] {
 const tcache = new Map<string, Map<number, TileHit>>();
 /** What disasters do to each tile right now: burning, rebuilding after fire/flood, or under water. */
 export function tileHits(s: Seed, now: number): Map<number, TileHit> {
-  const key = `${labEvent("fire") ?? 0}:${labEvent("flood") ?? 0}:${s.id}:${s.created_at}:${(s.bought ?? []).map((b) => b.item + b.at).join(",")}:${(s.aid ?? []).join(",")}:${s.charter?.path ?? ""}${s.charter?.at ?? ""}:${Math.floor(now / 6e4)}`;
+  // own key while labFireSpot scans (test fire left out): that result must not stand in for the burning town
+  const key = `${scanning ? "scan:" : ""}${labEvent("fire") ?? 0}:${labEvent("flood") ?? 0}:${s.id}:${s.created_at}:${(s.bought ?? []).map((b) => b.item + b.at).join(",")}:${(s.aid ?? []).join(",")}:${s.charter?.path ?? ""}${s.charter?.at ?? ""}:${Math.floor(now / 6e4)}`;
   const hit = tcache.get(key); if (hit) return hit;
   const m = new Map<number, TileHit>();
   for (const f of fires(s, now)) {

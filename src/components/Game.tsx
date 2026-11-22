@@ -672,11 +672,17 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     cam.current.y = iy;
   };
   /** Event look: glide close (detail zoom); for a moving-in family follow the walking newcomer. */
+  /** Programmatic zoom in (never out), anchored at the screen centre: the loop zooms about target.ax/ay, and the
+   *  anchor of the last wheel or pinch (or the initial 0,0 corner) would push the view sideways during a glide. */
+  const zoomInTo = (zoom: number) => {
+    const cv = canvasRef.current;
+    target.current = { zoom: Math.max(target.current.zoom, zoom), ax: (cv?.width ?? 0) / 2, ay: (cv?.height ?? 0) / 2 };
+  };
   /** Soft camera flight to a tile; zoom only ever moves closer (never pulls a close view back out). */
   const glideTo = (x: number, y: number, zoom: number) => {
     const [gx, gy] = iso(x, y);
     camFree.current = true; fling.current = { vx: 0, vy: 0, t: performance.now() }; glide.current = { x: gx, y: gy };
-    target.current = { ...target.current, zoom: Math.max(target.current.zoom, zoom) };
+    zoomInTo(zoom);
   };
   /** Zoom per kind of look: people/houses close, big monuments a bit wider, whole towns as overview. */
   const LOOK_PERSON = 5.5, LOOK_BUILDING = 4.4, LOOK_TOWN = 2.8;
@@ -714,7 +720,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     for (let r = 2; r < 200; r += 2) for (let a = 0; a < 24; a++) {
       const x = Math.round(cx + Math.cos((a / 24) * 6.283) * r), y = Math.round(cy + Math.sin((a / 24) * 6.283) * r);
       if (canPlant(x, y, seeds) === null && canPlant(x + 3, y, seeds) === null && canPlant(x - 3, y, seeds) === null && canPlant(x, y + 3, seeds) === null && canPlant(x, y - 3, seeds) === null) {
-        focus(x, y); target.current = { ...target.current, zoom: Math.max(target.current.zoom, 1.4) }; return;
+        focus(x, y); zoomInTo(1.4); return;
       }
     }
   };
@@ -724,7 +730,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     const me = seeds.find((x) => x.id === mine); if (!me) return;
     const [gx, gy] = iso(me.x, me.y);
     camFree.current = true; fling.current = { vx: 0, vy: 0, t: performance.now() }; glide.current = { x: gx, y: gy };
-    target.current = { ...target.current, zoom: Math.max(target.current.zoom, 1.4) };
+    zoomInTo(1.4);
   };
   const [ptr, setPtr] = useState<[number, number] | null>(null);
   const ptrRef = useRef<[number, number] | null>(null), tipRef = useRef<HTMLDivElement | null>(null);
@@ -2081,7 +2087,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     const wf = ev?.code === "wedding" ? weddingFocus(townOf(s, seeds, now), ev.at, seeds, now) : null;
     const x = wf ? wf[0] : ev && "x" in ev ? ev.x : s.x, y = wf ? wf[1] : ev && "y" in ev ? ev.y : s.y;
     const [gx, gy] = iso(x, y);
-    cam.current.zoom = Math.max(cam.current.zoom, 5);
+    // via the zoom target: setting cam.zoom directly sprang back to the old target, about a stale anchor
+    zoomInTo(5);
     camFree.current = true; fling.current = { vx: 0, vy: 0, t: performance.now() }; glide.current = { x: gx, y: gy };
     setDeskOpen(false); setSettings(false); setWelcome(false); setTab(null);
     if (ev) { setLabTown(s); setFest((q) => [...q, ev].slice(-6)); }

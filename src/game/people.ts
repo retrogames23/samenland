@@ -1,4 +1,4 @@
-import { labEvent } from "./lab-ctl";
+import { labEvent, labVersion } from "./lab-ctl";
 import { NAMES_F, NAMES_M, SURNAMES } from "./names";
 import { setChosenTraits } from "./traits";
 import { cacheTick } from "./time";
@@ -159,7 +159,8 @@ export function onFireTile(x: number, y: number, seeds: Seed[], now: number): bo
 }
 const towns = new Map<string, Town>();
 export function townOf(s: Seed, seeds: Seed[], now: number): Town {
-  const key = `${s.id}|${cacheTick(now)}|${labEvent("wedding") ?? 0}|${seedsKey(seeds)}`;
+  // labVersion: every control-desk event (wedding, fire, flood, raid) rebuilds the town at once, e.g. the bucket chain
+  const key = `${s.id}|${cacheTick(now)}|${labVersion()}|${seedsKey(seeds)}`;
   const hit = towns.get(key);
   if (hit) return hit;
   for (const k of towns.keys()) if (k.startsWith(s.id + "|")) towns.delete(k);
