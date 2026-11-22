@@ -195,6 +195,8 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
   for (const k of ["inn", "church", "chapel", "townhall", "seat2", "seat3", "stall", "bakery"] as Kind[]) for (const tl of byKind.get(k) ?? []) { const f = front(tl); if (f) meets.push(f); }
   meets.push(...(byKind.get("market") ?? []), ...green.slice(0, 6));
   if (!meets.length) meets.push([s.x + 1, s.y + 1]);
+  // one entry per tile: buildings sharing a forecourt used to count it twice or thrice, drawing that many more people
+  for (let i = meets.length - 1; i > 0; i--) if (meets.findIndex((m) => m[0] === meets[i]![0] && m[1] === meets[i]![1]) < i) meets.splice(i, 1);
   const school = byKind.get("school")?.[0] ?? byKind.get("church")?.[0] ?? byKind.get("chapel")?.[0] ?? null;
   const meet = meets[0]!;
   const plays: Tile[] = [...(byKind.get("pasture") ?? []), ...green].slice(0, 8);
@@ -1029,7 +1031,15 @@ const kidSpot = (p: Person, t: Town, i: number): Tile => {
   return out ? add(t.plays[Math.floor(hash(p.home[0], p.home[1], 608 + i) * t.plays.length)]!, off(p, i, 0.9)) : p.home; // resolves to the free tile in front of the door
 };
 const at0 = (c: Tile, p: Person, k: number): Tile => add(c, off(p, k, 0.8));
-const spot = (p: Person, t: Town, i: number): Tile => add(t.meets[Math.floor(hash(p.id, i, 605) * t.meets.length)]!, off(p, i, t.meets.length < 3 ? 0.42 : 0.7));
+/** Villagers one gathering spot holds before the rest stay at their own doorstep. */
+export const MEET_LOAD = 10;
+/** Where an adult spends free time outdoors: a gathering spot, or, once the spots are crowded (a young hamlet has only
+ *  the campfire), in front of the own house; whole households decide together. */
+const spot = (p: Person, t: Town, i: number): Tile => {
+  const load = t.people.length / t.meets.length;
+  if (load > MEET_LOAD && hash(p.home[0], p.home[1], 609 + i) >= MEET_LOAD / load) return p.home; // resolves to the free tile in front of the door
+  return add(t.meets[Math.floor(hash(p.id, i, 605) * t.meets.length)]!, off(p, i, t.meets.length < 3 ? 0.42 : 0.7));
+};
 
 /** Jobs that carry on on Sundays (bread, inn, herds, the sick, the service itself). */
 const SUNDAY_WORK: ReadonlySet<Job> = new Set(["baker", "innkeeper", "priest", "healer", "mayor"] as Job[]);
