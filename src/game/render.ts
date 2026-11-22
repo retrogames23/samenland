@@ -3318,6 +3318,14 @@ function drawSignpost(c: C, cx: number, cy: number, sd: number) {
 }
 
 /** Wooden pail in a fire helper's hand; while standing at the blaze, water arcs toward the flames. */
+/** Height above a building's ground point where flung water meets the burning roof (eaves to lower roof). */
+export const ROOF_LIFT = 11;
+/** Path of a bucket throw from the pail rim (sx, sy) to the blaze (tx, ty) in world screen units: a parabola along
+ *  the throw vector, higher for longer throws. Pure, s from 0 (rim) to 1 (target). */
+export function throwArc(sx: number, sy: number, tx: number, ty: number) {
+  const dx = tx - sx, dy = ty - sy, d = Math.hypot(dx, dy), h = Math.min(14, Math.max(6, 4 + d * 0.22));
+  return { d, h, at: (s: number): [number, number] => [sx + dx * s, sy + dy * s - Math.sin(s * Math.PI) * h] };
+}
 function drawBucket(c: C, x: number, y: number, q: Pose, t: number) {
   // a real pail (~30 cm) hanging from the hand at the hip, bobbing with the stride
   const f = bodyFace(q), bob = q.walking ? Math.abs(Math.sin(q.phase + hash(q.p.id, 77, 5) * 6.2832)) * 0.07 : 0;
@@ -3331,12 +3339,16 @@ function drawBucket(c: C, x: number, y: number, q: Pose, t: number) {
     if (u < 0.5) {
       // a painted sheet of water flung from the rim: a tapering ribbon along the arc,
       // a pale highlight stroke, scattered spray, then hiss-steam where it meets the blaze
-      const k = u / 0.5, arc = (s: number): [number, number] => [bx + f * (0.6 + s * 5.5), by - 1.2 - Math.sin(s * Math.PI) * 2.6 + s * 2.6];
+      // fighting a fire: the sheet flies along the throw vector onto the burning roof (the fire's tile, lifted to the eaves);
+      // without a blaze (sprite lab) a short splash in front of the feet as before
+      const fete = q.p.fete, aim = fete?.fire ? iso(fete.face[0], fete.face[1]) : null;
+      const th = aim ? throwArc(bx + f * 0.6, by - 1.2, aim[0], aim[1] - ROOF_LIFT) : null, wide = th ? Math.min(2.2, 1 + th.d / 40) : 1;
+      const k = u / 0.5, arc = th ? th.at : (s: number): [number, number] => [bx + f * (0.6 + s * 5.5), by - 1.2 - Math.sin(s * Math.PI) * 2.6 + s * 2.6];
       const head = Math.min(1, k * 1.6), tail = Math.max(0, k * 1.6 - 0.6), fade = k < 0.75 ? 1 : (1 - k) / 0.25;
       if (head > tail + 0.02) {
         const N = 10, up: [number, number][] = [], dn: [number, number][] = [];
         for (let i = 0; i <= N; i++) {
-          const s = tail + ((head - tail) * i) / N, [px, py] = arc(s), wd = 0.42 * (1 - s * 0.55) * Math.sin((i / N) * Math.PI * 0.9 + 0.15);
+          const s = tail + ((head - tail) * i) / N, [px, py] = arc(s), wd = 0.42 * wide * (1 - s * 0.55) * Math.sin((i / N) * Math.PI * 0.9 + 0.15);
           up.push([px, py - wd]); dn.push([px, py + wd]);
         }
         c.fillStyle = `rgba(150,182,198,${0.55 * fade})`;
@@ -3357,7 +3369,7 @@ function drawBucket(c: C, x: number, y: number, q: Pose, t: number) {
       if (head >= 1) {
         const [ex, ey] = arc(1), g = Math.min(1, (k - 0.62) / 0.2) * fade;
         for (let i = 0; i < 3; i++) {
-          const r = 0.5 + i * 0.35 + k * 0.6;
+          const r = (0.5 + i * 0.35 + k * 0.6) * wide;
           c.fillStyle = `rgba(225,225,220,${0.22 * g * (1 - i / 3)})`;
           c.beginPath(); c.ellipse(ex + (i - 1) * 0.35, ey - 0.6 - i * 0.55 - k * 0.8, r, r * 0.65, 0, 0, 7); c.fill();
         }
