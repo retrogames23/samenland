@@ -47,6 +47,7 @@ import { houseLit, candleFlicker, lampStrength } from "./night";
 import { sunTimes, viewNight as nightLevel, viewGlow as duskGlow } from "./sun";
 const sunNow = () => sunTimes(clock());
 import { setArtTime, seasonalImage, standIns } from "./season-art";
+import { chunkKey, pickChunk, nextShown } from "./ground-chunks";
 import { seasonKey, seasonAt } from "./season";
 import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
@@ -2237,6 +2238,7 @@ function drawGround(c: C, x0: number, x1: number, y0: number, y1: number, t: num
 // ---- mid-zoom ground cache: static terrain (+ forests, crags) baked per 32x32-tile chunk ----
 const CH = 16, PAD_TOP = 40; // 16 tiles: one bake costs a quarter of the old 32-tile chunk, so panning never stalls on a big raster
 const chunkCache = new Map<string, HTMLCanvasElement>();
+const CHUNK_CAP = 200; // baked ground chunks kept (LRU); a season swap holds old + new of the view only while both fit
 // Tiles a town could ever cover: their trees/rocks are drawn live (and cleared by buildings);
 // everywhere else they are baked into ground chunks — same placement either way, so zoom never changes the scene.
 let maskKey = "", mask: { x: number; y: number; r2: number }[] = [];
@@ -2590,7 +2592,7 @@ function groundChunkBake(key: string, ix: number, iy: number, q: number): HTMLCa
   (cv as HTMLCanvasElement & { ox?: number; oy?: number }).oy = top;
   if (missing) return cv; // not cached: re-bake once images have loaded
   chunkCache.set(key, cv);
-  while (chunkCache.size > 200) { chunkCache.delete(chunkCache.keys().next().value!); pEvict("ground"); }
+  while (chunkCache.size > CHUNK_CAP) { chunkCache.delete(chunkCache.keys().next().value!); pEvict("ground"); }
   return cv;
 }
 
@@ -2646,34 +2648,45 @@ function drawOutskirts(c: C, x0: number, x1: number, y0: number, y1: number, z: 
     outDone.add(iy * 4096 + ix);
   }
 }
+type BakedChunk = HTMLCanvasElement & { ox: number; oy: number };
+/** Season key the ground chunks currently show (P2b swap, see ground-chunks.ts). */
+let shownSk = "";
+const chunkHas = (k: string) => chunkCache.has(k);
 /** P.5a: while the initial camera is still provisional, no chunk is baked (placeholders only). */
 let bakeHold = false;
 export function setBakeHold(on: boolean) { bakeHold = on; }
 function drawGroundChunks(c: C, x0: number, x1: number, y0: number, y1: number, z: number, vx0: number, vx1: number, vy0: number, vy1: number, far = false): number {
   const q = z > 1.6 ? 2 : z > 0.6 ? 1 : 0.5, sk = seasonKey(renderNow) + (labEdge() ? `|e${labEdge()!.core},${labEdge()!.grain}${labEdge()!.v2 ? "v2" : ""}` : "");
-  let baked = 0, drawn = 0;
+  let baked = 0, drawn = 0, missing = 0, vis = 0;
   const cx0 = Math.floor(x0 / CH), cx1 = Math.floor(x1 / CH), cy0 = Math.floor(y0 / CH), cy1 = Math.floor(y1 / CH);
   for (let s = cx0 + cy0; s <= cx1 + cy1; s++) for (let ix = Math.max(cx0, s - cy1); ix <= Math.min(cx1, s - cy0); ix++) {
     const iy = s - ix;
     const X0 = ix * CH, Y0 = iy * CH, X1 = X0 + CH - 1, Y1 = Y0 + CH - 1;
     if (iso(X1, Y0)[0] + TW < vx0 || iso(X0, Y1)[0] - TW > vx1 || iso(X1, Y1)[1] + TH < vy0 || iso(X0, Y0)[1] - TH - PAD_TOP > vy1) continue;
-    const cached = chunkCache.has(`${ix},${iy},${q},${sk}`);
-    if (!cached && (baked >= 1 || frameBakes >= 1)) { // spread baking over frames; fall back to another cached quality if any
-      const oq = [2, 1, 0.5].find((o) => o !== q && chunkCache.has(`${ix},${iy},${o},${sk}`));
-      const lo = oq ? chunkCache.get(`${ix},${iy},${oq},${sk}`) as (HTMLCanvasElement & { ox: number; oy: number }) : undefined;
-      if (lo && oq) c.drawImage(lo, lo.ox, lo.oy, lo.width / oq, lo.height / oq);
-      else if (far) { /* overview bitmap already underneath */ }
-      else { const [a, b] = iso(X0 + CH / 2, Y0 + CH / 2); c.fillStyle = "#7a8a50"; c.beginPath(); c.moveTo(a, b - CH * TH / 2); c.lineTo(a + CH * TW / 2, b); c.lineTo(a, b + CH * TH / 2); c.lineTo(a - CH * TW / 2, b); c.fill(); }
+    const cur = chunkKey(ix, iy, q, sk);
+    let fresh: BakedChunk | null = null, tried = false;
+    vis++;
+    if (!chunkCache.has(cur)) {
+      if (baked < 1 && frameBakes < 1) { baked++; frameBakes++; tried = true; fresh = groundChunk(ix, iy, q, sk) as BakedChunk | null; } // spread baking over frames
+      if (!chunkCache.has(cur)) missing++;
+    } else if (shownSk !== sk) { const n = chunkCache.get(cur)!; chunkCache.delete(cur); chunkCache.set(cur, n); } // keep new bakes alive until the swap
+    // P2b: while a new season key bakes, the last complete key stays on screen (no placeholder, no piecewise swap)
+    const pick = pickChunk(chunkHas, ix, iy, q, sk, shownSk);
+    if (pick) {
+      const [pk, pq] = pick, cv = chunkCache.get(pk)! as HTMLCanvasElement & { ox: number; oy: number };
+      chunkCache.delete(pk); chunkCache.set(pk, cv); pCount("cache.ground.hit"); // LRU touch: the chunk on screen is evicted last
+      c.drawImage(cv, cv.ox, cv.oy, cv.width / pq, cv.height / pq); drawn++;
       continue;
     }
-    if (!cached) { baked++; frameBakes++; }
-    const cv = groundChunk(ix, iy, q, sk) as (HTMLCanvasElement & { ox: number; oy: number }) | null;
-    if (cv && cv.width > 0) { c.drawImage(cv, cv.ox, cv.oy, cv.width / q, cv.height / q); drawn++; }
-    else { // bake failed: never let the sea colour show through on land — paint the chunk's ground live
-      try { c.save(); drawGround(c, X0, Math.min(MAP - 1, X1), Y0, Math.min(MAP - 1, Y1), 0, false); c.restore(); }
-      catch { c.restore(); const [a, b] = iso(X0 + CH / 2, Y0 + CH / 2); c.fillStyle = "#7a8a50"; c.beginPath(); c.moveTo(a, b - CH * TH / 2); c.lineTo(a + CH * TW / 2, b); c.lineTo(a, b + CH * TH / 2); c.lineTo(a - CH * TW / 2, b); c.fill(); }
+    if (fresh && fresh.width > 0) { c.drawImage(fresh, fresh.ox, fresh.oy, fresh.width / q, fresh.height / q); drawn++; continue; } // incomplete bake (art loading)
+    if (tried) { // bake failed: never let the sea colour show through on land — paint the chunk's ground live
+      try { c.save(); drawGround(c, X0, Math.min(MAP - 1, X1), Y0, Math.min(MAP - 1, Y1), 0, false); c.restore(); continue; }
+      catch { c.restore(); }
     }
+    if (far) continue; // overview bitmap already underneath
+    const [a, b] = iso(X0 + CH / 2, Y0 + CH / 2); c.fillStyle = "#7a8a50"; c.beginPath(); c.moveTo(a, b - CH * TH / 2); c.lineTo(a + CH * TW / 2, b); c.lineTo(a, b + CH * TH / 2); c.lineTo(a - CH * TW / 2, b); c.fill();
   }
+  shownSk = nextShown(shownSk, sk, missing, vis, CHUNK_CAP);
   return drawn;
 }
 
