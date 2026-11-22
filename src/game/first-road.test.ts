@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { roadGate, roadCandidates, roadBuilding, roadHours, type Seed } from "./world";
-const mk = (id: string, user?: string, roads?: Seed["roads"], x = 0): Seed => ({ id, name: id, owner: id, x, y: 0, hue: 0, created_at: "2026-01-01T00:00:00Z", user_id: user ?? null, ...(roads ? { roads } : {}) });
+// villages sit inland on Altenland: the road menu checks a real road path (no bridge across open sea)
+const mk = (id: string, user?: string, roads?: Seed["roads"], x = 0): Seed => ({ id, name: id, owner: id, x: 400 + x, y: 512, hue: 0, created_at: "2026-01-01T00:00:00Z", user_id: user ?? null, ...(roads ? { roads } : {}) });
 const H = 3.6e6;
 describe("roads are decided one by one", () => {
   it("player village without a decision gets no road", () => {
