@@ -3,9 +3,11 @@ import { setRealm, REALMS, REALM_TZ, REALM_FULL, REALM_NEXT, openRealm, type Rea
 import { ISLAND } from "./islands";
 import { BIOME_OF } from "./biome";
 import { terrain, buildable, MAP } from "./world";
+import { wonders } from "./wonders";
+import { readFileSync } from "node:fs";
 
 afterEach(() => setRealm("europe"));
-const NEW: [Realm, string, Realm][] = [["europe-3", "Störwerder", "europe"], ["us-west-2", "Hallighörn", "us-west"], ["us-east-2", "Boddenholm", "us-east"], ["asia-2", "Moorgeest", "asia"]];
+const NEW: [Realm, string, Realm][] = [["europe-3", "Störwerder", "europe"], ["europe-4", "Weserau", "europe"], ["us-west-2", "Hallighörn", "us-west"], ["us-east-2", "Boddenholm", "us-east"], ["asia-2", "Moorgeest", "asia"]];
 describe("new islands", () => {
   for (const [r, name, parent] of NEW) it(`${name} is public, on its time zone's clock, with its own land`, () => {
     expect(REALMS).toContain(r);
@@ -23,9 +25,27 @@ describe("overflow chain", () => {
     expect(openRealm("europe", (q) => (q === "europe" ? 59 : 0))).toBe("europe");
     expect(openRealm("europe", (q) => (q === "europe" ? 60 : 0))).toBe("europe-2");
     expect(openRealm("europe", (q) => (q === "europe-3" ? 0 : 60))).toBe("europe-3");
-    expect(openRealm("europe", () => 999)).toBe("europe-3");
+    expect(openRealm("europe", (q) => (q === "europe-4" ? 0 : 60))).toBe("europe-4");
+    expect(openRealm("europe", () => 999)).toBe("europe-4");
+    expect(REALM_NEXT["europe-3"]).toBe("europe-4");
     expect(openRealm("asia", (q) => (q === "asia" ? 60 : 0))).toBe("asia-2");
     expect(REALM_NEXT["us-west"]).toBe("us-west-2");
     expect(REALM_NEXT["us-east"]).toBe("us-east-2");
+  });
+});
+
+describe("Europa IV database mirror", () => {
+  it("0135 guards exactly the maps that have a successor", () => {
+    const sql = readFileSync("drizzle/migrations/0135_europa_iv_realm_guard.sql", "utf8");
+    const list = sql.match(/NEW\.realm IN \(([^)]*)\)/)![1]!.split(",").map((s) => s.trim().replace(/'/g, ""));
+    expect(new Set(list)).toEqual(new Set(Object.keys(REALM_NEXT)));
+  });
+  it("0136 allows every realm and lists exactly Weserau's wonders", () => {
+    const sql = readFileSync("drizzle/migrations/0136_europa_iv_island.sql", "utf8");
+    const allowed = sql.match(/CHECK \(realm IN \(([^)]*)\)\)/)![1]!.split(",").map((s) => s.trim().replace(/'/g, ""));
+    expect(new Set(allowed)).toEqual(new Set([...REALMS, "lab"]));
+    const rows = [...sql.matchAll(/\('(\w+:\d+:\d+)'\)/g)].map((m) => m[1]);
+    setRealm("europe-4");
+    expect(new Set(rows)).toEqual(new Set(wonders().map((w) => `${w.kind}:${w.x}:${w.y}`)));
   });
 });

@@ -1,7 +1,7 @@
 import { setBiome } from "./biome";
 /** Four realms (separate maps), each with one shared clock, so everyone on a map sees the same day/night. */
-export type Realm = "us-west" | "us-west-2" | "us-east" | "us-east-2" | "europe" | "europe-2" | "europe-3" | "asia" | "asia-2" | "lab";
-export const REALMS: Realm[] = ["us-west", "us-west-2", "us-east", "us-east-2", "europe", "europe-2", "europe-3", "asia", "asia-2"];
+export type Realm = "us-west" | "us-west-2" | "us-east" | "us-east-2" | "europe" | "europe-2" | "europe-3" | "europe-4" | "asia" | "asia-2" | "lab";
+export const REALMS: Realm[] = ["us-west", "us-west-2", "us-east", "us-east-2", "europe", "europe-2", "europe-3", "europe-4", "asia", "asia-2"];
 export const REALM_TZ: Record<Realm, string> = {
   "us-west": "America/Los_Angeles",
   "us-west-2": "America/Los_Angeles",
@@ -10,6 +10,7 @@ export const REALM_TZ: Record<Realm, string> = {
   europe: "Europe/Berlin",
   "europe-2": "Europe/Berlin",
   "europe-3": "Europe/Berlin",
+  "europe-4": "Europe/Berlin",
   asia: "Asia/Tokyo",
   "asia-2": "Asia/Tokyo",
   lab: "Europe/Berlin",
@@ -25,7 +26,7 @@ export function realmForOffset(h: number): Realm {
 export const REALM_FULL = 60;
 export const EUROPE_FULL = REALM_FULL;
 /** Overflow chain per time zone: a full map sends newcomers on to the next one; the last map of a chain never fills. */
-export const REALM_NEXT: Partial<Record<Realm, Realm>> = { europe: "europe-2", "europe-2": "europe-3", "us-west": "us-west-2", "us-east": "us-east-2", asia: "asia-2" };
+export const REALM_NEXT: Partial<Record<Realm, Realm>> = { europe: "europe-2", "europe-2": "europe-3", "europe-3": "europe-4", "us-west": "us-west-2", "us-east": "us-east-2", asia: "asia-2" };
 /** First map along the chain from `r` that still has room, given village counts per map. */
 export function openRealm(r: Realm, count: (r: Realm) => number): Realm {
   for (let n = REALM_NEXT[r]; n && count(r) >= REALM_FULL; n = REALM_NEXT[r]) r = n;
