@@ -1,5 +1,5 @@
 -- Europa IV (Weserau): allow the new realm and register its natural wonders (mirror of wonders() in src/game/wonders.ts).
--- The realm_full_guard change is in 0135. Keys already present (same kind at the same tile on another map) are skipped:
+-- The realm_full_guard change is in 0136. Keys already present (same kind at the same tile on another map) are skipped:
 -- finds are counted per realm in wonder_finds, so a shared site row is fine (as in 0114).
 ALTER TABLE public.seeds DROP CONSTRAINT seeds_realm_check;
 ALTER TABLE public.seeds ADD CONSTRAINT seeds_realm_check CHECK (realm IN ('us-west','us-west-2','us-east','us-east-2','europe','europe-2','europe-3','europe-4','asia','asia-2','lab'));
