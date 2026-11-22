@@ -9,6 +9,7 @@ import { biomeKey, type Biome } from "./biome";
 import { marketBoost } from "./freimarkt";
 import { bauhuetteDone } from "./vorhaben";
 import { clock, cacheTick, worldHour, worldWeekday, workClock, workDone, realmGen, type Realm } from "./time";
+import { labVersion } from "./lab-ctl";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
 import { estateOf, estateHouse, RESIDENTIAL, setMonumentHook } from "./prosperity";
@@ -1160,7 +1161,7 @@ export function bornAt(x: number, y: number, s: Seed): number {
 
 // several seed sets (whole realm, single village) are queried per frame: keep one cache each instead of thrashing one
 const scaches = new Map<string, Map<number, Structure | null>>();
-let lastSeeds: Seed[] | null = null, lastTick = -1, lastCache: Map<number, Structure | null> | null = null;
+let lastSeeds: Seed[] | null = null, lastTick = -1, lastLab = -1, lastCache: Map<number, Structure | null> | null = null;
 const soloMemo = new WeakMap<Seed, Seed[]>();
 /** Stable one-element seed list, so per-village queries hit the same cache every frame. */
 export const soloSeeds = (s: Seed): Seed[] => { let a = soloMemo.get(s); if (!a) { a = [s]; soloMemo.set(s, a); } return a; };
@@ -1213,14 +1214,15 @@ function gridOf(p: Pick, seeds: Seed[], now: number): Map<number, number[]> {
 }
 const NO_PICK: number[] = [];
 export function structureAt(x: number, y: number, seeds: Seed[], now: number): Structure | null {
-  const tick = cacheTick(now);
+  // labVersion: a fire or flood set off on the test map's control desk shows at once, not with the next minute
+  const tick = cacheTick(now), lab = labVersion();
   let scache: Map<number, Structure | null>;
-  if (seeds === lastSeeds && tick === lastTick && lastCache) scache = lastCache;
+  if (seeds === lastSeeds && tick === lastTick && lab === lastLab && lastCache) scache = lastCache;
   else {
-    const key = `${tick}|${seedsKey(seeds)}`;
+    const key = `${tick}|${lab}|${seedsKey(seeds)}`;
     let m = scaches.get(key);
     if (!m) { m = new Map(); scaches.set(key, m); if (scaches.size > 24) scaches.delete(scaches.keys().next().value!); }
-    scache = m; lastSeeds = seeds; lastTick = tick; lastCache = m;
+    scache = m; lastSeeds = seeds; lastTick = tick; lastLab = lab; lastCache = m;
   }
   const ck = y * MAP + x;
   const c = scache.get(ck);
