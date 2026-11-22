@@ -5,9 +5,9 @@
  */
 import { MAP, hash, isWater, onGeoChange, riverDistAt, terrain, vnoise } from "./world";
 
-export type WaterConcept = "main" | "a" | "b" | "c";
+export type WaterConcept = "main" | "a" | "b" | "c" | "d";
 let concept: WaterConcept = (() => {
-  try { const v = new URLSearchParams(location.search).get("water"); return v === "a" || v === "b" || v === "c" ? v : "main"; } catch { return "main"; }
+  try { const v = new URLSearchParams(location.search).get("water"); return v === "a" || v === "b" || v === "c" || v === "d" ? v : "main"; } catch { return "main"; }
 })();
 export const waterConcept = () => concept;
 export function setWaterConcept(c: WaterConcept) { concept = c; }
@@ -133,3 +133,43 @@ export const shadeSprite = () => brush("shade", 64, 64, (g) => {
   gr.addColorStop(0, "rgba(8,30,42,1)"); gr.addColorStop(1, "rgba(8,30,42,0)");
   g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
 });
+
+// ---- concept D (optimised C): painted ripple variants, and an adaptive quality level with hysteresis ----
+/** Painted ripple variant i (0..3): different length, curvature, thickness and lean, so no two marks repeat a shape. */
+export const rippleVariant = (i: number) => brush(`ripple${i}`, 96, 32, (g) => {
+  const bend = [7, 4.5, 9, 3][i]!, thick = [3.2, 2.4, 2.8, 2][i]!, lean = [0, 0.18, -0.12, 0.3][i]!, span = [84, 70, 78, 60][i]!;
+  const x0 = (96 - span) / 2;
+  const stroke = (dy: number, col: string, wmax: number) => {
+    for (let k = 0; k < 36; k++) {
+      const t0 = k / 36, t1 = (k + 1) / 36, w = wmax * Math.pow(Math.sin(Math.PI * (t0 + t1) / 2), 0.8) * (1 - lean * (t0 - 0.5));
+      const y = (t: number) => 17 + dy - bend * Math.sin(Math.PI * t) + lean * 10 * (t - 0.5);
+      g.strokeStyle = col; g.lineWidth = Math.max(0.3, w); g.lineCap = "round"; g.beginPath(); g.moveTo(x0 + span * t0, y(t0)); g.lineTo(x0 + span * t1, y(t1)); g.stroke();
+    }
+  };
+  stroke(3, "rgba(20,56,64,0.42)", thick * 1.3); stroke(0, "rgba(206,228,220,0.8)", thick); stroke(-0.7, "rgba(244,249,240,0.7)", thick * 0.4);
+});
+/** Adaptive water quality: 2 full, 1 reduced, 0 minimal. Drops after sustained slow frames, recovers only after a
+ *  longer run of fast ones (hysteresis), so the detail never flickers between levels. Pure state machine. */
+export type QualityState = { level: number; slow: number; fast: number; ema: number };
+export const QUALITY_SLOW_MS = 40, QUALITY_FAST_MS = 26, QUALITY_DROP_AFTER = 2000, QUALITY_RISE_AFTER = 8000;
+export function nextQuality(q: QualityState, frameMs: number): QualityState {
+  const dt = Math.min(frameMs, 250), ema = q.ema ? q.ema * 0.9 + dt * 0.1 : dt;
+  let { level, slow, fast } = q;
+  if (ema > QUALITY_SLOW_MS) { slow += dt; fast = 0; } else if (ema < QUALITY_FAST_MS) { fast += dt; slow = 0; } else { slow = 0; fast = 0; }
+  if (slow > QUALITY_DROP_AFTER && level > 0) { level--; slow = 0; }
+  if (fast > QUALITY_RISE_AFTER && level < 2) { level++; fast = 0; }
+  return { level, slow, fast, ema };
+}
+export const QUALITY_SCALE = [0.4, 0.65, 1] as const;
+let quality: QualityState = { level: 2, slow: 0, fast: 0, ema: 0 }, lastFrame = 0;
+/** Fed once per drawn frame; returns the density scale for the water layer. ?waterq=0|1|2 pins a level for tests. */
+export function waterQuality(now: number): number {
+  if (pinned !== null) return QUALITY_SCALE[pinned]!;
+  if (lastFrame) quality = nextQuality(quality, now - lastFrame);
+  lastFrame = now;
+  return QUALITY_SCALE[quality.level]!;
+}
+export const waterQualityLevel = () => (pinned ?? quality.level);
+let pinned: number | null = (() => { try { const v = new URLSearchParams(location.search).get("waterq"); return v === "0" || v === "1" || v === "2" ? Number(v) : null; } catch { return null; } })();
+/** Debug/probe only: pin the water quality level (0..2) or hand it back to the adaptive control (null). */
+if (typeof window !== "undefined") (window as unknown as { __setWaterQ?: (q: number | null) => void }).__setWaterQ = (q) => { pinned = q === 0 || q === 1 || q === 2 ? q : null; };

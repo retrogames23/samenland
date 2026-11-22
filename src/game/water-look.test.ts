@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MAP } from "./world";
-import { SEA_FAR, coastDist, isSea, onshore, seaBlock, surfPhase, swellPhase, waterConcept } from "./water-look";
+import { QUALITY_SCALE, SEA_FAR, coastDist, isSea, nextQuality, onshore, seaBlock, surfPhase, swellPhase, waterConcept, type QualityState } from "./water-look";
 
 describe("water concept switch (P4b, temporary)", () => {
   it("defaults to the main look when no ?water= switch is set", () => expect(waterConcept()).toBe("main"));
@@ -40,4 +40,29 @@ describe("wave timing", () => {
     for (let t = 0; t < 30_000; t += 16) { const a = surfPhase(300, 200, t, 6000), b = surfPhase(300, 200, t + 16, 6000); const dd = Math.abs(b - a); expect(Math.min(dd, 1 - dd)).toBeLessThan(0.01); }
     for (let x = 0; x < 400; x += 2) { const a = surfPhase(x, 120, 5000, 6000), b = surfPhase(x + 2, 120, 5000, 6000); const dd = Math.abs(b - a); expect(Math.min(dd, 1 - dd)).toBeLessThan(0.06); }
   });
+});
+
+describe("adaptive water quality (concept D)", () => {
+  const run = (q: QualityState, ms: number, dur: number) => { for (let t = 0; t < dur; t += ms) q = nextQuality(q, ms); return q; };
+  const full: QualityState = { level: 2, slow: 0, fast: 0, ema: 0 };
+  it("drops one level only after sustained slow frames", () => {
+    expect(run(full, 50, 1500).level).toBe(2); // a short hitch changes nothing
+    expect(run(full, 50, 2600).level).toBe(1);
+    expect(run(full, 50, 6000).level).toBe(0);
+  });
+  it("recovers only after a much longer run of fast frames (hysteresis)", () => {
+    const low = run(full, 50, 6000);
+    expect(run(low, 16, 6000).level).toBe(0);
+    expect(run(low, 16, 9000).level).toBe(1);
+    expect(run(low, 16, 30000).level).toBe(2);
+  });
+  it("holds its level in the band between the thresholds, so it never flickers", () => {
+    const mid = run(full, 50, 2600); let q = mid, changes = 0, last = q.level;
+    for (let i = 0; i < 2000; i++) { q = nextQuality(q, i % 2 ? 24 : 40); if (q.level !== last) { changes++; last = q.level; } }
+    expect(changes).toBe(0);
+  });
+  it("a single huge frame (tab switch) is clamped and does not drop quality", () => {
+    expect(nextQuality(full, 5000).level).toBe(2);
+  });
+  it("density scale rises with level", () => { expect(QUALITY_SCALE[0]).toBeLessThan(QUALITY_SCALE[1]); expect(QUALITY_SCALE[1]).toBeLessThan(QUALITY_SCALE[2]); });
 });

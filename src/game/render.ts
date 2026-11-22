@@ -51,7 +51,7 @@ import { setArtTime, seasonalImage, standIns } from "./season-art";
 import { chunkKey, pickChunk, nextShown } from "./ground-chunks";
 import { flatQ } from "./field-rows";
 import { FLOW_BLOCK, STREAKS, flowBlock, flowPatch, streakAt, zoomKeep, type FlowBlock } from "./river-flow";
-import { coastDist, crestBrush, foamBrush, isSea, rippleBrush, seaBlock, shadeSprite, sheenSprite, surfPhase, swellPhase, waterConcept, type SeaBlock, type WaterConcept } from "./water-look";
+import { coastDist, crestBrush, foamBrush, isSea, rippleBrush, rippleVariant, seaBlock, shadeSprite, sheenSprite, surfPhase, swellPhase, waterConcept, waterQuality, waterQualityLevel, type SeaBlock, type WaterConcept } from "./water-look";
 import { seasonKey, seasonAt } from "./season";
 import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
@@ -2797,17 +2797,20 @@ function seaShore(bx: number, by: number): Seg[] {
 }
 /** Baked water base per concept: tone, depth from the coast distance (sea) and the bank distance (river). Runs only
  *  in ground-chunk bakes — no per-frame cost. */
-function waterBase(c: C, water: Path2D, shore: { a: Pt; b: Pt }[], x0: number, x1: number, y0: number, y1: number) {
+const seaSide = (s: { w?: Pt }) => !!s.w && isSea(...toTile(s.w[0], s.w[1]));
+function waterBase(c: C, water: Path2D, shore: { a: Pt; b: Pt; w?: Pt }[], x0: number, x1: number, y0: number, y1: number) {
   const k = waterConcept();
   c.save(); c.clip(water);
   if (k === "a") { c.fillStyle = "rgba(48,98,106,0.55)"; c.fill(water); }          // softened, calm surface
   if (k === "c") { c.fillStyle = "rgba(62,116,120,0.72)"; c.fill(water); }          // painted, flat base tone
+  if (k === "d") { c.fillStyle = "rgba(60,112,118,0.7)"; c.fill(water); }          // painted tone, a little texture left
   const tone: Record<string, [string, (d: number) => number][]> = {
     a: [["rgba(10,34,46,1)", (d) => d <= 2 ? 0 : Math.min(0.28, (d - 2) * 0.02)]],
     b: [["rgba(6,22,40,1)", (d) => d <= 2 ? 0 : Math.min(0.5, (d - 2) * 0.035)]],
     c: [["rgba(24,62,82,1)", (d) => d <= 3 ? 0 : Math.min(0.3, (d - 3) * 0.03)]],
+    d: [["rgba(12,40,62,1)", (d) => d <= 2 ? 0 : Math.min(0.34, (d - 2) * 0.026)]],
   };
-  const river: Record<string, [string, number]> = { a: ["rgba(12,40,48,1)", 0.16], b: ["rgba(8,30,44,1)", 0.28], c: ["rgba(36,88,100,1)", 0.3] };
+  const river: Record<string, [string, number]> = { a: ["rgba(12,40,48,1)", 0.16], b: ["rgba(8,30,44,1)", 0.28], c: ["rgba(36,88,100,1)", 0.3], d: ["rgba(16,48,58,1)", 0.3] };
   // quantised alpha buckets: one path per bucket, ellipses wide enough to melt into each other
   const buckets = new Map<string, Path2D>();
   const add = (col: string, a: number, cx: number, cy: number, r: number) => {
@@ -2818,19 +2821,26 @@ function waterBase(c: C, water: Path2D, shore: { a: Pt; b: Pt }[], x0: number, x
   for (let y = Math.max(0, y0 - 1); y <= Math.min(MAP - 1, y1 + 1); y++) for (let x = Math.max(0, x0 - 1); x <= Math.min(MAP - 1, x1 + 1); x++) {
     if (!isWater(terrain(x, y))) continue;
     const [cx, cy] = iso(x, y), rd = riverDistAt(x, y);
-    if (rd < 0) { const [col, max] = river[k]!; if (k === "c") add(col, rd < -1.2 ? max : 0, cx, cy, 0.8); else add(col, Math.min(max, -rd * 0.09) * 0.45, cx, cy, 1.15); continue; }
+    if (rd < 0) { const [col, max] = river[k]!; if (k === "c") add(col, rd < -1.2 ? max : 0, cx, cy, 0.8); else if (k === "d") continue; else add(col, Math.min(max, -rd * 0.09) * 0.45, cx, cy, 1.15); continue; }
+    if (k === "d") { const d = coastDist(x, y); for (const [col, f] of tone["d"]!) add(col, f(d) * 0.4, cx, cy, 1.25); continue; }
     const d = coastDist(x, y); for (const [col, f] of tone[k]!) add(col, f(d) * (k === "c" ? 1 : 0.4), cx, cy, k === "c" ? 0.85 : 1.25);
   }
   for (const [key, p] of buckets) { const [col, a] = key.split("|"); c.globalAlpha = Number(a); c.fillStyle = col!; c.fill(p); }
   c.globalAlpha = 1;
   // shallows follow the real shoreline: wide strokes along the coast segments, clipped to the water
   if (shore.length) {
-    const path = new Path2D(); for (const s of shore) { path.moveTo(s.a[0], s.a[1]); path.lineTo(s.b[0], s.b[1]); }
+    if (k === "d") { // rivers and lakes: no light rim, only the bank vegetation mirrored softly darker at the edge
+      const inland = new Path2D(); let any = false; for (const s of shore) if (!seaSide(s)) { inland.moveTo(s.a[0], s.a[1]); inland.lineTo(s.b[0], s.b[1]); any = true; }
+      if (any) { c.save(); c.clip(water); c.lineCap = "round"; c.lineJoin = "round"; for (const [w, col] of [[16, "rgba(28,56,44,0.09)"], [7, "rgba(28,56,44,0.1)"]] as const) { c.strokeStyle = col; c.lineWidth = w; c.stroke(inland); } c.restore(); }
+    }
+    const path = new Path2D(); for (const s of shore) { if (k === "d" && !seaSide(s)) continue; path.moveTo(s.a[0], s.a[1]); path.lineTo(s.b[0], s.b[1]); }
     c.lineCap = "round"; c.lineJoin = "round";
     const bands: Record<string, [number, string][]> = {
       a: [[44, "rgba(126,186,176,0.05)"], [30, "rgba(126,186,176,0.06)"], [18, "rgba(140,196,184,0.08)"], [8, "rgba(170,210,196,0.1)"]],
       b: [[40, "rgba(96,180,176,0.07)"], [26, "rgba(104,190,182,0.12)"], [14, "rgba(120,204,190,0.16)"], [6, "rgba(176,224,206,0.2)"]],
       c: [[34, "rgba(120,178,170,0.32)"], [14, "rgba(170,214,196,0.5)"]],
+      // D: sea only, soft painted shallows and a fine resting foam lace — no bright outline around rivers
+      d: [[46, "rgba(104,170,164,0.14)"], [32, "rgba(114,180,170,0.17)"], [20, "rgba(134,194,180,0.22)"], [9, "rgba(170,214,196,0.3)"], [2.5, "rgba(236,242,232,0.5)"]],
     };
     for (const [wd, col] of bands[k]!) { c.lineWidth = wd; c.strokeStyle = col; c.stroke(path); }
   }
@@ -2858,9 +2868,19 @@ function visBlocks(x0: number, x1: number, y0: number, y1: number, vx0: number, 
 }
 const scr = (fx: number, fy: number): [number, number] => [(fx - fy) * TW / 2, (fx + fy) * TH / 2];
 /** Live water per concept: rivers (current), sea (waves) and surf, budgeted by zoom. */
+/** Perf probe only (?perf=1&waterflush=1): force the canvas to rasterise before and after the water layer, so the
+ *  span "water.total" holds recording plus rasterisation of the water marks, not just the recorded commands. */
+const waterFlush = (() => { try { return /[?&]waterflush=1/.test(location.search) && /[?&]perf=1/.test(location.search); } catch { return false; } })();
 function drawWater(c: C, x0: number, x1: number, y0: number, y1: number, z: number, t: number, vx0: number, vx1: number, vy0: number, vy1: number) {
+  if (!waterFlush) { drawWaterAny(c, x0, x1, y0, y1, z, t, vx0, vx1, vy0, vy1); return; }
+  c.getImageData(0, 0, 1, 1); pBegin("water.total");
+  drawWaterAny(c, x0, x1, y0, y1, z, t, vx0, vx1, vy0, vy1);
+  c.getImageData(0, 0, 1, 1); pEnd();
+}
+function drawWaterAny(c: C, x0: number, x1: number, y0: number, y1: number, z: number, t: number, vx0: number, vx1: number, vy0: number, vy1: number) {
   const k = waterConcept();
   if (k === "main") { drawRiverFlow(c, x0, x1, y0, y1, z, t, vx0, vx1, vy0, vy1); return; }
+  if (k === "d") { drawWaterD(c, x0, x1, y0, y1, z, t, vx0, vx1, vy0, vy1); return; }
   const keep = Math.min(1, Math.max(0.12, z / 1.4)), cap = z > 2 ? 2600 : z > 0.8 ? 1800 : z > 0.45 ? 1100 : 600;
   pBegin("water.concept"); stampTotal = 0; crestB.length = 0; capB.length = 0;
   if (k === "b") drawRiverFlow(c, x0, x1, y0, y1, z, t, vx0, vx1, vy0, vy1); // fine crests stay the river base of B
@@ -2879,7 +2899,7 @@ function drawWater(c: C, x0: number, x1: number, y0: number, y1: number, z: numb
     c.fillStyle = "rgba(248,250,246,0.5)"; for (let i = 0; i < capB.length; i += 2) c.fillRect(capB[i]! - 0.4, capB[i + 1]! - 0.5, 0.9, 0.5);
   }
   visBlocks(x0, x1, y0, y1, vx0, vx1, vy0, vy1, (bx, by) => { const segs = seaShore(bx, by); if (segs.length) surfLook(c, k, segs, z, t); });
-  c.restore(); pCount("water.stamps", stampTotal); pCount("water.crests", crestB.length / 6); pEnd();
+  c.restore(); pCount("water.stamps", stampTotal); pCount("water.crests", crestB.length / 6); pCount("water.ops", stampTotal); pEnd();
 }
 function riverLook(c: C, k: WaterConcept, B: FlowBlock, z: number, t: number, keep: number) {
   const sh = sheenSprite(), rb = rippleBrush();
@@ -2904,6 +2924,84 @@ function riverLook(c: C, k: WaterConcept, B: FlowBlock, z: number, t: number, ke
       stamp(c, rb, px, py, qx * L, qy * L, fx * L * 0.38, fy * L * 0.38, Math.min(1, st.a * (0.75 + 0.6 * flowPatch(x, y, t, fl, sp))));
     }
   }
+}
+// ---- concept D: C's painted look, A's soft surf, B's depth; budgeted for weak phones ----
+/** Zoom tier: 3 near, 2 mid, 1 far, 0 overview (screen px per world unit, dpr included). */
+const tierOf = (z: number) => (z > 2 ? 3 : z > 0.8 ? 2 : z > 0.45 ? 1 : 0);
+/** Per tier, at full quality: how many marks of each kind a frame may carry. Densities follow from these budgets and
+ *  the water actually on screen, so a big river or a wide sea thins out evenly instead of being cut off at a cap. */
+const D_TIER = [
+  { rip: 30, sheen: 10, swell: 0, swellStride: 8, crest: 0, surf: 0 },      // overview: the map is blurred, a hint of current is enough
+  { rip: 80, sheen: 20, swell: 50, swellStride: 5, crest: 30, surf: 70 },    // far
+  { rip: 150, sheen: 30, swell: 70, swellStride: 3, crest: 90, surf: 100 },  // mid
+  { rip: 170, sheen: 30, swell: 80, swellStride: 2, crest: 110, surf: 120 }, // near
+] as const;
+export const D_BUDGET = D_TIER.map((T) => T.rip + T.sheen + T.swell + T.crest + T.surf);
+const dBlocks: number[] = [];
+/** Ripples grow when zoomed out, so a few marks still read as current instead of shrinking to specks. */
+const RIP_GROW = [2.2, 1.9, 1.5, 1] as const;
+function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: number, t: number, vx0: number, vx1: number, vy0: number, vy1: number) {
+  pBegin("water.concept");
+  const qs = waterQuality(performance.now()), tier = tierOf(z), T = D_TIER[tier]!;
+  const rv = [rippleVariant(0), rippleVariant(1), rippleVariant(2), rippleVariant(3)], sh = sheenSprite(), cb = crestBrush();
+  // what is on screen: blocks plus counts, so each kind of mark gets an even density that fits its budget
+  dBlocks.length = 0; let nRiv = 0, nSea = 0, nSeg = 0; const reach = z > 0.8 ? 255 : 16;
+  visBlocks(x0, x1, y0, y1, vx0, vx1, vy0, vy1, (bx, by) => {
+    dBlocks.push(bx, by); const R = flowBlock(bx, by), S = seaBlock(bx, by);
+    if (R) nRiv += R.n; if (S && S.minD <= reach) nSea += S.n; nSeg += seaShore(bx, by).length;
+  });
+  const pRip = Math.min(0.6, (T.rip * qs) / Math.max(1, nRiv * 0.6)), pSheen = Math.min(0.25, (T.sheen * qs) / Math.max(1, nRiv * 0.4));
+  const pCrest = Math.min(0.3, (T.crest * qs) / Math.max(1, nSea)), sStride = Math.max(T.swellStride, Math.ceil(Math.sqrt(nSea / Math.max(1, T.swell * Math.max(qs, 0.5)))));
+  const surfStep = Math.max(1, Math.ceil(nSeg / Math.max(1, T.surf * qs))), mx0 = vx0 - 48, mx1 = vx1 + 48, my0 = vy0 - 48, my1 = vy1 + 48;
+  const on = (px: number, py: number) => px > mx0 && px < mx1 && py > my0 && py < my1;
+  c.save(); stampBegin(c, 4000); stampTotal = 0;
+  c.imageSmoothingQuality = "low"; // soft brushes need no high-quality resampling; "high" (left over from sprites) costs ~35 % more
+  for (let k = 0; k < dBlocks.length; k += 2) {
+    const bx = dBlocks[k]!, by = dBlocks[k + 1]!, R = flowBlock(bx, by);
+    if (R) for (let i = 0; i < R.n; i++) {
+      const x = R.x[i]!, y = R.y[i]!, room = R.room[i]!, h = hash(x, y, 1501);
+      const rip = room >= 0.25 ? h < pRip : h < pRip * 0.3, shn = sh && room >= 0.6 && hash(x, y, 1505) < pSheen;
+      if (!rip && !shn) continue;
+      const fl: [number, number] = [R.fx[i]!, R.fy[i]!], sp = R.sp[i]!, [fx, fy] = scr(fl[0], fl[1]), [qx, qy] = scr(-fl[1], fl[0]);
+      if (rip && room >= 0.25) { // a few convincing ripples mid-stream, each its own shape, size and lean (narrow streams get small ones)
+        const st = streakAt(x, y, 0, t, sp, fl, room), [px, py] = iso(st.px, st.py); if (!on(px, py)) continue;
+        const v = Math.floor(hash(x, y, 1502) * 4), L = (0.6 + 0.5 * hash(x, y, 1503)) * Math.min(1.2, Math.max(0.45, room)) * RIP_GROW[tier]!, f = hash(x, y, 1504) < 0.5 ? -1 : 1;
+        stamp(c, rv[v]!, px, py, qx * L * f, qy * L * f, fx * L * 0.36, fy * L * 0.36, st.a * (0.6 + 0.45 * flowPatch(x, y, t, fl, sp)));
+      } else if (rip) { // by the bank: small, slow, faint
+        const st = streakAt(x, y, 1, t * 0.5, sp, fl, room), [px, py] = iso(st.px, st.py), L = 0.45; if (!on(px, py)) continue;
+        stamp(c, rv[3]!, px, py, qx * L, qy * L, fx * L * 0.3, fy * L * 0.3, st.a * 0.3);
+      }
+      if (shn) { // broad light drifting with the current
+        const st = streakAt(x, y, 2, t * 0.55, sp, fl, room), [px, py] = iso(st.px, st.py), L = 1.8 + hash(x, y, 1506); if (!on(px, py)) continue;
+        stamp(c, sh!, px, py, fx * L, fy * L, qx * 0.6, qy * 0.6, st.a * 0.14);
+      }
+    }
+    const S = seaBlock(bx, by);
+    if (S && S.minD <= reach) for (let i = 0; i < S.n; i++) {
+      const x = S.x[i]!, y = S.y[i]!, d = S.d[i]!; if (d === 0 || d > reach) continue;
+      const cr = cb && d > 1 && hash(x, y, 1510) < pCrest, sw = sh && T.swell > 0 && !(x % sStride || y % sStride); if (!cr && !sw) continue;
+      const fl: [number, number] = [S.fx[i]!, S.fy[i]!], [fx, fy] = scr(fl[0], fl[1]), [qx, qy] = scr(-fl[1], fl[0]), calm = Math.min(1, d / 3);
+      if (cr) { // C's painted crests rolling toward the coast
+        const st = streakAt(x, y, 5, t, 0.26, fl), [px, py] = iso(st.px, st.py), L = Math.max(1.1, 0.4 * sStride) * (0.75 + 0.5 * hash(x, y, 1511));
+        if (on(px, py)) stamp(c, cb!, px, py, qx * L, qy * L, fx * L * 0.3, fy * L * 0.3, st.a * calm * 0.8);
+      }
+      if (sw) { // large slow swells: light bands marching onshore, the darker water between them is the trough
+        const ph = swellPhase(x, y, fl, t, 5, 0.3), crest = Math.pow(Math.max(0, Math.cos((ph - 0.25) * 6.283)), 3), [px, py] = iso(x, y), L = 1.5 * sStride, W = 0.42 * sStride;
+        if (crest > 0.2 && on(px, py)) stamp(c, sh!, px, py, qx * L, qy * L, fx * W, fy * W, crest * 0.22 * calm);
+      }
+    }
+    // soft surf from A: wash blobs run up the beach on their stretch's own beat; thinned evenly when the coast is long
+    if (sh && T.surf > 0) {
+      const segs = seaShore(bx, by), W = 3.8;
+      for (let i = (bx * 7 + by * 3) % surfStep; i < segs.length; i += surfStep) {
+        const s = segs[i]!; if (!on(s.mx, s.my)) continue;
+        const dx = (s.b[0] - s.a[0]) / s.len, dy = (s.b[1] - s.a[1]) / s.len, ph = surfPhase(s.mx, s.my, t, 7600), off = (1 - ph) * 7 + 0.6, L = Math.max(5, s.len * 2.2) * Math.min(surfStep, 1.6);
+        stamp(c, sh, s.mx + s.nx * off, s.my + s.ny * off, dx * L, dy * L, s.nx * W, s.ny * W, 0.46 * Math.sin(Math.PI * ph));
+      }
+    }
+  }
+  stampEnd(c); c.restore();
+  pCount("water.ops", stampTotal); pCount("water.quality", waterQualityLevel()); pEnd();
 }
 const crestB: number[] = [], capB: number[] = [];
 function seaLook(c: C, k: WaterConcept, S: SeaBlock, z: number, t: number, keep: number) {
