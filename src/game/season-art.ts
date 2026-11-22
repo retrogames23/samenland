@@ -5,19 +5,30 @@ export type ArtRole = "building" | "leaf" | "fir" | "ground" | "field" | "water"
 type Look = ReturnType<typeof biomeLook>;
 
 let now = 0;
-/** Per-frame recolour budget (ms). Misses beyond it show the original sprite until the staged job finishes. */
+/** Per-frame recolour budget (ms). Misses beyond it show the last finished seasonal surface (or, before any, the
+ *  original sprite) until the staged job finishes. */
 export const ART_BUDGET_MS = 6;
+/** Finished seasonal surfaces kept per image (all roles together); surfaces still on screen are never evicted. */
+export const ART_CACHE_PER_IMAGE = 6;
 const SLICE_ROWS = 24;
 let spent = 0;
 const clockMs = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
-const cache = new WeakMap<HTMLImageElement, Map<string, HTMLCanvasElement>>();
+/** Per image: finished surfaces by key (insertion order = age), the key last asked for per role, and per role the key
+ *  of the newest finished surface that was current — the stand-in while the next key is being recoloured. */
+type Art = { entries: Map<string, HTMLCanvasElement>; want: Map<ArtRole, string>; shown: Map<ArtRole, string> };
+const cache = new WeakMap<HTMLImageElement, Art>();
+const artOf = (image: HTMLImageElement) => {
+  let a = cache.get(image);
+  if (!a) { a = { entries: new Map(), want: new Map(), shown: new Map() }; cache.set(image, a); }
+  return a;
+};
 type Job = { image: HTMLImageElement; key: string; role: ArtRole; w: SeasonWeights; sc: number; look: Look; cv: HTMLCanvasElement; g: CanvasRenderingContext2D; data: ImageData; y: number };
 const jobs = new Map<HTMLImageElement, Map<string, Job>>();
 const queue: Job[] = [];
 let provisional = false, stand = 0;
 /** Monotonic count of stand-ins handed out — bakes compare before/after and never cache a surface that used one. */
 export const standIns = () => stand;
-/** True when the last seasonalImage() call returned a stand-in (original image) — callers must not cache it. */
+/** True when the last seasonalImage() call returned a stand-in (previous season or original) — callers must not cache it. */
 export const lastWasProvisional = () => provisional;
 
 export const setArtTime = (time: number) => { now = time; spent = 0; pump(); };
@@ -68,23 +79,52 @@ function step(job: Job): HTMLCanvasElement | null {
     job.y = y1; spent += clockMs() - t0;
   }
   job.g.putImageData(data, 0, 0);
+  drop(job);
+  const art = artOf(job.image), { entries, shown, want } = art;
+  // Bound memory: evict the oldest surfaces, never one still standing in for a role or the key now asked for.
+  if (!entries.has(job.key)) for (const k of entries.keys()) {
+    if (entries.size < ART_CACHE_PER_IMAGE) break;
+    if (!isHeld(art, k)) entries.delete(k);
+  }
+  entries.set(job.key, job.cv);
+  // Only the key currently asked for becomes the stand-in: a superseded job never replaces a newer surface.
+  if (want.get(job.role) === job.key) shown.set(job.role, job.key);
+  return job.cv;
+}
+function isHeld(art: Art, key: string) {
+  for (const k of art.shown.values()) if (k === key) return true;
+  for (const k of art.want.values()) if (k === key) return true;
+  return false;
+}
+function drop(job: Job) {
   const pend = jobs.get(job.image); pend?.delete(job.key); if (pend && !pend.size) jobs.delete(job.image);
   const qi = queue.indexOf(job); if (qi >= 0) queue.splice(qi, 1);
-  let entries = cache.get(job.image);
-  if (!entries) { entries = new Map(); cache.set(job.image, entries); }
-  // Bound memory when the calendar is advanced during previews.
-  if (entries.size>=6) entries.clear(); entries.set(job.key, job.cv);
-  return job.cv;
+}
+/** The key asked for changed: the surface on screen until now becomes the stand-in, superseded jobs are cancelled. */
+function retarget(art: Art, image: HTMLImageElement, role: ArtRole, key: string) {
+  const prev = art.want.get(role);
+  if (prev !== undefined && art.entries.has(prev)) art.shown.set(role, prev);
+  art.want.set(role, key);
+  const pend = jobs.get(image);
+  if (pend) for (const job of [...pend.values()]) if (job.role === role && job.key !== key) drop(job);
 }
 function pump() { while (queue.length && spent < ART_BUDGET_MS) { if (!step(queue[0]!)) break; } }
 
-/** Cached, alpha-preserving seasonal surfaces, recoloured in budgeted row slices; the original image stands in meanwhile. */
+/** Cached, alpha-preserving seasonal surfaces, recoloured in budgeted row slices; meanwhile the last finished surface of
+ *  the same image and role stands in (the original only before any exists). */
 export function seasonalImage(image: HTMLImageElement, role: ArtRole = "building"): HTMLImageElement | HTMLCanvasElement {
   provisional = false;
   const w = seasonAt(now), sc = snowCoverAt(now), key = `${role}:${seasonKey(now)}`;
   const look = role === "building" ? null : biomeLook();
-  if (!look && (w.winter + w.autumn + w.spring < 0.02 || role === "water" && w.winter < 0.02)) return image;
-  const hit = cache.get(image)?.get(key); if (hit) return hit;
+  if (!look && (w.winter + w.autumn + w.spring < 0.02 || role === "water" && w.winter < 0.02)) {
+    // the original is the current look again: it, not an old season, stands in for the next recolour
+    const a = cache.get(image);
+    if (a?.want.has(role)) { a.want.delete(role); a.shown.delete(role); const pend = jobs.get(image); if (pend) for (const job of [...pend.values()]) if (job.role === role) drop(job); }
+    return image;
+  }
+  const art = artOf(image);
+  if (art.want.get(role) !== key) retarget(art, image, role, key);
+  const hit = art.entries.get(key); if (hit) return hit;
   let pend = jobs.get(image); let job = pend?.get(key);
   if (!job) {
     const cv = document.createElement("canvas"); cv.width = image.naturalWidth; cv.height = image.naturalHeight;
@@ -96,7 +136,14 @@ export function seasonalImage(image: HTMLImageElement, role: ArtRole = "building
     pend.set(key, job); queue.push(job);
   }
   const done = step(job); if (done) return done;
-  provisional = true; stand++; return image;
+  provisional = true; stand++;
+  const held = art.shown.get(role);
+  return (held !== undefined && art.entries.get(held)) || image;
+}
+
+/** Test/diagnostic only: pending recolour jobs (all images) and finished surfaces cached for one image. */
+export function seasonArtStats(image?: HTMLImageElement) {
+  return { pending: queue.length, cached: image ? cache.get(image)?.entries.size ?? 0 : 0 };
 }
 
 /** Test/reference only: the full synchronous recolour, unbudgeted. */
