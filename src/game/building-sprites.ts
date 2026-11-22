@@ -1,4 +1,5 @@
 import { seasonalImage } from "./season-art";
+import { FIRE, FLAME_FRAMES, FLAME_H, FLAME_W, fireLevel, flamePhase, flameStrip, glowSprite, noise1, soft, swing, type FireKind } from "./fire";
 import waterWheelUrl from "@/assets/sprites/water-wheel.webp";
 import campfire from "@/assets/sprites/campfire.webp";
 import flameUrl from "@/assets/sprites/flame.webp";
@@ -455,6 +456,47 @@ export function drawBuildingSprite(c: CanvasRenderingContext2D, kind: Kind, x: n
   return true;
 }
 
+// ---- roof silhouette of the painting actually drawn (where a burning house's flames break through) ----
+const PROF_W = 32, PROF_H = 64;
+const profiles = new WeakMap<HTMLImageElement, Float32Array | null>();
+/** Topmost opaque row (0..1 of the height) per column of a painting, measured once on a small copy. */
+function profileOf(im: HTMLImageElement): Float32Array | null {
+  if (profiles.has(im)) return profiles.get(im)!;
+  if (typeof document === "undefined" || !im.complete || !im.naturalWidth) return null;
+  let out: Float32Array | null = null;
+  try {
+    const cv = document.createElement("canvas"); cv.width = PROF_W; cv.height = PROF_H;
+    const g = cv.getContext("2d", { willReadFrequently: true });
+    if (g) {
+      g.drawImage(im, 0, 0, PROF_W, PROF_H);
+      const d = g.getImageData(0, 0, PROF_W, PROF_H).data; out = new Float32Array(PROF_W).fill(NaN);
+      for (let x = 0; x < PROF_W; x++) for (let y = 0; y < PROF_H; y++) if (d[(y * PROF_W + x) * 4 + 3]! > 110) { out[x] = (y + 0.5) / PROF_H; break; }
+    }
+  } catch { out = null; }
+  profiles.set(im, out); return out;
+}
+/** Roof line of the building as drawn at (x, y): the painting's world rectangle and, for a screen fraction u of its
+ *  width (0 = left edge), the world point on the top silhouette. Same image, scale and mirroring as drawBuildingSprite;
+ *  null while the painting is still loading. */
+export function roofLine(kind: Kind, x: number, y: number, variant: number, flip = false, style?: HouseStyle): { left: number; top: number; width: number; height: number; at: (u: number) => [number, number] } | null {
+  style = draftStyle(kind, style, variant);
+  const sprite = spriteOf(kind, style); if (!sprite?.image) return null;
+  const st = styledOf(kind, style, variant);
+  const image = st && ready(st.image) && st.image ? st.image : sprite.image;
+  if (!ready(image)) return null;
+  if (image === st?.image && st.mirror) flip = !flip;
+  const [, , sw, sh] = image === st?.image ? st.crop : sprite.crop;
+  const width = sprite.width * scaleOf(kind, variant), height = width * sh / sw, left = x - width / 2, top = y + sprite.base - height;
+  const prof = profileOf(image); if (!prof) return null;
+  const at = (u: number): [number, number] => {
+    const col = Math.min(PROF_W - 1, Math.max(0, Math.floor((flip ? 1 - u : u) * PROF_W)));
+    let v = prof[col]!;
+    for (let k = 1; Number.isNaN(v) && k < PROF_W; k++) { const r = prof[Math.min(PROF_W - 1, col + k)]!, l = prof[Math.max(0, col - k)]!; v = Number.isNaN(r) ? l : r; }
+    return [left + u * width, top + (Number.isNaN(v) ? 0.3 : v) * height];
+  };
+  return { left, top, width, height, at };
+}
+
 /** The light-only layer uses exactly the daylight sprite's framing, scale and mirroring. */
 export function drawBuildingNight(c: CanvasRenderingContext2D, kind: Kind, x: number, y: number, variant: number, intensity: number, flip = false, style?: HouseStyle) {
   style = draftStyle(kind, style, variant);
@@ -553,36 +595,47 @@ function waterWheel(c: CanvasRenderingContext2D, x: number, y: number, r: number
 
 let flameImg: HTMLImageElement | undefined;
 if (typeof Image !== "undefined") { flameImg = new Image(); flameImg.decoding = "async"; flameImg.src = flameUrl; }
-/** Painted flame (watercolour sprite): a few mirrored copies flicker in height and lean in the draught — no vector shapes. */
-export function paintedFlame(c: CanvasRenderingContext2D, x: number, y: number, h: number, t: number, sd: number, n = 3) {
+/** Painted flame: a few tongues from the pre-rendered wavering strip (fire.ts), each with its own smooth intensity,
+ *  lean and phase; frames crossfade so the motion never steps. The main tongue follows fireLevel(kind, t, sd) — the
+ *  same value the caller uses for glow and cast light. */
+export function paintedFlame(c: CanvasRenderingContext2D, x: number, y: number, h: number, t: number, sd: number, n = 3, kind: FireKind = "campfire") {
   const im = flameImg; if (!im?.complete || !im.naturalWidth) return;
-  const ar = im.naturalWidth / im.naturalHeight;
-  c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+  const strip = flameStrip(im); if (!strip) return;
+  const F = FIRE[kind], ar = FLAME_W / FLAME_H, px = h * Math.hypot(c.getTransform().a, c.getTransform().b);
+  // small on screen (forge, distant fires): medium resampling looks the same and costs far less than high
+  c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = px < 60 ? "medium" : "high";
   for (let i = 0; i < n; i++) {
-    const ph = t / (110 + i * 37) + i * 2.1 + sd;
-    const k = (i === 0 ? 1 : 0.62 - i * 0.06) * (0.86 + 0.14 * Math.abs(Math.sin(ph)) + 0.05 * Math.sin(ph * 2.7));
-    const hh = h * k, ww = hh * ar * (0.92 + 0.08 * Math.sin(ph * 1.3)), off = n > 1 ? (i - (n - 1) / 2) * h * 0.18 * (i ? 1 : 0) : 0;
-    c.save(); c.translate(x + (i === 0 ? 0 : (i % 2 ? -1 : 1) * h * 0.16) + off * 0, y);
-    c.transform(i % 2 ? -1 : 1, 0, Math.sin(ph * 0.9) * 0.08, 1, 0, 0);
-    c.globalAlpha = i === 0 ? 1 : 0.9; c.drawImage(im, -ww / 2, -hh, ww, hh); c.restore();
+    const s = sd + i * 1.618, lvl = fireLevel(kind, t, s);
+    const hh = h * (i === 0 ? 1 : 0.66 - i * 0.07) * swing(lvl, F.size), ww = hh * ar * (i === 0 ? 1 : 0.92);
+    const lean = F.lean * (noise1((t / 1000) * 0.8, Math.floor(s * 7919) + 5) * 2 - 1);
+    const side = i === 0 ? 0 : (i % 2 ? -1 : 1) * h * (0.14 + 0.03 * i), drift = h * 0.03 * (noise1((t / 1000) * 0.6, Math.floor(s * 7919) + 9) - 0.5);
+    const ph = flamePhase(kind, t, s), f0 = Math.floor(ph), f1 = (f0 + 1) % FLAME_FRAMES, fr = ph - f0;
+    c.save(); c.translate(x + side + drift, y);
+    c.transform(i % 2 ? -1 : 1, 0, lean, 1, 0, 0);
+    c.globalAlpha = i === 0 ? 1 : 0.88;
+    c.drawImage(strip, f0 * FLAME_W, 0, FLAME_W, FLAME_H, -ww / 2, -hh, ww, hh);
+    if (fr > 0.06) { // next frame laid over with rising weight: smooth motion, never a dimming blend
+      c.globalAlpha *= fr;
+      c.drawImage(strip, f1 * FLAME_W, 0, FLAME_W, FLAME_H, -ww / 2, -hh, ww, hh);
+    }
+    c.restore();
   }
   c.restore();
 }
 
 function flames(c: CanvasRenderingContext2D, x: number, y: number, h: number, t: number, sd: number) {
   c.save();
-  // breathing glow on stones and ground
-  const fl = 0.75 + 0.15 * Math.sin(t / 110 + sd) + 0.1 * Math.sin(t / 47 + sd * 3);
-  const g = c.createRadialGradient(x, y - h * 0.1, 0, x, y - h * 0.1, h * 0.9);
-  g.addColorStop(0, `rgba(255,170,70,${0.28 * fl})`); g.addColorStop(1, "rgba(255,140,50,0)");
-  c.globalCompositeOperation = "lighter"; c.fillStyle = g; c.fillRect(x - h, y - h, h * 2, h * 2);
-  c.globalCompositeOperation = "source-over"; paintedFlame(c, x, y + h * 0.02, h * 0.62, t, sd);
+  // glow on stones and ground breathes with the flame (same intensity value)
+  const lvl = fireLevel("campfire", t, sd);
   c.globalCompositeOperation = "lighter";
-  // sparks rising and drifting
+  soft(c, glowSprite(), x, y - h * 0.1, h * 0.9, 0.28 * swing(lvl, FIRE.campfire.glow));
+  c.globalCompositeOperation = "source-over"; paintedFlame(c, x, y + h * 0.02, h * 0.62, t, sd, 3, "campfire");
+  c.globalCompositeOperation = "lighter";
+  // sparks rising and drifting, more of them when the fire surges
   for (let i = 0; i < 7; i++) {
     const ph = (t / 1400 + i / 7 + (sd % 1)) % 1;
-    const sx = x + Math.sin(i * 4.1 + ph * 6) * h * 0.18 + ph * h * 0.12, sy = y - h * 0.3 - ph * h * 0.9;
-    c.fillStyle = `rgba(255,${200 - ph * 80},90,${0.9 * (1 - ph)})`;
+    const sx = x + (noise1(t / 900 + i * 3.1, i) - 0.5) * h * 0.36 + ph * h * 0.12, sy = y - h * 0.3 - ph * h * 0.9;
+    c.fillStyle = `rgba(255,${200 - ph * 80},90,${0.9 * (1 - ph) * (0.6 + 0.4 * lvl)})`;
     c.fillRect(sx, sy, h * 0.012, h * 0.012);
   }
   c.restore();
