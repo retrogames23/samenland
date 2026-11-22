@@ -64,14 +64,5 @@ export function firstFinder(rows: WonderFind[], site: string, realm: string): Wo
 /** Sites this village has discovered (its own rows only, any other village's find is not this village's status). */
 export const ownSites = (rows: WonderFind[], seedId: string | null | undefined): Set<string> =>
   new Set(seedId ? rows.filter((r) => r.seed_id === seedId).map((r) => r.site) : []);
-/** Finds a village may make in a rolling 24 h (DB claim_wonder: count of the last day >= 3 → 'too many'). */
-export const WONDER_LIMIT = 3;
-/** When this village may discover again (ms), from its own finds: the third-newest find of the last 24 h plus a day;
- *  null when the limit is not reached on the known rows (the DB still decides). */
-export function nextWonderAt(rows: WonderFind[], seedId: string | null | undefined, now: number): number | null {
-  const day = 864e5;
-  const recent = rows.filter((r) => r.seed_id === seedId && now - Date.parse(r.created_at) < day).map((r) => Date.parse(r.created_at)).sort((a, b) => b - a);
-  return recent.length >= WONDER_LIMIT ? recent[WONDER_LIMIT - 1]! + day : null;
-}
 /** Whole days since the first discovery (0 = today). */
 export const daysSince = (iso: string, now: number) => Math.max(0, Math.floor((now - Date.parse(iso)) / 864e5));

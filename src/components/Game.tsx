@@ -18,7 +18,7 @@ import { getServerTime } from "@/game/time.functions";
 import { useModeCursor } from "@/components/hooks/useModeCursor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { wonders, wonderClaims, firstFinder, daysSince, ownSites, nextWonderAt, WONDER_REACH, type WonderFind } from "@/game/wonders";
+import { wonders, wonderClaims, firstFinder, daysSince, ownSites, WONDER_REACH, type WonderFind } from "@/game/wonders";
 import { draw, renderStats, iso, toTile, MIN_ZOOM, lastPeople, lastTraders, lastSources, peopleFocus, signFocus, prewarmOverview, setBakeHold, setSignposts, setWonderFound, setKnights, signpostMap, type Camera } from "@/game/render";
 /** Stroll position kept across reloads (browser only, never stored on the server). */
 const STROLL_KEY = "samenland-stroll", STROLL_TTL = 30 * 60e3, VIEW_KEY = "samenland-view";
@@ -2012,9 +2012,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
           if (/too many/.test(String((error as { message?: string }).message ?? ""))) {
             // daily limit: keep the site quiet until reload so the note isn't repeated every frame
             wonderSeen.current.add(key);
-            // the limit is a rolling 24 h (not the calendar day): name the time more finds are possible
-            const at = nextWonderAt(wonderRows.current, my.id, clock()), when = at == null ? null : new Date(at).toLocaleString(lang, new Date(at).toDateString() === new Date().toDateString() ? { hour: "2-digit", minute: "2-digit" } : { weekday: "short", hour: "2-digit", minute: "2-digit" });
-            setVisitNote(o && o.task === "wonder" ? `${P.tired(when)} ${P.ready}` : P.tired(when));
+            setVisitNote(o && o.task === "wonder" ? `${P.tired} ${P.ready}` : P.tired);
           }
         } else {
           // reward 0: this village already logged the site — say so, and stop the glimmer here too

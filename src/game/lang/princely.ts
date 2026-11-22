@@ -18,8 +18,7 @@ type Text = {
   dubbed: (title: string) => string;
   sir: (f: boolean) => string;
   notYet: string;
-  /** Daily wonder limit (3 finds in a rolling 24 h, DB claim_wonder); at = local time more can be found, or null. */
-  tired: (at: string | null) => string;
+  tired: string;
   seen: string;
   ready: string;
   visited: (n: string) => string;
@@ -43,7 +42,7 @@ export const PRINCELY: Record<Lang, Text> = {
     ask: "Nach Erlassen fragen", fail: "Der Hof konnte Euch gerade nicht anhören.",
     swap: 'Um einen anderen Erlass bitten', swapped: '„Nun gut, dient Uns stattdessen bei Hofe: Sucht den Hofgärtner im Rosengarten und den Stallmeister am Marstall auf. Danach tretet wieder vor Uns.“', wait: '„Ihr habt heute schon um einen anderen Auftrag gebeten.“',
     kneel: 'Niederknien zum Ritterschlag', dubbed: (t) => 'Der Fürst berührt mit dem Schwert Eure Schultern: „Erhebt Euch, ${t}! Nehmt dieses Reitpferd aus Unserem Marstall – fortan reist Ihr doppelt so schnell durchs Land.“'.replace('${t}', t), sir: (f) => (f ? 'Dame' : 'Ritter'), notYet: '„Noch habt Ihr nicht genug Erlasse erfüllt.“',
-    seen: "Diesen Ort habt Ihr schon früher erkundet – er steht bereits in Eurem Gipfelbuch.", tired: (at) => `In den letzten 24 Stunden habt Ihr schon 3 Wunder erkundet – Eure Füße sind müde. ${at ? `Ab ${at} könnt` : "Bald könnt"} Ihr weitere entdecken.`, ready: "Euer fürstlicher Erlass ist erfüllt – der Bote des Fürsten wartet in Eurem Dorf auf Euren Bericht.", visited: (n) => `Ihr habt in ${n} nach dem Rechten gesehen – der Bote des Fürsten wartet in Eurem Dorf auf Euren Bericht.`,
+    seen: "Diesen Ort habt Ihr schon früher erkundet – er steht bereits in Eurem Gipfelbuch.", tired: "Ihr habt heute schon 3 Wunder erkundet – Eure Füße sind müde. Morgen könnt Ihr weitere entdecken.", ready: "Euer fürstlicher Erlass ist erfüllt – der Bote des Fürsten wartet in Eurem Dorf auf Euren Bericht.", visited: (n) => `Ihr habt in ${n} nach dem Rechten gesehen – der Bote des Fürsten wartet in Eurem Dorf auf Euren Bericht.`,
     errand: { gardener: ['Mit dem Hofgärtner sprechen', 'Der Hofgärtner schneidet Euch ein Gebinde duftender Rosen für die Fürstin.'], groom: ['Mit dem Stallmeister sprechen', 'Der Stallmeister nimmt Eure Order entgegen und lässt die Pferde für die Jagd satteln.'] }, errandTitle: 'Hofdienst', errandDone: 'Bereits erledigt', errandWho: { gardener: 'Gärtner im Rosengarten (6–17 Uhr)', groom: 'Stallmeister am Marstall (6–19 Uhr)' }, errandReady: 'Euer Hofdienst ist vollbracht – bittet beim Schloss um Audienz.', errandHint: 'Der Rosengarten liegt rechts hinter dem Schloss, der Marstall links unten. Tippt im Spaziermodus auf den Gärtner oder Stallmeister – Euer Schulze geht hin und spricht ihn an.',
   },
   en: {
@@ -57,7 +56,7 @@ export const PRINCELY: Record<Lang, Text> = {
     ask: "Ask for decrees", fail: "The court could not hear you just now.",
     swap: 'Ask for another decree', swapped: '"Very well, serve Us at court instead: find the gardener in the rose garden and the groom at the stables. Then come before Us again."', wait: '"You already asked for another task today."',
     kneel: 'Kneel to be knighted', dubbed: (t) => 'The Prince touches your shoulders with his sword: "Rise, ${t}! Take this horse from Our stables – from now on you travel the land twice as fast."'.replace('${t}', t), sir: (f) => (f ? 'Dame' : 'Sir Knight'), notYet: '"You have not yet fulfilled enough decrees."',
-    seen: "You explored this place before – it is already in your summit book.", tired: (at) => `You have explored 3 wonders in the last 24 hours – your feet are weary. ${at ? `From ${at} you can` : "Soon you can"} discover more.`, ready: "Your princely decree is fulfilled – the Prince's messenger awaits your report in your village.", visited: (n) => `You looked in on ${n} – the Prince's messenger awaits your report in your village.`,
+    seen: "You explored this place before – it is already in your summit book.", tired: "You have already explored 3 wonders today – your feet are weary. You can discover more tomorrow.", ready: "Your princely decree is fulfilled – the Prince's messenger awaits your report in your village.", visited: (n) => `You looked in on ${n} – the Prince's messenger awaits your report in your village.`,
     errand: { gardener: ['Speak to the gardener', 'The gardener cuts you a bunch of fragrant roses for the Princess.'], groom: ['Speak to the groom', 'The groom takes your order and saddles the horses for the hunt.'] }, errandTitle: 'Court service', errandDone: 'Done', errandWho: { gardener: 'Gardener in the rose garden (6am–5pm)', groom: 'Groom at the stables (6am–7pm)' }, errandReady: 'Your court service is complete – ask for an audience at the castle.', errandHint: 'The rose garden lies to the right behind the castle, the stables to the lower left. In stroll mode tap the gardener or groom – your mayor walks over and speaks to them.',
   },
   fr: {
@@ -71,7 +70,7 @@ export const PRINCELY: Record<Lang, Text> = {
     ask: "Demander des décrets", fail: "La cour n'a pu vous entendre pour l'instant.",
     swap: 'Demander un autre décret', swapped: '« Soit, servez-Nous plutôt à la cour : trouvez le jardinier dans la roseraie et le palefrenier aux écuries. Puis revenez devant Nous. »', wait: "« Vous avez déjà demandé une autre mission aujourd'hui. »",
     kneel: "S'agenouiller pour l'adoubement", dubbed: (t) => "Le prince pose l'épée sur vos épaules : « Relevez-vous, ${t} ! Prenez ce cheval de Nos écuries – désormais vous voyagerez deux fois plus vite. »".replace('${t}', t), sir: (f) => (f ? 'Dame' : 'Chevalier'), notYet: "« Vous n'avez pas encore accompli assez de décrets. »",
-    seen: "Vous avez déjà exploré ce lieu – il figure déjà dans votre livre du sommet.", tired: (at) => `Vous avez exploré 3 merveilles ces dernières 24 heures – vos pieds sont las. ${at ? `À partir de ${at}, vous pourrez` : "Bientôt vous pourrez"} en découvrir d'autres.`, ready: "Votre décret princier est accompli – le messager du prince attend votre rapport au village.", visited: (n) => `Vous avez rendu visite à ${n} – le messager du prince attend votre rapport au village.`,
+    seen: "Vous avez déjà exploré ce lieu – il figure déjà dans votre livre du sommet.", tired: "Vous avez déjà exploré 3 merveilles aujourd'hui – vos pieds sont las. Revenez demain pour en découvrir d'autres.", ready: "Votre décret princier est accompli – le messager du prince attend votre rapport au village.", visited: (n) => `Vous avez rendu visite à ${n} – le messager du prince attend votre rapport au village.`,
     errand: { gardener: ['Parler au jardinier', 'Le jardinier vous coupe un bouquet de roses parfumées pour la princesse.'], groom: ['Parler au palefrenier', 'Le palefrenier prend votre ordre et selle les chevaux pour la chasse.'] }, errandTitle: 'Service à la cour', errandDone: 'Fait', errandWho: { gardener: 'Jardinier dans la roseraie (6h–17h)', groom: 'Palefrenier aux écuries (6h–19h)' }, errandReady: 'Votre service est accompli – demandez audience au château.', errandHint: 'La roseraie se trouve à droite derrière le château, les écuries en bas à gauche. En promenade, touchez le jardinier ou le palefrenier : votre maire s’y rend et lui parle.',
   },
   es: {
@@ -85,7 +84,7 @@ export const PRINCELY: Record<Lang, Text> = {
     ask: "Pedir decretos", fail: "La corte no pudo oíros ahora.",
     swap: 'Pedir otro decreto', swapped: '«Sea, servidnos en la corte: buscad al jardinero en el rosal y al mozo en las caballerizas. Luego volved ante Nos.»', wait: '«Ya pedisteis otra tarea hoy.»',
     kneel: 'Arrodillarse para ser armado caballero', dubbed: (t) => 'El príncipe toca vuestros hombros con la espada: «¡Alzaos, ${t}! Tomad este caballo de Nuestras cuadras; desde hoy viajaréis el doble de rápido.»'.replace('${t}', t), sir: (f) => (f ? 'Dama' : 'Caballero'), notYet: '«Aún no habéis cumplido suficientes decretos.»',
-    seen: "Ya explorasteis este lugar – figura en vuestro libro de cumbre.", tired: (at) => `En las últimas 24 horas ya habéis explorado 3 maravillas – vuestros pies están cansados. ${at ? `A partir de ${at} podréis` : "Pronto podréis"} descubrir más.`, ready: "Vuestro decreto principesco está cumplido: el mensajero del Príncipe espera vuestro informe en la aldea.", visited: (n) => `Habéis visitado ${n}: el mensajero del Príncipe espera vuestro informe en la aldea.`,
+    seen: "Ya explorasteis este lugar – figura en vuestro libro de cumbre.", tired: "Hoy ya habéis explorado 3 maravillas – vuestros pies están cansados. Mañana podréis descubrir más.", ready: "Vuestro decreto principesco está cumplido: el mensajero del Príncipe espera vuestro informe en la aldea.", visited: (n) => `Habéis visitado ${n}: el mensajero del Príncipe espera vuestro informe en la aldea.`,
     errand: { gardener: ['Hablar con el jardinero', 'El jardinero os corta un ramo de rosas fragantes para la princesa.'], groom: ['Hablar con el mozo de cuadra', 'El mozo recibe vuestra orden y ensilla los caballos para la caza.'] }, errandTitle: 'Servicio en la corte', errandDone: 'Hecho', errandWho: { gardener: 'Jardinero en el rosal (6–17 h)', groom: 'Mozo en las caballerizas (6–19 h)' }, errandReady: 'Vuestro servicio está cumplido: pedid audiencia en el castillo.', errandHint: 'El rosal está a la derecha detrás del castillo y las caballerizas abajo a la izquierda. En modo paseo tocad al jardinero o al mozo: vuestro alcalde irá a hablarle.',
   },
   ar: {
@@ -99,7 +98,7 @@ export const PRINCELY: Record<Lang, Text> = {
     ask: "اسأل عن المراسيم", fail: "تعذّر على البلاط سماعك الآن.",
     swap: 'اطلب مرسومًا آخر', swapped: '«حسنًا، اخدمنا في البلاط بدلًا من ذلك: ابحث عن البستاني في حديقة الورد والسائس عند الإسطبل، ثم عُد إلينا.»', wait: '«لقد طلبت مهمة أخرى اليوم بالفعل.»',
     kneel: 'اركع لتنال لقب الفارس', dubbed: (t) => 'يلمس الأمير كتفيك بسيفه: «انهض يا ${t}! خذ هذا الحصان من إسطبلاتنا – من الآن تسافر في البلاد بضعف السرعة.»'.replace('${t}', t), sir: (f) => (f ? 'السيدة الفارسة' : 'الفارس'), notYet: '«لم تُنجز بعد ما يكفي من المراسيم.»',
-    seen: "لقد استكشفت هذا المكان من قبل – إنه مسجل في سجل الرواد.", tired: (at) => `لقد استكشفت 3 عجائب خلال الـ24 ساعة الماضية – قدماك متعبتان. ${at ? `يمكنك اكتشاف المزيد ابتداءً من ${at}.` : "يمكنك اكتشاف المزيد قريبًا."}`, ready: "تمّ مرسوم الأمير – رسول الأمير ينتظر تقريرك في قريتك.", visited: (n) => `لقد تفقّدت ${n} – رسول الأمير ينتظر تقريرك في قريتك.`,
+    seen: "لقد استكشفت هذا المكان من قبل – إنه مسجل في سجل الرواد.", tired: "لقد استكشفت اليوم 3 عجائب بالفعل – قدماك متعبتان. يمكنك اكتشاف المزيد غدًا.", ready: "تمّ مرسوم الأمير – رسول الأمير ينتظر تقريرك في قريتك.", visited: (n) => `لقد تفقّدت ${n} – رسول الأمير ينتظر تقريرك في قريتك.`,
     errand: { gardener: ['تحدّث مع البستاني', 'يقطف لك البستاني باقة من الورد العطر للأميرة.'], groom: ['تحدّث مع السائس', 'يتسلّم السائس أمرك ويسرج الخيل للصيد.'] }, errandTitle: 'خدمة البلاط', errandDone: 'تمّ', errandWho: { gardener: 'البستاني في حديقة الورد (6–17)', groom: 'السائس عند الإسطبل (6–19)' }, errandReady: 'اكتملت خدمتك في البلاط – اطلب المثول عند القصر.', errandHint: 'حديقة الورد على يمين القصر من الخلف، والإسطبل في الأسفل يسارًا. في وضع التجوّل اضغط على البستاني أو السائس فيمشي عمدتك إليه ويحدّثه.',
   },
   hi: {
@@ -113,7 +112,7 @@ export const PRINCELY: Record<Lang, Text> = {
     ask: "फ़रमान पूछें", fail: "दरबार अभी आपकी बात नहीं सुन सका।",
     swap: 'दूसरा फ़रमान माँगें', swapped: '"ठीक है, इसके बजाय दरबार में सेवा करें: गुलाब-बाग़ में माली और अस्तबल पर साईस को खोजें। फिर हमारे सामने आएँ।"', wait: '"आप आज पहले ही दूसरा काम माँग चुके हैं।"',
     kneel: 'सामंत उपाधि के लिए घुटने टेकें', dubbed: (t) => 'राजकुमार तलवार से आपके कंधे छूते हैं: «उठिए, ${t}! हमारे अस्तबल का यह घोड़ा लीजिए – अब आप दोगुनी तेज़ी से यात्रा करेंगे।»'.replace('${t}', t), sir: (f) => (f ? 'दाम' : 'सर नाइट'), notYet: '«आपने अभी पर्याप्त आदेश पूरे नहीं किए हैं।»',
-    seen: "आप यह स्थान पहले ही खोज चुके हैं – यह आपकी शिखर-पुस्तिका में है।", tired: (at) => `पिछले 24 घंटों में आप 3 अजूबे खोज चुके हैं – आपके पैर थक गए हैं। ${at ? `${at} से और खोज सकते हैं।` : "जल्द ही और खोज सकते हैं।"}`, ready: "राजकीय फ़रमान पूरा हुआ – राजकुमार का दूत आपके गाँव में आपकी रिपोर्ट की प्रतीक्षा कर रहा है।", visited: (n) => `आपने ${n} का हाल देखा – राजकुमार का दूत आपके गाँव में रिपोर्ट की प्रतीक्षा कर रहा है।`,
+    seen: "आप यह स्थान पहले ही खोज चुके हैं – यह आपकी शिखर-पुस्तिका में है।", tired: "आज आप पहले ही 3 अजूबे खोज चुके हैं – आपके पैर थक गए हैं। कल और खोज सकते हैं।", ready: "राजकीय फ़रमान पूरा हुआ – राजकुमार का दूत आपके गाँव में आपकी रिपोर्ट की प्रतीक्षा कर रहा है।", visited: (n) => `आपने ${n} का हाल देखा – राजकुमार का दूत आपके गाँव में रिपोर्ट की प्रतीक्षा कर रहा है।`,
     errand: { gardener: ['माली से बात करें', 'माली राजकुमारी के लिए सुगंधित गुलाबों का गुच्छा काटकर देता है।'], groom: ['साईस से बात करें', 'साईस आपका आदेश लेता है और शिकार के लिए घोड़े कसता है।'] }, errandTitle: 'दरबार सेवा', errandDone: 'पूरा', errandWho: { gardener: 'गुलाब-बाग़ में माली (6–17 बजे)', groom: 'अस्तबल पर साईस (6–19 बजे)' }, errandReady: 'आपकी दरबार सेवा पूरी हुई – महल में दरबार की विनती करें।', errandHint: 'गुलाब-बाग़ महल के पीछे दाईं ओर है, अस्तबल नीचे बाईं ओर। टहलने के मोड में माली या साईस पर टैप करें – आपका मुखिया वहाँ जाकर बात करेगा।',
   },
   zh: {
@@ -127,7 +126,7 @@ export const PRINCELY: Record<Lang, Text> = {
     ask: "询问谕令", fail: "宫廷此刻无法接见你。",
     swap: '请求另一道诏令', swapped: '"好吧，那就在宫廷为朕效力：去玫瑰园找园丁，去马厩找马夫。然后再来见朕。"', wait: '"你今天已经请求过换一项任务了。"',
     kneel: '跪下受封骑士', dubbed: (t) => '亲王以剑轻触你的双肩：「起身吧，${t}！收下我们马厩中的这匹马——从此你在大地上行进快一倍。」'.replace('${t}', t), sir: (f) => (f ? '女骑士' : '骑士'), notYet: '「你完成的诏令还不够。」',
-    seen: "你曾探访过此地——它已载入你的登顶簿。", tired: (at) => `过去 24 小时内你已探访了 3 处奇观——双脚已疲惫。${at ? `${at} 起可再去发现更多。` : "稍后可再去发现更多。"}`, ready: "亲王的敕令已完成——亲王的信使正在你村中等候回报。", visited: (n) => `你已探望了${n}——亲王的信使正在你村中等候回报。`,
+    seen: "你曾探访过此地——它已载入你的登顶簿。", tired: "你今天已探访了 3 处奇观——双脚已疲惫。明天再去发现更多吧。", ready: "亲王的敕令已完成——亲王的信使正在你村中等候回报。", visited: (n) => `你已探望了${n}——亲王的信使正在你村中等候回报。`,
     errand: { gardener: ['与园丁交谈', '园丁为王妃剪下一束芬芳的玫瑰交给你。'], groom: ['与马夫交谈', '马夫接过你的命令，为狩猎备好马鞍。'] }, errandTitle: '宫廷差事', errandDone: '已完成', errandWho: { gardener: '玫瑰园的园丁（6–17点）', groom: '马厩的马夫（6–19点）' }, errandReady: '宫廷差事已完成——请在城堡请求觐见。', errandHint: '玫瑰园在城堡右后方，马厩在左下方。漫步模式下点击园丁或马夫，村长会走过去与其交谈。',
   },
   ja: {
@@ -141,7 +140,7 @@ export const PRINCELY: Record<Lang, Text> = {
     ask: "勅令を尋ねる", fail: "宮廷は今そなたの話を聞けぬ。",
     swap: '別の勅令を願う', swapped: '「よかろう、代わりに宮廷に仕えよ。バラ園の庭師と厩舎の馬丁を訪ね、その後また我が前に参れ。」', wait: '「今日はすでに別の任務を願い出ている。」',
     kneel: 'ひざまずいて騎士に叙される', dubbed: (t) => '大公が剣であなたの肩に触れる：「立ちなさい、${t}！我らの厩舎の馬を授けよう――これより汝は二倍の速さで旅をする。」'.replace('${t}', t), sir: (f) => (f ? '女騎士' : '騎士'), notYet: '「まだ十分な勅令を果たしていない。」',
-    seen: "ここは以前に探索済みです。すでに登頂記に記されています。", tired: (at) => `この24時間で3つの名所を探索しました。足が疲れています。${at ? `${at}から続きを探索できます。` : "もう少しで続きを探索できます。"}`, ready: "領主の勅令は果たされました――使者がそなたの村で報告を待っています。", visited: (n) => `${n}の様子を見届けました――使者がそなたの村で報告を待っています。`,
+    seen: "ここは以前に探索済みです。すでに登頂記に記されています。", tired: "今日はもう3つの名所を探索しました。足が疲れています。続きは明日どうぞ。", ready: "領主の勅令は果たされました――使者がそなたの村で報告を待っています。", visited: (n) => `${n}の様子を見届けました――使者がそなたの村で報告を待っています。`,
     errand: { gardener: ['庭師に話しかける', '庭師が大公妃のために香り高いバラの花束を切ってくれた。'], groom: ['馬丁に話しかける', '馬丁は命令を受け取り、狩りのために馬に鞍を置いた。'] }, errandTitle: '宮廷の務め', errandDone: '済', errandWho: { gardener: 'バラ園の庭師（6–17時）', groom: '厩舎の馬丁（6–19時）' }, errandReady: '宮廷の務めを果たしました。城で謁見を願い出ましょう。', errandHint: 'バラ園は城の右奥、厩舎は左下にあります。散策モードで庭師か馬丁をタップすると、村長が歩いて行き話しかけます。',
   },
 };
