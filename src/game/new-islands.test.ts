@@ -35,13 +35,13 @@ describe("overflow chain", () => {
 });
 
 describe("Europa IV database mirror", () => {
-  it("0135 guards exactly the maps that have a successor", () => {
-    const sql = readFileSync("drizzle/migrations/0135_europa_iv_realm_guard.sql", "utf8");
+  it("0136 guards exactly the maps that have a successor", () => {
+    const sql = readFileSync("drizzle/migrations/0136_europa_iv_realm_guard.sql", "utf8");
     const list = sql.match(/NEW\.realm IN \(([^)]*)\)/)![1]!.split(",").map((s) => s.trim().replace(/'/g, ""));
     expect(new Set(list)).toEqual(new Set(Object.keys(REALM_NEXT)));
   });
-  it("0136 allows every realm and lists exactly Weserau's wonders", () => {
-    const sql = readFileSync("drizzle/migrations/0136_europa_iv_island.sql", "utf8");
+  it("0135 allows every realm and lists exactly Weserau's wonders", () => {
+    const sql = readFileSync("drizzle/migrations/0135_europa_iv_island.sql", "utf8");
     const allowed = sql.match(/CHECK \(realm IN \(([^)]*)\)\)/)![1]!.split(",").map((s) => s.trim().replace(/'/g, ""));
     expect(new Set(allowed)).toEqual(new Set([...REALMS, "lab"]));
     const rows = [...sql.matchAll(/\('(\w+:\d+:\d+)'\)/g)].map((m) => m[1]);
