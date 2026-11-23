@@ -2918,17 +2918,34 @@ const tierOf = (z: number) => (z > 2 ? 3 : z > 0.8 ? 2 : z > 0.45 ? 1 : 0);
  *  the water actually on screen, so a big river or a wide sea thins out evenly instead of being cut off at a cap. */
 const D_TIER = [
   { rip: 40, sheen: 8, swell: 0, swellStride: 8, crest: 0, surf: false },   // overview: the map is blurred, a hint of current is enough
-  { rip: 90, sheen: 16, swell: 40, swellStride: 5, crest: 40, surf: true }, // far
-  { rip: 160, sheen: 24, swell: 56, swellStride: 3, crest: 110, surf: true }, // mid
+  { rip: 180, sheen: 16, swell: 36, swellStride: 5, crest: 60, surf: true }, // far
+  { rip: 220, sheen: 24, swell: 56, swellStride: 3, crest: 160, surf: true }, // mid
   { rip: 180, sheen: 24, swell: 64, swellStride: 2, crest: 130, surf: true }, // near
 ] as const;
 /** Ripples grow when zoomed out, so a few marks still read as current instead of shrinking to specks. */
-const RIP_GROW = [2.2, 1.9, 1.5, 1] as const;
+const RIP_GROW = [2.4, 2.5, 1.6, 1] as const;
 const dBlocks: number[] = [];
 /** Batches, reused every frame (no allocation): crescents per alpha level, sheen draws, surf lines per alpha level. */
 const LEVELS = 4;
 const ripB: number[][] = Array.from({ length: LEVELS }, () => []), crB: number[][] = Array.from({ length: LEVELS }, () => []);
 const surfB: number[][] = Array.from({ length: LEVELS }, () => []), surf2B: number[][] = Array.from({ length: LEVELS }, () => []), wetB: number[][] = Array.from({ length: 2 }, () => []);
+/** Surf as filled ribbons (quads of 8 numbers along the front): foam body and its bright core per alpha level, the
+ *  soft wash behind the front. Neighbouring quads share their ends, so each level fills as one seamless band. */
+const foam2B: number[] = [], softB: number[][] = Array.from({ length: LEVELS }, () => []), foamB: number[][] = Array.from({ length: LEVELS }, () => []), coreB: number[][] = Array.from({ length: LEVELS }, () => []), washB: number[][] = Array.from({ length: LEVELS }, () => []);
+function ribbon(buf: number[], ax: number, ay: number, bx: number, by: number, anx: number, any: number, bnx: number, bny: number, wa: number, wb: number) {
+  if (wa <= 0.05 && wb <= 0.05) return;
+  buf.push(ax + anx * wa, ay + any * wa, bx + bnx * wb, by + bny * wb, bx - bnx * wb, by - bny * wb, ax - anx * wa, ay - any * wa);
+}
+function fillQuads(c: C, buf: number[]) {
+  c.beginPath(); for (let i = 0; i < buf.length; i += 8) { c.moveTo(buf[i]!, buf[i + 1]!); c.lineTo(buf[i + 2]!, buf[i + 3]!); c.lineTo(buf[i + 4]!, buf[i + 5]!); c.lineTo(buf[i + 6]!, buf[i + 7]!); c.closePath(); } c.fill();
+}
+/** Foam thickness along the coast (0..~1.3): noise in world space, drifting slowly, with real gaps where it runs out —
+ *  irregular clumps and breaks instead of a dash pattern. */
+const foamAt = (x: number, y: number, t: number) => Math.max(0, Math.min(1.2, (vnoise(x * 0.05 + t * 0.00004, y * 0.08 - t * 0.00003, 1331) * 0.65 + vnoise(x * 0.19, y * 0.29, 1332) * 0.35) * 2.6 - 0.95));
+/** Foam thins out where the swash has climbed onto the sand (offset below zero): only a lacy edge reaches the beach. */
+/** Near: clumps with real gaps; far: a thin continuous band with swellings, so the surf line stays readable. */
+const foamShape = (f: number, near: boolean) => (near ? f * 1.1 : 0.3 + 0.75 * f);
+const onSand = (off: number) => (off >= 0 ? 1 : Math.max(0.3, 1 + off * 4.5));
 const shB: number[] = [], swB: number[][] = Array.from({ length: LEVELS * 3 }, () => []);
 const lvl = (a: number) => Math.min(LEVELS - 1, Math.max(0, Math.ceil(a * LEVELS) - 1));
 function fillCrescents(c: C, buf: number[], dx: number, dy: number) {
@@ -2990,12 +3007,14 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
   pBegin("water.concept");
   // bound by the drawing module instance itself (the dev server may load this module more than once)
   if (perfProbe) (window as unknown as { __waterStats?: () => unknown }).__waterStats = waterStats;
-  const qs = waterQuality(performance.now()), tier = tierOf(z), T = D_TIER[tier]!;
+  const qs = waterQuality(performance.now()), ql = waterQualityLevel(), tier = tierOf(z), T = D_TIER[tier]!;
+  // What the quality levels give up, in this order: shading layers, drifting sheens, the second wave and the wash —
+  // never the moving marks themselves (density only drops to 75 %), so the low level still flows and breaks.
   // what is on screen: blocks plus counts, so each kind of mark gets an even density that fits its budget
   // Cold start: sea data not built yet is built here within a small time budget per frame; blocks over budget get
   // their sea marks a frame or two later instead of the whole coast stalling one frame (they fade in anyway).
   pBegin("water.d.prep");
-  dBlocks.length = 0; let nRiv = 0, nSea = 0; const reach = z > 0.8 ? 255 : 16, deadline = performance.now() + Math.min(30, Math.max(D_BUILD_MS, waterFrameGap() * 0.08));
+  dBlocks.length = 0; let nRiv = 0, nSea = 0; const reach = tier > 0 ? 255 : 16, deadline = performance.now() + Math.min(30, Math.max(D_BUILD_MS, waterFrameGap() * 0.08));
   const canBuild = () => performance.now() < deadline;
   visBlocks(x0, x1, y0, y1, vx0, vx1, vy0, vy1, (bx, by) => {
     let R = flowBlockIfReady(bx, by); if (R === undefined && canBuild()) R = flowBlock(bx, by);
@@ -3007,10 +3026,15 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
   pEnd(); pBegin("water.d.marks");
   const pRip = Math.min(0.6, (T.rip * qs) / Math.max(1, nRiv * 0.6)), pSheen = Math.min(0.25, (T.sheen * qs) / Math.max(1, nRiv * 0.4));
   const pCrest = Math.min(0.3, (T.crest * qs) / Math.max(1, nSea)), sStride = Math.max(T.swellStride, Math.ceil(Math.sqrt(nSea / Math.max(1, T.swell * Math.max(qs, 0.5)))));
+  const swLayers = ql + 1, swA = 0.15 / swLayers; // fewer, slightly stronger swell layers in the lower levels
   const mx0 = vx0 - 48, mx1 = vx1 + 48, my0 = vy0 - 48, my1 = vy1 + 48, on = (px: number, py: number) => px > mx0 && px < mx1 && py > my0 && py < my1;
-  for (const b of ripB) b.length = 0; for (const b of crB) b.length = 0; for (const b of surfB) b.length = 0; for (const b of surf2B) b.length = 0; for (const b of wetB) b.length = 0; for (const b of swB) b.length = 0; shB.length = 0;
+  for (const b of ripB) b.length = 0; for (const b of crB) b.length = 0; for (const b of surfB) b.length = 0; for (const b of surf2B) b.length = 0; for (const b of foamB) b.length = 0; for (const b of softB) b.length = 0; foam2B.length = 0; for (const b of coreB) b.length = 0; for (const b of washB) b.length = 0; for (const b of wetB) b.length = 0; for (const b of swB) b.length = 0; shB.length = 0;
   // surf geometry: run-in distance, beach run-up and line widths keep a readable size on screen at every zoom
-  const RUN_IN = Math.max(24, 30 / z), lwFoam = Math.max(0.8, 2.3 / z), lwWash = Math.max(4, 6.5 / z), lwWet = Math.max(2, 3 / z);
+  const RUN_IN = Math.max(24, Math.min(40, 30 / z)), lwWash = Math.max(4, 6.5 / z), lwWet = Math.max(2, 3 / z), foamW = z > 1.6 ? Math.max(2.4, 3.2 / z) : Math.max(1.5, 2.2 / z);
+  // Surf detail by screen scale (canvas px per world px, dpr included), not by tier: below ~1.6 the soft halo, the wash,
+  // the second wave and the wet sand are a few pixels wide and cost far more than they show, so far views draw one
+  // narrower foam band; crests and swells are smaller there too.
+  const detail = z > 1.6, wash = detail && ql >= 1, second = detail && ql >= 1;
   for (let k = 0; k < dBlocks.length; k += 5) {
     const bx = dBlocks[k]!, by = dBlocks[k + 1]!, R = dBlocks[k + 2] ? flowBlock(bx, by) : null;
     // only the tiles that can carry a mark are visited: per block the tiles are kept sorted by their selection
@@ -3020,7 +3044,7 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
       const i = pass ? RO.sheen[o]! : RO.rip[o]!, hv = pass ? RO.hSheen[o]! : RO.hRip[o]!;
       if (hv >= (pass ? pSheen : pRip)) break;
       const x = R.x[i]!, y = R.y[i]!, room = R.room[i]!;
-      const rip = !pass && (room >= 0.25 || hv < pRip * 0.3), shn = pass === 1 && room >= 0.6;
+      const rip = !pass && (room >= 0.25 || hv < pRip * 0.3), shn = pass === 1 && room >= 0.6 && ql >= 2;
       if (!rip && !shn) continue;
       const fl: [number, number] = [R.fx[i]!, R.fy[i]!], sp = R.sp[i]!;
       if (rip) { // a few clear ripples riding the current, each its own length, bend, thickness and lean
@@ -3049,7 +3073,7 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
       if (cr) { // painted crests rolling toward the coast, bulging shoreward
         const st = streakAt(x, y, 5, t, 0.26, fl), [px, py] = iso(st.px, st.py), a = st.a * calm * 0.85;
         if (a > 0.08 && on(px, py)) {
-          const L = Math.max(0.9, 0.32 * sStride) * (0.7 + 0.5 * hash(x, y, 1511)) * (0.65 + 0.35 * Math.min(1, a * 1.4)), [ux, uy] = scr(-fl[1], fl[0]), [nx, ny] = scr(fl[0], fl[1]), hl = L / 2;
+          const L = (z > 1.6 ? Math.max(0.9, 0.32 * sStride) : 1.3) * (0.7 + 0.5 * hash(x, y, 1511)) * (0.65 + 0.35 * Math.min(1, a * 1.4)), [ux, uy] = scr(-fl[1], fl[0]), [nx, ny] = scr(fl[0], fl[1]), hl = L / 2;
           crescent(crB[lvl(a)]!, px, py, ux * hl, uy * hl, nx * hl, ny * hl, 0.34 + 0.2 * hash(x, y, 1512), 0.15 + 0.08 * hash(x, y, 1513), (hash(x, y, 1514) - 0.5) * 0.6);
         }
       }
@@ -3058,8 +3082,8 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
         // drawn as a broad flat lens (painted, no gradient sprite): its area is about a third of a soft sprite's box
         if (crest > 0.2 && on(px, py)) {
           // three nested flat lenses: each edge is only a faint step, together they read as a soft band
-          const [fx, fy] = scr(fl[0], fl[1]), hl = 0.6 * sStride * (0.8 + 0.4 * hash(x, y, 1520)), le = (hash(x, y, 1521) - 0.5) * 0.4, lv = lvl(crest * calm);
-          for (let m = 0; m < 3; m++) { const f = 1 - m * 0.27; crescent(swB[lv * 3 + m]!, px, py, qx * hl * f, qy * hl * f, fx * hl * 0.32 * f, fy * hl * 0.32 * f, 0.5, 0.5, le); }
+          const [fx, fy] = scr(fl[0], fl[1]), hl = (z > 1.6 ? 0.6 : 0.45) * sStride * (0.8 + 0.4 * hash(x, y, 1520)), le = (hash(x, y, 1521) - 0.5) * 0.4, lv = lvl(crest * calm);
+          for (let m = 0; m < swLayers; m++) { const f = 1 - m * 0.27; crescent(swB[lv * 3 + m]!, px, py, qx * hl * f, qy * hl * f, fx * hl * 0.32 * f, fy * hl * 0.32 * f, 0.5, 0.5, le); }
         }
       }
     }
@@ -3071,15 +3095,49 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
       // offset line stays smooth instead of copying the tile staircase of the shoreline
       const sd = s.sea ?? (s.sea = [...seaward(s.a), ...seaward(s.b), (exposure(s.a) + exposure(s.b)) / 2]);
       // narrow water (lagoon, inlet) also shortens the run-in, so fronts from opposite shores never cross
-      const ex = sd[4]!, run = RUN_IN * (0.25 + 0.75 * ex), ax = sd[0]! * run / RUN_IN, ay = sd[1]! * run / RUN_IN, bx2 = sd[2]! * run / RUN_IN, by2 = sd[3]! * run / RUN_IN;
+      const ex = sd[4]!, run = RUN_IN * (0.15 + 0.85 * ex * ex), ax = sd[0]! * run / RUN_IN, ay = sd[1]! * run / RUN_IN, bx2 = sd[2]! * run / RUN_IN, by2 = sd[3]! * run / RUN_IN;
       const pa = surfPhaseD(s.a[0], s.a[1], t, 7600), pb = surfPhaseD(s.b[0], s.b[1], t, 7600), A = surfFront(pa), B = surfFront(pb), a = ((A.a + B.a) / 2) * ex;
-      if (a > 0.06) polyPush(surfB[lvl(a)]!, s.join ?? false, s.a[0] + ax * A.off * RUN_IN, s.a[1] + ay * A.off * RUN_IN, s.b[0] + bx2 * B.off * RUN_IN, s.b[1] + by2 * B.off * RUN_IN);
-      // the next wave half a beat behind, fainter: there is always some foam on the move
-      // (dropped in the lowest quality level: the main front alone still shows the surf)
-      const A2 = surfFront((pa + 0.5) % 1), B2 = surfFront((pb + 0.5) % 1), a2 = (A2.a + B2.a) * 0.28 * ex;
-      if (a2 > 0.06 && qs > 0.5) polyPush(surf2B[lvl(a2)]!, s.join ?? false, s.a[0] + ax * A2.off * RUN_IN, s.a[1] + ay * A2.off * RUN_IN, s.b[0] + bx2 * B2.off * RUN_IN, s.b[1] + by2 * B2.off * RUN_IN);
+      const nAx = sd[0]!, nAy = sd[1]!, nBx = sd[2]!, nBy = sd[3]!; // seaward (unit-ish, iso-squashed): across the band
+      const Px = s.a[0] + ax * A.off * RUN_IN, Py = s.a[1] + ay * A.off * RUN_IN, Qx = s.b[0] + bx2 * B.off * RUN_IN, Qy = s.b[1] + by2 * B.off * RUN_IN;
+      if (a > 0.06) {
+        // foam: thickness from clumpy noise along the coast, fuller just after the break and thinning as it draws back;
+        // brightness varies along the coast too, so neither width nor light repeats
+        // the band is sampled every few screen pixels, so its edges swell and taper smoothly instead of in straight
+        // trapezoids between the tile-sized shore segments
+        const fA = foamAt(s.a[0], s.a[1], t), fB = foamAt(s.b[0], s.b[1], t), gA = foamW * foamShape(fA, detail) * A.a * ex * onSand(A.off), gB = foamW * foamShape(fB, detail) * B.a * ex * onSand(B.off);
+        // one brightness for all foam: the wave's fade shows as the band thinning out (width carries it), so there are
+        // no cut steps where neighbouring stretches fall into different brightness levels
+        const lv = LEVELS - 1, k = detail ? Math.max(1, Math.min(6, Math.round((s.len * z) / 7))) : 1;
+        let px0 = Px, py0 = Py, nx0 = nAx, ny0 = nAy, g0 = gA;
+        for (let i = 1; i <= k; i++) {
+          const u = i / k, px1 = Px + (Qx - Px) * u, py1 = Py + (Qy - Py) * u, nx1 = nAx + (nBx - nAx) * u, ny1 = nAy + (nBy - nAy) * u;
+          const g1 = i === k ? gB : foamW * foamShape(foamAt(s.a[0] + (s.b[0] - s.a[0]) * u, s.a[1] + (s.b[1] - s.a[1]) * u, t), detail) * (A.a + (B.a - A.a) * u) * ex * onSand(A.off + (B.off - A.off) * u);
+          ribbon(foamB[lv]!, px0, py0, px1, py1, nx0, ny0, nx1, ny1, g0, g1);
+          if (detail) ribbon(softB[lv]!, px0, py0, px1, py1, nx0, ny0, nx1, ny1, g0 * 1.9 + 0.6, g1 * 1.9 + 0.6);
+          px0 = px1; py0 = py1; nx0 = nx1; ny0 = ny1; g0 = g1;
+        }
+        if (wash) { // the water the wave just crossed stays milky: a patchy wash behind the front, sampled like the foam
+          let wx0 = Px + nAx * lwWash * 0.7, wy0 = Py + nAy * lwWash * 0.7, wn0x = nAx, wn0y = nAy, h0 = lwWash * (0.5 + 0.7 * foamAt(s.a[0] - 70, s.a[1] + 30, t)) * A.a * ex;
+          for (let i = 1; i <= k; i++) {
+            const u = i / k, nx1 = nAx + (nBx - nAx) * u, ny1 = nAy + (nBy - nAy) * u, wx1 = Px + (Qx - Px) * u + nx1 * lwWash * 0.7, wy1 = Py + (Qy - Py) * u + ny1 * lwWash * 0.7;
+            const h1 = lwWash * (0.5 + 0.7 * foamAt(s.a[0] + (s.b[0] - s.a[0]) * u - 70, s.a[1] + (s.b[1] - s.a[1]) * u + 30, t)) * (A.a + (B.a - A.a) * u) * ex;
+            ribbon(washB[lv]!, wx0, wy0, wx1, wy1, wn0x, wn0y, nx1, ny1, h0, h1); wx0 = wx1; wy0 = wy1; wn0x = nx1; wn0y = ny1; h0 = h1;
+          }
+        }
+      }
+      // the next wave half a beat behind, fainter: there is always some foam on the move (not in the low level / far)
+      const A2 = surfFront((pa + 0.5) % 1), B2 = surfFront((pb + 0.5) % 1), a2 = (A2.a + B2.a) * 0.3 * ex;
+      if (a2 > 0.03 && second) { // patchy and sampled like the main front, so it reads as loose foam, not a thin line
+        const k2 = Math.max(1, Math.min(6, Math.round((s.len * z) / 7))), X0 = s.a[0] + ax * A2.off * RUN_IN, Y0 = s.a[1] + ay * A2.off * RUN_IN, X1 = s.b[0] + bx2 * B2.off * RUN_IN, Y1 = s.b[1] + by2 * B2.off * RUN_IN;
+        const w2 = (u: number) => foamW * 0.7 * foamShape(foamAt(s.a[0] + (s.b[0] - s.a[0]) * u + 40, s.a[1] + (s.b[1] - s.a[1]) * u, t), true) * (A2.a + (B2.a - A2.a) * u) * ex;
+        let x0 = X0, y0 = Y0, m0x = nAx, m0y = nAy, v0 = w2(0);
+        for (let i = 1; i <= k2; i++) {
+          const u = i / k2, m1x = nAx + (nBx - nAx) * u, m1y = nAy + (nBy - nAy) * u, x1 = X0 + (X1 - X0) * u, y1 = Y0 + (Y1 - Y0) * u, v1 = w2(u);
+          ribbon(foam2B, x0, y0, x1, y1, m0x, m0y, m1x, m1y, v0, v1); x0 = x1; y0 = y1; m0x = m1x; m0y = m1y; v0 = v1;
+        }
+      }
       const w = ((A.wet + B.wet) / 2) * ex;
-      if (w > 0.1) polyPush(wetB[w > 0.55 ? 1 : 0]!, s.join ?? false, s.a[0] - ax * 0.1 * RUN_IN, s.a[1] - ay * 0.1 * RUN_IN, s.b[0] - bx2 * 0.1 * RUN_IN, s.b[1] - by2 * 0.1 * RUN_IN);
+      if (w > 0.1 && detail) polyPush(wetB[w > 0.55 ? 1 : 0]!, s.join ?? false, s.a[0] - ax * 0.1 * RUN_IN, s.a[1] - ay * 0.1 * RUN_IN, s.b[0] - bx2 * 0.1 * RUN_IN, s.b[1] - by2 * 0.1 * RUN_IN);
     }
   }
   pEnd(); pBegin("water.d.draw");
@@ -3092,27 +3150,26 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
   c.globalAlpha = 1; const dy = Math.max(1.1, 1.6 / z);
   for (let l = 0; l < LEVELS * 3; l++) { // swell: nested faint lenses, flat painted tones
     const buf = swB[l]!; if (!buf.length) continue; const al = (((l / 3) | 0) + 1) / LEVELS; if (l % 3 === 0) marks += buf.length / 8;
-    c.fillStyle = `rgba(182,222,214,${(0.05 * al).toFixed(3)})`; fillCrescents(c, buf, 0, 0); ops++;
+    c.fillStyle = `rgba(182,222,214,${(swA * al).toFixed(3)})`; fillCrescents(c, buf, 0, 0); ops++;
   }
   for (let l = 0; l < LEVELS; l++) {
     const al = (l + 1) / LEVELS;
     for (const [buf, light] of [[ripB[l]!, "200,226,218"], [crB[l]!, "206,230,224"]] as const) {
       if (!buf.length) continue; marks += buf.length / 8;
-      c.fillStyle = `rgba(16,48,60,${(0.45 * al).toFixed(3)})`; fillCrescents(c, buf, 0, dy); // shade under the crest
-      c.fillStyle = `rgba(${light},${(0.75 * al).toFixed(3)})`; fillCrescents(c, buf, 0, 0); ops += 2;
+      if (ql >= 1) { c.fillStyle = `rgba(16,48,60,${(0.45 * al).toFixed(3)})`; fillCrescents(c, buf, 0, dy); ops++; } // shade under the crest
+      c.fillStyle = `rgba(${light},${(0.75 * al).toFixed(3)})`; fillCrescents(c, buf, 0, 0); ops++;
     }
   }
   c.lineCap = "round"; c.lineJoin = "bevel";
   for (let l = 0; l < 2; l++) if (wetB[l]!.length) { c.strokeStyle = `rgba(62,52,34,${l ? 0.16 : 0.08})`; c.lineWidth = lwWet; strokeLines(c, wetB[l]!); ops++; }
-  // foam: a soft wash (three widths fake a falloff) under a broken lace line; the dash pattern is fixed in world
-  // space so the lace travels with the wave instead of crawling along it
-  const ds = Math.max(0.7, 1.3 / z), dash = [9, 1.6, 4, 2.2, 15, 1.4, 6, 3, 3, 1.2, 11, 2.6].map((v) => v * ds);
-  for (const [bufs, main] of [[surfB, true], [surf2B, false]] as const) for (let l = 0; l < LEVELS; l++) {
-    const buf = bufs[l]!; if (!buf.length) continue; const al = (l + 1) / LEVELS; marks += buf.length / 3;
-    c.setLineDash([]);
-    if (main && qs > 0.5) { c.strokeStyle = `rgba(200,230,222,${(0.13 * al).toFixed(3)})`; c.lineWidth = lwWash * 1.9; strokeLines(c, buf); ops++; }
-    c.strokeStyle = `rgba(214,236,228,${(0.2 * al).toFixed(3)})`; c.lineWidth = lwWash; strokeLines(c, buf);
-    c.setLineDash(dash); c.strokeStyle = `rgba(246,250,244,${(0.72 * al).toFixed(3)})`; c.lineWidth = lwFoam; strokeLines(c, buf); ops += 2;
+  // foam: soft wash behind the front, the foam band, and its brighter core — one fill per kind and level
+  for (let l = 0; l < LEVELS; l++) {
+    const al = (l + 1) / LEVELS;
+    if (washB[l]!.length) { c.fillStyle = `rgba(206,234,226,${(0.13 * al).toFixed(3)})`; fillQuads(c, washB[l]!); ops++; }
+    if (softB[l]!.length) { c.fillStyle = `rgba(222,238,232,${(0.16 * al).toFixed(3)})`; fillQuads(c, softB[l]!); ops++; }
+    if (foamB[l]!.length) { c.fillStyle = `rgba(236,246,240,${(0.62 * al).toFixed(3)})`; fillQuads(c, foamB[l]!); ops++; marks += foamB[l]!.length / 8; }
+    if (l === LEVELS - 1 && foam2B.length) { c.fillStyle = "rgba(232,244,238,0.3)"; fillQuads(c, foam2B); ops++; marks += foam2B.length / 8; }
+    if (coreB[l]!.length) { c.fillStyle = `rgba(250,252,248,${(0.7 * al).toFixed(3)})`; fillQuads(c, coreB[l]!); ops++; }
   }
   c.setLineDash([]);
   c.restore(); pEnd();

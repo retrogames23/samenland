@@ -201,7 +201,7 @@ export function nextQuality(q: QualityState, frameMs: number): QualityState {
   if (fast > QUALITY_RISE_AFTER && level < 2) { level++; fast = 0; }
   return { level, slow, fast, ema };
 }
-export const QUALITY_SCALE = [0.4, 0.65, 1] as const;
+export const QUALITY_SCALE = [0.75, 0.88, 1] as const; // density only: the levels mostly drop layers, not motion
 let quality: QualityState = { level: 2, slow: 0, fast: 0, ema: 0 }, lastFrame = 0, lastGap = 16;
 /** Time between the last two water frames (ms): lets first-sight building scale with how slow frames already are. */
 export const waterFrameGap = () => lastGap;
