@@ -2967,7 +2967,7 @@ function foamSamples(s: Seg): Float32Array {
 const foamAt = (x: number, y: number, t: number) => Math.max(0, Math.min(1.2, (vnoise(x * 0.05 + t * 0.00004, y * 0.08 - t * 0.00003, 1331) * 0.65 + vnoise(x * 0.19, y * 0.29, 1332) * 0.35) * 2.6 - 0.95));
 /** Foam thins out where the swash has climbed onto the sand (offset below zero): only a lacy edge reaches the beach. */
 /** Near: clumps with real gaps; far: a thin continuous band with swellings, so the surf line stays readable. */
-const foamShape = (f: number, near: boolean) => (near ? f * 1.1 : 0.3 + 0.75 * f);
+const foamShape = (f: number, near: boolean) => (near ? f * 1.1 : 0.45 + 0.8 * f);
 const onSand = (off: number) => (off >= 0 ? 1 : Math.max(0.3, 1 + off * 4.5));
 const shB: number[] = [], swB: number[][] = Array.from({ length: LEVELS * 3 }, () => []);
 const lvl = (a: number) => Math.min(LEVELS - 1, Math.max(0, Math.ceil(a * LEVELS) - 1));
@@ -3053,7 +3053,7 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
   const mx0 = vx0 - 48, mx1 = vx1 + 48, my0 = vy0 - 48, my1 = vy1 + 48, on = (px: number, py: number) => px > mx0 && px < mx1 && py > my0 && py < my1;
   for (const b of ripB) b.length = 0; for (const b of crB) b.length = 0; for (const b of surfB) b.length = 0; for (const b of surf2B) b.length = 0; bandReset(foamB); bandReset(softB); bandReset(washB); bandReset(foam2B); for (const b of wetB) b.length = 0; for (const b of swB) b.length = 0; shB.length = 0;
   // surf geometry: run-in distance, beach run-up and line widths keep a readable size on screen at every zoom
-  const RUN_IN = Math.max(24, Math.min(40, 30 / z)), lwWash = Math.max(4, 6.5 / z), lwWet = Math.max(2, 3 / z), foamW = z > 1.6 ? Math.max(2.4, 3.2 / z) : Math.max(1.5, 2.2 / z);
+  const RUN_IN = Math.max(24, Math.min(40, 30 / z)), lwWash = Math.max(4, 6.5 / z), lwWet = Math.max(2, 3 / z), foamW = z > 1.6 ? Math.max(2.4, 3.2 / z) : Math.max(2, 3 / z);
   // Surf detail by screen scale (canvas px per world px, dpr included), not by tier: below ~1.6 the soft halo, the wash,
   // the second wave and the wet sand are a few pixels wide and cost far more than they show, so far views draw one
   // narrower foam band; crests and swells are smaller there too.
