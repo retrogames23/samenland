@@ -154,7 +154,7 @@ describe("atmosphere unchanged (P1-A)", () => {
       draws.push(
         eventOf("00000000-0000-0000-0000-00000000a7a7", n, {
           ageH: 24 * (3 + n),
-          season: (["spring", "summer", "autumn", "winter"] as const)[n % 4],
+          season: (["spring", "summer", "autumn", "winter"] as const)[n % 4]!,
           recent: draws.slice(-4),
         }),
       );
