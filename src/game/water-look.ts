@@ -22,9 +22,10 @@ const dirCache = new Map<number, [number, number]>();
 const blocks = new Map<number, SeaBlock | null>();
 /** Cold-start and cache bookkeeping for the perf probe (?perf=1 → window.__waterStats()). */
 export const waterBuild = { maskMs: 0, maskChunks: 0, regionMs: 0, regions: 0, blockMs: 0, blocks: 0 };
-// Terrain class per tile (0 unknown, 1 land, 2 sea or lake, 3 river), filled lazily in 64×64 chunks: the world lookups
-// are the expensive part, so each tile is asked once and only where water is actually drawn.
-const MC = 64, MCN = MAP / MC;
+// Terrain class per tile (0 unknown, 1 land, 2 sea or lake, 3 river), filled lazily in 32×32 chunks: the world lookups
+// are the expensive part, so each tile is asked once and only where water is actually drawn; small chunks let the
+// renderer spread the work over frames (about 1 ms per chunk unthrottled).
+const MC = 32, MCN = MAP / MC;
 let mask = new Uint8Array(MAP * MAP), maskDone = new Uint8Array(MCN * MCN);
 function maskChunk(cx: number, cy: number) {
   const t0 = performance.now();
@@ -97,6 +98,25 @@ export function onshore(x: number, y: number): [number, number] {
   const l = Math.hypot(vx, vy), out: [number, number] = l > 1e-6 ? [vx / l, vy / l] : [0.6, 0.8];
   if (dirCache.size > 120_000) dirCache.clear();
   dirCache.set(k, out); return out;
+}
+/** Builds the terrain-class chunks a sea block will need (its distance regions with their margins) until the
+ *  deadline; true when all are there, so seaBlock() then only runs the cheap regional pass. */
+export function seaPrepare(bx: number, by: number, deadline: number): boolean {
+  const x0 = bx * 16 - 8, x1 = bx * 16 + 23, y0 = by * 16 - 8, y1 = by * 16 + 23; // block plus the reach of onshore (2) and exposure (5)
+  const rx0 = Math.max(0, (x0 / RS) | 0), rx1 = Math.min(MAP / RS - 1, (x1 / RS) | 0), ry0 = Math.max(0, (y0 / RS) | 0), ry1 = Math.min(MAP / RS - 1, (y1 / RS) | 0);
+  for (let ry = ry0; ry <= ry1; ry++) for (let rx = rx0; rx <= rx1; rx++) {
+    if (regions.has(ry * 64 + rx)) continue;
+    const X0 = rx * RS - RM - 1, Y0 = ry * RS - RM - 1, X1 = X0 + RW + 2, Y1 = Y0 + RW + 2;
+    for (let cy = Math.max(0, (Y0 / MC) | 0); cy <= Math.min(MCN - 1, (Math.max(0, Y1) / MC) | 0); cy++)
+      for (let cx = Math.max(0, (X0 / MC) | 0); cx <= Math.min(MCN - 1, (Math.max(0, X1) / MC) | 0); cx++) {
+        if (maskDone[cy * MCN + cx]) continue;
+        if (performance.now() > deadline) return false;
+        maskChunk(cx, cy);
+      }
+    if (performance.now() > deadline) return false;
+    region(rx, ry); // one region per check (a few ms with 4× throttling), so the overrun stays small
+  }
+  return true;
 }
 /** The sea block if it is already built (undefined = not yet): lets the renderer spread cold-start work over frames. */
 export const seaBlockIfReady = (bx: number, by: number) => blocks.get(by * 4096 + bx);

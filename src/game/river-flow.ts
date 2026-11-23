@@ -116,3 +116,5 @@ export function flowBlock(bx: number, by: number): FlowBlock | null {
 /** Build cost and cache size of the flow blocks (perf probe). Bounded by the map: at most 64 × 64 entries. */
 export const flowBuild = { ms: 0, blocks: 0 };
 export const flowCacheSize = () => blockData.size;
+/** The flow block if already built (undefined = not yet), so the renderer can spread first builds over frames. */
+export const flowBlockIfReady = (bx: number, by: number) => blockData.get(by * 4096 + bx);
