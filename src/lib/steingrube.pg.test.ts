@@ -1,11 +1,20 @@
-// Wirtschaft Paket 2: Steingrube, Steinbruch-Auftrag and location factors (migration 0143) against a throw-away
+// Wirtschaft Paket 2: Steingrube (150 Mark, 20 wood, once) and location factors (migration 0143) against a throw-away
 // PostgreSQL (BUILD_MAIL_TEST_PG=postgres://...), own database. Unlike the Paket-1 test this one runs the REAL
 // purchase_guard as production has it (0123 + the patches 0124, 0125), the village lock from 0052, then 0142 and 0143 —
 // so the guard patch for the Steingrube is proven on the actual function text.
 import { readFileSync } from "node:fs";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { kontorQuote, materialOf, resourceDaily, resourceRates } from "@/game/resources";
+import { ITEMS, GUILD } from "@/game/economy";
+import { AUSBAU_PRICE } from "@/game/ausbau";
+import {
+  STEINGRUBE,
+  STEINGRUBE_PRICE,
+  kontorQuote,
+  materialOf,
+  resourceDaily,
+  resourceRates,
+} from "@/game/resources";
 
 const BASE = process.env["BUILD_MAIL_TEST_PG"];
 if (!BASE && (process.env["CI"] || process.env["REQUIRE_PG"]))
@@ -152,7 +161,7 @@ d("Steingrube 0143 on the real purchase guard (real PostgreSQL)", () => {
   });
 
   // ---------- Steingrube on the real guard ----------
-  it("the real purchase_guard sells the Steingrube for 150 Mark (300 − 150 Steinbruch-Auftrag) and 20 wood, once", async () => {
+  it("the real purchase_guard sells the Steingrube for 150 Mark and 20 wood, once", async () => {
     const id = await seed();
     expect(await buy(id, "steingrube")).toEqual({
       ok: true,
@@ -167,6 +176,85 @@ d("Steingrube 0143 on the real purchase guard (real PostgreSQL)", () => {
       )[0]!["n"],
     ).toBe(1);
   });
+  // ---------- Steingrube simplified: one plain price (Teil D) ----------
+  const balanceOf = async (id: string) =>
+    (await sql`select public.village_balance(${id}) as b`)[0]!["b"] as number;
+  it("D1–D3: 150 Mark at every location, exactly 20 wood, no credit or grant booked anywhere", async () => {
+    for (const way of ["grain", "workshop", "gateway"] as const) {
+      const id = await seed({ site: way, money: 1000 });
+      await sql`select public.resource_refresh(${id})`;
+      const before = await balanceOf(id);
+      const r = await buy(id, STEINGRUBE);
+      expect(r, way).toEqual({
+        ok: true,
+        cost: STEINGRUBE_PRICE,
+        material: { wood: [20, 0], stone: [0, 0], kontor: 0 },
+      });
+      expect(await balanceOf(id), way).toBe(before - STEINGRUBE_PRICE); // money leaves once, nothing comes back
+      expect(await stock(id), way).toEqual({ wood: 40, stone: 30 });
+      const rows =
+        await sql`select kind, resource, amount from public.resource_ledger where seed_id = ${id} and kind <> 'start'`;
+      expect(
+        rows.map((x) => `${x["kind"]}:${x["resource"]}:${x["amount"]}`),
+        way,
+      ).toEqual(["build:wood:-20"]);
+      const [pr] =
+        await sql`select count(*)::int as n, sum(cost)::int as c from public.purchases where seed_id = ${id}`;
+      expect(pr, way).toEqual({ n: 1, c: STEINGRUBE_PRICE }); // one row, no second booking of any kind
+    }
+  });
+  it("D4: a second Steingrube stays impossible — by the guard and, past it, by the unique index", async () => {
+    const id = await seed();
+    expect(await buy(id, STEINGRUBE)).toMatchObject({ ok: true });
+    expect(await buy(id, STEINGRUBE)).toEqual({ ok: false, msg: "already built" });
+    await expect(
+      sql.begin(async (tx) => {
+        await tx`set local session_replication_role = replica`; // even with every trigger skipped
+        await tx`insert into public.purchases (seed_id, user_id, item, cost) values (${id}, ${OWNER}, 'steingrube', 150)`;
+      }),
+    ).rejects.toThrow(/purchases_steingrube_once/);
+  });
+  it("D5/D6: the coast's 10 % Kontor discount still applies — and the UI quote is exactly what the server charges", async () => {
+    for (const way of ["gateway", "grain"] as const) {
+      const id = await seed({ site: way });
+      await sql`select public.resource_refresh(${id})`;
+      await sql`select public.resource_book(${id}, 'wood', -50, 'build', 'test-setup', now())`; // 10 wood left
+      const q = kontorQuote(materialOf(STEINGRUBE)!, { wood: 10, stone: 30 }, way);
+      expect(q.cost, way).toBe(way === "gateway" ? 36 : 40); // 10 wood × 4 Mark, coast × 0.9
+      expect(await buy(id, STEINGRUBE, q.cost - 1), way).toEqual({
+        ok: false,
+        msg: "material short",
+      });
+      expect(await buy(id, STEINGRUBE, q.cost), way).toEqual({
+        ok: true,
+        cost: STEINGRUBE_PRICE + q.cost,
+        material: { wood: [20, 10], stone: [0, 0], kontor: q.cost },
+      });
+    }
+  });
+  it("D7: every other building and upgrade keeps its price — the guard charges the list price, material only on top", async () => {
+    for (const [item, price] of Object.entries(ITEMS)) {
+      const id = await seed({ money: 20000 });
+      const g = (GUILD as Record<string, string>)[item];
+      if (g) await sql`insert into public.charters (seed_id, path) values (${id}, ${g})`;
+      const r = await buy(id, item, 100000);
+      expect(r.ok, item).toBe(true);
+      const m = r as { cost: number; material: { kontor: number } };
+      expect(m.cost - m.material.kontor, item).toBe(price);
+    }
+    for (const base of ["backhaus", "herberge", "granary"]) {
+      const id = await seed({ money: 20000 });
+      for (const item of [base, `${base}2`, `${base}3`]) {
+        const r = await buy(id, item, 100000);
+        expect(r.ok, item).toBe(true);
+        const m = r as { cost: number; material: { kontor: number } };
+        expect(m.cost - m.material.kontor, item).toBe(
+          (ITEMS as Record<string, number>)[item] ?? AUSBAU_PRICE[item],
+        );
+      }
+    }
+  });
+
   it("the Steingrube is never placed and never sold where it could not produce (public map before the cut-over)", async () => {
     const id = await seed();
     expect(await buy(id, "steingrube", null, 501)).toEqual({ ok: false, msg: "bad position" });
