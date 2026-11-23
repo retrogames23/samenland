@@ -1402,32 +1402,6 @@ export type Database = {
           },
         ]
       }
-      village_sites: {
-        Row: {
-          certified_at: string
-          seed_id: string
-          way: string
-        }
-        Insert: {
-          certified_at?: string
-          seed_id: string
-          way: string
-        }
-        Update: {
-          certified_at?: string
-          seed_id?: string
-          way?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "village_sites_seed_id_fkey"
-            columns: ["seed_id"]
-            isOneToOne: true
-            referencedRelation: "seeds"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       village_visits: {
         Row: {
           created_at: string
