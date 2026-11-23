@@ -139,7 +139,7 @@ export function commonsOptions(s: Pick<Seed, "x" | "y">, decisions: Decision[], 
  */
 export function commonsDue(s: Seed, decisions: Decision[], growthH: number, rank = 0): CommonsKey | null {
   const c0 = Date.parse(s.created_at);
-  const last = decisions.reduce((m, d) => d.event === "wedding" ? m : Math.max(m, d.at), -Infinity);
+  const last = decisions.reduce((m, d) => d.event === "wedding" || d.request ? m : Math.max(m, d.at), -Infinity);
   const from = Number.isFinite(last) ? last : c0 + ENCOUNTER_FROM * 3.6e6;
   if ((from - c0) / 3.6e6 < COMMONS_FROM_H) return null;
   const past = decisions.filter((d) => isCommons(d.event)).sort((a, b) => a.at - b.at);

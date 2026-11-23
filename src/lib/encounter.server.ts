@@ -11,8 +11,25 @@ export type EncounterRow = {
   cost: number;
   created_at: string;
 };
-export type DecideResult =
-  { ok: true; row: EncounterRow } | { ok: false; code: "already" | "stale" | "poor" | "fail" };
+export type DecideResult = { ok: true; row: EncounterRow } | { ok: false; code: DecideCode };
+/** "full": six growth boons are active (M1 Paket 2b) — the growth answer is refused, the others stay open. */
+export type DecideCode = "already" | "stale" | "poor" | "full" | "fail";
+
+/** Guard messages → result codes, shared by bookEncounter and the Ratsbuch (ratsbuch.server.ts). */
+export function guardCode(m: string): DecideCode {
+  if (m.includes("not enough money")) return "poor";
+  if (m.includes("boons full")) return "full";
+  if (
+    m.includes("too soon") ||
+    m.includes("already") ||
+    m.includes("no wedding") ||
+    m.includes("not now") ||
+    m.includes("unknown request")
+  )
+    return "already";
+  if (m.includes("rank too low") || m.includes("ratsbuch only")) return "stale";
+  return "fail";
+}
 
 /**
  * Books one encounter answer after recomputing the open encounter on the server (M1 Paket 1). The client only
@@ -56,21 +73,6 @@ export async function bookEncounter(
     .insert({ seed_id: id, user_id: userId, event, choice })
     .select("id, seed_id, event, choice, cost, created_at")
     .single();
-  if (error || !data) {
-    const m = error?.message ?? "";
-    return {
-      ok: false,
-      code: m.includes("not enough money")
-        ? "poor"
-        : m.includes("too soon") ||
-            m.includes("already") ||
-            m.includes("no wedding") ||
-            m.includes("not now")
-          ? "already"
-          : m.includes("rank too low")
-            ? "stale"
-            : "fail",
-    };
-  }
+  if (error || !data) return { ok: false, code: guardCode(error?.message ?? "") };
   return { ok: true, row: data as EncounterRow };
 }

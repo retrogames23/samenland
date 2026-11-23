@@ -45,7 +45,7 @@ export async function loadEconomyInput(realm: string): Promise<EconomyWorld> {
     chrono("Purchases", () => db.from("purchases").select("id,seed_id,item,created_at,x,y").in("seed_id", ids)),
     byId("Blessings", () => db.from("blessings").select("id,seed_id,created_at").in("seed_id", ids)),
     byId("Charters", () => db.from("charters").select("id,seed_id,path,created_at").in("seed_id", ids)),
-    chrono("Encounters", () => db.from("encounters").select("id,seed_id,event,choice,cost,created_at").in("seed_id", ids)),
+    chrono("Encounters", () => db.from("encounters").select("*").in("seed_id", ids)),
     chrono("Roads", () => db.from("first_roads").select("id,seed_id,target_id,created_at").in("seed_id", ids)),
     byId("Twin votes", () => db.from("twin_votes").select("id,seed_id,partner_id,pact,created_at").in("seed_id", ids)),
     byId("Twin works", () => db.from("twin_works").select("id,seed_id,partner_id,work,cost,created_at").in("seed_id", ids)),
