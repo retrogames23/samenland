@@ -381,10 +381,11 @@ export function stepGait(
   pxPerPhase: number,
   now: number,
   seed: number,
+  loop?: number,
 ): { u: number; ai: number } {
   let s = state.get(id);
   if (!s) {
-    s = { last: pathPhase, u: seed, amp: walking ? 1 : 0, t: now, v: walking ? 200 : 0 };
+    s = { last: pathPhase, u: loop ? 0 : seed, amp: walking ? 1 : 0, t: now, v: walking ? 200 : 0 };
     state.set(id, s);
   }
   const dt = Math.min(0.25, Math.max(0, (now - s.t) / 1000)),
@@ -393,16 +394,24 @@ export function stepGait(
   s.last = pathPhase;
   const dpx = Math.abs(dp) < 60 ? Math.abs(dp) * pxPerPhase : 0; // a jump (re-sync, new path) is not a walk
   if (dt > 0) s.v += (dpx / dt - s.v) * Math.min(1, dt / 0.15);
+  if (now - lastPrune > 5000) {
+    lastPrune = now;
+    for (const [k, g] of state) if (now - g.t > 10000) state.delete(k);
+  }
+  if (loop) {
+    // fixed-stride frame sequence (a painted loop covering `loop` source px of ground): the loop follows the distance;
+    // on stopping it finishes the current loop in place and rests at its start (the standing frame)
+    s.amp = walking ? 1 : 0;
+    if (walking) s.u = (s.u + dpx / loop) % 1;
+    else if (s.u > 0) s.u = s.u + dt / 0.35 >= 1 ? 0 : s.u + dt / 0.35;
+    return { u: s.u, ai: walking || s.u > 0 ? RIG_AMPS.length - 1 : 0 };
+  }
   const target = walking ? clamp(s.v / 120, 0.25, 1) : 0,
     rate = dt / 0.3;
   s.amp += clamp(target - s.amp, -rate, rate);
   const ai = Math.round(s.amp * (RIG_AMPS.length - 1));
   // feet stay planted: the cycle advances by the distance over the length of two steps at the drawn stride
   if (ai > 0) s.u = (s.u + dpx / (2 * STEP * RIG_AMPS[ai]!)) % 1;
-  if (now - lastPrune > 5000) {
-    lastPrune = now;
-    for (const [k, g] of state) if (now - g.t > 10000) state.delete(k);
-  }
   return { u: s.u, ai };
 }
 export const gaitStateSize = () => state.size;

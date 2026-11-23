@@ -60,6 +60,7 @@ import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureRea
 import { townOf, onFireTile, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { RIG_FRAMES, RIG_H, RIG_W, rigFrame, rigScaleFor, rigSlide, stepGait } from "./walk-rig";
+import { PAINTED_FRAMES, PAINTED_LOOP, PAINTED_STAND, paintedFrame, paintedSlide } from "./painted-walk";
 import { folkImage, walkSheet, standSprite, standSheetOf, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { townRank, seatKindForRank } from "./rank";
@@ -1420,10 +1421,19 @@ function insignia(c: C, q: Pose, hgt: number) {
       if (cloth) { const ch2 = h * 0.38, cw = (ch2 * cloth.width) / cloth.height; c.drawImage(cloth, hgt * 0.32, -h * 0.95, cw, ch2); } }
   }
 }
-/** P6 reference walker: the ordinary villager ("man") walks on the skeletal cycle from walk-rig.ts. ?rig=0 (or
- *  window.__setRig(false)) shows the painted 8-frame sheet instead, for comparison. Display only. */
-let manRigOn = (() => { try { return !/[?&]rig=0/.test(location.search); } catch { return true; } })();
-if (typeof window !== "undefined") (window as unknown as { __setRig?: (on: boolean) => void }).__setRig = (on) => { manRigOn = on; };
+/** P6 reference walker: the ordinary villager ("man") walks on the skeletal cycle from walk-rig.ts ("rig", default).
+ *  For comparison: "alt" = the old painted 8-frame sheet (?rig=0 or ?manwalk=alt), "gemalt" = the supplied painted
+ *  12-frame sequence (P6c experiment, ?manwalk=gemalt). window.__setManWalk(mode) / __setRig(on) switch live.
+ *  Display only. */
+type ManWalk = "rig" | "alt" | "gemalt";
+let manWalk: ManWalk = (() => {
+  try { const q = new URLSearchParams(location.search), m = q.get("manwalk"); return m === "alt" || m === "gemalt" || m === "rig" ? m : q.get("rig") === "0" ? "alt" : "rig"; } catch { return "rig"; }
+})();
+if (typeof window !== "undefined") {
+  const w = window as unknown as { __setRig?: (on: boolean) => void; __setManWalk?: (m: ManWalk) => void };
+  w.__setRig = (on) => { manWalk = on ? "rig" : "alt"; };
+  w.__setManWalk = (m) => { manWalk = m; };
+}
 /** Source px (of the 240 px sheet) a figure of height hgt covers on screen per unit of path phase in tile direction d:
  *  phase = distance / STRIDE with 0.34 tiles per 2π (people.ts); a tile step spans 16 px across and 8 px down. */
 function rigPxPerPhase(d: readonly [number, number], hgt: number) {
@@ -1440,8 +1450,10 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + hash(q.p.id, 77, 5) * 6.2832;
   const painted = q.walking && (!!walkSheet(k) || legsFor(q));
   // the reference walker carries its own pelvis bob in the cycle; the whole-sprite bob is for painted sheets
-  const rigged = k === "man" && manRigOn && !q.working && q.p.job !== "mayor" ? folkImage("manRig") : null;
-  const bob = q.walking && !rigged ? Math.abs(Math.sin(ph)) * 0.07 : 0;
+  const refMan = k === "man" && !q.working && q.p.job !== "mayor";
+  const rigged = refMan && manWalk === "rig" ? folkImage("manRig") : null;
+  const painted12 = refMan && manWalk === "gemalt" ? folkImage("manWalk12") : null;
+  const bob = q.walking && !rigged && !painted12 ? Math.abs(Math.sin(ph)) * 0.07 : 0;
   // working: asymmetric tool rhythm — slow wind-up, quick stroke, short rest (not a pendulum)
   const skirt = q.walking && !painted && SKIRTS.has(k);
   let tilt = 0;
@@ -1523,6 +1535,17 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       insignia(c, q, hgt); c.setTransform(B);
       return [X, Y - hgt];
     }
+  }
+  if (painted12) {
+    // P6c: supplied painted 12-frame step, frame chosen by the distance walked (same driver as the rig); standing and
+    // the end of a walk rest on frame 0, the sequence's upright pose, so the figure never swaps body
+    const g = stepGait(-1 - q.p.id, q.phase, q.walking, rigPxPerPhase(q.dir, hgt), t, 0, PAINTED_LOOP); // own state, apart from the rig
+    const moving = g.ai > 0, f = moving ? paintedFrame(g.u) : PAINTED_STAND, fw = painted12.naturalWidth / PAINTED_FRAMES;
+    if (!q.walking) { const id = q.p.id, br = Math.sin(t / (1900 + hash(id, 41, 3) * 900) + id); c.transform(1 - br * 0.004, 0, 0, 1 + br * 0.012, 0, 0); }
+    const dx = moving && q.walking ? (paintedSlide(g.u) * hgt) / painted12.naturalHeight : 0;
+    drawSheetFrame(c, painted12, f, fw, (hgt * fw) / painted12.naturalHeight, hgt, dx);
+    insignia(c, q, hgt); c.setTransform(B);
+    return [X, Y - hgt];
   }
   const sheet = q.walking ? walkSheet(k) : null;
   const legs = q.walking && !sheet && legsFor(q) ? legsImg(HIPS[k] ?? DEFAULT_FIG) : null;
