@@ -11,6 +11,18 @@ if (!BASE && (process.env["CI"] || process.env["REQUIRE_PG"]))
 const d = BASE ? describe : describe.skip;
 const mig = (f: string) =>
   readFileSync(new globalThis.URL(`../../drizzle/migrations/${f}`, import.meta.url), "utf8");
+// the village row lock exactly as production has it: tax_spend_lock() and its encounters trigger from 0052, the guard
+// trigger from 0010 — never a test double, because the race tests below prove that this lock serialises bookings
+const M052 = mig("0052_resident_tax_receipts.sql"),
+  M010 = mig("0010_encounters.sql");
+const LOCK_FN = M052.slice(
+  M052.indexOf("CREATE OR REPLACE FUNCTION public.tax_spend_lock()"),
+  M052.indexOf("REVOKE ALL ON FUNCTION public.tax_spend_lock()"),
+);
+const LOCK_TRIGGER =
+  /CREATE TRIGGER a_tax_spend_lock BEFORE INSERT ON public\.encounters[^\n]*/.exec(M052)![0];
+const GUARD_TRIGGER =
+  /CREATE TRIGGER encounter_guard BEFORE INSERT ON public\.encounters[^\n]*/.exec(M010)![0];
 const M139 = mig("0139_encounters_server_only.sql"),
   M140 = mig("0140_boon_effects.sql"),
   M141 = mig("0141_ratsbuch.sql");
@@ -132,14 +144,12 @@ d("Ratsbuch 0141 (real PostgreSQL)", () => {
       create policy "Anyone can see encounters" on public.encounters for select using (true);
       create policy "Owners decide encounters" on public.encounters for insert to authenticated
         with check (user_id = auth.uid() and exists (select 1 from public.seeds s where s.id = encounters.seed_id and s.user_id = auth.uid()));
-      create or replace function public.tax_spend_lock() returns trigger language plpgsql security definer set search_path = public as $$
-        declare sid uuid; begin sid := (to_jsonb(NEW)->>'seed_id')::uuid; perform 1 from public.seeds where id = sid for update; return NEW; end $$;
-      create trigger a_tax_spend_lock before insert on public.encounters for each row execute function public.tax_spend_lock();`);
+      `);
+    await sql.unsafe(LOCK_FN);
+    await sql.unsafe(LOCK_TRIGGER);
     // production order: 0139 (guard, server only) → 0140 (boon_effects) → 0141 (Ratsbuch); 0141 twice proves it idempotent
     await sql.unsafe(M139);
-    await sql.unsafe(
-      `create trigger encounter_guard before insert on public.encounters for each row execute function public.encounter_guard();`,
-    );
+    await sql.unsafe(GUARD_TRIGGER);
     await sql.unsafe(M140);
     await sql.unsafe(M141);
     await sql.unsafe(M141);
@@ -344,6 +354,142 @@ d("Ratsbuch 0141 (real PostgreSQL)", () => {
         res2.join(","),
       ).toHaveLength(1);
       expect(await active(id2)).toBe(6);
+    }
+  });
+
+  // ---------- 10 (deterministic): the real booking path under the village row lock ----------
+  /** One booking as the trusted server issues it: its own connection and transaction, committed when the test says. */
+  const session = async (wedding = "") => {
+    const c = await sql.reserve();
+    await c`begin`;
+    await c`select set_config('test.role', 'service_role', true), set_config('test.wedding', ${wedding}, true)`;
+    const [r] = await c`select pg_backend_pid() as pid, now() as t0`;
+    return { c, pid: r!["pid"] as number, t0: r!["t0"] as Date };
+  };
+  type Booked = { ok: true; at: Date } | { ok: false; msg: string };
+  const insertIn = (
+    c: postgres.ReservedSql,
+    id: string,
+    event: string,
+    choice: string,
+    req: string | null,
+  ): Promise<Booked> =>
+    c`insert into public.encounters (seed_id, user_id, event, choice, request_id)
+      values (${id}, ${OWNER}, ${event}, ${choice}, ${req}) returning created_at`.then(
+      (r) => ({ ok: true as const, at: r[0]!["created_at"] as Date }),
+      (e: Error) => ({ ok: false as const, msg: e.message }),
+    );
+  /** Polls until `pid` waits on a heavyweight lock held by `holder`; returns the wait event, or null after ~5 s. */
+  const waitsOn = async (pid: number, holder: number) => {
+    for (let i = 0; i < 500; i++) {
+      const [r] =
+        await sql`select a.wait_event_type as t, a.wait_event as e, ${holder} = any(pg_blocking_pids(${pid})) as blocked
+        from pg_stat_activity a where a.pid = ${pid}`;
+      if (r?.["t"] === "Lock" && r["blocked"]) return r["e"] as string;
+      await new Promise((res) => setTimeout(res, 10));
+    }
+    return null;
+  };
+
+  it("10: the trigger chain is production's: village lock first, then the guard, the request closes after insert", async () => {
+    const t = await sql`select t.tgname as name, p.proname as fn,
+        case when (t.tgtype & 2) <> 0 then 'before' else 'after' end as timing
+      from pg_trigger t join pg_proc p on p.oid = t.tgfoid
+      where t.tgrelid = 'public.encounters'::regclass and not t.tgisinternal order by timing desc, t.tgname`;
+    // PostgreSQL fires triggers of one timing in name order: a_tax_spend_lock always runs before encounter_guard
+    expect(t.map((r) => `${r["timing"]}:${r["name"]}:${r["fn"]}`)).toEqual([
+      "before:a_tax_spend_lock:tax_spend_lock",
+      "before:encounter_guard:encounter_guard",
+      "after:ratsbuch_close:ratsbuch_close",
+    ]);
+    expect(LOCK_FN).toContain("FOR UPDATE");
+  });
+
+  // [label, A (books first), B (older transaction, waits)]: event, choice, as request (day offset) or null
+  type Pick = readonly [string, string, number | null];
+  const cases: readonly (readonly [string, Pick, Pick])[] = [
+    ["two requests", ["ruin", "shrine", 1], ["monk", "copy", 0]],
+    ["an occasion answer and a request", ["lichtstube", "reigen", null], ["monk", "copy", 0]],
+    // no request involved: here the 0052 village lock is the only thing that serialises the two bookings
+    ["two occasion answers", ["wedding", "feast", null], ["lichtstube", "reigen", null]],
+  ];
+  for (const [label, first, second] of cases) {
+    it(`10: with ${label} at five boons, the later booking waits on the village lock and is refused at six`, async () => {
+      const id = await seed();
+      await book6(id, 5);
+      const wed = new Date(Date.now() - 3600e3).toISOString();
+      const a = first[2] === null ? null : await request(id, first[0], first[2]);
+      const b = second[2] === null ? null : await request(id, second[0], second[2]);
+      const B = await session(wed); // B's transaction is the OLDER one: its now() lies before A's booking
+      await new Promise((res) => setTimeout(res, 30));
+      const A = await session(wed);
+      try {
+        const ra = await insertIn(A.c, id, first[0], first[1], a);
+        expect(ra).toMatchObject({ ok: true }); // A holds the village row lock until it commits
+        const pb = insertIn(B.c, id, second[0], second[1], b);
+        expect(await waitsOn(B.pid, A.pid)).toBe("transactionid"); // B waits for A's row lock on the seed
+        expect(B.t0.getTime()).toBeLessThan((ra as { at: Date }).at.getTime()); // the case now() alone would miss
+        await A.c`commit`;
+        expect(await pb).toEqual({ ok: false, msg: "boons full" });
+      } finally {
+        await B.c`rollback`.catch(() => {});
+        await A.c`rollback`.catch(() => {});
+        A.c.release();
+        B.c.release();
+      }
+      expect(await active(id)).toBe(6);
+      expect((await rows(id))["n"]).toBe(6);
+      if (b) expect(await status(b)).toBe("open"); // the refused request stays open and costs nothing
+      if (a) expect(await status(a)).toBe("accepted");
+    });
+  }
+  it("10: if the first booking rolls back, the waiting one re-checks after the lock and is booked", async () => {
+    const id = await seed();
+    await book6(id, 5);
+    const a = await request(id, "ruin", 1),
+      b = await request(id, "monk", 0);
+    const B = await session();
+    const A = await session();
+    try {
+      expect(await insertIn(A.c, id, "ruin", "shrine", a)).toMatchObject({ ok: true });
+      const pb = insertIn(B.c, id, "monk", "copy", b);
+      expect(await waitsOn(B.pid, A.pid)).toBe("transactionid");
+      await A.c`rollback`;
+      expect(await pb).toMatchObject({ ok: true });
+      await B.c`commit`;
+    } finally {
+      await A.c`rollback`.catch(() => {});
+      await B.c`rollback`.catch(() => {});
+      A.c.release();
+      B.c.release();
+    }
+    expect(await active(id)).toBe(6);
+    expect([await status(a), await status(b)]).toEqual(["open", "accepted"]);
+  });
+  it("10: six concurrent growth bookings at two boons: exactly four are booked, two refused, never more than six", async () => {
+    for (let round = 0; round < 5; round++) {
+      const id = await seed();
+      await book6(id, 2);
+      const kinds = ["ruin", "monk", "widow", "journeyman"] as const,
+        grow = ["shrine", "copy", "shelter", "host"] as const;
+      const reqs: string[] = [];
+      for (let k = 0; k < 4; k++) reqs.push(await request(id, kinds[k]!, k));
+      const wed = new Date(Date.now() - 3600e3).toISOString();
+      const res = await Promise.all([
+        ...reqs.map((q, k) => book(id, kinds[k]!, grow[k]!, q)),
+        book(id, "lichtstube", "reigen"),
+        book(id, "wedding", "feast", null, wed),
+      ]);
+      expect(
+        res.filter((x) => x === "ok"),
+        res.join(","),
+      ).toHaveLength(4);
+      expect(
+        res.filter((x) => x === "boons full"),
+        res.join(","),
+      ).toHaveLength(2);
+      expect(await active(id)).toBe(6);
+      expect((await rows(id))["n"]).toBe(6);
     }
   });
 
