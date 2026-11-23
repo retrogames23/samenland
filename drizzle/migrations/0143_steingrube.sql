@@ -9,6 +9,28 @@
 -- Base production (1 wood, 0.5 stone) stays for everyone; no location surcharges (Phase 1.3: no measurable effect).
 -- Production days are booked only once the location is certified, so no day is ever judged with a wrong factor.
 
+-- FIRST: purchase_guard learns the Steingrube. Runs before every other statement, so a live guard whose text differs
+-- from 0123–0125 aborts the migration before anything else exists, even where it is not run as one transaction.
+-- purchase_guard learns the Steingrube (same patch pattern as 0124/0125): 300 Mark minus 150 from the Steinbruch-Auftrag
+-- of the council, which every village holds until its first and only Steingrube; unplaced; once; only where the
+-- village's resources run — elsewhere it could not produce, and nothing without effect may be sold
+DO $do$
+DECLARE d text;
+BEGIN
+  d := pg_get_functiondef('public.purchase_guard()'::regprocedure);
+  IF position('steingrube' in d) > 0 THEN RETURN; END IF;
+  d := replace(d, $s$  IF price IS NULL THEN RAISE EXCEPTION 'unknown item'; END IF;$s$,
+    $s$  -- Steingrube (src/game/resources.ts STEINGRUBE_PRICE − STEINBRUCH_AUFTRAG), Wirtschaft Paket 2
+  IF NEW.item = 'steingrube' THEN
+    price := 300 - 150;
+    IF NEW.x IS NOT NULL OR NEW.y IS NOT NULL THEN RAISE EXCEPTION 'bad position'; END IF;
+    IF EXISTS (SELECT 1 FROM purchases WHERE seed_id = NEW.seed_id AND item = 'steingrube') THEN RAISE EXCEPTION 'already built'; END IF;
+    IF now() < (SELECT greatest(public.resources_since(s.realm), s.created_at) FROM public.seeds s WHERE s.id = NEW.seed_id) THEN RAISE EXCEPTION 'not now'; END IF;
+  END IF;
+  IF price IS NULL THEN RAISE EXCEPTION 'unknown item'; END IF;$s$);
+  IF (length(d) - length(replace(d, 'steingrube', ''))) / 10 < 2 THEN RAISE EXCEPTION 'purchase_guard patch did not apply'; END IF;
+  EXECUTE d;
+END $do$;
 CREATE TABLE IF NOT EXISTS public.village_sites (
   seed_id uuid PRIMARY KEY REFERENCES public.seeds(id) ON DELETE CASCADE,
   way text NOT NULL CHECK (way IN ('grain','workshop','gateway')),
@@ -130,26 +152,6 @@ BEGIN
   RETURN NEW;
 END $function$;
 
--- purchase_guard learns the Steingrube (same patch pattern as 0124/0125): 300 Mark minus 150 from the Steinbruch-Auftrag
--- of the council, which every village holds until its first and only Steingrube; unplaced; once; only where the
--- village's resources run — elsewhere it could not produce, and nothing without effect may be sold
-DO $do$
-DECLARE d text;
-BEGIN
-  d := pg_get_functiondef('public.purchase_guard()'::regprocedure);
-  IF position('steingrube' in d) > 0 THEN RETURN; END IF;
-  d := replace(d, $s$  IF price IS NULL THEN RAISE EXCEPTION 'unknown item'; END IF;$s$,
-    $s$  -- Steingrube (src/game/resources.ts STEINGRUBE_PRICE − STEINBRUCH_AUFTRAG), Wirtschaft Paket 2
-  IF NEW.item = 'steingrube' THEN
-    price := 300 - 150;
-    IF NEW.x IS NOT NULL OR NEW.y IS NOT NULL THEN RAISE EXCEPTION 'bad position'; END IF;
-    IF EXISTS (SELECT 1 FROM purchases WHERE seed_id = NEW.seed_id AND item = 'steingrube') THEN RAISE EXCEPTION 'already built'; END IF;
-    IF now() < (SELECT greatest(public.resources_since(s.realm), s.created_at) FROM public.seeds s WHERE s.id = NEW.seed_id) THEN RAISE EXCEPTION 'not now'; END IF;
-  END IF;
-  IF price IS NULL THEN RAISE EXCEPTION 'unknown item'; END IF;$s$);
-  IF (length(d) - length(replace(d, 'steingrube', ''))) / 10 < 2 THEN RAISE EXCEPTION 'purchase_guard patch did not apply'; END IF;
-  EXECUTE d;
-END $do$;
 CREATE UNIQUE INDEX IF NOT EXISTS purchases_steingrube_once ON public.purchases (seed_id, item) WHERE item = 'steingrube';
 
 REVOKE ALL ON FUNCTION public.resource_kontor(uuid, integer, integer) FROM PUBLIC, anon, authenticated;

@@ -244,6 +244,106 @@ d("Steingrube 0143 on the real purchase guard (real PostgreSQL)", () => {
       material: { wood: [60, 0], stone: [40, 0], kontor: 0 },
     });
   });
+  // ---------- catch-up after a late location certificate ----------
+  const prodRows = async (id: string) =>
+    (
+      await sql`select resource, amount, ref from public.resource_ledger where seed_id = ${id} and kind = 'prod' order by ref, resource`
+    ).map((r) => `${r["ref"]}:${r["resource"]}:${r["amount"]}`);
+  const certify = (id: string, way: Way) =>
+    sql`insert into public.village_sites (seed_id, way) values (${id}, ${way})`;
+
+  it("without a location only the start stock is booked — no production, no processing state, however often refreshed", async () => {
+    const id = await seed({ site: null });
+    await buy(id, "woodcamp");
+    for (const k of [0, 2, 5, 5]) await refreshTo(id, k);
+    await sql`select public.resource_refresh(${id})`;
+    expect(await ledger(id)).toEqual([
+      `start:stone:30:start`,
+      `start:wood:60:start`,
+      expect.stringMatching(/^build:wood:-12:/),
+    ]);
+    expect(
+      (await sql`select count(*)::int as n from public.resource_state where seed_id = ${id}`)[0]![
+        "n"
+      ],
+    ).toBe(0);
+  });
+  it("a late certificate books every open day exactly once — identical to a village certified from the start", async () => {
+    for (const way of ["grain", "workshop", "gateway"] as const) {
+      const early = await seed({ site: way }),
+        late = await seed({ site: null });
+      for (const id of [early, late]) {
+        await buy(id, "woodcamp");
+        await buy(id, "steingrube");
+      }
+      await refreshTo(early, 6);
+      await refreshTo(late, 3); // nothing yet
+      expect(await prodRows(late), way).toEqual([]);
+      await certify(late, way);
+      await Promise.all(Array.from({ length: 5 }, () => refreshTo(late, 6))); // parallel catch-up
+      await refreshTo(late, 6);
+      expect(await prodRows(late), way).toEqual(await prodRows(early));
+      const [dup] =
+        await sql`select count(*)::int as n from (select resource, ref from public.resource_ledger
+        where seed_id = ${late} and kind = 'prod' group by resource, ref having count(*) > 1) x`;
+      expect(dup!["n"], way).toBe(0);
+      expect(
+        (await prodRows(late)).filter((r) => r.includes(":wood:")),
+        way,
+      ).toHaveLength(6);
+    }
+  });
+  it("UTC day boundaries: production starts at the first 00:00 UTC strictly after the start, never on the start day", async () => {
+    const at = async (sqlTime: string, way: Way = "grain") => {
+      const id = nextSeed();
+      await sql.unsafe(
+        `insert into public.seeds values ('${id}', '${OWNER}', 'lab', 500, 340, ${sqlTime})`,
+      );
+      await certify(id, way);
+      await refreshTo(id, 3);
+      const refs =
+        await sql`select distinct ((ref::date) - (now() at time zone 'UTC')::date) as k from public.resource_ledger
+        where seed_id = ${id} and kind = 'prod' order by 1`;
+      const start =
+        await sql`select at from public.resource_ledger where seed_id = ${id} and kind = 'start' limit 1`;
+      return {
+        days: refs.map((r) => r["k"] as number),
+        start: (start[0]!["at"] as Date).toISOString(),
+      };
+    };
+    const lateToday = await at(
+      `((now() at time zone 'UTC')::date + interval '23 hours 30 minutes') at time zone 'UTC'`,
+    );
+    expect(lateToday.days).toEqual([1, 2, 3]); // started 23:30 UTC today → first delivery tomorrow 00:00
+    expect(lateToday.start.endsWith("T23:30:00.000Z")).toBe(true);
+    const midnight = await at(
+      `((now() at time zone 'UTC')::date + 1)::timestamp at time zone 'UTC'`,
+    );
+    expect(midnight.days).toEqual([2, 3]); // started exactly at 00:00 tomorrow → first delivery the day after
+  });
+  it("village_sites: RLS lets owners read only their own row; clients can neither write nor change it", async () => {
+    const mine = await seed({ site: "gateway" });
+    const theirs = nextSeed();
+    await sql`insert into public.seeds values (${theirs}, '00000000-0000-0000-0000-0000000000b2', 'lab', 500, 340, now())`;
+    await certify(theirs, "grain");
+    const [p] =
+      await sql`select has_table_privilege('authenticated', 'public.village_sites', 'insert') as i,
+      has_table_privilege('authenticated', 'public.village_sites', 'update') as u,
+      has_table_privilege('anon', 'public.village_sites', 'select') as a,
+      has_table_privilege('authenticated', 'public.village_sites', 'select') as s,
+      has_function_privilege('authenticated', 'public.resource_kontor(uuid, integer, integer)', 'execute') as k`;
+    expect(p).toEqual({ i: false, u: false, a: false, s: true, k: false });
+    const seen = await sql.begin(async (tx) => {
+      await tx`select set_config('test.uid', ${OWNER}, true)`;
+      await tx.unsafe("set local role authenticated");
+      return tx`select seed_id, way from public.village_sites where seed_id in (${mine}, ${theirs})`;
+    });
+    expect(seen.map((r) => `${r["seed_id"]}:${r["way"]}`)).toEqual([`${mine}:gateway`]);
+    await expect(
+      sql`update public.village_sites set way = 'grain' where seed_id = ${mine}`,
+    ).rejects.toThrow("village site is final");
+  });
+
   it("the overview reports the location (null until certified) for the council's offer", async () => {
     const certified = await seed({ site: "workshop" }),
       open = await seed({ site: null });

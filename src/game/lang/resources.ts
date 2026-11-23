@@ -14,6 +14,8 @@ type Text = {
   quarry: string;
   auftrag: string;
   auftragText: (stone: string, site: string, full: string, paid: string) => string;
+  /** before the trusted server has certified the location: no location-specific numbers yet */
+  auftragOpen: (full: string, paid: string) => string;
   build: string;
   running: (stone: string) => string;
   paid: string;
@@ -35,6 +37,8 @@ export const RESOURCE_T: Record<Lang, Text> = {
     auftrag: "Steinbruch-Auftrag des Rates",
     auftragText: (s, site, f, p) =>
       `Legt eine Steingrube an – sie liefert hier (${site}) täglich ${s} Stein zusätzlich. Der Rat übernimmt die Hälfte: ${p} statt ${f}.`,
+    auftragOpen: (f, p) =>
+      `Legt eine Steingrube an – der Rat übernimmt die Hälfte: ${p} statt ${f}. Den täglichen Ertrag an Eurem Standort nennt er gleich.`,
     build: "Steingrube anlegen",
     running: (s) => `Steingrube in Betrieb: +${s} Stein/Tag`,
     paid: "Die Steingrube ist angelegt. Ab dem nächsten Morgen liefert sie Stein.",
@@ -54,6 +58,8 @@ export const RESOURCE_T: Record<Lang, Text> = {
     auftrag: "The council's quarry commission",
     auftragText: (s, site, f, p) =>
       `Open a stone pit – here (${site}) it adds ${s} stone a day. The council pays half: ${p} instead of ${f}.`,
+    auftragOpen: (f, p) =>
+      `Open a stone pit – the council pays half: ${p} instead of ${f}. It will name the daily yield for your site in a moment.`,
     build: "Open the stone pit",
     running: (s) => `Stone pit at work: +${s} stone/day`,
     paid: "The stone pit is open. It delivers stone from tomorrow morning.",
@@ -73,6 +79,8 @@ export const RESOURCE_T: Record<Lang, Text> = {
     auftrag: "Commande de carrière du conseil",
     auftragText: (s, site, f, p) =>
       `Ouvrez une carrière – ici (${site}), elle fournit ${s} pierres de plus par jour. Le conseil paie la moitié : ${p} au lieu de ${f}.`,
+    auftragOpen: (f, p) =>
+      `Ouvrez une carrière – le conseil paie la moitié : ${p} au lieu de ${f}. Il indiquera bientôt le rendement quotidien de votre site.`,
     build: "Ouvrir la carrière",
     running: (s) => `Carrière en service : +${s} pierres/jour`,
     paid: "La carrière est ouverte. Elle livre de la pierre dès demain matin.",
@@ -92,6 +100,8 @@ export const RESOURCE_T: Record<Lang, Text> = {
     auftrag: "Encargo de cantera del concejo",
     auftragText: (s, site, f, p) =>
       `Abre una cantera: aquí (${site}) aporta ${s} piedras más al día. El concejo paga la mitad: ${p} en lugar de ${f}.`,
+    auftragOpen: (f, p) =>
+      `Abre una cantera: el concejo paga la mitad: ${p} en lugar de ${f}. Enseguida indicará el rendimiento diario de tu lugar.`,
     build: "Abrir la cantera",
     running: (s) => `Cantera en marcha: +${s} piedras/día`,
     paid: "La cantera está abierta. Entrega piedra desde mañana por la mañana.",
@@ -111,6 +121,8 @@ export const RESOURCE_T: Record<Lang, Text> = {
     auftrag: "تكليف المجلس بالمقلع",
     auftragText: (s, site, f, p) =>
       `افتح مقلعًا للحجارة – هنا (${site}) يضيف ${s} حجرًا يوميًا. يدفع المجلس النصف: ${p} بدلًا من ${f}.`,
+    auftragOpen: (f, p) =>
+      `افتح مقلعًا للحجارة – يدفع المجلس النصف: ${p} بدلًا من ${f}. سيذكر الإنتاج اليومي لموقعك بعد قليل.`,
     build: "افتح المقلع",
     running: (s) => `المقلع يعمل: +${s} حجر/يوم`,
     paid: "فُتح المقلع. يورّد الحجارة ابتداءً من صباح الغد.",
@@ -130,6 +142,8 @@ export const RESOURCE_T: Record<Lang, Text> = {
     auftrag: "परिषद का खदान आदेश",
     auftragText: (s, site, f, p) =>
       `पत्थर की खदान खोलें – यहाँ (${site}) यह रोज़ ${s} पत्थर अतिरिक्त देती है। परिषद आधा देती है: ${f} की जगह ${p}।`,
+    auftragOpen: (f, p) =>
+      `पत्थर की खदान खोलें – परिषद आधा देती है: ${f} की जगह ${p}। आपके स्थान की रोज़ की उपज वह अभी बताएगी।`,
     build: "खदान खोलें",
     running: (s) => `खदान चालू: +${s} पत्थर/दिन`,
     paid: "खदान खुल गई। कल सुबह से पत्थर आने लगेगा।",
@@ -149,6 +163,8 @@ export const RESOURCE_T: Record<Lang, Text> = {
     auftrag: "议会的采石委托",
     auftragText: (s, site, f, p) =>
       `开设采石场——在此地（${site}）每天额外产出 ${s} 石料。议会承担一半：${p}，而非 ${f}。`,
+    auftragOpen: (f, p) =>
+      `开设采石场——议会承担一半：${p}，而非 ${f}。稍后会告知您所在地的每日产量。`,
     build: "开设采石场",
     running: (s) => `采石场运作中：+${s} 石料/天`,
     paid: "采石场已开设。明早起开始供应石料。",
@@ -168,6 +184,8 @@ export const RESOURCE_T: Record<Lang, Text> = {
     auftrag: "評議会の石切り依頼",
     auftragText: (s, site, f, p) =>
       `石切り場を開きましょう――ここ（${site}）では毎日 ${s} 個の石材が増えます。評議会が半額を負担：${f} ではなく ${p}。`,
+    auftragOpen: (f, p) =>
+      `石切り場を開きましょう――評議会が半額を負担：${f} ではなく ${p}。この土地での一日の産出量はまもなく伝えます。`,
     build: "石切り場を開く",
     running: (s) => `石切り場が稼働中：+${s} 石材/日`,
     paid: "石切り場を開きました。明朝から石材が届きます。",

@@ -18,7 +18,10 @@ export async function certifySite(id: string): Promise<{ site: "grain" | "worksh
   setRealm(seed.realm as Realm);
   // the character cache is keyed by position only; a worker serves several maps, so never reuse another map's terrain
   resetCharacters();
+  // setRealm → reset → compute is synchronous (no await), so no other request of this isolate can interleave
   const site = townCharacter({ x: seed.x, y: seed.y }).main;
+  // and leave no entry behind that another map's request could read for the same coordinates
+  resetCharacters();
   const { error: we } = await supabaseAdmin
     .from("village_sites")
     .upsert({ seed_id: id, way: site }, { onConflict: "seed_id", ignoreDuplicates: true });

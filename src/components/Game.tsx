@@ -1647,10 +1647,11 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const { accounting, setAccounting, refreshAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works, moves]);
   // Wirtschaft Paket 1: wood and stone as the database books them; the quote only shows what the guard will charge
   const { res, refreshResources } = useResources(my, userId, [purchases]);
-  const matQuote = (item: string) => {
-    const need = res?.active ? materialOf(item) : null;
-    return need == null || !res?.active ? null : kontorQuote(need, { wood: res.wood.stock, stone: res.stone.stock }, res.site ?? null);
+  const quoteIn = (r: typeof res, item: string) => {
+    const need = r?.active ? materialOf(item) : null;
+    return need == null || !r?.active ? null : kontorQuote(need, { wood: r.wood.stock, stone: r.stone.stock }, r.site ?? null);
   };
+  const matQuote = (item: string) => quoteIn(res, item);
   const kontorOf = (item: string) => matQuote(item)?.cost ?? 0;
   const prepareSpend = async () => {
     // always book outstanding daily tax first — right after load `accounting` is still unknown
@@ -2346,7 +2347,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     // rank-gated items: the server counts citizens, homes and roads itself before the guard accepts the row
     const needRank = needRankOf(item);
     if (needRank > 0) { try { await certifyFn({ data: { seed: my.id } }); } catch { return rollback(t.buyFail); } }
-    const quote = matQuote(item);
+    // the Kontor price depends on the certified location: without it, reload (which certifies) before quoting
+    const quote = quoteIn(res?.active && res.site == null && materialOf(item) ? await refreshResources() : res, item);
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null, ...(quote ? { kontor_max: quote.cost } : {}) }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) {
       const m = error?.message ?? "";
@@ -2578,14 +2580,14 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
             // Steinbruch-Auftrag des Rates (Paket 2, V2): offered from the first day, before any stone runs short
             const rt = RESOURCE_T[lang], site = res.site ?? "grain", owned = purchases.some((p) => p.seed_id === my.id && p.item === STEINGRUBE);
             const fmt = (n: number) => n.toLocaleString(LOCALE[lang]);
-            if (owned) return <div key="steingrube" className="rounded-md border border-border bg-secondary/60 p-2 text-xs text-primary" data-steingrube="running">⛏ {rt.running(fmt(SITE_STONE[site]))}</div>;
+            if (owned) return <div key="steingrube" className="rounded-md border border-border bg-secondary/60 p-2 text-xs text-primary" data-steingrube="running">⛏ {res.site ? rt.running(fmt(SITE_STONE[res.site])) : rt.quarry}</div>;
             return (
               <div key="steingrube" className="rounded-md border border-brass/60 bg-brass/10 p-2" data-steingrube="offer">
                 <div className="flex items-center gap-2">
                   <span className="flex-1 font-semibold">⛏ {rt.auftrag}</span>
                   <span className="text-xs text-muted-foreground"><s>{t.taler(STEINGRUBE_PRICE)}</s> {t.taler(STEINGRUBE_COST)}</span>
                 </div>
-                <div className="text-xs text-muted-foreground">{rt.auftragText(fmt(SITE_STONE[site]), rt.sites[site], t.taler(STEINGRUBE_PRICE), t.taler(STEINGRUBE_COST))}</div>
+                <div className="text-xs text-muted-foreground">{res.site ? rt.auftragText(fmt(SITE_STONE[res.site]), rt.sites[res.site], t.taler(STEINGRUBE_PRICE), t.taler(STEINGRUBE_COST)) : rt.auftragOpen(t.taler(STEINGRUBE_PRICE), t.taler(STEINGRUBE_COST))}</div>
                 {site === "gateway" && <div className="text-[11px] text-muted-foreground">{rt.coast}</div>}
                 <MaterialLine q={matQuote(STEINGRUBE)} lang={lang} taler={t.taler} />
                 <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < STEINGRUBE_COST + kontorOf(STEINGRUBE)} onClick={() => void buy(STEINGRUBE)}>{rt.build} · {t.taler(STEINGRUBE_COST + kontorOf(STEINGRUBE))}</Button>

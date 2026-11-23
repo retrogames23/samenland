@@ -39,6 +39,7 @@ export function useResources(
         await certifyFn({ data: { seed: id } });
         return await refreshResources();
       } catch {
+        asked.current = null; // try again with the next refresh
         return next;
       }
     }

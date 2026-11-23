@@ -195,3 +195,12 @@ describe("Paket 2: TypeScript mirrors migration 0143", () => {
     expect(kontorQuote({ wood: 0, stone: 9 }, { wood: 0, stone: 0 }, "gateway").cost).toBe(49); // 48.6
   });
 });
+
+describe("Paket 2: migration 0143 order", () => {
+  it("the purchase_guard patch is the first statement, before any table or function is created", () => {
+    const firstDo = SQL2.indexOf("DO $do$"),
+      firstCreate = SQL2.search(/^CREATE /m);
+    expect(firstDo).toBeGreaterThan(0);
+    expect(firstDo).toBeLessThan(firstCreate);
+  });
+});
