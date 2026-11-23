@@ -736,6 +736,8 @@ export type Database = {
           created_at: string
           id: string
           item: string
+          kontor_max: number | null
+          material: Json | null
           seed_id: string
           user_id: string
           x: number | null
@@ -746,6 +748,8 @@ export type Database = {
           created_at?: string
           id?: string
           item: string
+          kontor_max?: number | null
+          material?: Json | null
           seed_id: string
           user_id: string
           x?: number | null
@@ -756,6 +760,8 @@ export type Database = {
           created_at?: string
           id?: string
           item?: string
+          kontor_max?: number | null
+          material?: Json | null
           seed_id?: string
           user_id?: string
           x?: number | null
@@ -884,6 +890,70 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ratsbuch_state_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: true
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resource_ledger: {
+        Row: {
+          amount: number
+          at: string
+          created_at: string
+          id: string
+          kind: string
+          ref: string
+          resource: string
+          seed_id: string
+        }
+        Insert: {
+          amount: number
+          at: string
+          created_at?: string
+          id?: string
+          kind: string
+          ref: string
+          resource: string
+          seed_id: string
+        }
+        Update: {
+          amount?: number
+          at?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          ref?: string
+          resource?: string
+          seed_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_ledger_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resource_state: {
+        Row: {
+          seed_id: string
+          through_day: string
+        }
+        Insert: {
+          seed_id: string
+          through_day: string
+        }
+        Update: {
+          seed_id?: string
+          through_day?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_state_seed_id_fkey"
             columns: ["seed_id"]
             isOneToOne: true
             referencedRelation: "seeds"
@@ -1565,6 +1635,9 @@ export type Database = {
       }
       ratsbuch_since: { Args: never; Returns: string }
       realm_day_start: { Args: { _seed: string }; Returns: string }
+      resource_overview: { Args: { _seed: string }; Returns: Json }
+      resource_refresh: { Args: { _seed: string }; Returns: undefined }
+      resources_since: { Args: { _realm: string }; Returns: string }
       rename_seed: {
         Args: { p_name: string; p_seed: string }
         Returns: undefined
