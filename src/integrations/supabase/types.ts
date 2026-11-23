@@ -1402,6 +1402,32 @@ export type Database = {
           },
         ]
       }
+      village_sites: {
+        Row: {
+          certified_at: string
+          seed_id: string
+          way: string
+        }
+        Insert: {
+          certified_at?: string
+          seed_id: string
+          way: string
+        }
+        Update: {
+          certified_at?: string
+          seed_id?: string
+          way?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "village_sites_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: true
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       village_visits: {
         Row: {
           created_at: string
@@ -1676,6 +1702,10 @@ export type Database = {
         Returns: number
       }
       resource_daily: { Args: { _day: string; _rate: number }; Returns: number }
+      resource_kontor: {
+        Args: { _seed: string; _stone: number; _wood: number }
+        Returns: number
+      }
       resource_overview: { Args: { _seed: string }; Returns: Json }
       resource_rate: {
         Args: { _at: string; _resource: string; _seed: string }
