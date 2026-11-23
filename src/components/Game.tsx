@@ -55,7 +55,7 @@ import { useTreasurySync } from "@/components/hooks/useTreasurySync";
 import { useResources } from "@/components/hooks/useResources";
 import { ResourceBar, MaterialLine } from "@/components/hud/ResourceBar";
 import { RESOURCE_T } from "@/game/lang/resources";
-import { kontorQuote, materialNeed, materialPrice } from "@/game/resources";
+import { kontorQuote, materialOf, STEINGRUBE, STEINGRUBE_COST, STEINGRUBE_PRICE, SITE_STONE } from "@/game/resources";
 import { civicRoadsOf } from "@/game/civic-roads";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText, MoreHorizontal, Feather } from "lucide-react";
@@ -1647,10 +1647,11 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const { accounting, setAccounting, refreshAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works, moves]);
   // Wirtschaft Paket 1: wood and stone as the database books them; the quote only shows what the guard will charge
   const { res, refreshResources } = useResources(my, userId, [purchases]);
-  const matQuote = (item: string) => {
-    const p = res?.active ? materialPrice(item) : null;
-    return p == null || !res?.active ? null : kontorQuote(materialNeed(p), { wood: res.wood.stock, stone: res.stone.stock });
+  const quoteIn = (r: typeof res, item: string) => {
+    const need = r?.active ? materialOf(item) : null;
+    return need == null || !r?.active ? null : kontorQuote(need, { wood: r.wood.stock, stone: r.stone.stock }, r.site ?? null);
   };
+  const matQuote = (item: string) => quoteIn(res, item);
   const kontorOf = (item: string) => matQuote(item)?.cost ?? 0;
   const prepareSpend = async () => {
     // always book outstanding daily tax first — right after load `accounting` is still unknown
@@ -1823,7 +1824,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   /** Address the player's own head by gender and real settlement rank (display only). */
   const addr = (x: string) => addressMayor(x, lang, my?.mayor_gender as "m" | "w" | "d" | null, rankRef.current);
   const rankRef = useRef(0);
-  const itemName = (item: string) => { if (/^title[1-3]$/.test(item)) return titleName(+item.slice(5) - 1); const mk = monumentOf(item); return t.items[item]?.[0] ?? (mk ? t.items[`${mk}1`]![0] : item); };
+  const itemName = (item: string) => { if (item === STEINGRUBE) return RESOURCE_T[lang].quarry; if (/^title[1-3]$/.test(item)) return titleName(+item.slice(5) - 1); const mk = monumentOf(item); return t.items[item]?.[0] ?? (mk ? t.items[`${mk}1`]![0] : item); };
   const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(itemName(e.item)) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : e.code === "wedding" ? t.chron.wedding(e.a, e.b) : e.code === "fire" ? (e.guarded ? t.chron.fireOut : t.chron.fire(e.dead)) : e.code === "flood" ? t.chron.flood : e.code === "raid" ? (e.caught ? t.chron.caught : t.chron.raid(e.loss)) : e.code === "journeyman" ? t.chron.journeyman(e.name, t.job[e.craft]?.[e.sex === "f" ? 0 : 1] ?? e.craft, e.other) : e.code === "journeymen" ? t.chron.journeymen(e.n) : e.code === "bride" ? t.chron.bride(e.name, e.other, e.away) : e.code === "moved" ? t.chron.moved(e.name, e.other, e.away) : e.code === "letter" ? t.chron.letter(e.other) : e.code === "orphan" ? ORPHAN_FAREWELL[lang][e.choice === "adopt" ? 0 : 1] : t.chron.season(t.seasons[e.season]);
   useEffect(() => {
     if (!owner || !my || seeds.length === 0 || chronDone.current === my.id) return;
@@ -2346,7 +2347,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     // rank-gated items: the server counts citizens, homes and roads itself before the guard accepts the row
     const needRank = needRankOf(item);
     if (needRank > 0) { try { await certifyFn({ data: { seed: my.id } }); } catch { return rollback(t.buyFail); } }
-    const quote = matQuote(item);
+    // the Kontor price depends on the certified location: without it, reload (which certifies) before quoting
+    const quote = quoteIn(res?.active && res.site == null && materialOf(item) ? await refreshResources() : res, item);
     const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null, ...(quote ? { kontor_max: quote.cost } : {}) }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) {
       const m = error?.message ?? "";
@@ -2361,7 +2363,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     }
     setPurchases((s) => [...s.filter((x) => x.id !== data.id && x.id !== tmpId), data]);
     const fresh = isAusbau(item) ? await refreshAccounting() : null;
-    if (isFreimarkt(item)) { jingle("fanfare"); setMsg(FREIMARKT[lang].paidMsg); } else if (isAusbau(item)) {
+    if (item === STEINGRUBE) { jingle("coins"); setMsg(RESOURCE_T[lang].paid); } else if (isFreimarkt(item)) { jingle("fanfare"); setMsg(FREIMARKT[lang].paidMsg); } else if (isAusbau(item)) {
       const at = AUSBAU[lang], base = AUSBAU_BASES.find((b) => AUSBAU_STEPS[b].includes(item)) ?? "backhaus";
       const balance = fresh?.seed === my.id ? fresh.balance : Math.max(0, cash - data.cost);
       jingle("coins"); setMsg(at.paidMsg(at.names[base], at.steps[item]![0], at.steps[item]![1], t.taler(data.cost), t.taler(balance)));
@@ -2574,6 +2576,24 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               })()}
             </div>
           )}
+          {my && res?.active && (() => {
+            // Steinbruch-Auftrag des Rates (Paket 2, V2): offered from the first day, before any stone runs short
+            const rt = RESOURCE_T[lang], site = res.site ?? "grain", owned = purchases.some((p) => p.seed_id === my.id && p.item === STEINGRUBE);
+            const fmt = (n: number) => n.toLocaleString(LOCALE[lang]);
+            if (owned) return <div key="steingrube" className="rounded-md border border-border bg-secondary/60 p-2 text-xs text-primary" data-steingrube="running">⛏ {res.site ? rt.running(fmt(SITE_STONE[res.site])) : rt.quarry}</div>;
+            return (
+              <div key="steingrube" className="rounded-md border border-brass/60 bg-brass/10 p-2" data-steingrube="offer">
+                <div className="flex items-center gap-2">
+                  <span className="flex-1 font-semibold">⛏ {rt.auftrag}</span>
+                  <span className="text-xs text-muted-foreground"><s>{t.taler(STEINGRUBE_PRICE)}</s> {t.taler(STEINGRUBE_COST)}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">{res.site ? rt.auftragText(fmt(SITE_STONE[res.site]), rt.sites[res.site], t.taler(STEINGRUBE_PRICE), t.taler(STEINGRUBE_COST)) : rt.auftragOpen(t.taler(STEINGRUBE_PRICE), t.taler(STEINGRUBE_COST))}</div>
+                {site === "gateway" && <div className="text-[11px] text-muted-foreground">{rt.coast}</div>}
+                <MaterialLine q={matQuote(STEINGRUBE)} lang={lang} taler={t.taler} />
+                <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < STEINGRUBE_COST + kontorOf(STEINGRUBE)} onClick={() => void buy(STEINGRUBE)}>{rt.build} · {t.taler(STEINGRUBE_COST + kontorOf(STEINGRUBE))}</Button>
+              </div>
+            );
+          })()}
           {(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && canBuyWay(it, my ? wayOf(my) : undefined) && !at.has(it))
             .sort((a, b) => ((ITEM_RANK[a] ?? 0) > myStage ? 1 : 0) - ((ITEM_RANK[b] ?? 0) > myStage ? 1 : 0) || (ITEM_RANK[a] ?? 0) - (ITEM_RANK[b] ?? 0) || ITEMS[a] - ITEMS[b])
             .map((it) => {

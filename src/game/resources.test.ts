@@ -10,8 +10,16 @@ import {
   RESOURCES_SINCE,
   RESOURCE_START,
   STONE_FROM_PRICE,
+  SITE_KONTOR,
+  SITE_STONE,
+  SITE_WOOD,
+  STEINBRUCH_AUFTRAG,
+  STEINGRUBE_COST,
+  STEINGRUBE_PRICE,
+  STEINGRUBE_WOOD,
   kontorQuote,
   materialNeed,
+  materialOf,
   materialPrice,
   resourceDaily,
   resourceRates,
@@ -52,9 +60,10 @@ describe("resources: TypeScript mirrors migration 0142", () => {
   it("exactly the buildings and upgrades use material — the list in SQL equals MATERIAL_ITEMS", () => {
     const block = /IF NEW\.item NOT IN \(([^)]+)\)/.exec(SQL)![1]!;
     const sqlItems = [...block.matchAll(/'([a-z0-9]+)'/g)].map((m) => m[1]);
-    expect([...sqlItems].sort()).toEqual([...MATERIAL_ITEMS].sort());
+    // 0142 had the buildings and upgrades; 0143 (below) adds the Steingrube
+    expect([...sqlItems].sort()).toEqual(MATERIAL_ITEMS.filter((i) => i !== "steingrube").sort());
     expect(MATERIAL_ITEMS).toHaveLength(
-      Object.keys(ITEMS).length + Object.keys(AUSBAU_PRICE).length,
+      Object.keys(ITEMS).length + Object.keys(AUSBAU_PRICE).length + 1,
     );
     for (const it of [
       "chest2",
@@ -123,5 +132,75 @@ describe("resources: material, Kontor and daily units", () => {
       expect(t.kontor("3 x", "18 M"), l).toContain("18 M");
       expect(t.perDay("5"), l).toContain("5");
     }
+  });
+});
+
+// ---------------- Paket 2: Steingrube, Steinbruch-Auftrag, location (migration 0143) ----------------
+const SQL2 = readFileSync(
+  new URL("../../drizzle/migrations/0143_steingrube.sql", import.meta.url),
+  "utf8",
+);
+
+describe("Paket 2: TypeScript mirrors migration 0143", () => {
+  it("the material list of 0143 equals MATERIAL_ITEMS, the Steingrube uses a fixed 20 wood and no stone", () => {
+    const block = /IF NEW\.item NOT IN \(([^)]+)\)/.exec(SQL2)![1]!;
+    expect([...block.matchAll(/'([a-z0-9]+)'/g)].map((m) => m[1]).sort()).toEqual(
+      [...MATERIAL_ITEMS].sort(),
+    );
+    expect(SQL2).toContain(`IF NEW.item = 'steingrube' THEN nw := ${STEINGRUBE_WOOD}; ns := 0;`);
+    expect(materialOf("steingrube")).toEqual({ wood: 20, stone: 0 });
+    expect(materialOf("healer")).toEqual(materialNeed(550));
+    expect(materialOf("chest2")).toBeNull();
+  });
+  it("Steingrube: 300 Mark minus 150 from the Steinbruch-Auftrag, in the guard patch", () => {
+    expect([STEINGRUBE_PRICE, STEINBRUCH_AUFTRAG, STEINGRUBE_COST]).toEqual([300, 150, 150]);
+    expect(SQL2).toContain(`price := ${STEINGRUBE_PRICE} - ${STEINBRUCH_AUFTRAG};`);
+    expect(materialPrice("steingrube")).toBe(150);
+    expect(ITEMS).not.toHaveProperty("steingrube"); // no civic work: prosperity, tax and dowries stay untouched
+  });
+  it("location factors in SQL equal SITE_WOOD / SITE_STONE / SITE_KONTOR (Variante D original, Phase 1.2)", () => {
+    expect(SQL2).toContain(
+      `WHEN 'workshop' THEN ${SITE_WOOD.workshop} WHEN 'gateway' THEN ${SITE_WOOD.gateway} ELSE ${SITE_WOOD.grain} END`,
+    );
+    expect(SQL2).toContain(
+      `WHEN 'workshop' THEN ${SITE_STONE.workshop} WHEN 'gateway' THEN ${SITE_STONE.gateway} ELSE ${SITE_STONE.grain} END`,
+    );
+    expect(SQL2).toContain(`= 'gateway' THEN ${SITE_KONTOR.gateway} ELSE 1 END`);
+    expect(SITE_KONTOR).toEqual({ grain: 1, workshop: 1, gateway: 0.9 }); // no surcharges anywhere
+  });
+  it("wood: Binnenland keeps exactly the 5 wood/day of Paket 1; Wald/Hügel 7; Küste 4 (Variante D: 1 + 4 × 1 / 1.5 / 0.75)", () => {
+    const camp = new Set(["woodcamp"]);
+    expect(resourceRates(camp, "grain").wood.rate).toBe(5);
+    expect(resourceRates(camp, null).wood.rate).toBe(5); // uncertified shows Binnenland, as in Paket 1
+    expect(resourceRates(camp, "workshop").wood.rate).toBe(7);
+    expect(resourceRates(camp, "gateway").wood.rate).toBe(4);
+    for (const w of ["grain", "workshop", "gateway"] as const)
+      expect(resourceRates(new Set(), w).wood.rate).toBe(1);
+  });
+  it("stone: base 0.5 everywhere, a Steingrube adds 3 / 4 / 1 (coast 1 = Variante D original; V5's 2 stays open)", () => {
+    const pit = new Set(["steingrube"]);
+    expect(resourceRates(pit, "grain").stone.rate).toBe(3.5);
+    expect(resourceRates(pit, "workshop").stone.rate).toBe(4.5);
+    expect(resourceRates(pit, "gateway").stone.rate).toBe(1.5);
+    expect(resourceRates(new Set(), "gateway").stone.rate).toBe(0.5);
+  });
+  it("the coast pays 90 % at the Kontor, rounded half up like SQL; everywhere else the full price", () => {
+    const need = { wood: 0, stone: 40 },
+      stock = { wood: 0, stone: 30 };
+    expect(kontorQuote(need, stock, "grain").cost).toBe(60);
+    expect(kontorQuote(need, stock, "workshop").cost).toBe(60);
+    expect(kontorQuote(need, stock, "gateway").cost).toBe(54);
+    expect(kontorQuote({ wood: 15, stone: 0 }, { wood: 0, stone: 0 }, "gateway").cost).toBe(54); // 60 × 0.9
+    expect(kontorQuote({ wood: 3, stone: 0 }, { wood: 0, stone: 0 }, "gateway").cost).toBe(11); // 10.8
+    expect(kontorQuote({ wood: 0, stone: 9 }, { wood: 0, stone: 0 }, "gateway").cost).toBe(49); // 48.6
+  });
+});
+
+describe("Paket 2: migration 0143 order", () => {
+  it("the purchase_guard patch is the first statement, before any table or function is created", () => {
+    const firstDo = SQL2.indexOf("DO $do$"),
+      firstCreate = SQL2.search(/^CREATE /m);
+    expect(firstDo).toBeGreaterThan(0);
+    expect(firstDo).toBeLessThan(firstCreate);
   });
 });
