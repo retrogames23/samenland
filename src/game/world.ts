@@ -2269,6 +2269,8 @@ export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, see
   }
   // 2×2 ensembles paint beyond their diamond: keep one free ring between them and any other bought building
   if (bigClash(kind, x, y, seeds)) return "taken";
+  // the fisher belongs at the water: a carp pond only where the village cannot place the hut on any shore spot
+  if (kind === "fishery" && !waterBeside(x, y) && shoreSpotFor(item, s, seeds, now)) return "shore";
   // the carp pond must not cover a standing building (it would be hidden yet still block the way)
   if (kind === "fishery" && !waterBeside(x, y)) { const p = pondSpot(x, y); if (p) { const b = structureAt(p[0], p[1], seeds, now); if (b && !agri(b.kind)) return "taken"; } }
   // away from water the fisher digs a carp pond beside his hut, so it needs one free neighbour tile
@@ -2292,6 +2294,22 @@ function bigClash(kind: Kind, x: number, y: number, seeds: Seed[]): boolean {
     }
   }
   return false;
+}
+const shoreMemo = new Map<string, boolean>();
+/** Whether `item` (a fishery) could stand on some shore tile (water within 2) inside its placement reach right now.
+ *  Only shore tiles are tried, and for them canPlaceSpecial never comes back here. Memoized per minute and seed set. */
+function shoreSpotFor(item: string, s: Seed, seeds: Seed[], now: number): boolean {
+  const key = `${item}|${s.id}|${cacheTick(now)}|${seedsKey(seeds)}`;
+  const hit = shoreMemo.get(key); if (hit !== undefined) return hit;
+  const R = Math.ceil(Math.max(16, radiusOf(effAge(s, seeds, now)) + 2 + 12)) + 2;
+  let found = false;
+  for (let dy = -R; dy <= R && !found; dy++) for (let dx = -R; dx <= R && !found; dx++) {
+    const x = s.x + dx, y = s.y + dy;
+    if (!waterBeside(x, y)) continue;
+    if (canPlaceSpecial(item, x, y, s, seeds, now) === null) found = true;
+  }
+  if (shoreMemo.size > 64) shoreMemo.clear();
+  shoreMemo.set(key, found); return found;
 }
 const waterBeside = (x: number, y: number) => {
   for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) if (isWater(terrain(x + i, y + j))) return true;
