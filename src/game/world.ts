@@ -883,7 +883,7 @@ export function monumentChain(s: Seed, key: MonumentKey, until = Infinity): Chai
     try {
       let prev = e.out.length ? e.out[e.out.length - 1]!.done : -Infinity;
       for (let i = e.out.length; i < n; i++) {
-        const at = e.ats[i]!, start = Math.max(at, prev); prev = specialDone(s, [s], start); e.out.push({ at, start, done: prev });
+        const at = e.ats[i]!, start = Math.max(at, prev); prev = specialDone(s, soloSeeds(s), start); e.out.push({ at, start, done: prev });
       }
     } finally { e.busy = false; if (guard) lightBusy.delete(s.id); }
   } else chainMemoCfg.hits++;
@@ -898,7 +898,7 @@ function chainRaw(s: Seed, key: MonumentKey, until: number): ChainStep[] {
   if (guard) lightBusy.add(s.id);
   try {
   for (const at of (s.bought ?? []).filter((b) => monumentOf(b.item) === key && b.at <= until).map((b) => b.at).sort((a, b) => a - b)) {
-    const start = Math.max(at, prev); prev = specialDone(s, [s], start); out.push({ at, start, done: prev });
+    const start = Math.max(at, prev); prev = specialDone(s, soloSeeds(s), start); out.push({ at, start, done: prev });
   }
   } finally { if (guard) lightBusy.delete(s.id); }
   return out;
@@ -942,7 +942,7 @@ export function seaWays(s: Seed, now: number): number {
   let n = lighthouseDone(s, now) >= 1 ? 1 : 0;
   for (const b of s.bought ?? []) {
     if (b.at > now || !(b.item === "smokehouse" || b.item === "saltquay" || b.item === "fisher")) continue;
-    if (specialDone(s, [s], b.at) > now) continue;
+    if (specialDone(s, soloSeeds(s), b.at) > now) continue;
     if (b.item === "fisher") { const t = specialTile(s, "fishery"); if (!t || !waterNearby(t[0], t[1])) continue; }
     n++;
   }
@@ -1018,7 +1018,7 @@ export function guildtowerDone(s: Seed, t: number): number {
     const start = Math.max(e.paid[i]!, prev); if (start > t) break;
     if (i >= e.done.length) {
       e.busy = true;
-      try { e.done.push(doneWith(s, [s], start, i)); } finally { e.busy = false; }
+      try { e.done.push(doneWith(s, soloSeeds(s), start, i)); } finally { e.busy = false; }
     }
     prev = e.done[i]!;
     if (prev <= t) n++; else break;
@@ -1030,7 +1030,7 @@ function guildtowerRaw(s: Seed, t: number): number {
   let prev = -Infinity, n = 0;
   for (const at of paid) {
     const start = Math.max(at, prev); if (start > t) break;
-    prev = doneWith(s, [s], start, n);
+    prev = doneWith(s, soloSeeds(s), start, n);
     if (prev <= t) n++; else break;
   }
   return n;
