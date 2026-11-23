@@ -100,7 +100,24 @@ export function historyDue(seed: Pick<Seed, "created_at">, decisions: Decision[]
 }
 const NOT_DRAWN: ReadonlySet<string> = new Set(["wedding", "flood", ...COMMONS_KEYS, ...HISTORY.map((h) => h.key)]);
 export const EVENT_KEYS = (Object.keys(ENCOUNTERS) as EventKey[]).filter((k) => !NOT_DRAWN.has(k));
-export type Decision = { event: string; choice: string; at: number; cost: number };
+/** `request`: the Ratsbuch request this row answers (encounters.request_id) — a guest, but never part of the visitor rhythm. */
+export type Decision = { event: string; choice: string; at: number; cost: number; request?: string | null };
+
+/**
+ * Ratsbuch (M1 Paket 2b): from RATSBUCH_SINCE the six growth visitors no longer come through the lottery but as
+ * requests in the council book (DB ratsbuch_requests, created lazily by ratsbuch_refresh). Mirrored by DB
+ * ratsbuch_since() — change both together. Far future until Paket 4 sets the real cut-over (a Monday, 00:00 UTC).
+ */
+export const RATSBUCH_SINCE = Date.UTC(2100, 0, 4);
+/** A visitor window opened before the cut-over keeps its old draw for this long (DB encounter_guard: 24 hours). */
+export const RATSBUCH_GRACE = 24 * 3.6e6;
+/** Growth visitors that ask via the Ratsbuch, with their request weight (= EVENT_WEIGHT; DB ratsbuch_kind). */
+export const RATSBUCH_KINDS = ["journeyman", "orphan", "widow", "monk", "ruin", "surveyor"] as const satisfies readonly EventKey[];
+/** At most this many growth boons are active at once, and at most this many requests wait (DB encounter_guard, ratsbuch_refresh). */
+export const BOON_LIMIT = 6;
+export const RATSBUCH_OPEN = 4;
+/** The visitor lottery from the cut-over: the same visitors, weights, seasons and eras, without the six. */
+export const EVENT_KEYS_RB: readonly EventKey[] = EVENT_KEYS.filter((k) => !(RATSBUCH_KINDS as readonly string[]).includes(k));
 
 /** Villages meet their first visitor once they are this many hours old (3 minutes). */
 export const ENCOUNTER_FROM = 0.05;
@@ -152,9 +169,9 @@ const dominantSeason = (t: number): Season => {
   return (Object.keys(w) as Season[]).reduce((a, b) => (w[b] > w[a] ? b : a));
 };
 /** The village's n-th encounter: weighted pseudo-random draw from (seed id, n), filtered by era, season and the last few events. */
-export function eventOf(seedId: string, n: number, ctx: EventCtx = { ageH: 1e6, season: "summer", recent: [] }): EventKey {
-  const opts = EVENT_KEYS.map((e) => [e, eventWeight(e, ctx)] as const).filter(([, w]) => w > 0);
-  const pool = opts.length ? opts : EVENT_KEYS.map((e) => [e, 1] as const);
+export function eventOf(seedId: string, n: number, ctx: EventCtx = { ageH: 1e6, season: "summer", recent: [] }, keys: readonly EventKey[] = EVENT_KEYS): EventKey {
+  const opts = keys.map((e) => [e, eventWeight(e, ctx)] as const).filter(([, w]) => w > 0);
+  const pool = opts.length ? opts : keys.map((e) => [e, 1] as const);
   const total = pool.reduce((s, [, w]) => s + w, 0);
   let r = strHash(`${seedId}:draw:${n}`) * total;
   for (const [e, w] of pool) { r -= w; if (r < 0) return e; }
@@ -167,21 +184,23 @@ export const choiceOf = (e: string, c: string): Choice | undefined => (ENCOUNTER
  * Open encounter, or null when too young or the last decision is more recent than the gap.
  * At most one is ever open — encounters never pile up while nobody watches.
  */
-export function pendingEncounter(seed: Pick<Seed, "id" | "created_at"> & Partial<Seed>, decisions: Decision[], now: number): EventKey | null {
+export function pendingEncounter(seed: Pick<Seed, "id" | "created_at"> & Partial<Seed>, decisions: Decision[], now: number, since = RATSBUCH_SINCE): EventKey | null {
   const ageH = (now - Date.parse(seed.created_at)) / 3.6e6;
   if (ageH < ENCOUNTER_FROM) return null;
   // a real wedding (weddings.ts calendar) is answered once, regardless of the visitor rhythm
   // in a village every wedding calls the mayor; in a town only the council weddings (WedDate.grand)
   const w = weddingLive(seed as Seed, now);
   if (w && w.grand && !decisions.some((d) => d.event === "wedding" && d.at >= w.at)) return "wedding";
-  const last = decisions.reduce((m, d) => d.event === "wedding" ? m : Math.max(m, d.at), -Infinity);
+  // Ratsbuch rows (request) never move the visitor rhythm: not in the gap, the window start or the draw count
+  const last = decisions.reduce((m, d) => d.event === "wedding" || d.request ? m : Math.max(m, d.at), -Infinity);
   if ((now - last) / 3.6e6 < encounterGap(ageH)) return null;
   // context is anchored at the window start, so the open encounter never changes while it waits
   // commons answers keep the visitor rhythm (gap) but not the visitor lottery, so visitor draws stay stable
-  const past = decisions.filter((d) => d.event !== "wedding" && !(COMMONS_KEYS as readonly string[]).includes(d.event) && !isHistory(d.event)).sort((a, b) => a.at - b.at);
+  const past = decisions.filter((d) => d.event !== "wedding" && !d.request && !(COMMONS_KEYS as readonly string[]).includes(d.event) && !isHistory(d.event)).sort((a, b) => a.at - b.at);
   const c0 = Date.parse(seed.created_at), from = past.length ? last : c0 + ENCOUNTER_FROM * 3.6e6;
   const ctx = { ageH: (from - c0) / 3.6e6, season: dominantSeason(from), recent: past.slice(-EVENT_COOLDOWN).map((d) => d.event) };
-  return eventOf(seed.id, past.length, ctx);
+  // from the cut-over the six growth visitors are drawn no more; a window opened before keeps its draw RATSBUCH_GRACE long
+  return eventOf(seed.id, past.length, ctx, from >= since || now >= since + RATSBUCH_GRACE ? EVENT_KEYS_RB : EVENT_KEYS);
 }
 
 /** Extra growth hours accumulated from encounter boons (monotonic, like the blessing). */
@@ -219,7 +238,9 @@ export function guestNow(seed: Pick<Seed, "id" | "created_at"> & Partial<Seed>, 
   const last = vis.reduce<Decision | null>((m, d) => (!m || d.at > m.at ? d : m), null);
   if (p && p !== "wedding" && GUEST_EVENTS.has(p)) {
     const c0 = Date.parse(seed.created_at);
-    const at = last ? last.at + encounterGap((last.at - c0) / 3.6e6) * 3.6e6 : c0 + ENCOUNTER_FROM * 3.6e6;
+    // the waiting visitor arrived one gap after the last visitor answer (Ratsbuch guests keep their own place)
+    const lv = vis.reduce<Decision | null>((m, d) => (d.request ? m : !m || d.at > m.at ? d : m), null);
+    const at = lv ? lv.at + encounterGap((lv.at - c0) / 3.6e6) * 3.6e6 : c0 + ENCOUNTER_FROM * 3.6e6;
     return { event: p, at: Math.min(at, now), until: Infinity };
   }
   if (last && GUEST_EVENTS.has(last.event) && last.choice !== "pass" && now - last.at < GUEST_H * 3.6e6)

@@ -6,7 +6,7 @@ export type EconomyWorld = {
   purchases: (Dated & { item: string; x?: number | null; y?: number | null })[];
   blessings: Dated[];
   charters: (Dated & { path: string })[];
-  encounters: (Dated & { event: string; choice: string; cost: number })[];
+  encounters: (Dated & { event: string; choice: string; cost: number; request_id?: string | null })[];
   roads: (Dated & { target_id: string })[];
   votes: (Dated & { partner_id: string; pact: string })[];
   works: (Dated & { partner_id: string; work: string; cost: number })[];
@@ -41,7 +41,7 @@ export function economyWorldAt(input: EconomyWorld, at: number): Seed[] {
     bought: own(purchases, s.id).map(b => ({ item: b.item, at: Date.parse(b.created_at), x: b.x ?? null, y: b.y ?? null })).sort((a, b) => a.at - b.at),
     blessed: own(blessings, s.id).map(b => Date.parse(b.created_at)).sort((a, b) => a - b),
     ...(charter ? { charter: { path: charter.path as CharterPath, at: Date.parse(charter.created_at) } } : {}),
-    decisions: own(encounters, s.id).map(d => ({ event: d.event, choice: d.choice, cost: d.cost, at: Date.parse(d.created_at) })).sort((a, b) => a.at - b.at),
+    decisions: own(encounters, s.id).map(d => ({ event: d.event, choice: d.choice, cost: d.cost, at: Date.parse(d.created_at), ...(d.request_id ? { request: d.request_id } : {}) })).sort((a, b) => a.at - b.at),
     roads: own(roads, s.id).map(r => ({ target: r.target_id, at: Date.parse(r.created_at) })),
     votes: own(votes, s.id).map(v => ({ partner: v.partner_id, pact: v.pact as PactKind, at: Date.parse(v.created_at) })),
     works: own(works, s.id).map(w => ({ partner: w.partner_id, work: w.work as WorkKind, cost: w.cost, at: Date.parse(w.created_at) })),

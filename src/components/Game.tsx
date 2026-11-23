@@ -270,7 +270,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const [charterOpen, setCharterOpen] = useState(false);
   const [firstRoads, setFirstRoads] = useState<{ id: string; seed_id: string; target_id: string; created_at: string }[]>([]);
   const [roadOpen, setRoadOpen] = useState(false);
-  type EncRow = { id: string; seed_id: string; event: string; choice: string; cost: number; created_at: string };
+  type EncRow = { id: string; seed_id: string; event: string; choice: string; cost: number; created_at: string; request_id?: string | null };
   const [encounters, setEncounters] = useState<EncRow[]>([]);
   const [votes, setVotes] = useState<{ id: string; seed_id: string; partner_id: string; pact: string; created_at: string }[]>([]);
   const [moves, setMoves] = useState<MoveRow[]>([]);
@@ -309,7 +309,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     for (const b of blessings) { if (!by.has(b.seed_id)) by.set(b.seed_id, []); by.get(b.seed_id)!.push(Date.parse(b.created_at)); }
     const buys = new Map<string, NonNullable<Seed["bought"]>>();
     const decs = new Map<string, Decision[]>();
-    for (const e of encounters) { if (!decs.has(e.seed_id)) decs.set(e.seed_id, []); decs.get(e.seed_id)!.push({ event: e.event, choice: e.choice, cost: e.cost, at: Date.parse(e.created_at) }); }
+    for (const e of encounters) { if (!decs.has(e.seed_id)) decs.set(e.seed_id, []); decs.get(e.seed_id)!.push({ event: e.event, choice: e.choice, cost: e.cost, at: Date.parse(e.created_at), ...(e.request_id ? { request: e.request_id } : {}) }); }
     for (const p of purchases) { if (!buys.has(p.seed_id)) buys.set(p.seed_id, []); buys.get(p.seed_id)!.push({ item: p.item, at: Date.parse(p.created_at), x: p.x ?? null, y: p.y ?? null }); }
     const vo = new Map<string, NonNullable<Seed["votes"]>>(), wo = new Map<string, NonNullable<Seed["works"]>>();
     for (const v of votes) { if (!vo.has(v.seed_id)) vo.set(v.seed_id, []); vo.get(v.seed_id)!.push({ partner: v.partner_id, pact: v.pact as PactKind, at: Date.parse(v.created_at) }); }
@@ -546,7 +546,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       const ss = (await allRows<Seed>(() => supabase.from("seeds").select("*").eq("realm", r), "chrono")).data;
       const ids = ss.map((x) => x.id);
       return [ss, ids, await Promise.all([
-      mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)) as Promise<EncRow[]>,
+      mapRows(ids, (c) => supabase.from("encounters").select("*").in("seed_id", c)) as Promise<EncRow[]>,
       mapRows(ids, (c) => supabase.from("charters").select("id, seed_id, path, created_at").in("seed_id", c)),
       mapRows(ids, (c) => supabase.from("first_roads").select("id, seed_id, target_id, created_at").in("seed_id", c)),
       mapRows(ids, (c) => supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").in("seed_id", c)),
@@ -972,7 +972,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         mapRows(ids, (c) => supabase.from("first_roads").select("id, seed_id, target_id, created_at").in("seed_id", c)),
       ]).then((xs) => xs.map((data) => ({ data }))) as unknown as Promise<[{ data: Planting[] }, { data: { id: string; seed_id: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; user_id: string; message: string }[] }, { data: { id: string; seed_id: string; item: string; cost: number; created_at: string; x: number | null; y: number | null }[] }, { data: { id: string; seed_id: string; path: string; created_at: string }[] }, { data: { id: string; seed_id: string; target_id: string; created_at: string }[] }]>,
         // everything population depends on loads before the first full town is published (no 124-then-189)
-        mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)) as Promise<EncRow[]>,
+        mapRows(ids, (c) => supabase.from("encounters").select("*").in("seed_id", c)) as Promise<EncRow[]>,
         mapRows(ids, (c) => supabase.from("twin_votes").select("id, seed_id, partner_id, pact, created_at").in("seed_id", c)),
         mapRows(ids, (c) => supabase.from("twin_works").select("id, seed_id, partner_id, work, cost, created_at").in("seed_id", c)),
       ]);
@@ -1706,7 +1706,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     encSaving.current = false;
     if (!r || !r.ok) {
       // already answered elsewhere or the question changed: reload instead of leaving a stale question open
-      { const ids = mapIds.current; refreshMap(rtGate.current, () => mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)) as Promise<EncRow[]>,
+      { const ids = mapIds.current; refreshMap(rtGate.current, () => mapRows(ids, (c) => supabase.from("encounters").select("*").in("seed_id", c)) as Promise<EncRow[]>,
         (rows) => setEncounters(snapRows(rows, (x) => onIds(mapIds.current, x.seed_id)))); }
       if (r?.code === "poor") setEncOpen(true);
       return setMsg(r?.code === "poor" ? t.poor : t.enc.fail);
