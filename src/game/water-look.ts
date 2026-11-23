@@ -1,13 +1,14 @@
 /**
- * P4b water concepts (display only, concept phase): a temporary switch between three looks for rivers and sea, plus
- * the sea data they share. ?water=a|b|c (or window.__setWater("a"|"b"|"c"|"main") in the test client) — without it
- * the game draws exactly as on main. Never touches terrain, rivers, coasts, floods or anything mechanical.
+ * Water look (P4b, display only): sea data for waves and surf (distance to land, onshore direction), painted marks,
+ * the surf front and the adaptive quality level. ?water=main (or window.__setWater("main") in the test client)
+ * switches back to the earlier look for comparison. Never touches terrain, rivers, coasts, floods or anything
+ * mechanical.
  */
-import { MAP, hash, isWater, onGeoChange, riverDistAt, terrain, vnoise } from "./world";
+import { MAP, isWater, onGeoChange, riverDistAt, terrain, vnoise } from "./world";
 
-export type WaterConcept = "main" | "a" | "b" | "c" | "d";
+export type WaterConcept = "main" | "d";
 let concept: WaterConcept = (() => {
-  try { const v = new URLSearchParams(location.search).get("water"); return v === "a" || v === "b" || v === "c" || v === "d" ? v : "main"; } catch { return "main"; }
+  try { return new URLSearchParams(location.search).get("water") === "main" ? "main" : "d"; } catch { return "d"; }
 })();
 export const waterConcept = () => concept;
 export function setWaterConcept(c: WaterConcept) { concept = c; }
@@ -147,13 +148,11 @@ export function swellPhase(x: number, y: number, f: [number, number], t: number,
   const along = -(x * f[0] + y * f[1]), warp = vnoise(x / 9, y / 9, 1301) * 0.9;
   return (((along / wave + warp + (t / 1000) * speed / wave) % 1) + 1) % 1;
 }
-/** Breaking wave cycle at a coast segment (0..1): each stretch of coast has its own slow beat. */
-export const surfPhase = (mx: number, my: number, t: number, period: number) => (((t / period + vnoise(mx * 0.012, my * 0.018, 1311) * 1.7 + vnoise(mx * 0.004, my * 0.006, 1312) * 0.6) % 1) + 1) % 1;
 /** D's surf beat: varies slowly along the coast (about one beat per 10–15 tiles), so neighbouring shore points are
  *  at almost the same stage and the foam line moves as one soft front instead of tearing into spikes. */
 export const surfPhaseD = (x: number, y: number, t: number, period: number) => (((t / period + vnoise(x * 0.002, y * 0.003, 1321) * 1.1 + vnoise(x * 0.0009, y * 0.0012, 1322) * 0.7) % 1) + 1) % 1;
 
-// ---- concept C: hand-painted brush marks, rendered once ----
+// ---- sprites rendered once ----
 const brushes = new Map<string, HTMLCanvasElement | null>();
 function brush(key: string, w: number, h: number, paint: (g: CanvasRenderingContext2D) => void): HTMLCanvasElement | null {
   if (brushes.has(key)) return brushes.get(key)!;
@@ -162,50 +161,7 @@ function brush(key: string, w: number, h: number, paint: (g: CanvasRenderingCont
   const g = cv.getContext("2d"); if (!g) { brushes.set(key, null); return null; }
   paint(g); brushes.set(key, cv); return cv;
 }
-/** A painted ripple: a tapered, slightly curved stroke with a pale lit edge and a darker shadow below. */
-export const rippleBrush = () => brush("ripple", 96, 32, (g) => {
-  const stroke = (dy: number, col: string, wmax: number) => {
-    for (let i = 0; i < 40; i++) {
-      const t0 = i / 40, t1 = (i + 1) / 40, w = wmax * Math.sin(Math.PI * (t0 + t1) / 2);
-      const y0 = 16 + dy - 7 * Math.sin(Math.PI * t0), y1 = 16 + dy - 7 * Math.sin(Math.PI * t1);
-      g.strokeStyle = col; g.lineWidth = w; g.lineCap = "round"; g.beginPath(); g.moveTo(6 + 84 * t0, y0); g.lineTo(6 + 84 * t1, y1); g.stroke();
-    }
-  };
-  stroke(3.5, "rgba(18,52,60,0.55)", 4.5); stroke(0, "rgba(214,232,224,0.9)", 3.2); stroke(-0.8, "rgba(246,250,240,0.85)", 1.3);
-});
-/** A painted wave crest for the sea: a broad curved swell with a creamy foam cap. */
-export const crestBrush = () => brush("crest", 160, 48, (g) => {
-  for (let i = 0; i < 60; i++) {
-    const t0 = i / 60, t1 = (i + 1) / 60, env = Math.sin(Math.PI * (t0 + t1) / 2);
-    const y = (t: number) => 26 - 10 * Math.sin(Math.PI * t);
-    g.lineCap = "round";
-    g.strokeStyle = "rgba(14,44,58,0.45)"; g.lineWidth = 9 * env; g.beginPath(); g.moveTo(8 + 144 * t0, y(t0) + 7); g.lineTo(8 + 144 * t1, y(t1) + 7); g.stroke();
-    g.strokeStyle = "rgba(120,170,172,0.55)"; g.lineWidth = 7 * env; g.beginPath(); g.moveTo(8 + 144 * t0, y(t0) + 2); g.lineTo(8 + 144 * t1, y(t1) + 2); g.stroke();
-    g.strokeStyle = "rgba(244,246,236,0.92)"; g.lineWidth = 3.2 * env; g.beginPath(); g.moveTo(8 + 144 * t0, y(t0)); g.lineTo(8 + 144 * t1, y(t1)); g.stroke();
-  }
-});
-/** A cluster of creamy foam dabs (surf lace). */
-export const foamBrush = () => brush("foam", 64, 32, (g) => {
-  let s = 7; const r = () => ((s = (s * 1103515245 + 12345) >>> 0) / 4294967296);
-  for (let i = 0; i < 26; i++) {
-    const x = 8 + r() * 48, y = 10 + r() * 12, rad = 2 + r() * 5;
-    g.fillStyle = `rgba(${236 + r() * 14},${238 + r() * 12},${228 + r() * 14},${0.55 + r() * 0.4})`;
-    g.beginPath(); g.ellipse(x, y, rad, rad * 0.55, 0, 0, 7); g.fill();
-  }
-});
-/** Soft white sheen (concept A): elongated light that drifts on calm water. */
-export const sheenSprite = () => brush("sheen", 64, 64, (g) => {
-  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  gr.addColorStop(0, "rgba(236,244,240,1)"); gr.addColorStop(0.5, "rgba(236,244,240,0.35)"); gr.addColorStop(1, "rgba(236,244,240,0)");
-  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
-});
-export const shadeSprite = () => brush("shade", 64, 64, (g) => {
-  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  gr.addColorStop(0, "rgba(8,30,42,1)"); gr.addColorStop(1, "rgba(8,30,42,0)");
-  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
-});
-
-// ---- concept D (optimised C): painted ripple variants, and an adaptive quality level with hysteresis ----
+// ---- surf front, painted crescents, pre-rotated sheens and the adaptive quality level ----
 /** Breaking wave at one point of the coast, ph 0..1 (one beat): the foam front runs in from offshore, climbs a little
  *  onto the beach (negative offset) and draws back while fading. off/run are in units of the caller's run-in distance. */
 export function surfFront(ph: number): { off: number; a: number; wet: number } {

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { MAP } from "./world";
-import { QUALITY_SCALE, SEA_CAP, SEA_FAR, coastDist, crescent, isSea, nextQuality, onshore, seaBlock, surfFront, surfPhase, surfPhaseD, swellPhase, waterConcept, type QualityState } from "./water-look";
+import { QUALITY_SCALE, SEA_CAP, SEA_FAR, coastDist, crescent, isSea, nextQuality, onshore, seaBlock, surfFront, surfPhaseD, swellPhase, waterConcept, type QualityState } from "./water-look";
 import { isWater, terrain } from "./world";
 const isSeaOrRiver = (x: number, y: number) => isWater(terrain(x, y));
 
-describe("water concept switch (P4b, temporary)", () => {
-  it("defaults to the main look when no ?water= switch is set", () => expect(waterConcept()).toBe("main"));
+describe("water look switch", () => {
+  it("uses the P4b look unless ?water=main asks for the earlier one", () => expect(waterConcept()).toBe("d"));
 });
 
 describe("sea data (real map, heartland)", () => {
@@ -38,10 +38,7 @@ describe("wave timing", () => {
       const dd = Math.abs(b - a); expect(Math.min(dd, 1 - dd)).toBeLessThan(0.01);
     }
   });
-  it("surf beats are continuous along the coast and in time (no ticking segments)", () => {
-    for (let t = 0; t < 30_000; t += 16) { const a = surfPhase(300, 200, t, 6000), b = surfPhase(300, 200, t + 16, 6000); const dd = Math.abs(b - a); expect(Math.min(dd, 1 - dd)).toBeLessThan(0.01); }
-    for (let x = 0; x < 400; x += 2) { const a = surfPhase(x, 120, 5000, 6000), b = surfPhase(x + 2, 120, 5000, 6000); const dd = Math.abs(b - a); expect(Math.min(dd, 1 - dd)).toBeLessThan(0.06); }
-  });
+
 });
 
 describe("adaptive water quality (concept D)", () => {
