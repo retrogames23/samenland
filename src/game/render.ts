@@ -2779,7 +2779,7 @@ function drawRiverFlow(c: C, x0: number, x1: number, y0: number, y1: number, z: 
   pCount("flow.crests", n);
 }
 // ======== P4b water concepts (temporary switch ?water=a|b|c; "main" draws exactly as before) ========
-type Seg = { a: Pt; b: Pt; w: Pt; nx: number; ny: number; mx: number; my: number; len: number; join?: boolean; sea?: number[] };
+type Seg = { a: Pt; b: Pt; w: Pt; nx: number; ny: number; mx: number; my: number; len: number; join?: boolean; sea?: number[]; foam?: Float32Array };
 const seaShoreCache = new Map<number, Seg[]>();
 /** Sea coast of one 16×16 block as short segments with the normal pointing into the water (river banks excluded). */
 const shoreBuild = { ms: 0, blocks: 0 };
@@ -2931,13 +2931,36 @@ const ripB: number[][] = Array.from({ length: LEVELS }, () => []), crB: number[]
 const surfB: number[][] = Array.from({ length: LEVELS }, () => []), surf2B: number[][] = Array.from({ length: LEVELS }, () => []), wetB: number[][] = Array.from({ length: 2 }, () => []);
 /** Surf as filled ribbons (quads of 8 numbers along the front): foam body and its bright core per alpha level, the
  *  soft wash behind the front. Neighbouring quads share their ends, so each level fills as one seamless band. */
-const foam2B: number[] = [], softB: number[][] = Array.from({ length: LEVELS }, () => []), foamB: number[][] = Array.from({ length: LEVELS }, () => []), coreB: number[][] = Array.from({ length: LEVELS }, () => []), washB: number[][] = Array.from({ length: LEVELS }, () => []);
-function ribbon(buf: number[], ax: number, ay: number, bx: number, by: number, anx: number, any: number, bnx: number, bny: number, wa: number, wb: number) {
-  if (wa <= 0.05 && wb <= 0.05) return;
-  buf.push(ax + anx * wa, ay + any * wa, bx + bnx * wb, by + bny * wb, bx - bnx * wb, by - bny * wb, ax - anx * wa, ay - any * wa);
+/** A band along a run of the coast, built point by point (centre, across-direction, half width) and closed into one
+ *  polygon per run (one edge out, the other back): a whole stretch of coast is a single subpath, not a quad per piece. */
+type Band = { out: number[]; l: number[]; r: number[]; lx: number; ly: number };
+const band = (): Band => ({ out: [], l: [], r: [], lx: NaN, ly: NaN });
+function bandEnd(b: Band) {
+  if (b.l.length >= 4) { b.out.push(b.l.length / 2 + b.r.length / 2); for (let i = 0; i < b.l.length; i++) b.out.push(b.l[i]!); for (let i = b.r.length - 2; i >= 0; i -= 2) b.out.push(b.r[i]!, b.r[i + 1]!); }
+  b.l.length = 0; b.r.length = 0; b.lx = NaN;
 }
-function fillQuads(c: C, buf: number[]) {
-  c.beginPath(); for (let i = 0; i < buf.length; i += 8) { c.moveTo(buf[i]!, buf[i + 1]!); c.lineTo(buf[i + 2]!, buf[i + 3]!); c.lineTo(buf[i + 4]!, buf[i + 5]!); c.lineTo(buf[i + 6]!, buf[i + 7]!); c.closePath(); } c.fill();
+/** Adds the piece from (ax,ay) to (bx,by); continues the current run when it starts where the last piece ended. */
+function ribbon(b: Band, ax: number, ay: number, bx: number, by: number, anx: number, any: number, bnx: number, bny: number, wa: number, wb: number) {
+  if (ax !== b.lx || ay !== b.ly) { bandEnd(b); b.l.push(ax + anx * wa, ay + any * wa); b.r.push(ax - anx * wa, ay - any * wa); }
+  b.l.push(bx + bnx * wb, by + bny * wb); b.r.push(bx - bnx * wb, by - bny * wb); b.lx = bx; b.ly = by;
+}
+const foamB = band(), softB = band(), washB = band(), foam2B = band();
+function bandReset(b: Band) { b.out.length = 0; b.l.length = 0; b.r.length = 0; b.lx = NaN; }
+function fillBand(c: C, b: Band) {
+  bandEnd(b); const o = b.out; if (!o.length) return 0;
+  c.beginPath(); let runs = 0;
+  for (let i = 0; i < o.length; ) { const n = o[i++]!; c.moveTo(o[i]!, o[i + 1]!); for (let k = 1; k < n; k++) c.lineTo(o[i + 2 * k]!, o[i + 2 * k + 1]!); c.closePath(); i += 2 * n; runs++; }
+  c.fill(); return runs;
+}
+/** Static foam samples for a shore segment: 7 points each (u = 0..1 in sixths) for the foam band, the wash and the
+ *  second wave. Shared segment ends sample the same world point, so neighbouring segments join seamlessly. */
+function foamSamples(s: Seg): Float32Array {
+  const o = new Float32Array(21);
+  for (let i = 0; i <= 6; i++) {
+    const x = s.a[0] + (s.b[0] - s.a[0]) * (i / 6), y = s.a[1] + (s.b[1] - s.a[1]) * (i / 6);
+    o[i] = foamAt(x, y, 0); o[7 + i] = foamAt(x - 70, y + 30, 0); o[14 + i] = foamAt(x + 40, y, 0);
+  }
+  return o;
 }
 /** Foam thickness along the coast (0..~1.3): noise in world space, drifting slowly, with real gaps where it runs out —
  *  irregular clumps and breaks instead of a dash pattern. */
@@ -3028,7 +3051,7 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
   const pCrest = Math.min(0.3, (T.crest * qs) / Math.max(1, nSea)), sStride = Math.max(T.swellStride, Math.ceil(Math.sqrt(nSea / Math.max(1, T.swell * Math.max(qs, 0.5)))));
   const swLayers = ql + 1, swA = 0.15 / swLayers; // fewer, slightly stronger swell layers in the lower levels
   const mx0 = vx0 - 48, mx1 = vx1 + 48, my0 = vy0 - 48, my1 = vy1 + 48, on = (px: number, py: number) => px > mx0 && px < mx1 && py > my0 && py < my1;
-  for (const b of ripB) b.length = 0; for (const b of crB) b.length = 0; for (const b of surfB) b.length = 0; for (const b of surf2B) b.length = 0; for (const b of foamB) b.length = 0; for (const b of softB) b.length = 0; foam2B.length = 0; for (const b of coreB) b.length = 0; for (const b of washB) b.length = 0; for (const b of wetB) b.length = 0; for (const b of swB) b.length = 0; shB.length = 0;
+  for (const b of ripB) b.length = 0; for (const b of crB) b.length = 0; for (const b of surfB) b.length = 0; for (const b of surf2B) b.length = 0; bandReset(foamB); bandReset(softB); bandReset(washB); bandReset(foam2B); for (const b of wetB) b.length = 0; for (const b of swB) b.length = 0; shB.length = 0;
   // surf geometry: run-in distance, beach run-up and line widths keep a readable size on screen at every zoom
   const RUN_IN = Math.max(24, Math.min(40, 30 / z)), lwWash = Math.max(4, 6.5 / z), lwWet = Math.max(2, 3 / z), foamW = z > 1.6 ? Math.max(2.4, 3.2 / z) : Math.max(1.5, 2.2 / z);
   // Surf detail by screen scale (canvas px per world px, dpr included), not by tier: below ~1.6 the soft halo, the wash,
@@ -3093,46 +3116,42 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
       if (!on(s.mx, s.my)) continue;
       // seaward direction at each end from the smoothed onshore field: shared ends get the same direction, so the
       // offset line stays smooth instead of copying the tile staircase of the shoreline
-      const sd = s.sea ?? (s.sea = [...seaward(s.a), ...seaward(s.b), (exposure(s.a) + exposure(s.b)) / 2]);
-      // narrow water (lagoon, inlet) also shortens the run-in, so fronts from opposite shores never cross
-      const ex = sd[4]!, run = RUN_IN * (0.15 + 0.85 * ex * ex), ax = sd[0]! * run / RUN_IN, ay = sd[1]! * run / RUN_IN, bx2 = sd[2]! * run / RUN_IN, by2 = sd[3]! * run / RUN_IN;
+      const sd = s.sea ?? (s.sea = [...seaward(s.a), ...seaward(s.b), exposure(s.a), exposure(s.b)]);
+      // narrow water (lagoon, inlet) also shortens the run-in, so fronts from opposite shores never cross; all of it per
+      // segment end, so neighbouring segments meet exactly and each stretch of coast stays one band
+      const eA = sd[4]!, eB = sd[5]!, ex = (eA + eB) / 2, rA = 0.15 + 0.85 * eA * eA, rB = 0.15 + 0.85 * eB * eB;
+      const ax = sd[0]! * rA, ay = sd[1]! * rA, bx2 = sd[2]! * rB, by2 = sd[3]! * rB;
       const pa = surfPhaseD(s.a[0], s.a[1], t, 7600), pb = surfPhaseD(s.b[0], s.b[1], t, 7600), A = surfFront(pa), B = surfFront(pb), a = ((A.a + B.a) / 2) * ex;
       const nAx = sd[0]!, nAy = sd[1]!, nBx = sd[2]!, nBy = sd[3]!; // seaward (unit-ish, iso-squashed): across the band
       const Px = s.a[0] + ax * A.off * RUN_IN, Py = s.a[1] + ay * A.off * RUN_IN, Qx = s.b[0] + bx2 * B.off * RUN_IN, Qy = s.b[1] + by2 * B.off * RUN_IN;
+      // static foam pattern along this segment, sampled once (7 points per band): the band's swellings and gaps are
+      // fixed to the coast, the wave carries them in and out — no noise is evaluated per frame
+      const fs = s.foam ?? (s.foam = foamSamples(s));
+      const kk = detail ? (s.len * z > 30 ? 6 : s.len * z > 16 ? 3 : 2) : 1, st6 = 6 / kk;
       if (a > 0.06) {
-        // foam: thickness from clumpy noise along the coast, fuller just after the break and thinning as it draws back;
-        // brightness varies along the coast too, so neither width nor light repeats
-        // the band is sampled every few screen pixels, so its edges swell and taper smoothly instead of in straight
-        // trapezoids between the tile-sized shore segments
-        const fA = foamAt(s.a[0], s.a[1], t), fB = foamAt(s.b[0], s.b[1], t), gA = foamW * foamShape(fA, detail) * A.a * ex * onSand(A.off), gB = foamW * foamShape(fB, detail) * B.a * ex * onSand(B.off);
-        // one brightness for all foam: the wave's fade shows as the band thinning out (width carries it), so there are
-        // no cut steps where neighbouring stretches fall into different brightness levels
-        const lv = LEVELS - 1, k = detail ? Math.max(1, Math.min(6, Math.round((s.len * z) / 7))) : 1;
-        let px0 = Px, py0 = Py, nx0 = nAx, ny0 = nAy, g0 = gA;
-        for (let i = 1; i <= k; i++) {
-          const u = i / k, px1 = Px + (Qx - Px) * u, py1 = Py + (Qy - Py) * u, nx1 = nAx + (nBx - nAx) * u, ny1 = nAy + (nBy - nAy) * u;
-          const g1 = i === k ? gB : foamW * foamShape(foamAt(s.a[0] + (s.b[0] - s.a[0]) * u, s.a[1] + (s.b[1] - s.a[1]) * u, t), detail) * (A.a + (B.a - A.a) * u) * ex * onSand(A.off + (B.off - A.off) * u);
-          ribbon(foamB[lv]!, px0, py0, px1, py1, nx0, ny0, nx1, ny1, g0, g1);
-          if (detail) ribbon(softB[lv]!, px0, py0, px1, py1, nx0, ny0, nx1, ny1, g0 * 1.9 + 0.6, g1 * 1.9 + 0.6);
-          px0 = px1; py0 = py1; nx0 = nx1; ny0 = ny1; g0 = g1;
-        }
-        if (wash) { // the water the wave just crossed stays milky: a patchy wash behind the front, sampled like the foam
-          let wx0 = Px + nAx * lwWash * 0.7, wy0 = Py + nAy * lwWash * 0.7, wn0x = nAx, wn0y = nAy, h0 = lwWash * (0.5 + 0.7 * foamAt(s.a[0] - 70, s.a[1] + 30, t)) * A.a * ex;
-          for (let i = 1; i <= k; i++) {
-            const u = i / k, nx1 = nAx + (nBx - nAx) * u, ny1 = nAy + (nBy - nAy) * u, wx1 = Px + (Qx - Px) * u + nx1 * lwWash * 0.7, wy1 = Py + (Qy - Py) * u + ny1 * lwWash * 0.7;
-            const h1 = lwWash * (0.5 + 0.7 * foamAt(s.a[0] + (s.b[0] - s.a[0]) * u - 70, s.a[1] + (s.b[1] - s.a[1]) * u + 30, t)) * (A.a + (B.a - A.a) * u) * ex;
-            ribbon(washB[lv]!, wx0, wy0, wx1, wy1, wn0x, wn0y, nx1, ny1, h0, h1); wx0 = wx1; wy0 = wy1; wn0x = nx1; wn0y = ny1; h0 = h1;
+        // foam: thicker just after the break, thinning as it draws back and where it climbs the sand; one brightness for
+        // all foam — the wave's fade shows as the band thinning out, so there are no cut steps between brightness levels
+        let px0 = Px, py0 = Py, nx0 = nAx, ny0 = nAy, g0 = foamW * foamShape(fs[0]!, detail) * A.a * eA * onSand(A.off);
+        let wx0 = Px + nAx * lwWash * 0.7, wy0 = Py + nAy * lwWash * 0.7, h0 = lwWash * (0.5 + 0.7 * fs[7]!) * A.a * eA;
+        for (let i = 1; i <= kk; i++) {
+          const u = i / kk, j = i * st6, au = (A.a + (B.a - A.a) * u) * (eA + (eB - eA) * u), px1 = Px + (Qx - Px) * u, py1 = Py + (Qy - Py) * u, nx1 = nAx + (nBx - nAx) * u, ny1 = nAy + (nBy - nAy) * u;
+          const g1 = foamW * foamShape(fs[j]!, detail) * au * onSand(A.off + (B.off - A.off) * u);
+          ribbon(foamB, px0, py0, px1, py1, nx0, ny0, nx1, ny1, g0, g1);
+          if (detail) ribbon(softB, px0, py0, px1, py1, nx0, ny0, nx1, ny1, g0 * 1.9 + 0.6, g1 * 1.9 + 0.6);
+          if (wash) { // the water the wave just crossed stays milky: a patchy wash behind the front
+            const wx1 = px1 + nx1 * lwWash * 0.7, wy1 = py1 + ny1 * lwWash * 0.7, h1 = lwWash * (0.5 + 0.7 * fs[7 + j]!) * au;
+            ribbon(washB, wx0, wy0, wx1, wy1, nx0, ny0, nx1, ny1, h0, h1); wx0 = wx1; wy0 = wy1; h0 = h1;
           }
+          px0 = px1; py0 = py1; nx0 = nx1; ny0 = ny1; g0 = g1;
         }
       }
       // the next wave half a beat behind, fainter: there is always some foam on the move (not in the low level / far)
       const A2 = surfFront((pa + 0.5) % 1), B2 = surfFront((pb + 0.5) % 1), a2 = (A2.a + B2.a) * 0.3 * ex;
-      if (a2 > 0.03 && second) { // patchy and sampled like the main front, so it reads as loose foam, not a thin line
-        const k2 = Math.max(1, Math.min(6, Math.round((s.len * z) / 7))), X0 = s.a[0] + ax * A2.off * RUN_IN, Y0 = s.a[1] + ay * A2.off * RUN_IN, X1 = s.b[0] + bx2 * B2.off * RUN_IN, Y1 = s.b[1] + by2 * B2.off * RUN_IN;
-        const w2 = (u: number) => foamW * 0.7 * foamShape(foamAt(s.a[0] + (s.b[0] - s.a[0]) * u + 40, s.a[1] + (s.b[1] - s.a[1]) * u, t), true) * (A2.a + (B2.a - A2.a) * u) * ex;
-        let x0 = X0, y0 = Y0, m0x = nAx, m0y = nAy, v0 = w2(0);
-        for (let i = 1; i <= k2; i++) {
-          const u = i / k2, m1x = nAx + (nBx - nAx) * u, m1y = nAy + (nBy - nAy) * u, x1 = X0 + (X1 - X0) * u, y1 = Y0 + (Y1 - Y0) * u, v1 = w2(u);
+      if (a2 > 0.03 && second) {
+        const X0 = s.a[0] + ax * A2.off * RUN_IN, Y0 = s.a[1] + ay * A2.off * RUN_IN, X1 = s.b[0] + bx2 * B2.off * RUN_IN, Y1 = s.b[1] + by2 * B2.off * RUN_IN;
+        let x0 = X0, y0 = Y0, m0x = nAx, m0y = nAy, v0 = foamW * 0.7 * foamShape(fs[14]!, true) * A2.a * eA;
+        for (let i = 1; i <= kk; i++) {
+          const u = i / kk, m1x = nAx + (nBx - nAx) * u, m1y = nAy + (nBy - nAy) * u, x1 = X0 + (X1 - X0) * u, y1 = Y0 + (Y1 - Y0) * u, v1 = foamW * 0.7 * foamShape(fs[14 + i * st6]!, true) * (A2.a + (B2.a - A2.a) * u) * (eA + (eB - eA) * u);
           ribbon(foam2B, x0, y0, x1, y1, m0x, m0y, m1x, m1y, v0, v1); x0 = x1; y0 = y1; m0x = m1x; m0y = m1y; v0 = v1;
         }
       }
@@ -3163,14 +3182,10 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
   c.lineCap = "round"; c.lineJoin = "bevel";
   for (let l = 0; l < 2; l++) if (wetB[l]!.length) { c.strokeStyle = `rgba(62,52,34,${l ? 0.16 : 0.08})`; c.lineWidth = lwWet; strokeLines(c, wetB[l]!); ops++; }
   // foam: soft wash behind the front, the foam band, and its brighter core — one fill per kind and level
-  for (let l = 0; l < LEVELS; l++) {
-    const al = (l + 1) / LEVELS;
-    if (washB[l]!.length) { c.fillStyle = `rgba(206,234,226,${(0.13 * al).toFixed(3)})`; fillQuads(c, washB[l]!); ops++; }
-    if (softB[l]!.length) { c.fillStyle = `rgba(222,238,232,${(0.16 * al).toFixed(3)})`; fillQuads(c, softB[l]!); ops++; }
-    if (foamB[l]!.length) { c.fillStyle = `rgba(236,246,240,${(0.62 * al).toFixed(3)})`; fillQuads(c, foamB[l]!); ops++; marks += foamB[l]!.length / 8; }
-    if (l === LEVELS - 1 && foam2B.length) { c.fillStyle = "rgba(232,244,238,0.3)"; fillQuads(c, foam2B); ops++; marks += foam2B.length / 8; }
-    if (coreB[l]!.length) { c.fillStyle = `rgba(250,252,248,${(0.7 * al).toFixed(3)})`; fillQuads(c, coreB[l]!); ops++; }
-  }
+  c.fillStyle = "rgba(206,234,226,0.13)"; ops += fillBand(c, washB) ? 1 : 0;
+  c.fillStyle = "rgba(222,238,232,0.16)"; ops += fillBand(c, softB) ? 1 : 0;
+  c.fillStyle = "rgba(236,246,240,0.62)"; { const r = fillBand(c, foamB); if (r) { ops++; marks += r; } } // marks: foam runs
+  c.fillStyle = "rgba(232,244,238,0.3)"; ops += fillBand(c, foam2B) ? 1 : 0;
   c.setLineDash([]);
   c.restore(); pEnd();
   pCount("water.ops", ops); pCount("water.marks", marks); pCount("water.quality", waterQualityLevel()); pEnd();
