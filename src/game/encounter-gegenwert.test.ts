@@ -87,7 +87,7 @@ describe("paid encounter options have a real effect", () => {
 });
 
 describe("prices mirror the database guard", () => {
-  const sql = readFileSync("drizzle/migrations/0134_encounters_free_without_effect.sql", "utf8");
+  const sql = readFileSync("drizzle/migrations/0138_encounters_server_only.sql", "utf8");
   const db = new Map(
     [...sql.matchAll(/WHEN '(\w+:\w+)' THEN (-?\d+)/g)].map((m) => [m[1]!, Number(m[2])]),
   );

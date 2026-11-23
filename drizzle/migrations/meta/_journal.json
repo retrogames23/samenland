@@ -967,6 +967,20 @@
       "when": 1795337096687,
       "tag": "0137_lock_balance_functions_supporter_policy",
       "breakpoints": true
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1795438480839,
+      "tag": "0138_encounters_server_only",
+      "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1795448586821,
+      "tag": "0139_encounters_server_only",
+      "breakpoints": true
     }
   ]
 }
