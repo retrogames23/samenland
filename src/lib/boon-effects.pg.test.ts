@@ -1,4 +1,4 @@
-// M1 Paket 2a (P2-E): runs the real 0139 boon_effects/active_boons against a throw-away PostgreSQL (BUILD_MAIL_TEST_PG=postgres://...).
+// M1 Paket 2a (P2-E): runs the real 0140 boon_effects/active_boons against a throw-away PostgreSQL (BUILD_MAIL_TEST_PG=postgres://...).
 import { readFileSync } from "node:fs";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -8,12 +8,12 @@ if (!URL && (process.env["CI"] || process.env["REQUIRE_PG"]))
   throw new Error("BUILD_MAIL_TEST_PG missing: boon effect DB tests must run");
 const d = URL ? describe : describe.skip;
 const MIG = readFileSync(
-  new globalThis.URL("../../drizzle/migrations/0139_boon_effects.sql", import.meta.url),
+  new globalThis.URL("../../drizzle/migrations/0140_boon_effects.sql", import.meta.url),
   "utf8",
 );
 const SEED = "00000000-0000-0000-0000-0000000000d1";
 
-d("active_boons 0139 (real PostgreSQL)", () => {
+d("active_boons 0140 (real PostgreSQL)", () => {
   const sql = postgres(URL!, { max: 1, onnotice: () => {} });
   const count = async (at: string) =>
     (await sql`select public.active_boons(${SEED}, ${at}::timestamptz) as n`)[0]!["n"] as number;

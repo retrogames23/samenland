@@ -11,7 +11,7 @@ const growth = Object.entries(
     .filter(([, o]) => o.fx.growth)
     .map(([c, o]) => ({ key: `${e}:${c}`, growth: o.fx.growth!, hours: o.fx.h! })),
 );
-const sql = readFileSync("drizzle/migrations/0139_boon_effects.sql", "utf8");
+const sql = readFileSync("drizzle/migrations/0140_boon_effects.sql", "utf8");
 const db = new Map(
   [...sql.matchAll(/\('(\w+)', '(\w+)', ([\d.]+), (\d+)\)/g)].map((m) => [
     `${m[1]}:${m[2]}`,
