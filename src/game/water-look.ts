@@ -102,6 +102,12 @@ export function onshore(x: number, y: number): [number, number] {
 /** Builds the terrain-class chunks a sea block will need (its distance regions with their margins) until the
  *  deadline; true when all are there, so seaBlock() then only runs the cheap regional pass. */
 export function seaPrepare(bx: number, by: number, deadline: number): boolean {
+  // most blocks hold no sea at all: one look at the block's own class chunk settles that without any regions
+  const key = by * 4096 + bx; if (blocks.has(key)) return true;
+  const cx = ((bx * 16) / MC) | 0, cy = ((by * 16) / MC) | 0; if (!maskDone[cy * MCN + cx]) { if (performance.now() > deadline) return false; maskChunk(cx, cy); }
+  let any = false;
+  for (let y = by * 16; y < by * 16 + 16 && !any; y++) for (let x = bx * 16; x < bx * 16 + 16; x++) if (mask[y * MAP + x] === 2) { any = true; break; }
+  if (!any) { blocks.set(key, null); return true; }
   const x0 = bx * 16 - 8, x1 = bx * 16 + 23, y0 = by * 16 - 8, y1 = by * 16 + 23; // block plus the reach of onshore (2) and exposure (5)
   const rx0 = Math.max(0, (x0 / RS) | 0), rx1 = Math.min(MAP / RS - 1, (x1 / RS) | 0), ry0 = Math.max(0, (y0 / RS) | 0), ry1 = Math.min(MAP / RS - 1, (y1 / RS) | 0);
   for (let ry = ry0; ry <= ry1; ry++) for (let rx = rx0; rx <= rx1; rx++) {

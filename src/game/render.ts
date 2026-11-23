@@ -2896,7 +2896,7 @@ function waterBase(c: C, water: Path2D, shore: { a: Pt; b: Pt; w?: Pt }[], x0: n
     const path = new Path2D(); for (const s of shore) { if (k === "d" && !seaSide(s)) continue; path.moveTo(s.a[0], s.a[1]); path.lineTo(s.b[0], s.b[1]); }
     // D: the shallows of a coast in a neighbouring chunk reach into this one too, so take the sea shore of the 3×3
     // blocks around it (cached) — otherwise the bands stop at chunk edges and leave wedge-shaped seams
-    if (k === "d") { const bx = Math.floor(x0 / 16), by = Math.floor(y0 / 16); for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (i || j) for (const s of seaShore(bx + i, by + j)) { path.moveTo(s.a[0], s.a[1]); path.lineTo(s.b[0], s.b[1]); } }
+    if (k === "d" && chunkHasSea(x0, x1, y0, y1)) { const bx = Math.floor(x0 / 16), by = Math.floor(y0 / 16); for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (i || j) for (const s of seaShore(bx + i, by + j)) { path.moveTo(s.a[0], s.a[1]); path.lineTo(s.b[0], s.b[1]); } }
     c.lineCap = "round"; c.lineJoin = "round";
     const bands: Record<string, [number, string][]> = {
       a: [[44, "rgba(126,186,176,0.05)"], [30, "rgba(126,186,176,0.06)"], [18, "rgba(140,196,184,0.08)"], [8, "rgba(170,210,196,0.1)"]],
@@ -3032,6 +3032,8 @@ const waterStats = () => ({
   caches: { ...waterCacheStats(), flowBlocks: flowCacheSize(), shoreBlocks: seaShoreCache.size },
 });
 const perfProbe = (() => { try { return /[?&]perf=1/.test(location.search); } catch { return false; } })();
+/** Whether a chunk holds any sea water (sampled every second tile): only then do neighbouring coasts matter to it. */
+function chunkHasSea(x0: number, x1: number, y0: number, y1: number) { for (let y = y0; y <= y1; y += 2) for (let x = x0; x <= x1; x += 2) if (isSea(x, y)) return true; return false; }
 /** Per flow block, built once: river tiles sorted by the ripple and the sheen selection hash (with the hashes). */
 type RiverOrder = { rip: Int16Array; hRip: Float32Array; sheen: Int16Array; hSheen: Float32Array };
 const riverOrders = new WeakMap<object, RiverOrder>();
@@ -3076,7 +3078,7 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
   visBlocks(x0, x1, y0, y1, vx0, vx1, vy0, vy1, (bx, by) => {
     let R = flowBlockIfReady(bx, by); if (R === undefined && canBuild()) R = flowBlock(bx, by);
     let S = seaBlockIfReady(bx, by); if (S === undefined && canBuild() && seaPrepare(bx, by, deadline)) S = seaBlock(bx, by);
-    const shoreOk = S !== undefined && (seaShoreReady(bx, by) || canBuild()); // surf needs the prepared sea data around it
+    const shoreOk = !!S && (seaShoreReady(bx, by) || canBuild()); // surf only where sea is, with its data prepared
     dBlocks.push(bx, by, R === undefined ? 0 : 1, S === undefined ? 0 : 1, shoreOk ? 1 : 0);
     if (R) nRiv += R.n; if (S && S.minD <= reach) nSea += S.n;
   });
