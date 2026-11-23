@@ -76,4 +76,19 @@ describe("fisher's hut: shore first, carp pond only without a shore spot", () =>
           ok = true;
     expect(ok).toBe(true);
   });
+
+  it("a map switch within the same minute does not reuse the other map's shore answer", () => {
+    const s = mk("esch2", 402, 498),
+      now = Math.floor(Date.now() / 6e4) * 6e4 + 1000,
+      seeds = [s];
+    const tiles: [number, number][] = [];
+    for (let dy = -12; dy <= 12; dy++)
+      for (let dx = -12; dx <= 12; dx++) tiles.push([402 + dx, 498 + dy]);
+    setRealm("europe-3");
+    tiles.forEach(([x, y]) => canPlaceSpecial("fisher", x, y, s, seeds, now));
+    setRealm("europe");
+    const same = tiles.map(([x, y]) => canPlaceSpecial("fisher", x, y, s, seeds, now + 1000));
+    const fresh = tiles.map(([x, y]) => canPlaceSpecial("fisher", x, y, s, seeds, now + 61e3)); // next minute: new search
+    expect(same).toEqual(fresh);
+  });
 });

@@ -2296,10 +2296,10 @@ function bigClash(kind: Kind, x: number, y: number, seeds: Seed[]): boolean {
   return false;
 }
 const shoreMemo = new Map<string, boolean>();
-/** Whether `item` (a fishery) could stand on some shore tile (water within 2) inside its placement reach right now.
- *  Only shore tiles are tried, and for them canPlaceSpecial never comes back here. Memoized per minute and seed set. */
+/** Whether `item` (a fishery) could stand on some shore tile (water within 2) inside its placement reach right now (per map).
+ *  Only shore tiles are tried, and for them canPlaceSpecial never comes back here. Memoized per map, minute and seed set. */
 function shoreSpotFor(item: string, s: Seed, seeds: Seed[], now: number): boolean {
-  const key = `${item}|${s.id}|${cacheTick(now)}|${seedsKey(seeds)}`;
+  const key = `${item}|${s.id}|${realmGen()}|${cacheTick(now)}|${seedsKey(seeds)}`; // realmGen: terrain is per map
   const hit = shoreMemo.get(key); if (hit !== undefined) return hit;
   const R = Math.ceil(Math.max(16, radiusOf(effAge(s, seeds, now)) + 2 + 12)) + 2;
   let found = false;
