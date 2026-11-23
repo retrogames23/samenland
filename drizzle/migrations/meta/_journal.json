@@ -995,6 +995,13 @@
       "when": 1795450229420,
       "tag": "0141_ratsbuch",
       "breakpoints": true
+    },
+    {
+      "idx": 142,
+      "version": "7",
+      "when": 1795463133627,
+      "tag": "0142_resources",
+      "breakpoints": true
     }
   ]
 }
