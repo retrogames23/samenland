@@ -52,6 +52,10 @@ import { deleteAccount } from "@/lib/account.functions";
 import { certifyMyRank, callNothilfe } from "@/lib/treasury.functions";
 import { decideEncounter } from "@/lib/encounter.functions";
 import { useTreasurySync } from "@/components/hooks/useTreasurySync";
+import { useResources } from "@/components/hooks/useResources";
+import { ResourceBar, MaterialLine } from "@/components/hud/ResourceBar";
+import { RESOURCE_T } from "@/game/lang/resources";
+import { kontorQuote, materialNeed, materialPrice } from "@/game/resources";
 import { civicRoadsOf } from "@/game/civic-roads";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText, MoreHorizontal, Feather } from "lucide-react";
@@ -1641,6 +1645,13 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const nothilfeFn = useServerFn(callNothilfe);
   const decideFn = useServerFn(decideEncounter);
   const { accounting, setAccounting, refreshAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works, moves]);
+  // Wirtschaft Paket 1: wood and stone as the database books them; the quote only shows what the guard will charge
+  const { res, refreshResources } = useResources(my, userId, [purchases]);
+  const matQuote = (item: string) => {
+    const p = res?.active ? materialPrice(item) : null;
+    return p == null || !res?.active ? null : kontorQuote(materialNeed(p), { wood: res.wood.stock, stone: res.stone.stock });
+  };
+  const kontorOf = (item: string) => matQuote(item)?.cost ?? 0;
   const prepareSpend = async () => {
     // always book outstanding daily tax first — right after load `accounting` is still unknown
     if (await refreshTreasury()) return true;
@@ -2335,9 +2346,11 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     // rank-gated items: the server counts citizens, homes and roads itself before the guard accepts the row
     const needRank = needRankOf(item);
     if (needRank > 0) { try { await certifyFn({ data: { seed: my.id } }); } catch { return rollback(t.buyFail); } }
-    const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null }).select("id, seed_id, item, cost, created_at, x, y").single();
+    const quote = matQuote(item);
+    const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null, ...(quote ? { kontor_max: quote.cost } : {}) }).select("id, seed_id, item, cost, created_at, x, y").single();
     if (error || !data) {
       const m = error?.message ?? "";
+      if (m.includes("material short")) { void refreshResources(); return rollback(RESOURCE_T[lang].short); }
       if (isAusbau(item)) {
         const at = AUSBAU[lang];
         if (m.includes("step already paid")) return rollback(at.bought);
@@ -2573,10 +2586,11 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                   <span className="text-xs text-muted-foreground">{t.taler(ITEMS[it])}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">{t.items[it]![1]}</div>
+                {!at.has(it) && <MaterialLine q={matQuote(it)} lang={lang} taler={t.taler} />}
                 <div className="mt-1.5">
                   {at.has(it) ? <span className="text-xs font-semibold text-primary">{t.owned}</span> : (
                     (ITEM_RANK[it] ?? 0) > myStage ? <span className="text-xs text-muted-foreground">🔒 {t.needStage(t.stages[ITEM_RANK[it]!] ?? "")}{RANK_NEED[ITEM_RANK[it]! - 1] ? ` (${RANK_NEED[ITEM_RANK[it]! - 1]![0]} ${OUTLOOK[lang].cit}, ${RANK_NEED[ITEM_RANK[it]! - 1]![1]} ${OUTLOOK[lang].homes}${RANK_NEED[ITEM_RANK[it]! - 1]![2] ? `, ${RANK_NEED[ITEM_RANK[it]! - 1]![2]} ${OUTLOOK[lang].roads}` : ""})` : ""}</span> :
-                    <Button size="sm" className="h-7 w-full" disabled={cash < ITEMS[it]} onClick={() => { if (!SPECIAL_KIND[it]) { void buy(it); return; } setPlacing(it); setTab(null); setMsg(t.place.pick(t.items[it]![0])); if (my) focus(my.x, my.y); }}>{t.hud.build}</Button>
+                    <Button size="sm" className="h-7 w-full" disabled={cash < ITEMS[it] + kontorOf(it)} onClick={() => { if (!SPECIAL_KIND[it]) { void buy(it); return; } setPlacing(it); setTab(null); setMsg(t.place.pick(t.items[it]![0])); if (my) focus(my.x, my.y); }}>{t.hud.build}</Button>
                   )}
                 </div>
               </div>
@@ -2590,7 +2604,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                 <div className="text-xs text-muted-foreground">{at.intro}</div>
                 <div className="mt-2 space-y-2">
                   {AUSBAU_BASES.map((b) => AUSBAU_STEPS[b].map((k, i) => {
-                    const status = ausbauStatus(b, k, paid, myStage, cash), price = AUSBAU_PRICE[k]!;
+                    const status = ausbauStatus(b, k, paid, myStage, cash - kontorOf(k)), price = AUSBAU_PRICE[k]!;
                     return (
                       <div key={k} data-ausbau-step={k} className="rounded border border-brass/35 bg-card/45 p-2 text-xs">
                         <div className="flex items-start gap-2">
@@ -2600,6 +2614,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                         <div className="mt-0.5 font-semibold">{at.steps[k]![0]}</div>
                         <div className="mt-0.5">{at.steps[k]![1]}</div>
                         <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{at.baseReq(at.names[b])}<br />{t.needStage(t.stages[AUSBAU_RANK[k]!] ?? "")}</div>
+                        {status !== "bought" && <MaterialLine q={matQuote(k)} lang={lang} taler={t.taler} />}
                         <div className="mt-1.5">
                           {status === "bought" ? <span className="font-semibold text-primary">✓ {at.bought}</span>
                             : status === "needBase" ? <span className="text-muted-foreground">🔒 {at.needBase}</span>
@@ -3260,6 +3275,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                   </span>
                   {Math.max(0, cash).toLocaleString(LOCALE[lang])}<span className="font-normal text-muted-foreground"><span className="md:hidden"> {t.talerShort}</span><span className="hidden md:inline">/</span><span className="hidden md:inline"> {t.taler(cap)}</span></span>
                 </span>); })()}
+                <ResourceBar res={res} lang={lang} timeZone={REALM_TZ[realm]} />
                 <span className="hidden text-xs font-normal text-primary sm:inline" title={(() => { const c = Date.parse(my.created_at), next = c + Math.max(1, Math.ceil((now - c) / 864e5)) * 864e5, m = Math.max(0, Math.round((next - now) / 6e4)); return t.nextTax(new Date(next).toLocaleTimeString(LOCALE[lang], { hour: "2-digit", minute: "2-digit", timeZone: REALM_TZ[realm] }), `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")} h`); })()}>{t.perDay(pop)}</span>
               </div>
               <div className="hidden text-sm sm:block">{t.people(residents)}</div>
@@ -3938,7 +3954,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
           const own = seeds.find((s) => s.id === mine);
           const err = own ? treeGuard(moving ? canMoveTo : canPlaceSpecial, plantings)(placing, ghost[0], ghost[1], own, seeds, clock()) as keyof typeof t.place | null : "ground";
           const nudge = (dx: number, dy: number) => { const g: [number, number] = [ghost[0] + dx, ghost[1] + dy]; setGhost(g); placeFocus(g[0], g[1]); };
-          const price = moving ? moveCost(placing) ?? 0 : MONUMENT_PRICE[placing] ?? ITEMS[placing as Item];
+          const price = moving ? moveCost(placing) ?? 0 : (MONUMENT_PRICE[placing] ?? ITEMS[placing as Item]) + kontorOf(placing);
           return (
             <div ref={placeBox} className="pointer-events-auto w-full space-y-2 rounded-md border-2 border-wood bg-card p-2 text-foreground shadow-[var(--shadow-panel)]">
               <div className="flex items-center gap-2">
@@ -3962,7 +3978,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         {placing && !(coarse && ghost) && (
           <div className="pointer-events-auto flex w-full max-w-xs items-center gap-2 rounded-md border-2 border-wood bg-card px-3 py-2 text-foreground shadow-[var(--shadow-panel)]">
             {spriteUrl(SPECIAL_KIND[placing]!) && <img src={spriteUrl(SPECIAL_KIND[placing]!)} alt="" className="h-10 w-10 object-contain" />}
-            <div className="flex-1 text-xs"><div className="font-semibold">{t.items[placing]![0]} · {t.taler(moving ? moveCost(placing) ?? 0 : MONUMENT_PRICE[placing] ?? ITEMS[placing as Item])}</div>{moving ? RELOCATE[lang].hint : t.place.hint}</div>
+            <div className="flex-1 text-xs"><div className="font-semibold">{t.items[placing]![0]} · {t.taler(moving ? moveCost(placing) ?? 0 : (MONUMENT_PRICE[placing] ?? ITEMS[placing as Item]) + kontorOf(placing))}</div>{moving ? RELOCATE[lang].hint : t.place.hint}</div>
             <Button size="sm" variant="secondary" onClick={() => { setPlacing(null); setMsg(null); }}>{t.cancel}</Button>
           </div>
         )}

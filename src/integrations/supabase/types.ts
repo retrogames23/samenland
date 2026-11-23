@@ -46,6 +46,27 @@ export type Database = {
           },
         ]
       }
+      boon_effects: {
+        Row: {
+          choice: string
+          event: string
+          growth: number
+          hours: number
+        }
+        Insert: {
+          choice: string
+          event: string
+          growth: number
+          hours: number
+        }
+        Update: {
+          choice?: string
+          event?: string
+          growth?: number
+          hours?: number
+        }
+        Relationships: []
+      }
       bug_reports: {
         Row: {
           body: string
@@ -736,6 +757,8 @@ export type Database = {
           created_at: string
           id: string
           item: string
+          kontor_max: number | null
+          material: Json | null
           seed_id: string
           user_id: string
           x: number | null
@@ -746,6 +769,8 @@ export type Database = {
           created_at?: string
           id?: string
           item: string
+          kontor_max?: number | null
+          material?: Json | null
           seed_id: string
           user_id: string
           x?: number | null
@@ -756,6 +781,8 @@ export type Database = {
           created_at?: string
           id?: string
           item?: string
+          kontor_max?: number | null
+          material?: Json | null
           seed_id?: string
           user_id?: string
           x?: number | null
@@ -928,6 +955,70 @@ export type Database = {
             foreignKeyName: "referrals_referrer_seed_fkey"
             columns: ["referrer_seed"]
             isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resource_ledger: {
+        Row: {
+          amount: number
+          at: string
+          created_at: string
+          id: string
+          kind: string
+          ref: string
+          resource: string
+          seed_id: string
+        }
+        Insert: {
+          amount: number
+          at: string
+          created_at?: string
+          id?: string
+          kind: string
+          ref: string
+          resource: string
+          seed_id: string
+        }
+        Update: {
+          amount?: number
+          at?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          ref?: string
+          resource?: string
+          seed_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_ledger_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resource_state: {
+        Row: {
+          seed_id: string
+          through_day: string
+        }
+        Insert: {
+          seed_id: string
+          through_day: string
+        }
+        Update: {
+          seed_id?: string
+          through_day?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_state_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: true
             referencedRelation: "seeds"
             referencedColumns: ["id"]
           },
@@ -1569,6 +1660,37 @@ export type Database = {
         Args: { p_name: string; p_seed: string }
         Returns: undefined
       }
+      resource_book: {
+        Args: {
+          _amount: number
+          _at: string
+          _kind: string
+          _ref: string
+          _resource: string
+          _seed: string
+        }
+        Returns: boolean
+      }
+      resource_cap: {
+        Args: { _at: string; _resource: string; _seed: string }
+        Returns: number
+      }
+      resource_daily: { Args: { _day: string; _rate: number }; Returns: number }
+      resource_overview: { Args: { _seed: string }; Returns: Json }
+      resource_rate: {
+        Args: { _at: string; _resource: string; _seed: string }
+        Returns: number
+      }
+      resource_refresh: { Args: { _seed: string }; Returns: undefined }
+      resource_refresh_at: {
+        Args: { _seed: string; _today: string }
+        Returns: undefined
+      }
+      resource_stock: {
+        Args: { _before?: string; _resource: string; _seed: string }
+        Returns: number
+      }
+      resources_since: { Args: { _realm: string }; Returns: string }
       road_done: { Args: { _a: string; _b: string }; Returns: string }
       send_letter: {
         Args: { _body: string; _from: string; _to: string }
