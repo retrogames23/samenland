@@ -88,10 +88,13 @@ export function simulate(cfg: SimConfig): SimResult {
   const c0 = Date.parse(cfg.start ?? "2026-11-12T00:00:00Z");
   const [x, y] = LOCATIONS[cfg.location]!.at;
   const way = townCharacter({ x, y }).main;
-  const seed: Seed = { id: `00000000-sim-${P.key}-${cfg.charter}-${cfg.location}`, name: "Sim", owner: "sim", x, y, hue: 0, realm: "europe", user_id: "sim",
+  let seed: Seed = { id: `00000000-sim-${P.key}-${cfg.charter}-${cfg.location}`, name: "Sim", owner: "sim", x, y, hue: 0, realm: "europe", user_id: "sim",
     created_at: new Date(c0).toISOString(), charter: { path: cfg.charter, at: c0 + DAY }, bought: [], roads: [], civicRoads: [] };
   const nb = (id: string, dx: number): Seed => ({ id, name: id, owner: "nb", x: x + dx, y, hue: 0, realm: "europe", created_at: new Date(c0 - 60 * DAY).toISOString() });
-  const seeds = [seed, nb("nb1", 15), nb("nb2", -15)];
+  let seeds = [seed, nb("nb1", 15), nb("nb2", -15)];
+  // Copy-on-write, never in-place changes: seed inputs are cached by object and array identity (world.ts seedGuard),
+  // exactly like client and server, which rebuild every village and list when data changes.
+  const put = (patch: Partial<Seed>) => { seed = { ...seed, ...patch }; seeds = [seed, seeds[1]!, seeds[2]!]; };
   const all = offerFor(cfg.charter, way), volume = all.reduce((a, o) => a + o.cost, 0);
 
   let balance = START_TALER, chest = 0, rank = 1, hanse: number | null = null, invested = 0;
@@ -112,7 +115,7 @@ export function simulate(cfg: SimConfig): SimResult {
   const buy = (item: string, cost: number, reserve = P.reserve) => {
     if (owned.has(item) || balance < cost + reserve) return false;
     balance -= cost; spent += cost; daySpent += cost; invested += cost; owned.add(item);
-    seed.bought!.push({ item, at: c0 + day * DAY }); bought.push({ item, day, cost });
+    put({ bought: [...seed.bought!, { item, at: c0 + day * DAY }] }); bought.push({ item, day, cost });
     ledger.push({ day, kind: "debit", source: item, amount: cost, booked: -cost, lost: 0, balance, cap: caps[chest]! });
     return true;
   };
@@ -122,8 +125,8 @@ export function simulate(cfg: SimConfig): SimResult {
   for (day = 1; day <= days; day++) {
     const now = c0 + day * DAY;
     dayIncome = dayTax = dayBooked = dayLost = daySpent = dayRaid = 0;
-    if (day === 14) { seed.roads!.push({ target: "nb1", at: now }); seed.civicRoads!.push({ at: now }); }
-    if (day === 45) { seed.roads!.push({ target: "nb2", at: now }); seed.civicRoads!.push({ at: now }); }
+    if (day === 14) put({ roads: [...seed.roads!, { target: "nb1", at: now }], civicRoads: [...seed.civicRoads!, { at: now }] });
+    if (day === 45) put({ roads: [...seed.roads!, { target: "nb2", at: now }], civicRoads: [...seed.civicRoads!, { at: now }] });
     if (hanse === null && (day % every === 0 || day === 1)) {
       const r = townRank(seed, [...seeds], now);
       for (let k = rank + 1; k <= r; k++) rankDays[k] = day;
