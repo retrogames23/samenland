@@ -50,6 +50,7 @@ import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type C
 import { scribeGreeting } from "@/lib/chronicle.functions";
 import { deleteAccount } from "@/lib/account.functions";
 import { certifyMyRank, callNothilfe } from "@/lib/treasury.functions";
+import { decideEncounter } from "@/lib/encounter.functions";
 import { useTreasurySync } from "@/components/hooks/useTreasurySync";
 import { civicRoadsOf } from "@/game/civic-roads";
 import { useServerFn } from "@tanstack/react-start";
@@ -1638,6 +1639,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const my = seeds.find((s) => s.id === mine);
   const certifyFn = useServerFn(certifyMyRank);
   const nothilfeFn = useServerFn(callNothilfe);
+  const decideFn = useServerFn(decideEncounter);
   const { accounting, setAccounting, refreshAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works, moves]);
   const prepareSpend = async () => {
     // always book outstanding daily tax first — right after load `accounting` is still unknown
@@ -1699,15 +1701,17 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     bell(0); setEncOpen(false);
     // book outstanding tax first, but let the server guard judge the price — free choices must never be blocked here
     await refreshTreasury().catch(() => false);
-    const { data, error } = await supabase.from("encounters").insert({ seed_id: my.id, user_id: userId, event, choice }).select("id, seed_id, event, choice, cost, created_at").single();
+    // the trusted server recomputes the open encounter and books the answer (M1: clients never insert encounters)
+    const r = await decideFn({ data: { seed: my.id, event, choice } }).catch(() => null);
     encSaving.current = false;
-    if (error || !data) {
-      // already answered elsewhere: reload instead of leaving a stale question open
+    if (!r || !r.ok) {
+      // already answered elsewhere or the question changed: reload instead of leaving a stale question open
       { const ids = mapIds.current; refreshMap(rtGate.current, () => mapRows(ids, (c) => supabase.from("encounters").select("id, seed_id, event, choice, cost, created_at").in("seed_id", c)) as Promise<EncRow[]>,
         (rows) => setEncounters(snapRows(rows, (x) => onIds(mapIds.current, x.seed_id)))); }
-      if (error?.message?.includes("not enough money")) setEncOpen(true);
-      return setMsg(error?.message?.includes("not enough money") ? t.poor : t.enc.fail);
+      if (r?.code === "poor") setEncOpen(true);
+      return setMsg(r?.code === "poor" ? t.poor : t.enc.fail);
     }
+    const data = r.row;
     setEncounters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
     if (event === "nursery" && choice !== "pass") { startSapling(); } else setMsg(t.enc.done);
   };
