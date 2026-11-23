@@ -3148,7 +3148,8 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
       // seaward direction at each end from the smoothed onshore field: shared ends get the same direction, so the
       // offset line stays smooth instead of copying the tile staircase of the shoreline
       const sd = s.sea ?? (s.sea = [...seaward(s.a), ...seaward(s.b), (exposure(s.a) + exposure(s.b)) / 2]);
-      const ax = sd[0]!, ay = sd[1]!, bx2 = sd[2]!, by2 = sd[3]!, ex = sd[4]!;
+      // narrow water (lagoon, inlet) also shortens the run-in, so fronts from opposite shores never cross
+      const ex = sd[4]!, run = RUN_IN * (0.25 + 0.75 * ex), ax = sd[0]! * run / RUN_IN, ay = sd[1]! * run / RUN_IN, bx2 = sd[2]! * run / RUN_IN, by2 = sd[3]! * run / RUN_IN;
       const pa = surfPhaseD(s.a[0], s.a[1], t, 7600), pb = surfPhaseD(s.b[0], s.b[1], t, 7600), A = surfFront(pa), B = surfFront(pb), a = ((A.a + B.a) / 2) * ex;
       if (a > 0.06) polyPush(surfB[lvl(a)]!, s.join ?? false, s.a[0] + ax * A.off * RUN_IN, s.a[1] + ay * A.off * RUN_IN, s.b[0] + bx2 * B.off * RUN_IN, s.b[1] + by2 * B.off * RUN_IN);
       // the next wave half a beat behind, fainter: there is always some foam on the move
