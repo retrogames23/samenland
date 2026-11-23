@@ -1,6 +1,8 @@
 /**
- * P6 reference walker: a skeletal walk cycle for the ordinary villager ("man"), built from the painted parts of his
- * own walk sheet (scripts/gen-man-rig.py) instead of eight hand-painted poses.
+ * P6 reference walker: a skeletal walk cycle for the ordinary villager ("man"), built from the painted pixels of his
+ * own walk sheet (scripts/gen-man-rig.py) instead of eight hand-painted poses. P6d: limbs bend as continuous painted
+ * strips (no cut at knee or elbow), the body follows in rows (lean, shoulder swing, steadier head, a tunic hem that
+ * trails the thighs, a swinging belt end).
  *
  * The gait is solved, not keyframed: each foot's contact point is locked to the ground for the whole stance (heel
  * strike → flat foot → roll over the ball → toe-off), the swing foot follows a smooth arc to the next contact, knees
@@ -82,6 +84,7 @@ export interface ArmPose {
 export interface GaitPose {
   pelvisY: number;
   lean: number;
+  warp: BodyWarp;
   legs: Record<Side, LegPose>;
   arms: Record<Side, ArmPose>;
 }
@@ -173,7 +176,8 @@ function pelvisBase(S: number) {
   return v;
 }
 
-export function gaitPose(u: number, amp: number): GaitPose {
+/** Pelvis height and both legs at phase u and stride level amp. */
+function legsAt(u: number, amp: number): { pelvisY: number; legs: Record<Side, LegPose> } {
   u = ((u % 1) + 1) % 1;
   const S = STEP * amp,
     R = pelvisReach(u, S),
@@ -201,6 +205,12 @@ export function gaitPose(u: number, amp: number): GaitPose {
       stance: f.stance,
     };
   }
+  return { pelvisY, legs };
+}
+
+export function gaitPose(u: number, amp: number): GaitPose {
+  u = ((u % 1) + 1) % 1;
+  const { pelvisY, legs } = legsAt(u, amp);
   // arms against the legs: near arm forward when the far foot lands (u = 0.5); forearm lags and folds a little
   // people swing the arm further forward than back; the backswing keeps the elbow almost straight
   const dy = pelvisY - 128,
@@ -216,83 +226,335 @@ export function gaitPose(u: number, amp: number): GaitPose {
     return { shoulder: [j.shoulder[0] + SHIFT, j.shoulder[1] + dy], upper, lower };
   };
   const lean = 0.012 * amp + 0.006 * amp * Math.sin(4 * Math.PI * u);
-  return { pelvisY, lean, legs, arms: { near: arm("near", 0.5), far: arm("far", 0) } };
+  return {
+    pelvisY,
+    lean,
+    warp: bodyWarp(u, amp),
+    legs,
+    arms: { near: arm("near", 0.5), far: arm("far", 0) },
+  };
 }
 
 // ---- drawing ----
-const CELL = MAN_RIG.parts.reduce((o, p, i) => ((o[p] = i), o), {} as Record<string, number>);
-/** Places one atlas part: rotate its rest segment (pivot p0, angle a0) onto the posed one (pivot p1, angle a1). */
-function part(
+// The figure is drawn from five continuous layers (scripts/gen-man-rig.py): legs and arms are painted strips unrolled
+// along their bone line and rolled back onto the posed one in thin bands (knees and elbows bend smoothly, no cut
+// between thigh and shin), the body is drawn in rows that shift and widen per row (lean, shoulder swing, steadier
+// head, a hem that trails the thighs), feet stay rigid under the shin and the belt end swings on its knot.
+const PIECE = MAN_RIG.pieces,
+  RIB = MAN_RIG.ribbons,
+  ROWS = MAN_RIG.rows;
+type RibbonName = keyof typeof RIB;
+
+interface Curve {
+  len: number;
+  at(s: number): [number, number, number];
+}
+/** Centre line through pts with each inner corner rounded over ±rad px of arc length; pinned to pts[1] and pts[n-2]
+ *  (hip and ankle, shoulder and fingertips). Same construction as `curve` in scripts/gen-man-rig.py. */
+export function ribbonCurve(pts: readonly Pt[], rad: number): Curve {
+  const n = pts.length,
+    ln: number[] = [],
+    an: number[] = [],
+    S = [0];
+  for (let i = 0; i < n - 1; i++) {
+    const d = sub(pts[i + 1]!, pts[i]!);
+    ln.push(len(d));
+    an.push(Math.atan2(d[1], d[0]));
+    S.push(S[i]! + ln[i]!);
+  }
+  const L = S[n - 1]!;
+  const theta = (s: number) => {
+    let k = 0;
+    while (k < ln.length - 1 && s > S[k + 1]!) k++;
+    let th = an[k]!;
+    for (let i = 1; i < n - 1; i++) {
+      const rr = Math.min(rad, ln[i - 1]! / 2, ln[i]! / 2);
+      if (s > S[i]! - rr && s < S[i]! + rr) {
+        const d = ((an[i]! - an[i - 1]! + 3 * Math.PI) % (2 * Math.PI)) - Math.PI,
+          t = (s - (S[i]! - rr)) / (2 * rr);
+        th = an[i - 1]! + d * t * t * (3 - 2 * t);
+      }
+    }
+    return th;
+  };
+  const step = 0.5,
+    m = Math.ceil(L / step) + 1,
+    ss = new Float64Array(m),
+    cx = new Float64Array(m),
+    cy = new Float64Array(m),
+    th = new Float64Array(m);
+  for (let i = 0; i < m; i++) {
+    ss[i] = (L * i) / (m - 1);
+    th[i] = theta(ss[i]!);
+  }
+  cx[0] = pts[0]![0];
+  cy[0] = pts[0]![1];
+  for (let i = 1; i < m; i++) {
+    const h = ss[i]! - ss[i - 1]!,
+      a = 0.5 * (th[i]! + th[i - 1]!);
+    cx[i] = cx[i - 1]! + h * Math.cos(a);
+    cy[i] = cy[i - 1]! + h * Math.sin(a);
+  }
+  const idx = (s: number) => Math.min(m - 1, Math.max(0, Math.round((s / L) * (m - 1))));
+  const i1 = idx(S[1]!),
+    i2 = idx(S[n - 2]!);
+  const o1 = sub(pts[1]!, [cx[i1]!, cy[i1]!]);
+  for (let i = 0; i < m; i++) {
+    cx[i] = cx[i]! + o1[0];
+    cy[i] = cy[i]! + o1[1];
+  }
+  const e = sub(pts[n - 2]!, [cx[i2]!, cy[i2]!]);
+  for (let i = 0; i < m; i++) {
+    const w = clamp((ss[i]! - ss[i1]!) / Math.max(1e-6, ss[i2]! - ss[i1]!), 0, 1);
+    cx[i] = cx[i]! + e[0] * w;
+    cy[i] = cy[i]! + e[1] * w;
+  }
+  return {
+    len: L,
+    at(s: number) {
+      const f = clamp((s / L) * (m - 1), 0, m - 1),
+        i = Math.min(m - 2, Math.floor(f)),
+        k = f - i;
+      return [
+        cx[i]! + (cx[i + 1]! - cx[i]!) * k,
+        cy[i]! + (cy[i + 1]! - cy[i]!) * k,
+        th[i]! + (th[i + 1]! - th[i]!) * k,
+      ];
+    },
+  };
+}
+
+/** Posed centre-line points for a limb strip: the rest extensions keep their length along the end segments. */
+function limbPoints(name: RibbonName, joints: Pt[]): Pt[] {
+  const r = RIB[name].pts,
+    e0 = len(sub(r[1]!, r[0]!)),
+    e1 = len(sub(r[r.length - 1]!, r[r.length - 2]!));
+  const a = joints[0]!,
+    b = joints[1]!,
+    y = joints[joints.length - 2]!,
+    z = joints[joints.length - 1]!;
+  const d0 = sub(b, a),
+    l0 = len(d0) || 1,
+    d1 = sub(z, y),
+    l1 = len(d1) || 1;
+  return [
+    [a[0] - (d0[0] * e0) / l0, a[1] - (d0[1] * e0) / l0],
+    ...joints,
+    [z[0] + (d1[0] * e1) / l1, z[1] + (d1[1] * e1) / l1],
+  ];
+}
+
+/** Draws a limb strip rolled onto the posed centre line, `band` strip rows at a time (overlapping a little). */
+function drawRibbon(
   c: C,
   atlas: CanvasImageSource,
-  name: string,
+  name: RibbonName,
+  pts: Pt[],
+  band: number,
+  k: number,
+) {
+  const R = RIB[name],
+    rect = PIECE[name].rect,
+    cur = ribbonCurve(pts, R.rad),
+    M = c.getTransform(),
+    w = 2 * R.hw + 1,
+    n = Math.min(R.len, Math.floor(cur.len) + 1);
+  // straight stretches go in one draw; only where the line turns (knee, elbow) is it drawn band by band, so a pose
+  // costs a few dozen draws instead of hundreds
+  for (let s = 0; s < n;) {
+    const [x0, y0, t0] = cur.at(s);
+    let e = Math.min(n, s + band);
+    while (e < n && e - s < 64 && Math.abs(cur.at(Math.min(n, e + band))[2] - t0) * R.hw < 0.35)
+      e = Math.min(n, e + band);
+    const h = e - s,
+      [xm, ym, th] = h > band ? [x0, y0, t0] : cur.at(s + h / 2),
+      nx = Math.sin(th),
+      ny = -Math.cos(th),
+      dx = Math.cos(th),
+      dy = Math.sin(th),
+      oy = h > band ? 0 : h / 2;
+    c.setTransform(M);
+    c.transform(nx, ny, dx, dy, xm - R.hw * nx - oy * dx, ym - R.hw * ny - oy * dy);
+    c.drawImage(
+      atlas,
+      rect[0] * k,
+      (rect[1] + s) * k,
+      w * k,
+      h * k,
+      0,
+      -0.3 * band,
+      w,
+      h + 0.6 * band,
+    );
+    s = e;
+  }
+  c.setTransform(M);
+}
+
+/** Rigid piece (cropped in the atlas at `origin` of the source cell) rotated about a rest pivot onto a posed one. */
+function piece(
+  c: C,
+  atlas: CanvasImageSource,
+  name: "farFoot" | "nearFoot" | "belt",
   p0: readonly number[],
   a0: number,
   p1: Pt,
   a1: number,
+  k: number,
 ) {
+  const P = PIECE[name],
+    [rx, ry, rw, rh] = P.rect,
+    o = P.origin;
   c.save();
   c.translate(p1[0], p1[1]);
   c.rotate(a1 - a0);
   c.translate(-p0[0]! - SHIFT, -p0[1]!);
-  c.drawImage(atlas, CELL[name]! * 160, 0, 160, 240, SHIFT, 0, 160, 240);
+  c.drawImage(atlas, rx * k, ry * k, rw * k, rh * k, o[0] + SHIFT, o[1], rw, rh);
   c.restore();
 }
-export function drawGaitPose(c: C, atlas: CanvasImageSource, P: GaitPose) {
-  const ang = (a: Pt, b: Pt) => Math.atan2(b[1] - a[1], b[0] - a[0]);
-  const arm = (s: Side) => {
-    const j = s === "near" ? J.armNear : J.armFar,
-      A = P.arms[s],
-      pre = s === "near" ? "armNear" : "armFar";
-    const elbowL = len(sub(j.elbow, j.shoulder)),
-      elbow: Pt = [
-        A.shoulder[0] + elbowL * Math.cos(A.upper),
-        A.shoulder[1] + elbowL * Math.sin(A.upper),
-      ];
-    part(c, atlas, pre + "Lower", j.elbow, REST[(pre + "Lower") as "armNearLower"], elbow, A.lower);
-    part(
-      c,
+
+/** Body warp at phase u: per source row, the back and front edge shift (cell px) and the vertical offset. */
+export interface BodyWarp {
+  twist: number; // shoulder line forward (+) / back (−), cell px at shoulder height
+  hemF: number; // hem front edge, cell px (+ = forward)
+  hemB: number; // hem back edge
+  head: number; // extra vertical offset of the head (steadier than the hips)
+  shoulderDy: number; // shoulders settle a moment after the hips
+  belt: number; // belt end swing (radians)
+}
+/** Forward angle of each thigh (radians, knee ahead of the hip > 0), relative to the standing pose. */
+const STAND = legsAt(0, 0).legs;
+const thighOf = (l: LegPose) => Math.atan2(l.knee[0] - l.hip[0], l.knee[1] - l.hip[1]);
+function thighs(u: number, amp: number): [number, number] {
+  const L = legsAt(u, amp).legs;
+  return [thighOf(L.near) - thighOf(STAND.near), thighOf(L.far) - thighOf(STAND.far)];
+}
+export function bodyWarp(u: number, amp: number): BodyWarp {
+  if (amp <= 0) return { twist: 0, hemF: 0, hemB: 0, head: 0, shoulderDy: 0, belt: 0 }; // standing: the painted body
+  const S = STEP * amp,
+    cyc = (x: number) => ((x % 1) + 1) % 1;
+  const bob = bobAt(u, S);
+  // the cloth follows the thighs a little late; the front is pushed by the leading thigh, the back trails the other
+  const lag = 0.07,
+    [tn, tf] = thighs(cyc(u - lag), amp);
+  const hemLen = ROWS.hem - ROWS.hemTop;
+  return {
+    twist: 1.6 * amp * Math.cos(2 * Math.PI * (u - 0.5 - 0.03)),
+    hemF: 0.3 * hemLen * Math.sin(Math.max(0, tn, tf)),
+    hemB: 0.24 * hemLen * Math.sin(Math.min(0, tn, tf)),
+    head: -0.4 * bob,
+    shoulderDy: 0.25 * (bobAt(cyc(u - 0.05), S) - bob),
+    belt: 0.09 * amp * Math.sin(4 * Math.PI * (u - 0.14)),
+  };
+}
+
+/** Horizontal shift of the back (x0) and front (x1) edge and the vertical shift of body row y (source px). */
+function rowWarp(y: number, P: GaitPose, B: BodyWarp): [number, number, number] {
+  const lean = -(y - 128) * Math.sin(P.lean);
+  // chest: shoulders swing against the hips, fading out toward the belt
+  const ch = smooth(clamp((ROWS.belt - y) / (ROWS.belt - ROWS.shoulder), 0, 1));
+  // hem: from the hem top down the cloth follows the thighs more and more
+  const hm = Math.pow(clamp((y - ROWS.hemTop) / (ROWS.hem - ROWS.hemTop), 0, 1.15), 1.3);
+  // head and shoulders: the head rides 60 % of the bob, the neck blends
+  const hd = smooth(clamp((ROWS.neck + 6 - y) / 14, 0, 1));
+  const back = lean + ch * B.twist * 0.35 + hm * B.hemB,
+    front = lean + ch * B.twist + hm * B.hemF,
+    dy = hd * B.head + ch * B.shoulderDy;
+  return [back, front, dy];
+}
+
+/** Where a painted body point ends up (cell px) under the row warp. */
+function warpPoint(p: readonly number[], P: GaitPose, B: BodyWarp): Pt {
+  const [b0, f0, dy] = rowWarp(p[1]!, P, B),
+    o = PIECE.body.origin,
+    w = PIECE.body.rect[2],
+    k = (p[0]! - o[0]) / w;
+  return [p[0]! + SHIFT + b0 + (f0 - b0) * k, p[1]! + dy + (P.pelvisY - 128)];
+}
+
+function drawBody(
+  c: C,
+  atlas: CanvasImageSource,
+  P: GaitPose,
+  B: BodyWarp,
+  band: number,
+  k: number,
+) {
+  const [rx, ry, rw, rh] = PIECE.body.rect,
+    [ox, oy] = PIECE.body.origin,
+    off = P.pelvisY - 128;
+  // rows whose shift differs by less than a third of a pixel are drawn together
+  for (let y = 0; y < rh;) {
+    const w0 = rowWarp(oy + y, P, B);
+    let e = Math.min(rh, y + band);
+    while (e < rh && e - y < 48) {
+      const w1 = rowWarp(oy + Math.min(rh, e + band), P, B);
+      if (
+        Math.abs(w1[0] - w0[0]) > 0.35 ||
+        Math.abs(w1[1] - w0[1]) > 0.35 ||
+        Math.abs(w1[2] - w0[2]) > 0.35
+      )
+        break;
+      e = Math.min(rh, e + band);
+    }
+    const h = e - y,
+      [b0, f0, dy] = rowWarp(oy + y + h / 2, P, B);
+    c.drawImage(
       atlas,
-      pre + "Upper",
-      j.shoulder,
-      REST[(pre + "Upper") as "armNearUpper"],
-      A.shoulder,
-      A.upper,
+      rx * k,
+      (ry + y) * k,
+      rw * k,
+      h * k,
+      ox + SHIFT + b0,
+      oy + y + dy + off - 0.35,
+      rw + f0 - b0,
+      h + 0.7,
     );
+    y = e;
+  }
+}
+
+/** Draws pose P (cell px). `scale` is the cell's output scale (sets the band size), `k` the atlas pre-scale. */
+export function drawGaitPose(c: C, atlas: CanvasImageSource, P: GaitPose, scale = 1, k = 1) {
+  const B = P.warp,
+    band = Math.max(1, Math.round(1 / scale)); // one output pixel per band: the overlap pattern stays below a pixel
+  const arm = (s: Side) => {
+    const name = s === "near" ? "armNear" : "armFar",
+      j = J[name],
+      A = P.arms[s],
+      sh = warpPoint(j.shoulder, P, B);
+    const lu = len(sub(j.elbow, j.shoulder)),
+      ll = len(sub(j.wrist, j.elbow)),
+      lh = len(sub(j.tip, j.wrist));
+    const restLower = Math.atan2(j.wrist[1] - j.elbow[1], j.wrist[0] - j.elbow[0]),
+      restHand = Math.atan2(j.tip[1] - j.wrist[1], j.tip[0] - j.wrist[0]);
+    const elbow: Pt = [sh[0] + lu * Math.cos(A.upper), sh[1] + lu * Math.sin(A.upper)],
+      wrist: Pt = [elbow[0] + ll * Math.cos(A.lower), elbow[1] + ll * Math.sin(A.lower)],
+      ha = A.lower + (restHand - restLower),
+      tip: Pt = [wrist[0] + lh * Math.cos(ha), wrist[1] + lh * Math.sin(ha)];
+    drawRibbon(c, atlas, name, limbPoints(name, [sh, elbow, wrist, tip]), band, k);
   };
   const leg = (s: Side) => {
     const j = J[s],
       L = P.legs[s];
-    part(c, atlas, s + "Foot", j.ankle, REST[(s + "Foot") as "farFoot"], L.ankle, L.sole);
-    part(
+    piece(
       c,
       atlas,
-      s + "Shin",
-      j.knee,
-      REST[(s + "Shin") as "farShin"],
-      L.knee,
-      ang(L.knee, L.ankle),
+      s === "near" ? "nearFoot" : "farFoot",
+      j.ankle,
+      MAN_RIG.rest[s === "near" ? "nearFoot" : "farFoot"],
+      L.ankle,
+      L.sole,
+      k,
     );
-    part(
-      c,
-      atlas,
-      s + "Thigh",
-      j.hip,
-      REST[(s + "Thigh") as "farThigh"],
-      L.hip,
-      ang(L.hip, L.knee),
-    );
+    drawRibbon(c, atlas, s, limbPoints(s, [L.hip, L.knee, L.ankle]), band, k);
   };
   arm("far");
   leg("far");
   leg("near");
-  // torso and head ride the pelvis, leaning a touch into the walk around the hips
-  c.save();
-  c.translate(RIG_CX, P.pelvisY);
-  c.rotate(P.lean);
-  c.translate(-RIG_CX, -128);
-  c.drawImage(atlas, CELL["torso"]! * 160, 0, 160, 240, SHIFT, 0, 160, 240);
-  c.restore();
+  drawBody(c, atlas, P, B, band, k);
+  const pv = warpPoint(MAN_RIG.beltPivot, P, B);
+  piece(c, atlas, "belt", MAN_RIG.beltPivot, 0, pv, B.belt + P.lean, k);
   arm("near");
 }
 
@@ -309,10 +571,31 @@ let cacheBytes = 0;
 /** At most this many cells are built per rendered frame; beyond that the nearest cell already built is shown, so a
  *  crowd appearing at once spreads the (≈1 ms on a slow phone) cell builds over a few frames instead of one hitch. */
 export const RIG_BUILDS_PER_FRAME = 4;
+/** …and at most this much time (ms) per rendered frame (one cell is always allowed): a pose costs ≈ 0.5–1 ms on a
+ *  desktop and ≈ 2.5–3 ms on a slow phone, so a slow device fills the cache over more frames instead of stuttering. */
+export const RIG_BUILD_MS = 2.5;
+let spent = 0;
 let budgetT = NaN,
   built = 0;
 /** Cached frame for (amp level index, frame, scale index); built once on first use, then only drawn. `now` (the
  *  render frame's time) enables the per-frame build budget. */
+/** The atlas pre-scaled once per cache scale (high-quality shrink): the many small draws of a pose then copy at about
+ *  1:1 with plain bilinear filtering, which is several times cheaper than shrinking every band. */
+const atlasScaled = new Map<number, { src: HTMLImageElement; cv: HTMLCanvasElement }>();
+function atlasFor(im: HTMLImageElement, sc: number): { img: CanvasImageSource; k: number } {
+  if (sc === 1) return { img: im, k: 1 };
+  const hit = atlasScaled.get(sc);
+  if (hit && hit.src === im) return { img: hit.cv, k: sc };
+  const cv = document.createElement("canvas");
+  cv.width = Math.ceil(im.naturalWidth * sc);
+  cv.height = Math.ceil(im.naturalHeight * sc);
+  const g = cv.getContext("2d");
+  if (!g || !cv.width) return { img: im, k: 1 };
+  g.imageSmoothingQuality = "high";
+  g.drawImage(im, 0, 0, cv.width, cv.height);
+  atlasScaled.set(sc, { src: im, cv });
+  return { img: cv, k: sc };
+}
 export function rigFrame(
   atlas: HTMLImageElement,
   ai: number,
@@ -333,8 +616,9 @@ export function rigFrame(
     if (now !== budgetT) {
       budgetT = now;
       built = 0;
+      spent = 0;
     }
-    if (built >= RIG_BUILDS_PER_FRAME)
+    if (built >= RIG_BUILDS_PER_FRAME || (built > 0 && spent >= RIG_BUILD_MS))
       for (let d = 1; d < RIG_FRAMES / 2; d++) {
         const a =
           frames.get(base + ((f + d) % RIG_FRAMES)) ??
@@ -343,6 +627,7 @@ export function rigFrame(
       }
     built++;
   }
+  const t0 = typeof performance !== "undefined" ? performance.now() : 0;
   const sc = RIG_SCALES[si] ?? 0.5,
     cv = document.createElement("canvas");
   cv.width = Math.round(RIG_W * sc);
@@ -352,7 +637,10 @@ export function rigFrame(
   g.imageSmoothingEnabled = true;
   g.imageSmoothingQuality = "high";
   g.scale(sc, sc);
-  drawGaitPose(g, atlas, gaitPose(f / RIG_FRAMES, RIG_AMPS[ai]!));
+  const A = atlasFor(atlas, sc);
+  g.imageSmoothingQuality = A.k === 1 ? "high" : "low";
+  drawGaitPose(g, A.img, gaitPose(f / RIG_FRAMES, RIG_AMPS[ai]!), sc, A.k);
+  if (now !== undefined && typeof performance !== "undefined") spent += performance.now() - t0;
   frames.set(key, cv);
   cacheBytes += cv.width * cv.height * 4;
   for (const [k, old] of frames) {

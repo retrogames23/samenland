@@ -16,7 +16,7 @@ vi.stubGlobal("document", {
 afterAll(() => vi.unstubAllGlobals());
 
 const R = await import("./walk-rig");
-const atlas = {} as HTMLImageElement;
+const atlas = { naturalWidth: 316, naturalHeight: 240 } as HTMLImageElement;
 
 describe("rig cell cache", () => {
   it("picks the cell size by drawn height", () => {
@@ -31,9 +31,12 @@ describe("rig cell cache", () => {
     expect(made.length).toBe(n);
   });
   it("spreads builds over frames: beyond the per-frame budget the nearest built cell is shown", () => {
+    R.rigFrame(atlas, 4, 0, 1); // the scaled atlas copy for this cell size is made once, outside the count
     const before = made.length;
     for (let f = 10; f < 30; f++) R.rigFrame(atlas, 4, f, 1, 1000);
-    expect(made.length - before).toBe(R.RIG_BUILDS_PER_FRAME);
+    // count- and time-limited: at least one cell per frame, never more than the count limit
+    expect(made.length - before).toBeGreaterThanOrEqual(1);
+    expect(made.length - before).toBeLessThanOrEqual(R.RIG_BUILDS_PER_FRAME);
     const next = made.length;
     R.rigFrame(atlas, 4, 20, 1, 1016); // next frame: budget refilled
     expect(made.length).toBe(next + 1);
