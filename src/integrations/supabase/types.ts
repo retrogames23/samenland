@@ -329,7 +329,6 @@ export type Database = {
           created_at: string
           event: string
           id: string
-          request_id: string | null
           seed_id: string
           user_id: string
         }
@@ -339,7 +338,6 @@ export type Database = {
           created_at?: string
           event: string
           id?: string
-          request_id?: string | null
           seed_id: string
           user_id: string
         }
@@ -349,18 +347,10 @@ export type Database = {
           created_at?: string
           event?: string
           id?: string
-          request_id?: string | null
           seed_id?: string
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "encounters_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "ratsbuch_requests"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "encounters_seed_id_fkey"
             columns: ["seed_id"]
@@ -829,67 +819,6 @@ export type Database = {
           ways?: number
         }
         Relationships: []
-      }
-      ratsbuch_requests: {
-        Row: {
-          closed_at: string | null
-          created_at: string
-          day: string
-          id: string
-          kind: string
-          seed_id: string
-          status: string
-        }
-        Insert: {
-          closed_at?: string | null
-          created_at?: string
-          day: string
-          id?: string
-          kind: string
-          seed_id: string
-          status?: string
-        }
-        Update: {
-          closed_at?: string | null
-          created_at?: string
-          day?: string
-          id?: string
-          kind?: string
-          seed_id?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ratsbuch_requests_seed_id_fkey"
-            columns: ["seed_id"]
-            isOneToOne: false
-            referencedRelation: "seeds"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ratsbuch_state: {
-        Row: {
-          seed_id: string
-          through_day: string
-        }
-        Insert: {
-          seed_id: string
-          through_day: string
-        }
-        Update: {
-          seed_id?: string
-          through_day?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ratsbuch_state_seed_id_fkey"
-            columns: ["seed_id"]
-            isOneToOne: true
-            referencedRelation: "seeds"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       referrals: {
         Row: {
@@ -1463,7 +1392,6 @@ export type Database = {
     }
     Functions: {
       abandon_village: { Args: { _seed: string }; Returns: undefined }
-      active_boons: { Args: { _at: string; _seed: string }; Returns: number }
       build_mail_claim: {
         Args: {
           _lease_minutes?: number
@@ -1550,20 +1478,6 @@ export type Database = {
         Returns: boolean
       }
       purge_user_data: { Args: { _uid: string }; Returns: undefined }
-      ratsbuch_decline: {
-        Args: { _request: string; _seed: string }
-        Returns: boolean
-      }
-      ratsbuch_kind: {
-        Args: { _age_h: number; _day: string; _seed: string }
-        Returns: string
-      }
-      ratsbuch_refresh: { Args: { _seed: string }; Returns: number }
-      ratsbuch_refresh_at: {
-        Args: { _seed: string; _today: string }
-        Returns: number
-      }
-      ratsbuch_since: { Args: never; Returns: string }
       realm_day_start: { Args: { _seed: string }; Returns: string }
       rename_seed: {
         Args: { p_name: string; p_seed: string }
