@@ -59,6 +59,7 @@ import { townCharacter } from "./character";
 import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureReady, setNatureTime, boatImage, sheepImage, sheepWalkImage, cartImage, cartBackImage, cartAxisImage, wagonImage, fieldRowImage, rowSurface, rowImagesReady, type RowKind, oxWalkImage, planksPattern, riderImage, horseImage, stallImage, type Tex } from "./nature-sprites";
 import { townOf, onFireTile, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
+import { RIG_FRAMES, RIG_H, RIG_W, rigFrame, rigScaleFor, rigSlide, stepGait } from "./walk-rig";
 import { folkImage, walkSheet, standSprite, standSheetOf, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { townRank, seatKindForRank } from "./rank";
@@ -1419,6 +1420,16 @@ function insignia(c: C, q: Pose, hgt: number) {
       if (cloth) { const ch2 = h * 0.38, cw = (ch2 * cloth.width) / cloth.height; c.drawImage(cloth, hgt * 0.32, -h * 0.95, cw, ch2); } }
   }
 }
+/** P6 reference walker: the ordinary villager ("man") walks on the skeletal cycle from walk-rig.ts. ?rig=0 (or
+ *  window.__setRig(false)) shows the painted 8-frame sheet instead, for comparison. Display only. */
+let manRigOn = (() => { try { return !/[?&]rig=0/.test(location.search); } catch { return true; } })();
+if (typeof window !== "undefined") (window as unknown as { __setRig?: (on: boolean) => void }).__setRig = (on) => { manRigOn = on; };
+/** Source px (of the 240 px sheet) a figure of height hgt covers on screen per unit of path phase in tile direction d:
+ *  phase = distance / STRIDE with 0.34 tiles per 2π (people.ts); a tile step spans 16 px across and 8 px down. */
+function rigPxPerPhase(d: readonly [number, number], hgt: number) {
+  const l = Math.hypot(d[0], d[1]) || 1, scr = Math.hypot(16 * (d[0] - d[1]), 8 * (d[0] + d[1])) / l;
+  return (0.34 / 6.2832) * scr * (RIG_H / hgt);
+}
 /** World matrix of the main canvas while villagers are drawn: lets drawFolk place sprites without save()/getTransform(). */
 let folkCtx: C | null = null, folkM: DOMMatrix | null = null, folkFrame = -1;
 function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
@@ -1428,7 +1439,9 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const w = (hgt * im.naturalWidth) / im.naturalHeight;
   const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + hash(q.p.id, 77, 5) * 6.2832;
   const painted = q.walking && (!!walkSheet(k) || legsFor(q));
-  const bob = q.walking ? Math.abs(Math.sin(ph)) * 0.07 : 0;
+  // the reference walker carries its own pelvis bob in the cycle; the whole-sprite bob is for painted sheets
+  const rigged = k === "man" && manRigOn && !q.working && q.p.job !== "mayor" ? folkImage("manRig") : null;
+  const bob = q.walking && !rigged ? Math.abs(Math.sin(ph)) * 0.07 : 0;
   // working: asymmetric tool rhythm — slow wind-up, quick stroke, short rest (not a pendulum)
   const skirt = q.walking && !painted && SKIRTS.has(k);
   let tilt = 0;
@@ -1493,6 +1506,23 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     insignia(c, q, hgt);
     c.setTransform(B);
     return [X, Y - hgt - bob];
+  }
+  if (rigged) {
+    // skeletal reference cycle: the stride follows the distance the figure moves on screen, so the planted foot
+    // stays put; standing is the same rig at zero stride (same body), and starting/stopping steps through shorter strides
+    const g = stepGait(q.p.id, q.phase, q.walking, rigPxPerPhase(q.dir, hgt), t, hash(q.p.id, 77, 5));
+    const px = hgt * Math.hypot(B.c, B.d); // drawn height in canvas px: close-ups get the full-resolution cells
+    const uf = g.u * RIG_FRAMES, fi = Math.floor(uf) % RIG_FRAMES, fr = rigFrame(rigged, g.ai, fi, rigScaleFor(px), t);
+    if (fr) {
+      if (!q.walking) { // standing: slow breathing, as for every other figure
+        const id = q.p.id, br = Math.sin(t / (1900 + hash(id, 41, 3) * 900) + id);
+        c.transform(1 - br * 0.004, 0, 0, 1 + br * 0.012, 0, 0);
+      }
+      const rw = (hgt * RIG_W) / RIG_H, slide = (rigSlide(g.ai, uf - Math.floor(uf)) * hgt) / RIG_H;
+      c.drawImage(fr, -rw / 2 + slide, -hgt, rw, hgt);
+      insignia(c, q, hgt); c.setTransform(B);
+      return [X, Y - hgt];
+    }
   }
   const sheet = q.walking ? walkSheet(k) : null;
   const legs = q.walking && !sheet && legsFor(q) ? legsImg(HIPS[k] ?? DEFAULT_FIG) : null;
@@ -3503,10 +3533,10 @@ function labEntries(): LabEntry[] {
   let pid = 1;
   /** A villager drawn exactly like on the map (drawFolk + bucket + lantern), in every situation the game gives them. */
   const person = (row: string, cat: LabCat, job: string, sex: "m" | "f", age: number, sits: LabSit[], o: { estate?: string; festive?: "bride" | "groom" } = {}) => {
-    const id = pid++;
-    const p = { id, seed: LAB_SEED, first: row, last: "", sex, age, job, home: [0, 0], work: null, workIndoor: false, speed: 1,
+    const pp = { id: 0, seed: LAB_SEED, first: row, last: "", sex, age, job, home: [0, 0], work: null, workIndoor: false, speed: 1,
       looks: { skin: 0, hair: 0, shirt: 0, pants: 0, hat: false, stick: false }, estate: o.estate } as unknown as Person;
     for (const sit of sits) {
+      const p = { ...pp, id: pid++ } as Person; // one id per card: per-figure display state (gait) must not be shared
       const walking = sit === "walk" || sit === "carry" || sit === "lantern" || sit === "rain" || sit === "storm";
       const pose = (ph: number): Pose => ({ p, x: 0, y: 0, visible: true, walking: walking && (labWalk ?? true), dir: labDir ?? [1, 0], phase: ph, act: sit === "work" ? "work" : "stroll",
         working: sit === "work", talk: null, talkTurn: false, carry: sit === "carry" || sit === "carryStand" ? "grain" : null, dest: null, festive: o.festive, bucket: sit === "bucket" });
