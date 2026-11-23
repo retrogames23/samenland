@@ -1,5 +1,5 @@
 /**
- * Wirtschaft Paket 1 + 2: persistent wood and stone (Variante D with the Phase 1.3 corrections V1, V2 and V7).
+ * Wirtschaft Paket 1 + 2: persistent wood and stone (Variante D with the Phase 1.3 corrections V1 and V7).
  * The database is the authority (migrations 0142/0143: resource_ledger, resource_refresh, purchase_material,
  * village_sites); this module only mirrors its rules so the client can show material needs, production and the Kontor
  * price before the player accepts. Change both sides together — resources.test.ts compares them.
@@ -25,14 +25,12 @@ export const KONTOR_PRICE: Record<Resource, number> = { wood: 4, stone: 6 };
 export const STONE_FROM_PRICE = 500;
 
 /**
- * Steingrube (Paket 2, Variante D): 300 Mark and 20 wood, no stone. The council's Steinbruch-Auftrag (V2) pays 150 of
- * it for every village's first — and only — Steingrube, so it costs 150. Not in ITEMS: it is no civic work and never
- * touches prosperity, tax or dowries. Unplaced; sold only where the village's resources run (DB purchase_guard).
+ * Steingrube (Paket 2): 150 Mark and 20 wood, no stone; at most one per village. Not in ITEMS: it is no civic work and
+ * never touches prosperity, tax or dowries. Unplaced; sold only where the village's resources run (DB purchase_guard,
+ * migration 0143 — its price expression `300 - 150` evaluates to exactly this price; no credit is ever booked).
  */
 export const STEINGRUBE = "steingrube";
-export const STEINGRUBE_PRICE = 300;
-export const STEINBRUCH_AUFTRAG = 150;
-export const STEINGRUBE_COST = STEINGRUBE_PRICE - STEINBRUCH_AUFTRAG;
+export const STEINGRUBE_PRICE = 150;
 export const STEINGRUBE_WOOD = 20;
 
 /** Bought buildings and upgrades that use material; chests, monuments, services and markets do not (yet). */
@@ -43,7 +41,7 @@ export const MATERIAL_ITEMS: readonly string[] = [
 ];
 export const materialPrice = (item: string): number | null =>
   item === STEINGRUBE
-    ? STEINGRUBE_COST
+    ? STEINGRUBE_PRICE
     : ((ITEMS as Record<string, number>)[item] ?? AUSBAU_PRICE[item] ?? null);
 
 /** Wood price/20, stone price/30 from 500 Mark (DB purchase_material: round half up). */

@@ -13,8 +13,6 @@ import {
   SITE_KONTOR,
   SITE_STONE,
   SITE_WOOD,
-  STEINBRUCH_AUFTRAG,
-  STEINGRUBE_COST,
   STEINGRUBE_PRICE,
   STEINGRUBE_WOOD,
   kontorQuote,
@@ -135,7 +133,7 @@ describe("resources: material, Kontor and daily units", () => {
   });
 });
 
-// ---------------- Paket 2: Steingrube, Steinbruch-Auftrag, location (migration 0143) ----------------
+// ---------------- Paket 2: Steingrube and location (migration 0143) ----------------
 const SQL2 = readFileSync(
   new URL("../../drizzle/migrations/0143_steingrube.sql", import.meta.url),
   "utf8",
@@ -152,10 +150,16 @@ describe("Paket 2: TypeScript mirrors migration 0143", () => {
     expect(materialOf("healer")).toEqual(materialNeed(550));
     expect(materialOf("chest2")).toBeNull();
   });
-  it("Steingrube: 300 Mark minus 150 from the Steinbruch-Auftrag, in the guard patch", () => {
-    expect([STEINGRUBE_PRICE, STEINBRUCH_AUFTRAG, STEINGRUBE_COST]).toEqual([300, 150, 150]);
-    expect(SQL2).toContain(`price := ${STEINGRUBE_PRICE} - ${STEINBRUCH_AUFTRAG};`);
-    expect(materialPrice("steingrube")).toBe(150);
+  it("Steingrube: one plain price of 150 Mark — UI constant, quote and the server's guard expression agree", () => {
+    expect(STEINGRUBE_PRICE).toBe(150);
+    expect(materialPrice("steingrube")).toBe(STEINGRUBE_PRICE);
+    // 0143 is already applied and stays untouched; its expression must evaluate to exactly this price
+    const m = /IF NEW\.item = 'steingrube' THEN\s+price := (\d+) - (\d+);/.exec(SQL2)!;
+    expect(Number(m[1]) - Number(m[2])).toBe(STEINGRUBE_PRICE);
+    // nothing in 0143 credits money for it (no balance addition, no reward row)
+    expect(SQL2).not.toMatch(
+      /village_balance[^;]*\+|INSERT INTO public\.(gifts|quest_claims|referrals)/,
+    );
     expect(ITEMS).not.toHaveProperty("steingrube"); // no civic work: prosperity, tax and dowries stay untouched
   });
   it("location factors in SQL equal SITE_WOOD / SITE_STONE / SITE_KONTOR (Variante D original, Phase 1.2)", () => {
@@ -202,5 +206,23 @@ describe("Paket 2: migration 0143 order", () => {
       firstCreate = SQL2.search(/^CREATE /m);
     expect(firstDo).toBeGreaterThan(0);
     expect(firstDo).toBeLessThan(firstCreate);
+  });
+});
+
+describe("Steingrube texts: plain building, no grant", () => {
+  it("German title and description are exactly the agreed wording", () => {
+    expect(RESOURCE_T.de.quarry).toBe("Steingrube");
+    expect(RESOURCE_T.de.quarryText).toBe(
+      "Eine Steingrube fördert täglich zusätzlichen Stein. Die Fördermenge hängt vom Standort deines Dorfes ab.",
+    );
+  });
+  it("no language mentions a council, grant, start-up aid or founding discount any more", () => {
+    const banned =
+      /Rat\b|Rates|Zuschuss|Starthilfe|Nachlass|Gründung|Auftrag|council|grant|commission|discount|conseil|remise|commande|concejo|encargo|descuento|المجلس|تكليف|خصم|परिषद|आदेश|छूट|议会|委托|折扣|評議会|依頼|割引/;
+    for (const l of LANGS) {
+      const t = RESOURCE_T[l];
+      for (const v of [t.quarry, t.quarryText, t.build, t.paid]) expect(v, l).not.toMatch(banned);
+      expect(Object.keys(t), l).not.toContain("auftrag");
+    }
   });
 });

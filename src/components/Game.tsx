@@ -55,7 +55,7 @@ import { useTreasurySync } from "@/components/hooks/useTreasurySync";
 import { useResources } from "@/components/hooks/useResources";
 import { ResourceBar, MaterialLine } from "@/components/hud/ResourceBar";
 import { RESOURCE_T } from "@/game/lang/resources";
-import { kontorQuote, materialOf, STEINGRUBE, STEINGRUBE_COST, STEINGRUBE_PRICE, SITE_STONE } from "@/game/resources";
+import { kontorQuote, materialOf, STEINGRUBE, STEINGRUBE_PRICE, SITE_STONE } from "@/game/resources";
 import { civicRoadsOf } from "@/game/civic-roads";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText, MoreHorizontal, Feather } from "lucide-react";
@@ -2577,20 +2577,20 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
             </div>
           )}
           {my && res?.active && (() => {
-            // Steinbruch-Auftrag des Rates (Paket 2, V2): offered from the first day, before any stone runs short
+            // Steingrube (Paket 2): 150 Mark + 20 wood, offered from the first day, at most one per village
             const rt = RESOURCE_T[lang], site = res.site ?? "grain", owned = purchases.some((p) => p.seed_id === my.id && p.item === STEINGRUBE);
             const fmt = (n: number) => n.toLocaleString(LOCALE[lang]);
             if (owned) return <div key="steingrube" className="rounded-md border border-border bg-secondary/60 p-2 text-xs text-primary" data-steingrube="running">⛏ {res.site ? rt.running(fmt(SITE_STONE[res.site])) : rt.quarry}</div>;
             return (
               <div key="steingrube" className="rounded-md border border-brass/60 bg-brass/10 p-2" data-steingrube="offer">
                 <div className="flex items-center gap-2">
-                  <span className="flex-1 font-semibold">⛏ {rt.auftrag}</span>
-                  <span className="text-xs text-muted-foreground"><s>{t.taler(STEINGRUBE_PRICE)}</s> {t.taler(STEINGRUBE_COST)}</span>
+                  <span className="flex-1 font-semibold">⛏ {rt.quarry}</span>
+                  <span className="text-xs text-muted-foreground">{t.taler(STEINGRUBE_PRICE)}</span>
                 </div>
-                <div className="text-xs text-muted-foreground">{res.site ? rt.auftragText(fmt(SITE_STONE[res.site]), rt.sites[res.site], t.taler(STEINGRUBE_PRICE), t.taler(STEINGRUBE_COST)) : rt.auftragOpen(t.taler(STEINGRUBE_PRICE), t.taler(STEINGRUBE_COST))}</div>
+                <div className="text-xs text-muted-foreground">{rt.quarryText}</div>
                 {site === "gateway" && <div className="text-[11px] text-muted-foreground">{rt.coast}</div>}
                 <MaterialLine q={matQuote(STEINGRUBE)} lang={lang} taler={t.taler} />
-                <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < STEINGRUBE_COST + kontorOf(STEINGRUBE)} onClick={() => void buy(STEINGRUBE)}>{rt.build} · {t.taler(STEINGRUBE_COST + kontorOf(STEINGRUBE))}</Button>
+                <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < STEINGRUBE_PRICE + kontorOf(STEINGRUBE)} onClick={() => void buy(STEINGRUBE)}>{rt.build} · {t.taler(STEINGRUBE_PRICE + kontorOf(STEINGRUBE))}</Button>
               </div>
             );
           })()}
