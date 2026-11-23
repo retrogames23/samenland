@@ -240,10 +240,13 @@ export function nextQuality(q: QualityState, frameMs: number): QualityState {
   return { level, slow, fast, ema };
 }
 export const QUALITY_SCALE = [0.4, 0.65, 1] as const;
-let quality: QualityState = { level: 2, slow: 0, fast: 0, ema: 0 }, lastFrame = 0;
+let quality: QualityState = { level: 2, slow: 0, fast: 0, ema: 0 }, lastFrame = 0, lastGap = 16;
+/** Time between the last two water frames (ms): lets first-sight building scale with how slow frames already are. */
+export const waterFrameGap = () => lastGap;
 /** Fed once per drawn frame; returns the density scale for the water layer. ?waterq=0|1|2 pins a level for tests. */
 export function waterQuality(now: number): number {
-  if (pinned !== null) return QUALITY_SCALE[pinned]!;
+  if (lastFrame) lastGap = now - lastFrame;
+  if (pinned !== null) { lastFrame = now; return QUALITY_SCALE[pinned]!; }
   if (lastFrame) quality = nextQuality(quality, now - lastFrame);
   lastFrame = now;
   return QUALITY_SCALE[quality.level]!;

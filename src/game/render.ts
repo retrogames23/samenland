@@ -51,7 +51,7 @@ import { setArtTime, seasonalImage, standIns } from "./season-art";
 import { chunkKey, pickChunk, nextShown } from "./ground-chunks";
 import { flatQ } from "./field-rows";
 import { FLOW_BLOCK, STREAKS, flowBlock, flowBlockIfReady, flowBuild, flowCacheSize, flowPatch, streakAt, zoomKeep, type FlowBlock } from "./river-flow";
-import { SEA_FAR, coastDist, crescent, onshore, seaBlockIfReady, seaPrepare, waterBuild, waterCacheStats, crestBrush, foamBrush, isSea, rippleBrush, seaBlock, shadeSprite, sheenDir, sheenIndex, sheenSprite, surfFront, surfPhase, surfPhaseD, swellPhase, waterConcept, waterQuality, waterQualityLevel, type SeaBlock, type WaterConcept } from "./water-look";
+import { SEA_FAR, coastDist, crescent, onshore, seaBlockIfReady, seaPrepare, waterBuild, waterCacheStats, crestBrush, foamBrush, isSea, rippleBrush, seaBlock, shadeSprite, sheenDir, sheenIndex, sheenSprite, surfFront, surfPhase, surfPhaseD, swellPhase, waterConcept, waterFrameGap, waterQuality, waterQualityLevel, type SeaBlock, type WaterConcept } from "./water-look";
 import { seasonKey, seasonAt } from "./season";
 import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
@@ -2837,7 +2837,8 @@ function chainSegs(segs: Seg[]) {
   for (let i = 0; i < n; i++) segs[i] = out[i]!;
 }
 const seaShoreReady = (bx: number, by: number) => seaShoreCache.has(by * 4096 + bx);
-/** Per-frame time budget (ms) for building sea data on first sight. */
+/** Per-frame time budget (ms) for building water data on first sight; on already slow frames up to 8 % of the frame
+ *  (at most 30 ms), so a slow device does not drag the build out over a minute. */
 const D_BUILD_MS = 3;
 function seaShore(bx: number, by: number): Seg[] {
   const key = by * 4096 + bx, hit = seaShoreCache.get(key); if (hit) return hit;
@@ -3070,7 +3071,7 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
   // Cold start: sea data not built yet is built here within a small time budget per frame; blocks over budget get
   // their sea marks a frame or two later instead of the whole coast stalling one frame (they fade in anyway).
   pBegin("water.d.prep");
-  dBlocks.length = 0; let nRiv = 0, nSea = 0; const reach = z > 0.8 ? 255 : 16, deadline = performance.now() + D_BUILD_MS;
+  dBlocks.length = 0; let nRiv = 0, nSea = 0; const reach = z > 0.8 ? 255 : 16, deadline = performance.now() + Math.min(30, Math.max(D_BUILD_MS, waterFrameGap() * 0.08));
   const canBuild = () => performance.now() < deadline;
   visBlocks(x0, x1, y0, y1, vx0, vx1, vy0, vy1, (bx, by) => {
     let R = flowBlockIfReady(bx, by); if (R === undefined && canBuild()) R = flowBlock(bx, by);
