@@ -100,6 +100,7 @@ const blockData = new Map<number, FlowBlock | null>();
 onGeoChange(() => blockData.clear());
 export function flowBlock(bx: number, by: number): FlowBlock | null {
   const key = by * 4096 + bx, hit = blockData.get(key); if (hit !== undefined) return hit;
+  const t0 = performance.now();
   const ks = riverBlock(bx, by); let out: FlowBlock | null = null;
   if (ks?.length) {
     const xs: number[] = [], ys: number[] = [], fxs: number[] = [], fys: number[] = [], sps: number[] = [], rooms: number[] = [];
@@ -110,5 +111,8 @@ export function flowBlock(bx: number, by: number): FlowBlock | null {
     }
     if (xs.length) out = { n: xs.length, x: Int16Array.from(xs), y: Int16Array.from(ys), fx: Float32Array.from(fxs), fy: Float32Array.from(fys), sp: Float32Array.from(sps), room: Float32Array.from(rooms) };
   }
-  blockData.set(key, out); return out;
+  blockData.set(key, out); flowBuild.ms += performance.now() - t0; flowBuild.blocks++; return out;
 }
+/** Build cost and cache size of the flow blocks (perf probe). Bounded by the map: at most 64 × 64 entries. */
+export const flowBuild = { ms: 0, blocks: 0 };
+export const flowCacheSize = () => blockData.size;
