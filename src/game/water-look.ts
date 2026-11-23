@@ -150,7 +150,9 @@ export function swellPhase(x: number, y: number, f: [number, number], t: number,
 }
 /** D's surf beat: varies slowly along the coast (about one beat per 10–15 tiles), so neighbouring shore points are
  *  at almost the same stage and the foam line moves as one soft front instead of tearing into spikes. */
-export const surfPhaseD = (x: number, y: number, t: number, period: number) => (((t / period + vnoise(x * 0.002, y * 0.003, 1321) * 1.1 + vnoise(x * 0.0009, y * 0.0012, 1322) * 0.7) % 1) + 1) % 1;
+/** The static part of D's surf beat at a point (cacheable): surfPhaseD = (t / period + surfOffsetD) mod 1. */
+export const surfOffsetD = (x: number, y: number) => vnoise(x * 0.002, y * 0.003, 1321) * 1.1 + vnoise(x * 0.0009, y * 0.0012, 1322) * 0.7;
+export const surfPhaseD = (x: number, y: number, t: number, period: number) => (((t / period + surfOffsetD(x, y)) % 1) + 1) % 1;
 
 // ---- sprites rendered once ----
 const brushes = new Map<string, HTMLCanvasElement | null>();

@@ -51,7 +51,7 @@ import { setArtTime, seasonalImage, standIns } from "./season-art";
 import { chunkKey, pickChunk, nextShown } from "./ground-chunks";
 import { flatQ } from "./field-rows";
 import { FLOW_BLOCK, STREAKS, flowBlock, flowBlockIfReady, flowBuild, flowCacheSize, flowPatch, streakAt, zoomKeep } from "./river-flow";
-import { SEA_FAR, coastDist, crescent, isSea, onshore, seaBlock, seaBlockIfReady, seaPrepare, sheenDir, sheenIndex, surfFront, surfPhaseD, swellPhase, waterBuild, waterCacheStats, waterConcept, waterFrameGap, waterQuality, waterQualityLevel, type SeaBlock } from "./water-look";
+import { SEA_FAR, coastDist, crescent, isSea, onshore, seaBlock, seaBlockIfReady, seaPrepare, sheenDir, sheenIndex, surfFront, surfOffsetD, swellPhase, waterBuild, waterCacheStats, waterConcept, waterFrameGap, waterQuality, waterQualityLevel, type SeaBlock } from "./water-look";
 import { seasonKey, seasonAt } from "./season";
 import { treeKind } from "./biome";
 import { drawBuildingSprite, drawBuildingNight, hasNightSprite, spriteBox, setSpriteTime, type HouseStyle } from "./building-sprites";
@@ -3116,12 +3116,13 @@ function drawWaterD(c: C, x0: number, x1: number, y0: number, y1: number, z: num
       if (!on(s.mx, s.my)) continue;
       // seaward direction at each end from the smoothed onshore field: shared ends get the same direction, so the
       // offset line stays smooth instead of copying the tile staircase of the shoreline
-      const sd = s.sea ?? (s.sea = [...seaward(s.a), ...seaward(s.b), exposure(s.a), exposure(s.b)]);
+      const sd = s.sea ?? (s.sea = [...seaward(s.a), ...seaward(s.b), exposure(s.a), exposure(s.b), surfOffsetD(s.a[0], s.a[1]), surfOffsetD(s.b[0], s.b[1])]);
       // narrow water (lagoon, inlet) also shortens the run-in, so fronts from opposite shores never cross; all of it per
       // segment end, so neighbouring segments meet exactly and each stretch of coast stays one band
       const eA = sd[4]!, eB = sd[5]!, ex = (eA + eB) / 2, rA = 0.15 + 0.85 * eA * eA, rB = 0.15 + 0.85 * eB * eB;
       const ax = sd[0]! * rA, ay = sd[1]! * rA, bx2 = sd[2]! * rB, by2 = sd[3]! * rB;
-      const pa = surfPhaseD(s.a[0], s.a[1], t, 7600), pb = surfPhaseD(s.b[0], s.b[1], t, 7600), A = surfFront(pa), B = surfFront(pb), a = ((A.a + B.a) / 2) * ex;
+      const tb = t / 7600, pa = (((tb + sd[6]!) % 1) + 1) % 1, pb = (((tb + sd[7]!) % 1) + 1) % 1, // beat offsets cached per segment
+         A = surfFront(pa), B = surfFront(pb), a = ((A.a + B.a) / 2) * ex;
       const nAx = sd[0]!, nAy = sd[1]!, nBx = sd[2]!, nBy = sd[3]!; // seaward (unit-ish, iso-squashed): across the band
       const Px = s.a[0] + ax * A.off * RUN_IN, Py = s.a[1] + ay * A.off * RUN_IN, Qx = s.b[0] + bx2 * B.off * RUN_IN, Qy = s.b[1] + by2 * B.off * RUN_IN;
       // static foam pattern along this segment, sampled once (7 points per band): the band's swellings and gaps are
