@@ -590,15 +590,31 @@ let cacheBytes = 0;
 /** Cells started per rendered frame at most (bounds the canvases made in one frame). */
 export const RIG_BUILDS_PER_FRAME = 4;
 /** Time (ms) per rendered frame for building cells. A cell is built in GAIT_STEPS steps (≈ 0.1–0.3 ms each on a
- *  desktop, ≈ 0.1–1.4 ms on a slow phone); a step starts only if 1.5× its running average still fits, so building
- *  rarely runs past the budget — the first step of a frame always runs, so the cache keeps filling. */
+ *  desktop, ≈ 0.1–1.4 ms on a slow phone); a step starts only if its expected cost (per cell size, mean plus twice the
+ *  scatter) still fits, so building rarely runs past the budget — the first step of a frame always runs, so the cache
+ *  keeps filling. A running step cannot be interrupted: a step that takes far longer than usual still overshoots. */
 export const RIG_BUILD_MS = 2.5;
 const GAIT_STEPS = 5;
-/** Expected cost of each build step (ms), a running average of the measured ones. */
-const stepCost = new Array<number>(GAIT_STEPS + 1).fill(0.3);
+/** Expected cost of each build step (ms) per cell size, a running average of the measured ones: a full-size step
+ *  costs several times a small one, so one shared average under-estimated the big cells. */
+const stepCosts = RIG_SCALES.map(() => new Array<number>(GAIT_STEPS + 1).fill(0.3));
+/** …and how much they scatter (running mean deviation): a step is planned at its mean plus twice its scatter, so
+ *  the uneven steps (a bent leg needs more bands than a straight one) rarely run past the budget. */
+const stepDevs = RIG_SCALES.map(() => new Array<number>(GAIT_STEPS + 1).fill(0.3));
+const expected = (si: number, i: number) => {
+  const m = stepCosts[si]![i]!;
+  return Math.max(1.25 * m, m + 2 * stepDevs[si]![i]!);
+};
+function learn(si: number, i: number, dt: number) {
+  const c = stepCosts[si]!,
+    d = stepDevs[si]!;
+  d[i] = d[i]! * 0.8 + Math.abs(dt - c[i]!) * 0.2;
+  c[i] = c[i]! * 0.8 + dt * 0.2;
+}
 let spent = 0,
   steps = 0,
   started = 0,
+  maxStep = 0,
   budgetT = NaN;
 /** Cells being built: the canvas and the remaining steps; at most a few, the oldest is dropped. */
 interface Job {
@@ -688,12 +704,13 @@ export function rigFrame(
     spent = 0;
     steps = 0;
     started = 0;
+    maxStep = 0;
   }
   let job = jobs.get(key);
   if (!job) {
     if (
       now !== undefined &&
-      (started >= RIG_BUILDS_PER_FRAME || (steps > 0 && spent + 1.5 * stepCost[0]! > RIG_BUILD_MS))
+      (started >= RIG_BUILDS_PER_FRAME || (steps > 0 && spent + expected(si, 0) > RIG_BUILD_MS))
     )
       return standIn(ai, f, si);
     const t0 = clock(),
@@ -712,19 +729,20 @@ export function rigFrame(
     if (jobs.size > MAX_JOBS) jobs.delete(jobs.keys().next().value!);
     started++;
     const dt = clock() - t0;
-    stepCost[0] = stepCost[0]! * 0.8 + dt * 0.2;
+    learn(si, 0, dt);
     spent += dt;
     steps++;
+    maxStep = Math.max(maxStep, dt);
   }
   while (job.i < job.run.length) {
-    const cost = stepCost[job.i + 1]!;
-    if (now !== undefined && steps > 0 && spent + 1.5 * cost > RIG_BUILD_MS) break; // estimate with headroom
+    if (now !== undefined && steps > 0 && spent + expected(si, job.i + 1) > RIG_BUILD_MS) break;
     const t0 = clock();
     job.run[job.i]!();
     const dt = clock() - t0;
-    stepCost[job.i + 1] = cost * 0.8 + dt * 0.2;
+    learn(si, job.i + 1, dt);
     spent += dt;
     steps++;
+    maxStep = Math.max(maxStep, dt);
     job.i++;
   }
   if (job.i < job.run.length) {
@@ -739,7 +757,9 @@ export function rigFrame(
 /** Building effort of the current rendered frame (ms) — for tests and diagnostics. */
 export const rigBuildSpent = () => spent;
 /** Expected cost per build step (ms; [0] = new canvas) — diagnostics. */
-export const rigStepCosts = () => stepCost.slice();
+export const rigStepCosts = (si = 0) => (stepCosts[si] ?? []).slice();
+/** Build bookkeeping of the current rendered frame — diagnostics only. */
+export const rigBuildStats = () => ({ spent, steps, started, maxStep, jobs: jobs.size });
 export const rigCacheSize = () => frames.size;
 /** Bytes held by the cell cache (RGBA). */
 export const rigCacheBytes = () => cacheBytes;
