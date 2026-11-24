@@ -60,6 +60,10 @@ import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureRea
 import { townOf, onFireTile, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { RIG_FRAMES, RIG_H, RIG_W, rigFrame, rigScaleFor, rigSlide, stepGait } from "./walk-rig";
+import { WALK8_FRAMES, WALK8_HIP, WALK8_LOOP, WALK8_REST, WALK8_SCALE, walk8Bob, walk8Frame, walk8PairOffset } from "./man-walk8";
+const W8_GAIT = { len: WALK8_LOOP, rest: WALK8_REST };
+/** Legs are sheared only once a figure is this tall on screen (canvas px): below, the in-frame glide is < ~3 px. */
+const WALK8_SHEAR_MIN_PX = 32;
 import { folkImage, walkSheet, standSprite, standSheetOf, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { townRank, seatKindForRank } from "./rank";
@@ -1420,9 +1424,9 @@ function insignia(c: C, q: Pose, hgt: number) {
       if (cloth) { const ch2 = h * 0.38, cw = (ch2 * cloth.width) / cloth.height; c.drawImage(cloth, hgt * 0.32, -h * 0.95, cw, ch2); } }
   }
 }
-/** P6 reference walker: the ordinary villager ("man") walks on the skeletal cycle from walk-rig.ts. ?rig=0 (or
- *  window.__setRig(false)) shows the painted 8-frame sheet instead, for comparison. Display only. */
-let manRigOn = (() => { try { return !/[?&]rig=0/.test(location.search); } catch { return true; } })();
+/** The ordinary villager ("man") walks on the painted 8-frame sheet (man-walk8, man-walk8.ts). The P6d skeletal cycle
+ *  (walk-rig.ts) stays available for comparison: ?rig=1 or window.__setRig(true). Display only. */
+let manRigOn = (() => { try { return /[?&]rig=1/.test(location.search); } catch { return false; } })();
 if (typeof window !== "undefined") (window as unknown as { __setRig?: (on: boolean) => void }).__setRig = (on) => { manRigOn = on; };
 /** Source px (of the 240 px sheet) a figure of height hgt covers on screen per unit of path phase in tile direction d:
  *  phase = distance / STRIDE with 0.34 tiles per 2π (people.ts); a tile step spans 16 px across and 8 px down. */
@@ -1440,8 +1444,13 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + hash(q.p.id, 77, 5) * 6.2832;
   const painted = q.walking && (!!walkSheet(k) || legsFor(q));
   // the reference walker carries its own pelvis bob in the cycle; the whole-sprite bob is for painted sheets
-  const rigged = k === "man" && manRigOn && !q.working && q.p.job !== "mayor" ? folkImage("manRig") : null;
-  const bob = q.walking && !rigged ? Math.abs(Math.sin(ph)) * 0.07 : 0;
+  const refMan = k === "man" && !q.working && q.p.job !== "mayor";
+  const rigged = refMan && manRigOn ? folkImage("manRig") : null;
+  // painted 8-frame walk: the frame follows the distance walked on screen (one loop = the painted stride), and a stop
+  // closes the step on the spot to a passing frame before the standing picture takes over
+  const w8 = refMan && !rigged ? walkSheet(k) : null;
+  const g8 = w8 ? stepGait(-1 - q.p.id, q.phase, q.walking, rigPxPerPhase(q.dir, hgt), t, 0, W8_GAIT) : null;
+  const bob = g8 ? (g8.ai > 0 ? walk8Bob(g8.u) * 0.07 : 0) : q.walking && !rigged ? Math.abs(Math.sin(ph)) * 0.07 : 0;
   // working: asymmetric tool rhythm — slow wind-up, quick stroke, short rest (not a pendulum)
   const skirt = q.walking && !painted && SKIRTS.has(k);
   let tilt = 0;
@@ -1524,7 +1533,20 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       return [X, Y - hgt];
     }
   }
-  const sheet = q.walking ? walkSheet(k) : null;
+  if (w8 && g8 && g8.ai > 0) {
+    const fw = w8.naturalWidth / WALK8_FRAMES, sh = hgt * walkScaleOf(k) * WALK8_SCALE, wf = walk8Frame(g8.u);
+    // the planted boot would glide with the body: the legs (below the hip) are sheared back by the ground the figure
+    // covers while one stance pair shows (two frames), so the sole stays put while the upper body moves on undisturbed
+    // (small on screen the glide stays under a few px and the split draw would only cost: one plain frame there)
+    const ww = (sh * fw) / w8.naturalHeight, big = hgt * Math.hypot(B.c, B.d) >= WALK8_SHEAR_MIN_PX;
+    const pair = walk8PairOffset(-1 - q.p.id, g8.u, q.walking, q.dir) * (hgt / 240); // kept current at every size
+    const off = big ? pair : 0;
+    if (off) drawSheetSheared(c, w8, wf.f, fw, ww, sh, off, WALK8_HIP);
+    else drawSheetFrame(c, w8, wf.f, fw, ww, sh, 0);
+    insignia(c, q, hgt); c.setTransform(B);
+    return [X, Y - hgt - bob];
+  }
+  const sheet = q.walking && !w8 ? walkSheet(k) : null;
   const legs = q.walking && !sheet && legsFor(q) ? legsImg(HIPS[k] ?? DEFAULT_FIG) : null;
   const frameOf = (fw: number) => { void fw; return gaitFrame(ph); };
   if (sheet) {
@@ -3512,6 +3534,16 @@ function drawCourtWalk(c: C, im: HTMLImageElement, role: CourtRole, w: number, h
   else c.drawImage(im, -w / 2, -h - bob, w, h);
 }
 
+/** A walk-sheet cell whose lower part (from source row `cut`, the hip) is sheared so the soles shift by `off` while
+ *  everything above the hip stays put: the legs pivot at the hip. Continuous at the cut (zero shear there). */
+function drawSheetSheared(c: C, sheet: HTMLImageElement, f: number, fw: number, ww: number, hgt: number, off: number, cut: number) {
+  const k = SHEET_INSET, sw = fw - 2 * k, dw = (ww * sw) / fw, H = sheet.naturalHeight, yc = -hgt + (hgt * cut) / H, yg = -hgt * (3 / H);
+  c.drawImage(sheet, f * fw + k, 0, sw, cut + 1, -dw / 2, -hgt, dw, (hgt * (cut + 1)) / H);
+  const sh = off / (yg - yc), M = c.getTransform();
+  c.transform(1, 0, sh, 1, -sh * yc, 0);
+  c.drawImage(sheet, f * fw + k, cut, sw, H - cut, -dw / 2, yc, dw, (hgt * (H - cut)) / H);
+  c.setTransform(M);
+}
 /** One walk-sheet cell, inset by SHEET_INSET source px so neighbour frames' toes never bleed in. */
 const SHEET_INSET = 3;
 function drawSheetFrame(c: C, sheet: HTMLImageElement, f: number, fw: number, ww: number, hgt: number, dx: number) {

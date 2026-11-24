@@ -807,10 +807,17 @@ export function stepGait(
   pxPerPhase: number,
   now: number,
   seed: number,
+  loop?: { len: number; rest: readonly number[] },
 ): { u: number; ai: number } {
   let s = state.get(id);
   if (!s) {
-    s = { last: pathPhase, u: seed, amp: walking ? 1 : 0, t: now, v: walking ? 200 : 0 };
+    s = {
+      last: pathPhase,
+      u: loop ? (loop.rest[0] ?? 0) : seed,
+      amp: walking ? 1 : 0,
+      t: now,
+      v: walking ? 200 : 0,
+    };
     state.set(id, s);
   }
   const dt = Math.min(0.25, Math.max(0, (now - s.t) / 1000)),
@@ -819,17 +826,48 @@ export function stepGait(
   s.last = pathPhase;
   const dpx = Math.abs(dp) < 60 ? Math.abs(dp) * pxPerPhase : 0; // a jump (re-sync, new path) is not a walk
   if (dt > 0) s.v += (dpx / dt - s.v) * Math.min(1, dt / 0.15);
+  if (now - lastPrune > 5000) {
+    lastPrune = now;
+    for (const [k, g] of state) if (now - g.t > 10000) state.delete(k);
+  }
+  if (loop) return loopStep(s, walking, dpx, dt, loop);
   const target = walking ? clamp(s.v / 120, 0.25, 1) : 0,
     rate = dt / 0.3;
   s.amp += clamp(target - s.amp, -rate, rate);
   const ai = Math.round(s.amp * (RIG_AMPS.length - 1));
   // feet stay planted: the cycle advances by the distance over the length of two steps at the drawn stride
   if (ai > 0) s.u = (s.u + dpx / (2 * STEP * RIG_AMPS[ai]!)) % 1;
-  if (now - lastPrune > 5000) {
-    lastPrune = now;
-    for (const [k, g] of state) if (now - g.t > 10000) state.delete(k);
-  }
   return { u: s.u, ai };
+}
+
+/** Seconds a painted cycle takes when it closes the step on the spot after stopping. */
+export const LOOP_SETTLE_S = 0.6;
+/** Fixed-stride painted cycle (a walk sheet covering `len` screen px of ground per loop): the loop follows the distance
+ *  walked; on stopping it finishes the step on the spot up to the next rest phase (feet together) and stays there.
+ *  ai = 0 once at rest (draw the standing picture), else the top level. */
+function loopStep(
+  s: { u: number; amp: number },
+  walking: boolean,
+  dpx: number,
+  dt: number,
+  loop: { len: number; rest: readonly number[] },
+): { u: number; ai: number } {
+  const top = RIG_AMPS.length - 1;
+  if (walking) {
+    s.u = (s.u + dpx / loop.len) % 1;
+    s.amp = 1;
+    return { u: s.u, ai: top };
+  }
+  let d = 1;
+  for (const r of loop.rest) d = Math.min(d, (((r - s.u) % 1) + 1) % 1);
+  if (d < 1e-9 || s.amp === 0) {
+    s.amp = 0;
+    return { u: s.u, ai: 0 };
+  }
+  const go = Math.min(d, dt / LOOP_SETTLE_S);
+  s.u = (s.u + go) % 1;
+  if (go >= d) s.amp = 0;
+  return { u: s.u, ai: s.amp === 0 ? 0 : top };
 }
 export const gaitStateSize = () => state.size;
 /** Forgets all per-figure gait state (tests and the comparison harness). */
