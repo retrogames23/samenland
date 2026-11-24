@@ -10,6 +10,7 @@ import { feastOn } from "./feasts";
 import { isSunday } from "./time";
 import { civicWealth } from "./prosperity";
 import { FOOD_CRAFTS } from "./food-crafts";
+import { gemeinwesenCount } from "./gemeinwesen";
 
 export const WED_FIRST = 2 * 864e5;
 /** Gap in days at WED_REF_POP residents; scales with sqrt(WED_REF_POP / pop), clamped to [WED_MIN, WED_MAX]. */
@@ -38,7 +39,7 @@ export function wedStage(s: Seed, t: number) {
   const raw = [24, 168, 2160, 4380, 8760].filter((a) => h >= a).length;
   if (!s.user_id) return raw;
   const own = new Set((s.bought ?? []).filter((b) => b.at <= t).map((b) => b.item));
-  const f = FOOD.filter((i) => own.has(i)).length, hl = HEALTH.filter((i) => own.has(i)).length;
+  const f = FOOD.filter((i) => own.has(i)).length, hl = gemeinwesenCount(s.realm, own, t, HEALTH);
   let st = 2;
   for (const [nf, nh] of NEED) { if (f >= nf && hl >= nh) st++; else break; }
   return Math.min(raw, st);

@@ -56,6 +56,9 @@ import { useResources } from "@/components/hooks/useResources";
 import { ResourceBar, MaterialLine } from "@/components/hud/ResourceBar";
 import { RESOURCE_T } from "@/game/lang/resources";
 import { kontorQuote, materialOf, STEINGRUBE, STEINGRUBE_PRICE, SITE_STONE } from "@/game/resources";
+import { GEMEINWESEN_NEW, twoOfFiveActive } from "@/game/gemeinwesen";
+import { GEMEINWESEN_T } from "@/game/lang/gemeinwesen";
+const GEMEINWESEN_ALL: readonly string[] = ["herbs", "healer", "library", ...GEMEINWESEN_NEW];
 import { civicRoadsOf } from "@/game/civic-roads";
 import { useServerFn } from "@tanstack/react-start";
 import { BookOpen, ScrollText, MoreHorizontal, Feather } from "lucide-react";
@@ -2608,6 +2611,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                   <span className="text-xs text-muted-foreground">{t.taler(ITEMS[it])}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">{t.items[it]![1]}</div>
+                {GEMEINWESEN_ALL.includes(it) && twoOfFiveActive(my?.realm, now) && <div className="text-xs text-wood">{GEMEINWESEN_T[lang]}</div>}
                 {!at.has(it) && <MaterialLine q={matQuote(it)} lang={lang} taler={t.taler} />}
                 <div className="mt-1.5">
                   {at.has(it) ? <span className="text-xs font-semibold text-primary">{t.owned}</span> : (
