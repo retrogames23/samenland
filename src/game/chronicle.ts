@@ -4,7 +4,7 @@
  */
 import { effAge, stageOf, landmarkSpots, specialDone, specialTile, SPECIAL_KIND, MONUMENT_DEFS, monumentOf, monumentDone, radiusOf, reachOf, LANDMARKS, SEAT_KINDS, links, twinSince, bornAt, structureAt, type Seed, type Kind } from "./world";
 import { townRank, seatKindForRank } from "./rank";
-import { taxEarned } from "./economy";
+import { taxBetween } from "./economy";
 import { dowryEarned } from "./weddings";
 import { fires, floods, floodFront, raids, raidLoss } from "./disasters";
 import { townOf, citizensOf } from "./people";
@@ -74,19 +74,43 @@ function byDay<T>(xs: T[], at: (x: T) => number): T[][] {
   return out;
 }
 
-export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chronicle {
-  from = Math.max(from, to - CHRON_MAX, Date.parse(s.created_at));
+/**
+ * Rank rises inside the window on the STEP grid (step i = min(from + i·STEP, to), i = 1…n): step index → ranks reached there.
+ * townRank is costly (a full household count), so instead of asking it at every step the first step reaching each
+ * higher rank is found by bisection — 2 calls when the rank stays, about log2(n) more per rank gained.
+ * Assumes the rank does not fall back inside the window (see chronicle-rank.test.ts); a rank reached and lost again
+ * before `to` is not reported, as nothing stands for it at the end of the absence.
+ */
+export function rankRises(s: Seed, seeds: Seed[], from: number, to: number, rank: (s: Seed, seeds: Seed[], now: number) => number = townRank): Map<number, number[]> {
+  // the same moments the chronicle loop walks (summed step by step, so fractional clocks land on identical values)
+  const at = [from];
+  for (let t = from + STEP; ; t += STEP) { at.push(Math.min(t, to)); if (t >= to) break; }
+  const n = at.length - 1, seen = new Map<number, number>();
+  const rankAt = (i: number) => { let r = seen.get(i); if (r === undefined) seen.set(i, (r = rank(s, seeds, at[i]!))); return r; };
+  const out = new Map<number, number[]>();
+  let lo = 1;
+  for (let k = rankAt(0) + 1, top = rankAt(n); k <= top; k++) {
+    let hi = n;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (rankAt(mid) >= k) hi = mid; else lo = mid + 1; }
+    out.set(lo, [...(out.get(lo) ?? []), k]);
+  }
+  return out;
+}
+
+/** Events only (no population/taler summary): what the news badge, the live feasts and the control desk need.
+ *  The summary walks residentTax for every day of the window, which is far too slow for a background check. */
+export function chronicleEvents(s: Seed, seeds: Seed[], from: number, to: number): { from: number; to: number; events: ChronEvent[] } {
+  from = chronFrom(s, from, to);
   const ev: ChronEvent[] = [];
-  let prevAge = effAge(s, seeds, from), prevRank = townRank(s, seeds, from), prevSeason = dominant(from);
-  for (let t = from + STEP; ; t += STEP) {
+  const rises = rankRises(s, seeds, from, to);
+  let prevAge = effAge(s, seeds, from), prevSeason = dominant(from);
+  for (let t = from + STEP, i = 1; ; t += STEP, i++) {
     const now = Math.min(t, to), age = effAge(s, seeds, now);
-    const rk = townRank(s, seeds, now);
-    for (let k = prevRank + 1; k <= rk; k++) {
+    for (const k of rises.get(i) ?? []) {
       ev.push({ at: now, code: "stage", stage: k });
       // player towns rebuild the mayor's seat when the real rank rises, never by elapsed time
       if (s.user_id && k >= 2 && k <= 4) ev.push({ at: now, code: "built", kind: seatKindForRank(k) });
     }
-    prevRank = Math.max(prevRank, rk);
     LANDMARKS.forEach((l, i) => {
       if (!(l.at > prevAge && l.at <= age)) return;
       if (s.user_id && SEAT_KINDS.includes(l.kind) && l.kind !== "seat1") return;
@@ -148,5 +172,13 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
   }
   for (const o of orphanStays(s.decisions ?? [])) if (o.until > from && o.until <= to) ev.push({ at: o.until, code: "orphan", choice: o.choice });
   ev.sort((a, b) => a.at - b.at);
-  return { from, to, events: ev, popFrom: pop(s, seeds, from), popTo: pop(s, seeds, to), taler: taxEarned(s, to, seeds) - taxEarned(s, from, seeds) + dowryEarned(s, to) - dowryEarned(s, from) - raidLoss(s, to) + raidLoss(s, from) };
+  return { from, to, events: ev };
+}
+const chronFrom = (s: Seed, from: number, to: number) => Math.max(from, to - CHRON_MAX, Date.parse(s.created_at));
+
+export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chronicle {
+  const c = chronicleEvents(s, seeds, from, to);
+  from = c.from;
+  // taxBetween sums only the days inside the window: the same integers as taxEarned(to) − taxEarned(from), without walking the whole history
+  return { ...c, popFrom: pop(s, seeds, from), popTo: pop(s, seeds, to), taler: taxBetween(s, from, to, seeds) + dowryEarned(s, to) - dowryEarned(s, from) - raidLoss(s, to) + raidLoss(s, from) };
 }

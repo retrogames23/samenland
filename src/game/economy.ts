@@ -119,6 +119,13 @@ export function taxEarned(s: Seed, now: number, seeds?: Seed[]) {
   for (let d = 1; d <= days; d++) t += taxOnDay(s, d, seeds);
   return t;
 }
+/** Tax of the settlement days after `from` up to `now`: equal to taxEarned(now) − taxEarned(from) (whole-Mark days), but walks only the window. */
+export function taxBetween(s: Seed, from: number, now: number, seeds?: Seed[]) {
+  const c0 = Date.parse(s.created_at), d0 = Math.max(0, Math.floor((from - c0) / 86400000)), d1 = Math.floor((now - c0) / 86400000);
+  let t = 0;
+  for (let d = d0 + 1; d <= d1; d++) t += taxOnDay(s, d, seeds);
+  return t;
+}
 /** Today's income per day, including the trade charter bonus. */
 export const dailyTax = (s: Seed, h: number, seeds?: Seed[]) => {
   const at = Date.parse(s.created_at) + h * 3.6e6;
