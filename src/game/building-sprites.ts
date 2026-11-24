@@ -108,6 +108,8 @@ import smokehouseLight from "@/assets/sprites/cohesive/night/smokehouse.webp";
 import saltquayImg from "@/assets/sprites/cohesive/saltquay.webp";
 import saltquayLight from "@/assets/sprites/cohesive/night/saltquay.webp";
 import woodcamp from "@/assets/sprites/cohesive/woodcamp.webp";
+// Steingrube: PROVISIONAL composite draft (rock face, blocks, hoist from existing art) until the painted asset is approved
+import quarryImg from "@/assets/sprites/cohesive/quarry.webp";
 import lodgeLight from "@/assets/sprites/cohesive/night/lodge.webp";
 import herbhutLight from "@/assets/sprites/cohesive/night/herbhut.webp";
 import woodcampLight from "@/assets/sprites/cohesive/night/woodcamp.webp";
@@ -289,6 +291,8 @@ const sprites: Partial<Record<Kind, Sprite>> = {
   saltquay: { url: saltquayImg, night: saltquayLight, crop: [0, 0, 472, 480], width: 26, base: 4 },
   herbhut: { url: herbhut, night: herbhutLight, crop: [0, 0, 480, 463], width: 19, base: 4 },
   woodcamp: { url: woodcamp, night: woodcampLight, crop: [0, 0, 480, 427], width: 24, base: 4 },
+  // open pit, no windows: deliberately unlit (night: null)
+  quarry: { url: quarryImg, night: null, crop: [0, 0, 480, 397], width: 24, base: 4 },
   granary: { url: granary, night: granaryLight, crop: [0, 0, 408, 480], width: 25, base: 4 },
   infirmary: { url: infirmary, night: infirmaryLight, crop: [0, 0, 442, 480], width: 25, base: 4 },
   firerack: { url: firerack, night: null, crop: [0, 0, 390, 480], width: 17, base: 3 },
@@ -381,7 +385,7 @@ export function spriteBox(kind: Kind, variant: number, style?: HouseStyle): { w:
 }
 /** Paintings that already carry painted ground (yard, paving, garden, stacks) — every other building gets a soft contact
  * shadow derived from its own silhouette, so hard-cut plinths never float. Keys: kind, `<style>-<kind>`, `<style>-<kind>-<slot>`. */
-const GROUNDED = new Set(["campfire", "chapel", "barn", "villa", "tenement", "sawmill", "beginenhof", "orangery", "stonemason", "saltquay", "herbhut", "woodcamp",
+const GROUNDED = new Set(["quarry", "campfire", "chapel", "barn", "villa", "tenement", "sawmill", "beginenhof", "orangery", "stonemason", "saltquay", "herbhut", "woodcamp",
   "infirmary", "firehouse", "guardhouse", "school", "university", "exchange", "lighthouse", "hay", "well", "market", "steinhaus",
   "workshop-cottage", "workshop-farmhouse", "workshop-villa", "workshop-steinhaus",
   "gateway-cottage", "gateway-villa", "gateway-steinhaus", "gateway-farmhouse-3"]);

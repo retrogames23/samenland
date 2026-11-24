@@ -1825,6 +1825,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const addr = (x: string) => addressMayor(x, lang, my?.mayor_gender as "m" | "w" | "d" | null, rankRef.current);
   const rankRef = useRef(0);
   const itemName = (item: string) => { if (item === STEINGRUBE) return RESOURCE_T[lang].quarry; if (/^title[1-3]$/.test(item)) return titleName(+item.slice(5) - 1); const mk = monumentOf(item); return t.items[item]?.[0] ?? (mk ? t.items[`${mk}1`]![0] : item); };
+  /** List price of a placeable purchase (bought building, monument step or Steingrube), without Kontor material. */
+  const placePrice = (item: string) => item === STEINGRUBE ? STEINGRUBE_PRICE : (MONUMENT_PRICE[item] ?? ITEMS[item as Item]);
   const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(itemName(e.item)) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : e.code === "wedding" ? t.chron.wedding(e.a, e.b) : e.code === "fire" ? (e.guarded ? t.chron.fireOut : t.chron.fire(e.dead)) : e.code === "flood" ? t.chron.flood : e.code === "raid" ? (e.caught ? t.chron.caught : t.chron.raid(e.loss)) : e.code === "journeyman" ? t.chron.journeyman(e.name, t.job[e.craft]?.[e.sex === "f" ? 0 : 1] ?? e.craft, e.other) : e.code === "journeymen" ? t.chron.journeymen(e.n) : e.code === "bride" ? t.chron.bride(e.name, e.other, e.away) : e.code === "moved" ? t.chron.moved(e.name, e.other, e.away) : e.code === "letter" ? t.chron.letter(e.other) : e.code === "orphan" ? ORPHAN_FAREWELL[lang][e.choice === "adopt" ? 0 : 1] : t.chron.season(t.seasons[e.season]);
   useEffect(() => {
     if (!owner || !my || seeds.length === 0 || chronDone.current === my.id) return;
@@ -2227,7 +2229,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     if (!owner || !my || !at) return null;
     const cheapest = Math.min(...(Object.keys(ITEMS) as Item[]).filter((it) => canBuy(it, myCharter) && canBuyWay(it, my ? wayOf(my) : undefined) && !at.has(it) && (ITEM_RANK[it] ?? 0) <= myStage).map((it) => ITEMS[it]));
     if (cash >= cheapest) return null;
-    const ends = [...specialSites(my).values()].map((s) => specialDone(my, seeds, s.at)).filter((e) => e > slow);
+    const ends = [...specialSites(my).values()].map((s) => specialDone(my, seeds, s.at, s.kind)).filter((e) => e > slow);
     return ends.length ? Math.min(...ends) : null;
   })();
   // the "come back later" band stays shut for this build site: remembered per finishing building
@@ -2337,7 +2339,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     }
     // instant feedback: sound, close placement and show the site right away; the server confirms or we roll back
     tap(); setPlacing(null);
-    const price = (ITEMS as Record<string, number>)[item];
+    const price = item === STEINGRUBE ? STEINGRUBE_PRICE : (ITEMS as Record<string, number>)[item];
     const tmpId = `pending-${item}-${Date.now()}`;
     if (price != null && x != null && y != null) {
       setPurchases((s) => [...s, { id: tmpId, seed_id: my.id, item, cost: price, created_at: new Date(clock()).toISOString(), x, y } as (typeof s)[number]]);
@@ -2590,7 +2592,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                 <div className="text-xs text-muted-foreground">{rt.quarryText}</div>
                 {site === "gateway" && <div className="text-[11px] text-muted-foreground">{rt.coast}</div>}
                 <MaterialLine q={matQuote(STEINGRUBE)} lang={lang} taler={t.taler} />
-                <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < STEINGRUBE_PRICE + kontorOf(STEINGRUBE)} onClick={() => void buy(STEINGRUBE)}>{rt.build} · {t.taler(STEINGRUBE_PRICE + kontorOf(STEINGRUBE))}</Button>
+                <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < STEINGRUBE_PRICE + kontorOf(STEINGRUBE)} onClick={() => { setPlacing(STEINGRUBE); setTab(null); setMsg(t.place.pick(rt.quarry)); focus(my.x, my.y); }}>{rt.build} · {t.taler(STEINGRUBE_PRICE + kontorOf(STEINGRUBE))}</Button>
               </div>
             );
           })()}
@@ -3974,12 +3976,12 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
           const own = seeds.find((s) => s.id === mine);
           const err = own ? treeGuard(moving ? canMoveTo : canPlaceSpecial, plantings)(placing, ghost[0], ghost[1], own, seeds, clock()) as keyof typeof t.place | null : "ground";
           const nudge = (dx: number, dy: number) => { const g: [number, number] = [ghost[0] + dx, ghost[1] + dy]; setGhost(g); placeFocus(g[0], g[1]); };
-          const price = moving ? moveCost(placing) ?? 0 : (MONUMENT_PRICE[placing] ?? ITEMS[placing as Item]) + kontorOf(placing);
+          const price = moving ? moveCost(placing) ?? 0 : placePrice(placing) + kontorOf(placing);
           return (
             <div ref={placeBox} className="pointer-events-auto w-full space-y-2 rounded-md border-2 border-wood bg-card p-2 text-foreground shadow-[var(--shadow-panel)]">
               <div className="flex items-center gap-2">
                 {spriteUrl(SPECIAL_KIND[placing]!) && <img src={spriteUrl(SPECIAL_KIND[placing]!)} alt="" className="h-10 w-10 shrink-0 object-contain" />}
-                <div className="min-w-0 flex-1 text-xs"><div className="truncate font-semibold">{t.items[placing]![0]}</div>
+                <div className="min-w-0 flex-1 text-xs"><div className="truncate font-semibold">{itemName(placing)}</div>
                   <div className={err ? "text-destructive" : "text-primary"}>{err ? `✕ ${(t.place[err] as string) ?? t.place.ground}` : `✓ ${t.place.drag}`}</div></div>
                 <div className="grid shrink-0 grid-cols-3 gap-0.5">
                   <span /><Button size="icon" variant="secondary" className="h-9 w-9" aria-label="↑" onClick={() => nudge(-1, -1)}>↑</Button><span />
@@ -3998,7 +4000,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         {placing && !(coarse && ghost) && (
           <div className="pointer-events-auto flex w-full max-w-xs items-center gap-2 rounded-md border-2 border-wood bg-card px-3 py-2 text-foreground shadow-[var(--shadow-panel)]">
             {spriteUrl(SPECIAL_KIND[placing]!) && <img src={spriteUrl(SPECIAL_KIND[placing]!)} alt="" className="h-10 w-10 object-contain" />}
-            <div className="flex-1 text-xs"><div className="font-semibold">{t.items[placing]![0]} · {t.taler(moving ? moveCost(placing) ?? 0 : (MONUMENT_PRICE[placing] ?? ITEMS[placing as Item]) + kontorOf(placing))}</div>{moving ? RELOCATE[lang].hint : t.place.hint}</div>
+            <div className="flex-1 text-xs"><div className="font-semibold">{itemName(placing)} · {t.taler(moving ? moveCost(placing) ?? 0 : placePrice(placing) + kontorOf(placing))}</div>{moving ? RELOCATE[lang].hint : t.place.hint}</div>
             <Button size="sm" variant="secondary" onClick={() => { setPlacing(null); setMsg(null); }}>{t.cancel}</Button>
           </div>
         )}

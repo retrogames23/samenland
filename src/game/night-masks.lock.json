@@ -575,6 +575,14 @@
   "decision": "approved",
   "note": "2026-11-10: Gruppe G: gezielt korrigiert, im echten Spiel-Renderpfad geprüft"
  },
+ "quarry": {
+  "day": "6abe298bec54160c",
+  "night": null,
+  "technical": "pass",
+  "visual": "uninspected",
+  "decision": "open",
+  "note": "2026-11-23: Steingrube: vorläufiger Entwurf (Collage), bewusst ohne Nachtmaske – Freigabe der Endgrafik offen"
+ },
  "saltquay": {
   "day": "d4d2cae0b4620a66",
   "night": "54527ca30b5e21a4",
