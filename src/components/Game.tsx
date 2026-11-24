@@ -46,7 +46,7 @@ import { rideTime, letterArrives } from "@/game/wander";
 import { IslandRegister, type RegisterRow } from "@/components/hud/IslandRegister";
 type MoveRow = { id: string; seed_id: string; item: string; x: number; y: number; cost: number; created_at: string };
 type LetterRow = { id: string; from_seed: string; to_seed: string; created_at: string };
-import { chronicle, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
+import { chronicle, chronicleEvents, FEST_GAP, CHRON_LETTER, CHRON_BANNER, type Chronicle, type ChronEvent } from "@/game/chronicle";
 import { scribeGreeting } from "@/lib/chronicle.functions";
 import { deleteAccount } from "@/lib/account.functions";
 import { certifyMyRank, callNothilfe } from "@/lib/treasury.functions";
@@ -2086,7 +2086,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     liveFrom.current = clock();
     const id = window.setInterval(() => {
       if (document.hidden) return;
-      const now = clock(), c = chronicle(my, seeds, liveFrom.current, now);
+      const now = clock(), c = chronicleEvents(my, seeds, liveFrom.current, now);
       liveFrom.current = now;
       localStorage.setItem(`samenland-seen-${my.id}`, String(now));
       let big = c.events.filter((e) => e.code !== "season" && e.code !== "houses" && e.code !== "families" && !(e.code === "wedding" && !e.grand));
@@ -2107,7 +2107,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     if (!s) return;
     const now = clock();
     liveFrom.current = now + 1;
-    const ev = chronicle(s, seeds, now - 2000, now + 1000).events.filter((e) => e.code === code).pop();
+    const ev = chronicleEvents(s, seeds, now - 2000, now + 1000).events.filter((e) => e.code === code).pop();
     // a wedding is followed where it happens right now (bride's door, portal, new home)
     const wf = ev?.code === "wedding" ? weddingFocus(townOf(s, seeds, now), ev.at, seeds, now) : null;
     const x = wf ? wf[0] : ev && "x" in ev ? ev.x : s.x, y = wf ? wf[1] : ev && "y" in ev ? ev.y : s.y;
@@ -2170,7 +2170,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   }, [my?.id]);
   const chronNews = useMemo(() => {
     if (!owner || !my || chronRead == null || seeds.length === 0) return false;
-    const c = chronicle(my, seeds, chronRead, slow);
+    const c = chronicleEvents(my, seeds, chronRead, slow);
     return c.events.some((e) => e.code !== "season");
   }, [owner, my?.id, chronRead, seeds, slow]);
   const townsCache = useRef(new Map<string, { k: string; rank: number; parts: ReturnType<typeof speedParts>; citizens: number; homes: number; wares: Ware[] }>());
