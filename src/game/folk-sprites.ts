@@ -104,6 +104,7 @@ import bannerClothUrl from "@/assets/sprites/folk/banner-cloth.webp";
 import manWalk4 from "@/assets/sprites/folk/man-walk4.webp";
 import manWalk8 from "@/assets/sprites/folk/man-walk8.webp";
 import manRig from "@/assets/sprites/folk/man-rig.webp";
+import manStand8 from "@/assets/sprites/folk/man-stand8.webp";
 import wealthyWalk4 from "@/assets/sprites/folk/wealthy-walk4.webp";
 import farmerWalk4 from "@/assets/sprites/folk/farmer-walk4.webp";
 import porterWalk4 from "@/assets/sprites/folk/porter-walk4.webp";
@@ -121,7 +122,7 @@ import mayorYoungWalk4 from "@/assets/sprites/folk/mayor-young-walk4.webp";
 import mayorMidWalk4 from "@/assets/sprites/folk/mayor-mid-walk4.webp";
 import mayorOldWalk4 from "@/assets/sprites/folk/mayor-old-walk4.webp";
 
-const URLS = { starCrown, starPole, wealthy, wealthyF, fascine, floodDrift, treeCherry, treeCherryBloom, treeQuince, treeFruitBare, sheaf, woodpile, iceTrough, strawWrap, laundry, wattle, cooper, loom, man, manWalk, legsM, legsStand, legsGrey, legsDark, legsLinen, legsRed, woman, child, childWalk, toddler, toddlerWalk, girl, girlWalk, youth, youthF, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, watchman, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, stake, bridgePile, loadSack, loadBarrel, loadBale, loadCrate, loadBucket, hornLantern, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, chain, beret, gugel, collar, staff, guestLute, guestRod, guestPaintbox, flourSacks, breadBasket, fishBasket, sparks, woodcutterWork, woodcutterFWork, masonWork, masonFWork, builderWork, builderFWork, gatherWork, gatherFWork, talkWork, talkFWork, talkWorkYoung, talkWorkMid, talkWorkOld, talkFWorkMid, talkFWorkMature, talkFWorkOld, manWalk4, manWalk8, manRig, wealthyWalk4, farmerWalk4, porterWalk4, mayorWalk4, mayorYoungWalk4, mayorMidWalk4, mayorOldWalk4, builderWalk4, woodcutterWalk4, masonWalk4, porterStand, watchmanWalk4, youthWalk4, groomWalk4, elderWalk4, robberWalk4 };
+const URLS = { starCrown, starPole, wealthy, wealthyF, fascine, floodDrift, treeCherry, treeCherryBloom, treeQuince, treeFruitBare, sheaf, woodpile, iceTrough, strawWrap, laundry, wattle, cooper, loom, man, manWalk, legsM, legsStand, legsGrey, legsDark, legsLinen, legsRed, woman, child, childWalk, toddler, toddlerWalk, girl, girlWalk, youth, youthF, elder, builder, builderF, woodcutter, mason, farmer, farmerMow, farmerFMow, porter, priest, bride, groom, robber, watchman, porterF, farmerF, elderF, masonF, woodcutterF, footF, stone, signpost, scaffold, logs, blocks, stake, bridgePile, loadSack, loadBarrel, loadBale, loadCrate, loadBucket, hornLantern, bannerPole, bannerCloth: bannerClothUrl, fisherCast, fisherFCast, smithHammer, anvil, chain, beret, gugel, collar, staff, guestLute, guestRod, guestPaintbox, flourSacks, breadBasket, fishBasket, sparks, woodcutterWork, woodcutterFWork, masonWork, masonFWork, builderWork, builderFWork, gatherWork, gatherFWork, talkWork, talkFWork, talkWorkYoung, talkWorkMid, talkWorkOld, talkFWorkMid, talkFWorkMature, talkFWorkOld, manWalk4, manWalk8, manRig, manStand8, wealthyWalk4, farmerWalk4, porterWalk4, mayorWalk4, mayorYoungWalk4, mayorMidWalk4, mayorOldWalk4, builderWalk4, woodcutterWalk4, masonWalk4, porterStand, watchmanWalk4, youthWalk4, groomWalk4, elderWalk4, robberWalk4 };
 export type FolkSprite = keyof typeof URLS;
 /** Mayor age cohorts 20–70: same 6-frame robe sheet layout per cohort, so standing, talking and walking all age together. */
 export type Cohort = "young" | "mid" | "mature" | "old";
@@ -178,11 +179,13 @@ export const walkSheet = (k: FolkSprite) => { const w = WALKS[k]; return w ? fol
 export const STANDS: Partial<Record<FolkSprite, FolkSprite>> = { mason: "mason", porter: "porterStand" as FolkSprite };
 export const standSprite = (k: FolkSprite) => { const s = STANDS[k]; return s ? folkImage(s) : null; };
 /** Standing picture taken from a walk sheet: [sheet, frames, frame]. 8-step cycles never supply their own stand pose
- *  (frame 1 of man-walk8 is mid-stride); the man keeps his pre-walk8 stand (passing frame 1 of man-walk4) until a
- *  dedicated stand asset exists — then add it to STANDS instead. */
-const STAND_SHEETS: Partial<Record<FolkSprite, FolkSprite>> = { man: "manWalk4" };
+ *  (frame 1 of man-walk8 is mid-stride); the man stands in man-stand8, a one-cell sheet built only from painted pixels
+ *  of man-walk8 frame 5 (scripts/make-man-stand8.py): same cell, centre and ground row, drawn at the walk8 scale. */
+const STAND_SHEETS: Partial<Record<FolkSprite, [FolkSprite, number, number]>> = {
+  man: ["manStand8", 1, 0],
+};
 export function standSheetOf(k: FolkSprite): [FolkSprite, number, number] | null {
-  const own = STAND_SHEETS[k]; if (own) return [own, 4, 1];
+  const own = STAND_SHEETS[k]; if (own) return own;
   if (WALK4.has(k) && k !== "toddler") { const w = WALKS[k]; return w ? [w, 4, 1] : null; }
   return null;
 }

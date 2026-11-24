@@ -1574,7 +1574,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     const stand = !ws4 && !q.working && k !== "watchman" && legsFor(q) ? folkImage("legsStand") : null;
     const st = ws4 ? standSprite(k) : null;
     if (st) { const sh = hgt * walkScaleOf(k) * 0.985, sw = (sh * st.naturalWidth) / st.naturalHeight; c.drawImage(st, -sw / 2, -sh, sw, sh); }
-    else if (ws4 && ss) { const sfw = ws4.naturalWidth / ss[1], sh = hgt * walkScaleOf(k); drawSheetFrame(c, ws4, ss[2], sfw, (sh * sfw) / ws4.naturalHeight, sh, 0); }
+    else if (ws4 && ss) { const sfw = ws4.naturalWidth / ss[1], sh = hgt * walkScaleOf(k) * (ss[0] === "manStand8" ? WALK8_SCALE : 1); drawSheetFrame(c, ws4, ss[2], sfw, (sh * sfw) / ws4.naturalHeight, sh, 0); }
     else if (stand) drawLegged(c, im, 0, im.naturalWidth, im.naturalHeight, stand, 0, w, hgt, HIPS[k] ?? DEFAULT_FIG);
     else c.drawImage(im, -w / 2, -hgt, w, hgt);
   }
