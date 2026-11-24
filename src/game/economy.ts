@@ -10,6 +10,7 @@ import { raidLoss, raids, floodFood, ITEM_RANK } from "./disasters";
 import { FOUNTAIN_RANK, isFountain } from "./civic-fountain";
 import { FREIMARKT_RANK, isFreimarkt } from "./freimarkt";
 import { vorhabenOf, VORHABEN } from "./vorhaben";
+import { gemeinwesenActive } from "./gemeinwesen";
 import { AUSBAU_RANK } from "./ausbau";
 import { dowryEarned, weddingDates, festJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
 import { speedParts, radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, monumentOf, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
@@ -315,7 +316,8 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   for (const [it, wb] of Object.entries(WAY_BONUS)) if (has(it as Item)) { b.food += wb.food ?? 0; b.health += wb.health ?? 0; }
   b.health += has("backhaus") ? BACKHAUS_HEALTH : 0;
   if (has("beginen")) b.health += BEGINEN_HEALTH;
-  if (has("badestube")) { b.health += BADESTUBE_HEALTH; }
+  // display only: from the Gemeinwesen cut-over the Badestube shows no health points (its real effect is sickness, sickness.ts)
+  if (has("badestube") && !gemeinwesenActive(s.realm, now)) { b.health += BADESTUBE_HEALTH; }
   b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0;
   // weddings: a day of joy (health, prosperity) and lasting craft alliances between families
   const joy = festJoy(s, now);

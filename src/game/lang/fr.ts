@@ -150,7 +150,7 @@ export const fr: Dict = {
     opera1: ["Cour d'Artus", "Bâtiment de prestige en 4 étapes, chacune n’agit qu’une fois bâtie. 1 – cave voûtée : progrès du chantier seulement, 2 – halle de brique : deux marchands, 3 – voûte en étoile : commerce renforcé avec les villes d’une autre voie, plafond commercial +0,03, 4 – premier banquet : bonus commercial en plus, plafond commercial +0,05 au total. Terminé : +2 œuvres civiques pour la prospérité"],
     backhaus: ["Four banal", "Dès le hameau : 10 % de grain en moins, +5 santé, jour de cuisson au four commun"],
     herberge: ["Auberge des compagnons", "Dès le hameau : bâtiments achetés 15 % plus vite, +1 œuvre civique pour la prospérité"],
-    badestube: ["Étuves", "Dès le village : +10 santé, +1 œuvre civique pour la prospérité, bain le samedi"],
+    badestube: ["Étuves", "Dès le village : +1 œuvre civique pour la prospérité, bain le samedi"],
     beginen: ["Béguinage", "Dès le village : +1 œuvre civique pour la prospérité, +10 santé, moins de malades"],
     bigstore: ["Grand grenier", "Greniers à blé seulement : +15 vivres, +1 œuvre civique pour la prospérité"],
     stonemason: ["Loge des tailleurs de pierre", "Ateliers des collines seulement : +1 œuvre civique pour la prospérité, +10 santé"],

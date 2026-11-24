@@ -150,7 +150,7 @@ export const es: Dict = {
     opera1: ["Corte de Artús", "Obra de prestigio en 4 fases; cada una actúa solo cuando está construida. 1 – bodega abovedada: solo avance de obra, 2 – sala de ladrillo: dos mercaderes, 3 – bóveda estrellada: comercio más fuerte con villas de otro camino, límite comercial +0,03, 4 – primer banquete: bono comercial extra, límite comercial +0,05 en total. Terminada: +2 obras cívicas para la prosperidad"],
     backhaus: ["Horno comunal", "Desde aldea: 10 % menos grano, +5 salud, día de horneado en el horno comunal"],
     herberge: ["Albergue de oficiales", "Desde aldea: edificios comprados un 15 % más rápido, +1 obra cívica para la prosperidad"],
-    badestube: ["Casa de baños", "Desde pueblo: +10 salud, +1 obra cívica para la prosperidad, baño los sábados"],
+    badestube: ["Casa de baños", "Desde pueblo: +1 obra cívica para la prosperidad, baño los sábados"],
     beginen: ["Beaterio", "Desde pueblo: +1 obra cívica para la prosperidad, +10 salud, menos enfermos"],
     bigstore: ["Gran granero", "Solo graneros: +15 alimento, +1 obra cívica para la prosperidad"],
     stonemason: ["Taller de canteros", "Solo talleres de las colinas: +1 obra cívica para la prosperidad, +10 salud"],

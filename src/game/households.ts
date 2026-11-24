@@ -1,15 +1,13 @@
 import { townCharacter } from "./character";
 import { dwellingSlots, MAX_SLOTS } from "./density";
 import { leaversOf } from "./wander";
-import { gemeinwesenCount } from "./gemeinwesen";
+import { gemeinwesenCapacity } from "./gemeinwesen";
 import { hash, structureAt, twinSiteGet, pickCfg, reachOf, radiusOf, effAge, townDist, specialSites, twinSites, roadOwnerAt, MAP, type Seed, type Kind } from "./world";
 
 export type HomeTile = [number, number];
 export const HOME_SIZES: Partial<Record<Kind, readonly [number, number]>> = { hut: [2, 2], suburb: [2, 4], farmhouse: [2, 4], cottage: [2, 3], townhouse: [2, 4], townhouse2: [2, 4], fachwerk: [2, 5], steinhaus: [2, 5], handwerker: [2, 4], patrician: [2, 5], villa: [2, 4], tenement: [4, 8], inn: [2, 2], bakery: [2, 2] };
 /** Share of the winter food shortfall a Kornkammer still feels (larder display only; not capacity or growth). */
 export const GRAIN_WINTER = 0.8;
-/** Gemeinwesen of the household capacity before „2 aus 5“ (gemeinwesen.ts adds Badestube/Beginenhof up to two). */
-export const HEALTH_CLASSIC: readonly string[] = ["herbs", "healer", "library"];
 export const FEED_BASE = 24, WILD_MAX = 32, FEED_FIELD = 0.25, FEED_GARDEN = FEED_FIELD, FEED_PASTURE = FEED_FIELD, FEED_FOOD_ITEM = 0.15, FEED_HEALTH_ITEM = 0.1, FEED_WINTER = 0.25;
 
 /** Farmland a median flat town of the same growth radius would hold; terrain never yields less than this. */
@@ -22,7 +20,7 @@ function capacityAt(s: Seed, byKind: Map<Kind, unknown[]>, now: number, r: numbe
   if (!s.user_id) return Infinity;
   const own = new Set((s.bought ?? []).filter(b => b.at <= now).map(b => b.item));
   const food = ["fisher", "hunter", "granary", "dairy", "markethall", "guildhall"].filter(i => own.has(i)).length;
-  const health = gemeinwesenCount(s.realm, own, now, HEALTH_CLASSIC);
+  const health = gemeinwesenCapacity(s.realm, own, now); // series 1/1/0.25/0.25 + library from the cut-over (gemeinwesen.ts)
   // System B (household capacity): long-term carrying limit, year-round and independent of the momentary larder.
   // Winter acts only on larder stock and sickness — never on this capacity or on growth (FEED_WINTER is unused here).
   const w = 1;

@@ -13,7 +13,7 @@ import { labVersion } from "./lab-ctl";
 import { boonHours, type Decision } from "./encounters";
 import { tileHits, canBurn } from "./disasters";
 import { estateOf, estateHouse, RESIDENTIAL, setMonumentHook } from "./prosperity";
-import { gemeinwesenCount, twoOfFiveActive, GEMEINWESEN_NEW } from "./gemeinwesen";
+import { gemeinwesenGate, gemeinwesenActive, GEMEINWESEN } from "./gemeinwesen";
 // Pure, deterministic world + town growth logic (shared by every player).
 const ROAD_YIELDS: ReadonlySet<string> = new Set(["field", "garden", "pasture", "hay", "fence"]);
 export const MAP = 1024;
@@ -1941,15 +1941,15 @@ export function hubRoutesRaw(s: Seed, seeds: Seed[]): { since: number }[] {
 /** System C (care gate): bought infrastructure a player town needs before each later era (Kleinstadt, Handelsstadt, Hansestadt).
  * It checks purchases only — never larder stock or momentary supply — and caps further expansion, never existing households.
  * CARE_FOOD = "Versorgung" (four FOOD_CRAFTS plus market hall and guild hall, broader on purpose);
- * CARE_HEALTH = "Gemeinwesen" (herb hut, healer, library, plus careHealthExtra); from twoOfFiveSince also Badestube and
- * Beginenhof, but only up to two Gemeinwesen (gemeinwesen.ts, „2 aus 5“). */
+ * CARE_HEALTH = "Gemeinwesen" (herb hut, healer, library, plus careHealthExtra); from gemeinwesenSince any of the five
+ * Gemeinwesen count, without a cap (gemeinwesen.ts gemeinwesenGate). */
 export const CARE_FOOD: string[] = [...FOOD_CRAFTS, "markethall", "guildhall"], CARE_HEALTH = ["herbs", "healer", "library"];
 export const CARE_NEED: [number, number][] = [[1, 0], [2, 1], [3, 2]];
 /** Highest growth stage a town may reach with the care bought by `now` (sample towns are never gated). */
 export function careStage(s: Seed, now: number) {
   if (!s.user_id) return 5;
   const own = new Set((s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item));
-  const f = CARE_FOOD.filter((i) => own.has(i)).length + careFoodExtra(s, now), hl = gemeinwesenCount(s.realm, own, now, CARE_HEALTH) + careHealthExtra(s, now, own);
+  const f = CARE_FOOD.filter((i) => own.has(i)).length + careFoodExtra(s, now), hl = gemeinwesenGate(s.realm, own, now) + careHealthExtra(s, now, own);
   let st = 2;
   for (const [nf, nh] of CARE_NEED) { if (f >= nf && hl >= nh) st++; else break; }
   return st;
@@ -1959,8 +1959,8 @@ export function careMissing(s: Seed, now: number) {
   const st = careStage(s, now), need = CARE_NEED[st - 2];
   if (!need) return null;
   const own = new Set((s.bought ?? []).filter((b) => b.at <= now).map((b) => b.item));
-  const f = CARE_FOOD.filter((i) => own.has(i)).length + careFoodExtra(s, now), hl = gemeinwesenCount(s.realm, own, now, CARE_HEALTH) + careHealthExtra(s, now, own);
-  const healthOffer = twoOfFiveActive(s.realm, now) ? [...CARE_HEALTH, ...GEMEINWESEN_NEW] : CARE_HEALTH;
+  const f = CARE_FOOD.filter((i) => own.has(i)).length + careFoodExtra(s, now), hl = gemeinwesenGate(s.realm, own, now) + careHealthExtra(s, now, own);
+  const healthOffer: readonly string[] = gemeinwesenActive(s.realm, now) ? GEMEINWESEN : CARE_HEALTH;
   return { stage: st, food: Math.max(0, need[0] - f), health: Math.max(0, need[1] - hl),
     foodItems: CARE_FOOD.filter((i) => !own.has(i)), healthItems: healthOffer.filter((i) => !own.has(i)) };
 }
