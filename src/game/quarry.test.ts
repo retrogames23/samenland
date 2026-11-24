@@ -142,4 +142,30 @@ describe("Steingruben bought before they had a place (0143, lab only)", () => {
     ]);
     expect([...specialSites(none)].some(([, v]) => v.kind === "quarry")).toBe(false);
   });
+
+  it("next to a partner village they never overwrite anything: other buildings, roads or the neighbour's houses win", () => {
+    // the spot only knows the own village; structureAt shows an auto-placed Steingrube only on a tile nothing else claims
+    const road = (t: string) => [{ target: t, at: born + 2 * DAY }];
+    let shown = 0;
+    for (const dist of [14, 22, 30])
+      for (const ang of [0, 1, 2])
+        for (const days of [20, 120]) {
+          const bx = Math.round(400 + Math.cos(ang * 2.1) * dist),
+            by = Math.round(512 + Math.sin(ang * 2.1) * dist),
+            t0 = born + days * DAY;
+          const A = { ...mk("a", [{ item: STEINGRUBE, at: t0 }]), roads: road("b") } as Seed,
+            A0 = { ...mk("a"), roads: road("b") } as Seed;
+          const B = { ...mk("b"), x: bx, y: by, roads: road("a") } as Seed;
+          const k = tileOf(A, "quarry")!,
+            x = k % MAP,
+            y = Math.floor(k / MAP);
+          for (const dt of [0, 30, 300]) {
+            const w = structureAt(x, y, [A, B], t0 + dt * DAY),
+              wo = structureAt(x, y, [A0, B], t0 + dt * DAY);
+            if (wo) expect({ ...w, seed: w?.seed.id }).toEqual({ ...wo, seed: wo.seed.id });
+            else if (w?.kind === "quarry") shown++;
+          }
+        }
+    expect(shown).toBeGreaterThan(0); // still visible wherever its tile is free
+  });
 });

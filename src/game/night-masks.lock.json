@@ -579,9 +579,9 @@
   "day": "6abe298bec54160c",
   "night": null,
   "technical": "pass",
-  "visual": "uninspected",
-  "decision": "open",
-  "note": "2026-11-23: Steingrube: vorläufiger Entwurf (Collage), bewusst ohne Nachtmaske – Freigabe der Endgrafik offen"
+  "visual": "inspected",
+  "decision": "unlit",
+  "note": "2026-11-24: Steingrube: offene Grube ohne Fenster, bewusst unbeleuchtet (Freigabe Stephan Dörner 24.11.); Tagesbild ist noch die vorläufige Collage"
  },
  "saltquay": {
   "day": "d4d2cae0b4620a66",

@@ -1068,7 +1068,7 @@ export const FARM_BONUS = 0.05;
 export const SPECIAL_BUILD = 6 * 3600000;
 const CORE_SPOTS = new Set([...Object.keys(CORE), ...LANDMARKS.map((l) => `${l.dx},${l.dy}`), "0,0"]);
 /** A bought site; `until` = moved away at that time, `mv` = rebuilt here by a relocation (plain build phase). */
-export type Site = { kind: Kind; at: number; until?: number; mv?: true };
+export type Site = { kind: Kind; at: number; until?: number; mv?: true; auto?: true };
 const siteCache = new Map<string, Map<number, Site>>();
 /** Ensembles painted as whole complexes (courtyards, wings) stand on 2×2 tiles: the sprite sits on the
  * front (south) tile, the three tiles behind become its paved ground ("square") — nothing else grows there. */
@@ -1128,7 +1128,8 @@ export function specialSites(s: Seed): Map<number, Site> {
     }
     if (best >= 0) { out.set(best, site(b.at)); if (big) coverBack(out, best % MAP, Math.floor(best / MAP), b.at, until); }
   }
-  if (oldQuarry) { const k = oldQuarrySpot(s, oldQuarry.at, out); if (k >= 0) out.set(k, { kind: "quarry", at: oldQuarry.at }); }
+  // auto: structureAt shows it only on a tile nothing else claims (it cannot see neighbouring villages from here)
+  if (oldQuarry) { const k = oldQuarrySpot(s, oldQuarry.at, out); if (k >= 0) out.set(k, { kind: "quarry", at: oldQuarry.at, auto: true }); }
   for (let i = 0; i < ms.length; i++) {
     const m = ms[i]!, kind = SPECIAL_KIND[m.item]!;
     const next = ms.slice(i + 1).find((o) => o.item === m.item);
@@ -1254,6 +1255,8 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
   if (c !== undefined) { pSA(false); return c; }
   pSA(true);
   let best: Structure | null = null;
+  // an old Steingrube without a position (auto site) yields to anything else on its tile: never overwrites a building
+  let autoQuarry: Structure | null = null;
   const tw = pickCfg.lazyTwin ? twinSiteGet(ck, seeds, now) : twinSites(seeds, now).get(ck);
   if (tw) { best = { kind: tw.kind, seed: tw.seed, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
   const pick = picksOf(seeds, now);
@@ -1273,6 +1276,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     const p = !mk && p0 < 1 && specialDone(s, seeds, sp.at, sp.kind) <= now ? 1 : p0;
     const doneAt = p < 1 ? (mk ? monumentDone(s, seeds, mk) ?? undefined : specialDone(s, seeds, sp.at, sp.kind)) : undefined;
     best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p, doneAt } : {}) };
+    if (sp.auto) { autoQuarry ??= best; best = null; continue; }
     scache.set(ck, best);
     return best;
   }
@@ -1335,6 +1339,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     const rd = roadAt(x, y, seeds, now);
     if (rd) best = { kind: rd.bridge ? "bridge" : isTwin(rd.link, seeds, now) ? "street" : "road", seed: rd.link.a, v: hash(x, y, 5) };
   }
+  if (!best && autoQuarry) best = autoQuarry;
   scache.set(ck, best);
   return best;
 }
