@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ITEMS, BADESTUBE_HEALTH, BADESTUBE_WEALTH } from "./economy";
+import { ITEMS } from "./economy";
 import { SPECIAL_KIND } from "./world";
 import { BATH_DAY } from "./people";
 import { ITEM_RANK } from "./disasters";
@@ -11,10 +11,9 @@ describe("community buildings", () => {
     expect([ITEMS.backhaus, ITEMS.herberge, ITEMS.beginen]).toEqual([260, 420, 900]);
     expect([ITEM_RANK["backhaus"], ITEM_RANK["herberge"], ITEM_RANK["beginen"]]).toEqual([1, 1, 2]);
   });
-  it("bathhouse costs 700 Mark, unlocks at Kleinstadt, +10 health +5 prosperity, bath day Saturday", () => {
+  it("bathhouse costs 700 Mark, unlocks at Dorf, bath day Saturday (no HUD health points: gemeinwesen.test.ts)", () => {
     expect(ITEMS.badestube).toBe(700);
     expect(ITEM_RANK["badestube"]).toBe(2);
-    expect([BADESTUBE_HEALTH, BADESTUBE_WEALTH]).toEqual([10, 5]);
     expect(SPECIAL_KIND["badestube"]).toBe("badestube");
     expect(BATH_DAY).toBe(6);
   });

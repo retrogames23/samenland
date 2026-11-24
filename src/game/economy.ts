@@ -10,7 +10,6 @@ import { raidLoss, raids, floodFood, ITEM_RANK } from "./disasters";
 import { FOUNTAIN_RANK, isFountain } from "./civic-fountain";
 import { FREIMARKT_RANK, isFreimarkt } from "./freimarkt";
 import { vorhabenOf, VORHABEN } from "./vorhaben";
-import { gemeinwesenActive } from "./gemeinwesen";
 import { AUSBAU_RANK } from "./ausbau";
 import { dowryEarned, weddingDates, festJoy, ALLIANCE_MAX, ALLIANCE_WEALTH } from "./weddings";
 import { speedParts, radiusOf, stageOf, effAge, ageHours, links, waterNearby, twinLinks, pactOf, monumentProgress, monumentSteps, monumentOf, MONUMENT_KEYS, type MonumentKey, type Seed, type CharterPath } from "./world";
@@ -50,8 +49,8 @@ export const nextMonumentStep = (paid: string[], key: MonumentKey = "belfry"): s
 /** Bonuses of the early buildings that work without water. */
 /** Community buildings (Schritt 4): communal bakehouse, journeymen's hostel, beguinage. */
 export const BACKHAUS_HEALTH = 5, HERBERGE_WEALTH = 5, BEGINEN_WEALTH = 15, BEGINEN_HEALTH = 10;
-/** Badestube (ab Kleinstadt): bath, shave, cupping — health first, a little prosperity. */
-export const BADESTUBE_HEALTH = 10, BADESTUBE_WEALTH = 5;
+/** Badestube (ab Dorf): no HUD health points — its only health effect is real (winter sickness, sickness.ts, from the
+ *  Gemeinwesen cut-over); its prosperity is the civic work in PROSPER_WORKS. */
 export const HUNTER_FOOD = 15, HERBS_HEALTH = 10, WOODCAMP_WEALTH = 5;
 /** Guild buildings: only villages with the matching charter may buy them (mirrored in the database guard). */
 export const GUILD: Partial<Record<Item, CharterPath>> = { markethall: "trade", guildhall: "craft", library: "culture", dairy: "farm" };
@@ -316,8 +315,6 @@ export function attributes(s: Seed, seeds: Seed[], purchases: Purchase[], now: n
   for (const [it, wb] of Object.entries(WAY_BONUS)) if (has(it as Item)) { b.food += wb.food ?? 0; b.health += wb.health ?? 0; }
   b.health += has("backhaus") ? BACKHAUS_HEALTH : 0;
   if (has("beginen")) b.health += BEGINEN_HEALTH;
-  // display only: from the Gemeinwesen cut-over the Badestube shows no health points (its real effect is sickness, sickness.ts)
-  if (has("badestube") && !gemeinwesenActive(s.realm, now)) { b.health += BADESTUBE_HEALTH; }
   b.food += floodFood(s, now); b.health += has("firehouse") ? 5 : 0;
   // weddings: a day of joy (health, prosperity) and lasting craft alliances between families
   const joy = festJoy(s, now);

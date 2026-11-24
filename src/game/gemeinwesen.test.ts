@@ -15,11 +15,14 @@ import { FEED_HEALTH_ITEM, foodCapacity } from "./households";
 import { residentTax } from "./resident-tax";
 import { careMissing, careStage, CARE_HEALTH, type Seed } from "./world";
 import type { Realm } from "./time";
-import { attributes, BADESTUBE_HEALTH, ITEMS } from "./economy";
+import { attributes, ITEMS } from "./economy";
 import { ITEM_RANK } from "./disasters";
 import { BADESTUBE_WINTER_T, GEMEINWESEN_T } from "./lang/gemeinwesen";
-import { LANGS } from "./i18n";
+import { DICT, LANGS } from "./i18n";
 import { wedStage } from "./weddings";
+import { sickChance, SICK_BASE } from "./sickness";
+import { seasonAt } from "./season";
+import { sickLoss } from "./prosperity";
 
 const day = 864e5,
   t0 = GEMEINWESEN_LAB_SINCE + day;
@@ -222,35 +225,32 @@ describe("Gemeinwesen never rewrites the past", () => {
       foodCapacity(pub, new Map(), after, 20),
     );
   });
-  it("Badestube health points: shown before the cut-over only (display, no economic effect)", () => {
-    const b = (realm: Realm, at: number) => {
-      const s = seed([...FOOD, "badestube"], realm, at - 10 * day, at - 20 * day);
-      return attributes(
-        s,
-        [s],
-        (s.bought ?? []).map((x) => ({
-          seed_id: s.id,
-          item: x.item,
-          created_at: new Date(x.at).toISOString(),
-        })) as never,
-        at,
-      ).health;
+  it("Badestube shows no HUD health points — before and after the cut-over, public maps and lab", () => {
+    const hud = (items: string[], realm: Realm, at: number) => {
+      const s = seed(items, realm, at - 10 * day, at - 20 * day);
+      const rows = (s.bought ?? []).map((x) => ({
+        seed_id: s.id,
+        item: x.item,
+        created_at: new Date(x.at).toISOString(),
+      }));
+      return attributes(s, [s], rows as never, at).health;
     };
-    const n = (realm: Realm, at: number) => {
-      const s = seed([...FOOD], realm, at - 10 * day, at - 20 * day);
-      return attributes(
-        s,
-        [s],
-        (s.bought ?? []).map((x) => ({
-          seed_id: s.id,
-          item: x.item,
-          created_at: new Date(x.at).toISOString(),
-        })) as never,
-        at,
-      ).health;
-    };
-    expect(b("europe", t0) - n("europe", t0)).toBe(BADESTUBE_HEALTH);
-    expect(b("lab", t0)).toBe(n("lab", t0));
+    for (const realm of ["europe", "lab"] as Realm[])
+      for (const at of [GEMEINWESEN_LAB_SINCE - 30 * day, t0 + 30 * day])
+        expect(hud([...FOOD, "badestube"], realm, at), `${realm} ${at}`).toBe(
+          hud([...FOOD], realm, at),
+        );
+  });
+  it("Badestube build text promises no health points in any of the eight languages", () => {
+    for (const l of LANGS) {
+      const d = (DICT[l] as unknown as { items: Record<string, [string, string]> }).items[
+        "badestube"
+      ]![1];
+      expect(d, l).not.toMatch(
+        /\+\s?10|10\s?\+|＋10|健康|health|Gesundheit|santé|salud|صحة|स्वास्थ्य/i,
+      );
+      expect(d.length, l).toBeGreaterThan(10);
+    }
   });
   it("texts exist in all eight languages", () => {
     for (const l of LANGS) {
@@ -258,5 +258,89 @@ describe("Gemeinwesen never rewrites the past", () => {
       expect(BADESTUBE_WINTER_T[l].length, l).toBeGreaterThan(20);
     }
     expect(BADESTUBE_WINTER).toBe(0.5);
+  });
+});
+
+describe("Badestube: the real effect (controlled conditions)", () => {
+  // winter and summer in the lab after the cut-over; the same purchases on a public map keep today's rule (placeholder 2100)
+  const WIN = Date.UTC(2027, 0, 20, 12),
+    SUM = Date.UTC(2027, 6, 15, 12),
+    OLD_WIN = Date.UTC(2026, 0, 20, 12);
+  const C0 = Date.UTC(2025, 0, 1);
+  const HALL = [0, 1, 2].map((i) => ({ item: `harvest${i + 1}`, at: Date.UTC(2025, 2, 1) + i }));
+  const town = (items: string[], realm: Realm = "lab", hall = false, id = "bad"): Seed => ({
+    id,
+    name: "B",
+    owner: "o",
+    hue: 1,
+    x: 400,
+    y: 540,
+    user_id: null,
+    realm,
+    created_at: new Date(C0).toISOString(),
+    bought: [
+      ...items.map((item, k) => ({ item, at: C0 + (1 + k) * day })),
+      ...(hall ? HALL : []),
+    ].sort((a, b) => a.at - b.at),
+  });
+  // winter part of the risk: the year-round care cuts multiply both seasons alike, summer has no winter term
+  const surcharge = (s: Seed, at: number) => sickChance(s, at) - sickChance(s, SUM);
+  it("winter: exactly half the surcharge; summer: no effect", () => {
+    expect(seasonAt(WIN).winter).toBeGreaterThan(0.9);
+    expect(seasonAt(SUM).winter).toBe(0);
+    const plain = surcharge(town([]), WIN),
+      bad = surcharge(town(["badestube"]), WIN);
+    expect(plain).toBeGreaterThan(0.02);
+    expect(bad).toBeCloseTo(plain / 2, 12);
+    expect(sickChance(town(["badestube"]), SUM)).toBeCloseTo(sickChance(town([]), SUM), 12);
+  });
+  it("with Erntedankhalle step 3: each halves, both together leave a quarter (multiplicative)", () => {
+    const plain = surcharge(town([]), WIN);
+    expect(surcharge(town([], "lab", true), WIN)).toBeCloseTo(plain / 2, 12);
+    expect(surcharge(town(["badestube"], "lab", true), WIN)).toBeCloseTo(plain / 4, 12);
+    expect(sickChance(town(["badestube"], "lab", true), SUM)).toBeCloseTo(
+      sickChance(town([]), SUM),
+      12,
+    );
+  });
+  it("not before the cut-over, not on public maps (placeholder), harvest hall unchanged there", () => {
+    expect(sickChance(town(["badestube"]), OLD_WIN)).toBeCloseTo(sickChance(town([]), OLD_WIN), 12);
+    expect(sickChance(town(["badestube"], "europe"), WIN)).toBeCloseTo(
+      sickChance(town([], "europe"), WIN),
+      12,
+    );
+    expect(surcharge(town([], "europe", true), WIN)).toBeCloseTo(
+      surcharge(town([], "europe"), WIN) / 2,
+      12,
+    );
+  });
+  it("independent of the order of the Gemeinwesen and never applied twice", () => {
+    const five = ["herbs", "healer", "library", "badestube", "beginen"];
+    const perms = (xs: string[]): string[][] =>
+      xs.length <= 1
+        ? [xs]
+        : xs.flatMap((x, i) =>
+            perms([...xs.slice(0, i), ...xs.slice(i + 1)]).map((p) => [x, ...p]),
+          );
+    const ref = sickChance(town(five), WIN);
+    for (const p of perms(five)) expect(sickChance(town(p), WIN), p.join()).toBeCloseTo(ref, 12);
+    // a second Badestube row (e.g. after a move or a duplicate) does not halve again
+    expect(sickChance(town([...five, "badestube"]), WIN)).toBeCloseTo(ref, 12);
+    // with every care building the Badestube still halves exactly the winter part
+    const noBad = town(["herbs", "healer", "library", "beginen"]);
+    expect(surcharge(town(five), WIN)).toBeCloseTo(surcharge(noBad, WIN) / 2, 12);
+  });
+  it("the productive resident tax uses it: winter income rises, households equal", () => {
+    const at = t0 + 55 * day; // 20.01.2027: winter, young village (space binds, capacity does not)
+    expect(seasonAt(at).winter).toBeGreaterThan(0.9);
+    const lab = seed([...FOOD, "herbs", "badestube"], "lab", t0 + day, t0),
+      pub = { ...lab, realm: "europe" } as Seed;
+    const a = residentTax(lab, [lab], at),
+      b = residentTax(pub, [pub], at);
+    expect(a.households).toBe(b.households);
+    expect(a.assessed).toBe(b.assessed);
+    expect(sickChance(lab, at)).toBeLessThan(sickChance(pub, at));
+    expect(a.income).toBe(a.assessed - sickLoss(a.assessed, sickChance(lab, at)));
+    expect(a.income).toBeGreaterThanOrEqual(b.income);
   });
 });
