@@ -14,6 +14,7 @@
  * figure already moves on screen, so the planted foot stays put at any speed, zoom or frame rate.
  */
 import { MAN_RIG } from "./man-rig-data";
+import { MAN_TORSO } from "./man-torso-data";
 
 export type Pt = [number, number];
 type C = CanvasRenderingContext2D;
@@ -516,6 +517,52 @@ function drawBody(
   }
 }
 
+/** P6e experiment: the painted upper body (head, torso, tunic, arms) of man-walk8 in MAN_TORSO.states phases, made by
+ *  scripts/gen-man-torso.py (the eight painted frames plus optical-flow in-betweens). It replaces the row-warped body
+ *  and the arm strips; legs and feet stay the rig's. */
+export interface Torso {
+  img: CanvasImageSource;
+  k: number; // atlas pre-scale
+  u: number; // walk phase of the pose
+  amp: number; // stride level of the pose
+}
+/** Painted upper-body state for walk phase u (the nearest one; at 32 states a cycle no cross-fade is needed). */
+export function torsoState(u: number): number {
+  const n = MAN_TORSO.states;
+  return Math.round((((u % 1) + 1) % 1) * n) % n;
+}
+function drawTorso(c: C, P: GaitPose, T: Torso) {
+  const [cw, ch] = MAN_TORSO.cell,
+    [ox, oy] = MAN_TORSO.origin,
+    // standing and the shortest steps use the painted state with the arms closest to the body
+    i = T.amp <= 0.25 ? MAN_TORSO.stand : torsoState(T.u),
+    dx = ox + SHIFT,
+    off = P.pelvisY - 128;
+  // as in the P6d body, the head rides a little less of the bob than the hips (rows grouped while the shift is even)
+  const headDy = (y: number) => smooth(clamp((ROWS.neck + 6 - y) / 14, 0, 1)) * P.warp.head;
+  const draw = (state: number) => {
+    for (let y = 0; y < ch;) {
+      const d0 = headDy(oy + y);
+      let e = y + 1;
+      while (e < ch && Math.abs(headDy(oy + e) - d0) < 0.3) e++;
+      const h = e - y;
+      c.drawImage(
+        T.img,
+        state * cw * T.k,
+        y * T.k,
+        cw * T.k,
+        h * T.k,
+        dx,
+        oy + y + off + headDy(oy + y + h / 2) - 0.3,
+        cw,
+        h + 0.6,
+      );
+      y = e;
+    }
+  };
+  draw(i);
+}
+
 /** The drawing of pose P in back-to-front steps (far arm, far leg, near leg, body, belt end + near arm), so a cell can
  *  be built a step at a time across frames. */
 function gaitSteps(
@@ -524,6 +571,7 @@ function gaitSteps(
   P: GaitPose,
   scale: number,
   k: number,
+  torso?: Torso,
 ): (() => void)[] {
   const B = P.warp,
     band = Math.max(1, Math.round(1 / scale)); // one output pixel per band: the overlap pattern stays below a pixel
@@ -558,6 +606,7 @@ function gaitSteps(
     );
     drawRibbon(c, atlas, s, limbPoints(s, [L.hip, L.knee, L.ankle]), band, k);
   };
+  if (torso) return [() => leg("far"), () => leg("near"), () => drawTorso(c, P, torso)];
   return [
     () => arm("far"),
     () => leg("far"),
@@ -603,35 +652,47 @@ const stepCosts = RIG_SCALES.map(() => new Array<number>(GAIT_STEPS + 1).fill(0.
 const stepDevs = RIG_SCALES.map(() => new Array<number>(GAIT_STEPS + 1).fill(0.3));
 const expected = (si: number, i: number) => {
   const m = stepCosts[si]![i]!;
-  return Math.max(1.25 * m, m + 2 * stepDevs[si]![i]!);
+  return Math.min(RIG_BUILD_MS * 0.6, Math.max(1.25 * m, m + 2 * stepDevs[si]![i]!));
 };
-function learn(si: number, i: number, dt: number) {
-  const c = stepCosts[si]!,
+function learn(si: number, i: number, ms: number) {
+  // a single slow sample (first use after load: compiling, decoding) must not make a step look unaffordable for
+  // good — an estimate above the budget would only ever run as a frame's first step and could stall a cell
+  const dt = Math.min(ms, RIG_BUILD_MS),
+    c = stepCosts[si]!,
     d = stepDevs[si]!;
   d[i] = d[i]! * 0.8 + Math.abs(dt - c[i]!) * 0.2;
   c[i] = c[i]! * 0.8 + dt * 0.2;
 }
 let spent = 0,
   steps = 0,
+  drawn = 0,
   started = 0,
   maxStep = 0,
   budgetT = NaN;
-/** Cells being built: the canvas and the remaining steps; at most a few, the oldest is dropped. */
+/** Cells being built: the canvas, its cell size and the remaining steps. */
 interface Job {
   cv: HTMLCanvasElement;
+  si: number;
   run: (() => void)[];
   i: number;
 }
 const jobs = new Map<number, Job>();
-const MAX_JOBS = 8;
+/** Cells with the painted upper body (P6e) are keyed apart from the P6d cells. */
+const TORSO_KEY = 1 << 20;
+/** Cells being built at once; a further request waits (shows a stand-in) until one is finished. */
+const MAX_JOBS = 2;
 const clock = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
 
 /** The atlas pre-scaled once per cache scale (high-quality shrink): the many small draws of a pose then copy at about
  *  1:1 with plain bilinear filtering, which is several times cheaper than shrinking every band. */
-const atlasScaled = new Map<number, { src: HTMLImageElement; cv: HTMLCanvasElement }>();
-function atlasFor(im: HTMLImageElement, sc: number): { img: CanvasImageSource; k: number } {
+const atlasScaled = new Map<string, { src: HTMLImageElement; cv: HTMLCanvasElement }>();
+function atlasFor(
+  im: HTMLImageElement,
+  sc: number,
+  tag = "rig",
+): { img: CanvasImageSource; k: number } {
   if (sc === 1) return { img: im, k: 1 };
-  const hit = atlasScaled.get(sc);
+  const hit = atlasScaled.get(tag + sc);
   if (hit && hit.src === im) return { img: hit.cv, k: sc };
   const cv = document.createElement("canvas");
   cv.width = Math.ceil(im.naturalWidth * sc);
@@ -640,7 +701,7 @@ function atlasFor(im: HTMLImageElement, sc: number): { img: CanvasImageSource; k
   if (!g || !cv.width) return { img: im, k: 1 };
   g.imageSmoothingQuality = "high";
   g.drawImage(im, 0, 0, cv.width, cv.height);
-  atlasScaled.set(sc, { src: im, cv });
+  atlasScaled.set(tag + sc, { src: im, cv });
   return { img: cv, k: sc };
 }
 function finish(key: number, cv: HTMLCanvasElement) {
@@ -657,8 +718,8 @@ function finish(key: number, cv: HTMLCanvasElement) {
 /** A finished cell to show while the wanted one is still being built: the nearest pose of the same stride and size,
  *  else the same pose at another size, else the nearest stride (standing, a shorter step). Null only while the cache is
  *  still empty — then the first cell is finished at once (once per session). */
-function standIn(ai: number, f: number, si: number): HTMLCanvasElement | null {
-  const base = (si * RIG_AMPS.length + ai) * RIG_FRAMES;
+function standIn(ai: number, f: number, si: number, off: number): HTMLCanvasElement | null {
+  const base = off + (si * RIG_AMPS.length + ai) * RIG_FRAMES;
   for (let d = 0; d < RIG_FRAMES / 2 && ai > 0; d++) {
     const a =
       frames.get(base + ((f + d) % RIG_FRAMES)) ??
@@ -666,7 +727,7 @@ function standIn(ai: number, f: number, si: number): HTMLCanvasElement | null {
     if (a) return a;
   }
   for (let o = 0; o < RIG_SCALES.length; o++) {
-    const a = frames.get((o * RIG_AMPS.length + ai) * RIG_FRAMES + (ai === 0 ? 0 : f));
+    const a = frames.get(off + (o * RIG_AMPS.length + ai) * RIG_FRAMES + (ai === 0 ? 0 : f));
     if (a) return a;
   }
   for (let d = 1; d < RIG_AMPS.length; d++)
@@ -674,7 +735,7 @@ function standIn(ai: number, f: number, si: number): HTMLCanvasElement | null {
       if (b < 0 || b >= RIG_AMPS.length) continue;
       for (let o = 0; o < RIG_SCALES.length; o++) {
         const oo = (si + o) % RIG_SCALES.length,
-          a = frames.get((oo * RIG_AMPS.length + b) * RIG_FRAMES + (b === 0 ? 0 : f));
+          a = frames.get(off + (oo * RIG_AMPS.length + b) * RIG_FRAMES + (b === 0 ? 0 : f));
         if (a) return a;
       }
     }
@@ -690,8 +751,10 @@ export function rigFrame(
   f: number,
   si = 0,
   now?: number,
+  torso?: HTMLImageElement | null,
 ): HTMLCanvasElement | null {
-  const key = (si * RIG_AMPS.length + ai) * RIG_FRAMES + (ai === 0 ? 0 : f),
+  const off = torso ? TORSO_KEY : 0,
+    key = off + (si * RIG_AMPS.length + ai) * RIG_FRAMES + (ai === 0 ? 0 : f),
     hit = frames.get(key);
   if (hit) {
     frames.delete(key);
@@ -703,16 +766,27 @@ export function rigFrame(
     budgetT = now;
     spent = 0;
     steps = 0;
+    drawn = 0;
     started = 0;
     maxStep = 0;
   }
   let job = jobs.get(key);
+  if (!job && now !== undefined && jobs.size >= MAX_JOBS) {
+    // finish what was started before starting more: with many walkers every frame asks for new poses, and
+    // half-built cells that are dropped again would waste the budget
+    const [k0, j0] = jobs.entries().next().value!;
+    if (advance(k0, j0, now)) return frames.get(key) ?? standIn(ai, f, si, off) ?? null;
+    return standIn(ai, f, si, off);
+  }
   if (!job) {
     if (
       now !== undefined &&
-      (started >= RIG_BUILDS_PER_FRAME || (steps > 0 && spent + expected(si, 0) > RIG_BUILD_MS))
-    )
-      return standIn(ai, f, si);
+      (started >= RIG_BUILDS_PER_FRAME ||
+        (steps > 0 && spent + expected(si, 0) + expected(si, 1) > RIG_BUILD_MS))
+    ) {
+      const s = standIn(ai, f, si, off);
+      if (s || frames.size > 0) return s;
+    }
     const t0 = clock(),
       sc = RIG_SCALES[si] ?? 0.5,
       cv = document.createElement("canvas");
@@ -724,9 +798,22 @@ export function rigFrame(
     g.scale(sc, sc);
     const A = atlasFor(atlas, sc);
     g.imageSmoothingQuality = A.k === 1 ? "high" : "low";
-    job = { cv, run: gaitSteps(g, A.img, gaitPose(f / RIG_FRAMES, RIG_AMPS[ai]!), sc, A.k), i: 0 };
+    const u = f / RIG_FRAMES,
+      T = torso ? atlasFor(torso, sc, "torso") : null;
+    job = {
+      cv,
+      si,
+      run: gaitSteps(
+        g,
+        A.img,
+        gaitPose(u, RIG_AMPS[ai]!),
+        sc,
+        A.k,
+        T ? { img: T.img, k: T.k, u, amp: RIG_AMPS[ai]! } : undefined,
+      ),
+      i: 0,
+    };
     jobs.set(key, job);
-    if (jobs.size > MAX_JOBS) jobs.delete(jobs.keys().next().value!);
     started++;
     const dt = clock() - t0;
     learn(si, 0, dt);
@@ -734,25 +821,33 @@ export function rigFrame(
     steps++;
     maxStep = Math.max(maxStep, dt);
   }
-  while (job.i < job.run.length) {
-    if (now !== undefined && steps > 0 && spent + expected(si, job.i + 1) > RIG_BUILD_MS) break;
-    const t0 = clock();
-    job.run[job.i]!();
-    const dt = clock() - t0;
-    learn(si, job.i + 1, dt);
-    spent += dt;
-    steps++;
-    maxStep = Math.max(maxStep, dt);
-    job.i++;
-  }
-  if (job.i < job.run.length) {
-    const s = standIn(ai, f, si);
-    if (s) return s;
-    while (job.i < job.run.length) job.run[job.i++]!(); // nothing to show yet: finish this first cell now
-  }
+  if (advance(key, job, now)) return job.cv;
+  const s = standIn(ai, f, si, off);
+  if (s) return s;
+  while (job.i < job.run.length) job.run[job.i++]!(); // nothing to show yet: finish this first cell now
   jobs.delete(key);
   finish(key, job.cv);
   return job.cv;
+}
+/** Runs a cell's remaining steps as far as this frame's budget allows; true once the cell is finished and cached.
+ *  The first drawing step of a frame always runs, so building never stalls. */
+function advance(key: number, job: Job, now: number | undefined): boolean {
+  while (job.i < job.run.length) {
+    if (now !== undefined && drawn > 0 && spent + expected(job.si, job.i + 1) > RIG_BUILD_MS)
+      return false;
+    const t0 = clock();
+    job.run[job.i]!();
+    const dt = clock() - t0;
+    learn(job.si, job.i + 1, dt);
+    spent += dt;
+    steps++;
+    drawn++;
+    maxStep = Math.max(maxStep, dt);
+    job.i++;
+  }
+  jobs.delete(key);
+  finish(key, job.cv);
+  return true;
 }
 /** Building effort of the current rendered frame (ms) — for tests and diagnostics. */
 export const rigBuildSpent = () => spent;

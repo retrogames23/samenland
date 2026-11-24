@@ -81,4 +81,22 @@ describe("rig cell cache", () => {
     drawDelay = 0;
     expect(shown).toBe(R.rigFrame(atlas, 2, 10, 1));
   });
+  it("cells with the painted upper body are kept apart from the P6d cells", () => {
+    const torso = { naturalWidth: 3584, naturalHeight: 138 } as HTMLImageElement;
+    const plain = R.rigFrame(atlas, 4, 5, 2),
+      painted = R.rigFrame(atlas, 4, 5, 2, undefined, torso);
+    expect(painted).not.toBeNull();
+    expect(painted).not.toBe(plain);
+    expect(R.rigFrame(atlas, 4, 5, 2, undefined, torso)).toBe(painted);
+    expect(R.rigFrame(atlas, 4, 5, 2)).toBe(plain);
+  });
+  it("one slow start does not stall building: a walker's cells still finish while its pose changes every frame", () => {
+    drawDelay = 2; // the first cells are very slow (as on first use after load)…
+    let t = 20000;
+    for (let i = 0; i < 3; i++) R.rigFrame(atlas, 3, 50 + i, 1, (t += 16));
+    drawDelay = 0; // …then building is fast again
+    const before = R.rigCacheSize();
+    for (let i = 0; i < 40; i++) R.rigFrame(atlas, 3, (i * 2) % 64, 1, (t += 16)); // a new pose every frame
+    expect(R.rigCacheSize() - before).toBeGreaterThan(20);
+  });
 });

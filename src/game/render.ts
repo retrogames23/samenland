@@ -1424,6 +1424,10 @@ function insignia(c: C, q: Pose, hgt: number) {
  *  window.__setRig(false)) shows the painted 8-frame sheet instead, for comparison. Display only. */
 let manRigOn = (() => { try { return !/[?&]rig=0/.test(location.search); } catch { return true; } })();
 if (typeof window !== "undefined") (window as unknown as { __setRig?: (on: boolean) => void }).__setRig = (on) => { manRigOn = on; };
+/** P6e experiment: the rig's upper body from the painted walk states (?rigtorso=p6e or window.__setRigTorso("p6e"));
+ *  "p6d" keeps the row-warped body with arm strips. Display only. */
+let rigTorso = (() => { try { return /[?&]rigtorso=p6e/.test(location.search); } catch { return false; } })();
+if (typeof window !== "undefined") (window as unknown as { __setRigTorso?: (m: "p6d" | "p6e") => void }).__setRigTorso = (m) => { rigTorso = m === "p6e"; };
 /** Source px (of the 240 px sheet) a figure of height hgt covers on screen per unit of path phase in tile direction d:
  *  phase = distance / STRIDE with 0.34 tiles per 2π (people.ts); a tile step spans 16 px across and 8 px down. */
 function rigPxPerPhase(d: readonly [number, number], hgt: number) {
@@ -1512,7 +1516,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     // stays put; standing is the same rig at zero stride (same body), and starting/stopping steps through shorter strides
     const g = stepGait(q.p.id, q.phase, q.walking, rigPxPerPhase(q.dir, hgt), t, hash(q.p.id, 77, 5));
     const px = hgt * Math.hypot(B.c, B.d); // drawn height in canvas px: close-ups get the full-resolution cells
-    const uf = g.u * RIG_FRAMES, fi = Math.floor(uf) % RIG_FRAMES, fr = rigFrame(rigged, g.ai, fi, rigScaleFor(px), t);
+    const uf = g.u * RIG_FRAMES, fi = Math.floor(uf) % RIG_FRAMES, fr = rigFrame(rigged, g.ai, fi, rigScaleFor(px), t, rigTorso ? folkImage("manTorso") : null);
     if (fr) {
       if (!q.walking) { // standing: slow breathing, as for every other figure
         const id = q.p.id, br = Math.sin(t / (1900 + hash(id, 41, 3) * 900) + id);
