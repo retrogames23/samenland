@@ -9,8 +9,12 @@ import {
   WALK8_SCALE,
   WALK8_STRIDE,
   walk8Bob,
-  walk8FootOffset,
+  WALK8_PAIR,
+  resetWalk8Pairs,
+  walk8Across,
   walk8Frame,
+  walk8Pair,
+  walk8PairOffset,
 } from "./man-walk8";
 import { LOOP_SETTLE_S, resetGait, stepGait } from "./walk-rig";
 
@@ -43,27 +47,64 @@ describe("man-walk8: frame selection", () => {
   });
 });
 
-describe("man-walk8: planted boot inside a frame", () => {
+describe("man-walk8: planted boot over a stance pair", () => {
   const across: [number, number] = [Math.SQRT1_2, -Math.SQRT1_2]; // straight across the screen
-  it("loop length is the painted stride at the drawn scale", () => {
+  const walk = (id: number, us: number[], dir: [number, number] = across, walking = true) =>
+    us.map((u) => walk8PairOffset(id, u, walking, dir));
+  it("loop length is the painted stride at the drawn scale; a pair covers two frames of ground", () => {
     expect(WALK8_LOOP).toBeCloseTo(WALK8_STRIDE * WALK8_SCALE, 9);
+    expect(WALK8_PAIR).toBeCloseTo((2 * WALK8_LOOP) / 8, 9);
   });
-  it("legs shift back by exactly the ground covered inside the frame, zero on average", () => {
-    const step = WALK8_LOOP / WALK8_FRAMES;
-    expect(walk8FootOffset(0, across) - walk8FootOffset(1, across)).toBeCloseTo(step, 9); // sole keeps its ground spot
-    let sum = 0;
-    for (let i = 0; i < 1000; i++) sum += walk8FootOffset((i + 0.5) / 1000, across);
-    expect(Math.abs(sum / 1000)).toBeLessThan(1e-9);
+  it("stance pairs are 1–2, 3–4, 5–6 and 7–0", () => {
+    const pairOf = (f: number) => walk8Pair((f + 0.5) / 8).pair;
+    expect([1, 2, 3, 4, 5, 6, 7, 0].map(pairOf)).toEqual([0, 0, 1, 1, 2, 2, 3, 3]);
+  });
+  it("walking: legs shift back by exactly the ground covered, continuous across 7 → 0 and 1 → 2", () => {
+    resetWalk8Pairs();
+    const us: number[] = [];
+    for (let i = 0; i <= 1700; i++) us.push((7 / 8 + i / 3200) % 1); // 400 steps a frame: pair 7–0, then 1–2
+    const off = walk(1, us),
+      d = WALK8_LOOP / 3200;
+    // inside the pair 7–0 (steps 0..799): sole keeps its ground spot, no jump at 7 → 0 (step 400)
+    for (let i = 1; i < 800; i++) expect(off[i - 1]! - off[i]!).toBeCloseTo(d, 6);
+    expect(off[0]!).toBeCloseTo(WALK8_PAIR / 2, 6);
+    expect(off[799]!).toBeCloseTo(-WALK8_PAIR / 2 + d, 6);
+    // the reset happens only where the next pair begins (0 → 1, the foot change)
+    expect(off[800]! - off[799]!).toBeGreaterThan(WALK8_PAIR * 0.9);
+    // 1 → 2 (step 1200) lies inside the next pair: continuous again
+    for (let i = 801; i < 1600; i++) expect(off[i - 1]! - off[i]!).toBeCloseTo(d, 6);
+  });
+  it("zero on average over a pair, at most half a pair of ground either way", () => {
+    resetWalk8Pairs();
+    const off = walk(
+      2,
+      Array.from({ length: 1000 }, (_, i) => 3 / 8 + (i + 0.5) / 4000),
+    );
+    expect(Math.abs(off.reduce((a, b) => a + b, 0) / 1000)).toBeLessThan(1e-6);
+    expect(Math.max(...off.map(Math.abs))).toBeLessThanOrEqual(WALK8_PAIR / 2 + 1e-9);
+  });
+  it("closing the step on the spot (not walking) holds the shift; a pair begun in place stays unsheared", () => {
+    resetWalk8Pairs();
+    const [a] = walk(3, [3.5 / 8]);
+    expect(walk(3, [3.9 / 8], across, false)[0]).toBeCloseTo(a!, 9); // frame 3 → 4 in place: no ground, no change
+    expect(walk(3, [5.2 / 8], across, false)[0]).toBeCloseTo(0, 9); // next pair reached in place: plain picture
+  });
+  it("a jump of the loop (new path) re-anchors instead of shearing far", () => {
+    resetWalk8Pairs();
+    walk(4, [1.1 / 8]);
+    const [o] = walk(4, [4.4 / 8]);
+    expect(Math.abs(o!)).toBeLessThanOrEqual(WALK8_PAIR / 2);
+    expect(o!).toBeCloseTo(walk8PairOffset(99, 4.4 / 8, true, across), 9);
   });
   it("only the horizontal share of the movement is taken back (none when walking straight up or down)", () => {
-    expect(walk8FootOffset(1, [Math.SQRT1_2, Math.SQRT1_2])).toBeCloseTo(0, 9);
-    const iso = Math.abs(walk8FootOffset(1, [1, 0])),
-      full = Math.abs(walk8FootOffset(1, across));
-    expect(iso / full).toBeCloseTo(16 / Math.hypot(16, 8), 6);
+    expect(walk8Across([Math.SQRT1_2, Math.SQRT1_2])).toBeCloseTo(0, 9);
+    expect(walk8Across([1, 0]) / walk8Across(across)).toBeCloseTo(16 / Math.hypot(16, 8), 6);
   });
-  it("the shear starts at the hip, below the tunic's belt", () => {
+  it("the shear starts at the hip, below the tunic's belt; leg lean stays about 12° at most", () => {
     expect(WALK8_HIP).toBeGreaterThan(110);
     expect(WALK8_HIP).toBeLessThan(160);
+    const leg = (237 + 3 - WALK8_HIP) * WALK8_SCALE; // hip to ground row, as drawn
+    expect((Math.atan(WALK8_PAIR / 2 / leg) * 180) / Math.PI).toBeLessThan(12.5);
   });
 });
 
