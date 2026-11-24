@@ -424,6 +424,8 @@ export interface BodyWarp {
 }
 /** Forward angle of each thigh (radians, knee ahead of the hip > 0), relative to the standing pose. */
 const STAND = legsAt(0, 0).legs;
+// the pelvis height of every cached stride is worked out once at load (256 samples each), not in a frame's first build
+for (const a of RIG_AMPS) pelvisBase(STEP * a);
 const thighOf = (l: LegPose) => Math.atan2(l.knee[0] - l.hip[0], l.knee[1] - l.hip[1]);
 function thighs(u: number, amp: number): [number, number] {
   const L = legsAt(u, amp).legs;
@@ -514,8 +516,15 @@ function drawBody(
   }
 }
 
-/** Draws pose P (cell px). `scale` is the cell's output scale (sets the band size), `k` the atlas pre-scale. */
-export function drawGaitPose(c: C, atlas: CanvasImageSource, P: GaitPose, scale = 1, k = 1) {
+/** The drawing of pose P in back-to-front steps (far arm, far leg, near leg, body, belt end + near arm), so a cell can
+ *  be built a step at a time across frames. */
+function gaitSteps(
+  c: C,
+  atlas: CanvasImageSource,
+  P: GaitPose,
+  scale: number,
+  k: number,
+): (() => void)[] {
   const B = P.warp,
     band = Math.max(1, Math.round(1 / scale)); // one output pixel per band: the overlap pattern stays below a pixel
   const arm = (s: Side) => {
@@ -549,13 +558,21 @@ export function drawGaitPose(c: C, atlas: CanvasImageSource, P: GaitPose, scale 
     );
     drawRibbon(c, atlas, s, limbPoints(s, [L.hip, L.knee, L.ankle]), band, k);
   };
-  arm("far");
-  leg("far");
-  leg("near");
-  drawBody(c, atlas, P, B, band, k);
-  const pv = warpPoint(MAN_RIG.beltPivot, P, B);
-  piece(c, atlas, "belt", MAN_RIG.beltPivot, 0, pv, B.belt + P.lean, k);
-  arm("near");
+  return [
+    () => arm("far"),
+    () => leg("far"),
+    () => leg("near"),
+    () => drawBody(c, atlas, P, B, band, k),
+    () => {
+      const pv = warpPoint(MAN_RIG.beltPivot, P, B);
+      piece(c, atlas, "belt", MAN_RIG.beltPivot, 0, pv, B.belt + P.lean, k);
+      arm("near");
+    },
+  ];
+}
+/** Draws pose P (cell px). `scale` is the cell's output scale (sets the band size), `k` the atlas pre-scale. */
+export function drawGaitPose(c: C, atlas: CanvasImageSource, P: GaitPose, scale = 1, k = 1) {
+  for (const step of gaitSteps(c, atlas, P, scale, k)) step();
 }
 
 /** Cache scales (cell heights 60 / 120 / 240 px): a cell is never drawn at less than about half its height, so
@@ -570,15 +587,29 @@ export const RIG_CACHE_MAX_BYTES = 16e6;
 let cacheBytes = 0;
 /** At most this many cells are built per rendered frame; beyond that the nearest cell already built is shown, so a
  *  crowd appearing at once spreads the (≈1 ms on a slow phone) cell builds over a few frames instead of one hitch. */
+/** Cells started per rendered frame at most (bounds the canvases made in one frame). */
 export const RIG_BUILDS_PER_FRAME = 4;
-/** …and at most this much time (ms) per rendered frame (one cell is always allowed): a pose costs ≈ 0.5–1 ms on a
- *  desktop and ≈ 2.5–3 ms on a slow phone, so a slow device fills the cache over more frames instead of stuttering. */
+/** Time (ms) per rendered frame for building cells. A cell is built in GAIT_STEPS steps (≈ 0.1–0.3 ms each on a
+ *  desktop, ≈ 0.1–1.4 ms on a slow phone); a step starts only if 1.5× its running average still fits, so building
+ *  rarely runs past the budget — the first step of a frame always runs, so the cache keeps filling. */
 export const RIG_BUILD_MS = 2.5;
-let spent = 0;
-let budgetT = NaN,
-  built = 0;
-/** Cached frame for (amp level index, frame, scale index); built once on first use, then only drawn. `now` (the
- *  render frame's time) enables the per-frame build budget. */
+const GAIT_STEPS = 5;
+/** Expected cost of each build step (ms), a running average of the measured ones. */
+const stepCost = new Array<number>(GAIT_STEPS + 1).fill(0.3);
+let spent = 0,
+  steps = 0,
+  started = 0,
+  budgetT = NaN;
+/** Cells being built: the canvas and the remaining steps; at most a few, the oldest is dropped. */
+interface Job {
+  cv: HTMLCanvasElement;
+  run: (() => void)[];
+  i: number;
+}
+const jobs = new Map<number, Job>();
+const MAX_JOBS = 8;
+const clock = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+
 /** The atlas pre-scaled once per cache scale (high-quality shrink): the many small draws of a pose then copy at about
  *  1:1 with plain bilinear filtering, which is several times cheaper than shrinking every band. */
 const atlasScaled = new Map<number, { src: HTMLImageElement; cv: HTMLCanvasElement }>();
@@ -596,51 +627,7 @@ function atlasFor(im: HTMLImageElement, sc: number): { img: CanvasImageSource; k
   atlasScaled.set(sc, { src: im, cv });
   return { img: cv, k: sc };
 }
-export function rigFrame(
-  atlas: HTMLImageElement,
-  ai: number,
-  f: number,
-  si = 0,
-  now?: number,
-): HTMLCanvasElement | null {
-  const base = (si * RIG_AMPS.length + ai) * RIG_FRAMES,
-    key = base + (ai === 0 ? 0 : f),
-    hit = frames.get(key);
-  if (hit) {
-    frames.delete(key);
-    frames.set(key, hit);
-    return hit;
-  } // keep Map order = recency
-  if (typeof document === "undefined") return null;
-  if (now !== undefined) {
-    if (now !== budgetT) {
-      budgetT = now;
-      built = 0;
-      spent = 0;
-    }
-    if (built >= RIG_BUILDS_PER_FRAME || (built > 0 && spent >= RIG_BUILD_MS))
-      for (let d = 1; d < RIG_FRAMES / 2; d++) {
-        const a =
-          frames.get(base + ((f + d) % RIG_FRAMES)) ??
-          frames.get(base + ((f - d + RIG_FRAMES) % RIG_FRAMES));
-        if (a) return a;
-      }
-    built++;
-  }
-  const t0 = typeof performance !== "undefined" ? performance.now() : 0;
-  const sc = RIG_SCALES[si] ?? 0.5,
-    cv = document.createElement("canvas");
-  cv.width = Math.round(RIG_W * sc);
-  cv.height = Math.round(RIG_H * sc);
-  const g = cv.getContext("2d");
-  if (!g) return null;
-  g.imageSmoothingEnabled = true;
-  g.imageSmoothingQuality = "high";
-  g.scale(sc, sc);
-  const A = atlasFor(atlas, sc);
-  g.imageSmoothingQuality = A.k === 1 ? "high" : "low";
-  drawGaitPose(g, A.img, gaitPose(f / RIG_FRAMES, RIG_AMPS[ai]!), sc, A.k);
-  if (now !== undefined && typeof performance !== "undefined") spent += performance.now() - t0;
+function finish(key: number, cv: HTMLCanvasElement) {
   frames.set(key, cv);
   cacheBytes += cv.width * cv.height * 4;
   for (const [k, old] of frames) {
@@ -649,8 +636,110 @@ export function rigFrame(
     cacheBytes -= old.width * old.height * 4;
     old.width = old.height = 0;
   }
-  return cv;
 }
+
+/** A finished cell to show while the wanted one is still being built: the nearest pose of the same stride and size,
+ *  else the same pose at another size, else the nearest stride (standing, a shorter step). Null only while the cache is
+ *  still empty — then the first cell is finished at once (once per session). */
+function standIn(ai: number, f: number, si: number): HTMLCanvasElement | null {
+  const base = (si * RIG_AMPS.length + ai) * RIG_FRAMES;
+  for (let d = 0; d < RIG_FRAMES / 2 && ai > 0; d++) {
+    const a =
+      frames.get(base + ((f + d) % RIG_FRAMES)) ??
+      frames.get(base + ((f - d + RIG_FRAMES) % RIG_FRAMES));
+    if (a) return a;
+  }
+  for (let o = 0; o < RIG_SCALES.length; o++) {
+    const a = frames.get((o * RIG_AMPS.length + ai) * RIG_FRAMES + (ai === 0 ? 0 : f));
+    if (a) return a;
+  }
+  for (let d = 1; d < RIG_AMPS.length; d++)
+    for (const b of [ai - d, ai + d]) {
+      if (b < 0 || b >= RIG_AMPS.length) continue;
+      for (let o = 0; o < RIG_SCALES.length; o++) {
+        const oo = (si + o) % RIG_SCALES.length,
+          a = frames.get((oo * RIG_AMPS.length + b) * RIG_FRAMES + (b === 0 ? 0 : f));
+        if (a) return a;
+      }
+    }
+  return null;
+}
+
+/** Cached frame for (amp level index, frame, scale index); built once on first use, then only drawn. Without `now`
+ *  the cell is built at once (tests, tools); with `now` (the render frame's time) it is built a step at a time within
+ *  the per-frame budget and a stand-in is returned meanwhile. */
+export function rigFrame(
+  atlas: HTMLImageElement,
+  ai: number,
+  f: number,
+  si = 0,
+  now?: number,
+): HTMLCanvasElement | null {
+  const key = (si * RIG_AMPS.length + ai) * RIG_FRAMES + (ai === 0 ? 0 : f),
+    hit = frames.get(key);
+  if (hit) {
+    frames.delete(key);
+    frames.set(key, hit);
+    return hit;
+  } // keep Map order = recency
+  if (typeof document === "undefined") return null;
+  if (now !== undefined && now !== budgetT) {
+    budgetT = now;
+    spent = 0;
+    steps = 0;
+    started = 0;
+  }
+  let job = jobs.get(key);
+  if (!job) {
+    if (
+      now !== undefined &&
+      (started >= RIG_BUILDS_PER_FRAME || (steps > 0 && spent + 1.5 * stepCost[0]! > RIG_BUILD_MS))
+    )
+      return standIn(ai, f, si);
+    const t0 = clock(),
+      sc = RIG_SCALES[si] ?? 0.5,
+      cv = document.createElement("canvas");
+    cv.width = Math.round(RIG_W * sc);
+    cv.height = Math.round(RIG_H * sc);
+    const g = cv.getContext("2d");
+    if (!g) return null;
+    g.imageSmoothingEnabled = true;
+    g.scale(sc, sc);
+    const A = atlasFor(atlas, sc);
+    g.imageSmoothingQuality = A.k === 1 ? "high" : "low";
+    job = { cv, run: gaitSteps(g, A.img, gaitPose(f / RIG_FRAMES, RIG_AMPS[ai]!), sc, A.k), i: 0 };
+    jobs.set(key, job);
+    if (jobs.size > MAX_JOBS) jobs.delete(jobs.keys().next().value!);
+    started++;
+    const dt = clock() - t0;
+    stepCost[0] = stepCost[0]! * 0.8 + dt * 0.2;
+    spent += dt;
+    steps++;
+  }
+  while (job.i < job.run.length) {
+    const cost = stepCost[job.i + 1]!;
+    if (now !== undefined && steps > 0 && spent + 1.5 * cost > RIG_BUILD_MS) break; // estimate with headroom
+    const t0 = clock();
+    job.run[job.i]!();
+    const dt = clock() - t0;
+    stepCost[job.i + 1] = cost * 0.8 + dt * 0.2;
+    spent += dt;
+    steps++;
+    job.i++;
+  }
+  if (job.i < job.run.length) {
+    const s = standIn(ai, f, si);
+    if (s) return s;
+    while (job.i < job.run.length) job.run[job.i++]!(); // nothing to show yet: finish this first cell now
+  }
+  jobs.delete(key);
+  finish(key, job.cv);
+  return job.cv;
+}
+/** Building effort of the current rendered frame (ms) — for tests and diagnostics. */
+export const rigBuildSpent = () => spent;
+/** Expected cost per build step (ms; [0] = new canvas) — diagnostics. */
+export const rigStepCosts = () => stepCost.slice();
 export const rigCacheSize = () => frames.size;
 /** Bytes held by the cell cache (RGBA). */
 export const rigCacheBytes = () => cacheBytes;

@@ -1,9 +1,18 @@
 import { afterAll, describe, expect, it, vi } from "vitest";
 
 // a canvas stand-in: every 2D call is a no-op, so the cache bookkeeping can be checked without a real canvas
+let drawDelay = 0; // ms each drawImage takes, to imitate a slow phone
+const busy = (ms: number) => {
+  const t = performance.now();
+  while (performance.now() - t < ms);
+};
 const ctx = new Proxy(
   {},
-  { get: (_t, k) => (k === "canvas" ? undefined : () => undefined), set: () => true },
+  {
+    get: (_t, k) =>
+      k === "canvas" ? undefined : k === "drawImage" ? () => busy(drawDelay) : () => undefined,
+    set: () => true,
+  },
 );
 const made: { width: number; height: number }[] = [];
 vi.stubGlobal("document", {
@@ -47,5 +56,29 @@ describe("rig cell cache", () => {
     expect(R.rigCacheBytes()).toBeLessThanOrEqual(R.RIG_CACHE_MAX_BYTES);
     expect(R.rigCacheSize()).toBeGreaterThan(0);
     expect(made.some((c) => c.width === 0)).toBe(true); // evicted cells release their backing store
+  });
+  it("on a slow device a cell is built a step at a time: no frame blocks much longer than the budget", () => {
+    drawDelay = 0.4; // several ms per cell: well over the budget if built at once
+    let t = 5000,
+      worst = 0;
+    const shown: unknown[] = [];
+    for (let i = 0; i < 30; i++) {
+      t += 16;
+      shown.push(R.rigFrame(atlas, 1, 37, 0, t)); // a pose no earlier test built
+      worst = Math.max(worst, R.rigBuildSpent());
+    }
+    drawDelay = 0;
+    const done = R.rigFrame(atlas, 1, 37, 0);
+    expect(shown[0]).not.toBe(done); // first frames show a stand-in…
+    expect(shown[shown.length - 1]).toBe(done); // …until the cell is finished
+    // a step only starts if it still fits; only the first step of a frame may overshoot, by itself
+    expect(worst).toBeLessThan(R.RIG_BUILD_MS + 5);
+  });
+  it("while a cell is unfinished the nearest finished pose of the same stride stands in", () => {
+    R.rigFrame(atlas, 2, 10, 1); // built at once (no frame time)
+    drawDelay = 0.5;
+    const shown = R.rigFrame(atlas, 2, 11, 1, 9000);
+    drawDelay = 0;
+    expect(shown).toBe(R.rigFrame(atlas, 2, 10, 1));
   });
 });
