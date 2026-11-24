@@ -9,6 +9,7 @@ Checks every painted walk sheet for the faults we kept shipping:
   - morphing torso: upper-body opaque area per frame within AREA_TOL of the median
   - no stride: contact frames must spread the feet clearly wider than passing frames
   - empty / duplicated frames: every frame has content, consecutive frames differ
+  - background remnants: no opaque patch of pure white (left over from the painting's backdrop) in any frame
 Usage: python3 scripts/check-walk-sheets.py [files...]  -> prints JSON, exit 1 on failure.
 """
 import json, sys, glob
@@ -16,6 +17,7 @@ import numpy as np
 from PIL import Image
 
 HEIGHT_TOL, DRIFT_TOL, AREA_TOL, GROUND_TOL = 0.06, 0.08, 0.18, 0.02
+WHITE_MIN, WHITE_SPREAD, WHITE_PATCH = 235, 14, 30  # opaque near-white, unsaturated, at least this many connected px
 
 # Sheets whose frame count is not encoded in the name (render.ts draws them with step4 / n=4).
 FOUR = ("boar-walk", "cow-walk", "deer-walk", "pig-walk", "sheep-walk", "ox-walk", "ox-walk-back", "toddler-walk", "man-walk")
@@ -26,8 +28,17 @@ def frames_of(path):
     if name.endswith("-walk8"): return 8
     return 4 if name.endswith("-walk4") or name in FOUR else 6
 
+def white_patches(rgba):
+    """Sizes of connected opaque pure-white patches (painted highlights are smaller or tinted)."""
+    from scipy import ndimage as nd
+    px = rgba.astype(int)
+    w = (px[..., 3] > 200) & (px[..., :3].min(-1) >= WHITE_MIN) & (np.ptp(px[..., :3], axis=-1) <= WHITE_SPREAD)
+    lab, n = nd.label(w)
+    return [int(v) for v in nd.sum(w, lab, range(1, n + 1))] if n else []
+
 def check(path):
-    a = np.asarray(Image.open(path).convert("RGBA"))[:, :, 3] > 40
+    rgba = np.asarray(Image.open(path).convert("RGBA"))
+    a = rgba[:, :, 3] > 40
     H, W = a.shape
     n = frames_of(path)
     errs = []
@@ -76,6 +87,9 @@ def check(path):
                     if b not in (236, 237): errs.append(f"frame {i} ground row {b}, expected 237 (±1 soft sole edge)")
                 for i, t in enumerate(tiles):
                     if t[:, 0].any() or t[:, -1].any(): errs.append(f"frame {i} touches frame edge")
+        for i in range(n):
+            big = [p for p in white_patches(rgba[:, i * fw:(i + 1) * fw]) if p >= WHITE_PATCH]
+            if big: errs.append(f"frame {i} opaque white patch {max(big)}px (background remnant)")
         for i in range(len(tiles) - 1):
             if tiles[i].shape == tiles[i + 1].shape and (tiles[i] == tiles[i + 1]).all():
                 errs.append(f"frames {i}/{i + 1} identical")

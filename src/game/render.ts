@@ -60,7 +60,7 @@ import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureRea
 import { townOf, onFireTile, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { RIG_FRAMES, RIG_H, RIG_W, rigFrame, rigScaleFor, rigSlide, stepGait } from "./walk-rig";
-import { WALK8_FRAMES, WALK8_LOOP, WALK8_REST, WALK8_SCALE, walk8Bob, walk8Frame } from "./man-walk8";
+import { WALK8_FRAMES, WALK8_HIP, WALK8_LOOP, WALK8_REST, WALK8_SCALE, walk8Bob, walk8FootOffset, walk8Frame } from "./man-walk8";
 const W8_GAIT = { len: WALK8_LOOP, rest: WALK8_REST };
 import { folkImage, walkSheet, standSprite, standSheetOf, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
@@ -1532,8 +1532,11 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     }
   }
   if (w8 && g8 && g8.ai > 0) {
-    const fw = w8.naturalWidth / WALK8_FRAMES, sh = hgt * walkScaleOf(k) * WALK8_SCALE;
-    drawSheetFrame(c, w8, walk8Frame(g8.u).f, fw, (sh * fw) / w8.naturalHeight, sh, 0);
+    const fw = w8.naturalWidth / WALK8_FRAMES, sh = hgt * walkScaleOf(k) * WALK8_SCALE, wf = walk8Frame(g8.u);
+    // the planted boot would glide with the body between two frames: the legs (below the hip) are sheared back by the
+    // ground the figure covers inside the frame, so the sole stays put while the upper body moves on undisturbed
+    const off = q.walking ? walk8FootOffset(wf.frac, q.dir) * (hgt / 240) : 0;
+    drawSheetSheared(c, w8, wf.f, fw, (sh * fw) / w8.naturalHeight, sh, off, WALK8_HIP);
     insignia(c, q, hgt); c.setTransform(B);
     return [X, Y - hgt - bob];
   }
@@ -3525,6 +3528,16 @@ function drawCourtWalk(c: C, im: HTMLImageElement, role: CourtRole, w: number, h
   else c.drawImage(im, -w / 2, -h - bob, w, h);
 }
 
+/** A walk-sheet cell whose lower part (from source row `cut`, the hip) is sheared so the soles shift by `off` while
+ *  everything above the hip stays put: the legs pivot at the hip. Continuous at the cut (zero shear there). */
+function drawSheetSheared(c: C, sheet: HTMLImageElement, f: number, fw: number, ww: number, hgt: number, off: number, cut: number) {
+  const k = SHEET_INSET, sw = fw - 2 * k, dw = (ww * sw) / fw, H = sheet.naturalHeight, yc = -hgt + (hgt * cut) / H, yg = -hgt * (3 / H);
+  c.drawImage(sheet, f * fw + k, 0, sw, cut + 1, -dw / 2, -hgt, dw, (hgt * (cut + 1)) / H);
+  const sh = off / (yg - yc), M = c.getTransform();
+  c.transform(1, 0, sh, 1, -sh * yc, 0);
+  c.drawImage(sheet, f * fw + k, cut, sw, H - cut, -dw / 2, yc, dw, (hgt * (H - cut)) / H);
+  c.setTransform(M);
+}
 /** One walk-sheet cell, inset by SHEET_INSET source px so neighbour frames' toes never bleed in. */
 const SHEET_INSET = 3;
 function drawSheetFrame(c: C, sheet: HTMLImageElement, f: number, fw: number, ww: number, hgt: number, dx: number) {

@@ -3,10 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   WALK8_DUR,
   WALK8_FRAMES,
+  WALK8_HIP,
   WALK8_LOOP,
   WALK8_REST,
   WALK8_SCALE,
+  WALK8_STRIDE,
   walk8Bob,
+  walk8FootOffset,
   walk8Frame,
 } from "./man-walk8";
 import { LOOP_SETTLE_S, resetGait, stepGait } from "./walk-rig";
@@ -37,6 +40,30 @@ describe("man-walk8: frame selection", () => {
   it("one common sheet scale, close to 1 (no per-frame scaling)", () => {
     expect(WALK8_SCALE).toBeGreaterThan(1);
     expect(WALK8_SCALE).toBeLessThan(1.05);
+  });
+});
+
+describe("man-walk8: planted boot inside a frame", () => {
+  const across: [number, number] = [Math.SQRT1_2, -Math.SQRT1_2]; // straight across the screen
+  it("loop length is the painted stride at the drawn scale", () => {
+    expect(WALK8_LOOP).toBeCloseTo(WALK8_STRIDE * WALK8_SCALE, 9);
+  });
+  it("legs shift back by exactly the ground covered inside the frame, zero on average", () => {
+    const step = WALK8_LOOP / WALK8_FRAMES;
+    expect(walk8FootOffset(0, across) - walk8FootOffset(1, across)).toBeCloseTo(step, 9); // sole keeps its ground spot
+    let sum = 0;
+    for (let i = 0; i < 1000; i++) sum += walk8FootOffset((i + 0.5) / 1000, across);
+    expect(Math.abs(sum / 1000)).toBeLessThan(1e-9);
+  });
+  it("only the horizontal share of the movement is taken back (none when walking straight up or down)", () => {
+    expect(walk8FootOffset(1, [Math.SQRT1_2, Math.SQRT1_2])).toBeCloseTo(0, 9);
+    const iso = Math.abs(walk8FootOffset(1, [1, 0])),
+      full = Math.abs(walk8FootOffset(1, across));
+    expect(iso / full).toBeCloseTo(16 / Math.hypot(16, 8), 6);
+  });
+  it("the shear starts at the hip, below the tunic's belt", () => {
+    expect(WALK8_HIP).toBeGreaterThan(110);
+    expect(WALK8_HIP).toBeLessThan(160);
   });
 });
 
