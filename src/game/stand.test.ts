@@ -4,7 +4,7 @@ describe("standing pose", () => {
   it("the man never stands in a frame of the 8-step walk sheet", async () => {
     const { standSheetOf, walkSheet } = await import("./folk-sprites");
     const s = standSheetOf("man");
-    expect(s).toEqual(["manWalk4", 4, 1]);
+    expect(s).toEqual(["manStand8", 1, 0]);
     expect(s![0]).not.toBe("manWalk8");
     void walkSheet;
   });
