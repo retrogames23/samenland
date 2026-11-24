@@ -107,7 +107,7 @@ export function chronicle(s: Seed, seeds: Seed[], from: number, to: number): Chr
     if (mk && b.item !== `${mk}${MONUMENT_DEFS[mk].n}`) continue;
     // bought buildings are celebrated when the builders finish, at the tile where they stand
     const kind = mk ? MONUMENT_DEFS[mk].kind : SPECIAL_KIND[b.item], site = kind ? specialTile(s, kind) : null;
-    const at = mk ? monumentDone(s, seeds, mk) : site ? specialDone(s, seeds, b.at) : b.at;
+    const at = mk ? monumentDone(s, seeds, mk) : site ? specialDone(s, seeds, b.at, kind) : b.at;
     if (at != null && at > from && at <= to) ev.push({ at, code: "bought", item: mk ? `${mk}1` : b.item, ...(site ? { x: site[0], y: site[1] } : {}) });
   }
   for (const l of links(seeds)) {

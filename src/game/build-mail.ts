@@ -10,7 +10,8 @@ export function buildMailDoneAt(s: Seed, item: string, at: number, placed: Set<n
     return monumentDone(s, [s], mk);
   }
   if (!placed.has(at)) return null;
-  return specialDone(s, [s], at);
+  // the Steingrube has its own short site phase (kind "quarry"); every other building the shared one
+  return specialDone(s, [s], at, item === "steingrube" ? "quarry" : undefined);
 }
 
 /** Is the finish inside the enqueue window? Only decides enqueueing; once-only delivery is the DB outbox's job. */

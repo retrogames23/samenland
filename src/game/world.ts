@@ -418,7 +418,7 @@ export type Kind =
   | "campfire" | "hut" | "coop" | "fence" | "chapel" | "watermill" | "harbor"
   | "stall" | "townhall" | "gatehouse" | "manufactory" | "steamworks" | "station" | "suburb" | "avenue"
   | "patrician" | "villa" | "tenement" | "townhouse2" | "fachwerk" | "steinhaus" | "handwerker"
-  | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "firerack" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "belfry"
+  | "fishery" | "granary" | "infirmary" | "school" | "markethall" | "guildhall" | "library" | "dairy" | "firehouse" | "firerack" | "guardhouse" | "lodge" | "herbhut" | "woodcamp" | "quarry" | "belfry"
   | "backhaus" | "herberge" | "beginenhof" | "badestube" | "bigstore" | "millrow" | "stonemason" | "hammerworks" | "smokehouse" | "saltquay"
   | "theater" | "opera" | "university" | "exchange" | "orangery" | "harvesthall" | "guildtower" | "lighthouse" | "seat1" | "seat2" | "seat3";
 /** build < 1: still a construction site (0 = staked out, 1 = finished). doneAt: real ms when it stands (estimate for organic growth). */
@@ -817,7 +817,7 @@ export const monumentSteps = (k: MonumentKey) => Array.from({ length: MONUMENT_D
 const MONUMENT_ITEMS = new Map<string, MonumentKey>(MONUMENT_KEYS.flatMap((k) => monumentSteps(k).map((i) => [i, k] as const)));
 export const monumentOf = (item: string): MonumentKey | null => MONUMENT_ITEMS.get(item) ?? null;
 export const MONUMENT_BY_KIND = new Map<Kind, MonumentKey>(MONUMENT_KEYS.map((k) => [MONUMENT_DEFS[k].kind, k]));
-export const SPECIAL_KIND: Record<string, Kind> = { backhaus: "backhaus", herberge: "herberge", badestube: "badestube", beginen: "beginenhof", fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", fireorder: "firerack", guard: "guardhouse", hunter: "lodge", herbs: "herbhut", woodcamp: "woodcamp", bigstore: "bigstore", millrow: "millrow", stonemason: "stonemason", hammerworks: "hammerworks", smokehouse: "smokehouse", saltquay: "saltquay",
+export const SPECIAL_KIND: Record<string, Kind> = { backhaus: "backhaus", herberge: "herberge", badestube: "badestube", beginen: "beginenhof", fisher: "fishery", granary: "granary", healer: "infirmary", school: "school", markethall: "markethall", guildhall: "guildhall", library: "library", dairy: "dairy", firehouse: "firehouse", fireorder: "firerack", guard: "guardhouse", hunter: "lodge", herbs: "herbhut", woodcamp: "woodcamp", steingrube: "quarry", bigstore: "bigstore", millrow: "millrow", stonemason: "stonemason", hammerworks: "hammerworks", smokehouse: "smokehouse", saltquay: "saltquay",
   ...Object.fromEntries(MONUMENT_KEYS.map((k) => [`${k}1`, MONUMENT_DEFS[k].kind])) };
 /** Belfry steps (kept for the guild-rank requirement). */
 export const MONUMENT_STEPS = ["belfry1", "belfry2", "belfry3", "belfry4"] as const;
@@ -1042,8 +1042,13 @@ function doneWith(s: Seed, seeds: Seed[], at: number, gt: number) {
 }
 /** Build time of a bought building/monument step started at `at` (default: with every Zunftturm step finished by now). */
 export const specialBuild = (s: Seed, mill = false, at = Infinity) => buildWith(s, mill, guildtowerDone(s, at));
-/** When a bought (non-monument) building started at `at` is finished – same rule as structureAt. */
-export function specialDone(s: Seed, seeds: Seed[], at: number): number {
+/** Site phase of the Steingrube in builders' work hours: a pit and a hoist, far quicker than a building (production
+ *  counts from the purchase anyway, DB resource_rate). */
+export const QUARRY_BUILD = 1 * 3600000;
+/** When a bought (non-monument) building started at `at` is finished – same rule as structureAt. `kind` only matters
+ *  for the Steingrube (quarry), whose short site phase takes no build bonuses. */
+export function specialDone(s: Seed, seeds: Seed[], at: number, kind?: Kind): number {
+  if (kind === "quarry") return workDone(at, QUARRY_BUILD);
   // builders rest at night (workClock), the day shift makes up for it
   return marketBoost(s, at, bauhuetteDone(s, at, doneWith(s, seeds, at, guildtowerDone(s, at))));
 }
@@ -1063,7 +1068,7 @@ export const FARM_BONUS = 0.05;
 export const SPECIAL_BUILD = 6 * 3600000;
 const CORE_SPOTS = new Set([...Object.keys(CORE), ...LANDMARKS.map((l) => `${l.dx},${l.dy}`), "0,0"]);
 /** A bought site; `until` = moved away at that time, `mv` = rebuilt here by a relocation (plain build phase). */
-export type Site = { kind: Kind; at: number; until?: number; mv?: true };
+export type Site = { kind: Kind; at: number; until?: number; mv?: true; auto?: true };
 const siteCache = new Map<string, Map<number, Site>>();
 /** Ensembles painted as whole complexes (courtyards, wings) stand on 2×2 tiles: the sprite sits on the
  * front (south) tile, the three tiles behind become its paved ground ("square") — nothing else grows there. */
@@ -1089,8 +1094,11 @@ export function specialSites(s: Seed): Map<number, Site> {
   const moved = new Set(ms.map((m) => m.item));
   const firstMove = (item: string) => ms.find((m) => m.item === item)?.at;
   const seen = new Set<string>();
+  let oldQuarry: (typeof items)[number] | undefined;
   for (const b of [...items].sort((a, c) => a.at - c.at)) {
     if (seen.has(b.item)) continue; seen.add(b.item);
+    // a Steingrube bought before it had a place (0143, lab only) is placed last, so it can never displace another building
+    if (b.item === "steingrube" && (b.x == null || b.y == null)) { oldQuarry = b; continue; }
     const kind = SPECIAL_KIND[b.item]!;
     const big = FOOT2.has(kind);
     // the player chose the spot in the build preview (for 2×2 ensembles: the front tile)
@@ -1120,6 +1128,8 @@ export function specialSites(s: Seed): Map<number, Site> {
     }
     if (best >= 0) { out.set(best, site(b.at)); if (big) coverBack(out, best % MAP, Math.floor(best / MAP), b.at, until); }
   }
+  // auto: structureAt shows it only on a tile nothing else claims (it cannot see neighbouring villages from here)
+  if (oldQuarry) { const k = oldQuarrySpot(s, oldQuarry.at, out); if (k >= 0) out.set(k, { kind: "quarry", at: oldQuarry.at, auto: true }); }
   for (let i = 0; i < ms.length; i++) {
     const m = ms[i]!, kind = SPECIAL_KIND[m.item]!;
     const next = ms.slice(i + 1).find((o) => o.item === m.item);
@@ -1130,6 +1140,22 @@ export function specialSites(s: Seed): Map<number, Site> {
   siteCache.set(key, out);
   if (s.bought) siteQuick.set(s.bought, { id: s.id, x: s.x, y: s.y, mv: s.moves, m: out });
   return out;
+}
+/** Spot for a Steingrube bought without a position (migration 0143, lab only): the nearest buildable tile just outside
+ *  the village's largest possible reach at purchase time (effAgeBound of the village alone + QUARRY_MARGIN), so it
+ *  stands on land that was free then and displaces neither a bought building (`taken`) nor a grown house. Pure. */
+export const QUARRY_MARGIN = 2;
+function oldQuarrySpot(s: Seed, at: number, taken: Map<number, Site>): number {
+  const inner = radiusOf(effAgeBound(s, soloSeeds(s), at)) + 0.5 + QUARRY_MARGIN;
+  let best = -1, bs = Infinity;
+  for (let dy = -Math.ceil(inner + 8); dy <= inner + 8; dy++) for (let dx = -Math.ceil(inner + 8); dx <= inner + 8; dx++) {
+    const x = s.x + dx, y = s.y + dy, k = y * MAP + x, d = townDist(x, y, s);
+    if (d < inner || d > inner + 8 || taken.has(k)) continue;
+    if (!buildable(terrain(x, y)) || terrain(x, y) === "forest" || pathAt(x, y, s, 20000, 10)) continue;
+    const sc = d + hash(x, y, 778) * 0.5;
+    if (sc < bs) { bs = sc; best = k; }
+  }
+  return best;
 }
 /** Cache key that changes whenever seed positions, ages or purchases change. */
 const skMemo = new WeakMap<Seed[], string>();
@@ -1229,6 +1255,8 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
   if (c !== undefined) { pSA(false); return c; }
   pSA(true);
   let best: Structure | null = null;
+  // an old Steingrube without a position (auto site) yields to anything else on its tile: never overwrites a building
+  let autoQuarry: Structure | null = null;
   const tw = pickCfg.lazyTwin ? twinSiteGet(ck, seeds, now) : twinSites(seeds, now).get(ck);
   if (tw) { best = { kind: tw.kind, seed: tw.seed, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
   const pick = picksOf(seeds, now);
@@ -1243,11 +1271,12 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     if (sp.kind === "square") { best = { kind: "square", seed: s, v: hash(x, y, 5) }; scache.set(ck, best); return best; }
     const mk = sp.mv ? undefined : MONUMENT_BY_KIND.get(sp.kind);
     const mill = sawmillUp(s, seeds, now);
-    const p0 = mk ? monumentProgress(s, now, mk) : (workClock(now) - workClock(sp.at)) / specialBuild(s, mill, sp.at);
+    const p0 = mk ? monumentProgress(s, now, mk) : (workClock(now) - workClock(sp.at)) / (sp.kind === "quarry" ? QUARRY_BUILD : specialBuild(s, mill, sp.at));
     // Freimarkt carpenters may finish a running site early (marketBoost inside specialDone)
-    const p = !mk && p0 < 1 && specialDone(s, seeds, sp.at) <= now ? 1 : p0;
-    const doneAt = p < 1 ? (mk ? monumentDone(s, seeds, mk) ?? undefined : specialDone(s, seeds, sp.at)) : undefined;
+    const p = !mk && p0 < 1 && specialDone(s, seeds, sp.at, sp.kind) <= now ? 1 : p0;
+    const doneAt = p < 1 ? (mk ? monumentDone(s, seeds, mk) ?? undefined : specialDone(s, seeds, sp.at, sp.kind)) : undefined;
     best = { kind: sp.kind, seed: s, v: hash(x, y, 5), ...(p < 1 ? { build: p, doneAt } : {}) };
+    if (sp.auto) { autoQuarry ??= best; best = null; continue; }
     scache.set(ck, best);
     return best;
   }
@@ -1310,6 +1339,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
     const rd = roadAt(x, y, seeds, now);
     if (rd) best = { kind: rd.bridge ? "bridge" : isTwin(rd.link, seeds, now) ? "street" : "road", seed: rd.link.a, v: hash(x, y, 5) };
   }
+  if (!best && autoQuarry) best = autoQuarry;
   scache.set(ck, best);
   return best;
 }
