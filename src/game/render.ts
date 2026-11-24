@@ -60,6 +60,8 @@ import { texture, textureAlt, drawNature, texSample, allTexturesReady, natureRea
 import { townOf, onFireTile, feastRoute, townPosesSmooth, sickHome, isHomeKind, mayorGoal, steeredMayor, remoteMayor, ownMayorSid, type Pose, type Person } from "./people";
 import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFrame, LEG_RATIO, type FigureConfig } from "./figure";
 import { RIG_FRAMES, RIG_H, RIG_W, rigFrame, rigScaleFor, rigSlide, stepGait } from "./walk-rig";
+import { WALK8_FRAMES, WALK8_LOOP, WALK8_REST, WALK8_SCALE, walk8Bob, walk8Frame } from "./man-walk8";
+const W8_GAIT = { len: WALK8_LOOP, rest: WALK8_REST };
 import { folkImage, walkSheet, standSprite, standSheetOf, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { townRank, seatKindForRank } from "./rank";
@@ -1420,9 +1422,9 @@ function insignia(c: C, q: Pose, hgt: number) {
       if (cloth) { const ch2 = h * 0.38, cw = (ch2 * cloth.width) / cloth.height; c.drawImage(cloth, hgt * 0.32, -h * 0.95, cw, ch2); } }
   }
 }
-/** P6 reference walker: the ordinary villager ("man") walks on the skeletal cycle from walk-rig.ts. ?rig=0 (or
- *  window.__setRig(false)) shows the painted 8-frame sheet instead, for comparison. Display only. */
-let manRigOn = (() => { try { return !/[?&]rig=0/.test(location.search); } catch { return true; } })();
+/** The ordinary villager ("man") walks on the painted 8-frame sheet (man-walk8, man-walk8.ts). The P6d skeletal cycle
+ *  (walk-rig.ts) stays available for comparison: ?rig=1 or window.__setRig(true). Display only. */
+let manRigOn = (() => { try { return /[?&]rig=1/.test(location.search); } catch { return false; } })();
 if (typeof window !== "undefined") (window as unknown as { __setRig?: (on: boolean) => void }).__setRig = (on) => { manRigOn = on; };
 /** Source px (of the 240 px sheet) a figure of height hgt covers on screen per unit of path phase in tile direction d:
  *  phase = distance / STRIDE with 0.34 tiles per 2π (people.ts); a tile step spans 16 px across and 8 px down. */
@@ -1440,8 +1442,13 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
   const face = screenFacing(q.dir[0] - q.dir[1], (q.dir[0] + q.dir[1]) / 2), ph = q.phase + hash(q.p.id, 77, 5) * 6.2832;
   const painted = q.walking && (!!walkSheet(k) || legsFor(q));
   // the reference walker carries its own pelvis bob in the cycle; the whole-sprite bob is for painted sheets
-  const rigged = k === "man" && manRigOn && !q.working && q.p.job !== "mayor" ? folkImage("manRig") : null;
-  const bob = q.walking && !rigged ? Math.abs(Math.sin(ph)) * 0.07 : 0;
+  const refMan = k === "man" && !q.working && q.p.job !== "mayor";
+  const rigged = refMan && manRigOn ? folkImage("manRig") : null;
+  // painted 8-frame walk: the frame follows the distance walked on screen (one loop = the painted stride), and a stop
+  // closes the step on the spot to a passing frame before the standing picture takes over
+  const w8 = refMan && !rigged ? walkSheet(k) : null;
+  const g8 = w8 ? stepGait(-1 - q.p.id, q.phase, q.walking, rigPxPerPhase(q.dir, hgt), t, 0, W8_GAIT) : null;
+  const bob = g8 ? (g8.ai > 0 ? walk8Bob(g8.u) * 0.07 : 0) : q.walking && !rigged ? Math.abs(Math.sin(ph)) * 0.07 : 0;
   // working: asymmetric tool rhythm — slow wind-up, quick stroke, short rest (not a pendulum)
   const skirt = q.walking && !painted && SKIRTS.has(k);
   let tilt = 0;
@@ -1524,7 +1531,13 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
       return [X, Y - hgt];
     }
   }
-  const sheet = q.walking ? walkSheet(k) : null;
+  if (w8 && g8 && g8.ai > 0) {
+    const fw = w8.naturalWidth / WALK8_FRAMES, sh = hgt * walkScaleOf(k) * WALK8_SCALE;
+    drawSheetFrame(c, w8, walk8Frame(g8.u).f, fw, (sh * fw) / w8.naturalHeight, sh, 0);
+    insignia(c, q, hgt); c.setTransform(B);
+    return [X, Y - hgt - bob];
+  }
+  const sheet = q.walking && !w8 ? walkSheet(k) : null;
   const legs = q.walking && !sheet && legsFor(q) ? legsImg(HIPS[k] ?? DEFAULT_FIG) : null;
   const frameOf = (fw: number) => { void fw; return gaitFrame(ph); };
   if (sheet) {
