@@ -2554,7 +2554,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                     </ul>
                     {blk === "max" ? <div className="mt-1 font-semibold text-primary">{t.rank.need.max}</div>
                       : blk ? <div className="mt-1 text-muted-foreground">{t.rank.exam[r]}: {why}</div>
-                      : <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < RANK_PRICE[step]} onClick={() => void buy(step)}>{t.rank.exam[r]} · {t.taler(RANK_PRICE[step])}</Button>}
+                      : <><MaterialLine q={matQuote(step)} lang={lang} taler={t.taler} /><Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < RANK_PRICE[step] + kontorOf(step)} onClick={() => void buy(step)}>{t.rank.exam[r]} · {t.taler(RANK_PRICE[step])}</Button></>}
                   </div>
                 );
               })()}
@@ -2572,7 +2572,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                     </ul>
                     {blk === "max" ? <div className="mt-1 font-semibold text-primary">{t.office.need.max}</div>
                       : blk ? <div className="mt-1 text-muted-foreground">{titleName(n)}: {why}</div>
-                      : <Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < TITLE_PRICE[step]} onClick={() => void buy(step)}>{t.office.appoint}: {titleName(n)} · {t.taler(TITLE_PRICE[step])}</Button>}
+                      : <><MaterialLine q={matQuote(step)} lang={lang} taler={t.taler} /><Button size="sm" className="mt-1.5 h-7 w-full" disabled={cash < TITLE_PRICE[step] + kontorOf(step)} onClick={() => void buy(step)}>{t.office.appoint}: {titleName(n)} · {t.taler(TITLE_PRICE[step])}</Button></>}
                   </div>
                 );
               })()}
@@ -2710,9 +2710,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                 <ol className="mt-1 space-y-0.5 text-xs">
                   {mt.steps.map((name, k) => <li key={k} className={k < i ? "text-primary" : k === i ? "font-semibold" : "opacity-60"}>{k < i ? "✓" : `${k + 1}.`} {name}</li>)}
                 </ol>
+                {next && <MaterialLine q={matQuote(next)} lang={lang} taler={t.taler} />}
                 <div className="mt-1.5">
                   {!next ? <span className="text-xs font-semibold text-primary">{prog >= 1 ? mt.done : t.monument.building}</span>
-                    : <Button size="sm" className="h-7 w-full" disabled={cash < MONUMENT_PRICE[next]!} onClick={() => {
+                    : <Button size="sm" className="h-7 w-full" disabled={cash < MONUMENT_PRICE[next]! + kontorOf(next)} onClick={() => {
                         if (next === first) { setPlacing(first); setTab(null); setMsg(t.place.pick(t.items[first]![0])); focus(my.x, my.y); }
                         else void buy(next);
                       }}>{t.monument.step(i + 1, n)} · {t.monument.pay}</Button>}

@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ITEMS } from "./economy";
+import { CHEST_PRICE, ITEMS, MONUMENT_PRICE, RANK_PRICE, TITLE_PRICE } from "./economy";
 import { AUSBAU_PRICE } from "./ausbau";
 import {
+  INVESTMENT_ITEMS,
   KONTOR_PRICE,
   MATERIAL_ITEMS,
   RESOURCES,
@@ -15,6 +16,7 @@ import {
   SITE_WOOD,
   STEINGRUBE_PRICE,
   STEINGRUBE_WOOD,
+  investmentNeed,
   kontorQuote,
   materialNeed,
   materialOf,
@@ -224,5 +226,73 @@ describe("Steingrube texts: plain building, no grant", () => {
       for (const v of [t.quarry, t.quarryText, t.build, t.paid]) expect(v, l).not.toMatch(banned);
       expect(Object.keys(t), l).not.toContain("auftrag");
     }
+  });
+});
+
+// ---------------- Wirtschaftsumbau A1: investments at the half rate (migration 0145) ----------------
+const SQL3 = readFileSync(
+  new URL("../../drizzle/migrations/0145_a1_investment_material.sql", import.meta.url),
+  "utf8",
+);
+const GUARD_SQL = readFileSync(
+  new URL("../../drizzle/migrations/0123_bauhuette_only_guard.sql", import.meta.url),
+  "utf8",
+);
+
+describe("A1: TypeScript mirrors migration 0145", () => {
+  const list = (re: RegExp) =>
+    [...re.exec(SQL3)![1]!.matchAll(/'([a-z0-9]+)'/g)].map((m) => m[1]!).sort();
+  it("the A1 list in SQL equals INVESTMENT_ITEMS: every monument step, both guild ranks, all three titles — no chest", () => {
+    expect(list(/a1 := NEW\.item IN \(([^)]+)\)/)).toEqual([...INVESTMENT_ITEMS].sort());
+    expect(INVESTMENT_ITEMS).toHaveLength(
+      Object.keys(MONUMENT_PRICE).length +
+        Object.keys(RANK_PRICE).length +
+        Object.keys(TITLE_PRICE).length,
+    );
+    for (const c of Object.keys(CHEST_PRICE)) {
+      expect(INVESTMENT_ITEMS).not.toContain(c);
+      expect(MATERIAL_ITEMS).not.toContain(c);
+      expect(materialOf(c)).toBeNull();
+      expect(SQL3).not.toContain(`'${c}'`);
+    }
+  });
+  it("the building list stays exactly MATERIAL_ITEMS (full rate unchanged)", () => {
+    expect(list(/IF NOT a1 AND NEW\.item NOT IN \(([^)]+)\)/)).toEqual([...MATERIAL_ITEMS].sort());
+    expect(SQL3).toContain("nw := round(NEW.cost::numeric / 20);");
+    expect(SQL3).toContain(
+      `ns := CASE WHEN NEW.cost >= ${STONE_FROM_PRICE} THEN round(NEW.cost::numeric / 30) ELSE 0 END;`,
+    );
+    expect(materialOf("school")).toEqual(materialNeed(1200));
+  });
+  it("half rate: wood price/40, stone price/60 from 500 Mark, rounded half up like SQL round()", () => {
+    expect(SQL3).toContain("nw := round(NEW.cost::numeric / 40);");
+    expect(SQL3).toContain(
+      `ns := CASE WHEN NEW.cost >= ${STONE_FROM_PRICE} THEN round(NEW.cost::numeric / 60) ELSE 0 END;`,
+    );
+    expect(investmentNeed(400)).toEqual({ wood: 10, stone: 0 });
+    expect(investmentNeed(450)).toEqual({ wood: 11, stone: 0 }); // 11.25
+    expect(investmentNeed(500)).toEqual({ wood: 13, stone: 8 }); // 12.5 and 8.33
+    expect(investmentNeed(2500)).toEqual({ wood: 63, stone: 42 }); // 62.5 rounds up
+    expect(materialOf("rank2")).toEqual({ wood: 6, stone: 0 });
+    expect(materialOf("title3")).toEqual({ wood: 63, stone: 42 });
+    expect(materialOf("opera4")).toEqual({ wood: 53, stone: 35 });
+    expect(materialOf("lighthouse1")).toEqual({ wood: 11, stone: 0 });
+  });
+  it("the client price of every A1 item equals the price the real purchase_guard sets", () => {
+    for (const it of INVESTMENT_ITEMS) {
+      const m = new RegExp(`WHEN '${it}' THEN (\\d+)`).exec(GUARD_SQL);
+      expect(m, it).not.toBeNull();
+      expect(materialPrice(it), it).toBe(Number(m![1]));
+    }
+  });
+  it("only purchase_material changes; same Kontor rule and kontor_max check as 0143", () => {
+    expect(SQL3.match(/CREATE OR REPLACE FUNCTION/g)).toHaveLength(1);
+    expect(SQL3).toContain("CREATE OR REPLACE FUNCTION public.purchase_material()");
+    expect(SQL3).toContain("kontor := public.resource_kontor(NEW.seed_id, mw, ms);");
+    expect(SQL3).toContain(
+      "IF kontor > coalesce(NEW.kontor_max, 0) THEN RAISE EXCEPTION 'material short'; END IF;",
+    );
+    expect(SQL3).toContain("IF NEW.item = 'steingrube' THEN nw := 20; ns := 0;");
+    expect(SQL3.replace(/^--.*$/gm, "")).not.toMatch(/\b(UPDATE|DELETE|INSERT)\b/i); // no row is written or changed
   });
 });

@@ -1016,6 +1016,13 @@
       "when": 1795479361418,
       "tag": "0144_steingrube_platz",
       "breakpoints": true
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1795482961418,
+      "tag": "0145_a1_investment_material",
+      "breakpoints": true
     }
   ]
 }

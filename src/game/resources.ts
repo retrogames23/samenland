@@ -4,7 +4,7 @@
  * village_sites); this module only mirrors its rules so the client can show material needs, production and the Kontor
  * price before the player accepts. Change both sides together — resources.test.ts compares them.
  */
-import { ITEMS } from "./economy";
+import { ITEMS, MONUMENT_PRICE, RANK_PRICE, TITLE_PRICE } from "./economy";
 import { AUSBAU_PRICE } from "./ausbau";
 import type { TownWay } from "./character";
 
@@ -33,16 +33,31 @@ export const STEINGRUBE = "steingrube";
 export const STEINGRUBE_PRICE = 150;
 export const STEINGRUBE_WOOD = 20;
 
-/** Bought buildings and upgrades that use material; chests, monuments, services and markets do not (yet). */
+/** Bought buildings and upgrades that use material at the full rate (price/20, price/30); chests, services and markets do not. */
 export const MATERIAL_ITEMS: readonly string[] = [
   ...Object.keys(ITEMS),
   ...Object.keys(AUSBAU_PRICE),
   STEINGRUBE,
 ];
+/**
+ * A1 (migration 0145): monument steps, guild ranks and titles use material at the half rate — wood price/40, stone
+ * price/60 from 500 Mark (DB purchase_material: round half up). Chests stay material-free on purpose.
+ */
+export const INVESTMENT_PRICE: Readonly<Record<string, number>> = {
+  ...MONUMENT_PRICE,
+  ...RANK_PRICE,
+  ...TITLE_PRICE,
+};
+export const INVESTMENT_ITEMS: readonly string[] = Object.keys(INVESTMENT_PRICE);
+export const isInvestment = (item: string) =>
+  Object.prototype.hasOwnProperty.call(INVESTMENT_PRICE, item);
 export const materialPrice = (item: string): number | null =>
   item === STEINGRUBE
     ? STEINGRUBE_PRICE
-    : ((ITEMS as Record<string, number>)[item] ?? AUSBAU_PRICE[item] ?? null);
+    : ((ITEMS as Record<string, number>)[item] ??
+      AUSBAU_PRICE[item] ??
+      INVESTMENT_PRICE[item] ??
+      null);
 
 /** Wood price/20, stone price/30 from 500 Mark (DB purchase_material: round half up). */
 export function materialNeed(price: number): Record<Resource, number> {
@@ -51,9 +66,17 @@ export function materialNeed(price: number): Record<Resource, number> {
     stone: price >= STONE_FROM_PRICE ? Math.round(price / 30) : 0,
   };
 }
-/** Material of one purchase (DB purchase_material): the Steingrube a fixed 20 wood, everything else by price. */
+/** A1 half rate: wood price/40, stone price/60 only from 500 Mark (DB purchase_material 0145: round half up). */
+export function investmentNeed(price: number): Record<Resource, number> {
+  return {
+    wood: Math.round(price / 40),
+    stone: price >= STONE_FROM_PRICE ? Math.round(price / 60) : 0,
+  };
+}
+/** Material of one purchase (DB purchase_material): the Steingrube a fixed 20 wood, A1 investments at the half rate, everything else by price. */
 export function materialOf(item: string): Record<Resource, number> | null {
   if (item === STEINGRUBE) return { wood: STEINGRUBE_WOOD, stone: 0 };
+  if (isInvestment(item)) return investmentNeed(INVESTMENT_PRICE[item]!);
   const p = materialPrice(item);
   return p == null ? null : materialNeed(p);
 }
