@@ -62,6 +62,8 @@ import { fig, drawLegged, drawRobeWalk, frameShift, drawMantled, walkBob, gaitFr
 import { RIG_FRAMES, RIG_H, RIG_W, rigFrame, rigScaleFor, rigSlide, stepGait } from "./walk-rig";
 import { WALK8_FRAMES, WALK8_HIP, WALK8_LOOP, WALK8_REST, WALK8_SCALE, walk8Bob, walk8FootOffset, walk8Frame } from "./man-walk8";
 const W8_GAIT = { len: WALK8_LOOP, rest: WALK8_REST };
+/** Legs are sheared only once a figure is this tall on screen (canvas px): below, the in-frame glide is < ~3 px. */
+const WALK8_SHEAR_MIN_PX = 32;
 import { folkImage, walkSheet, standSprite, standSheetOf, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { townRank, seatKindForRank } from "./rank";
@@ -1535,8 +1537,11 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     const fw = w8.naturalWidth / WALK8_FRAMES, sh = hgt * walkScaleOf(k) * WALK8_SCALE, wf = walk8Frame(g8.u);
     // the planted boot would glide with the body between two frames: the legs (below the hip) are sheared back by the
     // ground the figure covers inside the frame, so the sole stays put while the upper body moves on undisturbed
-    const off = q.walking ? walk8FootOffset(wf.frac, q.dir) * (hgt / 240) : 0;
-    drawSheetSheared(c, w8, wf.f, fw, (sh * fw) / w8.naturalHeight, sh, off, WALK8_HIP);
+    // (small on screen the glide stays under a few px and the split draw would only cost: one plain frame there)
+    const ww = (sh * fw) / w8.naturalHeight, big = hgt * Math.hypot(B.c, B.d) >= WALK8_SHEAR_MIN_PX;
+    const off = q.walking && big ? walk8FootOffset(wf.frac, q.dir) * (hgt / 240) : 0;
+    if (off) drawSheetSheared(c, w8, wf.f, fw, ww, sh, off, WALK8_HIP);
+    else drawSheetFrame(c, w8, wf.f, fw, ww, sh, 0);
     insignia(c, q, hgt); c.setTransform(B);
     return [X, Y - hgt - bob];
   }
