@@ -81,4 +81,25 @@ describe("rig cell cache", () => {
     drawDelay = 0;
     expect(shown).toBe(R.rigFrame(atlas, 2, 10, 1));
   });
+  it("one slow start does not stall building: a walker's cells still finish while its pose changes every frame", () => {
+    drawDelay = 2; // the first cells are very slow (as on first use after load)…
+    let t = 20000;
+    for (let i = 0; i < 3; i++) R.rigFrame(atlas, 3, 50 + i, 1, (t += 16));
+    drawDelay = 0; // …then building is fast again
+    const before = R.rigCacheSize();
+    for (let i = 0; i < 40; i++) R.rigFrame(atlas, 3, (i * 2) % 64, 1, (t += 16)); // a new pose every frame
+    expect(R.rigCacheSize() - before).toBeGreaterThan(20);
+  });
+  it("started cells are finished first: twelve walkers asking for new poses every frame still fill the cache", () => {
+    drawDelay = 0.25; // a slow device: one cell takes several frames' budget
+    let t = 40000;
+    const before = R.rigCacheSize();
+    for (let fr = 0; fr < 60; fr++) {
+      t += 16;
+      for (let k = 0; k < 12; k++) R.rigFrame(atlas, 2, (k * 5 + fr) % 64, 0, t);
+    }
+    drawDelay = 0;
+    // abandoning half-built cells whenever the walkers moved on finished almost none of them
+    expect(R.rigCacheSize() - before).toBeGreaterThan(6);
+  });
 });

@@ -603,27 +603,33 @@ const stepCosts = RIG_SCALES.map(() => new Array<number>(GAIT_STEPS + 1).fill(0.
 const stepDevs = RIG_SCALES.map(() => new Array<number>(GAIT_STEPS + 1).fill(0.3));
 const expected = (si: number, i: number) => {
   const m = stepCosts[si]![i]!;
-  return Math.max(1.25 * m, m + 2 * stepDevs[si]![i]!);
+  return Math.min(RIG_BUILD_MS * 0.6, Math.max(1.25 * m, m + 2 * stepDevs[si]![i]!));
 };
-function learn(si: number, i: number, dt: number) {
-  const c = stepCosts[si]!,
+function learn(si: number, i: number, ms: number) {
+  // a single slow sample (first use after load: compiling, decoding) must not make a step look unaffordable for
+  // good — an estimate above the budget would only ever run as a frame's first step and could stall a cell
+  const dt = Math.min(ms, RIG_BUILD_MS),
+    c = stepCosts[si]!,
     d = stepDevs[si]!;
   d[i] = d[i]! * 0.8 + Math.abs(dt - c[i]!) * 0.2;
   c[i] = c[i]! * 0.8 + dt * 0.2;
 }
 let spent = 0,
   steps = 0,
+  drawn = 0,
   started = 0,
   maxStep = 0,
   budgetT = NaN;
-/** Cells being built: the canvas and the remaining steps; at most a few, the oldest is dropped. */
+/** Cells being built: the canvas, its cell size and the remaining steps. */
 interface Job {
   cv: HTMLCanvasElement;
+  si: number;
   run: (() => void)[];
   i: number;
 }
 const jobs = new Map<number, Job>();
-const MAX_JOBS = 8;
+/** Cells being built at once; a further request waits (shows a stand-in) until one is finished. */
+const MAX_JOBS = 2;
 const clock = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
 
 /** The atlas pre-scaled once per cache scale (high-quality shrink): the many small draws of a pose then copy at about
@@ -703,16 +709,27 @@ export function rigFrame(
     budgetT = now;
     spent = 0;
     steps = 0;
+    drawn = 0;
     started = 0;
     maxStep = 0;
   }
   let job = jobs.get(key);
+  if (!job && now !== undefined && jobs.size >= MAX_JOBS) {
+    // finish what was started before starting more: with many walkers every frame asks for new poses, and
+    // half-built cells that are dropped again would waste the budget
+    const [k0, j0] = jobs.entries().next().value!;
+    if (advance(k0, j0, now)) return frames.get(key) ?? standIn(ai, f, si);
+    return standIn(ai, f, si);
+  }
   if (!job) {
     if (
       now !== undefined &&
-      (started >= RIG_BUILDS_PER_FRAME || (steps > 0 && spent + expected(si, 0) > RIG_BUILD_MS))
-    )
-      return standIn(ai, f, si);
+      (started >= RIG_BUILDS_PER_FRAME ||
+        (steps > 0 && spent + expected(si, 0) + expected(si, 1) > RIG_BUILD_MS))
+    ) {
+      const s = standIn(ai, f, si);
+      if (s || frames.size > 0) return s;
+    }
     const t0 = clock(),
       sc = RIG_SCALES[si] ?? 0.5,
       cv = document.createElement("canvas");
@@ -724,9 +741,13 @@ export function rigFrame(
     g.scale(sc, sc);
     const A = atlasFor(atlas, sc);
     g.imageSmoothingQuality = A.k === 1 ? "high" : "low";
-    job = { cv, run: gaitSteps(g, A.img, gaitPose(f / RIG_FRAMES, RIG_AMPS[ai]!), sc, A.k), i: 0 };
+    job = {
+      cv,
+      si,
+      run: gaitSteps(g, A.img, gaitPose(f / RIG_FRAMES, RIG_AMPS[ai]!), sc, A.k),
+      i: 0,
+    };
     jobs.set(key, job);
-    if (jobs.size > MAX_JOBS) jobs.delete(jobs.keys().next().value!);
     started++;
     const dt = clock() - t0;
     learn(si, 0, dt);
@@ -734,25 +755,33 @@ export function rigFrame(
     steps++;
     maxStep = Math.max(maxStep, dt);
   }
-  while (job.i < job.run.length) {
-    if (now !== undefined && steps > 0 && spent + expected(si, job.i + 1) > RIG_BUILD_MS) break;
-    const t0 = clock();
-    job.run[job.i]!();
-    const dt = clock() - t0;
-    learn(si, job.i + 1, dt);
-    spent += dt;
-    steps++;
-    maxStep = Math.max(maxStep, dt);
-    job.i++;
-  }
-  if (job.i < job.run.length) {
-    const s = standIn(ai, f, si);
-    if (s) return s;
-    while (job.i < job.run.length) job.run[job.i++]!(); // nothing to show yet: finish this first cell now
-  }
+  if (advance(key, job, now)) return job.cv;
+  const s = standIn(ai, f, si);
+  if (s) return s;
+  while (job.i < job.run.length) job.run[job.i++]!(); // nothing to show yet: finish this first cell now
   jobs.delete(key);
   finish(key, job.cv);
   return job.cv;
+}
+/** Runs a cell's remaining steps as far as this frame's budget allows; true once the cell is finished and cached.
+ *  The first drawing step of a frame always runs, so building never stalls. */
+function advance(key: number, job: Job, now: number | undefined): boolean {
+  while (job.i < job.run.length) {
+    if (now !== undefined && drawn > 0 && spent + expected(job.si, job.i + 1) > RIG_BUILD_MS)
+      return false;
+    const t0 = clock();
+    job.run[job.i]!();
+    const dt = clock() - t0;
+    learn(job.si, job.i + 1, dt);
+    spent += dt;
+    steps++;
+    drawn++;
+    maxStep = Math.max(maxStep, dt);
+    job.i++;
+  }
+  jobs.delete(key);
+  finish(key, job.cv);
+  return true;
 }
 /** Building effort of the current rendered frame (ms) — for tests and diagnostics. */
 export const rigBuildSpent = () => spent;
