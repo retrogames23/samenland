@@ -773,7 +773,7 @@ export function inauguration(s: Seed, seeds: Seed[], now: number): { at: number;
     const mk = monumentOf(b.item);
     if (mk && b.item !== `${mk}${MONUMENT_DEFS[mk].n}`) continue;
     const kind = mk ? MONUMENT_DEFS[mk].kind : SPECIAL_KIND[b.item]; if (!kind) continue;
-    const done = mk ? monumentDone(s, seeds, mk) : specialDone(s, seeds, b.at); if (done == null || done <= now - FETE_WIN || done > now || (bb && bb.at >= done)) continue;
+    const done = mk ? monumentDone(s, seeds, mk) : specialDone(s, seeds, b.at, kind); if (done == null || done <= now - FETE_WIN || done > now || (bb && bb.at >= done)) continue;
     const tl = specialTile(s, kind); if (tl) bb = { at: done, tile: tl, kind };
   }
   if (sf && sf.at <= now && (!bb || sf.at > bb.at)) bb = sf;
