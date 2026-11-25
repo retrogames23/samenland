@@ -121,6 +121,10 @@ export async function calculateTreasury(id: string, realm: string) {
     if (error || balance==null) throw new Error("Balance unavailable");
     return { seed:id, balance, daily:0, population:0, earned:0, active:false, settled:true };
   }
+  // Gemeindebauten (P2, 0147): book the lazy material pull first, so a completion marker (spital1) that is already
+  // due exists before taxed days after it are assessed. Only where resources run; best effort — a failure only delays it.
+  const { resourcesSince } = await import("@/game/resources");
+  if (now >= resourcesSince(realm)) await supabaseAdmin.rpc("resource_refresh" as never, { _seed: id } as never).then(() => undefined, () => undefined);
   // one shared read of all simulation inputs (previously duplicated here)
   const input = await loadEconomyInput(realm);
   const target = input.seeds.find(s => s.id === id);

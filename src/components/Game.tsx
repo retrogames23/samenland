@@ -86,6 +86,9 @@ import { DOG } from "@/game/lang/dog";
 import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT, UKRAINE_URL } from "@/game/lang/support";
 import { FOUNTAIN } from "@/game/lang/fountain";
+import { CIVIC_T } from "@/game/lang/civic";
+import { CIVIC, CIVIC_STAGES, civicBudgetMax, civicDeposit, civicDone, civicNeed, civicPhase, type CivicStage } from "@/game/civic";
+import { useCivic } from "@/components/hooks/useCivic";
 import { FREIMARKT } from "@/game/lang/freimarkt";
 import { NOTHILFE } from "@/game/lang/nothilfe";
 import { NOTHILFE_PRICE, NOTHILFE_RANK, nothilfeItem } from "@/game/nothilfe";
@@ -1647,9 +1650,12 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const { accounting, setAccounting, refreshAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works, moves]);
   // Wirtschaft Paket 1: wood and stone as the database books them; the quote only shows what the guard will charge
   const { res, refreshResources } = useResources(my, userId, [purchases]);
+  // Gemeindebauten (P2): stages and quota as the database books them; refreshed with every resource booking
+  const { civic, quota: civicQuota, refreshCivic } = useCivic(my, userId, [purchases, res]);
   const quoteIn = (r: typeof res, item: string) => {
     const need = r?.active ? materialOf(item) : null;
-    return need == null || !r?.active ? null : kontorQuote(need, { wood: r.wood.stock, stone: r.stone.stock }, r.site ?? null);
+    // a finished Waage 1 makes every Kontor price 15 % cheaper (DB resource_kontor_at)
+    return need == null || !r?.active ? null : kontorQuote(need, { wood: r.wood.stock, stone: r.stone.stock }, r.site ?? null, my ? civicDone(my, "waage1", clock()) : false);
   };
   const matQuote = (item: string) => quoteIn(res, item);
   const kontorOf = (item: string) => matQuote(item)?.cost ?? 0;
@@ -1824,7 +1830,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   /** Address the player's own head by gender and real settlement rank (display only). */
   const addr = (x: string) => addressMayor(x, lang, my?.mayor_gender as "m" | "w" | "d" | null, rankRef.current);
   const rankRef = useRef(0);
-  const itemName = (item: string) => { if (item === STEINGRUBE) return RESOURCE_T[lang].quarry; if (/^title[1-3]$/.test(item)) return titleName(+item.slice(5) - 1); const mk = monumentOf(item); return t.items[item]?.[0] ?? (mk ? t.items[`${mk}1`]![0] : item); };
+  const itemName = (item: string) => { if (item === STEINGRUBE) return RESOURCE_T[lang].quarry; if (item === "spital1" || item === "waage1") return CIVIC_T[lang].stages[item][0]; if (/^title[1-3]$/.test(item)) return titleName(+item.slice(5) - 1); const mk = monumentOf(item); return t.items[item]?.[0] ?? (mk ? t.items[`${mk}1`]![0] : item); };
   /** List price of a placeable purchase (bought building, monument step or Steingrube), without Kontor material. */
   const placePrice = (item: string) => item === STEINGRUBE ? STEINGRUBE_PRICE : (MONUMENT_PRICE[item] ?? ITEMS[item as Item]);
   const chronLine = (e: ChronEvent) => e.code === "stage" ? t.chron.stage(t.stages[e.stage] ?? "") : e.code === "built" ? t.chron.built(t.kind[e.kind] ?? e.kind) : e.code === "bought" ? t.chron.built(itemName(e.item)) : e.code === "road" ? t.chron.road(e.other) : e.code === "twin" ? t.chron.twin(e.other) : e.code === "house" ? t.chron.house(t.kind[e.kind] ?? e.kind) : e.code === "family" ? t.chron.family : e.code === "houses" ? t.chron.houses(e.n) : e.code === "families" ? t.chron.families(e.n) : e.code === "wedding" ? t.chron.wedding(e.a, e.b) : e.code === "fire" ? (e.guarded ? t.chron.fireOut : t.chron.fire(e.dead)) : e.code === "flood" ? t.chron.flood : e.code === "raid" ? (e.caught ? t.chron.caught : t.chron.raid(e.loss)) : e.code === "journeyman" ? t.chron.journeyman(e.name, t.job[e.craft]?.[e.sex === "f" ? 0 : 1] ?? e.craft, e.other) : e.code === "journeymen" ? t.chron.journeymen(e.n) : e.code === "bride" ? t.chron.bride(e.name, e.other, e.away) : e.code === "moved" ? t.chron.moved(e.name, e.other, e.away) : e.code === "letter" ? t.chron.letter(e.other) : e.code === "orphan" ? ORPHAN_FAREWELL[lang][e.choice === "adopt" ? 0 : 1] : t.chron.season(t.seasons[e.season]);
@@ -2371,6 +2377,34 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       jingle("coins"); setMsg(at.paidMsg(at.names[base], at.steps[item]![0], at.steps[item]![1], t.taler(data.cost), t.taler(balance)));
     } else if (vorhabenOf(item)) { jingle("coins"); setMsg(VORHABEN_T[lang].paid(VORHABEN_T[lang].items[vorhabenOf(item)!].title)); } else if (isFountain(item)) { jingle("fanfare"); setMsg(FOUNTAIN[lang].paidMsg(FOUNTAIN[lang].steps[FOUNTAIN_STEPS.indexOf(item)]!)); } else if (/^chest[2-4]$/.test(item)) { jingle("coins"); setMsg(`${CHEST[lang].title}: ${CHEST[lang].levels[+item.slice(5) - 1]}`); } else if (/^title[1-3]$/.test(item)) { jingle("stage"); bell(0); setMsg(t.office.fest); } else if (item === "rank2" || item === "rank3") { jingle("fanfare"); bell(0); setMsg(t.rank.sealed(t.rank.ranks[item === "rank2" ? 1 : 2]!)); } else { const mk = monumentOf(item); jingle(mk ? "fanfare" : "coins"); setMsg(mk ? `${t.monuments[mk]!.title} · ${t.monument.step(+item.slice(mk.length), monumentSteps(mk).length)}` : t.bought(t.items[item]![0])); }
   };
+  /** Gemeindebauten (P2, civic.ts): open a stage with a Kontor budget, then pay it in instalments; the database
+   *  checks rank, site, budget, order and money and books the daily material pull itself. */
+  const civicBusy = useRef(false);
+  const civicErr = (m: string) => { const ct = CIVIC_T[lang].errors; setMsg(m.includes("rank too low") ? ct.rank : m.includes("site busy") ? ct.busy : m.includes("not enough money") ? ct.money : ct.fail); };
+  const civicOpen = async (stage: CivicStage, budget: number) => {
+    if (!my || civicBusy.current) return;
+    civicBusy.current = true;
+    try {
+      tap();
+      try { await certifyFn({ data: { seed: my.id } }); } catch { return civicErr(""); }
+      const { error } = await (supabase.rpc as unknown as (f: string, a: object) => Promise<{ error: { message?: string } | null }>)("civic_open", { _seed: my.id, _item: stage, _budget: budget });
+      if (error) return civicErr(error.message ?? "");
+      jingle("coins"); await refreshCivic();
+    } finally { civicBusy.current = false; }
+  };
+  const civicPay = async (stage: CivicStage, amount: number) => {
+    if (!my || civicBusy.current || amount < 1) return;
+    civicBusy.current = true;
+    try {
+      tap();
+      if (!await prepareSpend()) return;
+      const n = purchases.filter((p) => p.seed_id === my.id && new RegExp(`^${stage}:r[1-9][0-9]*$`).test(p.item)).length + 1;
+      const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item: civicDeposit(stage, n), cost: amount, x: null, y: null }).select("id, seed_id, item, cost, created_at, x, y").single();
+      if (error || !data) return civicErr(error?.message ?? "");
+      setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
+      jingle("coins"); await refreshCivic();
+    } finally { civicBusy.current = false; }
+  };
   /** Zimmerleute-Nothilfe: the server recomputes the ruin and books it; nothing is trusted from the client. */
   const aidBusy = useRef(false);
   const callAid = async (kind: "f" | "w", at: number) => {
@@ -2679,6 +2713,55 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                     <div className="mt-0.5 text-[10px] text-muted-foreground">{ft.voluntary}</div>
                   </div>
                 </>}
+              </div>
+            );
+          })()}
+          {my && res?.active && (() => {
+            // Gemeindebauten Stufe 1 (P2): only where resources run (lab); one site at a time, effects from the marker on
+            const ct = CIVIC_T[lang], locked = myStage < CIVIC.spital1.rank, waage = civicDone(my, "waage1", now);
+            const active = civic.find((r) => civicPhase(r, now) !== "done");
+            const paidOf = (stage: CivicStage) => purchases.filter((p) => p.seed_id === my.id && new RegExp(`^${stage}:r[1-9][0-9]*$`).test(p.item)).reduce((a, p) => a + p.cost, 0);
+            return (
+              <div key="civic" className={`rounded-md border border-brass/60 bg-brass/10 p-2 ${locked ? "opacity-60" : ""}`}>
+                <div className="font-semibold">🏛 {ct.title}</div>
+                <div className="text-xs text-muted-foreground">{ct.intro}</div>
+                {locked ? <div className="mt-1 text-xs text-muted-foreground">🔒 {t.needStage(t.stages[CIVIC.spital1.rank] ?? "")}</div> : (
+                  <ul className="mt-1 space-y-1.5">
+                    {CIVIC_STAGES.map((stage) => {
+                      const row = civic.find((r) => r.item === stage), [name, effect] = ct.stages[stage];
+                      const phase = row ? civicPhase(row, now) : null, need = civicNeed(stage);
+                      const max = civicBudgetMax(stage, res.site ?? null, waage);
+                      const total = row ? row.price + row.budget : 0, paid = row ? paidOf(stage) : 0, rest = total - paid;
+                      return (
+                        <li key={stage} className="rounded border border-ink/15 p-1.5 text-xs">
+                          <div className="flex items-center gap-2"><span className="flex-1 font-semibold">{name}</span><span className="text-muted-foreground">{t.taler(CIVIC[stage].price)}</span></div>
+                          <div>{effect}</div>
+                          <div className="text-muted-foreground">{need.wood} 🪵 · {need.stone} 🪨 · {FOUNTAIN[lang].days(CIVIC[stage].days)}</div>
+                          {!row ? (active ? <div className="mt-1 text-muted-foreground">{ct.busy}</div> : (
+                            <div className="mt-1 space-y-1">
+                              <div className="text-muted-foreground">{ct.budget(t.taler(max))}</div>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="outline" className="h-7 flex-1" onClick={() => void civicOpen(stage, 0)}>{ct.open(name)} · {ct.budgetNone}</Button>
+                                <Button size="sm" className="h-7 flex-1" onClick={() => void civicOpen(stage, max)}>{ct.open(name)} · {ct.budgetFull}</Button>
+                              </div>
+                            </div>
+                          )) : phase === "funding" ? (
+                            <div className="mt-1 space-y-1">
+                              <div className="h-1.5 overflow-hidden rounded bg-ink/15"><div className="h-full bg-brass" style={{ width: `${(100 * paid) / Math.max(1, total)}%` }} /></div>
+                              <div className="text-muted-foreground">{ct.paid(t.taler(paid), t.taler(total))}</div>
+                              <Button size="sm" className="h-7 w-full" disabled={cash < 1} onClick={() => void civicPay(stage, Math.min(cash, rest))}>{ct.pay(t.taler(Math.min(cash, rest)))}</Button>
+                            </div>
+                          ) : phase === "material" ? (
+                            <div className="mt-1 text-muted-foreground">{ct.material(row.wood_got, row.need_wood, row.stone_got, row.need_stone)}{civicQuota ? ` · ${ct.quota(civicQuota.wood, civicQuota.stone)}` : ""}</div>
+                          ) : phase === "building" ? (
+                            <div className="mt-1 font-semibold">{ct.building(Math.ceil((Date.parse(row.done_at!) - now) / 864e5))}</div>
+                          ) : <div className="mt-1 font-semibold text-primary">✓ {ct.ready}</div>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                <div className="mt-1 text-[10px] text-muted-foreground">{ct.voluntary} {ct.oneSite}</div>
               </div>
             );
           })()}

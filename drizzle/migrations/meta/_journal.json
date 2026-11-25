@@ -1030,6 +1030,13 @@
       "when": 1795546848598,
       "tag": "0146_a1_companion_noop",
       "breakpoints": true
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1795565318447,
+      "tag": "0147_gemeindebauten_p2",
+      "breakpoints": true
     }
   ]
 }
