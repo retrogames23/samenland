@@ -1044,6 +1044,13 @@
       "when": 1795565319447,
       "tag": "0148_civic_cash_history",
       "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1795565320447,
+      "tag": "0149_umsetzung_sperre",
+      "breakpoints": true
     }
   ]
 }
