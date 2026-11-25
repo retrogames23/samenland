@@ -98,6 +98,19 @@ export function kontorCost(units: Stock, site: TownWay | null, waage: boolean) {
 export const civicBudgetMax = (stage: CivicStage, site: TownWay | null, waage: boolean) =>
   kontorCost(civicNeed(stage), site, waage);
 
+/** Range for raising the Kontor limit of an open stage later (DB civic_raise_budget): above the current limit, at most the
+ *  whole material at today's Kontor price; null once the material is complete or the limit is already the full price.
+ *  The new limit only acts from the next booked day on and is never paid in advance. */
+export function civicRaiseRange(
+  row: Pick<CivicRow, "budget" | "need_wood" | "need_stone" | "material_at">,
+  site: TownWay | null,
+  waage: boolean,
+) {
+  if (row.material_at) return null;
+  const max = kontorCost({ wood: row.need_wood, stone: row.need_stone }, site, waage);
+  return max > row.budget ? { min: row.budget + 1, max } : null;
+}
+
 /** One stage as the database reports it (table civic_stages). */
 export type CivicRow = {
   item: CivicStage;

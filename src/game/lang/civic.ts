@@ -25,7 +25,18 @@ type Text = {
   locked: string;
   /** lock of a later stage while its previous stage does not stand yet */
   after: (name: string) => string;
-  errors: { rank: string; after: string; busy: string; money: string; fail: string };
+  /** raising the Kontor limit later (DB civic_raise_budget): only upwards, from the next booked day on */
+  raise: (amount: string) => string;
+  raiseHint: string;
+  errors: {
+    rank: string;
+    after: string;
+    busy: string;
+    money: string;
+    fail: string;
+    budget: string;
+    done: string;
+  };
 };
 
 /** Gemeindebauten (civic.ts, P2 + P3a) — build-menu texts, all eight languages. Effects as the code applies them. */
@@ -54,7 +65,7 @@ export const CIVIC_T: Record<Lang, Text> = {
     oneSite: "Nur eine Gemeindebaustelle zur Zeit.",
     budget: (max) => `Materialbudget fürs Kontor (höchstens ${max})`,
     budgetHint:
-      "Nur eine Obergrenze: Kontorkäufe werden einzeln aus der Truhe bezahlt, nie im Voraus, und das Limit lässt sich später nicht erhöhen. 0 = nur eigenes Lager und Kontingent ohne Kontor.",
+      "Nur eine Obergrenze: Kontorkäufe werden einzeln aus der Truhe bezahlt, nie im Voraus, und das Limit lässt sich später nur erhöhen, nie senken. 0 = nur eigenes Lager und Kontingent ohne Kontor.",
     rate: "Rate in Mark",
     price: (p) => `Baupreis: ${p}`,
     kontor: (s, l) => `Kontor: ${s} von ${l} Limit verbraucht`,
@@ -69,12 +80,17 @@ export const CIVIC_T: Record<Lang, Text> = {
     busy: "Erst wenn die laufende Baustelle fertig ist",
     locked: "Ab Dorf",
     after: (n) => `Erst wenn ${n} steht`,
+    raise: (a) => `Limit auf ${a} erhöhen`,
+    raiseHint:
+      "Erhöhen geht nur nach oben, höchstens bis zum vollen Kontorpreis. Bis heute gebuchte Tage bleiben, das neue Limit gilt ab dem nächsten Tag; bezahlt wird weiterhin nur, was das Kontor tatsächlich liefert.",
     errors: {
       rank: "Erst ab Dorf.",
       after: "Erst muss die vorige Stufe stehen.",
       busy: "Es läuft schon eine Gemeindebaustelle.",
       money: "Nicht genug Geld in der Truhe.",
       fail: "Das hat nicht geklappt.",
+      budget: "Das Limit kann nur steigen, höchstens bis zum vollen Kontorpreis.",
+      done: "Das Material ist schon vollständig.",
     },
   },
   en: {
@@ -105,7 +121,7 @@ export const CIVIC_T: Record<Lang, Text> = {
     oneSite: "Only one municipal site at a time.",
     budget: (max) => `Material budget for the Kontor (at most ${max})`,
     budgetHint:
-      "A limit only: Kontor purchases are paid one by one from the chest, never in advance, and the limit cannot be raised later. 0 = own store only, no Kontor.",
+      "A limit only: Kontor purchases are paid one by one from the chest, never in advance, and the limit can later only be raised, never lowered. 0 = own store only, no Kontor.",
     rate: "Instalment in Mark",
     price: (p) => `Building price: ${p}`,
     kontor: (s, l) => `Kontor: ${s} of ${l} limit used`,
@@ -120,12 +136,17 @@ export const CIVIC_T: Record<Lang, Text> = {
     busy: "Only once the current site is finished",
     locked: "From village",
     after: (n) => `Only once ${n} stands`,
+    raise: (a) => `Raise limit to ${a}`,
+    raiseHint:
+      "Only upwards, at most to the full Kontor price. Days booked up to today stay as they are; the new limit applies from the next day, and only what the Kontor actually delivers is paid.",
     errors: {
       rank: "Only from village.",
       after: "The previous stage must stand first.",
       busy: "A municipal site is already running.",
       money: "Not enough money in the chest.",
       fail: "That did not work.",
+      budget: "The limit can only go up, at most to the full Kontor price.",
+      done: "The material is already complete.",
     },
   },
   fr: {
@@ -156,7 +177,7 @@ export const CIVIC_T: Record<Lang, Text> = {
     oneSite: "Un seul chantier communal à la fois.",
     budget: (max) => `Budget matériaux pour le comptoir (au plus ${max})`,
     budgetHint:
-      "Une simple limite : les achats au comptoir sont payés un par un depuis le coffre, jamais d’avance, et la limite ne peut pas être relevée ensuite. 0 = réserve propre seulement, sans comptoir.",
+      "Une simple limite : les achats au comptoir sont payés un par un depuis le coffre, jamais d’avance, et la limite peut ensuite seulement être relevée, jamais baissée. 0 = réserve propre seulement, sans comptoir.",
     rate: "Versement en marks",
     price: (p) => `Prix de construction : ${p}`,
     kontor: (s, l) => `Comptoir : ${s} utilisés sur une limite de ${l}`,
@@ -171,12 +192,17 @@ export const CIVIC_T: Record<Lang, Text> = {
     busy: "Seulement quand le chantier en cours est fini",
     locked: "Dès le village",
     after: (n) => `Seulement après : ${n}`,
+    raise: (a) => `Relever la limite à ${a}`,
+    raiseHint:
+      "Seulement à la hausse, au plus jusqu’au prix complet du comptoir. Les jours déjà comptés restent tels quels ; la nouvelle limite vaut dès le jour suivant, et seul ce que le comptoir livre vraiment est payé.",
     errors: {
       rank: "Seulement dès le village.",
       after: "L’étape précédente doit d’abord être achevée.",
       busy: "Un chantier communal est déjà en cours.",
       money: "Pas assez d'argent dans le coffre.",
       fail: "Cela n'a pas marché.",
+      budget: "La limite ne peut que monter, au plus jusqu’au prix complet du comptoir.",
+      done: "Les matériaux sont déjà complets.",
     },
   },
   es: {
@@ -206,7 +232,7 @@ export const CIVIC_T: Record<Lang, Text> = {
     oneSite: "Solo una obra municipal a la vez.",
     budget: (max) => `Presupuesto de materiales para el depósito (como mucho ${max})`,
     budgetHint:
-      "Solo un límite: las compras en el depósito se pagan una a una desde el arca, nunca por adelantado, y el límite no se puede subir después. 0 = solo el almacén propio, sin depósito.",
+      "Solo un límite: las compras en el depósito se pagan una a una desde el arca, nunca por adelantado, y el límite después solo se puede subir, nunca bajar. 0 = solo el almacén propio, sin depósito.",
     rate: "Plazo en marcos",
     price: (p) => `Precio de construcción: ${p}`,
     kontor: (s, l) => `Depósito: ${s} usados de un límite de ${l}`,
@@ -221,12 +247,17 @@ export const CIVIC_T: Record<Lang, Text> = {
     busy: "Solo cuando termine la obra en curso",
     locked: "Desde pueblo",
     after: (n) => `Solo después de: ${n}`,
+    raise: (a) => `Subir el límite a ${a}`,
+    raiseHint:
+      "Solo hacia arriba, como mucho hasta el precio completo del depósito. Los días ya contados quedan como están; el nuevo límite rige desde el día siguiente y solo se paga lo que el depósito entrega de verdad.",
     errors: {
       rank: "Solo desde pueblo.",
       after: "Primero debe estar terminada la etapa anterior.",
       busy: "Ya hay una obra municipal en curso.",
       money: "No hay bastante dinero en el arca.",
       fail: "No ha funcionado.",
+      budget: "El límite solo puede subir, como mucho hasta el precio completo del depósito.",
+      done: "El material ya está completo.",
     },
   },
   ar: {
@@ -249,7 +280,7 @@ export const CIVIC_T: Record<Lang, Text> = {
     oneSite: "ورشة بلدية واحدة فقط في كل مرة.",
     budget: (max) => `ميزانية المواد للمخزن (بحد أقصى ${max})`,
     budgetHint:
-      "حدّ أعلى فقط: مشتريات المخزن تُدفع واحدة تلو الأخرى من الخزينة، لا مقدّمًا أبدًا، ولا يمكن رفع الحد لاحقًا. 0 = المخزون الخاص فقط دون المخزن.",
+      "حدّ أعلى فقط: مشتريات المخزن تُدفع واحدة تلو الأخرى من الخزينة، لا مقدّمًا أبدًا، ويمكن لاحقًا رفع الحد فقط، لا خفضه. 0 = المخزون الخاص فقط دون المخزن.",
     rate: "القسط بالمارك",
     price: (p) => `ثمن البناء: ${p}`,
     kontor: (s, l) => `المخزن: استُخدم ${s} من حدّ ${l}`,
@@ -264,12 +295,17 @@ export const CIVIC_T: Record<Lang, Text> = {
     busy: "فقط بعد انتهاء الورشة الحالية",
     locked: "من القرية",
     after: (n) => `فقط بعد: ${n}`,
+    raise: (a) => `رفع الحد إلى ${a}`,
+    raiseHint:
+      "الرفع فقط، وبحد أقصى سعر المخزن الكامل. الأيام المحسوبة حتى اليوم تبقى كما هي، والحد الجديد يسري من اليوم التالي، ولا يُدفع إلا ما يسلّمه المخزن فعلًا.",
     errors: {
       rank: "فقط من مرتبة القرية.",
       after: "يجب أن تكتمل المرحلة السابقة أولًا.",
       busy: "هناك ورشة بلدية جارية بالفعل.",
       money: "لا يكفي المال في الخزينة.",
       fail: "لم ينجح ذلك.",
+      budget: "يمكن رفع الحد فقط، وبحد أقصى سعر المخزن الكامل.",
+      done: "المواد مكتملة بالفعل.",
     },
   },
   hi: {
@@ -294,7 +330,7 @@ export const CIVIC_T: Record<Lang, Text> = {
     oneSite: "एक समय में केवल एक नगर-निर्माण स्थल।",
     budget: (max) => `कोठी के लिए सामग्री-बजट (अधिकतम ${max})`,
     budgetHint:
-      "केवल एक सीमा: कोठी की खरीद एक-एक करके खज़ाने से चुकाई जाती है, कभी पहले से नहीं, और सीमा बाद में बढ़ाई नहीं जा सकती। 0 = केवल अपना भंडार, कोठी नहीं।",
+      "केवल एक सीमा: कोठी की खरीद एक-एक करके खज़ाने से चुकाई जाती है, कभी पहले से नहीं, और सीमा बाद में केवल बढ़ाई जा सकती है, घटाई नहीं। 0 = केवल अपना भंडार, कोठी नहीं।",
     rate: "किस्त (मार्क में)",
     price: (p) => `निर्माण-मूल्य: ${p}`,
     kontor: (s, l) => `कोठी: ${l} की सीमा में से ${s} खर्च`,
@@ -309,12 +345,17 @@ export const CIVIC_T: Record<Lang, Text> = {
     busy: "चालू निर्माण पूरा होने के बाद ही",
     locked: "गाँव से",
     after: (n) => `केवल इसके बाद: ${n}`,
+    raise: (a) => `सीमा ${a} तक बढ़ाएँ`,
+    raiseHint:
+      "केवल ऊपर की ओर, अधिकतम कोठी के पूरे दाम तक। आज तक गिने गए दिन वैसे ही रहते हैं; नई सीमा अगले दिन से लागू होती है, और केवल वही चुकाया जाता है जो कोठी सच में देती है।",
     errors: {
       rank: "केवल गाँव स्तर से।",
       after: "पहले पिछला चरण पूरा होना चाहिए।",
       busy: "एक नगर-निर्माण पहले से चल रहा है।",
       money: "खज़ाने में पर्याप्त पैसा नहीं।",
       fail: "यह नहीं हुआ।",
+      budget: "सीमा केवल बढ़ सकती है, अधिकतम कोठी के पूरे दाम तक।",
+      done: "सामग्री पहले ही पूरी है।",
     },
   },
   zh: {
@@ -331,7 +372,7 @@ export const CIVIC_T: Record<Lang, Text> = {
     oneSite: "同一时间只能有一处公共工地。",
     budget: (max) => `商栈材料预算（最多 ${max}）`,
     budgetHint:
-      "只是上限：商栈采购逐笔从金库支付，绝不预付，开工后上限不能提高。0 = 只用自有库存，不经商栈。",
+      "只是上限：商栈采购逐笔从金库支付，绝不预付，开工后上限只能提高，不能降低。0 = 只用自有库存，不经商栈。",
     rate: "每期金额（马克）",
     price: (p) => `建造价：${p}`,
     kontor: (s, l) => `商栈：已用 ${s} / 上限 ${l}`,
@@ -346,12 +387,17 @@ export const CIVIC_T: Record<Lang, Text> = {
     busy: "需等当前工地完工",
     locked: "村庄起",
     after: (n) => `须先建成：${n}`,
+    raise: (a) => `把上限提高到 ${a}`,
+    raiseHint:
+      "只能提高，最多到商栈全价。截至今天已结算的日子保持不变；新上限从次日起生效，只为商栈实际供应的材料付款。",
     errors: {
       rank: "村庄等级起才可建。",
       after: "须先建成上一阶段。",
       busy: "已有一处公共工地在建。",
       money: "金库里的钱不够。",
       fail: "没有成功。",
+      budget: "上限只能提高，最多到商栈全价。",
+      done: "材料已经齐全。",
     },
   },
   ja: {
@@ -374,7 +420,7 @@ export const CIVIC_T: Record<Lang, Text> = {
     oneSite: "公共建築の現場は一度に一つだけです。",
     budget: (max) => `商館用の資材予算（最大 ${max}）`,
     budgetHint:
-      "上限にすぎません。商館での購入は金庫から一回ずつ支払われ、前払いはなく、上限は後から引き上げられません。0 = 自分の蓄えのみ、商館なし。",
+      "上限にすぎません。商館での購入は金庫から一回ずつ支払われ、前払いはなく、上限は後から引き上げのみ可能で、下げられません。0 = 自分の蓄えのみ、商館なし。",
     rate: "分割額（マルク）",
     price: (p) => `建設費：${p}`,
     kontor: (s, l) => `商館：上限 ${l} のうち ${s} 使用`,
@@ -389,12 +435,17 @@ export const CIVIC_T: Record<Lang, Text> = {
     busy: "今の現場が終わってから",
     locked: "村から",
     after: (n) => `先に完成が必要：${n}`,
+    raise: (a) => `上限を ${a} に引き上げる`,
+    raiseHint:
+      "引き上げのみ、最大で商館の全額まで。今日までに計上された日はそのまま残り、新しい上限は翌日から適用されます。支払うのは商館が実際に届けた分だけです。",
     errors: {
       rank: "村からです。",
       after: "先に前の段階を完成させてください。",
       busy: "すでに公共建築の現場があります。",
       money: "金庫のお金が足りません。",
       fail: "うまくいきませんでした。",
+      budget: "上限は引き上げのみ、最大で商館の全額までです。",
+      done: "資材はすでにそろっています。",
     },
   },
 };

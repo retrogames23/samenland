@@ -90,7 +90,7 @@ import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT, UKRAINE_URL } from "@/game/lang/support";
 import { FOUNTAIN } from "@/game/lang/fountain";
 import { CIVIC_T } from "@/game/lang/civic";
-import { CIVIC, CIVIC_MIN_RANK, CIVIC_STAGES, countsAsBuilding, civicBudgetMax, civicLock, isCivicStage, civicDeposit, isCivicInstalment, civicDone, civicNeed, civicPhase, type CivicStage } from "@/game/civic";
+import { CIVIC, CIVIC_MIN_RANK, CIVIC_STAGES, countsAsBuilding, civicBudgetMax, civicLock, civicRaiseRange, isCivicStage, civicDeposit, isCivicInstalment, civicDone, civicNeed, civicPhase, type CivicStage } from "@/game/civic";
 import { useCivic } from "@/components/hooks/useCivic";
 import { FREIMARKT } from "@/game/lang/freimarkt";
 import { NOTHILFE } from "@/game/lang/nothilfe";
@@ -2386,7 +2386,19 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   // the player's own choices: Kontor limit before opening, instalment amount while funding (never "all the cash")
   const [civicBudget, setCivicBudget] = useState<Partial<Record<CivicStage, number>>>({});
   const [civicRate, setCivicRate] = useState("");
-  const civicErr = (m: string) => { const ct = CIVIC_T[lang].errors; setMsg(m.includes("rank too low") ? ct.rank : m.includes("previous stage open") ? ct.after : m.includes("site busy") ? ct.busy : m.includes("not enough money") ? ct.money : ct.fail); };
+  const [civicRaise, setCivicRaise] = useState("");
+  const civicErr = (m: string) => { const ct = CIVIC_T[lang].errors; setMsg(m.includes("rank too low") ? ct.rank : m.includes("previous stage open") ? ct.after : m.includes("site busy") ? ct.busy : m.includes("not enough money") ? ct.money : m.includes("bad budget") ? ct.budget : m.includes("material complete") ? ct.done : ct.fail); };
+  /** Raise the Kontor limit of the open stage (DB civic_raise_budget books the open days with the old limit first). */
+  const civicRaiseBudget = async (stage: CivicStage, budget: number) => {
+    if (!my || civicBusy.current) return;
+    civicBusy.current = true;
+    try {
+      tap();
+      const { error } = await (supabase.rpc as unknown as (f: string, a: object) => Promise<{ error: { message?: string } | null }>)("civic_raise_budget", { _seed: my.id, _item: stage, _budget: budget });
+      if (error) return civicErr(error.message ?? "");
+      setCivicRaise(""); jingle("coins"); await refreshResources(); await refreshCivic();
+    } finally { civicBusy.current = false; }
+  };
   const civicOpen = async (stage: CivicStage, budget: number) => {
     if (!my || civicBusy.current) return;
     civicBusy.current = true;
@@ -2741,6 +2753,18 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                       const phase = row ? civicPhase(row, now) : null, need = civicNeed(stage);
                       const max = civicBudgetMax(stage, res.site ?? null, waage), lock = row ? null : civicLock(my, stage, myStage, now);
                       const total = row ? row.price : 0, paid = row ? paidOf(stage) : 0, rest = total - paid;
+                      // a later raise of the Kontor limit: only upwards, at most the full Kontor price (civicRaiseRange ↔ DB civic_raise_budget)
+                      const span = row ? civicRaiseRange(row, res.site ?? null, waage) : null;
+                      const raiseTo = Math.floor(+civicRaise || 0), raiseOk = !!span && raiseTo >= span.min && raiseTo <= span.max;
+                      const raiseUi = span ? (
+                        <div className="mt-1 space-y-0.5">
+                          <div className="flex flex-wrap items-center gap-1">
+                            <Input type="number" inputMode="numeric" className="h-7 min-w-[7rem] flex-1 text-xs" min={span.min} max={span.max} placeholder={`${span.min}–${span.max}`} aria-label={ct.budget(t.taler(span.max))} value={civicRaise} onChange={(e) => setCivicRaise(e.target.value.replace(/[^0-9]/g, ""))} />
+                            <Button size="sm" variant="outline" className="h-7" disabled={!raiseOk} onClick={() => void civicRaiseBudget(stage, raiseTo)}>{ct.raise(t.taler(raiseOk ? raiseTo : span.max))}</Button>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">{ct.raiseHint}</div>
+                        </div>
+                      ) : null;
                       return (
                         <li key={stage} className="rounded border border-ink/15 p-1.5 text-xs">
                           <div className="flex items-center gap-2"><span className="flex-1 font-semibold">{name}</span><span className="text-muted-foreground">{ct.price(t.taler(CIVIC[stage].price))}</span></div>
@@ -2766,10 +2790,11 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                                   <Input type="number" inputMode="numeric" className="h-7 min-w-[7rem] flex-1 text-xs" min={1} max={Math.min(rest, Math.max(0, cash))} placeholder={ct.rate} aria-label={ct.rate} value={civicRate} onChange={(e) => setCivicRate(e.target.value.replace(/[^0-9]/g, ""))} />
                                   <Button size="sm" className="h-7" disabled={!ok} onClick={() => void civicPay(stage, amount)}>{ct.pay(t.taler(ok ? amount : 0))}</Button>
                                 </div>
+                                {raiseUi}
                               </div>
                             );
                           })() : phase === "material" ? (
-                            <div className="mt-1 text-muted-foreground">{ct.material(row.wood_got, row.need_wood, row.stone_got, row.need_stone)}{civicQuota ? ` · ${ct.quota(civicQuota.wood, civicQuota.stone)}` : ""} · {ct.kontor(t.taler(row.kontor_spent), t.taler(row.budget))}</div>
+                            <div className="mt-1 text-muted-foreground">{ct.material(row.wood_got, row.need_wood, row.stone_got, row.need_stone)}{civicQuota ? ` · ${ct.quota(civicQuota.wood, civicQuota.stone)}` : ""} · {ct.kontor(t.taler(row.kontor_spent), t.taler(row.budget))}{raiseUi}</div>
                           ) : phase === "building" ? (
                             <div className="mt-1 font-semibold">{ct.building(Math.ceil((Date.parse(row.done_at!) - now) / 864e5))}</div>
                           ) : <div className="mt-1 font-semibold text-primary">✓ {ct.ready}</div>}

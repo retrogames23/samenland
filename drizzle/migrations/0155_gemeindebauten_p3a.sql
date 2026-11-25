@@ -15,6 +15,11 @@
 --  Effects from the completion marker on (as every Gemeindebau): Spital 2 sickness ×0.90 on top of Spital 1 (sickness.ts,
 --  together ×0.765); Spital 3 +1 wood and +0.5 stone a day (resource_rate); Waage 2 storage +100 wood and +100 stone
 --  (resource_cap). Waage 1's Kontor discount stays with waage1.
+--  civic_raise_budget (Masterplan v6.1 4.1/11): the owner may raise the Kontor limit of a stage that still gathers
+--  material — only upwards, at most to the whole material at the Kontor price (the cap civic_open uses), never paid or
+--  reserved: it first books every open day up to today with the old limit (resource_refresh_at), then stores the new
+--  limit, so it acts from the next booked day on and no booked day, Kontor row or instalment is ever touched again.
+--  (This replaces the "never raised later" of the 0147 header.)
 -- Untouched: the Ankauf (0151: resource_refresh_at, ankauf_*), the purchase counting (0153: quest_guard,
 -- princely_task_met), civic_day, the quota, the chest and every other price or rule.
 
@@ -140,6 +145,31 @@ AS $function$ SELECT 100
     + 150 * (EXISTS (SELECT 1 FROM public.purchases p WHERE p.seed_id = _seed AND p.item = 'granary2' AND p.created_at < _at))::integer
     + 100 * (EXISTS (SELECT 1 FROM public.purchases p WHERE p.seed_id = _seed AND p.item = 'waage2' AND p.created_at < _at))::integer $function$;
 
+-- raise the Kontor limit of an open stage (owner, upwards, at most the whole material at the Kontor price, no prepayment)
+CREATE OR REPLACE FUNCTION public.civic_raise_budget(_seed uuid, _item text, _budget integer)
+ RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
+AS $function$
+DECLARE c0 timestamptz; owner uuid; st record; maxb integer;
+BEGIN
+  SELECT s.created_at, s.user_id INTO c0, owner FROM public.seeds s WHERE s.id = _seed FOR UPDATE;
+  IF c0 IS NULL OR (coalesce(auth.role(), '') <> 'service_role' AND (auth.uid() IS NULL OR owner IS DISTINCT FROM auth.uid())) THEN
+    RAISE EXCEPTION 'not owner'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtext('purchase:' || _seed::text));
+  IF NOT EXISTS (SELECT 1 FROM public.civic_stages c WHERE c.seed_id = _seed AND c.item = _item) THEN
+    RAISE EXCEPTION 'stage not open'; END IF;
+  -- 1 every day up to today is booked with the old limit first (no-op when today is booked already)
+  PERFORM public.resource_refresh_at(_seed, (now() AT TIME ZONE 'UTC')::date);
+  SELECT * INTO st FROM public.civic_stages c WHERE c.seed_id = _seed AND c.item = _item FOR UPDATE;
+  IF st.material_at IS NOT NULL THEN RAISE EXCEPTION 'material complete'; END IF;
+  -- 2 only upwards, at most the whole material bought at today's Kontor price (as civic_open); nothing is paid here
+  maxb := public.resource_kontor_at(_seed, st.need_wood, st.need_stone, now());
+  IF _budget IS NULL OR _budget <= st.budget OR _budget > maxb THEN RAISE EXCEPTION 'bad budget'; END IF;
+  UPDATE public.civic_stages SET budget = _budget WHERE seed_id = _seed AND item = _item;
+  RETURN jsonb_build_object('item', _item, 'budget', _budget, 'spent', st.kontor_spent, 'max', maxb);
+END $function$;
+
+REVOKE ALL ON FUNCTION public.civic_raise_budget(uuid, text, integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.civic_raise_budget(uuid, text, integer) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.civic_open(uuid, text, integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.civic_open(uuid, text, integer) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.civic_paid() FROM PUBLIC, anon, authenticated;

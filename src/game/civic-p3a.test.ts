@@ -5,8 +5,10 @@ import {
   CIVIC,
   CIVIC_MIN_RANK,
   CIVIC_STAGES,
+  civicBudgetMax,
   civicLock,
   civicNeed,
+  civicRaiseRange,
   countsAsBuilding,
   isCivicStage,
 } from "./civic";
@@ -125,6 +127,29 @@ describe("P3a effects (from the completion marker on)", () => {
       expect(ew, lang).toMatch(/100/);
       expect(t.after("X"), lang).toContain("X");
       expect(t.errors.after, lang).toBeTruthy();
+      expect(t.raise("X"), lang).toContain("X");
+      expect(t.raiseHint && t.errors.budget && t.errors.done, lang).toBeTruthy();
     }
+  });
+});
+
+describe("P3a Kontor limit raised later (civic_raise_budget)", () => {
+  const row = (budget: number, stage: (typeof CIVIC_STAGES)[number], done = false) => ({
+    budget,
+    need_wood: civicNeed(stage).wood,
+    need_stone: civicNeed(stage).stone,
+    material_at: done ? "2026-12-01T00:00:00Z" : null,
+  });
+  it("only upwards, at most the full Kontor price of the stage (the cap of civic_open), never after the material", () => {
+    for (const stage of CIVIC_STAGES)
+      for (const site of [null, "grain", "gateway"] as const)
+        for (const waage of [false, true]) {
+          const max = civicBudgetMax(stage, site, waage);
+          expect(civicRaiseRange(row(0, stage), site, waage)).toEqual({ min: 1, max });
+          expect(civicRaiseRange(row(max - 1, stage), site, waage)).toEqual({ min: max, max });
+          expect(civicRaiseRange(row(max, stage), site, waage)).toBeNull();
+          expect(civicRaiseRange(row(0, stage, true), site, waage)).toBeNull();
+        }
+    expect(civicRaiseRange(row(200, "spital1"), "grain", false)).toEqual({ min: 201, max: 398 });
   });
 });

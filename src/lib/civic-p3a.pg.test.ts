@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { CIVIC, CIVIC_STAGES, civicNeed } from "@/game/civic";
+import { CIVIC, CIVIC_STAGES, civicNeed, civicRaiseRange } from "@/game/civic";
 import { resourceRates } from "@/game/resources";
 import type { TownWay } from "@/game/character";
 
@@ -35,6 +35,7 @@ const BEFORE = [
   "0147_gemeindebauten_p2.sql",
   "0148_civic_cash_history.sql",
   "0151_ankauf.sql",
+  "0153_civic_kauf_zaehlung.sql",
 ];
 const M155 = mig("0155_gemeindebauten_p3a.sql");
 // 0151 also patches the purchase counting: the live quest_guard (0102) and princely_task_met (0081) must exist
@@ -59,6 +60,8 @@ const UNTOUCHED = [
   "civic_cash_from(uuid,timestamptz)",
   "resource_kontor_at(uuid,integer,integer,timestamptz)",
   "purchase_material()",
+  "quest_guard()", // purchase counting F-P2-1 (0151/0153)
+  "princely_task_met(uuid,text,timestamptz)",
 ];
 let n = 0;
 const nextSeed = () => `00000000-0000-0000-0000-${(0xc30000 + ++n).toString(16).padStart(12, "0")}`;
@@ -81,15 +84,24 @@ d("Gemeindebauten P3a (0155, real guard, real PostgreSQL)", () => {
       )[0]!["m"] as string;
     return out;
   };
-  /** A lab village founded yesterday noon, certified at `rank`, with a site and its production booked to today. */
-  const seed = async (o: { rank?: number; site?: TownWay; stock?: [number, number] } = {}) => {
+  /** A lab village founded `age` days ago (default yesterday noon), certified at `rank`, with a site and its production
+   *  booked through day `through` (default today). */
+  const seed = async (
+    o: {
+      rank?: number;
+      site?: TownWay;
+      stock?: [number, number];
+      age?: number;
+      through?: number;
+    } = {},
+  ) => {
     const id = nextSeed();
     await sql`insert into public.seeds (id, user_id, realm, x, y, created_at)
-      values (${id}, ${OWNER}, 'lab', 500, 340, ${new Date(today - DAY / 2).toISOString()})`;
+      values (${id}, ${OWNER}, 'lab', 500, 340, ${new Date(today - (o.age ?? 0.5) * DAY).toISOString()})`;
     await sql`insert into public.rank_certificates (seed_id, rank, citizens, ways, certified_at) values (${id}, ${o.rank ?? 3}, 0, 0, now())`;
     await sql`insert into public.test_balance values (${id}, 100000)`;
     await sql`insert into public.village_sites (seed_id, way) values (${id}, ${o.site ?? "grain"})`;
-    await book(id, 0);
+    await book(id, o.through ?? 0);
     if (o.stock)
       for (const [r, v] of [
         ["wood", o.stock[0]],
@@ -109,11 +121,27 @@ d("Gemeindebauten P3a (0155, real guard, real PostgreSQL)", () => {
       await tx`insert into public.purchases (seed_id, user_id, item, cost, created_at) values (${id}, ${OWNER}, ${stage}, 0, ${t})`;
     });
   };
-  const as = <T>(f: (tx: postgres.TransactionSql) => Promise<T>) =>
+  const as = <T>(f: (tx: postgres.TransactionSql) => Promise<T>, uid = OWNER) =>
     sql.begin(async (tx) => {
-      await tx`select set_config('test.uid', ${OWNER}, true), set_config('test.role', 'authenticated', true)`;
+      await tx`select set_config('test.uid', ${uid}, true), set_config('test.role', 'authenticated', true)`;
       return f(tx);
     }) as Promise<T>;
+  const raise = (id: string, stage: string, budget: number, uid = OWNER) =>
+    as((tx) => tx`select public.civic_raise_budget(${id}, ${stage}, ${budget}) as r`, uid).then(
+      (r) => r[0]!["r"] as Record<string, number | string>,
+      (e: Error) => e.message,
+    );
+  const stage = async (id: string, item: string) =>
+    (
+      await sql`select budget, kontor_spent, wood_got, stone_got, need_wood, need_stone, funded_at, material_at
+        from public.civic_stages where seed_id = ${id} and item = ${item}`
+    )[0]!;
+  const spent = async (id: string) =>
+    Number(
+      (
+        await sql`select coalesce(sum(cost), 0) as c from public.purchases where seed_id = ${id} and cost > 0`
+      )[0]!["c"],
+    );
   const open = (id: string, stage: string, budget = 0) =>
     as((tx) => tx`select public.civic_open(${id}, ${stage}, ${budget}) as r`).then(
       (r) => r[0]!["r"] as Record<string, number | string>,
@@ -218,6 +246,7 @@ d("Gemeindebauten P3a (0155, real guard, real PostgreSQL)", () => {
         r["item"] as string,
       ).toEqual([c.price, c.days, c.rank, c.after]);
     }
+    expect(Object.values(before).every((m) => /^[0-9a-f]{32}$/.test(m))).toBe(true);
     expect(await md5s(UNTOUCHED)).toEqual(before);
     const [g] = await sql`select pg_get_functiondef('public.purchase_guard()'::regprocedure) as d`;
     const guard = g!["d"] as string;
@@ -344,5 +373,86 @@ d("Gemeindebauten P3a (0155, real guard, real PostgreSQL)", () => {
       await finished(id, "waage2");
       expect(await db()).toEqual(resourceRates(new Set(["spital3", "waage2"]), site));
     }
+  });
+
+  it("civic_raise_budget: owner only, only upwards, at most the full Kontor price; instalments and building price unchanged", async () => {
+    expect(
+      (
+        await sql`select has_function_privilege('anon', 'public.civic_raise_budget(uuid,text,integer)', 'execute') as a,
+          has_function_privilege('authenticated', 'public.civic_raise_budget(uuid,text,integer)', 'execute') as u`
+      )[0],
+    ).toEqual({ a: false, u: true });
+    const id = await seed({ rank: 2 });
+    expect(await raise(id, "spital1", 100)).toContain("stage not open");
+    expect(await open(id, "spital1", 200)).toMatchObject({ budget: 200 });
+    const max = civicRaiseRange(
+      { budget: 200, need_wood: 50, need_stone: 33, material_at: null },
+      "grain",
+      false,
+    )!.max;
+    expect(max).toBe(398); // 50 × 4 + 33 × 6, the same cap civic_open uses
+    expect(await raise(id, "spital1", 300, "00000000-0000-0000-0000-0000000000ff")).toContain(
+      "not owner",
+    );
+    expect(await raise(id, "spital1", 200)).toContain("bad budget"); // not higher
+    expect(await raise(id, "spital1", 150)).toContain("bad budget"); // never lower
+    expect(await raise(id, "spital1", max + 1)).toContain("bad budget"); // never beyond the full Kontor price
+    // while still funding: the limit rises, nothing is paid or reserved, the instalments stay bound to the building price
+    expect(await raise(id, "spital1", 300)).toEqual({
+      item: "spital1",
+      budget: 300,
+      spent: 0,
+      max,
+    });
+    expect(await raise(id, "spital1", max)).toMatchObject({ budget: max });
+    expect(await spent(id)).toBe(0);
+    expect(await pay(id, "spital1:r1", 10001)).toContain("bad amount");
+    expect(await pay(id, "spital1:r1", 4000)).toBe("ok");
+    expect(await pay(id, "spital1:r2", 6000)).toBe("ok");
+    expect((await stage(id, "spital1"))["funded_at"]).not.toBeNull();
+    expect(await spent(id)).toBe(10000); // the instalments only — the Kontor limit is no money
+  });
+
+  it("civic_raise_budget books every open day with the old limit first; the new limit acts from the next day, never back", async () => {
+    // funded three days ago, budget 0, production booked only through day −3: days −2, −1 and today are still open
+    const id = await seed({ rank: 2, age: 4, through: -3 });
+    expect(await open(id, "spital1", 0)).toMatchObject({ budget: 0 });
+    expect(await pay(id, "spital1:r1", 10000)).toBe("ok");
+    await sql`update public.civic_stages set funded_at = ${new Date(today - 3 * DAY + 3600e3).toISOString()}
+      where seed_id = ${id} and item = 'spital1'`;
+    const before = await spent(id);
+    const r = await raise(id, "spital1", 300);
+    expect(r).toMatchObject({ budget: 300, spent: 0 });
+    // the open days were booked up to today — with the old limit 0: store material only, no Kontor row
+    const [thru] =
+      await sql`select through_day::text as d from public.resource_state where seed_id = ${id}`;
+    expect(thru!["d"]).toBe(dayStr(0));
+    const s0 = await stage(id, "spital1");
+    expect(s0["wood_got"] as number).toBeGreaterThan(0);
+    expect([s0["kontor_spent"], s0["budget"], s0["material_at"]]).toEqual([0, 300, null]);
+    expect((await rows(id)).filter((x) => x.item.startsWith("spital1:k"))).toEqual([]);
+    expect(await spent(id)).toBe(before); // nothing paid by the raise
+    // the next day buys its quota at the Kontor within the new limit, as its own money row dated that day
+    await book(id, 1);
+    const k = (await rows(id)).filter((x) => x.item.startsWith("spital1:k"));
+    expect(k.map((x) => [x.item, x.at])).toEqual([
+      [`spital1:k${dayStr(1).replaceAll("-", "")}`, today + DAY + 1000],
+    ]);
+    const s1 = await stage(id, "spital1");
+    expect(s1["kontor_spent"]).toBe(k[0]!.cost);
+    expect(k[0]!.cost).toBeGreaterThan(0);
+    expect(k[0]!.cost).toBeLessThanOrEqual(300);
+    // a second raise later leaves the booked day 1 as it is
+    await raise(id, "spital1", 398).then(() => undefined);
+    expect((await rows(id)).filter((x) => x.item.startsWith("spital1:k"))).toEqual(k);
+  });
+
+  it("civic_raise_budget refuses once the material is complete", async () => {
+    const id = await seed({ rank: 3, stock: [400, 300] });
+    await open(id, "waage1", 0);
+    expect(await pay(id, "waage1:r1", 12000)).toBe("ok");
+    await book(id, 1);
+    expect((await stage(id, "waage1"))["material_at"]).not.toBeNull();
+    expect(await raise(id, "waage1", 10)).toContain("material complete");
   });
 });
