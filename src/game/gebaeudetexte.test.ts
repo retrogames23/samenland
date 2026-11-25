@@ -91,6 +91,8 @@ describe("T1: purchase texts in all eight languages", () => {
       for (const k of ["millrow", "hammerworks", "bigstore", "stonemason"])
         expect(DICT[l].items[k]![1], `${l} ${k}`).not.toContain(SEA[l]);
       expect(DICT[l].items["saltquay"]![1], l).toContain(String(SEA_WAYS_MAX));
+      // assignHauls (people.ts): one miller per workplace carries flour, only to a bakery under 45 tiles away
+      expect(DICT[l].items["millrow"]![1], l).toContain("45");
     }
   });
 
@@ -140,6 +142,9 @@ describe("T1: what the texts state is what the code does (German reference)", ()
     );
     expect(AUSBAU.de.steps["granary2"]![1]).toContain(`+${GRANARY_STEP_CAP}`);
     expect(HEALER_SICK).toBeGreaterThan(HERBS_SICK); // "deutlich seltener krank" vs "seltener krank"
+    // Klostergarten: sickChance and careHealthExtra read stepsPaid (payment), not stepsDone
+    expect(de["orangery1"]![1]).toContain("ab Bezahlung von Abschnitt 2");
+    expect(de["millrow"]![1]).toContain("einer bringt Mehl");
   });
 });
 
