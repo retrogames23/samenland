@@ -87,3 +87,61 @@ describe("Monument- und Festeffekte auf Krankheit", () => {
     if (!weddingDates(s, after).some((d) => d.grand && d.at > at)) expect(sickChance(s, after)).toBeGreaterThan(0);
   });
 });
+
+describe("Badestube: halbiert den Winterzuschlag ab dem Gemeinwesen-Stichtag (multiplikativ mit Erntedankhalle 3)", () => {
+  // Labor ab 25.11.2026 aktiv; öffentliche Karten behalten den Platzhalter 04.01.2100
+  const W = Date.UTC(2027, 0, 20, 12),
+    S = Date.UTC(2027, 6, 15, 12),
+    WOLD = Date.UTC(2026, 0, 20, 12);
+  const C0 = Date.UTC(2025, 0, 1),
+    B = C0 + 864e5;
+  const harvest = Array.from({ length: 3 }, (_, i) => ({
+    item: `harvest${i + 1}`,
+    at: Date.UTC(2025, 2, 1) + i,
+  }));
+  const town = (realm: string, bad: boolean, hall: boolean): Seed =>
+    ({
+      id: `bad-${realm}-${bad}-${hall}`,
+      name: "B",
+      owner: "o",
+      hue: 1,
+      x: 400,
+      y: 540,
+      user_id: null,
+      realm,
+      created_at: new Date(C0).toISOString(),
+      bought: [...(bad ? [{ item: "badestube", at: B }] : []), ...(hall ? harvest : [])].sort(
+        (a, b) => a.at - b.at,
+      ),
+    }) as unknown as Seed;
+  const surcharge = (s: Seed, t: number) => sickChance(s, t) - SICK_BASE;
+  it("Winter: Badestube allein halbiert, Erntedankhalle allein halbiert, zusammen ein Viertel", () => {
+    const plain = surcharge(town("lab", false, false), W);
+    expect(plain).toBeGreaterThan(0.02);
+    expect(surcharge(town("lab", true, false), W)).toBeCloseTo(plain / 2, 9);
+    expect(surcharge(town("lab", false, true), W)).toBeCloseTo(plain / 2, 9);
+    expect(surcharge(town("lab", true, true), W)).toBeCloseTo(plain / 4, 9);
+  });
+  it("Sommer: kein Winterzuschlag, Badestube ohne Wirkung", () => {
+    for (const hall of [false, true])
+      expect(sickChance(town("lab", true, hall), S)).toBeCloseTo(
+        sickChance(town("lab", false, hall), S),
+        9,
+      );
+  });
+  it("vor dem Stichtag und auf öffentlichen Karten: Badestube ohne Wirkung, Erntedankhalle wie bisher", () => {
+    expect(sickChance(town("lab", true, false), WOLD)).toBeCloseTo(
+      sickChance(town("lab", false, false), WOLD),
+      9,
+    );
+    for (const hall of [false, true])
+      expect(sickChance(town("europe", true, hall), W)).toBeCloseTo(
+        sickChance(town("europe", false, hall), W),
+        9,
+      );
+    expect(surcharge(town("europe", false, true), W)).toBeCloseTo(
+      surcharge(town("europe", false, false), W) / 2,
+      9,
+    );
+  });
+});

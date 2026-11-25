@@ -2,6 +2,7 @@ import { stepsPaid, stepsDone, cathedralDone, CATHEDRAL_WINTER, ORANGERY_SICK, t
 import { seasonAt } from "./season";
 import { festJoy } from "./weddings";
 import { CULTURE_SICK, BEGINEN_SICK } from "./prosperity";
+import { badestubeWinter } from "./gemeinwesen";
 
 /** Plain summer chance that a household has a sick member in a SICK_DAYS window. */
 export const SICK_BASE = 0.06;
@@ -16,7 +17,7 @@ export const SPITAL_SICK = 0.85;
  * Binding sickness chance per household, shared by the live villagers (people.ts sickRate)
  * and the new daily resident tax (resident-tax.ts). Legacy tax before the cutover keeps
  * prosperity.ts sickTaxRate unchanged.
- *   risk = (SICK_BASE + SICK_WINTER·winter·(harvest step 3 ? ½ : 1)·(Dom step 5 ? ⅔ : 1)) · Π(1 − cutᵢ),  cutᵢ = boonᵢ / SICK_BASE
+ *   risk = (SICK_BASE + SICK_WINTER·winter·(harvest step 3 ? ½ : 1)·(Badestube from gemeinwesenSince ? ½ : 1)·(Dom step 5 ? ⅔ : 1)) · Π(1 − cutᵢ),  cutᵢ = boonᵢ / SICK_BASE
  * Each care factor removes the share of risk it removes from plain summer risk; factors multiply,
  * so every further investment still lowers sickness (no floor that swallows it). Wedding joy: 0.
  */
@@ -31,7 +32,7 @@ export function sickChance(s: Seed, at: number): number {
     own("beginen") ? BEGINEN_SICK : 0,
     st("orangery") >= 3 ? ORANGERY_SICK : 0,
   ];
-  const risk = SICK_BASE + SICK_WINTER * seasonAt(at).winter * (stepsDone(s, "harvest", at) >= 3 ? 0.5 : 1)
+  const risk = SICK_BASE + SICK_WINTER * seasonAt(at).winter * (stepsDone(s, "harvest", at) >= 3 ? 0.5 : 1) * badestubeWinter(s.realm, own, at)
     * (cathedralDone(s, at) >= 5 ? CATHEDRAL_WINTER : 1);
   // Spital 1 (Gemeindebau, civic.ts): ×0.85 on the whole risk from its completion marker on
   return boons.reduce((r, b) => r * (1 - b / SICK_BASE), risk) * (own("spital1") ? SPITAL_SICK : 1);

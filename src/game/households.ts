@@ -1,6 +1,7 @@
 import { townCharacter } from "./character";
 import { dwellingSlots, MAX_SLOTS } from "./density";
 import { leaversOf } from "./wander";
+import { gemeinwesenCapacity } from "./gemeinwesen";
 import { hash, structureAt, twinSiteGet, pickCfg, reachOf, radiusOf, effAge, townDist, specialSites, twinSites, roadOwnerAt, MAP, type Seed, type Kind } from "./world";
 
 export type HomeTile = [number, number];
@@ -19,7 +20,7 @@ function capacityAt(s: Seed, byKind: Map<Kind, unknown[]>, now: number, r: numbe
   if (!s.user_id) return Infinity;
   const own = new Set((s.bought ?? []).filter(b => b.at <= now).map(b => b.item));
   const food = ["fisher", "hunter", "granary", "dairy", "markethall", "guildhall"].filter(i => own.has(i)).length;
-  const health = ["herbs", "healer", "library"].filter(i => own.has(i)).length;
+  const health = gemeinwesenCapacity(s.realm, own, now); // series 1/1/0.25/0.25 + library from the cut-over (gemeinwesen.ts)
   // System B (household capacity): long-term carrying limit, year-round and independent of the momentary larder.
   // Winter acts only on larder stock and sickness — never on this capacity or on growth (FEED_WINTER is unused here).
   const w = 1;
