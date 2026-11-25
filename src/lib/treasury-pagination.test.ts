@@ -62,6 +62,17 @@ const empty = () => ({ seeds: [], purchases: [], blessings: [], charters: [], en
 beforeEach(() => { db.tables = empty(); db.fail = undefined; db.nullData = undefined; db.onPage = undefined; db.ranges = []; });
 
 describe("treasury pagination", () => {
+  it("loads building_moves only when asked (rank certification), never for tax", async () => {
+    const { loadEconomyInput } = await import("./treasury.server");
+    db.tables.seeds = [{ id: "s1", realm: "europe", created_at: "2026-10-01T00:00:00Z" }];
+    db.tables.building_moves = [{ id: "m1", seed_id: "s1", item: "herbs", x: 1, y: 2, cost: 10, created_at: "2026-10-05T00:00:00Z" }];
+    const tax = await loadEconomyInput("europe");
+    expect(tax.moves).toBeUndefined();
+    expect(db.ranges.some(r => r.startsWith("building_moves:"))).toBe(false);
+    const cert = await loadEconomyInput("europe", { moves: true });
+    expect(cert.moves).toEqual(db.tables.building_moves);
+  });
+
   it("loadEconomyInput reads purchases across several pages, keeping their order", async () => {
     const { loadEconomyInput } = await import("./treasury.server");
     db.tables.seeds = [{ id: "a", realm: "europe", created_at: "2026-01-01" }];

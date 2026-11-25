@@ -33,7 +33,11 @@ type Chrono = { created_at: string; id: string };
 /** Cursor filter for order (created_at, id); values quoted for PostgREST. */
 export const afterChrono = (c: Chrono) => `created_at.gt."${c.created_at}",and(created_at.eq."${c.created_at}",id.gt."${c.id}")`;
 
-export async function loadEconomyInput(realm: string): Promise<EconomyWorld> {
+/**
+ * `moves: true` adds building_moves (Umsetzen). Only rank certification asks for them, so the certified rank
+ * counts the same village the player sees; tax assessment never does (receipts stay as booked).
+ */
+export async function loadEconomyInput(realm: string, opts: { moves?: boolean } = {}): Promise<EconomyWorld> {
   const db = supabaseAdmin;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   type Q = any;
@@ -51,12 +55,13 @@ export async function loadEconomyInput(realm: string): Promise<EconomyWorld> {
     byId("Twin works", () => db.from("twin_works").select("id,seed_id,partner_id,work,cost,created_at").in("seed_id", ids)),
     byId("Gifts", () => db.from("gifts").select("id,from_seed,to_seed,kind,created_at").in("to_seed", ids)),
   ]);
-  return { seeds: raw, purchases, blessings, charters, encounters, roads, votes, works, gifts } as unknown as EconomyWorld;
+  const moves = opts.moves ? await chrono("Moves", () => db.from("building_moves").select("id,seed_id,item,x,y,cost,created_at").in("seed_id", ids)) : undefined;
+  return { seeds: raw, purchases, blessings, charters, encounters, roads, votes, works, gifts, ...(moves ? { moves } : {}) } as unknown as EconomyWorld;
 }
 
 /** Settlement rank judged on the server from real citizens, homes and roads; stored briefly for the purchase guard. */
 export async function certifyRank(id: string, realm: string) {
-  const input = await loadEconomyInput(realm);
+  const input = await loadEconomyInput(realm, { moves: true });
   const { setRealm } = await import("@/game/time");
   const { townRank, rankInput } = await import("@/game/rank");
   setRealm(realm as Realm);
@@ -166,7 +171,7 @@ export async function calculateTreasury(id: string, realm: string) {
 }
 /** Books one Zimmerleute-Nothilfe after recomputing the event on the server; the DB guard checks price, rank, money and once-only. */
 export async function bookNothilfe(id: string, realm: string, userId: string, kind: "f" | "w", at: number) {
-  const input = await loadEconomyInput(realm);
+  const input = await loadEconomyInput(realm, { moves: true });
   const { setRealm } = await import("@/game/time");
   const { townRank, rankInput } = await import("@/game/rank");
   const { activeRuins } = await import("@/game/disasters");

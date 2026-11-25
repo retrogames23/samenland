@@ -43,7 +43,8 @@ export async function bookEncounter(
   event: string,
   choice: string,
 ): Promise<DecideResult> {
-  const input = await loadEconomyInput(realm);
+  // with relocations: the rank certified below must match the village the player sees
+  const input = await loadEconomyInput(realm, { moves: true });
   const { setRealm } = await import("@/game/time");
   setRealm(realm as Realm);
   const now = Date.now(),
