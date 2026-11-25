@@ -18,6 +18,9 @@ type Text = {
   paid: string;
   sites: Record<TownWay, string>;
   coast: string;
+  /** Ankauf (P1, 0151): overflow above the storage, bought by the Kontor; prices already formatted */
+  ankauf: (wood: string, stone: string) => string;
+  ankaufLast: (mark: string) => string;
 };
 /** Wood, stone and the Steingrube (resources.ts), all eight languages. */
 export const RESOURCE_T: Record<Lang, Text> = {
@@ -38,6 +41,9 @@ export const RESOURCE_T: Record<Lang, Text> = {
     paid: "Die Steingrube ist angelegt. Ab dem nächsten Morgen liefert sie Stein.",
     sites: { grain: "Binnenland", workshop: "Wald und Hügel", gateway: "Küste" },
     coast: "Küste: 10 % Nachlass im Kontor",
+    ankauf: (w, s) =>
+      `Was über das Lager hinaus anfällt, kauft das Kontor: Holz ${w}, Stein ${s} je Stück`,
+    ankaufLast: (m) => `Zuletzt angekauft für ${m}`,
   },
   en: {
     wood: "Wood",
@@ -56,6 +62,9 @@ export const RESOURCE_T: Record<Lang, Text> = {
     paid: "The stone pit is open. It delivers stone from tomorrow morning.",
     sites: { grain: "inland", workshop: "forest and hills", gateway: "coast" },
     coast: "Coast: 10 % off at the Kontor",
+    ankauf: (w, s) =>
+      `What exceeds the storage is bought by the Kontor: wood ${w}, stone ${s} each`,
+    ankaufLast: (m) => `Last sold to the Kontor for ${m}`,
   },
   fr: {
     wood: "Bois",
@@ -74,6 +83,9 @@ export const RESOURCE_T: Record<Lang, Text> = {
     paid: "La carrière est ouverte. Elle livre de la pierre dès demain matin.",
     sites: { grain: "intérieur des terres", workshop: "forêt et collines", gateway: "côte" },
     coast: "Côte : 10 % de remise au comptoir",
+    ankauf: (w, s) =>
+      `Le surplus au-delà de l’entrepôt est racheté par le comptoir : bois ${w}, pierre ${s} l’unité`,
+    ankaufLast: (m) => `Dernière vente au comptoir : ${m}`,
   },
   es: {
     wood: "Madera",
@@ -92,6 +104,9 @@ export const RESOURCE_T: Record<Lang, Text> = {
     paid: "La cantera está abierta. Entrega piedra desde mañana por la mañana.",
     sites: { grain: "interior", workshop: "bosque y colinas", gateway: "costa" },
     coast: "Costa: 10 % de descuento en el kontor",
+    ankauf: (w, s) =>
+      `Lo que excede el almacén lo compra el kontor: madera ${w}, piedra ${s} por unidad`,
+    ankaufLast: (m) => `Última venta al kontor: ${m}`,
   },
   ar: {
     wood: "خشب",
@@ -109,6 +124,8 @@ export const RESOURCE_T: Record<Lang, Text> = {
     paid: "فُتح المقلع. يورّد الحجارة ابتداءً من صباح الغد.",
     sites: { grain: "الداخل", workshop: "الغابة والتلال", gateway: "الساحل" },
     coast: "الساحل: خصم 10 % في الوكالة",
+    ankauf: (w, s) => `ما يزيد على سعة المخزن تشتريه الوكالة: الخشب ${w}، الحجر ${s} للوحدة`,
+    ankaufLast: (m) => `آخر بيع للوكالة: ${m}`,
   },
   hi: {
     wood: "लकड़ी",
@@ -127,6 +144,9 @@ export const RESOURCE_T: Record<Lang, Text> = {
     paid: "खदान खुल गई। कल सुबह से पत्थर आने लगेगा।",
     sites: { grain: "भीतरी इलाक़ा", workshop: "जंगल और पहाड़ियाँ", gateway: "तट" },
     coast: "तट: कोठी में 10 % छूट",
+    ankauf: (w, s) =>
+      `भंडार से अधिक जो बचता है, उसे कोठी ख़रीद लेती है: लकड़ी ${w}, पत्थर ${s} प्रति इकाई`,
+    ankaufLast: (m) => `पिछली बिक्री कोठी को: ${m}`,
   },
   zh: {
     wood: "木材",
@@ -144,6 +164,8 @@ export const RESOURCE_T: Record<Lang, Text> = {
     paid: "采石场已开设。明早起开始供应石料。",
     sites: { grain: "内陆", workshop: "森林与丘陵", gateway: "海岸" },
     coast: "海岸：商栈九折",
+    ankauf: (w, s) => `超出仓储的部分由商栈收购：木材每件 ${w}，石料每件 ${s}`,
+    ankaufLast: (m) => `最近一次售予商栈：${m}`,
   },
   ja: {
     wood: "木材",
@@ -161,5 +183,7 @@ export const RESOURCE_T: Record<Lang, Text> = {
     paid: "石切り場を開きました。明朝から石材が届きます。",
     sites: { grain: "内陸", workshop: "森と丘", gateway: "海岸" },
     coast: "海岸：商館で10%引き",
+    ankauf: (w, s) => `倉庫からあふれた分は商館が買い取ります：木材 1つ ${w}、石材 1つ ${s}`,
+    ankaufLast: (m) => `最近の商館への売却：${m}`,
   },
 };
