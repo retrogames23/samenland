@@ -55,7 +55,7 @@ import { useTreasurySync } from "@/components/hooks/useTreasurySync";
 import { useResources } from "@/components/hooks/useResources";
 import { ResourceBar, MaterialLine } from "@/components/hud/ResourceBar";
 import { RESOURCE_T } from "@/game/lang/resources";
-import { kontorQuote, materialOf, STEINGRUBE, STEINGRUBE_PRICE, SITE_STONE } from "@/game/resources";
+import { isAnkauf, kontorQuote, materialOf, STEINGRUBE, STEINGRUBE_PRICE, SITE_STONE } from "@/game/resources";
 import { GEMEINWESEN, gemeinwesenActive } from "@/game/gemeinwesen";
 import { GEMEINWESEN_T, BADESTUBE_WINTER_T } from "@/game/lang/gemeinwesen";
 const GEMEINWESEN_ALL: readonly string[] = GEMEINWESEN;
@@ -2261,7 +2261,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const [questTrack, setQuestTrack] = useState<number | null>(null);
   const heads = my ? questHeads(claims, my.id, {
     blessings: blessings.filter((b) => b.seed_id === my.id).length,
-    purchases: purchases.filter((p) => p.seed_id === my.id).length,
+    purchases: purchases.filter((p) => p.seed_id === my.id && !isAnkauf(p.item)).length,
     signposts: signs.filter((s) => s.seed_id === my.id).length,
     encounters: encounters.filter((e) => e.seed_id === my.id).length,
     giftsSent: gifts.filter((g) => g.from_seed === my.id).length,
@@ -3922,7 +3922,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                   {(() => {
                     const mineC = claims.filter((c) => c.seed_id === my.id);
                     const met = decreeMet(o.task, o.accepted_at, {
-                      purchases: purchases.filter((x) => x.seed_id === my.id).map((x) => x.created_at),
+                      purchases: purchases.filter((x) => x.seed_id === my.id && !isAnkauf(x.item)).map((x) => x.created_at),
                       letters: letters.filter((x) => x.from_seed === my.id).map((x) => x.created_at),
                       visits: [...mineC.filter((c) => c.quest.startsWith("visit:")).map((c) => c.created_at), ...repeatVisits.current],
                       gifts: gifts.filter((x) => x.from_seed === my.id).map((x) => x.created_at),

@@ -15,6 +15,8 @@
 --  4 Never retroactive: ankauf_since(realm) is fixed when this migration first runs — the lab map from the next UTC day
 --    start after it, every public map from the placeholder 2100-01-04 (P6 sets the real date). Days before it, also when
 --    an absent village catches them up later, get no credit. Public maps have no resources before resources_since anyway.
+--  5 No building: a credit never counts as a bought building for quests (quest_guard) or the decree "build"
+--    (princely_task_met), never a chronicle entry.
 -- Clients can neither insert nor change these rows (purchase_guard: server setting samenland.ankauf only). Additive:
 -- no existing row, price, building, chest or rule changes.
 
@@ -37,6 +39,30 @@ BEGIN
     $s$AND NEW.item ~ '^(spital1|waage1)(:k[0-9]{8})?$' THEN NEW.created_at WHEN current_setting('samenland.ankauf', true) = 'on' AND NEW.item ~ '^ankauf:[0-9]{8}$' THEN NEW.created_at ELSE now() END;$s$);
   IF (length(d) - length(replace(d, 'samenland.ankauf', ''))) / 16 <> 2 THEN RAISE EXCEPTION 'purchase_guard patch did not apply'; END IF;
   EXECUTE d;
+END $do$;
+
+-- SECOND: an Ankauf credit is income, never a building. quest_guard (0102 + 0113: build/buy3/buy6) and
+-- princely_task_met (0081: decree "build") count purchase rows as bought buildings; without this a daily credit would
+-- complete a build quest or decree with nothing built. Same patch pattern; a differing live text aborts here.
+DO $do$
+DECLARE d text;
+BEGIN
+  d := pg_get_functiondef('public.quest_guard()'::regprocedure);
+  IF position('ankauf:' in d) = 0 THEN
+    d := replace(d, $s$SELECT count(*) INTO np FROM purchases WHERE seed_id = NEW.seed_id;$s$,
+      $s$SELECT count(*) INTO np FROM purchases WHERE seed_id = NEW.seed_id AND item !~ '^ankauf:[0-9]{8}$';$s$);
+    IF (length(d) - length(replace(d, 'ankauf:', ''))) / 7 <> 1 THEN RAISE EXCEPTION 'quest_guard patch did not apply'; END IF;
+    EXECUTE d;
+  END IF;
+  d := pg_get_functiondef('public.princely_task_met(uuid, text, timestamptz)'::regprocedure);
+  IF position('ankauf:' in d) = 0 THEN
+    d := replace(d, $s$FROM purchases WHERE seed_id=_seed AND created_at>_since)$s$,
+      $s$FROM purchases WHERE seed_id=_seed AND created_at>_since AND item !~ '^ankauf:[0-9]{8}$')$s$);
+    d := replace(d, $s$(SELECT count(*) FROM purchases WHERE seed_id=_seed) >= 8$s$,
+      $s$(SELECT count(*) FROM purchases WHERE seed_id=_seed AND item !~ '^ankauf:[0-9]{8}$') >= 8$s$);
+    IF (length(d) - length(replace(d, 'ankauf:', ''))) / 7 <> 2 THEN RAISE EXCEPTION 'princely_task_met patch did not apply'; END IF;
+    EXECUTE d;
+  END IF;
 END $do$;
 
 -- the start of the Ankauf per map, fixed at the first run of this migration (never moved by a re-run)

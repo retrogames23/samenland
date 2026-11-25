@@ -42,6 +42,14 @@ const BEFORE = [
   "0148_civic_cash_history.sql",
 ].map(mig);
 const M151 = mig("0151_ankauf.sql");
+// the live quest_guard is 0102 (0113 only widened its neighbour reach); princely_task_met is 0081
+const M102 = mig("0102_lonely_quests_unpaid.sql");
+const QUEST_GUARD = M102.slice(
+  M102.indexOf("CREATE OR REPLACE FUNCTION public.quest_guard()"),
+  M102.indexOf("ALTER TABLE public.village_visits"),
+);
+const M081 = mig("0081_repeat_visits_for_decree.sql");
+const TASK_MET = M081.slice(M081.indexOf("CREATE OR REPLACE FUNCTION public.princely_task_met"));
 const M118 = mig("0118_building_moves.sql");
 const WALK = M118.slice(
   M118.indexOf("CREATE OR REPLACE FUNCTION public.village_balance_walk"),
@@ -168,8 +176,24 @@ d("Ankauf P1 (0151, real guard, real PostgreSQL)", () => {
              + coalesce((select sum(amount) from public.gifts where to_seed = _seed and created_at <= _at), 0)::int $$;
       create function public.village_balance(_seed uuid) returns integer language sql stable as
         $$ select public.village_balance_walk(_seed, timestamptz '2026-11-12 00:00:00+00', 'infinity') $$;
+      -- quests and decrees (quest_guard 0102, princely_task_met 0081) read these tables
+      create table public.quest_claims (id uuid primary key default gen_random_uuid(), seed_id uuid not null references public.seeds(id),
+        user_id uuid not null, quest text not null, reward integer not null default 0, created_at timestamptz not null default now(), unique (seed_id, quest));
+      create table public.blessings (seed_id uuid);
+      create table public.signposts (seed_id uuid);
+      create table public.letters (from_seed uuid, created_at timestamptz);
+      create table public.village_visits (visitor_seed uuid, created_at timestamptz, last_at timestamptz);
+      create table public.wonder_finds (seed_id uuid, created_at timestamptz);
+      create table public.princely_tasks (id uuid primary key default gen_random_uuid(), seed_id uuid, task text, done_at timestamptz);
+      create table public.princely_errands (task_id uuid, seed_id uuid, errand text);
+      alter table public.first_roads add column created_at timestamptz;
       grant usage on schema public, auth to authenticated; grant select on public.seeds to authenticated;
       grant insert, select on public.purchases to authenticated;`);
+    await sql.unsafe(QUEST_GUARD);
+    await sql.unsafe(
+      `create trigger quest_guard before insert on public.quest_claims for each row execute function public.quest_guard();`,
+    );
+    await sql.unsafe(TASK_MET);
     await sql.unsafe(LOCK_FN);
     await sql.unsafe(LOCK_TRIGGER);
     for (const g of GUARD) await sql.unsafe(g);
@@ -371,6 +395,37 @@ d("Ankauf P1 (0151, real guard, real PostgreSQL)", () => {
     expect(await credits(id)).toEqual([]);
   });
 
+  it("the server setting never outlives a failed booking: rolled back with it, later inserts are refused", async () => {
+    const { id } = await seed();
+    const ghost = "00000000-0000-0000-0000-00000000dead"; // no such village: the insert fails after the setting is on
+    const out = await sql.begin(async (tx) => {
+      const failed = await tx
+        .savepoint(
+          (sp) =>
+            sp`select public.ankauf_book(${ghost}, ${OWNER}, ${dayStr(2)}::date, ${new Date(today + 2 * DAY).toISOString()}::timestamptz, 3, 0)`,
+        )
+        .then(
+          () => "ok",
+          (e: Error) => e.message,
+        );
+      const [g] = await tx`select coalesce(current_setting('samenland.ankauf', true), '') as v`;
+      const after = await tx
+        .savepoint(
+          (sp) =>
+            sp`insert into public.purchases (seed_id, user_id, item, cost) values (${id}, ${OWNER}, ${ankaufItem(today + 2 * DAY)}, -6)`,
+        )
+        .then(
+          () => "ok",
+          (e: Error) => e.message,
+        );
+      return { failed, setting: g!["v"] as string, after };
+    });
+    expect(out.failed).not.toBe("ok");
+    expect(out.setting).not.toBe("on");
+    expect(out.after).toContain("ankauf rows are booked by the server");
+    expect(await credits(id)).toEqual([]);
+  });
+
   it("civic_cash_from treats a credit as income, never as an outflow (same as an equal gift received)", async () => {
     const mk = async (viaGift: boolean) => {
       const { id } = await seed({ site: "workshop", owned: ["woodcamp"], money: 1000 });
@@ -408,6 +463,37 @@ d("Ankauf P1 (0151, real guard, real PostgreSQL)", () => {
     expect(a.cash).toBe(1000 + a.credited - 900);
   });
 
+  it('a credit is no building: it never completes a build quest or the decree "build"', async () => {
+    const { id } = await seed({ site: "workshop", owned: [] });
+    // this village owns nothing: its only purchase rows will be the credits
+    await book(id, 0);
+    await setStock(id, 100, 100);
+    for (let k = 1; k <= 9; k++) await book(id, k); // nine daily credits, nothing bought
+    expect((await credits(id)).length).toBe(9);
+    const claim = (quest: string) =>
+      sql`insert into public.quest_claims (seed_id, user_id, quest) values (${id}, ${OWNER}, ${quest})`.then(
+        () => "ok",
+        (e: Error) => e.message,
+      );
+    const met = async (since: number) =>
+      (
+        await sql`select public.princely_task_met(${id}, 'build', ${new Date(since).toISOString()}::timestamptz) as m`
+      )[0]!["m"] as boolean;
+    expect(await claim("build")).toContain("quest not done");
+    expect(await met(today)).toBe(false); // credits after the decree was taken, and nine rows in all (≥ 8)
+    // buy3 after its earlier steps: two real buildings plus nine credits are still only two
+    await sql.begin(async (tx) => {
+      await tx`set local session_replication_role = replica`;
+      for (const q of ["build", "ten", "hamlet", "road"])
+        await tx`insert into public.quest_claims (seed_id, user_id, quest) values (${id}, ${OWNER}, ${q})`;
+      for (const item of ["hunter", "fisher"])
+        await tx`insert into public.purchases (seed_id, user_id, item, cost, created_at) values (${id}, ${OWNER}, ${item}, 0, ${new Date(today + 9.5 * DAY).toISOString()})`;
+    });
+    expect(await claim("buy3")).toContain("quest not done");
+    // a real building after the decree was taken still counts
+    expect(await met(today)).toBe(true);
+    expect(await met(today + 10 * DAY)).toBe(false);
+  });
   it("a purchase that first books the open days also books their credits, inside the same statement", async () => {
     // only in this test database: the lab start is today's day start, so of the two open days only today is eligible
     const since = new Date(today).toISOString();
