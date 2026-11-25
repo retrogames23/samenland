@@ -2,8 +2,9 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { economyWorldAt, type EconomyWorld } from "@/game/economy-world";
 import { residentTax } from "@/game/resident-tax";
 import type { Seed } from "@/game/world";
-import { weddingReceiptRows, receiptsComplete } from "@/game/wedding-receipts";
+import { weddingReceiptRows, receiptsComplete, missingReceipts, receiptMismatches, type BookedReceipt } from "@/game/wedding-receipts";
 import type { Realm } from "@/game/time";
+import { weddingSwitchSince } from "@/game/weddings";
 
 const DAY = 86400000;
 /** Days simulated per request; kept small so a full map stays inside the worker CPU budget. */
@@ -93,28 +94,71 @@ export async function bookedDays(id: string, first: number): Promise<{ has(d: nu
 
 /** Rows per upsert request; far below the Data API cap. */
 const RECEIPT_CHUNK = 500;
+export type WeddingSettlement = { computed: number; booked: number; missing: number; inserted: number; mismatches: number[]; switchMismatch?: true };
+const switchCache = new Map<string, { at: number; value: number }>();
+/** Tests only: forget the cached database switch dates. */
+export const resetWeddingSwitchCache = () => switchCache.clear();
+/** DB wedding_switch_since(realm), cached for a minute per worker. */
+async function dbWeddingSwitch(realm: string): Promise<number> {
+  const hit = switchCache.get(realm), now = Date.now();
+  if (hit && now - hit.at < 60_000) return hit.value;
+  const { data, error } = await supabaseAdmin.rpc("wedding_switch_since" as never, { _realm: realm } as never);
+  // Before migration 0159 the database computes every wedding with the legacy rule: a switch at infinity.
+  const missingFn = !!error && ((error as { code?: string }).code === "PGRST202" || /wedding_switch_since/.test(error.message ?? ""));
+  if (error && !missingFn) throw new Error("Wedding switch unavailable");
+  if (!missingFn && data == null) throw new Error("Wedding switch unavailable");
+  const value = missingFn ? Infinity : Date.parse(data as unknown as string);
+  if (Number.isNaN(value)) throw new Error("Wedding switch unavailable");
+  switchCache.set(realm, { at: now, value });
+  return value;
+}
+/** Every stored receipt of a village (index order, paged). */
+export async function bookedReceipts(seedId: string): Promise<BookedReceipt[]> {
+  return fetchPaged<BookedReceipt>("Wedding receipts", (c) => {
+    let q = supabaseAdmin.from("wedding_receipts").select("wedding_index, occurred_at, dowry").eq("seed_id", seedId);
+    if (c) q = q.gt("wedding_index", c.wedding_index);
+    return q.order("wedding_index").limit(PAGE);
+  });
+}
 /**
- * Freezes the village's wedding calendar (src/game/weddings.ts, the single source of truth) into
- * wedding_receipts. Idempotent: the (seed_id, wedding_index) key plus ignoreDuplicates means an existing
- * receipt is never rewritten and parallel settlements cannot double-book. SHADOW STAGE: nothing in the
- * database reads these rows yet; wedding_receipt_diff() compares them with the SQL calendar.
- * Returns the number of rows sent (0 when everything was already booked).
+ * Freezes the village's wedding calendar (src/game/weddings.ts weddingCalendar, the single source of truth) into
+ * wedding_receipts. From weddingSwitchSince(realm) these receipts are the only money record of a wedding (DB
+ * village_wedding_book); before it they shadow the SQL calendar.
+ * Safe to repeat and to run in parallel: only indices without a receipt are sent, and the (seed_id, wedding_index)
+ * key plus ignoreDuplicates means an existing receipt is never rewritten nor booked twice; UNIQUE(seed_id,
+ * occurred_at) refuses a second receipt for one instant. A booked receipt that disagrees with the calendar is
+ * reported (mismatches) and nothing is sent for that village — receipts are never repaired automatically.
+ * `apply: false` only reports (dry run).
  */
-export async function settleWeddings(seed: Seed, now: number): Promise<number> {
-  const rows = weddingReceiptRows(seed, now);
-  if (!rows.length) return 0;
-  const [top, booked] = await Promise.all([
+export async function settleWeddings(seed: Seed, now: number, opts: { apply?: boolean } = {}): Promise<WeddingSettlement> {
+  const apply = opts.apply ?? true;
+  // Interlock: TypeScript and the database must agree on the switch instant. Until both deploys carry the same date,
+  // only weddings before the earlier of the two are booked (both sides compute those with the legacy rule), so no
+  // receipt can ever be frozen under the wrong rule, whatever order code and migration go live in.
+  const tsSwitch = weddingSwitchSince(seed.realm), dbSwitch = await dbWeddingSwitch(seed.realm ?? "");
+  const agreed = tsSwitch === dbSwitch;
+  const all = weddingReceiptRows(seed, now);
+  const rows = agreed ? all : all.filter((r) => Date.parse(r.occurred_at) < Math.min(tsSwitch, dbSwitch));
+  const flag = agreed ? {} : { switchMismatch: true as const };
+  const empty = { computed: rows.length, booked: 0, missing: 0, inserted: 0, mismatches: [] as number[], ...flag };
+  const [top, count] = await Promise.all([
     supabaseAdmin.from("wedding_receipts").select("wedding_index").eq("seed_id", seed.id).order("wedding_index", { ascending: false }).limit(1).maybeSingle(),
     supabaseAdmin.from("wedding_receipts").select("wedding_index", { count: "exact", head: true }).eq("seed_id", seed.id),
   ]);
-  if (top.error || booked.error) throw new Error("Wedding receipts read failed");
-  // Exactly 0..n-1 present means nothing is missing; any hole is re-sent (key + ignoreDuplicates keep it safe).
-  if (receiptsComplete(booked.count ?? 0, top.data?.wedding_index ?? null, rows.length)) return 0;
-  for (let i = 0; i < rows.length; i += RECEIPT_CHUNK) {
-    const { error } = await supabaseAdmin.from("wedding_receipts").upsert(rows.slice(i, i + RECEIPT_CHUNK), { onConflict: "seed_id,wedding_index", ignoreDuplicates: true });
+  if (top.error || count.error) throw new Error("Wedding receipts read failed");
+  const n = count.count ?? 0;
+  // Exactly first..last present: nothing missing, and nothing to compare beyond what earlier runs already checked.
+  if (receiptsComplete(n, top.data?.wedding_index ?? null, rows.length, rows[0]?.wedding_index ?? 0)) return { ...empty, booked: n };
+  const booked = await bookedReceipts(seed.id);
+  const missing = missingReceipts(rows, booked), mismatches = receiptMismatches(rows, booked);
+  const out = { computed: rows.length, booked: booked.length, missing: missing.length, inserted: 0, mismatches, ...flag };
+  if (!apply || mismatches.length || !missing.length) return out;
+  for (let i = 0; i < missing.length; i += RECEIPT_CHUNK) {
+    const { error } = await supabaseAdmin.from("wedding_receipts").upsert(missing.slice(i, i + RECEIPT_CHUNK), { onConflict: "seed_id,wedding_index", ignoreDuplicates: true });
     if (error) throw new Error("Wedding settlement failed");
+    out.inserted += Math.min(RECEIPT_CHUNK, missing.length - i);
   }
-  return rows.length;
+  return out;
 }
 
 export async function calculateTreasury(id: string, realm: string) {
@@ -155,8 +199,12 @@ export async function calculateTreasury(id: string, realm: string) {
   const currentSeeds = economyWorldAt(input, now), current = currentSeeds.find(s => s.id===id);
   setRealm(realm as Realm);
   const daily = current ? residentTax(current, currentSeeds, now) : null;
-  // Shadow stage: record wedding receipts, but never let this affect the balance or fail the sync.
-  if (current) { try { await settleWeddings(current, now); } catch (e) { console.error("Wedding receipts (shadow) failed", e); } }
+  // Wedding receipts before the balance read: from the switch (weddingSwitchSince) they carry the dowries. A failure
+  // never fails the sync; it only leaves the dowry pending (never paid twice, never paid from a wrong record).
+  if (current) {
+    try { const w = await settleWeddings(current, now); if (w.mismatches.length) console.error("Wedding receipts disagree with the calendar", id, w.mismatches); }
+    catch (e) { console.error("Wedding receipts failed", e); }
+  }
   const { data:balance, error:balanceError } = await supabaseAdmin.rpc("village_balance", {_seed:id});
   if (balanceError || balance==null) throw new Error("Balance unavailable");
   const { data:confirmed, error:confirmationError } = await supabaseAdmin.rpc("village_receipt_total", {_seed:id});

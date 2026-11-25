@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { weddingDates } from "./weddings";
-import { weddingReceiptRows, receiptsComplete, WEDDING_RECEIPT_VERSION } from "./wedding-receipts";
+import { weddingReceiptRows, receiptsComplete, missingReceipts, receiptMismatches, WEDDING_RECEIPT_VERSION } from "./wedding-receipts";
 import type { Seed } from "./world";
 
 const s = { id: "w", user_id: "u", x: 500, y: 500, created_at: "2026-01-01T00:00:00Z" } as unknown as Seed;
@@ -50,8 +50,26 @@ describe("wedding receipts", () => {
     expect(late.slice(0, early.length)).toEqual(early);
   });
 
-  it("the lab realm never produces receipts", () => {
+  it("the lab realm produces no receipts before its switch (the SQL calendar pays those dowries)", () => {
     expect(weddingReceiptRows({ ...s, realm: "lab" } as Seed, c0 + 400 * D)).toEqual([]);
+  });
+
+  it("missingReceipts sends only unbooked indices; receiptMismatches flags changed or unknown receipts", () => {
+    const rows = weddingReceiptRows(grown, c0 + 300 * D);
+    const booked = rows.filter((_, i) => i % 3 !== 1).map((r) => ({ wedding_index: r.wedding_index, occurred_at: r.occurred_at, dowry: r.dowry }));
+    expect(missingReceipts(rows, booked).map((r) => r.wedding_index)).toEqual(rows.filter((_, i) => i % 3 === 1).map((r) => r.wedding_index));
+    expect(missingReceipts(rows, booked.concat(missingReceipts(rows, booked)))).toEqual([]);
+    expect(receiptMismatches(rows, booked)).toEqual([]);
+    // same instant written with +00:00 instead of Z is the same receipt
+    expect(receiptMismatches(rows, [{ ...booked[0]!, occurred_at: booked[0]!.occurred_at.replace("Z", "+00:00") }])).toEqual([]);
+    expect(receiptMismatches(rows, [{ ...booked[0]!, dowry: booked[0]!.dowry + 1 }])).toEqual([booked[0]!.wedding_index]);
+    expect(receiptMismatches(rows, [{ ...booked[2]!, occurred_at: new Date(Date.parse(booked[2]!.occurred_at) + 1).toISOString() }])).toEqual([booked[2]!.wedding_index]);
+    expect(receiptMismatches(rows, [{ wedding_index: rows.length + 5, occurred_at: rows[0]!.occurred_at, dowry: 1 }])).toEqual([rows.length + 5]);
+  });
+
+  it("receiptsComplete with a first index (lab: receipts start at the first wedding after the switch)", () => {
+    expect(receiptsComplete(3, 9, 3, 7)).toBe(true); // 7,8,9
+    expect(receiptsComplete(3, 10, 3, 7)).toBe(false);
   });
 
   it("receiptsComplete: exactly 0..n-1 counts as complete, holes and strays do not", () => {

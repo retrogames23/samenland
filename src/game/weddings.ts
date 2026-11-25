@@ -5,7 +5,8 @@ import { labEvent } from "./lab-ctl";
  * Calendar and dowries are mirrored by the database function village_weddings, so the treasury and
  * the encounter guard stay tamper-proof. Which villagers marry is derived in people.ts — nothing is stored.
  */
-import { stepsDone, type Seed } from "./world";
+import { stepsDone, careHealthExtra, type Seed } from "./world";
+import { gemeinwesenGate } from "./gemeinwesen";
 import { feastOn } from "./feasts";
 import { isSunday } from "./time";
 import { civicWealth } from "./prosperity";
@@ -29,16 +30,44 @@ export const ALLIANCE_WEALTH = 3, ALLIANCE_MAX = 15;
 /** In towns only every WED_NOTABLE-th wedding is a council wedding the whole town hears about. */
 export const WED_NOTABLE = 5;
 
-const FOOD: readonly string[] = FOOD_CRAFTS, HEALTH = ["herbs", "healer"];
+const FOOD: readonly string[] = FOOD_CRAFTS, HEALTH_LEGACY = ["herbs", "healer"];
 const NEED: [number, number][] = [[1, 0], [2, 1], [3, 2]];
 
-/** Raw era from real hours, capped by the care gate (mirrors careStage without world.ts). */
+/**
+ * Hochzeitspaket (end of the double bookkeeping): weddings at or after weddingSwitchSince(realm) — checked against the
+ * wedding's own instant, never against a purchase date — use the unified rule and exist for money only as
+ * wedding_receipts written by the trusted server; the database no longer computes them (DB wedding_switch_since,
+ * village_wedding_book, village_weddings). Weddings before it keep the legacy rule, which DB village_wedding_list
+ * mirrors exactly (wedding-parity.pg.test.ts), so no booked dowry, index or instant changes in hindsight.
+ * Both dates stay on the safe placeholder until Stephan releases the switch (lab first, then the public maps).
+ */
+export const WEDDING_SWITCH_LAB_SINCE = Date.UTC(2100, 0, 4);
+export const WEDDING_SWITCH_SINCE = Date.UTC(2100, 0, 4);
+export const weddingSwitchSince = (realm: string | null | undefined) =>
+  realm === "lab" ? WEDDING_SWITCH_LAB_SINCE : WEDDING_SWITCH_SINCE;
+/** Receipt version: 1 = legacy rule (before the switch), 2 = unified rule (from the switch). */
+export const wedRuleVersion = (s: Seed, t: number) => (t >= weddingSwitchSince(s.realm) ? 2 : 1);
+
+/** Health side of the wedding rhythm at `t`. Legacy: herb hut and healer only (mirrored by DB village_wedding_list).
+ *  Unified (from the switch): exactly the care gate's Gemeinwesen count — gemeinwesenGate (the five Gemeinwesen from
+ *  gemeinwesenSince, before that herb hut, healer, library) plus careHealthExtra (finished Dom step 3, finished
+ *  university step 3, Klostergarten paid step 2 without herb hut), the same terms careStage uses in world.ts.
+ *  The food side stays FOOD_CRAFTS on purpose (one money-bearing food list; CARE_FOOD is the broader care list). */
+export function wedHealth(s: Seed, t: number, own: Set<string>) {
+  if (t < weddingSwitchSince(s.realm)) return HEALTH_LEGACY.filter((i) => own.has(i)).length;
+  return gemeinwesenGate(s.realm, own, t) + careHealthExtra(s, t, own);
+}
+
+/** Raw era from real hours, capped by the care gate (food crafts and wedHealth). */
 export function wedStage(s: Seed, t: number) {
   const h = Math.max(0, (t - Date.parse(s.created_at)) / 3.6e6);
   const raw = [24, 168, 2160, 4380, 8760].filter((a) => h >= a).length;
   if (!s.user_id) return raw;
   const own = new Set((s.bought ?? []).filter((b) => b.at <= t).map((b) => b.item));
-  const f = FOOD.filter((i) => own.has(i)).length, hl = HEALTH.filter((i) => own.has(i)).length;
+  const f = FOOD.filter((i) => own.has(i)).length;
+  // the health count is only needed once food would lift the stage (keeps monument chains out of plain villages)
+  if (f < 2) return Math.min(raw, f >= 1 ? 3 : 2);
+  const hl = wedHealth(s, t, own);
   let st = 2;
   for (const [nf, nh] of NEED) { if (f >= nf && hl >= nh) st++; else break; }
   return Math.min(raw, st);
@@ -63,9 +92,17 @@ export function wedGapHours(s: Seed, t: number) {
 
 export type WedDate = { at: number; k: number; dowry: number; town: boolean; grand: boolean };
 const cache = new Map<string, { list: WedDate[]; next: number }>();
-const keyOf = (s: Seed) => `${s.id}|${s.created_at}|${s.user_id ?? ""}|${(s.bought ?? []).map((b) => b.item + "@" + b.at).join(",")}|${s.charter ? s.charter.path + s.charter.at : ""}|${(s.civicRoads ?? []).map((r) => r.at).join(",")}`;
-/** All weddings up to `now`, oldest first — incremental and cached (the calendar never changes in hindsight). */
-export function weddingDates(s: Seed, now: number): WedDate[] {
+/** From the switch, finished Dom/university steps feed the rhythm; their build chain reads blessings, decisions and aid,
+ *  so those join the key — only for villages that bought such a step (all others keep today's cheap key). */
+const MONUMENT_STAGE = /^(cathedral|university)\d$/;
+const chainKey = (s: Seed) =>
+  (s.bought ?? []).some((b) => MONUMENT_STAGE.test(b.item))
+    ? `|${(s.blessed ?? []).join(",")}|${(s.decisions ?? []).map((d) => d.event + d.at).join(",")}|${(s.aid ?? []).join(",")}`
+    : "";
+const keyOf = (s: Seed) => `${s.id}|${s.realm ?? ""}|${s.created_at}|${s.user_id ?? ""}|${(s.bought ?? []).map((b) => b.item + "@" + b.at).join(",")}|${s.charter ? s.charter.path + s.charter.at : ""}|${(s.civicRoads ?? []).map((r) => r.at).join(",")}${chainKey(s)}`;
+/** The pure calendar up to `now`, oldest first — incremental and cached (the calendar never changes in hindsight).
+ *  No admin-desk overrides: this is what the trusted server freezes into wedding_receipts. */
+export function weddingCalendar(s: Seed, now: number): WedDate[] {
   const key = keyOf(s);
   let c = cache.get(key);
   if (!c) { if (cache.size > 200) cache.clear(); c = { list: [], next: Date.parse(s.created_at) + WED_FIRST }; cache.set(key, c); }
@@ -77,7 +114,11 @@ export function weddingDates(s: Seed, now: number): WedDate[] {
   }
   let n = c.list.length;
   while (n > 0 && c.list[n - 1]!.at > now) n--;
-  const out = n === c.list.length ? c.list : c.list.slice(0, n);
+  return n === c.list.length ? c.list : c.list.slice(0, n);
+}
+/** All weddings up to `now` for display and the client prognosis: the pure calendar plus the lab desk's test wedding. */
+export function weddingDates(s: Seed, now: number): WedDate[] {
+  const out = weddingCalendar(s, now);
   const lw = labEvent("wedding");
   if (lw && lw <= now && (s.user_id || s.realm === "lab") && (!out.length || out[out.length - 1]!.at < lw)) return [...out, { at: lw, k: out.length, dowry: 0, town: false, grand: true }];
   return out;

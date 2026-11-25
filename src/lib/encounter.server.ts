@@ -69,6 +69,17 @@ export async function bookEncounter(
       );
     if (ce) throw new Error("Rank certificate failed");
   }
+  if (event === "wedding") {
+    // Hochzeitspaket: from the switch the guard finds a wedding only in wedding_receipts, so the trusted server
+    // books the calendar first (idempotent; moves never enter the calendar, exactly as in the treasury sync).
+    const { weddingSwitchSince } = await import("@/game/weddings");
+    if (now >= weddingSwitchSince(realm)) {
+      const { settleWeddings } = await import("./treasury.server");
+      const { moves: _moves, ...plain } = seed;
+      const w = await settleWeddings(plain, now);
+      if (w.mismatches.length) return { ok: false, code: "fail" };
+    }
+  }
   const { data, error } = await supabaseAdmin
     .from("encounters")
     .insert({ seed_id: id, user_id: userId, event, choice })
