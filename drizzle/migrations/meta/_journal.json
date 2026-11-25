@@ -1051,6 +1051,13 @@
       "when": 1795565320447,
       "tag": "0149_umsetzung_sperre",
       "breakpoints": true
+    },
+    {
+      "idx": 150,
+      "version": "7",
+      "when": 1795602436097,
+      "tag": "0150_civic_companion_noop",
+      "breakpoints": true
     }
   ]
 }
