@@ -47,7 +47,7 @@ describe("Gemeindebauten Stufe 1 (P2)", () => {
       sickChance(
         seed([
           { item: "spital1:r1", at: T0 },
-          { item: "spital1:refund", at: T0 },
+          { item: "spital1:k20261126", at: T0 },
         ]),
         SUMMER,
       ),
@@ -67,12 +67,13 @@ describe("Gemeindebauten Stufe 1 (P2)", () => {
   });
   it("Geldzeilen sind keine Bauten in der Chronik", () => {
     expect(isCivicMoney("spital1:r1")).toBe(true);
-    expect(isCivicMoney("waage1:refund")).toBe(true);
+    expect(isCivicMoney("waage1:k20261126")).toBe(true);
     expect(isCivicMoney("spital1")).toBe(false);
     expect(isCivicMoney("spital1:r0")).toBe(false);
+    expect(isCivicMoney("spital1:refund")).toBe(false);
     const s = seed([
       { item: "spital1:r1", at: T0 },
-      { item: "spital1:refund", at: T0 + 864e5 },
+      { item: "spital1:k20261126", at: T0 + 864e5 },
     ]);
     const ev = chronicleEvents(s, [s], T0 - 864e5, T0 + 5 * 864e5).events;
     expect(
@@ -86,7 +87,6 @@ describe("Gemeindebauten Stufe 1 (P2)", () => {
       budget: 0,
       need_wood: 50,
       need_stone: 33,
-      paid: 0,
       wood_got: 0,
       stone_got: 0,
       kontor_spent: 0,

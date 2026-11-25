@@ -1,15 +1,18 @@
 -- Wirtschaftsumbau P2: Gemeindebauten Stufe 1 — Spital 1 (Krankensaal, 10.000 Mark, 21 Bautage) and Waage 1
 -- (Waagehaus, 12.000 Mark, 14 Bautage), both from Dorf, one site per village at a time. Mirrors src/game/civic.ts.
 --
---  1 Funding: civic_open(seed, stage, budget) opens the stage with a Kontor budget the player accepts (at most the whole
---    material bought at the Kontor). Price + budget are paid in instalments as purchase rows `<stage>:r<n>` (purchase_guard
---    checks the order, the open amount and the money; the village lock serialises them). Paid money is final.
+--  1 Funding: civic_open(seed, stage, budget) opens the stage with a Kontor budget the player confirms: a spending limit
+--    only (at most the whole material bought at the Kontor), never paid or reserved in advance and never raised later.
+--    Only the building price is paid, in instalments of the player's choice as purchase rows `<stage>:r<n>`
+--    (purchase_guard checks the order, the open amount and the money; the village lock serialises them). Paid money is final.
 --  2 Material: from the first UTC day start after full funding, civic_day (inside resource_refresh_at, so it books every
 --    day in order, with or without a login) takes wood/stone above 40 / 30 from the store, then from the shared quota
---    (4 wood + 3 stone a day, saved up to 30 days) at the Kontor price, paid only from the prepaid budget.
+--    (4 wood + 3 stone a day, saved up to 30 days) at the Kontor price. Each day's Kontor purchase is its own money row
+--    `<stage>:kYYYYMMDD` from the village chest, only while it stays within the confirmed limit and the chest holds it;
+--    budget 0 or an exhausted limit means no Kontor purchase — the pull then waits for store material, never more money.
 --  3 Building: all material in → the stage builds its days. civic_day then books the marker row `<stage>` (cost 0,
---    dated at completion) and refunds the unused budget (`<stage>:refund`, negative cost, dated that day). Only these
---    two rows are server-booked; the guard refuses them from clients.
+--    dated at completion). Nothing was prepaid, so there is nothing to refund. The marker and the Kontor rows are
+--    server-booked only; the guard refuses them from clients.
 -- Effects read the marker only (sickness.ts SPITAL_SICK, resource_kontor_at / kontorQuote ×0.85), never earlier.
 -- Active only where resources run (resources_since: lab now, public maps not before a later migration).
 -- No existing price, building, chest, monument, title, guild rank or the Gemeinwesen rules change.
@@ -22,17 +25,17 @@ BEGIN
   d := pg_get_functiondef('public.purchase_guard()'::regprocedure);
   IF position('civic_deposit_price' in d) > 0 THEN RETURN; END IF;
   d := replace(d, $s$  IF price IS NULL THEN RAISE EXCEPTION 'unknown item'; END IF;$s$,
-    $s$  -- Gemeindebauten P2 (src/game/civic.ts, 0147): instalments pay an opened stage; marker and refund only from civic_day
+    $s$  -- Gemeindebauten P2 (src/game/civic.ts, 0147): instalments pay an opened stage; marker and Kontor rows only from civic_day
   IF NEW.item ~ '^(spital1|waage1):r[1-9][0-9]*$' THEN
     price := public.civic_deposit_price(NEW.seed_id, NEW.item, NEW.cost);
     IF NEW.x IS NOT NULL OR NEW.y IS NOT NULL THEN RAISE EXCEPTION 'bad position'; END IF;
-  ELSIF NEW.item ~ '^(spital1|waage1)(:refund)?$' THEN
+  ELSIF NEW.item ~ '^(spital1|waage1)(:k[0-9]{8})?$' THEN
     IF current_setting('samenland.civic', true) IS DISTINCT FROM 'on' THEN RAISE EXCEPTION 'civic rows are booked by the server'; END IF;
     price := NEW.cost;
   END IF;
   IF price IS NULL THEN RAISE EXCEPTION 'unknown item'; END IF;$s$);
   d := replace(d, $s$NEW.cost := price; NEW.created_at := now();$s$,
-    $s$NEW.cost := price; NEW.created_at := CASE WHEN current_setting('samenland.civic', true) = 'on' AND NEW.item ~ '^(spital1|waage1)(:refund)?$' THEN NEW.created_at ELSE now() END;$s$);
+    $s$NEW.cost := price; NEW.created_at := CASE WHEN current_setting('samenland.civic', true) = 'on' AND NEW.item ~ '^(spital1|waage1)(:k[0-9]{8})?$' THEN NEW.created_at ELSE now() END;$s$);
   IF position('civic_deposit_price' in d) = 0 OR position($s$current_setting('samenland.civic', true) = 'on'$s$ in d) = 0 THEN
     RAISE EXCEPTION 'purchase_guard patch did not apply'; END IF;
   EXECUTE d;
@@ -76,9 +79,10 @@ REVOKE ALL ON public.civic_quota FROM anon, authenticated;
 GRANT SELECT ON public.civic_quota TO authenticated;
 GRANT ALL ON public.civic_quota TO service_role;
 
--- each instalment number once; marker and refund once (also double-request protection on top of the village lock)
+-- each instalment number once, the marker once, one Kontor row per stage and day (double-request protection on top of
+-- the village lock)
 CREATE UNIQUE INDEX IF NOT EXISTS purchases_civic_once ON public.purchases (seed_id, item)
-  WHERE item ~ '^(spital1|waage1)(:refund|:r[1-9][0-9]*)?$';
+  WHERE item ~ '^(spital1|waage1)(:k[0-9]{8}|:r[1-9][0-9]*)?$';
 
 -- Kontor price at a moment: wood 4, stone 6; coast −10 %; with a finished Waage 1 −15 % (round half up)
 CREATE OR REPLACE FUNCTION public.resource_kontor_at(_seed uuid, _wood integer, _stone integer, _at timestamptz)
@@ -117,7 +121,8 @@ BEGIN
   RETURN jsonb_build_object('item', _item, 'price', price, 'budget', _budget, 'wood', nw, 'stone', ns, 'days', days);
 END $function$;
 
--- one instalment: the next number, at least 1 Mark, at most what is still open (called by purchase_guard under its lock)
+-- one instalment: the next number, at least 1 Mark, at most what is still open of the building price (the Kontor limit is
+-- no part of it; called by purchase_guard under its lock)
 CREATE OR REPLACE FUNCTION public.civic_deposit_price(_seed uuid, _item text, _amount integer)
  RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
 AS $function$
@@ -129,11 +134,11 @@ BEGIN
   SELECT count(*), coalesce(sum(p.cost), 0) INTO cnt, paid FROM public.purchases p
     WHERE p.seed_id = _seed AND p.item ~ ('^' || base || ':r[0-9]+$');
   IF n <> cnt + 1 THEN RAISE EXCEPTION 'previous step open'; END IF;
-  IF _amount IS NULL OR _amount < 1 OR _amount > st.price + st.budget - paid THEN RAISE EXCEPTION 'bad amount'; END IF;
+  IF _amount IS NULL OR _amount < 1 OR _amount > st.price - paid THEN RAISE EXCEPTION 'bad amount'; END IF;
   RETURN _amount;
 END $function$;
 
--- after an instalment: fully paid (price + budget) → funded now
+-- after an instalment: building price fully paid → funded now
 CREATE OR REPLACE FUNCTION public.civic_paid()
  RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
 AS $function$
@@ -143,7 +148,7 @@ BEGIN
   base := split_part(NEW.item, ':', 1);
   UPDATE public.civic_stages c SET funded_at = NEW.created_at
     WHERE c.seed_id = NEW.seed_id AND c.item = base AND c.funded_at IS NULL
-      AND (SELECT coalesce(sum(p.cost), 0) FROM public.purchases p WHERE p.seed_id = NEW.seed_id AND p.item ~ ('^' || base || ':r[0-9]+$')) >= c.price + c.budget;
+      AND (SELECT coalesce(sum(p.cost), 0) FROM public.purchases p WHERE p.seed_id = NEW.seed_id AND p.item ~ ('^' || base || ':r[0-9]+$')) >= c.price;
   RETURN NEW;
 END $function$;
 DROP TRIGGER IF EXISTS civic_paid ON public.purchases;
@@ -154,7 +159,7 @@ CREATE OR REPLACE FUNCTION public.civic_day(_seed uuid, _d date, _d0 timestamptz
  RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
 AS $function$
 DECLARE st record; q record; t timestamptz := _d0 + interval '1 second'; tw integer; ts integer; bw integer; bs integer;
-  c integer := 0; owner uuid; done timestamptz; refund integer;
+  c integer := 0; owner uuid; done timestamptz; cash integer;
 BEGIN
   -- the quota grows every booked day, with or without a site (4 wood + 3 stone, at most 30 days)
   INSERT INTO public.civic_quota (seed_id, wood, stone, through_day) VALUES (_seed, 4, 3, _d)
@@ -169,16 +174,24 @@ BEGIN
   ts := least(st.need_stone - st.stone_got, greatest(0, public.resource_stock(_seed, 'stone', t) - 30));
   IF tw > 0 THEN PERFORM public.resource_book(_seed, 'wood', -tw, 'civic', st.item || ':s:' || _d, t); END IF;
   IF ts > 0 THEN PERFORM public.resource_book(_seed, 'stone', -ts, 'civic', st.item || ':s:' || _d, t); END IF;
-  -- 2 the quota at the Kontor, paid from the prepaid budget only
+  -- 2 the quota at the Kontor: paid from the village chest, never beyond the confirmed limit nor the chest (budget 0: none)
   SELECT * INTO q FROM public.civic_quota WHERE seed_id = _seed FOR UPDATE;
   bw := least(st.need_wood - st.wood_got - tw, q.wood);
   bs := least(st.need_stone - st.stone_got - ts, q.stone);
+  cash := CASE WHEN bw > 0 OR bs > 0 THEN greatest(0, public.village_balance(_seed)) ELSE 0 END;
   LOOP
     c := public.resource_kontor_at(_seed, bw, bs, _d0);
-    EXIT WHEN c <= st.budget - st.kontor_spent OR (bw = 0 AND bs = 0);
+    EXIT WHEN c <= least(st.budget - st.kontor_spent, cash) OR (bw = 0 AND bs = 0);
     IF bw > 0 THEN bw := bw - 1; ELSE bs := bs - 1; END IF;
   END LOOP;
   IF bw = 0 AND bs = 0 THEN c := 0; END IF;
+  SELECT s.user_id INTO owner FROM public.seeds s WHERE s.id = _seed;
+  IF c > 0 THEN
+    -- the day's Kontor purchase as its own money row (purchase_guard checks the chest once more)
+    PERFORM set_config('samenland.civic', 'on', true);
+    INSERT INTO public.purchases (seed_id, user_id, item, cost, created_at) VALUES (_seed, owner, st.item || ':k' || to_char(_d, 'YYYYMMDD'), c, t);
+    PERFORM set_config('samenland.civic', 'off', true);
+  END IF;
   IF bw > 0 THEN
     PERFORM public.resource_book(_seed, 'wood', bw, 'kontor', st.item || ':k:' || _d, t);
     PERFORM public.resource_book(_seed, 'wood', -bw, 'civic', st.item || ':q:' || _d, t);
@@ -190,17 +203,12 @@ BEGIN
   UPDATE public.civic_quota SET wood = wood - bw, stone = stone - bs WHERE seed_id = _seed;
   UPDATE public.civic_stages SET wood_got = wood_got + tw + bw, stone_got = stone_got + ts + bs, kontor_spent = kontor_spent + c
     WHERE seed_id = _seed AND item = st.item;
-  -- 3 all material in: build days, then the marker (effects) and the unused budget back
+  -- 3 all material in: build days, then the marker (effects) dated at completion
   IF st.wood_got + tw + bw >= st.need_wood AND st.stone_got + ts + bs >= st.need_stone THEN
     done := _d0 + make_interval(days => st.build_days);
     UPDATE public.civic_stages SET material_at = _d0, done_at = done WHERE seed_id = _seed AND item = st.item;
-    SELECT s.user_id INTO owner FROM public.seeds s WHERE s.id = _seed;
-    refund := st.budget - st.kontor_spent - c;
     PERFORM set_config('samenland.civic', 'on', true);
     INSERT INTO public.purchases (seed_id, user_id, item, cost, created_at) VALUES (_seed, owner, st.item, 0, done);
-    IF refund > 0 THEN
-      INSERT INTO public.purchases (seed_id, user_id, item, cost, created_at) VALUES (_seed, owner, st.item || ':refund', -refund, t);
-    END IF;
     PERFORM set_config('samenland.civic', 'off', true);
   END IF;
 END $function$;

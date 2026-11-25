@@ -4,13 +4,15 @@
  * resource_refresh_at, purchase_guard patch); this module mirrors its rules for display and for the game effects.
  *
  * A stage runs in three phases, one site per village at a time:
- *  1. Funding: the player opens the stage and names a Kontor budget (the most Mark the material may cost at the Kontor),
- *     then pays price + budget in instalments (purchase rows `<stage>:r<n>`). Money paid in is final.
+ *  1. Funding: the player opens the stage and confirms a Kontor budget — only a spending limit (the most Mark the
+ *     material may cost at the Kontor), never paid or reserved in advance and never raised later. Then the player pays
+ *     the building price alone in instalments of their choice (purchase rows `<stage>:r<n>`). Money paid in is final.
  *  2. Material: from the first UTC day start after full funding, each day takes wood/stone from the store above
  *     CIVIC_KEEP, then from the shared daily quota (4 wood + 3 stone a day, saved up to 30 days) at the Kontor price,
- *     paid from the prepaid budget only — never from the chest without the player's prior consent.
+ *     each day's Kontor purchase its own chest row `<stage>:kYYYYMMDD`, only within the confirmed limit and the chest;
+ *     budget 0 or an exhausted limit: no Kontor purchase, the pull waits for store material — never unasked money.
  *  3. Building: when all material is in, the stage builds CIVIC[stage].days days. Then the server books a marker
- *     purchase row `<stage>` (cost 0) dated at completion and refunds the unused budget (`<stage>:refund`, negative cost).
+ *     purchase row `<stage>` (cost 0) dated at completion. Nothing was prepaid, so nothing is refunded.
  * Effects read only that marker (bought row with at <= now), so nothing acts before the stage really stands.
  */
 import type { Seed } from "./world";
@@ -45,8 +47,12 @@ export const WAAGE_KONTOR = WAAGE_DISCOUNT;
 
 export const isCivicStage = (item: string): item is CivicStage =>
   (CIVIC_STAGES as readonly string[]).includes(item);
-/** Money rows of a stage (instalments and the refund) — no building, no civic work, never a chronicle entry. */
-export const isCivicMoney = (item: string) => /^(spital1|waage1):(r[1-9][0-9]*|refund)$/.test(item);
+/** Money rows of a stage (instalments, daily Kontor purchases) — no building, no civic work, never a chronicle entry. */
+export const isCivicMoney = (item: string) =>
+  /^(spital1|waage1):(r[1-9][0-9]*|k[0-9]{8})$/.test(item);
+/** Instalment rows only (`<stage>:r<n>`) — they pay the building price, never the Kontor. */
+export const isCivicInstalment = (stage: CivicStage, item: string) =>
+  new RegExp(`^${stage}:r[1-9][0-9]*$`).test(item);
 export const civicDeposit = (stage: CivicStage, n: number) => `${stage}:r${n}`;
 
 /** A stage stands (marker row dated at completion) at `at`. */
@@ -69,7 +75,6 @@ export type CivicRow = {
   budget: number;
   need_wood: number;
   need_stone: number;
-  paid: number;
   wood_got: number;
   stone_got: number;
   kontor_spent: number;

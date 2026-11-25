@@ -87,7 +87,7 @@ import { SupportBox } from "@/components/SupportBox";
 import { SUPPORT, UKRAINE_URL } from "@/game/lang/support";
 import { FOUNTAIN } from "@/game/lang/fountain";
 import { CIVIC_T } from "@/game/lang/civic";
-import { CIVIC, CIVIC_STAGES, civicBudgetMax, civicDeposit, civicDone, civicNeed, civicPhase, type CivicStage } from "@/game/civic";
+import { CIVIC, CIVIC_STAGES, civicBudgetMax, civicDeposit, isCivicInstalment, civicDone, civicNeed, civicPhase, type CivicStage } from "@/game/civic";
 import { useCivic } from "@/components/hooks/useCivic";
 import { FREIMARKT } from "@/game/lang/freimarkt";
 import { NOTHILFE } from "@/game/lang/nothilfe";
@@ -2380,6 +2380,9 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   /** Gemeindebauten (P2, civic.ts): open a stage with a Kontor budget, then pay it in instalments; the database
    *  checks rank, site, budget, order and money and books the daily material pull itself. */
   const civicBusy = useRef(false);
+  // the player's own choices: Kontor limit before opening, instalment amount while funding (never "all the cash")
+  const [civicBudget, setCivicBudget] = useState<Partial<Record<CivicStage, number>>>({});
+  const [civicRate, setCivicRate] = useState("");
   const civicErr = (m: string) => { const ct = CIVIC_T[lang].errors; setMsg(m.includes("rank too low") ? ct.rank : m.includes("site busy") ? ct.busy : m.includes("not enough money") ? ct.money : ct.fail); };
   const civicOpen = async (stage: CivicStage, budget: number) => {
     if (!my || civicBusy.current) return;
@@ -2398,11 +2401,11 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     try {
       tap();
       if (!await prepareSpend()) return;
-      const n = purchases.filter((p) => p.seed_id === my.id && new RegExp(`^${stage}:r[1-9][0-9]*$`).test(p.item)).length + 1;
+      const n = purchases.filter((p) => p.seed_id === my.id && isCivicInstalment(stage, p.item)).length + 1;
       const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item: civicDeposit(stage, n), cost: amount, x: null, y: null }).select("id, seed_id, item, cost, created_at, x, y").single();
       if (error || !data) return civicErr(error?.message ?? "");
       setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
-      jingle("coins"); await refreshCivic();
+      setCivicRate(""); jingle("coins"); await refreshCivic();
     } finally { civicBusy.current = false; }
   };
   /** Zimmerleute-Nothilfe: the server recomputes the ruin and books it; nothing is trusted from the client. */
@@ -2720,7 +2723,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
             // Gemeindebauten Stufe 1 (P2): only where resources run (lab); one site at a time, effects from the marker on
             const ct = CIVIC_T[lang], locked = myStage < CIVIC.spital1.rank, waage = civicDone(my, "waage1", now);
             const active = civic.find((r) => civicPhase(r, now) !== "done");
-            const paidOf = (stage: CivicStage) => purchases.filter((p) => p.seed_id === my.id && new RegExp(`^${stage}:r[1-9][0-9]*$`).test(p.item)).reduce((a, p) => a + p.cost, 0);
+            const paidOf = (stage: CivicStage) => purchases.filter((p) => p.seed_id === my.id && isCivicInstalment(stage, p.item)).reduce((a, p) => a + p.cost, 0);
             return (
               <div key="civic" className={`rounded-md border border-brass/60 bg-brass/10 p-2 ${locked ? "opacity-60" : ""}`}>
                 <div className="font-semibold">🏛 {ct.title}</div>
@@ -2731,28 +2734,36 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                       const row = civic.find((r) => r.item === stage), [name, effect] = ct.stages[stage];
                       const phase = row ? civicPhase(row, now) : null, need = civicNeed(stage);
                       const max = civicBudgetMax(stage, res.site ?? null, waage);
-                      const total = row ? row.price + row.budget : 0, paid = row ? paidOf(stage) : 0, rest = total - paid;
+                      const total = row ? row.price : 0, paid = row ? paidOf(stage) : 0, rest = total - paid;
                       return (
                         <li key={stage} className="rounded border border-ink/15 p-1.5 text-xs">
-                          <div className="flex items-center gap-2"><span className="flex-1 font-semibold">{name}</span><span className="text-muted-foreground">{t.taler(CIVIC[stage].price)}</span></div>
+                          <div className="flex items-center gap-2"><span className="flex-1 font-semibold">{name}</span><span className="text-muted-foreground">{ct.price(t.taler(CIVIC[stage].price))}</span></div>
                           <div>{effect}</div>
                           <div className="text-muted-foreground">{need.wood} 🪵 · {need.stone} 🪨 · {FOUNTAIN[lang].days(CIVIC[stage].days)}</div>
                           {!row ? (active ? <div className="mt-1 text-muted-foreground">{ct.busy}</div> : (
                             <div className="mt-1 space-y-1">
-                              <div className="text-muted-foreground">{ct.budget(t.taler(max))}</div>
-                              <div className="flex gap-1">
-                                <Button size="sm" variant="outline" className="h-7 flex-1" onClick={() => void civicOpen(stage, 0)}>{ct.open(name)} · {ct.budgetNone}</Button>
-                                <Button size="sm" className="h-7 flex-1" onClick={() => void civicOpen(stage, max)}>{ct.open(name)} · {ct.budgetFull}</Button>
+                              <label className="block text-muted-foreground">{ct.budget(t.taler(max))}</label>
+                              <div className="flex items-center gap-2">
+                                <input type="range" className="flex-1" min={0} max={max} step={1} value={Math.min(max, civicBudget[stage] ?? 0)} onChange={(e) => setCivicBudget({ ...civicBudget, [stage]: +e.target.value })} aria-label={ct.budget(t.taler(max))} />
+                                <Input type="number" inputMode="numeric" className="h-7 w-20 text-xs" min={0} max={max} value={Math.min(max, civicBudget[stage] ?? 0)} onChange={(e) => setCivicBudget({ ...civicBudget, [stage]: Math.max(0, Math.min(max, Math.floor(+e.target.value || 0))) })} />
                               </div>
+                              <div className="text-[10px] text-muted-foreground">{ct.budgetHint}</div>
+                              <Button size="sm" className="h-7 w-full" onClick={() => void civicOpen(stage, Math.min(max, civicBudget[stage] ?? 0))}>{ct.open(name)}</Button>
                             </div>
-                          )) : phase === "funding" ? (
-                            <div className="mt-1 space-y-1">
-                              <div className="h-1.5 overflow-hidden rounded bg-ink/15"><div className="h-full bg-brass" style={{ width: `${(100 * paid) / Math.max(1, total)}%` }} /></div>
-                              <div className="text-muted-foreground">{ct.paid(t.taler(paid), t.taler(total))}</div>
-                              <Button size="sm" className="h-7 w-full" disabled={cash < 1} onClick={() => void civicPay(stage, Math.min(cash, rest))}>{ct.pay(t.taler(Math.min(cash, rest)))}</Button>
-                            </div>
-                          ) : phase === "material" ? (
-                            <div className="mt-1 text-muted-foreground">{ct.material(row.wood_got, row.need_wood, row.stone_got, row.need_stone)}{civicQuota ? ` · ${ct.quota(civicQuota.wood, civicQuota.stone)}` : ""}</div>
+                          )) : phase === "funding" ? (() => {
+                            const amount = Math.floor(+civicRate || 0), ok = amount >= 1 && amount <= rest && amount <= cash;
+                            return (
+                              <div className="mt-1 space-y-1">
+                                <div className="h-1.5 overflow-hidden rounded bg-ink/15"><div className="h-full bg-brass" style={{ width: `${(100 * paid) / Math.max(1, total)}%` }} /></div>
+                                <div className="text-muted-foreground">{ct.paid(t.taler(paid), t.taler(total))} · {ct.kontor(t.taler(row.kontor_spent), t.taler(row.budget))}</div>
+                                <div className="flex items-center gap-1">
+                                  <Input type="number" inputMode="numeric" className="h-7 min-w-0 flex-1 text-xs" min={1} max={Math.min(rest, Math.max(0, cash))} placeholder={ct.rate} aria-label={ct.rate} value={civicRate} onChange={(e) => setCivicRate(e.target.value.replace(/[^0-9]/g, ""))} />
+                                  <Button size="sm" className="h-7" disabled={!ok} onClick={() => void civicPay(stage, amount)}>{ct.pay(t.taler(ok ? amount : 0))}</Button>
+                                </div>
+                              </div>
+                            );
+                          })() : phase === "material" ? (
+                            <div className="mt-1 text-muted-foreground">{ct.material(row.wood_got, row.need_wood, row.stone_got, row.need_stone)}{civicQuota ? ` · ${ct.quota(civicQuota.wood, civicQuota.stone)}` : ""} · {ct.kontor(t.taler(row.kontor_spent), t.taler(row.budget))}</div>
                           ) : phase === "building" ? (
                             <div className="mt-1 font-semibold">{ct.building(Math.ceil((Date.parse(row.done_at!) - now) / 864e5))}</div>
                           ) : <div className="mt-1 font-semibold text-primary">✓ {ct.ready}</div>}

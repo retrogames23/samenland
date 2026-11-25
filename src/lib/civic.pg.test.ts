@@ -109,7 +109,7 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
     (
       await sql`select item, cost from public.purchases where seed_id = ${id} order by created_at, item`
     ).map((r) => `${r["item"]}=${r["cost"]}`);
-  /** Opens and fully pays a stage (price + budget), returns its id. */
+  /** Opens a stage with a Kontor limit and pays its building price (the limit is never paid), returns its id. */
   const funded = async (
     item: "spital1" | "waage1",
     budget: number,
@@ -117,9 +117,9 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
   ) => {
     const id = await seed(o);
     expect(await open(id, item, budget)).toMatchObject({ ok: true });
-    expect(await pay(id, item, 1, CIVIC[item].price + budget)).toEqual({
+    expect(await pay(id, item, 1, CIVIC[item].price)).toEqual({
       ok: true,
-      cost: CIVIC[item].price + budget,
+      cost: CIVIC[item].price,
     });
     return id;
   };
@@ -147,10 +147,10 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
       create table public.first_roads (seed_id uuid, target_id uuid);
       create function public.road_done(a uuid, b uuid) returns timestamptz language sql stable as $$ select now() - interval '1 day' $$;
       create table public.test_balance (seed_id uuid primary key, balance integer);
-      -- chest stand-in: start money minus every row that already counts (refunds are negative, i.e. money back)
+      -- chest stand-in: start money minus every purchase row, whatever its date (like village_balance_walk)
       create function public.village_balance(_seed uuid) returns integer language sql stable as
         $$ select coalesce((select balance from public.test_balance where seed_id = _seed), 5000)
-             - coalesce((select sum(cost) from public.purchases where seed_id = _seed and created_at <= now()), 0)::int $$;
+             - coalesce((select sum(cost) from public.purchases where seed_id = _seed), 0)::int $$;
       grant usage on schema public, auth to authenticated; grant select on public.seeds to authenticated;`);
     await sql.unsafe(LOCK_FN);
     await sql.unsafe(LOCK_TRIGGER);
@@ -229,7 +229,7 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
     });
   });
 
-  it("instalments: in order, never more than still open, only with money; fully paid = funded; marker/refund never from clients", async () => {
+  it("instalments: freely chosen amounts, in order, never more than the open building price, only with money; marker/Kontor rows never from clients", async () => {
     const id = await seed({ money: 4000 });
     expect(await pay(id, "spital1", 1, 100)).toEqual({ ok: false, msg: "stage not open" });
     await open(id, "spital1", 100);
@@ -240,11 +240,15 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
     expect(await pay(id, "spital1", 1, 1)).toMatchObject({ ok: false }); // number used once
     expect((await stage(id, "spital1"))!["funded_at"]).toBeNull();
     await sql`update public.test_balance set balance = balance + 10000 where seed_id = ${id}`;
-    expect(await pay(id, "spital1", 2, 6101)).toEqual({ ok: false, msg: "bad amount" });
-    expect(await pay(id, "spital1", 2, 6100)).toEqual({ ok: true, cost: 6100 });
+    // the Kontor limit (100) is no part of the instalments: exactly the building price funds the stage
+    expect(await pay(id, "spital1", 2, 6001)).toEqual({ ok: false, msg: "bad amount" });
+    expect(await pay(id, "spital1", 2, 1)).toEqual({ ok: true, cost: 1 }); // small instalments of the player's choice
+    expect(await pay(id, "spital1", 3, 499)).toEqual({ ok: true, cost: 499 });
+    expect((await stage(id, "spital1"))!["funded_at"]).toBeNull();
+    expect(await pay(id, "spital1", 4, 5500)).toEqual({ ok: true, cost: 5500 });
     expect((await stage(id, "spital1"))!["funded_at"]).not.toBeNull();
-    expect(await pay(id, "spital1", 3, 1)).toEqual({ ok: false, msg: "already funded" });
-    for (const item of ["spital1", "spital1:refund"])
+    expect(await pay(id, "spital1", 5, 1)).toEqual({ ok: false, msg: "already funded" });
+    for (const item of ["spital1", "spital1:k20261126"])
       await expect(
         sql`insert into public.purchases (seed_id, user_id, item, cost) values (${id}, ${OWNER}, ${item}, -500)`,
       ).rejects.toThrow("civic rows are booked by the server");
@@ -274,7 +278,7 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
     expect(await quota(q)).toEqual(CIVIC_QUOTA_MAX);
   });
 
-  it("2/4 completion: build days after the material, marker dated at completion, unused budget refunded; Waage 1 makes the Kontor 15 % cheaper", async () => {
+  it("2/4 completion: build days after the material, marker dated at completion, no refund (nothing prepaid); Waage 1 makes the Kontor 15 % cheaper", async () => {
     const budget = civicBudgetMax("waage1", "grain", false);
     const id = await funded("waage1", budget, { money: 40000 });
     for (let k = 1; k <= 40 && !(await stage(id, "waage1"))!["material_at"]; k++) await day(id, k);
@@ -288,9 +292,14 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
       await sql`select cost, created_at from public.purchases where seed_id = ${id} and item = 'waage1'`;
     expect(marker[0]!["cost"]).toBe(0);
     expect(Date.parse(marker[0]!["created_at"])).toBe(Date.parse(s!["done_at"]));
-    const refund =
-      await sql`select cost from public.purchases where seed_id = ${id} and item = 'waage1:refund'`;
-    expect(refund.length ? -refund[0]!["cost"] : 0).toBe(budget - s!["kontor_spent"]);
+    // nothing was prepaid, so nothing comes back: no credit row before, at or after completion
+    expect(
+      await sql`select 1 from public.purchases where seed_id = ${id} and cost < 0`,
+    ).toHaveLength(0);
+    const kontor =
+      await sql`select coalesce(sum(cost), 0)::int as c from public.purchases where seed_id = ${id} and item ~ '^waage1:k[0-9]{8}$'`;
+    expect(kontor[0]!["c"]).toBe(s!["kontor_spent"]);
+    expect(s!["kontor_spent"]).toBeLessThanOrEqual(budget);
     // before completion no discount, from the marker on ×0.85 (DB and TS)
     const before = (
       await sql`select public.resource_kontor_at(${id}, 10, 10, ${s!["done_at"]}::timestamptz - interval '1 second') as c`
@@ -314,6 +323,9 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
     const s = await stage(id, "spital1");
     expect(s!["kontor_spent"]).toBe(0);
     expect(await balance(id)).toBe(money);
+    expect(
+      await sql`select 1 from public.purchases where seed_id = ${id} and item ~ ':k[0-9]{8}$'`,
+    ).toHaveLength(0);
     expect(await quota(id)).toEqual({
       wood: q0["wood"] + CIVIC_QUOTA.wood,
       stone: q0["stone"] + CIVIC_QUOTA.stone,
@@ -330,6 +342,57 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
       stone: q0["stone"] + CIVIC_QUOTA.stone,
     }); // the whole need came from the store, the quota stayed for later (Stiftungen, P4)
     expect((await stage(id, "spital1"))!["material_at"]).not.toBeNull();
+  });
+
+  it("the Kontor limit is never charged up front: opening and funding cost exactly the building price", async () => {
+    const budget = civicBudgetMax("spital1", "grain", false);
+    const id = await seed({ money: 20000 });
+    const m0 = await balance(id);
+    expect(await open(id, "spital1", budget)).toMatchObject({ ok: true });
+    expect(await balance(id)).toBe(m0); // nothing paid or reserved for the limit
+    expect(await pay(id, "spital1", 1, CIVIC.spital1.price)).toEqual({
+      ok: true,
+      cost: CIVIC.spital1.price,
+    });
+    expect((await stage(id, "spital1"))!["funded_at"]).not.toBeNull();
+    expect(await balance(id)).toBe(m0 - CIVIC.spital1.price);
+    expect((await stage(id, "spital1"))!["budget"]).toBe(budget);
+  });
+
+  it("daily Kontor purchases: one chest row a day, each paid when bought, never beyond the confirmed limit — then the pull waits", async () => {
+    const limit = 30; // a small limit: less than one day's quota at the Kontor
+    const id = await funded("spital1", limit, { money: 20000 });
+    await setStock(id, CIVIC_KEEP.wood, CIVIC_KEEP.stone); // nothing above the keep: only the quota can deliver
+    const m0 = await balance(id);
+    for (let k = 1; k <= 5; k++) await day(id, k);
+    const s = await stage(id, "spital1");
+    const k =
+      await sql`select item, cost from public.purchases where seed_id = ${id} and item ~ '^spital1:k[0-9]{8}$' order by item`;
+    const spent = k.reduce((a, r) => a + (r["cost"] as number), 0);
+    expect(spent).toBe(s!["kontor_spent"]);
+    expect(spent).toBeGreaterThan(0); // the Kontor did buy, within the limit
+    expect(spent).toBeLessThanOrEqual(limit);
+    expect(await balance(id)).toBe(m0 - spent); // exactly what was bought, nothing more
+    expect(new Set(k.map((r) => r["item"])).size).toBe(k.length); // one row per day
+    expect(s!["material_at"]).toBeNull(); // limit exhausted: the pull stands still, no unasked money
+    const got = s!["wood_got"] + s!["stone_got"];
+    await day(id, 6);
+    const s6 = await stage(id, "spital1");
+    expect(s6!["kontor_spent"]).toBe(s!["kontor_spent"]);
+    expect(await balance(id)).toBe(m0 - spent);
+    // the day's production above the keep still comes in from the store
+    expect(s6!["wood_got"] + s6!["stone_got"]).toBeGreaterThanOrEqual(got);
+  });
+
+  it("the Kontor never takes more than the chest holds", async () => {
+    const id = await funded("spital1", civicBudgetMax("spital1", "grain", false), {
+      money: CIVIC.spital1.price + 10,
+    });
+    await setStock(id, CIVIC_KEEP.wood, CIVIC_KEEP.stone);
+    expect(await balance(id)).toBe(10);
+    await day(id, 1);
+    expect(await balance(id)).toBeGreaterThanOrEqual(0);
+    expect((await stage(id, "spital1"))!["kontor_spent"]).toBeLessThanOrEqual(10);
   });
 
   it("11 parallel instalments and opens: one wins, nothing booked twice", async () => {
@@ -350,6 +413,19 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
         sql`select count(*)::int as n from public.resource_ledger where seed_id = ${id} and kind = 'prod'`,
     );
     expect(days[0]!["n"]).toBe(2 * 3); // wood + stone rows per day, each day once
+  });
+
+  it("parallel day bookings with a running Kontor: each day's Kontor row once, money taken once", async () => {
+    const id = await funded("spital1", civicBudgetMax("spital1", "grain", false), { money: 20000 });
+    await setStock(id, CIVIC_KEEP.wood, CIVIC_KEEP.stone);
+    const m0 = await balance(id);
+    await Promise.all([day(id, 4), day(id, 4), day(id, 4)]);
+    const k =
+      await sql`select item, cost from public.purchases where seed_id = ${id} and item ~ '^spital1:k[0-9]{8}$'`;
+    expect(new Set(k.map((r) => r["item"])).size).toBe(k.length);
+    const spent = k.reduce((a, r) => a + (r["cost"] as number), 0);
+    expect(spent).toBe((await stage(id, "spital1"))!["kontor_spent"]);
+    expect(await balance(id)).toBe(m0 - spent);
   });
 
   it("12 history: before the marker nothing acts (no Waage discount, no Spital row); rows outside the stage untouched", async () => {

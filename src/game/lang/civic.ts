@@ -9,8 +9,11 @@ type Text = {
   voluntary: string;
   oneSite: string;
   budget: (max: string) => string;
-  budgetNone: string;
-  budgetFull: string;
+  /** the Kontor budget is a limit only — Kontor purchases are paid one by one from the chest, never in advance */
+  budgetHint: string;
+  rate: string;
+  price: (p: string) => string;
+  kontor: (spent: string, limit: string) => string;
   open: (name: string) => string;
   pay: (amount: string) => string;
   paid: (paid: string, total: string) => string;
@@ -36,12 +39,14 @@ export const CIVIC_T: Record<Lang, Text> = {
         "Alle Kontorpreise für Holz und Stein werden 15 % günstiger.",
       ],
     },
-    voluntary:
-      "Freiwillig – eingezahltes Geld bleibt im Bau. Vom Kontor wird höchstens dein Materialbudget bezahlt.",
+    voluntary: "Freiwillig – eingezahltes Geld bleibt im Bau. Die Raten zahlen nur den Baupreis.",
     oneSite: "Nur eine Gemeindebaustelle zur Zeit.",
     budget: (max) => `Materialbudget fürs Kontor (höchstens ${max})`,
-    budgetNone: "Nur eigenes Lager",
-    budgetFull: "Ganzer Bedarf",
+    budgetHint:
+      "Nur eine Obergrenze: Kontorkäufe werden einzeln aus der Truhe bezahlt, nie im Voraus, und das Limit lässt sich später nicht erhöhen. 0 = nur eigenes Lager und Kontingent ohne Kontor.",
+    rate: "Rate in Mark",
+    price: (p) => `Baupreis: ${p}`,
+    kontor: (s, l) => `Kontor: ${s} von ${l} Limit verbraucht`,
     open: (n) => `${n} beginnen`,
     pay: (a) => `${a} einzahlen`,
     paid: (p, t) => `Eingezahlt: ${p} von ${t}`,
@@ -71,11 +76,14 @@ export const CIVIC_T: Record<Lang, Text> = {
       ],
     },
     voluntary:
-      "Voluntary – money paid in stays in the works. The Kontor is paid at most from your material budget.",
+      "Voluntary – money paid in stays in the works. Instalments pay the building price only.",
     oneSite: "Only one municipal site at a time.",
     budget: (max) => `Material budget for the Kontor (at most ${max})`,
-    budgetNone: "Own store only",
-    budgetFull: "Whole need",
+    budgetHint:
+      "A limit only: Kontor purchases are paid one by one from the chest, never in advance, and the limit cannot be raised later. 0 = own store only, no Kontor.",
+    rate: "Instalment in Mark",
+    price: (p) => `Building price: ${p}`,
+    kontor: (s, l) => `Kontor: ${s} of ${l} limit used`,
     open: (n) => `Start ${n}`,
     pay: (a) => `Pay in ${a}`,
     paid: (p, t) => `Paid in: ${p} of ${t}`,
@@ -105,11 +113,14 @@ export const CIVIC_T: Record<Lang, Text> = {
       ],
     },
     voluntary:
-      "Volontaire – l'argent versé reste dans l'ouvrage. Le comptoir n'est payé que sur votre budget matériaux.",
+      "Volontaire – l’argent versé reste dans l’ouvrage. Les versements ne paient que le prix de construction.",
     oneSite: "Un seul chantier communal à la fois.",
     budget: (max) => `Budget matériaux pour le comptoir (au plus ${max})`,
-    budgetNone: "Réserve propre seulement",
-    budgetFull: "Besoin entier",
+    budgetHint:
+      "Une simple limite : les achats au comptoir sont payés un par un depuis le coffre, jamais d’avance, et la limite ne peut pas être relevée ensuite. 0 = réserve propre seulement, sans comptoir.",
+    rate: "Versement en marks",
+    price: (p) => `Prix de construction : ${p}`,
+    kontor: (s, l) => `Comptoir : ${s} utilisés sur une limite de ${l}`,
     open: (n) => `Commencer ${n}`,
     pay: (a) => `Verser ${a}`,
     paid: (p, t) => `Versé : ${p} sur ${t}`,
@@ -138,11 +149,14 @@ export const CIVIC_T: Record<Lang, Text> = {
       ],
     },
     voluntary:
-      "Voluntario – el dinero aportado queda en la obra. Del depósito solo se paga hasta tu presupuesto de materiales.",
+      "Voluntario – el dinero aportado queda en la obra. Los plazos pagan solo el precio de construcción.",
     oneSite: "Solo una obra municipal a la vez.",
     budget: (max) => `Presupuesto de materiales para el depósito (como mucho ${max})`,
-    budgetNone: "Solo el almacén propio",
-    budgetFull: "Todo lo necesario",
+    budgetHint:
+      "Solo un límite: las compras en el depósito se pagan una a una desde el arca, nunca por adelantado, y el límite no se puede subir después. 0 = solo el almacén propio, sin depósito.",
+    rate: "Plazo en marcos",
+    price: (p) => `Precio de construcción: ${p}`,
+    kontor: (s, l) => `Depósito: ${s} usados de un límite de ${l}`,
     open: (n) => `Empezar ${n}`,
     pay: (a) => `Aportar ${a}`,
     paid: (p, t) => `Aportado: ${p} de ${t}`,
@@ -167,12 +181,14 @@ export const CIVIC_T: Record<Lang, Text> = {
       spital1: ["المارستان: قاعة المرضى", "يخفّض خطر المرض في القرية إلى 85 %."],
       waage1: ["ميزان المدينة: دار الوزن", "تنخفض كل أسعار المخزن للخشب والحجر بنسبة 15 %."],
     },
-    voluntary:
-      "طوعي – المال المدفوع يبقى في البناء. لا يُدفع للمخزن إلا من ميزانية المواد التي تحددها.",
+    voluntary: "طوعي – المال المدفوع يبقى في البناء. الأقساط تدفع ثمن البناء فقط.",
     oneSite: "ورشة بلدية واحدة فقط في كل مرة.",
     budget: (max) => `ميزانية المواد للمخزن (بحد أقصى ${max})`,
-    budgetNone: "المخزون الخاص فقط",
-    budgetFull: "كامل الحاجة",
+    budgetHint:
+      "حدّ أعلى فقط: مشتريات المخزن تُدفع واحدة تلو الأخرى من الخزينة، لا مقدّمًا أبدًا، ولا يمكن رفع الحد لاحقًا. 0 = المخزون الخاص فقط دون المخزن.",
+    rate: "القسط بالمارك",
+    price: (p) => `ثمن البناء: ${p}`,
+    kontor: (s, l) => `المخزن: استُخدم ${s} من حدّ ${l}`,
     open: (n) => `ابدأ ${n}`,
     pay: (a) => `ادفع ${a}`,
     paid: (p, t) => `المدفوع: ${p} من ${t}`,
@@ -199,11 +215,14 @@ export const CIVIC_T: Record<Lang, Text> = {
       waage1: ["नगर-तराज़ू: तौल-घर", "लकड़ी और पत्थर के सभी कोठी-दाम 15 % सस्ते हो जाते हैं।"],
     },
     voluntary:
-      "स्वैच्छिक – जमा पैसा निर्माण में ही रहता है। कोठी को अधिकतम आपके सामग्री-बजट से भुगतान होता है।",
+      "स्वैच्छिक – जमा पैसा निर्माण में ही रहता है। किस्तें केवल निर्माण-मूल्य चुकाती हैं।",
     oneSite: "एक समय में केवल एक नगर-निर्माण स्थल।",
     budget: (max) => `कोठी के लिए सामग्री-बजट (अधिकतम ${max})`,
-    budgetNone: "केवल अपना भंडार",
-    budgetFull: "पूरी ज़रूरत",
+    budgetHint:
+      "केवल एक सीमा: कोठी की खरीद एक-एक करके खज़ाने से चुकाई जाती है, कभी पहले से नहीं, और सीमा बाद में बढ़ाई नहीं जा सकती। 0 = केवल अपना भंडार, कोठी नहीं।",
+    rate: "किस्त (मार्क में)",
+    price: (p) => `निर्माण-मूल्य: ${p}`,
+    kontor: (s, l) => `कोठी: ${l} की सीमा में से ${s} खर्च`,
     open: (n) => `${n} शुरू करें`,
     pay: (a) => `${a} जमा करें`,
     paid: (p, t) => `जमा: ${t} में से ${p}`,
@@ -228,11 +247,14 @@ export const CIVIC_T: Record<Lang, Text> = {
       spital1: ["济贫院：病房", "将村中的患病风险降至 85 %。"],
       waage1: ["公秤：过磅房", "商栈的木材和石料价格全部便宜 15 %。"],
     },
-    voluntary: "自愿——已付的钱留在工程中。商栈费用最多只从你的材料预算中支付。",
+    voluntary: "自愿——已付的钱留在工程中。分期款只支付建造价。",
     oneSite: "同一时间只能有一处公共工地。",
     budget: (max) => `商栈材料预算（最多 ${max}）`,
-    budgetNone: "只用自有库存",
-    budgetFull: "全部所需",
+    budgetHint:
+      "只是上限：商栈采购逐笔从金库支付，绝不预付，开工后上限不能提高。0 = 只用自有库存，不经商栈。",
+    rate: "每期金额（马克）",
+    price: (p) => `建造价：${p}`,
+    kontor: (s, l) => `商栈：已用 ${s} / 上限 ${l}`,
     open: (n) => `开始建造${n}`,
     pay: (a) => `存入 ${a}`,
     paid: (p, t) => `已付：${p} / ${t}`,
@@ -257,11 +279,14 @@ export const CIVIC_T: Record<Lang, Text> = {
       spital1: ["施療院：病室", "村の病気のリスクを 85 % に下げます。"],
       waage1: ["公設秤：計量所", "商館での木材と石材の価格がすべて 15 % 安くなります。"],
     },
-    voluntary: "任意です。払い込んだお金は建物に残ります。商館への支払いは資材予算の範囲だけです。",
+    voluntary: "任意です。払い込んだお金は建物に残ります。分割払いは建設費だけに充てられます。",
     oneSite: "公共建築の現場は一度に一つだけです。",
     budget: (max) => `商館用の資材予算（最大 ${max}）`,
-    budgetNone: "自分の蓄えのみ",
-    budgetFull: "必要量すべて",
+    budgetHint:
+      "上限にすぎません。商館での購入は金庫から一回ずつ支払われ、前払いはなく、上限は後から引き上げられません。0 = 自分の蓄えのみ、商館なし。",
+    rate: "分割額（マルク）",
+    price: (p) => `建設費：${p}`,
+    kontor: (s, l) => `商館：上限 ${l} のうち ${s} 使用`,
     open: (n) => `${n}を始める`,
     pay: (a) => `${a}を払い込む`,
     paid: (p, t) => `払込済み：${p} / ${t}`,
