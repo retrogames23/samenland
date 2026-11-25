@@ -184,6 +184,15 @@ export const standSprite = (k: FolkSprite) => { const s = STANDS[k]; return s ? 
 const STAND_SHEETS: Partial<Record<FolkSprite, [FolkSprite, number, number]>> = {
   man: ["manStand8", 1, 0],
 };
+/** Figures that also take their standing picture while at work, when no work sheet of their own applies (the work
+ *  sheet, the mayor's robe and the walk cycle are all drawn before the standing branch). Only the plain villager: his
+ *  painted side view (man-stand8) replaces the old three-quarter single picture; every other kind keeps its own art. */
+const STAND_AT_WORK: ReadonlySet<FolkSprite> = new Set<FolkSprite>(["man"]);
+/** Standing picture for the standing branch of drawFolk: the stand sheet, or null for the kind's single picture.
+ *  At work only STAND_AT_WORK kinds stand in it; everyone else at work keeps the single picture as before. */
+export function standPoseOf(k: FolkSprite, working: boolean): [FolkSprite, number, number] | null {
+  return working && !STAND_AT_WORK.has(k) ? null : standSheetOf(k);
+}
 export function standSheetOf(k: FolkSprite): [FolkSprite, number, number] | null {
   const own = STAND_SHEETS[k]; if (own) return own;
   if (WALK4.has(k) && k !== "toddler") { const w = WALKS[k]; return w ? [w, 4, 1] : null; }

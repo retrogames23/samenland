@@ -64,7 +64,7 @@ import { WALK8_FRAMES, WALK8_HIP, WALK8_LOOP, WALK8_REST, WALK8_SCALE, walk8Bob,
 const W8_GAIT = { len: WALK8_LOOP, rest: WALK8_REST };
 /** Legs are sheared only once a figure is this tall on screen (canvas px): below, the in-frame glide is < ~3 px. */
 const WALK8_SHEAR_MIN_PX = 32;
-import { folkImage, walkSheet, standSprite, standSheetOf, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
+import { folkImage, walkSheet, standSprite, standPoseOf, walkFramesOf, walkScaleOf, mayorWalk, workSheet, WALK_FRAMES, bannerCloth, JOB_WORK, mayorSheet, type FolkSprite } from "./folk-sprites";
 import { titleOfSeed } from "./economy";
 import { townRank, seatKindForRank } from "./rank";
 import { sacksAt, breadOut, ovenLit, fishingNow, workshopCraft, workshopOpen } from "./crafts";
@@ -1570,7 +1570,7 @@ function drawFolk(c: C, X: number, Y: number, q: Pose, t: number): Pt | null {
     c.transform(sx, 0, lean, sy, 0, 0);
     // real standing pose: both boots planted side by side under the trade torso (no frozen mid-stride)
     // whole-body figures stand in the passing frame of their own walk sheet (feet together, same body as walking)
-    const ss = !q.working ? standSheetOf(k) : null, ws4 = ss ? folkImage(ss[0]) : null;
+    const ss = standPoseOf(k, q.working), ws4 = ss ? folkImage(ss[0]) : null;
     const stand = !ws4 && !q.working && k !== "watchman" && legsFor(q) ? folkImage("legsStand") : null;
     const st = ws4 ? standSprite(k) : null;
     if (st) { const sh = hgt * walkScaleOf(k) * 0.985, sw = (sh * st.naturalWidth) / st.naturalHeight; c.drawImage(st, -sw / 2, -sh, sw, sh); }
