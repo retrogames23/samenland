@@ -1642,6 +1642,14 @@ function roadAt(x: number, y: number, seeds: Seed[], now: number) {
   return { link: r.link, i: r.i, bridge: r.link.water[r.i]! };
 }
 
+/** On the course of a trade road decided by `now` (built or still to come)? Only for placing bought buildings. */
+function onRoadCourse(x: number, y: number, seeds: Seed[], now: number): boolean {
+  links(seeds);
+  const r = roadIdx.get(y * MAP + x);
+  return !!r && now >= r.link.since;
+}
+export const onRoadCourseForTest = onRoadCourse;
+
 /** Test hook for historical tile occupancy. */
 export const roadAtForTest = (x: number, y: number, seeds: Seed[], now: number) => roadAt(x, y, seeds, now);
 
@@ -2287,6 +2295,8 @@ export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, see
   // woodland is cleared for a bought building: its trees are simply not drawn under a structure
   const tt = terrain(x, y);
   if (!buildable(tt)) return "ground";
+  // the whole course of a decided trade road stays free, also the part not yet built: a building put there would cut it
+  if (onRoadCourse(x, y, seeds, now)) return "road";
   const st = structureAt(x, y, seeds, now);
   const agri = (k?: Kind) => k === "field" || k === "pasture" || k === "garden";
   if (st && !agri(st.kind)) return "taken";
@@ -2294,6 +2304,7 @@ export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, see
   if (FOOT2.has(kind)) for (const [i, j] of FOOT2_BACK) {
     const xx = x + i, yy = y + j, t2 = terrain(xx, yy);
     if (!buildable(t2)) return "ground";
+    if (onRoadCourse(xx, yy, seeds, now)) return "road";
     const b = structureAt(xx, yy, seeds, now);
     if (b && !agri(b.kind)) return "taken";
   }
