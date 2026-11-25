@@ -372,6 +372,44 @@ export type Database = {
           },
         ]
       }
+      civic_stage_defs: {
+        Row: {
+          after_item: string | null
+          build_days: number
+          chain: string
+          item: string
+          min_rank: number
+          price: number
+          step: number
+        }
+        Insert: {
+          after_item?: string | null
+          build_days: number
+          chain: string
+          item: string
+          min_rank: number
+          price: number
+          step: number
+        }
+        Update: {
+          after_item?: string | null
+          build_days?: number
+          chain?: string
+          item?: string
+          min_rank?: number
+          price?: number
+          step?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "civic_stage_defs_after_item_fkey"
+            columns: ["after_item"]
+            isOneToOne: false
+            referencedRelation: "civic_stage_defs"
+            referencedColumns: ["item"]
+          },
+        ]
+      }
       civic_stages: {
         Row: {
           budget: number
@@ -422,6 +460,13 @@ export type Database = {
           wood_got?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "civic_stages_item_fkey"
+            columns: ["item"]
+            isOneToOne: false
+            referencedRelation: "civic_stage_defs"
+            referencedColumns: ["item"]
+          },
           {
             foreignKeyName: "civic_stages_seed_id_fkey"
             columns: ["seed_id"]
@@ -1746,6 +1791,10 @@ export type Database = {
         Returns: number
       }
       civic_open: {
+        Args: { _budget: number; _item: string; _seed: string }
+        Returns: Json
+      }
+      civic_raise_budget: {
         Args: { _budget: number; _item: string; _seed: string }
         Returns: Json
       }

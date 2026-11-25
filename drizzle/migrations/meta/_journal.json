@@ -1093,6 +1093,13 @@
       "when": 1795626328803,
       "tag": "0155_gemeindebauten_p3a",
       "breakpoints": true
+    },
+    {
+      "idx": 156,
+      "version": "7",
+      "when": 1795629057211,
+      "tag": "0156_gemeindebauten_p3a_companion_noop",
+      "breakpoints": true
     }
   ]
 }
