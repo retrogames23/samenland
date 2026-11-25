@@ -186,6 +186,7 @@ import { LabDesk } from "@/components/hud/LabDesk";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { CHEST } from "@/game/lang/chest";
 import { FOUNDING } from "@/game/lang/founding";
+import { seedMove } from "@/game/economy-world";
 import { CHEST_STAGE, RANK_STAGE, CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
 import { titleOfSeed, TITLE_PRICE, TITLE_STAGE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, needRankOf, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
 import { ENCOUNTERS, choiceOf, saplingsOwed, type Decision } from "@/game/encounters";
@@ -325,7 +326,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     for (const v of votes) { if (!vo.has(v.seed_id)) vo.set(v.seed_id, []); vo.get(v.seed_id)!.push({ partner: v.partner_id, pact: v.pact as PactKind, at: Date.parse(v.created_at) }); }
     for (const w of works) { if (!wo.has(w.seed_id)) wo.set(w.seed_id, []); wo.get(w.seed_id)!.push({ partner: w.partner_id, work: w.work as WorkKind, cost: w.cost, at: Date.parse(w.created_at) }); }
     const mo = new Map<string, NonNullable<Seed["moves"]>>();
-    for (const m of moves) { if (!mo.has(m.seed_id)) mo.set(m.seed_id, []); mo.get(m.seed_id)!.push({ item: m.item, x: m.x, y: m.y, at: Date.parse(m.created_at), cost: m.cost }); }
+    for (const m of moves) { if (!mo.has(m.seed_id)) mo.set(m.seed_id, []); mo.get(m.seed_id)!.push(seedMove(m)); }
     const civic = civicRoadsOf(rawSeeds, firstRoads);
     return rawSeeds.map((s0) => {
       const v0 = vo.get(s0.id), w0 = wo.get(s0.id), m0 = mo.get(s0.id);

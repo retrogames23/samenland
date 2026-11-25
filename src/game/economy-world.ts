@@ -29,11 +29,14 @@ function groupBy<T>(rows: T[], key: (r: T) => string | null): Map<string, T[]> {
 }
 const NONE: never[] = [];
 
-/** Same shape the client builds from building_moves; the field is only set when the village has moves by `at`. */
+/** One building_moves row as Seed.moves entry — shared by the client (Game.tsx) and rank certification. */
+export const seedMove = (r: { item: string; x: number; y: number; cost?: number | null; created_at: string }): NonNullable<Seed["moves"]>[number] =>
+  ({ item: r.item, x: r.x, y: r.y, at: Date.parse(r.created_at), cost: r.cost ?? 0 });
+
+/** The village's moves that exist by `at` (the client holds exactly the rows stored so far); field only set when there are any. */
 function movesOf(m: Map<string, NonNullable<EconomyWorld["moves"]>> | null, id: string, at: number): Pick<Seed, "moves"> {
   const rows = m ? (m.get(id) ?? NONE).filter(r => Date.parse(r.created_at) <= at) : NONE;
-  if (!rows.length) return {};
-  return { moves: rows.map(r => ({ item: r.item, x: r.x, y: r.y, at: Date.parse(r.created_at), cost: r.cost ?? 0 })).sort((a, b) => a.at - b.at) };
+  return rows.length ? { moves: rows.map(seedMove) } : {};
 }
 
 /** Rebuild only inputs that existed on the assessed day; later villages/buildings must not rewrite the past. */
