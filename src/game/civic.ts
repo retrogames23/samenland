@@ -1,7 +1,8 @@
 /**
- * Gemeindebauten Stufe 1 (Wirtschaftsumbau P2): Spital 1 (Krankensaal) and Waage 1 (Waagehaus), from Dorf.
- * The database is the authority (migration 0147: civic_stages, civic_quota, civic_open, civic_day inside
- * resource_refresh_at, purchase_guard patch); this module mirrors its rules for display and for the game effects.
+ * Gemeindebauten (Wirtschaftsumbau P2 + P3a): Spital 1–3 (Krankensaal, Kapelle, Wirtschaftshof) and Waage 1–2
+ * (Waagehaus, Tretradkran). Stage 1 from Dorf, the later stages from Kleinstadt once the previous stage stands.
+ * The database is the authority (migrations 0147/0155: civic_stage_defs, civic_stages, civic_quota, civic_open,
+ * civic_day inside resource_refresh_at, purchase_guard patch); this module mirrors its rules for display and effects.
  *
  * A stage runs in three phases, one site per village at a time:
  *  1. Funding: the player opens the stage and confirms a Kontor budget — only a spending limit (the most Mark the
@@ -19,13 +20,25 @@ import type { Seed } from "./world";
 import { KONTOR_PRICE, SITE_KONTOR, WAAGE_DISCOUNT, isAnkauf, type Stock } from "./resources";
 import type { TownWay } from "./character";
 
-export const CIVIC_STAGES = ["spital1", "waage1"] as const;
+/**
+ * Every Gemeindebau stage in one place (P2 + P3a, migration 0155 civic_stage_defs mirrors it — change both): Mark price,
+ * build days after the material is complete, certified settlement rank to open (2 = Dorf, 3 = Kleinstadt) and the stage
+ * that must already stand. One site per village at a time, whatever the chain.
+ */
+export const CIVIC_STAGES = ["spital1", "spital2", "spital3", "waage1", "waage2"] as const;
 export type CivicStage = (typeof CIVIC_STAGES)[number];
-/** Mark price, build days after the material is complete, certified settlement rank to open (2 = Dorf). */
-export const CIVIC: Record<CivicStage, { price: number; days: number; rank: number }> = {
-  spital1: { price: 10000, days: 21, rank: 2 },
-  waage1: { price: 12000, days: 14, rank: 2 },
+export const CIVIC: Record<
+  CivicStage,
+  { price: number; days: number; rank: number; after: CivicStage | null }
+> = {
+  spital1: { price: 10000, days: 21, rank: 2, after: null }, // Krankensaal: sickness ×0.85
+  spital2: { price: 18000, days: 35, rank: 3, after: "spital1" }, // Kapelle: sickness ×0.90 on top (×0.765)
+  spital3: { price: 22000, days: 42, rank: 3, after: "spital2" }, // Wirtschaftshof: +1 wood, +0.5 stone a day
+  waage1: { price: 12000, days: 14, rank: 2, after: null }, // Waagehaus: Kontor ×0.85
+  waage2: { price: 18000, days: 21, rank: 3, after: "waage1" }, // Tretradkran: storage +100 wood, +100 stone
 };
+/** Lowest rank at which any stage can be opened (the build card's own lock). */
+export const CIVIC_MIN_RANK = Math.min(...CIVIC_STAGES.map((s) => CIVIC[s].rank));
 /** Material of a Gemeindebau stage: wood price/200, stone price/300 (round half up, as DB round()). */
 export const CIVIC_WOOD_PER = 200,
   CIVIC_STONE_PER = 300;
@@ -42,7 +55,8 @@ export const CIVIC_QUOTA_MAX: Stock = {
 };
 /** Store kept back for ordinary buildings; a stage only takes what lies above it. */
 export const CIVIC_KEEP: Stock = { wood: 40, stone: 30 };
-/** Waage 1: every Kontor price ×0.85 (resources.ts WAAGE_DISCOUNT). Spital 1: sickness ×0.85 (sickness.ts SPITAL_SICK). */
+/** Waage 1: every Kontor price ×0.85 (resources.ts WAAGE_DISCOUNT). Spital 1/2: sickness ×0.85 / ×0.90 (sickness.ts).
+ *  Spital 3: +1 wood, +0.5 stone a day; Waage 2: storage +100 each (resources.ts resourceRates). */
 export const WAAGE_KONTOR = WAAGE_DISCOUNT;
 
 export const isCivicStage = (item: string): item is CivicStage =>
@@ -67,6 +81,13 @@ export const civicDeposit = (stage: CivicStage, n: number) => `${stage}:r${n}`;
 /** A stage stands (marker row dated at completion) at `at`. */
 export const civicDone = (s: Pick<Seed, "bought">, stage: CivicStage, at: number) =>
   (s.bought ?? []).some((b) => b.item === stage && b.at <= at);
+/** Why a stage cannot be opened yet (DB civic_open: 'rank too low', 'previous stage open'); null = open to start. */
+export function civicLock(s: Pick<Seed, "bought">, stage: CivicStage, rank: number, at: number) {
+  const d = CIVIC[stage];
+  if (d.after && !civicDone(s, d.after, at)) return { after: d.after } as const;
+  if (rank < d.rank) return { rank: d.rank } as const;
+  return null;
+}
 
 /** Kontor price of units as DB resource_kontor_at: site factor, Waage discount, round half up. */
 export function kontorCost(units: Stock, site: TownWay | null, waage: boolean) {
@@ -76,6 +97,19 @@ export function kontorCost(units: Stock, site: TownWay | null, waage: boolean) {
 /** Largest sensible Kontor budget: the whole material of the stage bought at the Kontor (DB civic_open checks it). */
 export const civicBudgetMax = (stage: CivicStage, site: TownWay | null, waage: boolean) =>
   kontorCost(civicNeed(stage), site, waage);
+
+/** Range for raising the Kontor limit of an open stage later (DB civic_raise_budget): above the current limit, at most the
+ *  whole material at today's Kontor price; null once the material is complete or the limit is already the full price.
+ *  The new limit only acts from the next booked day on and is never paid in advance. */
+export function civicRaiseRange(
+  row: Pick<CivicRow, "budget" | "need_wood" | "need_stone" | "material_at">,
+  site: TownWay | null,
+  waage: boolean,
+) {
+  if (row.material_at) return null;
+  const max = kontorCost({ wood: row.need_wood, stone: row.need_stone }, site, waage);
+  return max > row.budget ? { min: row.budget + 1, max } : null;
+}
 
 /** One stage as the database reports it (table civic_stages). */
 export type CivicRow = {
