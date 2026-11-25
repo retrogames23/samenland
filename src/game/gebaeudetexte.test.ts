@@ -13,6 +13,8 @@ import { ITEMS, WAY_ITEM } from "./economy";
 import { BACKHAUS_GRAIN, GRAIN_PER_GRANARY } from "./goods";
 import { BACKHAUS_LEVEL_GRAIN, GRANARY_STEP_CAP } from "./ausbau";
 import { HEALER_SICK, HERBS_SICK } from "./sickness";
+import { fires, tileHits } from "./disasters";
+import type { Seed } from "./world";
 
 /** "+N food/health" as each language wrote the tooltip values before T1. */
 const HUD: Record<Lang, RegExp> = {
@@ -138,5 +140,32 @@ describe("T1: what the texts state is what the code does (German reference)", ()
     );
     expect(AUSBAU.de.steps["granary2"]![1]).toContain(`+${GRANARY_STEP_CAP}`);
     expect(HEALER_SICK).toBeGreaterThan(HERBS_SICK); // "deutlich seltener krank" vs "seltener krank"
+  });
+});
+
+describe("T1: the fire house text matches the fire mechanics", () => {
+  it("with the fire house fires still break out, but every one is out within half an hour, kills nobody and leaves no ruin", () => {
+    const H = 3600e3,
+      DAY = 24 * H,
+      c0 = Date.parse("2026-11-12T00:00:00Z");
+    const s = {
+      id: "00000000-t1-firehouse",
+      x: 500,
+      y: 340,
+      realm: "europe",
+      user_id: "t1",
+      created_at: new Date(c0).toISOString(),
+      bought: [{ item: "firehouse", at: c0 }],
+    } as unknown as Seed;
+    const fs = fires(s, c0 + 400 * DAY);
+    expect(fs.length).toBeGreaterThan(0); // houses still catch fire …
+    for (const f of fs) {
+      expect(f.guarded && !f.dead).toBe(true);
+      expect(f.end - f.at).toBeLessThanOrEqual(0.5 * H); // … are put out quickly …
+      const hits = tileHits(s, f.end + H);
+      for (const t of f.tiles) expect(hits.get(t)?.build, "no ruin to rebuild").toBeUndefined(); // … and none is destroyed
+    }
+    for (const l of LANGS) expect(DICT[l].items["firehouse"]![1], l).not.toBe("");
+    expect(de["firehouse"]![1]).toContain("kein Haus wird mehr zerstört");
   });
 });

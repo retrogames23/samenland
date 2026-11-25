@@ -171,7 +171,7 @@ export const es: Dict = {
     library: ["Biblioteca", "Edificio gremial de eruditos: cuenta como equipamiento comunitario, más espacio para hogares, +2 obras cívicas para la prosperidad"],
     dairy: ["Quesería", "Edificio gremial de labradores: cuenta como edificio de abastecimiento para el siguiente rango, más espacio para hogares, +1 obra cívica para la prosperidad"],
     fireorder: ["Ordenanza de fuego", "Garfios, escaleras y cubos de cuero en la plaza, fogones apagados al toque de la tarde: incendios más raros y breves, menos tejados, casi ninguna casa arde por completo"],
-    firehouse: ["Cobertizo de garfios", "Cuerpo de vigilancia: muchos menos incendios, ninguna casa arde por completo"],
+    firehouse: ["Cobertizo de garfios", "Cuerpo de vigilancia: muchos menos incendios, apagados enseguida; ya no se destruye ninguna casa"],
     guard: ["Guardia de la villa", "Puesto de guardia: se apresa a los ladrones, no más mermas de tributos"],
   },
   buy: "Comprar",
