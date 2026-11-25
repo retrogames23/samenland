@@ -1107,6 +1107,13 @@
       "when": 1795629628546,
       "tag": "0157_brunnen_material",
       "breakpoints": true
+    },
+    {
+      "idx": 158,
+      "version": "7",
+      "when": 1795636155947,
+      "tag": "0158_brunnen_material_companion_noop",
+      "breakpoints": true
     }
   ]
 }
