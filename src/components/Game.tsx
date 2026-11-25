@@ -2756,8 +2756,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                               <div className="mt-1 space-y-1">
                                 <div className="h-1.5 overflow-hidden rounded bg-ink/15"><div className="h-full bg-brass" style={{ width: `${(100 * paid) / Math.max(1, total)}%` }} /></div>
                                 <div className="text-muted-foreground">{ct.paid(t.taler(paid), t.taler(total))} · {ct.kontor(t.taler(row.kontor_spent), t.taler(row.budget))}</div>
-                                <div className="flex items-center gap-1">
-                                  <Input type="number" inputMode="numeric" className="h-7 min-w-0 flex-1 text-xs" min={1} max={Math.min(rest, Math.max(0, cash))} placeholder={ct.rate} aria-label={ct.rate} value={civicRate} onChange={(e) => setCivicRate(e.target.value.replace(/[^0-9]/g, ""))} />
+                                <div className="flex flex-wrap items-center gap-1">
+                                  <Input type="number" inputMode="numeric" className="h-7 min-w-[7rem] flex-1 text-xs" min={1} max={Math.min(rest, Math.max(0, cash))} placeholder={ct.rate} aria-label={ct.rate} value={civicRate} onChange={(e) => setCivicRate(e.target.value.replace(/[^0-9]/g, ""))} />
                                   <Button size="sm" className="h-7" disabled={!ok} onClick={() => void civicPay(stage, amount)}>{ct.pay(t.taler(ok ? amount : 0))}</Button>
                                 </div>
                               </div>
