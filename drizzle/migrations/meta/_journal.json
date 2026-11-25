@@ -1100,6 +1100,13 @@
       "when": 1795629057211,
       "tag": "0156_gemeindebauten_p3a_companion_noop",
       "breakpoints": true
+    },
+    {
+      "idx": 157,
+      "version": "7",
+      "when": 1795629628546,
+      "tag": "0157_brunnen_material",
+      "breakpoints": true
     }
   ]
 }

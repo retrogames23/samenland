@@ -2729,7 +2729,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                   <div className="mt-0.5 text-xs text-muted-foreground">{ft.funded(paidSum, total)} · {ft.rest(total - paidSum)}</div>
                   <div className="mt-1.5">
                     {!next ? <span className="text-xs font-semibold text-primary">{busy ? ft.building(Math.ceil((chain.at(-1)!.done - now) / 864e5)) : ft.done}</span>
-                      : <Button size="sm" className="h-7 w-full" disabled={cash < FOUNTAIN_PRICE[next]} onClick={() => void buy(next)}>{ft.pay(ft.steps[FOUNTAIN_STEPS.indexOf(next)]!)} · {t.taler(FOUNTAIN_PRICE[next])}</Button>}
+                      : <><MaterialLine q={matQuote(next)} lang={lang} taler={t.taler} /><Button size="sm" className="mt-1 h-7 w-full" disabled={cash < FOUNTAIN_PRICE[next] + kontorOf(next)} onClick={() => void buy(next)}>{ft.pay(ft.steps[FOUNTAIN_STEPS.indexOf(next)]!)} · {t.taler(FOUNTAIN_PRICE[next])}</Button></>}
                     <div className="mt-0.5 text-[10px] text-muted-foreground">{ft.voluntary}</div>
                   </div>
                 </>}
