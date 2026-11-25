@@ -93,13 +93,15 @@ export const SITE_KONTOR: Record<TownWay, number> = { grain: 1, workshop: 1, gat
 export type Stock = Record<Resource, number>;
 export type KontorQuote = { need: Stock; missing: Stock; cost: number };
 /** What the Kontor would add for a need at the given stock: only the missing units (DB resource_kontor, half up). */
-export function kontorQuote(need: Stock, stock: Stock, site: TownWay | null = null): KontorQuote {
+/** Waage 1 (Gemeindebau, civic.ts) makes every Kontor price 15 % cheaper (DB resource_kontor_at). */
+export const WAAGE_DISCOUNT = 0.85;
+export function kontorQuote(need: Stock, stock: Stock, site: TownWay | null = null, waage = false): KontorQuote {
   const missing = {
     wood: Math.max(0, need.wood - stock.wood),
     stone: Math.max(0, need.stone - stock.stone),
   };
   const raw = missing.wood * KONTOR_PRICE.wood + missing.stone * KONTOR_PRICE.stone;
-  return { need, missing, cost: Math.round(raw * (site ? SITE_KONTOR[site] : 1) + 1e-9) };
+  return { need, missing, cost: Math.round(raw * (site ? SITE_KONTOR[site] : 1) * (waage ? WAAGE_DISCOUNT : 1) + 1e-9) };
 }
 
 /**
