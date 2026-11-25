@@ -1669,6 +1669,22 @@ export type Database = {
     Functions: {
       abandon_village: { Args: { _seed: string }; Returns: undefined }
       active_boons: { Args: { _at: string; _seed: string }; Returns: number }
+      ankauf_book: {
+        Args: {
+          _d: string
+          _d0: string
+          _owner: string
+          _seed: string
+          _stone: number
+          _wood: number
+        }
+        Returns: undefined
+      }
+      ankauf_price: {
+        Args: { _at: string; _resource: string; _seed: string }
+        Returns: number
+      }
+      ankauf_since: { Args: { _realm: string }; Returns: string }
       build_mail_claim: {
         Args: {
           _lease_minutes?: number
