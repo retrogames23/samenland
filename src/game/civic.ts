@@ -16,7 +16,7 @@
  * Effects read only that marker (bought row with at <= now), so nothing acts before the stage really stands.
  */
 import type { Seed } from "./world";
-import { KONTOR_PRICE, SITE_KONTOR, WAAGE_DISCOUNT, type Stock } from "./resources";
+import { KONTOR_PRICE, SITE_KONTOR, WAAGE_DISCOUNT, isAnkauf, type Stock } from "./resources";
 import type { TownWay } from "./character";
 
 export const CIVIC_STAGES = ["spital1", "waage1"] as const;
@@ -47,9 +47,18 @@ export const WAAGE_KONTOR = WAAGE_DISCOUNT;
 
 export const isCivicStage = (item: string): item is CivicStage =>
   (CIVIC_STAGES as readonly string[]).includes(item);
-/** Money rows of a stage (instalments, daily Kontor purchases) — no building, no civic work, never a chronicle entry. */
-export const isCivicMoney = (item: string) =>
-  /^(spital1|waage1):(r[1-9][0-9]*|k[0-9]{8})$/.test(item);
+/**
+ * Money rows of a stage (instalments, daily Kontor purchases) — no building, no civic work, never a chronicle entry.
+ * Every stage of Spital and Waage (spital1, spital2, …, waage1, waage2, …), so later stages need no new rule.
+ */
+export const CIVIC_MONEY_RE = /^(spital|waage)[1-9][0-9]*:(r[1-9][0-9]*|k[0-9]{8})$/;
+export const isCivicMoney = (item: string) => CIVIC_MONEY_RE.test(item);
+/**
+ * F-P2-1: does a purchase row count as a bought building for quests and the decree "build"? Mirrors DB quest_guard
+ * (np) and princely_task_met (migration 0153): ordinary purchases count, a stage counts once by its completion marker
+ * (`spitalN`/`waageN`); its instalments and daily Kontor rows and every Ankauf credit (P1) do not.
+ */
+export const countsAsBuilding = (item: string) => !isAnkauf(item) && !isCivicMoney(item);
 /** Instalment rows only (`<stage>:r<n>`) — they pay the building price, never the Kontor. */
 export const isCivicInstalment = (stage: CivicStage, item: string) =>
   new RegExp(`^${stage}:r[1-9][0-9]*$`).test(item);

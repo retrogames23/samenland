@@ -1065,6 +1065,13 @@
       "when": 1795611448975,
       "tag": "0151_ankauf",
       "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1795615715548,
+      "tag": "0153_civic_kauf_zaehlung",
+      "breakpoints": true
     }
   ]
 }
