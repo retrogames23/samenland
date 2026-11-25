@@ -124,10 +124,51 @@ export function resourceRates(
 export const resourceDaily = (rate: number, day: number) =>
   Math.floor(rate * day) - Math.floor(rate * (day - 1));
 
+/**
+ * Ankauf (P1, migration 0151): what a day's production would add above the storage cap is bought by the Kontor at half
+ * its base price — wood 2, stone 3 Mark (DB ankauf_price; no location factor, no Waage discount). One server-booked
+ * purchase row `ankauf:YYYYMMDD` per village and UTC day with negative cost, dated at that day start; the chest walk
+ * (treasury/walkChest, DB village_balance_walk) books it as income below the chest cap, the rest is lost like surplus
+ * tax. From ankauf_since(realm) on (lab: the next UTC day start after the migration ran; public maps 2100-01-04),
+ * never for earlier days. The client never inserts these rows; it only shows them.
+ */
+export const ANKAUF_SHARE = 0.5;
+export const ANKAUF_PRICE: Record<Resource, number> = {
+  wood: KONTOR_PRICE.wood * ANKAUF_SHARE,
+  stone: KONTOR_PRICE.stone * ANKAUF_SHARE,
+};
+const ANKAUF_RE = /^ankauf:[0-9]{8}$/;
+/** Server-booked overflow credit (no building, no civic work, never a chronicle entry). */
+export const isAnkauf = (item: string) => ANKAUF_RE.test(item);
+/** Item of the credit for the UTC day that starts at `dayStart` (ms). */
+export const ankaufItem = (dayStart: number) =>
+  `ankauf:${new Date(dayStart).toISOString().slice(0, 10).replace(/-/g, "")}`;
+/** Mark for one day's overflow (DB ankauf_book: wood·2 + stone·3). */
+export const ankaufMark = (over: Stock) =>
+  over.wood * ANKAUF_PRICE.wood + over.stone * ANKAUF_PRICE.stone;
+/**
+ * One production day of one resource as DB resource_refresh_at books it: the day's whole units (resourceDaily) fill
+ * the room below the cap left by the stock before the day start; the rest is the overflow the Kontor buys.
+ */
+export function resourceDay(rate: number, cap: number, stockBefore: number, day: number) {
+  const units = resourceDaily(rate, day),
+    prod = Math.min(units, Math.max(cap - stockBefore, 0));
+  return { prod, over: units - prod };
+}
+
 /** What the server reports for the own village (DB resource_overview). */
 export type ResourceOverview =
   | { active: false; from: string }
-  | ({ active: true; from: string; next: string; site?: TownWay | null } & Record<
-      Resource,
-      { stock: number; rate: number; cap: number }
-    >);
+  | ({
+      active: true;
+      from: string;
+      next: string;
+      site?: TownWay | null;
+      /** P1 (0151): start of the Ankauf on this map, price per unit and the newest credit */
+      ankauf?: {
+        since: string;
+        wood: number;
+        stone: number;
+        last: { at: string; mark: number } | null;
+      };
+    } & Record<Resource, { stock: number; rate: number; cap: number }>);

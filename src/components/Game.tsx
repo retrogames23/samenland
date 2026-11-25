@@ -3397,7 +3397,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
                   </span>
                   {Math.max(0, cash).toLocaleString(LOCALE[lang])}<span className="font-normal text-muted-foreground"><span className="md:hidden"> {t.talerShort}</span><span className="hidden md:inline">/</span><span className="hidden md:inline"> {t.taler(cap)}</span></span>
                 </span>); })()}
-                <ResourceBar res={res} lang={lang} timeZone={REALM_TZ[realm]} />
+                <ResourceBar res={res} lang={lang} timeZone={REALM_TZ[realm]} taler={t.taler} />
                 <span className="hidden text-xs font-normal text-primary sm:inline" title={(() => { const c = Date.parse(my.created_at), next = c + Math.max(1, Math.ceil((now - c) / 864e5)) * 864e5, m = Math.max(0, Math.round((next - now) / 6e4)); return t.nextTax(new Date(next).toLocaleTimeString(LOCALE[lang], { hour: "2-digit", minute: "2-digit", timeZone: REALM_TZ[realm] }), `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")} h`); })()}>{t.perDay(pop)}</span>
               </div>
               <div className="hidden text-sm sm:block">{t.people(residents)}</div>

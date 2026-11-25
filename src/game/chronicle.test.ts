@@ -47,6 +47,11 @@ describe("completion feasts", () => {
     const c = chronicle(v, [v], t0, t0 + 3 * 864e5);
     expect(c.events.filter((e) => e.code === "bought")).toEqual([]);
   });
+  it("Ankauf credits (P1) never appear as finished buildings", () => {
+    const v: Seed = { ...s, bought: [b("ankauf:20260102", 1), b("ankauf:20260103", 2)] };
+    const c = chronicle(v, [v], t0, t0 + 3 * 864e5);
+    expect(c.events.filter((e) => e.code === "bought")).toEqual([]);
+  });
   it("a monument is celebrated once, only after its last step is built", () => {
     const part: Seed = { ...s, bought: [b("theater1", 1), b("theater2", 1.1)] };
     expect(chronicle(part, [part], t0, t0 + 6 * 864e5).events.filter((e) => e.code === "bought").length).toBe(0);

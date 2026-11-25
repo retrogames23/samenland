@@ -66,3 +66,49 @@ describe("MaterialLine: the material a building uses and the Kontor surcharge", 
     expect(render(<MaterialLine q={null} lang="de" taler={taler} />).container.innerHTML).toBe("");
   });
 });
+
+describe("ResourceBar: Ankauf (P1, 0151)", () => {
+  const ankauf = (since: string, last: { at: string; mark: number } | null) =>
+    ({ ...live, ankauf: { since, wood: 2, stone: 3, last } }) as ResourceOverview;
+  it("names the price for overflow and shows the newest booked day's credit", () => {
+    const { container } = render(
+      <ResourceBar
+        res={ankauf("2026-11-24T00:00:00Z", { at: "2026-11-23T00:00:00Z", mark: 17 })}
+        lang="de"
+        timeZone="UTC"
+        taler={taler}
+      />,
+    );
+    const wood = container.querySelector("[data-resources] > span")!;
+    expect(wood.getAttribute("title")).toContain(
+      "Was über das Lager hinaus anfällt, kauft das Kontor: Holz 2 Mark, Stein 3 Mark je Stück",
+    );
+    const chip = container.querySelector("[data-ankauf]")!;
+    expect(chip.textContent).toBe("+17");
+    expect(chip.getAttribute("title")).toContain("Zuletzt angekauft für 17 Mark");
+  });
+  it("shows no price before the map's start and no chip for an older credit", () => {
+    const before = render(
+      <ResourceBar
+        res={ankauf("2100-01-04T00:00:00Z", null)}
+        lang="de"
+        timeZone="UTC"
+        taler={taler}
+      />,
+    );
+    expect(
+      before.container.querySelector("[data-resources] > span")!.getAttribute("title"),
+    ).not.toContain("Kontor");
+    expect(before.container.querySelector("[data-ankauf]")).toBeNull();
+    cleanup();
+    const old = render(
+      <ResourceBar
+        res={ankauf("2026-11-20T00:00:00Z", { at: "2026-11-21T00:00:00Z", mark: 9 })}
+        lang="de"
+        timeZone="UTC"
+        taler={taler}
+      />,
+    );
+    expect(old.container.querySelector("[data-ankauf]")).toBeNull();
+  });
+});
