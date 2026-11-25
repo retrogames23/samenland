@@ -1079,6 +1079,13 @@
       "when": 1795622539168,
       "tag": "0153_civic_kauf_zaehlung",
       "breakpoints": true
+    },
+    {
+      "idx": 154,
+      "version": "7",
+      "when": 1795625540116,
+      "tag": "0154_civic_kauf_zaehlung_companion_noop",
+      "breakpoints": true
     }
   ]
 }
