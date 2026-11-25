@@ -1072,6 +1072,13 @@
       "when": 1795618481715,
       "tag": "0152_ankauf_companion_noop",
       "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1795622539168,
+      "tag": "0153_civic_kauf_zaehlung",
+      "breakpoints": true
     }
   ]
 }
