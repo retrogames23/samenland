@@ -41,6 +41,7 @@ const LATER = [
   "0145_a1_investment_material.sql",
 ].map(mig);
 const M147 = mig("0147_gemeindebauten_p2.sql");
+const M148 = mig("0148_civic_cash_history.sql");
 const OWNER = "00000000-0000-0000-0000-0000000000d1",
   OTHER = "00000000-0000-0000-0000-0000000000d2";
 const DB = `samenland_civic_${process.pid}`;
@@ -147,10 +148,25 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
       create table public.first_roads (seed_id uuid, target_id uuid);
       create function public.road_done(a uuid, b uuid) returns timestamptz language sql stable as $$ select now() - interval '1 day' $$;
       create table public.test_balance (seed_id uuid primary key, balance integer);
-      -- chest stand-in: start money minus every purchase row, whatever its date (like village_balance_walk)
-      create function public.village_balance(_seed uuid) returns integer language sql stable as
+      -- money tables the chest walk reads (outflows: encounters, twin works, moves, gifts sent; income: gifts received)
+      create table public.encounters (id uuid primary key default gen_random_uuid(), seed_id uuid, cost integer, created_at timestamptz not null);
+      create table public.twin_works (id uuid primary key default gen_random_uuid(), seed_id uuid, cost integer, created_at timestamptz not null);
+      create table public.building_moves (id uuid primary key default gen_random_uuid(), seed_id uuid, cost integer, created_at timestamptz not null);
+      create table public.gifts (id uuid primary key default gen_random_uuid(), from_seed uuid, to_seed uuid, amount integer, created_at timestamptz not null);
+      create function public.village_raid_list(_seed uuid, _from timestamptz, _to timestamptz) returns table(t timestamptz, loss integer)
+        language sql stable as $$ select null::timestamptz, 0 where false $$;
+      -- chest walk stand-in: start money plus every money row up to _at (no chest cap); the test days lie in the
+      -- future, so "now" for village_balance is the end of time — every booked row counts, like after the real catch-up
+      create function public.village_balance_walk(_seed uuid, _since timestamptz, _at timestamptz) returns integer language sql stable as
         $$ select coalesce((select balance from public.test_balance where seed_id = _seed), 5000)
-             - coalesce((select sum(cost) from public.purchases where seed_id = _seed), 0)::int $$;
+             - coalesce((select sum(cost) from public.purchases where seed_id = _seed and created_at <= _at), 0)::int
+             - coalesce((select sum(cost) from public.encounters where seed_id = _seed and created_at <= _at), 0)::int
+             - coalesce((select sum(cost) from public.twin_works where seed_id = _seed and created_at <= _at), 0)::int
+             - coalesce((select sum(cost) from public.building_moves where seed_id = _seed and created_at <= _at), 0)::int
+             - coalesce((select sum(amount) from public.gifts where from_seed = _seed and created_at <= _at), 0)::int
+             + coalesce((select sum(amount) from public.gifts where to_seed = _seed and created_at <= _at), 0)::int $$;
+      create function public.village_balance(_seed uuid) returns integer language sql stable as
+        $$ select public.village_balance_walk(_seed, timestamptz '2026-11-12 00:00:00+00', 'infinity') $$;
       grant usage on schema public, auth to authenticated; grant select on public.seeds to authenticated;`);
     await sql.unsafe(LOCK_FN);
     await sql.unsafe(LOCK_TRIGGER);
@@ -166,6 +182,8 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
       await sql`select item, cost, material, created_at from public.purchases where seed_id = ${oldSeed}`;
     await sql.unsafe(M147);
     await sql.unsafe(M147); // idempotent
+    await sql.unsafe(M148);
+    await sql.unsafe(M148); // idempotent
   });
   afterAll(async () => {
     await sql?.end();
@@ -393,6 +411,61 @@ d("Gemeindebauten P2 (0147, real guard, real PostgreSQL)", () => {
     await day(id, 1);
     expect(await balance(id)).toBeGreaterThanOrEqual(0);
     expect((await stage(id, "spital1"))!["kontor_spent"]).toBeLessThanOrEqual(10);
+  });
+
+  /** Day k's booking time as civic_day uses it (UTC day start + 1 s). */
+  const tOf = async (k: number) =>
+    (
+      await sql`select ((current_date + ${k}::int)::timestamp at time zone 'UTC') + interval '1 second' as t`
+    )[0]!["t"] as Date;
+
+  it("0148: money that came in later never pays an earlier day's Kontor purchase", async () => {
+    const id = await funded("spital1", civicBudgetMax("spital1", "grain", false), {
+      money: CIVIC.spital1.price,
+    });
+    await setStock(id, CIVIC_KEEP.wood, CIVIC_KEEP.stone); // only the quota could deliver, i.e. only the Kontor
+    // a neighbour's gift of 1000 Mark arrives on day 3 — the catch-up of day 1 runs only afterwards
+    await sql`insert into public.gifts (from_seed, to_seed, amount, created_at) values (${OTHER}, ${id}, 1000, ${await tOf(3)})`;
+    expect(await balance(id)).toBe(1000);
+    await day(id, 1);
+    expect((await stage(id, "spital1"))!["kontor_spent"]).toBe(0); // the chest was empty on day 1
+    expect(await balance(id)).toBe(1000);
+    await day(id, 4); // after the gift the Kontor may buy
+    expect((await stage(id, "spital1"))!["kontor_spent"]).toBeGreaterThan(0);
+  });
+
+  it("0148: an outflow between the day and the catch-up bounds the purchase; the walk never turns negative", async () => {
+    const id = await funded("spital1", civicBudgetMax("spital1", "grain", false), {
+      money: CIVIC.spital1.price + 100,
+    });
+    await setStock(id, CIVIC_KEEP.wood, CIVIC_KEEP.stone);
+    const enc = await tOf(3);
+    await sql`insert into public.encounters (seed_id, cost, created_at) values (${id}, 80, ${enc})`; // spent on day 3
+    await day(id, 1);
+    const spent = (await stage(id, "spital1"))!["kontor_spent"] as number;
+    expect(spent).toBeGreaterThan(0);
+    expect(spent).toBeLessThanOrEqual(20); // 100 on day 1, but only 20 left after the encounter
+    for (const at of [await tOf(1), enc, await tOf(9)])
+      expect(
+        (await sql`select public.village_balance_walk(${id}, '2026-11-12', ${at}) as b`)[0]!["b"],
+      ).toBeGreaterThanOrEqual(0);
+  });
+
+  it("0148: an ordinary day with no later money movement buys exactly as before", async () => {
+    const id = await funded("spital1", civicBudgetMax("spital1", "grain", false), { money: 20000 });
+    await setStock(id, CIVIC_KEEP.wood, CIVIC_KEEP.stone);
+    const q0 = (await quota(id))!;
+    const t1 = await tOf(1);
+    expect((await sql`select public.civic_cash_from(${id}, ${t1}) as c`)[0]!["c"]).toBe(
+      await balance(id),
+    );
+    await day(id, 1);
+    const s = await stage(id, "spital1");
+    const bought = { wood: q0["wood"] + CIVIC_QUOTA.wood, stone: q0["stone"] + CIVIC_QUOTA.stone };
+    const k = await sql`select resource, sum(amount)::int as a from public.resource_ledger
+      where seed_id = ${id} and kind = 'kontor' group by resource`;
+    expect(Object.fromEntries(k.map((r) => [r["resource"], r["a"]]))).toEqual(bought); // the whole quota, as before
+    expect(s!["kontor_spent"]).toBe(kontorCost(bought, "grain", false));
   });
 
   it("11 parallel instalments and opens: one wins, nothing booked twice", async () => {

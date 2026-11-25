@@ -1037,6 +1037,13 @@
       "when": 1795565318447,
       "tag": "0147_gemeindebauten_p2",
       "breakpoints": true
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1795565319447,
+      "tag": "0148_civic_cash_history",
+      "breakpoints": true
     }
   ]
 }
