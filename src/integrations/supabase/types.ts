@@ -343,6 +343,94 @@ export type Database = {
         }
         Relationships: []
       }
+      civic_quota: {
+        Row: {
+          seed_id: string
+          stone: number
+          through_day: string
+          wood: number
+        }
+        Insert: {
+          seed_id: string
+          stone: number
+          through_day: string
+          wood: number
+        }
+        Update: {
+          seed_id?: string
+          stone?: number
+          through_day?: string
+          wood?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "civic_quota_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: true
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      civic_stages: {
+        Row: {
+          budget: number
+          build_days: number
+          done_at: string | null
+          funded_at: string | null
+          item: string
+          kontor_spent: number
+          material_at: string | null
+          need_stone: number
+          need_wood: number
+          opened_at: string
+          price: number
+          seed_id: string
+          stone_got: number
+          wood_got: number
+        }
+        Insert: {
+          budget: number
+          build_days: number
+          done_at?: string | null
+          funded_at?: string | null
+          item: string
+          kontor_spent?: number
+          material_at?: string | null
+          need_stone: number
+          need_wood: number
+          opened_at?: string
+          price: number
+          seed_id: string
+          stone_got?: number
+          wood_got?: number
+        }
+        Update: {
+          budget?: number
+          build_days?: number
+          done_at?: string | null
+          funded_at?: string | null
+          item?: string
+          kontor_spent?: number
+          material_at?: string | null
+          need_stone?: number
+          need_wood?: number
+          opened_at?: string
+          price?: number
+          seed_id?: string
+          stone_got?: number
+          wood_got?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "civic_stages_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       encounters: {
         Row: {
           choice: string
@@ -1632,6 +1720,19 @@ export type Database = {
         Args: { _at: string; _charter: string; _created: string }
         Returns: number
       }
+      civic_cash_from: { Args: { _seed: string; _t: string }; Returns: number }
+      civic_day: {
+        Args: { _d: string; _d0: string; _seed: string }
+        Returns: undefined
+      }
+      civic_deposit_price: {
+        Args: { _amount: number; _item: string; _seed: string }
+        Returns: number
+      }
+      civic_open: {
+        Args: { _budget: number; _item: string; _seed: string }
+        Returns: Json
+      }
       claim_referral: { Args: { _ref: string; _seed: string }; Returns: number }
       claim_visit: {
         Args: { _seed: string; _visited: string }
@@ -1704,6 +1805,10 @@ export type Database = {
       resource_daily: { Args: { _day: string; _rate: number }; Returns: number }
       resource_kontor: {
         Args: { _seed: string; _stone: number; _wood: number }
+        Returns: number
+      }
+      resource_kontor_at: {
+        Args: { _at: string; _seed: string; _stone: number; _wood: number }
         Returns: number
       }
       resource_overview: { Args: { _seed: string }; Returns: Json }
