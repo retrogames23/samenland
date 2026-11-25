@@ -6,6 +6,7 @@
  */
 import { ITEMS, MONUMENT_PRICE, RANK_PRICE, TITLE_PRICE } from "./economy";
 import { AUSBAU_PRICE } from "./ausbau";
+import { FOUNTAIN_PRICE, isFountain } from "./civic-fountain";
 import type { TownWay } from "./character";
 
 export const RESOURCES = ["wood", "stone"] as const;
@@ -73,9 +74,19 @@ export function investmentNeed(price: number): Record<Resource, number> {
     stone: price >= STONE_FROM_PRICE ? Math.round(price / 60) : 0,
   };
 }
-/** Material of one purchase (DB purchase_material): the Steingrube a fixed 20 wood, A1 investments at the half rate, everything else by price. */
+/**
+ * P3b (migration 0157, Masterplan v6.1 Variante A): the Marktbrunnen steps at the Gemeindebau rate — wood price/200,
+ * stone price/300 (DB purchase_material: round half up): 4.000 → 20/13, 8.000 → 40/27, 12.000 → 60/40. A normal
+ * purchase with the usual store, Kontor and kontor_max — no instalments, no site. Not in MATERIAL_ITEMS (full rate).
+ */
+export function fountainNeed(price: number): Record<Resource, number> {
+  return { wood: Math.round(price / 200), stone: Math.round(price / 300) };
+}
+/** Material of one purchase (DB purchase_material): the Steingrube a fixed 20 wood, A1 investments at the half rate,
+ *  Marktbrunnen steps at the Gemeindebau rate, everything else by price. */
 export function materialOf(item: string): Record<Resource, number> | null {
   if (item === STEINGRUBE) return { wood: STEINGRUBE_WOOD, stone: 0 };
+  if (isFountain(item)) return fountainNeed(FOUNTAIN_PRICE[item]);
   if (isInvestment(item)) return investmentNeed(INVESTMENT_PRICE[item]!);
   const p = materialPrice(item);
   return p == null ? null : materialNeed(p);
