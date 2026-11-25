@@ -23,16 +23,27 @@ type Text = {
   ready: string;
   busy: string;
   locked: string;
-  errors: { rank: string; busy: string; money: string; fail: string };
+  /** lock of a later stage while its previous stage does not stand yet */
+  after: (name: string) => string;
+  errors: { rank: string; after: string; busy: string; money: string; fail: string };
 };
 
-/** Gemeindebauten Stufe 1 (civic.ts) — build-menu texts, all eight languages. Effects as the code applies them. */
+/** Gemeindebauten (civic.ts, P2 + P3a) — build-menu texts, all eight languages. Effects as the code applies them. */
 export const CIVIC_T: Record<Lang, Text> = {
   de: {
     title: "Gemeindebauten",
     intro:
       "Große Bauten der Gemeinde, freiwillig und in Raten bezahlt. Immer nur eine Baustelle zur Zeit.",
     stages: {
+      spital2: [
+        "Spital: Kapelle",
+        "Senkt das Krankheitsrisiko zusätzlich auf 90 % – zusammen mit dem Krankensaal auf 76,5 %.",
+      ],
+      spital3: [
+        "Spital: Wirtschaftshof",
+        "Liefert täglich 1 Holz mehr und jeden zweiten Tag 1 Stein mehr (+0,5 Stein je Tag).",
+      ],
+      waage2: ["Ratswaage: Tretradkran", "Das Lager fasst 100 Holz und 100 Stein mehr."],
       spital1: ["Spital: Krankensaal", "Senkt das Krankheitsrisiko im Dorf auf 85 %."],
       waage1: [
         "Ratswaage: Waagehaus",
@@ -57,8 +68,10 @@ export const CIVIC_T: Record<Lang, Text> = {
     ready: "Steht und wirkt",
     busy: "Erst wenn die laufende Baustelle fertig ist",
     locked: "Ab Dorf",
+    after: (n) => `Erst wenn ${n} steht`,
     errors: {
       rank: "Erst ab Dorf.",
+      after: "Erst muss die vorige Stufe stehen.",
       busy: "Es läuft schon eine Gemeindebaustelle.",
       money: "Nicht genug Geld in der Truhe.",
       fail: "Das hat nicht geklappt.",
@@ -69,6 +82,18 @@ export const CIVIC_T: Record<Lang, Text> = {
     intro:
       "Large works of the community, voluntary and paid in instalments. Only one site at a time.",
     stages: {
+      spital2: [
+        "Hospital: chapel",
+        "Lowers the sickness risk further to 90 % – together with the sick hall to 76.5 %.",
+      ],
+      spital3: [
+        "Hospital: farmyard",
+        "Yields 1 more wood every day and 1 more stone every second day (+0.5 stone a day).",
+      ],
+      waage2: [
+        "Town scales: treadwheel crane",
+        "The store holds 100 more wood and 100 more stone.",
+      ],
       spital1: ["Hospital: sick hall", "Lowers the village's sickness risk to 85 %."],
       waage1: [
         "Town scales: weigh house",
@@ -94,8 +119,10 @@ export const CIVIC_T: Record<Lang, Text> = {
     ready: "Standing and in effect",
     busy: "Only once the current site is finished",
     locked: "From village",
+    after: (n) => `Only once ${n} stands`,
     errors: {
       rank: "Only from village.",
+      after: "The previous stage must stand first.",
       busy: "A municipal site is already running.",
       money: "Not enough money in the chest.",
       fail: "That did not work.",
@@ -106,6 +133,18 @@ export const CIVIC_T: Record<Lang, Text> = {
     intro:
       "Grands ouvrages de la commune, volontaires et payés par versements. Un seul chantier à la fois.",
     stages: {
+      spital2: [
+        "Hôpital : chapelle",
+        "Réduit encore le risque de maladie à 90 % – avec la salle des malades, à 76,5 %.",
+      ],
+      spital3: [
+        "Hôpital : ferme",
+        "Fournit chaque jour 1 bois de plus et un jour sur deux 1 pierre de plus (+0,5 pierre par jour).",
+      ],
+      waage2: [
+        "Balance de la ville : grue à roue",
+        "L’entrepôt contient 100 bois et 100 pierres de plus.",
+      ],
       spital1: ["Hôpital : salle des malades", "Ramène le risque de maladie du village à 85 %."],
       waage1: [
         "Balance publique : maison du poids",
@@ -131,8 +170,10 @@ export const CIVIC_T: Record<Lang, Text> = {
     ready: "Achevé et actif",
     busy: "Seulement quand le chantier en cours est fini",
     locked: "Dès le village",
+    after: (n) => `Seulement après : ${n}`,
     errors: {
       rank: "Seulement dès le village.",
+      after: "L’étape précédente doit d’abord être achevée.",
       busy: "Un chantier communal est déjà en cours.",
       money: "Pas assez d'argent dans le coffre.",
       fail: "Cela n'a pas marché.",
@@ -142,6 +183,18 @@ export const CIVIC_T: Record<Lang, Text> = {
     title: "Obras municipales",
     intro: "Grandes obras del municipio, voluntarias y pagadas a plazos. Solo una obra a la vez.",
     stages: {
+      spital2: [
+        "Hospital: capilla",
+        "Reduce aún más el riesgo de enfermedad al 90 % – junto con la sala de enfermos, al 76,5 %.",
+      ],
+      spital3: [
+        "Hospital: granja",
+        "Da cada día 1 de madera más y cada dos días 1 de piedra más (+0,5 de piedra al día).",
+      ],
+      waage2: [
+        "Báscula municipal: grúa de rueda",
+        "El almacén guarda 100 de madera y 100 de piedra más.",
+      ],
       spital1: ["Hospital: sala de enfermos", "Reduce el riesgo de enfermedad del pueblo al 85 %."],
       waage1: [
         "Báscula pública: casa del peso",
@@ -167,8 +220,10 @@ export const CIVIC_T: Record<Lang, Text> = {
     ready: "En pie y activa",
     busy: "Solo cuando termine la obra en curso",
     locked: "Desde pueblo",
+    after: (n) => `Solo después de: ${n}`,
     errors: {
       rank: "Solo desde pueblo.",
+      after: "Primero debe estar terminada la etapa anterior.",
       busy: "Ya hay una obra municipal en curso.",
       money: "No hay bastante dinero en el arca.",
       fail: "No ha funcionado.",
@@ -178,6 +233,15 @@ export const CIVIC_T: Record<Lang, Text> = {
     title: "مباني البلدية",
     intro: "مبانٍ كبيرة للجماعة، طوعية وتُدفع على أقساط. ورشة واحدة فقط في كل مرة.",
     stages: {
+      spital2: [
+        "المارستان: الكنيسة الصغيرة",
+        "يخفّض خطر المرض أكثر إلى 90 % – ومع قاعة المرضى إلى 76.5 %.",
+      ],
+      spital3: [
+        "المارستان: المزرعة",
+        "يعطي كل يوم 1 خشب إضافي وكل يومين 1 حجر إضافي (+0.5 حجر يوميًا).",
+      ],
+      waage2: ["ميزان المدينة: الرافعة ذات الدولاب", "يتّسع المخزن لـ100 خشب و100 حجر إضافية."],
       spital1: ["المارستان: قاعة المرضى", "يخفّض خطر المرض في القرية إلى 85 %."],
       waage1: ["ميزان المدينة: دار الوزن", "تنخفض كل أسعار المخزن للخشب والحجر بنسبة 15 %."],
     },
@@ -199,8 +263,10 @@ export const CIVIC_T: Record<Lang, Text> = {
     ready: "قائم وفعّال",
     busy: "فقط بعد انتهاء الورشة الحالية",
     locked: "من القرية",
+    after: (n) => `فقط بعد: ${n}`,
     errors: {
       rank: "فقط من مرتبة القرية.",
+      after: "يجب أن تكتمل المرحلة السابقة أولًا.",
       busy: "هناك ورشة بلدية جارية بالفعل.",
       money: "لا يكفي المال في الخزينة.",
       fail: "لم ينجح ذلك.",
@@ -211,6 +277,15 @@ export const CIVIC_T: Record<Lang, Text> = {
     intro:
       "समुदाय के बड़े निर्माण, स्वैच्छिक और किस्तों में भुगतान। एक समय में केवल एक निर्माण-स्थल।",
     stages: {
+      spital2: [
+        "अस्पताल: प्रार्थनालय",
+        "बीमारी का जोखिम और घटाकर 90 % करता है – रोगी-कक्ष के साथ मिलकर 76.5 %।",
+      ],
+      spital3: [
+        "अस्पताल: खेत-आँगन",
+        "हर दिन 1 लकड़ी और हर दूसरे दिन 1 पत्थर अधिक देता है (+0.5 पत्थर प्रतिदिन)।",
+      ],
+      waage2: ["नगर-तराज़ू: पहिया-क्रेन", "भंडार में 100 लकड़ी और 100 पत्थर अधिक समाते हैं।"],
       spital1: ["अस्पताल: रोगी-कक्ष", "गाँव में बीमारी का जोखिम घटाकर 85 % करता है।"],
       waage1: ["नगर-तराज़ू: तौल-घर", "लकड़ी और पत्थर के सभी कोठी-दाम 15 % सस्ते हो जाते हैं।"],
     },
@@ -233,8 +308,10 @@ export const CIVIC_T: Record<Lang, Text> = {
     ready: "खड़ा है और प्रभावी है",
     busy: "चालू निर्माण पूरा होने के बाद ही",
     locked: "गाँव से",
+    after: (n) => `केवल इसके बाद: ${n}`,
     errors: {
       rank: "केवल गाँव स्तर से।",
+      after: "पहले पिछला चरण पूरा होना चाहिए।",
       busy: "एक नगर-निर्माण पहले से चल रहा है।",
       money: "खज़ाने में पर्याप्त पैसा नहीं।",
       fail: "यह नहीं हुआ।",
@@ -244,6 +321,9 @@ export const CIVIC_T: Record<Lang, Text> = {
     title: "公共工程",
     intro: "村社的大型工程，自愿建造、分期付款。同一时间只能有一处工地。",
     stages: {
+      spital2: ["济贫院：礼拜堂", "将患病风险再降至 90 %——与病房合计降至 76.5 %。"],
+      spital3: ["济贫院：农庄", "每天多产 1 木材，每两天多产 1 石料（每天 +0.5 石料）。"],
+      waage2: ["公秤：踏轮起重机", "仓库可多存 100 木材和 100 石料。"],
       spital1: ["济贫院：病房", "将村中的患病风险降至 85 %。"],
       waage1: ["公秤：过磅房", "商栈的木材和石料价格全部便宜 15 %。"],
     },
@@ -265,8 +345,10 @@ export const CIVIC_T: Record<Lang, Text> = {
     ready: "已建成并生效",
     busy: "需等当前工地完工",
     locked: "村庄起",
+    after: (n) => `须先建成：${n}`,
     errors: {
       rank: "村庄等级起才可建。",
+      after: "须先建成上一阶段。",
       busy: "已有一处公共工地在建。",
       money: "金库里的钱不够。",
       fail: "没有成功。",
@@ -276,6 +358,15 @@ export const CIVIC_T: Record<Lang, Text> = {
     title: "公共建築",
     intro: "共同体の大きな建物。任意で、分割で支払います。工事現場は一度に一つだけ。",
     stages: {
+      spital2: [
+        "施療院：礼拝堂",
+        "病気のリスクをさらに 90 % に下げます。病室と合わせて 76.5 % です。",
+      ],
+      spital3: [
+        "施療院：農場",
+        "毎日木材が 1 つ、2 日ごとに石材が 1 つ多く取れます（1 日あたり石材 +0.5）。",
+      ],
+      waage2: ["公設秤：踏み車クレーン", "倉庫に木材 100 と石材 100 を余分に保管できます。"],
       spital1: ["施療院：病室", "村の病気のリスクを 85 % に下げます。"],
       waage1: ["公設秤：計量所", "商館での木材と石材の価格がすべて 15 % 安くなります。"],
     },
@@ -297,8 +388,10 @@ export const CIVIC_T: Record<Lang, Text> = {
     ready: "完成し効果あり",
     busy: "今の現場が終わってから",
     locked: "村から",
+    after: (n) => `先に完成が必要：${n}`,
     errors: {
       rank: "村からです。",
+      after: "先に前の段階を完成させてください。",
       busy: "すでに公共建築の現場があります。",
       money: "金庫のお金が足りません。",
       fail: "うまくいきませんでした。",

@@ -95,15 +95,28 @@ export type KontorQuote = { need: Stock; missing: Stock; cost: number };
 /** What the Kontor would add for a need at the given stock: only the missing units (DB resource_kontor, half up). */
 /** Waage 1 (Gemeindebau, civic.ts) makes every Kontor price 15 % cheaper (DB resource_kontor_at). */
 export const WAAGE_DISCOUNT = 0.85;
-export function kontorQuote(need: Stock, stock: Stock, site: TownWay | null = null, waage = false): KontorQuote {
+export function kontorQuote(
+  need: Stock,
+  stock: Stock,
+  site: TownWay | null = null,
+  waage = false,
+): KontorQuote {
   const missing = {
     wood: Math.max(0, need.wood - stock.wood),
     stone: Math.max(0, need.stone - stock.stone),
   };
   const raw = missing.wood * KONTOR_PRICE.wood + missing.stone * KONTOR_PRICE.stone;
-  return { need, missing, cost: Math.round(raw * (site ? SITE_KONTOR[site] : 1) * (waage ? WAAGE_DISCOUNT : 1) + 1e-9) };
+  return {
+    need,
+    missing,
+    cost: Math.round(raw * (site ? SITE_KONTOR[site] : 1) * (waage ? WAAGE_DISCOUNT : 1) + 1e-9),
+  };
 }
 
+/** Gemeindebauten P3a (migration 0155, DB resource_rate/resource_cap): Spital 3 (Wirtschaftshof) adds 1 wood and
+ *  0.5 stone a day, Waage 2 (Tretradkran) 100 storage for each — both from their completion marker on. */
+export const SPITAL3_RATE: Stock = { wood: 1, stone: 0.5 };
+export const WAAGE2_STORE = 100;
 /**
  * Daily production and storage (DB resource_rate / resource_cap); `owned` = items bought before the day start,
  * `site` = certified location (null counts as Binnenland, as the DB does for display before certification).
@@ -114,10 +127,20 @@ export function resourceRates(
 ): Record<Resource, { rate: number; cap: number }> {
   const w = site ?? "grain",
     camp = owned.has("woodcamp"),
-    store = (owned.has("granary") ? 150 : 0) + (owned.has("granary2") ? 150 : 0);
+    farm = owned.has("spital3"),
+    store =
+      (owned.has("granary") ? 150 : 0) +
+      (owned.has("granary2") ? 150 : 0) +
+      (owned.has("waage2") ? WAAGE2_STORE : 0);
   return {
-    wood: { rate: 1 + (camp ? SITE_WOOD[w] : 0), cap: 100 + (camp ? 200 : 0) + store },
-    stone: { rate: 0.5 + (owned.has(STEINGRUBE) ? SITE_STONE[w] : 0), cap: 100 + store },
+    wood: {
+      rate: 1 + (camp ? SITE_WOOD[w] : 0) + (farm ? SPITAL3_RATE.wood : 0),
+      cap: 100 + (camp ? 200 : 0) + store,
+    },
+    stone: {
+      rate: 0.5 + (owned.has(STEINGRUBE) ? SITE_STONE[w] : 0) + (farm ? SPITAL3_RATE.stone : 0),
+      cap: 100 + store,
+    },
   };
 }
 /** Whole units on UTC day `day` (days since 2000-01-01) from a fractional rate (DB resource_daily). */

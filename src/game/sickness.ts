@@ -12,6 +12,8 @@ export const SICK_WINTER = 0.03;
 export const HERBS_SICK = 0.015, HEALER_SICK = 0.035;
 /** Spital 1 (Gemeindebau, civic.ts): the whole risk ×0.85 from the completion marker row `spital1` on. */
 export const SPITAL_SICK = 0.85;
+/** Spital 2 (Kapelle, P3a): the whole risk ×0.90 on top, from its marker `spital2` on — with Spital 1 ×0.765. */
+export const SPITAL2_SICK = 0.9;
 
 /**
  * Binding sickness chance per household, shared by the live villagers (people.ts sickRate)
@@ -34,6 +36,10 @@ export function sickChance(s: Seed, at: number): number {
   ];
   const risk = SICK_BASE + SICK_WINTER * seasonAt(at).winter * (stepsDone(s, "harvest", at) >= 3 ? 0.5 : 1) * badestubeWinter(s.realm, own, at)
     * (cathedralDone(s, at) >= 5 ? CATHEDRAL_WINTER : 1);
-  // Spital 1 (Gemeindebau, civic.ts): ×0.85 on the whole risk from its completion marker on
-  return boons.reduce((r, b) => r * (1 - b / SICK_BASE), risk) * (own("spital1") ? SPITAL_SICK : 1);
+  // Gemeindebauten (civic.ts), each from its completion marker on, multiplied: Spital 1 ×0.85, Spital 2 ×0.90
+  return (
+    boons.reduce((r, b) => r * (1 - b / SICK_BASE), risk) *
+    (own("spital1") ? SPITAL_SICK : 1) *
+    (own("spital2") ? SPITAL2_SICK : 1)
+  );
 }
