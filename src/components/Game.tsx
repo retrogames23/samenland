@@ -54,6 +54,7 @@ import { certifyMyRank, callNothilfe } from "@/lib/treasury.functions";
 import { decideEncounter } from "@/lib/encounter.functions";
 import { retryOnPending, dbPending, codePending, isSettlementPending } from "@/lib/settlement-pending";
 import { SETTLEMENT_T } from "@/game/lang/settlement";
+import { CLIENT_PROTOCOL } from "@/lib/client-protocol";
 import { useTreasurySync } from "@/components/hooks/useTreasurySync";
 import { useResources } from "@/components/hooks/useResources";
 import { ResourceBar, MaterialLine } from "@/components/hud/ResourceBar";
@@ -1753,7 +1754,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     await refreshTreasury().catch(() => false);
     // the trusted server recomputes the open encounter and books the answer (M1: clients never insert encounters)
     // a thrown call (timeout, network) is never retried: its outcome is unknown; only a pending answer is
-    const r = await retryOnPending(() => decideFn({ data: { seed: my.id, event, choice } }).catch(() => null), codePending, syncSettlement);
+    const r = await retryOnPending(() => decideFn({ data: { seed: my.id, event, choice, client: CLIENT_PROTOCOL } }).catch(() => null), codePending, syncSettlement);
     encSaving.current = false;
     if (!r || !r.ok) {
       // already answered elsewhere or the question changed: reload instead of leaving a stale question open
@@ -2466,7 +2467,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       const nt = NOTHILFE[lang];
       if (!await prepareSpend()) return setMsg(t.buyFail);
       // a thrown call (timeout, network) is never retried: its outcome is unknown; only a pending answer is
-      const r = await retryOnPending(() => nothilfeFn({ data: { seed: my.id, kind, at } }).catch(() => null), codePending, syncSettlement);
+      const r = await retryOnPending(() => nothilfeFn({ data: { seed: my.id, kind, at, client: CLIENT_PROTOCOL } }).catch(() => null), codePending, syncSettlement);
       if (!r) return setMsg(t.buyFail);
       if (!r.ok) return setMsg(r.code === "pending" ? pendingMsg() : r.code === "poor" ? t.poor : r.code === "already" ? nt.already : r.code === "noRuin" ? nt.noRuin : r.code === "rank" ? t.needStage(t.stages[NOTHILFE_RANK] ?? "") : t.buyFail);
       setPurchases((s) => [...s.filter((x) => x.id !== r.row.id), r.row]);

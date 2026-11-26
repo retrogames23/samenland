@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { settleTreasury } from "@/lib/treasury.functions";
 import { coalescedRefresh } from "@/lib/treasury-refresh";
+import { CLIENT_PROTOCOL } from "@/lib/client-protocol";
 import type { Seed } from "@/game/world";
 
 export type Accounting = Awaited<ReturnType<typeof settleTreasury>>;
@@ -21,7 +22,7 @@ export function useTreasurySync(my: Seed | undefined, userId: string | null | un
     if (!my || !userId || my.user_id !== userId) return null;
     const id = my.id;
     try {
-      const result = await treasuryFn({ data: { seed: id } });
+      const result = await treasuryFn({ data: { seed: id, client: CLIENT_PROTOCOL } });
       if (seedRef.current === id) setAccounting(result);
       return result;
     } catch {

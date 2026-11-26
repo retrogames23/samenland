@@ -105,8 +105,32 @@ Branch `claude/hochzeitspaket` · Basis `f6b31ce` · Migrationen `0159_hochzeits
 **Grenzen**
 - Lab: Ein Lab-Dorf ohne Beleg ab *T* kann keinen Nachweis haben, bis seine erste Hochzeit ab *T* gebucht ist. Bis dahin gilt die Untergrenze oder Pending.
 - Europe: Ein höchster Altbeleg ohne `next_at` (von vor A2) trägt keinen Nachweis. Deshalb A2/B mindestens 20 Tage (`WED_MAX`) vor *T* ausliefern und den Sweep laufen lassen.
-- Ältere Clients zeigen Pending als allgemeinen Fehler, beim Gemeinschaftswerk als „zu wenig Geld“.
-- Ratsbuch-Annahme: Pending-Code ohne vorherige Abrechnung. Der Client nutzt den Weg derzeit nicht.
+
+**Abschluss Paket B (drei Punkte)**
+- **Ratsbuch-Annahme:**
+  - Eine bezahlte Antwort (z. B. `journeyman:host` 30) ist eine Geldbuchung, über den Preis der Begegnung im Kassenweg.
+  - `acceptRatsbuch` rechnet deshalb vorher ab (`settleBeforeSpendById`; vor *T* ohne Laden der Welt).
+  - Bei Pending speichert die Anweisung nichts: keine Begegnung, keine geschlossene Anfrage (`ratsbuch_close` ist ein AFTER-Trigger), keine neue Anfrage aus `ratsbuch_refresh`.
+  - Freie Antwort und Ablehnung buchen weder Geld noch Ressourcen.
+- **Gleicher Zeitstempel:**
+  - SQL und TypeScript sortieren gleich: Zeit, dann Klasse (Steuer 0, Mitgift 1, Gutschrift 2, Ausgabe 3, Überfall 4), dann Schlüssel.
+  - Innerhalb einer Klasse ist die Reihenfolge ohne Wirkung: Gekappte Gutschriften, Ausgaben und Überfälle sind jeweils vertauschbar. Die Sortierung der Schlüssel spielt deshalb keine Rolle.
+  - Zwischen den Klassen wirkt die Reihenfolge an der Obergrenze; sie ist auf beiden Seiten gleich festgelegt.
+  - Kein neuer Tie-Breaker nötig; getestet für alle vier Truhengrenzen.
+- **Alte Clients:**
+  - Ab `CLIENT_GATE_LEAD` (7 Tage) vor *T* beantworten `settleTreasury`, `decideEncounter` und `callNothilfe` einen Aufruf ohne `CLIENT_PROTOCOL` mit einer Umleitung, die die Seite neu lädt.
+  - Jeder alte Client ruft vor jeder Geldaktion eine dieser Funktionen auf (`prepareSpend`), dazu minütlich.
+  - Mit dem Platzhalter 2100 greift das nie.
+
+**Voraussetzung für Paket C (Aktivierung)**
+1. 0160 und 0161 sind eingespielt; Server und Client mit `CLIENT_PROTOCOL = 2` sind ausgeliefert.
+2. Die Auslieferung mit dem echten *T* (TS-Konstante und `wedding_switch_since` gemeinsam) ist mindestens 20 Tage vor *T* live: `WED_MAX` für verankerte Belege, darin enthalten die 7 Tage des Gates.
+3. Vor *T* sind Sweep und Inventar sauber.
+4. Kein Schritt setzt den Nachweis voraus, dass keine alten Tabs mehr offen sind. Das Gate lädt sie neu.
+
+**Verbleibende Grenzen**
+- Ein alter Tab aus einem veralteten Browser-Cache, der nach *T* öffnet und klickt, bevor seine erste Synchronisierung zurück ist, kann während des erzwungenen Neuladens kurz den alten Text zeigen.
+- Gebucht wird dabei nie etwas Falsches.
 
 ## Befunde zur Unveränderlichkeit (unverändert gelassen)
 

@@ -76,8 +76,8 @@ describe("Paket B – pending on the client", () => {
       'supabase.from("twin_works").insert(',
       'supabase.from("building_moves").insert(',
       '("civic_raise_budget", {',
-      'decideFn({ data: { seed: my.id, event, choice } })',
-      'nothilfeFn({ data: { seed: my.id, kind, at } })',
+      'decideFn({ data: { seed: my.id, event, choice, client: CLIENT_PROTOCOL } })',
+      'nothilfeFn({ data: { seed: my.id, kind, at, client: CLIENT_PROTOCOL } })',
     ];
     for (const a of actions) {
       const i = game.indexOf(a);

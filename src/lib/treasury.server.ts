@@ -316,6 +316,24 @@ export async function settleBeforeSpend(seed: Seed, now: number): Promise<Weddin
   const { moves: _moves, ...plain } = seed as Seed & { moves?: unknown };
   return weddingSettlementProblem(await settleWeddings(plain as Seed, now));
 }
+/**
+ * settleBeforeSpend for a caller that has only the village id (Ratsbuch). Before the switch nothing is booked and the
+ * realm is not loaded; from it the realm is loaded once, as in bookEncounter, and the weddings are settled first.
+ */
+export async function settleBeforeSpendById(id: string, now: number): Promise<WeddingSettlementError | null> {
+  const { data: row, error } = await supabaseAdmin.from("seeds").select("realm").eq("id", id).maybeSingle();
+  if (error || !row) throw new Error("Missing village");
+  const realm = row.realm as string;
+  const sw = await weddingSwitchState(realm, now);
+  if (sw.mismatch) return new WeddingSettlementError("switch_mismatch", "Wedding switch differs between server and database");
+  if (now < Math.min(sw.ts, sw.db)) return null;
+  const input = await loadEconomyInput(realm);
+  const { setRealm } = await import("@/game/time");
+  setRealm(realm as Realm);
+  const seed = economyWorldAt(input, now).find((s) => s.id === id);
+  if (!seed) throw new Error("Missing village");
+  return settleBeforeSpend(seed, now);
+}
 /** Kasse und Vollständigkeit aus einem Aufruf (DB village_balance_checked, 0161). */
 export async function checkedBalance(id: string): Promise<{ balance: number; settled: boolean }> {
   const { data, error } = await untyped.rpc("village_balance_checked", { _seed: id });

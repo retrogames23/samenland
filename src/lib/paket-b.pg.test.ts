@@ -442,6 +442,135 @@ d("Paket B – O1/O2, Pending und Ressourcenabrechnung (vollständiges Schema, e
       has_function_privilege('service_role', 'public.wedding_settle(uuid,jsonb,timestamptz)', 'EXECUTE') se`;
     expect(p).toEqual({ a: false, si: false, ae: false, am: false, se: true });
   });
+
+  // ---------- Abschluss Paket B, Punkt 1: Ratsbuch-Annahme ----------
+  describe("R Ratsbuch-Annahme (encounter_guard mit request_id, ratsbuch_close, ratsbuch_refresh)", () => {
+    const RT = ["ratsbuch_requests", "ratsbuch_state"];
+    const snap = async () => (await snapshot()) + "|" + (await Promise.all(RT.map(rowsOf))).join("|");
+    const request = async (v: V, kind: string, daysAgo = 0) => {
+      const id = uid();
+      await sql.begin(async (tx) => { await tx`set local session_replication_role = replica`;
+        await tx`insert into public.ratsbuch_requests (id, seed_id, day, kind, status, created_at) values (${id}, ${v.id}, ${new Date(NOW - daysAgo * D).toISOString().slice(0, 10)}::date, ${kind}, 'open', now())`; });
+      return id;
+    };
+    // what acceptRatsbuch (ratsbuch.server.ts) inserts, as the server role
+    const accept = (v: V, req: string, event: string, choice: string) =>
+      asServer((tx) => tx`insert into public.encounters (seed_id, user_id, event, choice, request_id) values (${v.id}, ${v.owner}, ${event}, ${choice}, ${req})`);
+    beforeAll(async () => {
+      await sql.unsafe(`create or replace function public.ratsbuch_since() returns timestamptz language sql stable set search_path to 'public'
+        as $$ select timestamptz '${iso(NOW - 2 * D)}' $$`);
+    });
+    afterAll(async () => {
+      await sql.unsafe(`create or replace function public.ratsbuch_since() returns timestamptz language sql stable set search_path to 'public'
+        as $$ select '2100-01-04 00:00:00+00'::timestamptz $$`);
+    });
+    it("R1 a paid answer changes money: while pending it stores nothing at all (no encounter, no closed or refreshed request); after the settlement it books", async () => {
+      const s = await scenario({ w2: 500 });
+      await money(s.v, (await balance(s.v)) - 10, NOW - D);     // booked chest 10 < journeyman:host 30
+      const req = await request(s.v, "journeyman");
+      const h0 = await snap();
+      expect(await accept(s.v, req, "journeyman", "host")).toBe(PENDING);
+      expect(await snap()).toBe(h0);                             // incl. ratsbuch_requests/ratsbuch_state: the refresh inside the guard rolled back
+      expect((await sql`select status from public.ratsbuch_requests where id = ${req}`)[0]!["status"]).toBe("open");
+      await bookW2(s);
+      const before = await balance(s.v);
+      expect(await accept(s.v, req, "journeyman", "host")).toBe("ok");
+      expect((await sql`select status from public.ratsbuch_requests where id = ${req}`)[0]!["status"]).toBe("accepted");
+      expect((await sql`select cost from public.encounters where request_id = ${req}`)[0]!["cost"]).toBe(30);
+      expect(await balance(s.v)).toBe(before - 30);              // the only money effect: the answer's price
+    });
+    it("R2 the free paths never touch money or resources: the free answer and the decline book no money row, also while pending", async () => {
+      const s = await scenario({ w2: 500 });
+      await money(s.v, (await balance(s.v)) - 10, NOW - D);
+      const MONEY = ["purchases", "gifts", "twin_works", "building_moves", "resource_ledger", "civic_stages", "wedding_receipts", "wedding_settlement"];
+      const moneyRows = async () => (await Promise.all(MONEY.map(rowsOf))).join("|");
+      const m0 = await moneyRows(), b0 = await balance(s.v);
+      const free = await request(s.v, "orphan");
+      expect(await accept(s.v, free, "orphan", "apprentice")).toBe("ok");      // price 0: no money check, no money row
+      expect((await sql`select cost from public.encounters where request_id = ${free}`)[0]!["cost"]).toBe(0);
+      const dec = await request(s.v, "monk", 5);  // a day before ratsbuch_since: the refresh never creates it
+      expect((await sql`select public.ratsbuch_decline(${s.v.id}, ${dec}) r`)[0]!["r"]).toBe(true);
+      expect(await moneyRows()).toBe(m0);
+      expect(await balance(s.v)).toBe(b0);
+    });
+  });
+
+  // ---------- Abschluss Paket B, Punkt 2: Ereignisse mit identischem Zeitstempel ----------
+  describe("Z identical timestamps: one deterministic order (t, class, key) in SQL and TypeScript; within a class the order cannot matter", () => {
+    type Ev = { t: number; r: number; v: number; k: string };
+    /** TypeScript walkChest, the client mirror of village_balance_walk (economy.ts). */
+    let walkChest: (start: number, events: Ev[], capAt: (t: number) => number) => number;
+    beforeAll(async () => { ({ walkChest } = await import("@/game/economy")); });
+    const walkAt = async (v: V, t: number) => (await sql`select public.village_balance_walk(${v.id}, '2026-11-12 00:00:00+00', ${iso(t)}) b`)[0]!["b"] as number;
+    const row = async (tx: postgres.TransactionSql, v: V, cost: number, at: number, id?: string) =>
+      tx`insert into public.purchases (id, seed_id, user_id, item, cost, created_at) values (${id ?? crypto.randomUUID()}, ${v.id}, ${v.owner}, ${"test_tie_" + ++n}, ${cost}, ${iso(at)})`;
+    /**
+     * A village whose chest sits at `start` just before the instant `tt`, which is also one of its tax days (tax income
+     * 150) and the instant of a booked wedding (dowry 300); at `tt` further: two credits (+200, +90), a received gift (+25),
+     * two expenses (−250, −60). `ids` chooses the purchase ids, i.e. the key order inside a class.
+     */
+    const tie = async (cap: number, chests: string[], start: "cap" | "cap-20" | "zero", ids: [string, string, string, string]) => {
+      const v = await village({ ageDays: 10, noRaids: true }), other = await village();
+      const c0 = ((await sql`select created_at from public.seeds where id = ${v.id}`)[0]!["created_at"] as Date).getTime();
+      let day = Math.ceil((T + 12 * H - c0) / D); const tt = c0 + day * D;               // a tax day after the switch
+      const leg = await legacy(v);
+      await settle(v, chain(v, [...leg, { t: tt, dowry: 300 }], NOW + D), NOW);
+      await sql.begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        for (const c of chests) await tx`insert into public.purchases (seed_id, user_id, item, cost, created_at) values (${v.id}, ${v.owner}, ${c}, 0, ${iso(T - D)})`;
+        // the chest before tt: deep into the red, then a credit the cap cuts to exactly the cap, then down to the start
+        await row(tx, v, 10_000_000, tt - 3 * H); await row(tx, v, -20_000_000, tt - 2 * H);
+        if (start !== "cap") await row(tx, v, start === "zero" ? cap : 20, tt - H);
+        await tx`insert into public.tax_receipts (seed_id, day, population, households, income, assessed_at, version) values (${v.id}, ${day}, 50, 10, 150, ${iso(tt)}, 1)`;
+        await row(tx, v, -200, tt, ids[0]); await row(tx, v, -90, tt, ids[1]);
+        await row(tx, v, 250, tt, ids[2]); await row(tx, v, 60, tt, ids[3]);
+        await tx`insert into public.gifts (from_seed, to_seed, user_id, kind, amount, created_at) values (${other.id}, ${v.id}, ${other.owner}, 'gift', 25, ${iso(tt)})`;
+      });
+      void day;
+      return { v, tt };
+    };
+    const capOf = (cap: number) => () => cap;
+    const EVENTS = (tt: number): Ev[] => [
+      { t: tt, r: 0, v: 150, k: "d1" }, { t: tt, r: 1, v: 300, k: "w1" },
+      { t: tt, r: 2, v: 200, k: "a" }, { t: tt, r: 2, v: 90, k: "b" }, { t: tt, r: 2, v: 25, k: "g" },
+      { t: tt, r: 3, v: -250, k: "c" }, { t: tt, r: 3, v: -60, k: "e" },
+    ];
+    // purchase ids whose first character fixes the key order: ascending in one village, reversed in the other
+    const ids = (lead: string[]) => lead.map((c) => c.repeat(8) + crypto.randomUUID().slice(8)) as [string, string, string, string];
+    const LOW = () => ids(["1", "2", "3", "4"]), HIGH = () => ids(["f", "e", "d", "c"]);
+    for (const [cap, chests] of [[1200, []], [4000, ["chest2"]], [10000, ["chest2", "chest3"]], [25000, ["chest2", "chest3", "chest4"]]] as [number, string[]][]) {
+      it(`Z cap ${cap}: SQL = TypeScript at the same instant (at the cap, 20 below, zero); reversed keys give the same chest`, async () => {
+        let bites = 0;
+        for (const start of ["cap", "cap-20", "zero"] as const) {
+          const a = await tie(cap, chests, start, LOW()), b = await tie(cap, chests, start, HIGH());
+          const startA = await walkAt(a.v, a.tt - 1), startB = await walkAt(b.v, b.tt - 1);
+          expect(startA).toBe(start === "cap" ? cap : start === "cap-20" ? cap - 20 : 0);
+          expect(startB).toBe(startA);
+          const sqlA = await walkAt(a.v, a.tt), sqlB = await walkAt(b.v, b.tt);
+          expect(sqlB).toBe(sqlA);                                // key order inside a class (ids, collation) does not matter
+          const ts = walkChest(startA, EVENTS(a.tt), capOf(cap));
+          expect(sqlA).toBe(ts);                                  // SQL and TypeScript agree
+          // every permutation inside the classes gives the same result (the class functions commute) …
+          const shuffled = EVENTS(a.tt).map((e, i) => ({ ...e, k: String.fromCharCode(122 - i) }));
+          expect(walkChest(startA, shuffled, capOf(cap))).toBe(ts);
+          // … but the class order matters at the cap: debits before credits would give another chest. Both sides use
+          // credits first (r 0–2), then debits (r 3), then raids (r 4), so this never happens.
+          const debitsFirst = EVENTS(a.tt).map((e) => (e.r === 3 ? { ...e, r: -1 } : e));
+          if (walkChest(startA, debitsFirst, capOf(cap)) !== ts) bites++;
+        }
+        expect(bites).toBeGreaterThan(0);                         // the test would notice another class order
+      });
+    }
+    it("Z the same-instant order is written down identically in both places", async () => {
+      const def = (await sql`select pg_get_functiondef('public.village_balance_walk(uuid,timestamptz,timestamptz)'::regprocedure) s`)[0]!["s"] as string;
+      expect(def).toContain("ORDER BY t, r, k");
+      expect(def).toContain("CASE WHEN q.v > 0 THEN 2 ELSE 3 END");
+      const { readFileSync } = await import("node:fs");
+      const eco = readFileSync(new globalThis.URL("../game/economy.ts", import.meta.url), "utf8");
+      expect(eco).toContain("a.t - b.t || a.r - b.r ||");
+      expect(eco).toContain("r: v > 0 ? 2 : 3");
+    });
+  });
 });
 
 // ---------- before the switch (today's production state): 0161 changes nothing ----------
