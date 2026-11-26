@@ -14,7 +14,8 @@ type Row = WeddingReceiptRow;
 const PLACEHOLDER = "2100-01-04T00:00:00+00:00";
 type Quarantine = { seed_id: string; reason: string; indices: number[]; detected_at: string; released_at: string | null };
 const db = {
-  rows: [] as Row[], quarantine: [] as Quarantine[], upserts: 0, failAfter: Infinity, writes: [] as Row[], reads: [] as string[],
+  rows: [] as Row[], quarantine: [] as Quarantine[], upserts: 0, marks: 0,
+  settlement: new Map<string, { through: string; quiet: string; index: number }>(), failAfter: Infinity, writes: [] as Row[], reads: [] as string[],
   encounters: [] as { seed_id: string; event: string; choice: string }[],
   /** what the database's wedding_switch_since answers (null = function missing, "error" = other failure) */
   dbSwitch: PLACEHOLDER as string | null | "error",
@@ -72,8 +73,10 @@ class Query implements PromiseLike<{ data: unknown; error: unknown; count?: numb
     return this.single ? { data: out[0] ?? null, error: null } : { data: out, error: null };
   }
 }
-/** The booking call of migration 0160 as the fake sees it (one call = one transaction). */
+/** The booking call of migration 0160 as the fake sees it (one call = one transaction). `upserts` counts calls that
+ *  carry rows; a proof-only call (Paket B wedding_settle with no rows) is counted in `marks`. */
 function bookCall(seed: string, rows: Omit<Row, "seed_id">[]) {
+  if (rows.length === 0) return { data: { inserted: 0 }, error: null };
   if (++db.upserts > db.failAfter) return { data: null, error: { message: "network down" } };
   if (db.quarantine.some((q) => q.seed_id === seed && !q.released_at)) return { data: null, error: { message: "wedding settlement quarantined" } };
   const next = [...db.rows];
@@ -100,7 +103,21 @@ vi.mock("@/integrations/supabase/client.server", () => ({ supabaseAdmin: {
   rpc: async (fn: string, args: Record<string, unknown>) => {
     db.reads.push(`rpc:${fn}`);
     if (fn === "village_balance") return { data: 123, error: null };
+    if (fn === "village_balance_checked") return { data: { balance: 123, settled: true }, error: null };
+    if (fn === "resource_refresh_try") return { data: "current", error: null };
     if (fn === "wedding_receipts_book") return bookCall(args["_seed"] as string, args["_rows"] as Omit<Row, "seed_id">[]);
+    if (fn === "wedding_settle") {
+      // Paket B: booking + completeness proof in one call; the proof only when the chain carries it (top next_at > through)
+      const seed = args["_seed"] as string, rows = args["_rows"] as Omit<Row, "seed_id">[];
+      if (db.quarantine.some((q) => q.seed_id === seed && !q.released_at)) return { data: null, error: { message: "wedding settlement quarantined" } };
+      const r = bookCall(seed, rows);
+      if (r.error) return r;
+      db.marks++;
+      const top = db.rows.filter((x) => x.seed_id === seed).sort((a, b) => b.wedding_index - a.wedding_index)[0];
+      const marked = !!top?.next_at && Date.parse(top.next_at) > Date.parse(args["_through"] as string);
+      if (marked) db.settlement.set(seed, { through: args["_through"] as string, quiet: top!.next_at, index: top!.wedding_index });
+      return { data: { ...(r.data as object), marked }, error: null };
+    }
     if (fn === "wedding_quarantine_set") {
       const seed = args["_seed"] as string;
       if (!db.quarantine.some((q) => q.seed_id === seed && !q.released_at))
@@ -145,7 +162,7 @@ const pastSwitch = () => new Date(Date.now() - 2 * D).toISOString();
 /** Today's live state: most villages complete, some with 1–2 newest receipts not settled yet. */
 function seedLiveState() {
   db.dbSwitch = PLACEHOLDER; db.tsSwitch = null; resetWeddingSwitchCache();
-  db.rows = []; db.quarantine = []; db.upserts = 0; db.failAfter = Infinity; db.writes = []; db.reads = []; db.encounters = [];
+  db.rows = []; db.quarantine = []; db.upserts = 0; db.marks = 0; db.settlement = new Map(); db.failAfter = Infinity; db.writes = []; db.reads = []; db.encounters = [];
   villages.forEach((s, i) => {
     const rows = weddingReceiptRows(s, NOW), drop = i % 3; // 0, 1 or 2 newest missing
     db.rows.push(...rows.slice(0, rows.length - drop));
@@ -226,7 +243,7 @@ describe("Korrektur A: settleWeddings compares every booked receipt (no count/in
     const admin = supabaseAdmin as unknown as { rpc: (f: string, a: Record<string, unknown>) => Promise<unknown> };
     const rpc = admin.rpc;
     admin.rpc = async (fn, args) => {
-      if (fn === "wedding_receipts_book") { db.rows.push({ ...good, dowry: good.dowry + 9 }); admin.rpc = rpc; }
+      if ((fn === "wedding_receipts_book" || fn === "wedding_settle") && (args["_rows"] as unknown[]).length) { db.rows.push({ ...good, dowry: good.dowry + 9 }); admin.rpc = rpc; }
       return rpc(fn, args);
     };
     const r = await settleWeddings(v, NOW);
@@ -234,6 +251,33 @@ describe("Korrektur A: settleWeddings compares every booked receipt (no count/in
     expect(db.writes).toEqual([]); // nothing overwritten, nothing added by this settlement
     expect(r.audit.changed).toEqual([{ index: n - 1, fields: ["dowry"] }]);
     expect(weddingSettlementProblem(r)?.reason).toBe("quarantined");
+  });
+});
+
+describe("Paket B (B13): settleWeddings writes the completeness proof with the booking", () => {
+  const v = villages[1]!; // 1 newest receipt missing in the live state
+  it("B13 the missing receipt and the proof go in one wedding_settle call; the proof matches the new anchor", async () => {
+    const r = await settleWeddings(v, NOW);
+    expect(r).toMatchObject({ inserted: 1, marked: true, verified: true });
+    expect(db.reads.filter((x) => x === "rpc:wedding_settle")).toHaveLength(1);
+    const top = db.rows.filter((x) => x.seed_id === v.id).sort((a, b) => b.wedding_index - a.wedding_index)[0]!;
+    expect(db.settlement.get(v.id)).toEqual({ through: new Date(NOW).toISOString(), quiet: top.next_at, index: top.wedding_index });
+  });
+  it("B13 nothing left to book: the proof alone (no rows) — and a dry run writes nothing", async () => {
+    const done = villages[0]!;
+    const dry = await settleWeddings(done, NOW, { apply: false });
+    expect(dry.marked).toBe(false);
+    expect(db.settlement.has(done.id)).toBe(false);
+    const r = await settleWeddings(done, NOW);
+    expect(r).toMatchObject({ inserted: 0, marked: true });
+    expect(db.upserts).toBe(0);
+    expect(db.settlement.get(done.id)?.through).toBe(new Date(NOW).toISOString());
+  });
+  it("B13 dates differ but neither is reached: receipts are booked, the proof is not claimed", async () => {
+    db.dbSwitch = new Date(NOW + 5 * D).toISOString();
+    const r = await settleWeddings(villages[4]!, NOW);
+    expect(r.marked).toBe(false);
+    expect(db.settlement.has(villages[4]!.id)).toBe(false);
   });
 });
 
@@ -344,7 +388,7 @@ describe("Korrektur C: switchMismatch fails closed everywhere (one shared verdic
   it("C4 treasury sync, normal state: passes the check and continues", async () => {
     const r = await calculateTreasury(villages[0]!.id, "europe"); // tax_cutover not set: balance path
     expect(r).toMatchObject({ seed: villages[0]!.id, balance: 123 });
-    expect(db.reads.slice(0, 2)).toEqual(["rpc:wedding_switch_since", "tax_cutover"]);
+    expect(db.reads.slice(0, 3)).toEqual(["rpc:wedding_switch_since", "tax_cutover", "rpc:village_balance_checked"]);
   });
   it("dates differ but neither has been reached at the settlement instant: no mismatch (all weddings are older than both)", async () => {
     db.dbSwitch = new Date(NOW + 5 * D).toISOString();

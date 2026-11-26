@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { economyWorldAt } from "@/game/economy-world";
 import type { Realm } from "@/game/time";
 import { loadEconomyInput } from "./treasury.server";
+import { isSettlementPending } from "./settlement-pending";
 
 export type EncounterRow = {
   id: string;
@@ -13,10 +14,13 @@ export type EncounterRow = {
 };
 export type DecideResult = { ok: true; row: EncounterRow } | { ok: false; code: DecideCode };
 /** "full": six growth boons are active (M1 Paket 2b) — the growth answer is refused, the others stay open. */
-export type DecideCode = "already" | "stale" | "poor" | "full" | "fail";
+/** "pending" (Paket B): the wedding settlement is not proven complete and the booked chest does not cover the price —
+ *  nothing was booked; the client syncs and retries once. Never shown as a lack of money. */
+export type DecideCode = "already" | "stale" | "poor" | "full" | "fail" | "pending";
 
 /** Guard messages → result codes, shared by bookEncounter and the Ratsbuch (ratsbuch.server.ts). */
 export function guardCode(m: string): DecideCode {
+  if (isSettlementPending(m)) return "pending";
   if (m.includes("not enough money")) return "poor";
   if (m.includes("boons full")) return "full";
   if (
@@ -69,17 +73,24 @@ export async function bookEncounter(
       );
     if (ce) throw new Error("Rank certificate failed");
   }
-  if (event === "wedding") {
-    // Hochzeitspaket: fail closed. A switch mismatch refuses the answer at any time; from the switch the guard finds
-    // a wedding only in version-2 wedding_receipts, so the trusted server books and verifies the calendar first
-    // (moves never enter the calendar, exactly as in the treasury sync). Same verdict as sync and sweep.
-    const { weddingSwitchState, settleWeddings, weddingSettlementProblem } = await import("./treasury.server");
+  {
+    // Hochzeitspaket + Paket B (O2): every answer, not only the wedding answer, follows the one order — weddings booked
+    // and proven complete first (settleBeforeSpend), then the money action. A switch mismatch refuses the answer at any
+    // time; from the switch the guard finds a wedding only in version-2 wedding_receipts and judges the price against a
+    // proven-complete chest (else 'wedding settlement pending'). A settlement that cannot be completed (quarantine,
+    // divergence) is a pending refusal for answers with a price or a wedding, nothing is booked; free answers stay open.
+    const { weddingSwitchState, settleBeforeSpend, WeddingSettlementError } = await import("./treasury.server");
     const sw = await weddingSwitchState(realm, now).catch(() => null);
-    if (!sw || sw.mismatch) return { ok: false, code: "fail" };
-    if (now >= sw.ts) {
-      const { moves: _moves, ...plain } = seed;
-      const w = await settleWeddings(plain, now).catch(() => null);
-      if (!w || weddingSettlementProblem(w)) return { ok: false, code: "fail" };
+    if (!sw || (sw.mismatch && event === "wedding")) return { ok: false, code: "fail" };
+    if (!sw.mismatch && now >= Math.min(sw.ts, sw.db)) {
+      const problem = await settleBeforeSpend(seed, now).catch((e: unknown) => e);
+      if (problem) {
+        // the wedding answer needs its own booked wedding: a quarantine or divergence refuses it (fail-closed, as before);
+        // a call that failed (e.g. a parallel settlement) is transient — pending, the client syncs and retries once
+        const lasting = problem instanceof WeddingSettlementError && problem.reason !== "booking_failed";
+        if (event === "wedding") return { ok: false, code: lasting ? "fail" : "pending" };
+        // every other answer: the database judges the price against the booked lower bound (pending when it falls short)
+      }
     }
   }
   const { data, error } = await supabaseAdmin

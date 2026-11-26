@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
 
 // Scheduled every few hours: warns opted-in mayors whose village chest is nearly full.
-// Balance comes from the authoritative DB village_balance; at most one letter per RESEND window.
+// Balance comes from the authoritative DB village_balance (via village_balance_checked: only a proven-complete chest); at most one letter per RESEND window.
 const RESEND = 3 * 864e5;
 
 export const Route = createFileRoute("/api/public/chest-mail")({
@@ -30,8 +30,11 @@ export const Route = createFileRoute("/api/public/chest-mail")({
         let sent = 0;
         for (const s of seeds) {
           const cap = chestCap(s.id, buys ?? []);
-          const { data: bal, error } = await db.rpc("village_balance", { _seed: s.id });
-          if (error || typeof bal !== "number" || bal < cap * CHEST_WARN) continue;
+          // Paket B (O2): only a proven-complete chest goes into a letter; while the wedding settlement is outstanding the
+          // village is skipped and gets its letter on a later run (never a lower-bound amount presented as the chest)
+          const { data: chk, error } = await db.rpc("village_balance_checked", { _seed: s.id });
+          const bal = (chk as { balance?: unknown } | null)?.balance;
+          if (error || typeof bal !== "number" || (chk as { settled?: unknown }).settled !== true || bal < cap * CHEST_WARN) continue;
           const o = due.find((x) => x.user_id === s.user_id)!;
           const { data: u } = await supabaseAdmin.auth.admin.getUserById(s.user_id!);
           const email = u.user?.email;

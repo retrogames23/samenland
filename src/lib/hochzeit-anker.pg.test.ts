@@ -6,7 +6,8 @@
 // Test-only change, stated openly: the switch instant is fixed in the code (placeholder 2100-01-04) and 0159's guard
 // refuses receipts dated after now() + 5 minutes. To book unified-rule weddings with the REAL rule, this file replaces
 // exactly the `now()` of that one future check by a test clock (setting test.now) — every other line of the guard,
-// the booking call and the quarantine are the migration's text (asserted below).
+// the booking call and the quarantine are the migration's text (asserted below). The same for the one future check of
+// wedding_settle (0161, Paket B), which settleWeddings now calls for the completeness proof.
 //
 // Abnahmekriterien (test names start with the criterion): A2-K1 … A2-K7, A2-K9 (A2-K8: hochzeit-regel-golden.test.ts,
 // hochzeit-anker.test.ts and the parity test in hochzeitspaket.pg.test.ts).
@@ -15,7 +16,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Seed } from "@/game/world";
 import { weddingReceiptRows, planReceipts, type BookedReceipt, type WeddingReceiptRow } from "@/game/wedding-receipts";
 import { WEDDING_SWITCH_SINCE } from "@/game/weddings";
-import { M0160, block, prepareWeddingDb } from "./wedding-pg-schema";
+import { M0160, M0161, block, prepareWeddingDb } from "./wedding-pg-schema";
 
 const URL = process.env["BUILD_MAIL_TEST_PG"];
 if (!URL && (process.env["CI"] || process.env["REQUIRE_PG"])) throw new Error("BUILD_MAIL_TEST_PG missing: Paket A2 DB tests must run");
@@ -49,7 +50,7 @@ vi.mock("@/integrations/supabase/client.server", () => {
     };
     return q;
   };
-  const TYPES: Record<string, string> = { _seed: "uuid", _realm: "text", _rows: "jsonb", _reason: "text", _indices: "integer[]", _details: "jsonb", _note: "text" };
+  const TYPES: Record<string, string> = { _seed: "uuid", _realm: "text", _rows: "jsonb", _reason: "text", _indices: "integer[]", _details: "jsonb", _note: "text", _through: "timestamptz", _today: "date" };
   const rpc = async (fn: string, args: Record<string, unknown>) => {
     const keys = Object.keys(args);
     const vals = keys.map((k) => args[k]); // postgres.js serializes jsonb parameters itself (no JSON.stringify here)
@@ -119,6 +120,11 @@ d("Paket A2 – Anker-Fortsetzung (real PostgreSQL, real settleWeddings)", () =>
     const line = "IF NEW.occurred_at > now() + interval '5 minutes' THEN";
     expect(guard.split(line).length).toBe(2);
     await sql.unsafe(guard.replace(line, "IF NEW.occurred_at > coalesce(nullif(current_setting('test.now', true), '')::timestamptz, now()) + interval '5 minutes' THEN"));
+    // Paket B: the same test clock for the one future check of wedding_settle (0161), nothing else changed
+    const settleFn = block(M0161, "CREATE OR REPLACE FUNCTION public.wedding_settle(", "END $$;");
+    const sline = "IF _through > now() + interval '5 minutes' THEN";
+    expect(settleFn.split(sline).length).toBe(2);
+    await sql.unsafe(settleFn.replace(sline, "IF _through > coalesce(nullif(current_setting('test.now', true), '')::timestamptz, now()) + interval '5 minutes' THEN"));
     resetWeddingSwitchCache();
   }, 120000);
   afterAll(async () => {
@@ -189,6 +195,24 @@ d("Paket A2 – Anker-Fortsetzung (real PostgreSQL, real settleWeddings)", () =>
       expect(cases).toBeGreaterThanOrEqual(3);
     }, 300000);
   }
+
+  // ---------- Paket B (B13): the real settleWeddings writes the proof with the anchor, also after a retroactive factor ----------
+  it("B13 settleWeddings writes the completeness proof atomically with the receipts; it follows the anchor across a later Herberge", async () => {
+    const { P, X } = bitingCases(BASES[0]!, "herberge", 1)[0]!;
+    const s0 = await make(C0, [["fisher", C0 + D], ["hunter", C0 + 2 * D], ...BASES[0]!.steps.map(([it, k]) => [it, P + k] as [string, number])]);
+    const proof = async () => (await sql`select settled_through, quiet_until, anchor_index from public.wedding_settlement where seed_id = ${s0.id}`)
+      .map((r) => ({ through: (r["settled_through"] as Date).getTime(), quiet: (r["quiet_until"] as Date).getTime(), index: r["anchor_index"] as number }))[0];
+    const r0 = await settleWeddings(s0, X);
+    expect(r0.marked).toBe(true);
+    let b = await receipts(s0.id);
+    expect(await proof()).toEqual({ through: X, quiet: Date.parse(b.at(-1)!.next_at!), index: b.at(-1)!.wedding_index });
+    const s1 = await later(s0, "herberge", X + H);
+    const r1 = await settleWeddings(s1, X + 30 * D);
+    expect(weddingSettlementProblem(r1)).toBeNull();
+    b = await receipts(s0.id);
+    expect(await proof()).toEqual({ through: X + 30 * D, quiet: Date.parse(b.at(-1)!.next_at!), index: b.at(-1)!.wedding_index });
+    expect((await sql`select public.wedding_settled_at(${s0.id}, ${new Date(X + 30 * D).toISOString()}) s`)[0]!["s"]).toBe(true);
+  });
 
   // ---------- A2-K3: initial state ----------
   it("A2-K3 a village without weddings: inventory 'ohne_belege', first settlement books from index 0 and anchors it", async () => {

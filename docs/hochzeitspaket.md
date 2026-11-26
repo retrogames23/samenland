@@ -1,6 +1,6 @@
 # Hochzeitspaket – Stand nach der Nachbesserung
 
-Branch `claude/hochzeitspaket` · Basis `f6b31ce` · Migrationen `0159_hochzeitspaket`, `0160_hochzeit_anker` (Paket A2) (nicht eingespielt)
+Branch `claude/hochzeitspaket` · Basis `f6b31ce` · Migrationen `0159_hochzeitspaket`, `0160_hochzeit_anker` (Paket A2), `0161_hochzeit_vollstaendigkeit` (Paket B) (nicht eingespielt)
 
 **Status: nicht abgenommen, keine Produktionsfreigabe.** Nach Masterplan v6.2, 11.3 ist die Anpassung des Hochzeitsrhythmus bewusst zurückgestellt. Die Zielregel dieses Pakets ist **nicht beschlossen** (siehe „Offene Designfragen“).
 
@@ -55,6 +55,58 @@ Branch `claude/hochzeitspaket` · Basis `f6b31ce` · Migrationen `0159_hochzeits
 **Grenzen:**
 - Anzeige und Prognose im Client rechnen weiter ab Gründung. Für Dörfer, die nach *T* einen der drei Faktoren nachkaufen, kann die Anzeige vergangener Hochzeiten von den Belegen abweichen. Geld und Wächter folgen den Belegen.
 - Neue Server-Version erst nach 0160 ausliefern: Sie liest `next_at` und bucht über `wedding_receipts_book`.
+
+## Paket B – Vollständigkeit, Reihenfolge, Pending (Migration 0161, nicht eingespielt)
+
+**Ziel:** Keine Kassen- oder Ressourcenbuchung läuft mit einem unvollständigen Stand der Hochzeitsabrechnung.
+
+**O1 – Vollständigkeitsnachweis** (`wedding_settlement`)
+- Felder:
+  - `settled_through` (einschließlich): bis dahin hat der Server abgerechnet;
+  - `quiet_until` (ausschließlich): `next_at` des Ankers, also unveränderlich (A2);
+  - `anchor_index`.
+- Geschrieben nur von `wedding_settle`, in derselben Transaktion wie die Belege, und nur, wenn die Kette den Nachweis trägt (`next_at` des höchsten Belegs > `settled_through`).
+- `wedding_settled_at(seed, t)`: wahr, wenn `t ≤ settled_through` oder `t < quiet_until`, **und** der Nachweis zum heutigen höchsten Beleg passt.
+  - Fehlt der Nachweis, widerspricht er dem Beleg oder ist er nicht prüfbar, gilt das Dorf als **nicht** vollständig; ebenso bei Quarantäne.
+  - Vor dem Umschaltzeitpunkt und vor dem ersten möglichen Hochzeitstermin (Gründung + 2 Tage) ist immer vollständig.
+
+**E2 – Geldprüfung** (`wedding_money_check`, in allen fünf Wächtern und in der Kontor-Prüfung von `purchase_material`)
+
+| gebuchte Kasse | Abrechnung | Ergebnis |
+|---|---|---|
+| ≥ Preis | beliebig | erlaubt (geprüfter unterer Grenzwert) |
+| < Preis | nicht vollständig | `wedding settlement pending` |
+| < Preis | vollständig | `not enough money` |
+
+- Gilt für die Ereignisquellen, die `paket-b.pg.test.ts` abdeckt, und für die vier Truhengrenzen mit exaktem Grenzfall.
+- Ein Strukturtest schlägt fehl, sobald der Kassenweg eine neue Ereignisquelle bekommt.
+
+**Ressourcen** (`resource_refresh_try` → `current` · `booked` · `inactive` · `pending`)
+- `pending`, wenn eine offene Gemeindebau-Stufe zu buchen wäre (ihr Kontor liest die Kasse) und die Abrechnung nicht vollständig ist. Dann wird **nichts** gebucht.
+- `resource_refresh_at` löst bei `pending` einen Fehler aus und kehrt nie mehr still zurück.
+- `purchase_material` bricht vor jeder Verwendung des Bestands ab. Damit ist der bekannte Kontor-Fall behoben (vorher Aufschlag 20, Material [5,5]).
+- `civic_raise_budget` prüft das Ergebnis ausdrücklich, `resource_overview` meldet `pending`.
+
+**O2 – Reihenfolge** (`settleBeforeSpend`, `calculateTreasury`)
+1. Umschaltzeitpunkt prüfen.
+2. Hochzeiten buchen.
+3. Nachweis schreiben.
+4. Ressourcen, Steuertage, Kasse.
+5. Bei Pending abbrechen, ohne Teilbuchung.
+
+- Gilt für Kassen-Sync, alle Begegnungsantworten und Nothilfe.
+- `chest-mail` schreibt nur einen nachgewiesen vollständigen Kassenstand in einen Brief.
+
+**Client**
+- `retryOnPending`: Nur bei einer Pending-Antwort wird einmal synchronisiert und höchstens einmal wiederholt. Bei Timeout oder anderem Fehler gibt es keine Wiederholung.
+- Gilt für Kauf, Gemeindebau-Rate, Kontor-Limit, Geschenk, Gemeinschaftswerk, Umsetzen, Begegnung und Nothilfe.
+- Eigener Text (`src/game/lang/settlement.ts`); im Ressourcenbalken eine Sanduhr.
+
+**Grenzen**
+- Lab: Ein Lab-Dorf ohne Beleg ab *T* kann keinen Nachweis haben, bis seine erste Hochzeit ab *T* gebucht ist. Bis dahin gilt die Untergrenze oder Pending.
+- Europe: Ein höchster Altbeleg ohne `next_at` (von vor A2) trägt keinen Nachweis. Deshalb A2/B mindestens 20 Tage (`WED_MAX`) vor *T* ausliefern und den Sweep laufen lassen.
+- Ältere Clients zeigen Pending als allgemeinen Fehler, beim Gemeinschaftswerk als „zu wenig Geld“.
+- Ratsbuch-Annahme: Pending-Code ohne vorherige Abrechnung. Der Client nutzt den Weg derzeit nicht.
 
 ## Befunde zur Unveränderlichkeit (unverändert gelassen)
 

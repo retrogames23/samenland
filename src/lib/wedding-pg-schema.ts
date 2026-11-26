@@ -1,7 +1,8 @@
 // Shared throw-away PostgreSQL schema for the wedding tests (hochzeitspaket.pg.test.ts, hochzeit-anker.pg.test.ts).
 // Loads the real functions from the migration files: village_civic_wealth (0044 + 0046/0050 patches), the 0107 wedding
 // list (also kept as village_wedding_list_0107 for comparison), 0096 village_weddings, 0127 receipts, 0118 chest walk,
-// the 0138 encounter guard, 0159 (Hochzeitspaket) and 0160 (Paket A2, anchor continuation). Test support only.
+// the 0138 encounter guard, 0159 (Hochzeitspaket), 0160 (Paket A2, anchor continuation) and the wedding part of 0161
+// (Paket B: completeness proof). Test support only.
 import { readFileSync } from "node:fs";
 import type postgres from "postgres";
 
@@ -29,6 +30,10 @@ export function civicWealthSql() {
 }
 
 export const M0160 = mig("0160_hochzeit_anker.sql");
+export const M0161 = mig("0161_hochzeit_vollstaendigkeit.sql");
+/** The wedding part of 0161 (proof table, completeness, money check, wedding_settle, checked balance) — the rest of it
+ *  patches game guards that this stub schema does not have (tested on the full schema in paket-b.pg.test.ts). */
+export const M0161_WEDDING = M0161.slice(0, M0161.indexOf("-- 3b/4)"));
 
 /** Creates the stub tables and loads the migrations. `anchor: false` stops after 0159 (state before Paket A2). */
 export async function prepareWeddingDb(sql: postgres.Sql, opts: { anchor?: boolean } = {}) {
@@ -84,5 +89,5 @@ export async function prepareWeddingDb(sql: postgres.Sql, opts: { anchor?: boole
   await sql.unsafe(mig("0138_encounters_server_only.sql"));
   await sql.unsafe(`create trigger encounter_guard before insert on public.encounters for each row execute function public.encounter_guard();`);
   await sql.unsafe(M0159);
-  if (opts.anchor ?? true) await sql.unsafe(M0160);
+  if (opts.anchor ?? true) { await sql.unsafe(M0160); await sql.unsafe(M0161_WEDDING); }
 }
