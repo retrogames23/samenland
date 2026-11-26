@@ -1,6 +1,6 @@
 # Hochzeitspaket – Stand nach der Nachbesserung
 
-Branch `claude/hochzeitspaket` · Basis `f6b31ce` · Migration `0159_hochzeitspaket` (nicht eingespielt)
+Branch `claude/hochzeitspaket` · Basis `f6b31ce` · Migrationen `0159_hochzeitspaket`, `0160_hochzeit_anker` (Paket A2) (nicht eingespielt)
 
 **Status: nicht abgenommen, keine Produktionsfreigabe.** Nach Masterplan v6.2, 11.3 ist die Anpassung des Hochzeitsrhythmus bewusst zurückgestellt. Die Zielregel dieses Pakets ist **nicht beschlossen** (siehe „Offene Designfragen“).
 
@@ -23,6 +23,38 @@ Branch `claude/hochzeitspaket` · Basis `f6b31ce` · Migration `0159_hochzeitspa
   - Kassen-Sync: bricht vor jedem Lesen und Schreiben mit `WeddingSettlementError` ab. Das gilt auch bei abweichenden Belegen und wenn die Abfrage des Umschaltdatums fehlschlägt.
   - Hochzeitsantwort: wird abgelehnt.
   - Sweep: hält an (HTTP 409).
+
+## Paket A2 – Anker-Fortsetzung (Migration 0160, nicht eingespielt)
+
+**Anlass:** Freigabeprüfung O1, T15. Ein späterer Kauf von Gesellenherberge oder Holzfällerlager oder ein später gesiegelter Handwerks-Freibrief verkürzt rückwirkend die Bauzeit von Dom- und Universitätsschritten (`world.ts` `buildWith` prüft kein Kaufdatum). Unter der einheitlichen Regel verschob das bereits gebuchte Hochzeiten.
+
+**Regel:** Gebuchte Belege sind die Historie und werden nie neu berechnet.
+- **Anker:** Jeder Beleg speichert `next_at`, den nächsten Termin, wie der Server ihn beim Buchen berechnet hat. Der Beleg mit dem höchsten Index ist der Anker; Hochzeit und Anker stehen in **einer** Zeile.
+- **Fortsetzung:** Der Server rechnet ab dem Anker weiter (`weddingCalendarFrom`): erster neuer Beleg bei `next_at`, Index +1, danach derselbe Schritt der unveränderten Regel.
+- **Alter Teil (vor *T*, Version 1):** Die Legacy-Regel zählt nur Käufe bis zum jeweiligen Zeitpunkt und ist damit stabil. Diese Belege werden weiter Feld für Feld verglichen, ebenso der erste Termin ab *T*.
+- **Neuer Teil (ab *T*, Version 2):** nur strukturell geprüft — Anker vorhanden, Index lückenlos, jeder Beleg beginnt genau bei `next_at` des vorigen.
+- **Ohne Belege:** Kalender ab Gründung (Index 0, Tag 2); die erste Buchung setzt den Anker. Lab: erster Beleg ab dem Umschaltzeitpunkt.
+
+**Klassifizierung** (`planReceipts`, lesend auch `wedding_anchor_inventory()`): `ohne_belege` · `alt_rekonstruierbar` · `verankert` · `widerspruechlich` · `quarantaene`.
+
+**Quarantäne** (`wedding_quarantine`): Abweichende Altbelege (`legacy_divergent`), Belege ab *T* ohne Anker (`unanchored`) oder eine gebrochene Kette (`chain_break`) werden nie repariert, nachgebucht oder erfunden.
+- Das Dorf wird einmal protokolliert (nur mit `apply`).
+- Danach verweigert die Datenbank jeden Beleg des Dorfes. Kassen-Sync und Hochzeitsantwort stoppen fail-closed; der Sweep listet das Dorf und macht mit dem nächsten weiter.
+- Aufheben nur von Hand mit Begründung (`wedding_quarantine_release`). Der Datensatz bleibt erhalten; Löschen ist nur zusammen mit dem Dorf möglich.
+
+**Buchung:** nur über `wedding_receipts_book(_seed, _rows)`.
+- Ein Aufruf ist eine Transaktion mit Sperre je Dorf; die Zeilen müssen eine Kette bilden.
+- Eine identische Wiederholung ist wirkungslos; eine abweichende Zeile wird verweigert (ein paralleler Lauf war schneller).
+- Der Wächter prüft dasselbe auch bei direkten Inserts.
+
+**Unverändert:**
+- Hochzeitsregel (Golden Master `hochzeit-regel-golden.test.ts`);
+- Geldfunktionen (`village_wedding_list`, Kassenweg, `village_weddings`, `encounter_guard`);
+- O1/O2.
+
+**Grenzen:**
+- Anzeige und Prognose im Client rechnen weiter ab Gründung. Für Dörfer, die nach *T* einen der drei Faktoren nachkaufen, kann die Anzeige vergangener Hochzeiten von den Belegen abweichen. Geld und Wächter folgen den Belegen.
+- Neue Server-Version erst nach 0160 ausliefern: Sie liest `next_at` und bucht über `wedding_receipts_book`.
 
 ## Befunde zur Unveränderlichkeit (unverändert gelassen)
 

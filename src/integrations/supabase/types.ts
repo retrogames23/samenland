@@ -1608,6 +1608,7 @@ export type Database = {
           dowry: number
           is_grand: boolean
           is_town: boolean
+          next_at: string | null
           occurred_at: string
           seed_id: string
           version: number
@@ -1617,6 +1618,7 @@ export type Database = {
           dowry: number
           is_grand: boolean
           is_town: boolean
+          next_at?: string | null
           occurred_at: string
           seed_id: string
           version?: number
@@ -1626,6 +1628,7 @@ export type Database = {
           dowry?: number
           is_grand?: boolean
           is_town?: boolean
+          next_at?: string | null
           occurred_at?: string
           seed_id?: string
           version?: number

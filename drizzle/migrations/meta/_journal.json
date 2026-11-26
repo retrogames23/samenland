@@ -1121,6 +1121,13 @@
       "when": 1795649779893,
       "tag": "0159_hochzeitspaket",
       "breakpoints": true
+    },
+    {
+      "idx": 160,
+      "version": "7",
+      "when": 1795727098790,
+      "tag": "0160_hochzeit_anker",
+      "breakpoints": true
     }
   ]
 }

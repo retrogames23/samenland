@@ -2,9 +2,9 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { economyWorldAt, type EconomyWorld } from "@/game/economy-world";
 import { residentTax } from "@/game/resident-tax";
 import type { Seed } from "@/game/world";
-import { weddingReceiptRows, auditReceipts, divergentIndices, type BookedReceipt, type ReceiptAudit } from "@/game/wedding-receipts";
+import { planReceipts, type AnchorAudit, type BookedReceipt, type QuarantineReason, type WeddingClass, type WeddingReceiptRow } from "@/game/wedding-receipts";
 import type { Realm } from "@/game/time";
-import { weddingSwitchSince } from "@/game/weddings";
+import { weddingSwitchSince, type WeddingAnchor } from "@/game/weddings";
 
 const DAY = 86400000;
 /** Days simulated per request; kept small so a full map stays inside the worker CPU budget. */
@@ -92,23 +92,38 @@ export async function bookedDays(id: string, first: number): Promise<{ has(d: nu
   return new Set(all.map(r => r.day));
 }
 
-/** Rows per upsert request; far below the Data API cap. */
+/** Rows per booking call; far below the Data API cap. Each call is one transaction (wedding_receipts_book). */
 const RECEIPT_CHUNK = 500;
+/** Paket A2: a village whose booked receipts cannot be continued reliably. Recorded once in wedding_quarantine
+ *  (append-only, released only by hand with a note); while it is active nothing is booked for the village. */
+export type WeddingQuarantine = {
+  reason: QuarantineReason | "verify_failed";
+  indices: number[];
+  /** detected_at of the stored record (null when not recorded: dry run or the record failed) */
+  since: string | null;
+  recorded: boolean;
+};
 export type WeddingSettlement = {
+  /** Paket A2 classification of the booked receipts (null: not read because of a switch mismatch or a quarantine) */
+  kind: WeddingClass | null;
+  /** the last booked unified-rule receipt the calendar continues from (null: no anchor yet) */
+  anchor: WeddingAnchor | null;
+  /** weddings known after this settlement: booked plus still to book */
   computed: number;
   booked: number;
-  /** calendar rows after the highest booked index (not settled yet) */
+  /** rows still to book (after the highest booked index) */
   missing: number;
   inserted: number;
-  /** every divergent index (holes, changed fields, unexpected receipts); non-empty means stop */
+  /** every divergent index; non-empty means stop */
   mismatches: number[];
-  audit: ReceiptAudit;
+  audit: AnchorAudit;
+  quarantine: WeddingQuarantine | null;
   /** TypeScript and database disagree on the switch instant and the earlier one has passed */
   switchMismatch?: true;
-  /** stored state re-read and compared after writing */
+  /** stored state re-read and checked after writing */
   verified: boolean;
 };
-const NO_AUDIT: ReceiptAudit = { missing: [], holes: [], changed: [], unexpected: [] };
+const NO_AUDIT: AnchorAudit = { missing: [], holes: [], changed: [], unexpected: [], unanchored: [], chain: [] };
 
 const switchCache = new Map<string, { at: number; value: number }>();
 /** Tests only: forget the cached database switch dates. */
@@ -142,7 +157,9 @@ export async function weddingSwitchState(realm: string, now: number): Promise<We
   return { ts, db, mismatch: ts !== db && Math.min(ts, db) <= now };
 }
 
-export type WeddingProblem = "switch_mismatch" | "switch_unavailable" | "receipt_divergence";
+/** receipt_divergence: found now and not recorded (dry run); quarantined: recorded in wedding_quarantine;
+ *  booking_failed: the booking call failed for another reason (nothing half-written: each call is one transaction). */
+export type WeddingProblem = "switch_mismatch" | "switch_unavailable" | "receipt_divergence" | "quarantined" | "booking_failed";
 export class WeddingSettlementError extends Error {
   constructor(readonly reason: WeddingProblem, message: string, readonly indices: number[] = []) {
     super(message);
@@ -152,7 +169,8 @@ export class WeddingSettlementError extends Error {
 /** The one verdict on a settlement, shared by every caller: null = in order, otherwise the reason to stop. */
 export function weddingSettlementProblem(s: WeddingSettlement): WeddingSettlementError | null {
   if (s.switchMismatch) return new WeddingSettlementError("switch_mismatch", "Wedding switch differs between server and database");
-  if (s.mismatches.length) return new WeddingSettlementError("receipt_divergence", "Wedding receipts disagree with the calendar", s.mismatches);
+  if (s.quarantine?.recorded) return new WeddingSettlementError("quarantined", "Wedding settlement quarantined", s.quarantine.indices);
+  if (s.quarantine || s.mismatches.length) return new WeddingSettlementError("receipt_divergence", "Wedding receipts disagree with the calendar", s.mismatches);
   return null;
 }
 /** Fails closed for callers that must not continue (treasury sync before any write, wedding answer). */
@@ -162,51 +180,105 @@ export async function assertWeddingSwitch(realm: string, now: number) {
   return st;
 }
 
-/** Every stored receipt of a village with all compared fields (index order, paged). */
+/** Every stored receipt of a village with all compared fields and its anchor (index order, paged). */
 export async function bookedReceipts(seedId: string): Promise<BookedReceipt[]> {
   return fetchPaged<BookedReceipt>("Wedding receipts", (c) => {
-    let q = supabaseAdmin.from("wedding_receipts").select("wedding_index, occurred_at, dowry, is_grand, is_town, version").eq("seed_id", seedId);
+    let q = supabaseAdmin.from("wedding_receipts").select("wedding_index, occurred_at, dowry, is_grand, is_town, version, next_at").eq("seed_id", seedId);
     if (c) q = q.gt("wedding_index", c.wedding_index);
     return q.order("wedding_index").limit(PAGE);
   });
 }
+// wedding_quarantine and the two functions of migration 0160 are not in the generated client types yet
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const untyped = supabaseAdmin as any;
+/** The active quarantine of a village (released_at IS NULL), or null. A read error fails closed. */
+export async function activeQuarantine(seedId: string): Promise<WeddingQuarantine | null> {
+  const { data, error } = await untyped.from("wedding_quarantine").select("reason, indices, detected_at").eq("seed_id", seedId).is("released_at", null).maybeSingle();
+  if (error) throw new WeddingSettlementError("booking_failed", "Wedding quarantine unavailable");
+  return data ? { reason: data.reason, indices: data.indices ?? [], since: data.detected_at ?? null, recorded: true } : null;
+}
+/** Records the quarantine (idempotent in the database: an active record is kept as it is). */
+async function recordQuarantine(seedId: string, reason: WeddingQuarantine["reason"], indices: number[], audit: AnchorAudit): Promise<WeddingQuarantine> {
+  const details = { holes: audit.holes, changed: audit.changed, unexpected: audit.unexpected, unanchored: audit.unanchored, chain: audit.chain };
+  const { error } = await untyped.rpc("wedding_quarantine_set", { _seed: seedId, _reason: reason, _indices: indices, _details: details });
+  if (error) { console.error("Wedding quarantine not recorded", seedId, reason, error.message); return { reason, indices, since: null, recorded: false }; }
+  return (await activeQuarantine(seedId)) ?? { reason, indices, since: null, recorded: false };
+}
+type BookOutcome = { ok: true; inserted: number } | "conflict" | "quarantined";
+/** One atomic booking call: receipt rows and their anchors (next_at) together or not at all. */
+async function bookRows(seedId: string, rows: WeddingReceiptRow[]): Promise<BookOutcome> {
+  const body = rows.map(({ seed_id: _s, ...r }) => r);
+  const { data, error } = await untyped.rpc("wedding_receipts_book", { _seed: seedId, _rows: body });
+  if (!error) return { ok: true, inserted: Number(data?.inserted ?? 0) };
+  const m: string = error.message ?? "";
+  if (m.includes("quarantined")) return "quarantined";
+  // a concurrent settlement booked first: its rows differ or the chain moved on — re-read, never overwrite
+  if (m.includes("wedding receipt conflict") || m.includes("anchor chain") || m.includes("index gap") || m.includes("duplicate key")) return "conflict";
+  throw new WeddingSettlementError("booking_failed", "Wedding settlement failed");
+}
 /**
- * Freezes the village's wedding calendar (src/game/weddings.ts weddingCalendar) into wedding_receipts.
- * From weddingSwitchSince(realm) these receipts are the only money record of a wedding (DB village_wedding_list
- * reads version-2 receipts there); before it they shadow the SQL calendar.
+ * Paket A2 (Anker-Fortsetzung): books the village's weddings into wedding_receipts.
  *  - switch mismatch (weddingSwitchState): nothing is read or written.
- *  - every booked receipt is read and compared field by field with the calendar (auditReceipts) — never a count
- *    or index-range shortcut. Any hole, changed field or unexpected receipt: nothing is written, nothing repaired.
- *  - only calendar rows after the highest booked index are sent; the (seed_id, wedding_index) key with
- *    ignoreDuplicates never rewrites a receipt, UNIQUE(seed_id, occurred_at) refuses a second one for an instant,
- *    and the database trigger refuses the wrong version for the instant (0159).
- *  - after writing, the stored state is read again and compared, so a concurrent writer that won a key with
- *    different content (ignoreDuplicates hides that) is reported, not trusted.
+ *  - an active quarantine: nothing is read or written; every caller stops (weddingSettlementProblem).
+ *  - every booked receipt is read and checked (planReceipts): the stable legacy part field by field, the unified part
+ *    as a chain (next_at of each receipt = instant of the next). A receipt that does not fit is never repaired:
+ *    the village is quarantined (recorded only when applying) and nothing is written.
+ *  - what is still to book continues from the anchor (the last booked unified-rule receipt) — or, before the first
+ *    one, from the reference calendar. Booked weddings are never recomputed, so later purchases cannot move them.
+ *  - booking goes through wedding_receipts_book: one transaction per call, per-village lock, identical repeats are
+ *    no-ops, a differing row is refused. On a conflict (a parallel settlement was first) the receipts are re-read and
+ *    planned again once; the winner's rows are kept as booked.
+ *  - afterwards the stored state is read again and checked.
  * `apply: false` only reports (dry run).
  */
 export async function settleWeddings(seed: Seed, now: number, opts: { apply?: boolean } = {}): Promise<WeddingSettlement> {
   const apply = opts.apply ?? true;
+  const empty = { kind: null, anchor: null, computed: 0, booked: 0, missing: 0, inserted: 0, audit: NO_AUDIT, verified: false } as const;
   const sw = await weddingSwitchState(seed.realm ?? "", now);
-  if (sw.mismatch) return { computed: 0, booked: 0, missing: 0, inserted: 0, mismatches: [], audit: NO_AUDIT, switchMismatch: true, verified: false };
+  if (sw.mismatch) return { ...empty, mismatches: [], quarantine: null, switchMismatch: true };
+  const held = await activeQuarantine(seed.id);
+  if (held) return { ...empty, mismatches: held.indices, quarantine: held };
   // dates differ but neither has been reached: every row is older than both (filter kept as a second fence)
   const fence = Math.min(sw.ts, sw.db);
-  const rows = weddingReceiptRows(seed, now).filter((r) => sw.ts === sw.db || Date.parse(r.occurred_at) < fence);
+  const fenced = (rows: WeddingReceiptRow[]) => rows.filter((r) => sw.ts === sw.db || Date.parse(r.occurred_at) < fence);
   const before = await bookedReceipts(seed.id);
-  const audit = auditReceipts(rows, before);
-  const out: WeddingSettlement = { computed: rows.length, booked: before.length, missing: audit.missing.length, inserted: 0, mismatches: divergentIndices(audit), audit, verified: false };
-  if (!apply || out.mismatches.length || !audit.missing.length) return out;
-  for (let i = 0; i < audit.missing.length; i += RECEIPT_CHUNK) {
-    const { error } = await supabaseAdmin.from("wedding_receipts").upsert(audit.missing.slice(i, i + RECEIPT_CHUNK), { onConflict: "seed_id,wedding_index", ignoreDuplicates: true });
-    if (error) throw new WeddingSettlementError("receipt_divergence", "Wedding settlement failed");
+  let plan = planReceipts(seed, before, now);
+  const report = (booked: number, p: typeof plan, extra: Partial<WeddingSettlement> = {}): WeddingSettlement => {
+    const rows = fenced(p.rows);
+    return { kind: p.kind, anchor: p.anchor, computed: booked + rows.length, booked, missing: rows.length, inserted: 0, mismatches: p.quarantine?.indices ?? [],
+      audit: { ...p.audit, missing: rows }, quarantine: null, verified: false, ...extra };
+  };
+  const quarantine = async (booked: number, p: typeof plan, reason?: WeddingQuarantine["reason"]) => {
+    const r = reason ?? p.quarantine!.reason, idx = p.quarantine!.indices;
+    const q = apply ? await recordQuarantine(seed.id, r, idx, p.audit) : { reason: r, indices: idx, since: null, recorded: false };
+    return report(booked, p, { quarantine: q });
+  };
+  if (plan.quarantine) return quarantine(before.length, plan);
+  let rows = fenced(plan.rows);
+  if (!apply || !rows.length) return report(before.length, plan);
+  const planned = rows.length, kind = plan.kind;
+  let inserted = 0;
+  for (let attempt = 0; ; attempt++) {
+    let outcome: BookOutcome = { ok: true, inserted: 0 };
+    for (let i = 0; i < rows.length && typeof outcome === "object"; i += RECEIPT_CHUNK) {
+      outcome = await bookRows(seed.id, rows.slice(i, i + RECEIPT_CHUNK));
+      if (typeof outcome === "object") inserted += outcome.inserted; // rows this settlement stored (a parallel one may store others)
+    }
+    if (typeof outcome === "object") break;
+    if (outcome === "quarantined") { const q = await activeQuarantine(seed.id); return report(before.length, plan, { quarantine: q ?? { reason: "verify_failed", indices: [], since: null, recorded: false } }); }
+    if (attempt >= 1) throw new WeddingSettlementError("booking_failed", "Wedding settlement conflict");
+    const now2 = await bookedReceipts(seed.id);
+    plan = planReceipts(seed, now2, now);
+    if (plan.quarantine) return quarantine(now2.length, plan);
+    rows = fenced(plan.rows);
+    if (!rows.length) break;
   }
   const after = await bookedReceipts(seed.id);
-  const check = auditReceipts(rows, after);
-  out.inserted = after.length - before.length;
-  out.booked = after.length;
-  out.audit = check;
-  out.mismatches = divergentIndices(check);
-  out.verified = true;
-  return out;
+  const check = planReceipts(seed, after, now);
+  if (check.quarantine) return { ...(await quarantine(after.length, check, "verify_failed")), kind, inserted, verified: true };
+  // `kind` is the classification found before booking, `anchor` the one after it; `missing` what this settlement found
+  // to book (what is left afterwards is in audit.missing); `inserted` what its own booking calls stored
+  return { ...report(after.length, check), kind, missing: planned, inserted, verified: true };
 }
 
 export async function calculateTreasury(id: string, realm: string) {

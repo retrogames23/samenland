@@ -1,17 +1,20 @@
 // Hochzeitspaket: real settleWeddings, sweep driver, calculateTreasury and bookEncounter against an IN-MEMORY
-// wedding_receipts table (mock, not PostgreSQL). The fake enforces the migration's keys: PK seed_id+wedding_index with
-// ignoreDuplicates, UNIQUE seed_id+occurred_at, statement all-or-nothing. The version trigger of 0159 is NOT emulated
-// here — that boundary is tested on real PostgreSQL in hochzeitspaket.pg.test.ts.
-// Covers: Korrektur A (full receipt comparison, seven cases), Korrektur C (switchMismatch fail-closed in sweep,
-// treasury sync and wedding answer; normal state; error mid-sweep and restart), plus idempotency and cursor resume.
+// wedding_receipts table (mock, not PostgreSQL). The fake emulates the booking call of 0160 (wedding_receipts_book:
+// one call all-or-nothing, identical repeat = no-op, differing row = conflict, anchor chain, quarantine refusal) and
+// wedding_quarantine. The version trigger of 0159 and the real locking are NOT emulated here — those are tested on real
+// PostgreSQL in hochzeitspaket.pg.test.ts and hochzeit-anker.pg.test.ts.
+// Covers: Korrektur A (full comparison of the stable legacy part, seven cases — since Paket A2 a divergence quarantines
+// the village), Korrektur C (switchMismatch fail-closed in sweep, treasury sync and wedding answer; normal state; error
+// mid-sweep and restart), plus idempotency and cursor resume.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Seed } from "@/game/world";
 import { weddingReceiptRows, type WeddingReceiptRow } from "@/game/wedding-receipts";
 
 type Row = WeddingReceiptRow;
 const PLACEHOLDER = "2100-01-04T00:00:00+00:00";
+type Quarantine = { seed_id: string; reason: string; indices: number[]; detected_at: string; released_at: string | null };
 const db = {
-  rows: [] as Row[], upserts: 0, failAfter: Infinity, writes: [] as Row[], reads: [] as string[],
+  rows: [] as Row[], quarantine: [] as Quarantine[], upserts: 0, failAfter: Infinity, writes: [] as Row[], reads: [] as string[],
   encounters: [] as { seed_id: string; event: string; choice: string }[],
   /** what the database's wedding_switch_since answers (null = function missing, "error" = other failure) */
   dbSwitch: PLACEHOLDER as string | null | "error",
@@ -29,6 +32,7 @@ class Query implements PromiseLike<{ data: unknown; error: unknown; count?: numb
   select(_c?: string) { return this; }
   eq(k: keyof Row, v: unknown) { this.f.push((r) => r[k] === v); return this; }
   gt(k: keyof Row, v: number) { this.f.push((r) => (r[k] as number) > v); return this; }
+  is(k: string, v: null) { this.f.push((r) => ((r as unknown as Record<string, unknown>)[k] ?? null) === v); return this; }
   order(_k: string, o?: { ascending?: boolean }) { this.desc = o?.ascending === false; return this; }
   limit(n: number) { this.lim = n; return this; }
   maybeSingle() { this.single = true; return this; }
@@ -46,6 +50,10 @@ class Query implements PromiseLike<{ data: unknown; error: unknown; count?: numb
   private run() {
     db.reads.push(this.table);
     if (this.table === "tax_cutover") return { data: null, error: null };
+    if (this.table === "wedding_quarantine") {
+      const q = db.quarantine.filter((r) => this.f.every((g) => g(r as unknown as Row)));
+      return { data: q[0] ?? null, error: null };
+    }
     if (this.up) {
       if (++db.upserts > db.failAfter) return { data: null, error: { message: "network down" } };
       const next = [...db.rows]; // one statement = all or nothing, like PostgreSQL
@@ -64,11 +72,41 @@ class Query implements PromiseLike<{ data: unknown; error: unknown; count?: numb
     return this.single ? { data: out[0] ?? null, error: null } : { data: out, error: null };
   }
 }
+/** The booking call of migration 0160 as the fake sees it (one call = one transaction). */
+function bookCall(seed: string, rows: Omit<Row, "seed_id">[]) {
+  if (++db.upserts > db.failAfter) return { data: null, error: { message: "network down" } };
+  if (db.quarantine.some((q) => q.seed_id === seed && !q.released_at)) return { data: null, error: { message: "wedding settlement quarantined" } };
+  const next = [...db.rows];
+  let ins = 0;
+  for (const [i, r] of rows.entries()) {
+    const p = rows[i - 1];
+    if (p && (r.wedding_index !== p.wedding_index + 1 || Date.parse(r.occurred_at) !== Date.parse(p.next_at))) return { data: null, error: { message: "wedding booking rows do not form a chain" } };
+    const e = next.find((x) => x.seed_id === seed && x.wedding_index === r.wedding_index);
+    if (e) {
+      if (JSON.stringify({ ...e, seed_id: seed }) !== JSON.stringify({ seed_id: seed, ...r })) return { data: null, error: { message: `wedding receipt conflict at index ${r.wedding_index}` } };
+      continue;
+    }
+    const prev = next.find((x) => x.seed_id === seed && x.wedding_index === r.wedding_index - 1);
+    if (prev ? prev.next_at && Date.parse(prev.next_at) !== Date.parse(r.occurred_at) : r.wedding_index !== 0) return { data: null, error: { message: "wedding receipt breaks the anchor chain" } };
+    if (next.some((x) => x.seed_id === seed && Date.parse(x.occurred_at) === Date.parse(r.occurred_at))) return { data: null, error: { message: "duplicate key value violates unique constraint" } };
+    next.push({ seed_id: seed, ...r } as Row); ins++;
+  }
+  db.writes.push(...next.slice(db.rows.length));
+  db.rows = next;
+  return { data: { inserted: ins }, error: null };
+}
 vi.mock("@/integrations/supabase/client.server", () => ({ supabaseAdmin: {
   from: (t: string) => new Query(t),
   rpc: async (fn: string, args: Record<string, unknown>) => {
     db.reads.push(`rpc:${fn}`);
     if (fn === "village_balance") return { data: 123, error: null };
+    if (fn === "wedding_receipts_book") return bookCall(args["_seed"] as string, args["_rows"] as Omit<Row, "seed_id">[]);
+    if (fn === "wedding_quarantine_set") {
+      const seed = args["_seed"] as string;
+      if (!db.quarantine.some((q) => q.seed_id === seed && !q.released_at))
+        db.quarantine.push({ seed_id: seed, reason: args["_reason"] as string, indices: args["_indices"] as number[], detected_at: new Date().toISOString(), released_at: null });
+      return { data: 1, error: null };
+    }
     expect(fn).toBe("wedding_switch_since"); expect(typeof args["_realm"]).toBe("string");
     if (db.dbSwitch === "error") return { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } };
     return db.dbSwitch == null ? { data: null, error: { code: "PGRST202", message: "Could not find the function public.wedding_switch_since(_realm) in the schema cache" } } : { data: db.dbSwitch, error: null };
@@ -107,7 +145,7 @@ const pastSwitch = () => new Date(Date.now() - 2 * D).toISOString();
 /** Today's live state: most villages complete, some with 1–2 newest receipts not settled yet. */
 function seedLiveState() {
   db.dbSwitch = PLACEHOLDER; db.tsSwitch = null; resetWeddingSwitchCache();
-  db.rows = []; db.upserts = 0; db.failAfter = Infinity; db.writes = []; db.reads = []; db.encounters = [];
+  db.rows = []; db.quarantine = []; db.upserts = 0; db.failAfter = Infinity; db.writes = []; db.reads = []; db.encounters = [];
   villages.forEach((s, i) => {
     const rows = weddingReceiptRows(s, NOW), drop = i % 3; // 0, 1 or 2 newest missing
     db.rows.push(...rows.slice(0, rows.length - drop));
@@ -125,7 +163,8 @@ describe("Korrektur A: settleWeddings compares every booked receipt (no count/in
     replace(2, { dowry: own()[2]!.dowry + 1 });
     const { r, unchanged } = await run();
     expect(r.audit.changed).toEqual([{ index: 2, fields: ["dowry"] }]);
-    expect(weddingSettlementProblem(r)?.reason).toBe("receipt_divergence");
+    expect(weddingSettlementProblem(r)?.reason).toBe("quarantined");
+    expect(r.quarantine).toMatchObject({ reason: "legacy_divergent", indices: [2], recorded: true });
     expect(unchanged).toBe(true);
   });
   it("A2 complete index range, wrong instant: divergence", async () => {
@@ -180,18 +219,21 @@ describe("Korrektur A: settleWeddings compares every booked receipt (no count/in
   it("a concurrent writer that wins a key with other content is caught by the read-back", async () => {
     const n = own().length;
     db.rows = db.rows.filter((r) => !(r.seed_id === v.id && r.wedding_index === n - 1));
-    // simulate: between our read and our upsert someone books index n-1 with a wrong dowry
-    const orig = Query.prototype.upsert;
-    Query.prototype.upsert = function (rows, o) {
-      const good = weddingReceiptRows(v, NOW).at(-1)!;
-      db.rows.push({ ...good, dowry: good.dowry + 9 });
-      Query.prototype.upsert = orig;
-      return orig.call(this, rows, o);
+    // simulate: between our read and our booking call someone books index n-1 with a wrong dowry. Since Paket A2 the
+    // booking call refuses the differing row (conflict); the settlement re-reads, finds the divergence and quarantines.
+    const good = weddingReceiptRows(v, NOW).at(-1)!;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = supabaseAdmin as unknown as { rpc: (f: string, a: Record<string, unknown>) => Promise<unknown> };
+    const rpc = admin.rpc;
+    admin.rpc = async (fn, args) => {
+      if (fn === "wedding_receipts_book") { db.rows.push({ ...good, dowry: good.dowry + 9 }); admin.rpc = rpc; }
+      return rpc(fn, args);
     };
     const r = await settleWeddings(v, NOW);
-    expect(r.verified).toBe(true);
+    expect(db.rows.filter((x) => x.seed_id === v.id && x.wedding_index === n - 1)).toEqual([{ ...good, dowry: good.dowry + 9 }]); // the winner's row stays
+    expect(db.writes).toEqual([]); // nothing overwritten, nothing added by this settlement
     expect(r.audit.changed).toEqual([{ index: n - 1, fields: ["dowry"] }]);
-    expect(weddingSettlementProblem(r)?.reason).toBe("receipt_divergence");
+    expect(weddingSettlementProblem(r)?.reason).toBe("quarantined");
   });
 });
 
@@ -253,14 +295,24 @@ describe("wedding receipt sweep (in-memory)", () => {
     while (r.next) { r = await runSweep(all, settle, { realm: "europe", after: r.next, limit: 5 }, NOW); seen.push(...r.villages.map((x) => x.seed)); }
     expect(seen).toEqual(villages.map((s) => s.id));
   });
-  it("a divergent receipt halts the sweep at that village; nothing is written there or after it", async () => {
+  it("Paket A2: a divergent village is quarantined and listed; nothing is written there, the sweep goes on", async () => {
     const victim = villages[5]!;
     const i = db.rows.findIndex((r) => r.seed_id === victim.id && r.wedding_index === 1);
     db.rows[i] = { ...db.rows[i]!, dowry: db.rows[i]!.dowry + 7 };
+    const dry = await runSweep(all, settle, { realm: "europe", after: villages[4]!.id, limit: 100 }, NOW);
+    expect(dry.quarantined).toEqual([{ seed: victim.id, reason: "legacy_divergent", indices: [1], recorded: false }]);
+    expect(db.quarantine).toEqual([]); // a dry run records nothing
     const r = await runSweep(all, settle, { realm: "europe", apply: true, after: villages[4]!.id, limit: 100 }, NOW);
-    expect(r.halted).toMatchObject({ seed: victim.id, reason: "receipt_divergence", mismatches: [1] });
-    expect(r.next).toBe(villages[4]!.id);
-    expect(db.writes).toEqual([]);
+    expect(r.halted).toBeNull();
+    expect(r.quarantined).toEqual([{ seed: victim.id, reason: "legacy_divergent", indices: [1], recorded: true }]);
+    expect(db.writes.filter((w) => w.seed_id === victim.id)).toEqual([]);
+    expect(r.next).toBeNull();
+    // every other village after the cursor is complete
+    const want = villages.slice(5).filter((s) => s.id !== victim.id).flatMap((s) => weddingReceiptRows(s, NOW));
+    expect(sorted(db.rows.filter((x) => want.some((w) => key(w) === key(x))))).toBe(sorted(want));
+    // a later run keeps it in quarantine without reading or writing its receipts
+    const again = await runSweep(all, settle, { realm: "europe", apply: true, after: villages[4]!.id, limit: 100 }, NOW);
+    expect(again.quarantined).toEqual([{ seed: victim.id, reason: "legacy_divergent", indices: [1], recorded: true }]);
   });
 });
 

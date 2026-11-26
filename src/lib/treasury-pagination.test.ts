@@ -37,6 +37,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         eq: (k: string, v: unknown) => { filters.push(r => r[k] === v); return q; },
         in: (k: string, v: unknown[]) => { const s = new Set(v); filters.push(r => s.has(r[k])); return q; },
         gte: (k: string, v: number) => { filters.push(r => (r[k] as number) >= v); return q; },
+        is: (k: string, v: unknown) => { filters.push(r => (r[k] ?? null) === v); return q; }, // Paket A2: wedding_quarantine (released_at IS NULL)
         order: (k: string, o?: { ascending?: boolean }) => { orders.push([k, o?.ascending !== false]); return q; },
         limit: (n: number) => { lim = n; return q; },
         gt: (k: string, v: unknown) => { filters.push(r => cmp(r[k], v) > 0); return q; },

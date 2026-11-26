@@ -17,7 +17,7 @@ const { Route } = await import("@/routes/api/public/wedding-sweep");
 type Handler = (ctx: { request: Request }) => Promise<Response>;
 const POST = (Route.options as unknown as { server: { handlers: { POST: Handler } } }).server.handlers.POST;
 
-const report = (p: Partial<SweepReport> = {}): SweepReport => ({ realm: "europe", apply: false, at: "", checked: 0, complete: 0, missing: 0, inserted: 0, villages: [], halted: null, errors: [], next: null, ...p });
+const report = (p: Partial<SweepReport> = {}): SweepReport => ({ realm: "europe", apply: false, at: "", checked: 0, complete: 0, missing: 0, inserted: 0, villages: [], halted: null, quarantined: [], errors: [], next: null, ...p });
 const req = (body: unknown, auth: string | null = "Bearer s3cret") =>
   new Request("https://x/api/public/wedding-sweep", { method: "POST", headers: { "content-type": "application/json", ...(auth ? { authorization: auth } : {}) }, body: typeof body === "string" ? body : JSON.stringify(body) });
 

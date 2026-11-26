@@ -101,21 +101,54 @@ const chainKey = (s: Seed) =>
     ? `|${(s.blessed ?? []).join(",")}|${(s.decisions ?? []).map((d) => d.event + d.at).join(",")}|${(s.aid ?? []).join(",")}`
     : "";
 const keyOf = (s: Seed) => `${s.id}|${s.realm ?? ""}|${s.created_at}|${s.user_id ?? ""}|${(s.bought ?? []).map((b) => b.item + "@" + b.at).join(",")}|${s.charter ? s.charter.path + s.charter.at : ""}|${(s.civicRoads ?? []).map((r) => r.at).join(",")}${chainKey(s)}`;
-/** The pure calendar up to `now`, oldest first — incremental and cached (the calendar never changes in hindsight).
- *  No admin-desk overrides: this is what the trusted server freezes into wedding_receipts. */
-export function weddingCalendar(s: Seed, now: number): WedDate[] {
-  const key = keyOf(s);
-  let c = cache.get(key);
-  if (!c) { if (cache.size > 200) cache.clear(); c = { list: [], next: Date.parse(s.created_at) + WED_FIRST }; cache.set(key, c); }
+/** One step of the calendar: the wedding at `t` with index `k` and the instant of the next one. The rule itself
+ *  (wedStage, wedPop, wedGapHours, dowryAt) is unchanged; the reference calendar and the anchored continuation
+ *  (Paket A2) use exactly this step. */
+function wedStep(s: Seed, t: number, k: number): { w: WedDate; next: number } {
+  const town = wedStage(s, t) >= 3;
+  return { w: { at: t, k, dowry: dowryAt(civicWealth(s, t)), town, grand: !town || k % WED_NOTABLE === WED_NOTABLE - 1 }, next: t + wedGapHours(s, t) * 3.6e6 };
+}
+type CalCache = { list: WedDate[]; next: number; k0: number };
+/** Runs the cached calendar `c` up to `now`; returns the weddings up to `now` and the instant of the first one after it. */
+function runCalendar(s: Seed, c: CalCache, now: number): { list: WedDate[]; next: number } {
   while (c.next <= now) {
-    const t = c.next, k = c.list.length;
-    const town = wedStage(s, t) >= 3;
-    c.list.push({ at: t, k, dowry: dowryAt(civicWealth(s, t)), town, grand: !town || k % WED_NOTABLE === WED_NOTABLE - 1 });
-    c.next = t + wedGapHours(s, t) * 3.6e6;
+    const { w, next } = wedStep(s, c.next, c.k0 + c.list.length);
+    c.list.push(w);
+    c.next = next;
   }
   let n = c.list.length;
   while (n > 0 && c.list[n - 1]!.at > now) n--;
-  return n === c.list.length ? c.list : c.list.slice(0, n);
+  return { list: n === c.list.length ? c.list : c.list.slice(0, n), next: n < c.list.length ? c.list[n]!.at : c.next };
+}
+const cached = (key: string, init: () => CalCache) => {
+  let c = cache.get(key) as CalCache | undefined;
+  if (!c) { if (cache.size > 200) cache.clear(); c = init(); cache.set(key, c); }
+  return c;
+};
+/** The pure calendar recomputed from the founding up to `now`, plus the instant of the next wedding after `now`.
+ *  No admin-desk overrides. Paket A2: this is the reference for villages without a booked anchor and for the part
+ *  of the calendar that is stable by construction (legacy rule before weddingSwitchSince, which only counts
+ *  purchases dated at or before each wedding). From the first booked unified-rule receipt on, the trusted server
+ *  continues from the anchor instead (weddingCalendarFrom), because later purchases (Gesellenherberge,
+ *  Holzfällerlager, Handwerks-Freibrief) shorten monument build times in hindsight and would move booked weddings. */
+export function weddingCalendarState(s: Seed, now: number): { list: WedDate[]; next: number } {
+  const c = cached(keyOf(s), () => ({ list: [], next: Date.parse(s.created_at) + WED_FIRST, k0: 0 }));
+  return runCalendar(s, c, now);
+}
+/** The pure calendar up to `now`, oldest first — recomputed from the founding (see weddingCalendarState). */
+export function weddingCalendar(s: Seed, now: number): WedDate[] {
+  return weddingCalendarState(s, now).list;
+}
+/** Paket A2: the last booked wedding receipt — its index, its instant and the instant of the next wedding as the trusted
+ *  server computed it when booking (wedding_receipts.next_at). */
+export type WeddingAnchor = { k: number; at: number; next: number };
+/** Paket A2 (Anker-Fortsetzung): the weddings after the anchor up to `now` (indices anchor.k + 1, …; the first one at
+ *  anchor.next) and the instant of the first one after `now`. Booked weddings are never recomputed: whatever changes
+ *  later (buildings, supply, charters) only acts on weddings that are not booked yet. Same step and rule as the
+ *  reference calendar. */
+export function weddingCalendarFrom(s: Seed, anchor: WeddingAnchor, now: number): { list: WedDate[]; next: number } {
+  const c = cached(`${keyOf(s)}#${anchor.k}@${anchor.at}>${anchor.next}`, () => ({ list: [], next: anchor.next, k0: anchor.k + 1 }));
+  return runCalendar(s, c, now);
 }
 /** All weddings up to `now` for display and the client prognosis: the pure calendar plus the lab desk's test wedding. */
 export function weddingDates(s: Seed, now: number): WedDate[] {

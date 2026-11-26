@@ -1,4 +1,4 @@
-// Hochzeitspaket (migration 0159) against a throw-away PostgreSQL (BUILD_MAIL_TEST_PG=postgres://...).
+// Hochzeitspaket (migration 0159, with 0160 / Paket A2 applied on top) against a throw-away PostgreSQL (BUILD_MAIL_TEST_PG=postgres://...).
 // Loads the real functions from the migration files: village_civic_wealth (0044 + 0046/0050 patches), the 0107 wedding
 // list (kept as village_wedding_list_0107 for comparison), 0096 village_weddings, 0127 receipts, 0118 chest walk,
 // the 0138 encounter guard, then 0159. Proves:
@@ -8,40 +8,17 @@
 //             computed after the switch, the TS calendar and SQL agree across the switch end to end (also lab);
 //   records — receipts cannot be rewritten, dated in the future or booked twice (also in parallel);
 //   checks  — wedding_receipt_diff / wedding_receipt_inventory report missing and divergent receipts.
-import { readFileSync } from "node:fs";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Seed } from "@/game/world";
 import { weddingCalendar, WEDDING_SWITCH_SINCE, WEDDING_SWITCH_LAB_SINCE } from "@/game/weddings";
 import { weddingReceiptRows } from "@/game/wedding-receipts";
+import { block, mig, prepareWeddingDb } from "./wedding-pg-schema";
 
 const URL = process.env["BUILD_MAIL_TEST_PG"];
 if (!URL && (process.env["CI"] || process.env["REQUIRE_PG"]))
   throw new Error("BUILD_MAIL_TEST_PG missing: Hochzeitspaket DB tests must run");
 const d = URL ? describe : describe.skip;
-
-const mig = (f: string) => readFileSync(new globalThis.URL(`../../drizzle/migrations/${f}`, import.meta.url), "utf8");
-/** The text from `start` to the end of the first `end` after it. */
-const block = (text: string, start: string, end: string) => {
-  const a = text.indexOf(start);
-  if (a < 0) throw new Error(`missing ${start}`);
-  const b = text.indexOf(end, a);
-  if (b < 0) throw new Error(`missing end of ${start}`);
-  return text.slice(a, b + end.length);
-};
-const M0107 = mig("0107_chest_cap_all_income.sql"), M0159 = mig("0159_hochzeitspaket.sql");
-const LIST_0107 = block(M0107, "CREATE OR REPLACE FUNCTION public.village_wedding_list", "END $function$;");
-const WALK_0118 = block(mig("0118_building_moves.sql"), "CREATE OR REPLACE FUNCTION public.village_balance_walk", "END $function$;");
-function civicWealthSql() {
-  // 0044 body, then the in-place patches of 0046 (roads) and 0050 (library 10, dairy, university4 15, orangery3)
-  let f = block(mig("0044_civic_estates_and_school_price.sql"), "CREATE OR REPLACE FUNCTION public.village_civic_wealth", "END $$;");
-  const p46 = mig("0046_trade_roads_civic_wealth.sql"), m = /replace\(definition, '([^']+)', '((?:[^']|'')+)'\)/.exec(p46)!;
-  f = f.replace(m[1]!, m[2]!.replace(/''/g, "'"));
-  f = f.replace("WHEN 'library' THEN 5 WHEN", "WHEN 'library' THEN 10 WHEN 'dairy' THEN 5 WHEN");
-  f = f.replace("WHEN 'university4' THEN 10", "WHEN 'university4' THEN 15 WHEN 'orangery3' THEN 10");
-  if (!f.includes("'dairy' THEN 5") || !f.includes("'orangery3' THEN 10") || !f.includes("first_roads")) throw new Error("civic patches");
-  return f;
-}
 
 const D = 864e5, H = 3.6e6, FOOD4 = ["fisher", "hunter", "granary", "dairy"], GEMEIN = ["herbs", "healer", "library", "badestube", "beginen"];
 const OWNER = "00000000-0000-0000-0000-0000000000c1";
@@ -88,58 +65,7 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
       const u = new globalThis.URL(URL!); u.pathname = `/${dbName}`;
       sql = postgres(u.toString(), { max: 6, onnotice: () => {} });
     } catch { dbName = null; sql = postgres(URL!, { max: 6, onnotice: () => {} }); }
-    await sql.unsafe(`
-      drop schema if exists auth cascade; create schema auth;
-      create or replace function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
-      create or replace function auth.role() returns text language sql stable as $$ select nullif(current_setting('test.role', true), '') $$;
-      do $$ begin
-        if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated; end if;
-        if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon; end if;
-        if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role; end if;
-      end $$;
-      drop table if exists public.wedding_receipts, public.encounters, public.rank_certificates, public.purchases, public.charters,
-        public.first_roads, public.tax_receipts, public.twin_works, public.building_moves, public.gifts, public.quest_claims,
-        public.market_sales, public.referrals, public.village_visits, public.wonder_finds, public.princely_tasks, public.seeds cascade;
-      create table public.seeds (id uuid primary key, user_id uuid, created_at timestamptz not null, realm text not null default 'europe');
-      create table public.purchases (id uuid primary key default gen_random_uuid(), seed_id uuid not null, item text not null,
-        cost integer not null default 0, created_at timestamptz not null default now());
-      create table public.charters (id uuid primary key default gen_random_uuid(), seed_id uuid, path text, created_at timestamptz);
-      create table public.first_roads (id uuid primary key default gen_random_uuid(), seed_id uuid, target_id uuid, created_at timestamptz);
-      create or replace function public.road_done(a uuid, b uuid) returns timestamptz language sql stable as $$ select timestamptz 'infinity' $$;
-      create table public.tax_receipts (seed_id uuid, day integer, income integer, primary key (seed_id, day));
-      create table public.encounters (id uuid primary key default gen_random_uuid(), seed_id uuid not null references public.seeds(id),
-        user_id uuid not null, event text not null, choice text not null, cost integer not null default 0, created_at timestamptz not null default now(), request_id uuid);
-      create table public.rank_certificates (seed_id uuid primary key, rank integer, citizens integer, ways integer, certified_at timestamptz);
-      create table public.twin_works (id uuid primary key default gen_random_uuid(), seed_id uuid, cost integer, created_at timestamptz);
-      create table public.building_moves (id uuid primary key default gen_random_uuid(), seed_id uuid, cost integer, created_at timestamptz);
-      create table public.gifts (id uuid primary key default gen_random_uuid(), to_seed uuid, from_seed uuid, amount integer, created_at timestamptz);
-      create table public.quest_claims (id uuid primary key default gen_random_uuid(), seed_id uuid, reward integer, created_at timestamptz);
-      create table public.market_sales (id uuid primary key default gen_random_uuid(), seed_id uuid, reward integer, created_at timestamptz);
-      create table public.referrals (id uuid primary key default gen_random_uuid(), referrer_seed uuid, referee_seed uuid, reward integer, created_at timestamptz);
-      create table public.village_visits (id uuid primary key default gen_random_uuid(), visitor_seed uuid, reward integer, created_at timestamptz);
-      create table public.wonder_finds (id uuid primary key default gen_random_uuid(), seed_id uuid, reward integer, created_at timestamptz);
-      create table public.princely_tasks (id uuid primary key default gen_random_uuid(), seed_id uuid, reward integer, done_at timestamptz);
-      -- the walk's start value and raids are not part of this package: fixed stubs
-      create or replace function public.village_balance_legacy(_seed uuid, _at timestamptz) returns integer language sql stable as $$ select 100 $$;
-      create or replace function public.village_raid_list(_seed uuid, _from timestamptz, _to timestamptz) returns table(t timestamptz, loss integer)
-        language sql stable as $$ select null::timestamptz, 0 where false $$;
-      create or replace function public.tax_spend_lock() returns trigger language plpgsql security definer set search_path = public as $$
-        declare sid uuid; begin sid := (to_jsonb(NEW)->>'seed_id')::uuid; perform 1 from public.seeds where id = sid for update; return NEW; end $$;
-      create trigger a_tax_spend_lock before insert on public.encounters for each row execute function public.tax_spend_lock();`);
-    await sql.unsafe(civicWealthSql());
-    await sql.unsafe(LIST_0107);
-    await sql.unsafe(LIST_0107.replace("public.village_wedding_list(", "public.village_wedding_list_0107("));
-    await sql.unsafe(block(M0107, "CREATE OR REPLACE FUNCTION public.village_weddings_legacy", "$$;"));
-    await sql.unsafe(block(M0107, "CREATE OR REPLACE FUNCTION public.village_weddings_fast", "$$;"));
-    await sql.unsafe(block(mig("0096_fast_treasury.sql"), "CREATE OR REPLACE FUNCTION public.village_weddings(", "$$;"));
-    await sql.unsafe(WALK_0118);
-    await sql.unsafe(block(M0107, "CREATE OR REPLACE FUNCTION public.village_balance(_seed uuid)", "$$;"));
-    await sql.unsafe(WALK_0118.replace("public.village_balance_walk(", "public.village_balance_walk_0107(")
-      .replace("public.village_wedding_list(_seed", "public.village_wedding_list_0107(_seed"));
-    await sql.unsafe(mig("0127_wedding_receipts.sql"));
-    await sql.unsafe(mig("0138_encounters_server_only.sql"));
-    await sql.unsafe(`create trigger encounter_guard before insert on public.encounters for each row execute function public.encounter_guard();`);
-    await sql.unsafe(M0159);
+    await prepareWeddingDb(sql);
   }, 120000);
   afterAll(async () => {
     await sql.end();
@@ -251,9 +177,10 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
       expect(await asServer(id, "wedding", "feast")).toBe("no wedding");
       // a unified-rule wedding booked by the server one hour ago: money, list and guard see exactly it
       const fresh = Date.now() - H, mid = T + 2 * D;
-      await sql`insert into public.wedding_receipts (seed_id, wedding_index, occurred_at, dowry, is_grand, is_town, version) values
-        (${id}, ${legacy.length}, ${new Date(mid).toISOString()}, 41, true, false, 2),
-        (${id}, ${legacy.length + 1}, ${new Date(fresh).toISOString()}, 42, true, false, 2)`;
+      // (0160 / Paket A2: every version-2 receipt carries its anchor next_at, and the next one starts there)
+      await sql`insert into public.wedding_receipts (seed_id, wedding_index, occurred_at, dowry, is_grand, is_town, version, next_at) values
+        (${id}, ${legacy.length}, ${new Date(mid).toISOString()}, 41, true, false, 2, ${new Date(fresh).toISOString()}),
+        (${id}, ${legacy.length + 1}, ${new Date(fresh).toISOString()}, 42, true, false, 2, ${new Date(fresh + 3 * D).toISOString()})`;
       expect(await list(id, Date.now())).toEqual([...legacy, [mid, 41], [fresh, 42]]);
       expect(await walk()).toBe(afterLegacy + 41 + 42);
       const [w] = await sql`select n, dowry, last_at from public.village_weddings(${id}, now())`;
@@ -284,8 +211,9 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
     expect(await err(sql`update public.wedding_receipts set dowry = dowry + 1 where seed_id = ${v.seed.id}`)).toBe("wedding receipts are immutable");
     expect(await err(sql`insert into public.wedding_receipts (seed_id, wedding_index, occurred_at, dowry, is_grand, is_town)
       values (${v.seed.id}, 999, now() + interval '1 day', 35, true, false)`)).toBe("wedding receipt in the future");
+    // a second receipt for an instant: since 0160 the anchor chain refuses it before UNIQUE(seed_id, occurred_at) is reached
     expect(await err(sql`insert into public.wedding_receipts (seed_id, wedding_index, occurred_at, dowry, is_grand, is_town)
-      values (${v.seed.id}, 998, ${rows[0]!.occurred_at}, 35, true, false)`)).toMatch(/duplicate key/);
+      values (${v.seed.id}, ${rows.length}, ${rows[0]!.occurred_at}, 35, true, false)`)).toBe("wedding receipt breaks the anchor chain");
     expect(await sql`select * from public.wedding_receipt_diff(${v.seed.id})`).toHaveLength(0);
   });
 
@@ -309,8 +237,10 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
   describe("Korrektur B: receipt version boundary in the database", () => {
     const T = Date.now() - 10 * D;
     const err = (p: Promise<unknown>) => p.then(() => "ok").catch((e: Error) => e.message);
-    const rec = (id: string, i: number, at: number, version: number, dowry = 30) =>
-      ({ seed_id: id, wedding_index: i, occurred_at: new Date(at).toISOString(), dowry, is_grand: true, is_town: false, version });
+    // since 0160 (Paket A2) every receipt carries its anchor next_at; a version-2 receipt cannot be booked without it
+    // (version-1 rows here stand for receipts booked before 0160: no anchor)
+    const rec = (id: string, i: number, at: number, version: number, dowry = 30, next: number | null = version === 2 ? at + H : null) =>
+      ({ seed_id: id, wedding_index: i, occurred_at: new Date(at).toISOString(), dowry, is_grand: true, is_town: false, version, next_at: next == null ? null : new Date(next).toISOString() });
     const ins = (r: ReturnType<typeof rec>, tx: postgres.Sql | postgres.TransactionSql = sql) =>
       tx`insert into public.wedding_receipts ${tx(r)} on conflict (seed_id, wedding_index) do nothing`;
     beforeAll(async () => { await setSwitch(new Date(T).toISOString(), new Date(T).toISOString()); });
@@ -319,7 +249,7 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
     it("B1 version 1 before the switch is accepted; B2 version 2 from the switch is accepted", async () => {
       const v = await make(Date.now() - 60 * D, [["fisher", Date.now() - 59 * D]]);
       expect(await err(ins(rec(v.seed.id, 0, T - D, 1)))).toBe("ok");
-      expect(await err(ins(rec(v.seed.id, 1, T, 2)))).toBe("ok"); // exactly at the switch: new rule
+      expect(await err(ins(rec(v.seed.id, 1, T, 2, 30, T + D)))).toBe("ok"); // exactly at the switch: new rule
       expect(await err(ins(rec(v.seed.id, 2, T + D, 2)))).toBe("ok");
     });
     it("B3 version 1 from the switch is refused (also the default version and exactly at T)", async () => {
