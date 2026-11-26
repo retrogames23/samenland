@@ -2345,7 +2345,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     if (!my) return;
     if (x != null && y != null) {
       const err = treeGuard(canPlaceSpecial, plantings)(item, x, y, my, seeds, clock());
-      if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore" | "road"]);
+      if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore" | "road" | "ring"]);
     }
     // instant feedback: sound, close placement and show the site right away; the server confirms or we roll back
     tap(); setPlacing(null);
@@ -2445,7 +2445,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const relocate = async (item: string, x: number, y: number) => {
     if (!my) return;
     const err = treeGuard(canMoveTo, plantings)(item, x, y, my, seeds, clock());
-    if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore" | "road"]);
+    if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore" | "road" | "ring"]);
     const block = moveBlock(my, item, clock());
     if (block) return setMsg(RELOCATE[lang][block]);
     tap(); setPlacing(null);
