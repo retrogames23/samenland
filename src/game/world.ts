@@ -2313,6 +2313,15 @@ export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, see
   }
   // 2×2 ensembles paint beyond their diamond: keep one free ring between them and any other bought building
   if (bigClash(kind, x, y, seeds)) return "taken";
+  // ...and the tiles right behind it free of houses and roads: the courtyard sprite paints most of its height over them,
+  // so a house or road there looks built over (it paints nothing in front, so the front ring stays usable)
+  if (FOOT2.has(kind)) for (const [i, j] of FOOT2_RING_BACK) {
+    const xx = x + i, yy = y + j;
+    if (onRoadCourse(xx, yy, seeds, now)) return "ring";
+    const b = structureAt(xx, yy, seeds, now);
+    // the ensemble's own old site (a relocation) and other bought sites are bigClash's business
+    if (b && !agri(b.kind) && b.kind !== kind && b.kind !== "square") return "ring";
+  }
   // the fisher belongs at the water: a carp pond only where the village cannot place the hut on any shore spot
   if (kind === "fishery" && !waterBeside(x, y) && shoreSpotFor(item, s, seeds, now)) return "shore";
   // the carp pond must not cover a standing building (it would be hidden yet still block the way)
@@ -2322,6 +2331,9 @@ export function canPlaceSpecial(item: string, x: number, y: number, s: Seed, see
   return null;
 }
 
+/** Ring tiles behind a 2×2 ensemble (front tile at 0,0; footprint −1..0): the back column and row. Measured on the four
+ *  ensemble sprites, these carry most of the painted area outside the footprint; the front ring carries none. */
+export const FOOT2_RING_BACK: readonly (readonly [number, number])[] = [[-2, -2], [-2, -1], [-2, 0], [-1, -2], [0, -2]];
 /** Tiles of a placement (2×2 for ensembles) and their one-tile ring; a clash when another bought site of a different kind
  * sits in the ring of a 2×2 ensemble — so wide courtyard sprites never paint over a neighbouring bought house. */
 function bigClash(kind: Kind, x: number, y: number, seeds: Seed[]): boolean {

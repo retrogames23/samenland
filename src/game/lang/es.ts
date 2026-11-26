@@ -177,7 +177,7 @@ export const es: Dict = {
   buy: "Comprar",
   owned: "construido",
   bought: (n) => `${n} forma ahora parte de la aldea.`,
-  place: { pick: (n) => `Elige un lugar para: ${n}`, hint: "Verde = apto para edificar. Pulsa para construir.", far: "Demasiado lejos de tu aldea.", ground: "No se puede edificar sobre este terreno.", taken: "Ya se alza algo en este sitio.", road: "Aquí pasa una ruta comercial: no se puede construir encima.", shore: "La choza del pescador debe erigirse junto al agua.", here: "Construir aquí", drag: "Toca o arrastra la vista previa y confirma." },
+  place: { pick: (n) => `Elige un lugar para: ${n}`, hint: "Verde = apto para edificar. Pulsa para construir.", far: "Demasiado lejos de tu aldea.", ground: "No se puede edificar sobre este terreno.", taken: "Ya se alza algo en este sitio.", ring: "Demasiado cerca de una casa o un camino: el conjunto se extiende hacia atrás sobre la casilla vecina.", road: "Aquí pasa una ruta comercial: no se puede construir encima.", shore: "La choza del pescador debe erigirse junto al agua.", here: "Construir aquí", drag: "Toca o arrastra la vista previa y confirma." },
   poor: "Aún no hay monedas suficientes.",
   docTitle: "Simulador de aldea Samenland – Siembra una semilla. Contempla cómo crece.",
   buyFail: "La adquisición fue rechazada; por favor, inténtalo de nuevo.",
