@@ -20,7 +20,7 @@ AS $$ SELECT CASE WHEN _realm = 'lab' THEN timestamptz '2100-01-04 00:00:00+00' 
 GRANT EXECUTE ON FUNCTION public.wedding_switch_since(text) TO authenticated, service_role;
 
 -- 2) The wedding calendar as the money reads it. Owned villages: the 0107 loop, verbatim, for weddings before the
---    switch; from the switch only stored receipts (occurred_at <= _at). Unowned villages never had a care gate in the
+--    switch; from the switch only stored version-2 receipts (occurred_at <= _at). Unowned villages never had a care gate in the
 --    rhythm (wedStage returns the raw era) and get no receipts, so they keep the loop for all time as before.
 CREATE OR REPLACE FUNCTION public.village_wedding_list(_seed uuid, _at timestamptz, _food text[])
  RETURNS TABLE(t timestamptz, dowry integer)
@@ -59,8 +59,10 @@ BEGIN
     cur := cur + make_interval(hours => gap);
   END LOOP;
   IF _at >= sw THEN
+    -- only version-2 receipts count from the switch; a version-1 receipt there is never used, not even as a fallback
     RETURN QUERY SELECT r0.occurred_at, r0.dowry FROM public.wedding_receipts r0
-      WHERE r0.seed_id = _seed AND r0.occurred_at >= sw AND r0.occurred_at <= _at ORDER BY r0.wedding_index;
+      WHERE r0.seed_id = _seed AND r0.occurred_at >= sw AND r0.occurred_at <= _at AND r0.version = 2
+      ORDER BY r0.wedding_index;
   END IF;
 END $function$;
 
@@ -68,6 +70,7 @@ END $function$;
 --    before its switch (its dowries come from the loop above), so it has nothing to compare there.
 --      receipt_at IS NULL -> receipt not written yet (settle and re-run)
 --      sql_at IS NULL     -> a receipt SQL does not know: a real divergence, investigate
+--      both set, equal    -> the receipt carries a version other than 1 (wrong rule for its instant)
 CREATE OR REPLACE FUNCTION public.wedding_receipt_diff(_seed uuid)
  RETURNS TABLE(idx integer, receipt_at timestamptz, sql_at timestamptz, receipt_dowry integer, sql_dowry integer)
  LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
@@ -83,13 +86,13 @@ AS $$
      WHERE NOT n.lab AND l.t < n.sw
   ),
   rec AS (
-    SELECT r.wedding_index AS idx, r.occurred_at, r.dowry
+    SELECT r.wedding_index AS idx, r.occurred_at, r.dowry, r.version
       FROM n, public.wedding_receipts r
      WHERE r.seed_id = _seed AND NOT n.lab AND r.occurred_at <= n.at AND r.occurred_at < n.sw
   )
   SELECT coalesce(s.idx, r.idx), r.occurred_at, s.t, r.dowry, s.dowry
     FROM sqll s FULL JOIN rec r ON r.idx = s.idx
-   WHERE r.idx IS NULL OR s.idx IS NULL OR r.occurred_at <> s.t OR r.dowry <> s.dowry
+   WHERE r.idx IS NULL OR s.idx IS NULL OR r.occurred_at <> s.t OR r.dowry <> s.dowry OR r.version <> 1
    ORDER BY 1
 $$;
 REVOKE ALL ON FUNCTION public.wedding_receipt_diff(uuid) FROM PUBLIC, anon, authenticated;
@@ -101,8 +104,11 @@ GRANT EXECUTE ON FUNCTION public.wedding_receipt_diff(uuid) TO service_role;
 --      luecken   = holes in the receipt indices from the switch on (index must run on without a gap after the
 --                  legacy weddings; the newest unsettled weddings after the switch are visible only to the TS sweep)
 --      doppelt   = two receipts on one index or one instant (impossible by PK/UNIQUE; listed as proof)
+--      falsche_version = receipts whose version does not fit their side of the switch (1 before, 2 from it);
+--                  impossible through the trigger below, listed as proof — e.g. before moving a switch date earlier
 CREATE OR REPLACE FUNCTION public.wedding_receipt_inventory()
- RETURNS TABLE(seed_id uuid, realm text, belege integer, fehlt integer, weicht_ab integer, luecken integer, doppelt integer)
+ RETURNS TABLE(seed_id uuid, realm text, belege integer, fehlt integer, weicht_ab integer, luecken integer, doppelt integer,
+               falsche_version integer)
  LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
 AS $$
   SELECT s.id, s.realm,
@@ -114,20 +120,36 @@ AS $$
           FROM public.wedding_receipts r WHERE r.seed_id = s.id) g
       WHERE g.occurred_at >= public.wedding_switch_since(s.realm) AND g.prev IS NOT NULL AND g.wedding_index <> g.prev + 1),
     (SELECT (count(*) - count(DISTINCT r.wedding_index))::integer + (count(*) - count(DISTINCT r.occurred_at))::integer
-       FROM public.wedding_receipts r WHERE r.seed_id = s.id)
+       FROM public.wedding_receipts r WHERE r.seed_id = s.id),
+    (SELECT count(*)::integer FROM public.wedding_receipts r WHERE r.seed_id = s.id
+       AND r.version <> CASE WHEN r.occurred_at >= public.wedding_switch_since(s.realm) THEN 2 ELSE 1 END)
   FROM public.seeds s WHERE s.user_id IS NOT NULL ORDER BY s.id
 $$;
 REVOKE ALL ON FUNCTION public.wedding_receipt_inventory() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.wedding_receipt_inventory() TO service_role;
 
--- 5) Receipts are economic records: never rewritten, never dated in the future. Deleting stays possible only through
---    the existing seed purge (ON DELETE CASCADE), so a village's own history goes with it as before.
+-- 5) Receipts are economic records: never rewritten, never dated in the future, and their version is enforced here,
+--    not only in TypeScript, so a server instance that still runs older code cannot book a wedding after the switch:
+--      occurred_at <  wedding_switch_since(realm)  -> version 1 only (legacy rule)
+--      occurred_at >= wedding_switch_since(realm)  -> version 2 only (unified rule)
+--    Code before this package writes version 1 for every wedding, so its rows after the switch are refused (the whole
+--    statement fails; its treasury sync only logs that). Deleting stays possible through the existing seed purge
+--    (ON DELETE CASCADE) and, for the service role, directly — see the release notes; UPDATE is refused.
 CREATE OR REPLACE FUNCTION public.wedding_receipt_guard()
  RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
 AS $$
+DECLARE sw timestamptz;
 BEGIN
   IF TG_OP = 'UPDATE' THEN RAISE EXCEPTION 'wedding receipts are immutable'; END IF;
   IF NEW.occurred_at > now() + interval '5 minutes' THEN RAISE EXCEPTION 'wedding receipt in the future'; END IF;
+  SELECT public.wedding_switch_since(s.realm) INTO sw FROM public.seeds s WHERE s.id = NEW.seed_id;
+  IF sw IS NULL THEN RAISE EXCEPTION 'wedding receipt for an unknown village'; END IF;
+  IF NEW.occurred_at >= sw AND NEW.version IS DISTINCT FROM 2 THEN
+    RAISE EXCEPTION 'wedding receipt version 2 required from the switch';
+  END IF;
+  IF NEW.occurred_at < sw AND NEW.version IS DISTINCT FROM 1 THEN
+    RAISE EXCEPTION 'wedding receipt version 1 required before the switch';
+  END IF;
   RETURN NEW;
 END $$;
 REVOKE ALL ON FUNCTION public.wedding_receipt_guard() FROM PUBLIC, anon, authenticated;
@@ -136,4 +158,4 @@ CREATE TRIGGER wedding_receipts_guard BEFORE INSERT OR UPDATE ON public.wedding_
   FOR EACH ROW EXECUTE FUNCTION public.wedding_receipt_guard();
 
 COMMENT ON TABLE public.wedding_receipts IS
-  'Server-derived wedding records frozen from src/game/weddings.ts weddingCalendar (index = WedDate.k). Version 1 = legacy rule (before wedding_switch_since, mirrored by village_wedding_list), 2 = unified rule (from it; the only money record). Immutable.';
+  'Server-derived wedding records frozen from src/game/weddings.ts weddingCalendar (index = WedDate.k). Version 1 = legacy rule (before wedding_switch_since, mirrored by village_wedding_list), 2 = unified rule (from it; the only money record). Version enforced by wedding_receipts_guard; UPDATE refused.';

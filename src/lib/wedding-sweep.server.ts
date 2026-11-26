@@ -10,7 +10,7 @@
  * `apply: false` (the default) is a dry run that only reports.
  */
 import type { Seed } from "@/game/world";
-import type { WeddingSettlement } from "./treasury.server";
+import { weddingSettlementProblem, type WeddingSettlement, type WeddingProblem } from "./treasury.server";
 
 export type SweepOptions = { realm: string; apply?: boolean; after?: string | null; limit?: number };
 export type SweepVillage = { seed: string } & WeddingSettlement;
@@ -23,7 +23,7 @@ export type SweepReport = {
   missing: number;
   inserted: number;
   villages: SweepVillage[];
-  halted: { seed: string; mismatches: number[]; switchMismatch?: true } | null;
+  halted: { seed: string; reason: WeddingProblem; mismatches: number[]; switchMismatch?: true } | null;
   errors: { seed: string; message: string }[];
   /** Resume cursor (last fully handled village id), null when the realm is done. */
   next: string | null;
@@ -55,12 +55,13 @@ export async function runSweep(
     out.checked++;
     out.villages.push({ seed: s.id, ...r });
     out.missing += r.missing; out.inserted += r.inserted;
-    if (r.mismatches.length || r.switchMismatch) {
-      out.halted = { seed: s.id, mismatches: r.mismatches, ...(r.switchMismatch ? { switchMismatch: true as const } : {}) };
+    const problem = weddingSettlementProblem(r);
+    if (problem) {
+      out.halted = { seed: s.id, reason: problem.reason, mismatches: r.mismatches, ...(r.switchMismatch ? { switchMismatch: true as const } : {}) };
       out.next = last;
       return out;
     }
-    if (r.missing === 0 || (apply && r.inserted === r.missing)) out.complete++;
+    if (r.missing === 0 || (apply && r.verified && r.audit.missing.length === 0)) out.complete++;
     last = s.id;
   }
   out.next = owned.length > batch.length ? last : null;

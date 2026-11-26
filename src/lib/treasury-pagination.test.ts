@@ -9,7 +9,8 @@ const cmp = (a: unknown, b: unknown) => String(a).localeCompare(String(b), undef
 // Minimal PostgREST stand-in: eq/in/gte/gt/or(keyset) filters, multi-key order, limit pages, upsert with unique key.
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
-    rpc: (fn: string) => Promise.resolve({ data: fn === "village_balance" ? 0 : (db.tables.tax_receipts ?? []).reduce((a: number, r: Row) => a + (r.income as number), 0), error: null }),
+    // Hochzeitspaket: the treasury sync first asks the database for the wedding switch (fails closed otherwise)
+    rpc: (fn: string) => Promise.resolve({ data: fn === "wedding_switch_since" ? "2100-01-04T00:00:00+00:00" : fn === "village_balance" ? 0 : (db.tables.tax_receipts ?? []).reduce((a: number, r: Row) => a + (r.income as number), 0), error: null }),
     from: (table: string) => {
       const filters: ((r: Row) => boolean)[] = [], orders: [string, boolean][] = [];
       let lim = Infinity, head = false;

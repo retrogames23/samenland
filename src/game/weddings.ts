@@ -49,6 +49,7 @@ export const weddingSwitchSince = (realm: string | null | undefined) =>
 export const wedRuleVersion = (s: Seed, t: number) => (t >= weddingSwitchSince(s.realm) ? 2 : 1);
 
 /** Health side of the wedding rhythm at `t`. Legacy: herb hut and healer only (mirrored by DB village_wedding_list).
+ *  OPEN DESIGN QUESTION (Masterplan v6.2 11.3): the unified branch below is the package's proposal, not a decision.
  *  Unified (from the switch): exactly the care gate's Gemeinwesen count — gemeinwesenGate (the five Gemeinwesen from
  *  gemeinwesenSince, before that herb hut, healer, library) plus careHealthExtra (finished Dom step 3, finished
  *  university step 3, Klostergarten paid step 2 without herb hut), the same terms careStage uses in world.ts.

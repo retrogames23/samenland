@@ -304,4 +304,115 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
     await insertReceipts(rows);
     expect(await sql`select * from public.wedding_receipt_diff(${miss.seed.id})`).toHaveLength(0);
   });
+
+  // ---------- Korrektur B: version boundary enforced by PostgreSQL ----------
+  describe("Korrektur B: receipt version boundary in the database", () => {
+    const T = Date.now() - 10 * D;
+    const err = (p: Promise<unknown>) => p.then(() => "ok").catch((e: Error) => e.message);
+    const rec = (id: string, i: number, at: number, version: number, dowry = 30) =>
+      ({ seed_id: id, wedding_index: i, occurred_at: new Date(at).toISOString(), dowry, is_grand: true, is_town: false, version });
+    const ins = (r: ReturnType<typeof rec>, tx: postgres.Sql | postgres.TransactionSql = sql) =>
+      tx`insert into public.wedding_receipts ${tx(r)} on conflict (seed_id, wedding_index) do nothing`;
+    beforeAll(async () => { await setSwitch(new Date(T).toISOString(), new Date(T).toISOString()); });
+    afterAll(async () => { await setSwitch("2100-01-04 00:00:00+00", "2100-01-04 00:00:00+00"); });
+
+    it("B1 version 1 before the switch is accepted; B2 version 2 from the switch is accepted", async () => {
+      const v = await make(Date.now() - 60 * D, [["fisher", Date.now() - 59 * D]]);
+      expect(await err(ins(rec(v.seed.id, 0, T - D, 1)))).toBe("ok");
+      expect(await err(ins(rec(v.seed.id, 1, T, 2)))).toBe("ok"); // exactly at the switch: new rule
+      expect(await err(ins(rec(v.seed.id, 2, T + D, 2)))).toBe("ok");
+    });
+    it("B3 version 1 from the switch is refused (also the default version and exactly at T)", async () => {
+      const v = await make(Date.now() - 60 * D, [["fisher", Date.now() - 59 * D]]);
+      expect(await err(ins(rec(v.seed.id, 0, T, 1)))).toBe("wedding receipt version 2 required from the switch");
+      expect(await err(sql`insert into public.wedding_receipts (seed_id, wedding_index, occurred_at, dowry, is_grand, is_town)
+        values (${v.seed.id}, 1, ${new Date(T + D).toISOString()}, 30, true, false)`)).toBe("wedding receipt version 2 required from the switch");
+      expect(await sql`select 1 from public.wedding_receipts where seed_id = ${v.seed.id}`).toHaveLength(0);
+    });
+    it("B4 version 2 before the switch is refused", async () => {
+      const v = await make(Date.now() - 60 * D, [["fisher", Date.now() - 59 * D]]);
+      expect(await err(ins(rec(v.seed.id, 0, T - 1, 2)))).toBe("wedding receipt version 1 required before the switch");
+    });
+    it("B3 an old worker after the switch books nothing: its one statement (all rows, version 1) fails as a whole", async () => {
+      const v = await make(Date.now() - 60 * D, [["fisher", Date.now() - 59 * D], ["herbs", Date.now() - 59 * D]]);
+      // what the code on main sends: the whole calendar, every row version 1, one upsert
+      const legacy = (await list(v.seed.id, Date.now(), "village_wedding_list_0107"));
+      const rows = legacy.map(([t, dw], i) => rec(v.seed.id, i, t!, 1, dw!));
+      expect(rows.some((r) => Date.parse(r.occurred_at) >= T)).toBe(true);
+      expect(await err(sql`insert into public.wedding_receipts ${sql(rows)} on conflict (seed_id, wedding_index) do nothing`))
+        .toBe("wedding receipt version 2 required from the switch");
+      expect(await sql`select 1 from public.wedding_receipts where seed_id = ${v.seed.id}`).toHaveLength(0);
+      // and the money still sees no wedding after the switch (the database never computes one there)
+      expect((await list(v.seed.id, Date.now())).every(([t]) => t! < T)).toBe(true);
+    });
+    it("B5 mixed stock: chest walk, list and guard use the legacy loop before T and only version-2 receipts from T — never a version-1 fallback", async () => {
+      const v = await make(Date.now() - 60 * D, [["fisher", Date.now() - 59 * D], ["herbs", Date.now() - 59 * D]]);
+      const id = v.seed.id;
+      const legacy = (await list(id, Date.now(), "village_wedding_list_0107")).filter(([t]) => t! < T);
+      for (const [i, [t, dw]] of legacy.entries()) await ins(rec(id, i, t!, 1, dw!));
+      const balance = async () => (await sql`select public.village_balance(${id}) as b`)[0]!["b"] as number;
+      const base = await balance();
+      // a stray version-1 receipt after T (e.g. written before the trigger existed): must not count, not even as fallback
+      const at = Date.now() - H;
+      await sql.unsafe("alter table public.wedding_receipts disable trigger wedding_receipts_guard");
+      try { await ins(rec(id, legacy.length, at, 1, 77)); }
+      finally { await sql.unsafe("alter table public.wedding_receipts enable trigger wedding_receipts_guard"); }
+      expect(await list(id, Date.now())).toEqual(legacy);
+      expect(await balance()).toBe(base);
+      expect(await asServer(id, "wedding", "feast")).toBe("no wedding");
+      const [inv] = await sql`select falsche_version from public.wedding_receipt_inventory() where seed_id = ${id}`;
+      expect(inv!["falsche_version"]).toBe(1);
+      // a valid version-2 receipt from T: counted, guard open
+      await sql`delete from public.wedding_receipts where seed_id = ${id} and wedding_index = ${legacy.length}`;
+      await ins(rec(id, legacy.length, at, 2, 44));
+      expect(await list(id, Date.now())).toEqual([...legacy, [at, 44]]);
+      expect(await balance()).toBe(base + 44);
+      expect(await asServer(id, "wedding", "feast")).toBe("ok");
+    });
+    it("B6 parallel and repeated writes: each index once, the wrong version never wins, nothing is rewritten", async () => {
+      const v = await make(Date.now() - 60 * D, [["fisher", Date.now() - 59 * D]]);
+      const id = v.seed.id;
+      const good = [0, 1, 2, 3].map((i) => rec(id, i, T + (i + 1) * H, 2, 30 + i));
+      const old = good.map((r) => ({ ...r, version: 1, dowry: r.dowry + 100 })); // an old worker racing the new one
+      const results = await Promise.all([
+        ...[1, 2, 3, 4, 5].map(() => sql.begin(async (tx) => { for (const r of good) await ins(r, tx); }).then(() => "ok", (e: Error) => e.message)),
+        ...[1, 2].map(() => sql.begin(async (tx) => { for (const r of old) await ins(r, tx); }).then(() => "ok", (e: Error) => e.message)),
+      ]);
+      expect(results.slice(0, 5)).toEqual(["ok", "ok", "ok", "ok", "ok"]);
+      expect(results.slice(5)).toEqual(["wedding receipt version 2 required from the switch", "wedding receipt version 2 required from the switch"]);
+      const stored = await sql`select wedding_index, dowry, version from public.wedding_receipts where seed_id = ${id} order by wedding_index`;
+      expect(stored.map((r) => [r["wedding_index"], r["dowry"], r["version"]])).toEqual(good.map((r) => [r.wedding_index, r.dowry, 2]));
+      for (const r of good) await ins(r); // repeat after "abort": no change
+      expect(await sql`select count(*)::int as n from public.wedding_receipts where seed_id = ${id}`).toEqual([{ n: 4 }]);
+    });
+    it("the shadow check flags a wrong version before the switch", async () => {
+      const v = await make(Date.now() - 60 * D, [["fisher", Date.now() - 59 * D]]);
+      const legacy = (await list(v.seed.id, Date.now(), "village_wedding_list_0107")).filter(([t]) => t! < T);
+      await sql.unsafe("alter table public.wedding_receipts disable trigger wedding_receipts_guard");
+      try { for (const [i, [t, dw]] of legacy.entries()) await ins(rec(v.seed.id, i, t!, i === 1 ? 2 : 1, dw!)); }
+      finally { await sql.unsafe("alter table public.wedding_receipts enable trigger wedding_receipts_guard"); }
+      const diff = await sql`select idx from public.wedding_receipt_diff(${v.seed.id})`;
+      expect(diff.map((r) => r["idx"])).toEqual([1]);
+    });
+  });
+
+  // ---------- integrity facts (documented as found, not changed by this package) ----------
+  it("integrity: UPDATE refused; direct DELETE by the service role and the village purge (CASCADE) remove receipts", async () => {
+    const v = await make(Date.now() - 90 * D, [["fisher", Date.now() - 89 * D]]);
+    await insertReceipts(weddingReceiptRows(v.seed, Date.now()));
+    const n = async () => (await sql`select count(*)::int as n from public.wedding_receipts where seed_id = ${v.seed.id}`)[0]!["n"] as number;
+    const before = await n();
+    expect(before).toBeGreaterThan(2);
+    const err = (p: Promise<unknown>) => p.then(() => "ok").catch((e: Error) => e.message);
+    expect(await err(sql`update public.wedding_receipts set dowry = dowry where seed_id = ${v.seed.id}`)).toBe("wedding receipts are immutable");
+    await sql`delete from public.wedding_receipts where seed_id = ${v.seed.id} and wedding_index = 0`; // not blocked
+    expect(await n()).toBe(before - 1);
+    await sql`delete from public.seeds where id = ${v.seed.id}`; // the purge path
+    expect(await n()).toBe(0);
+    const [p] = await sql`select has_table_privilege('service_role', 'public.wedding_receipts', 'DELETE') as del,
+                                 has_table_privilege('service_role', 'public.wedding_receipts', 'TRUNCATE') as tru,
+                                 has_table_privilege('authenticated', 'public.wedding_receipts', 'INSERT') as auth_ins,
+                                 has_table_privilege('authenticated', 'public.wedding_receipts', 'SELECT') as auth_sel`;
+    expect(p).toEqual({ del: true, tru: true, auth_ins: false, auth_sel: true });
+  });
 });

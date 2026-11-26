@@ -40,32 +40,44 @@ export function weddingReceiptRows(s: Seed, now: number): WeddingReceiptRow[] {
   }));
 }
 
-/**
- * True when exactly the indices 0..n-1 are booked. With the (seed_id, wedding_index) primary key and
- * indices >= 0, "count == n and highest == n-1" proves it, so a hole (or a stray extra index) is never
- * mistaken for a complete set, and it needs only two cheap queries instead of reading every row.
- */
-export const receiptsComplete = (count: number, highest: number | null, n: number, first = 0) =>
-  n === 0 ? count === 0 : count === n && highest === first + n - 1;
+/** A receipt as stored: every field the money, the guard or the rule version depends on. */
+export type BookedReceipt = Pick<WeddingReceiptRow, "wedding_index" | "occurred_at" | "dowry" | "is_grand" | "is_town" | "version">;
+/** The compared fields; a booked receipt must match the calendar in every one of them. */
+export const RECEIPT_FIELDS = ["occurred_at", "dowry", "version", "is_grand", "is_town"] as const;
+export type ReceiptField = (typeof RECEIPT_FIELDS)[number];
 
-/** A receipt as stored (only the fields the money reads). */
-export type BookedReceipt = { wedding_index: number; occurred_at: string; dowry: number };
-/** Rows of the calendar that have no receipt yet — the only rows a settlement may send. */
-export function missingReceipts(rows: WeddingReceiptRow[], booked: BookedReceipt[]): WeddingReceiptRow[] {
-  const have = new Set(booked.map((b) => b.wedding_index));
-  return rows.filter((r) => !have.has(r.wedding_index));
-}
 /**
- * Booked receipts that disagree with the calendar (instant or dowry), or that the calendar does not know at all.
- * Never repaired automatically: a receipt is an economic record, so any hit stops the sweep for that village and
- * must be investigated by hand (no historical receipt is ever rewritten).
+ * Full comparison of the booked receipts with the calendar — never a count or index-range shortcut, because a
+ * gap-free index range says nothing about the content of the rows.
+ *  - missing:    calendar rows after the highest booked index (not settled yet) — the only rows a settlement may send
+ *  - holes:      calendar indices without a receipt below the highest booked index, including a missing first one
+ *                (receipts are always written oldest first, so a hole means a lost or removed record)
+ *  - changed:    booked receipts whose instant, dowry, version, grand or town flag differ from the calendar
+ *  - unexpected: booked receipts at an index the calendar does not have
+ * Anything in holes, changed or unexpected is a divergence: nothing is written and nothing is repaired.
  */
-export function receiptMismatches(rows: WeddingReceiptRow[], booked: BookedReceipt[]): number[] {
-  const byIdx = new Map(rows.map((r) => [r.wedding_index, r]));
-  const out: number[] = [];
-  for (const b of booked) {
-    const r = byIdx.get(b.wedding_index);
-    if (!r || Date.parse(r.occurred_at) !== Date.parse(b.occurred_at) || r.dowry !== b.dowry) out.push(b.wedding_index);
+export type ReceiptAudit = {
+  missing: WeddingReceiptRow[];
+  holes: number[];
+  changed: { index: number; fields: ReceiptField[] }[];
+  unexpected: number[];
+};
+export function auditReceipts(rows: WeddingReceiptRow[], booked: BookedReceipt[]): ReceiptAudit {
+  const byIdx = new Map(booked.map((b) => [b.wedding_index, b]));
+  const top = booked.reduce((m, b) => Math.max(m, b.wedding_index), -1);
+  const expected = new Set(rows.map((r) => r.wedding_index));
+  const out: ReceiptAudit = { missing: [], holes: [], changed: [], unexpected: [] };
+  for (const r of rows) {
+    const b = byIdx.get(r.wedding_index);
+    if (!b) { if (r.wedding_index < top) out.holes.push(r.wedding_index); else out.missing.push(r); continue; }
+    const fields = RECEIPT_FIELDS.filter((f) =>
+      f === "occurred_at" ? Date.parse(r.occurred_at) !== Date.parse(b.occurred_at) : r[f] !== b[f]);
+    if (fields.length) out.changed.push({ index: r.wedding_index, fields });
   }
-  return out.sort((a, b) => a - b);
+  for (const b of booked) if (!expected.has(b.wedding_index)) out.unexpected.push(b.wedding_index);
+  out.unexpected.sort((a, b) => a - b);
+  return out;
 }
+/** Every index that makes a village divergent (holes, changed, unexpected), sorted. */
+export const divergentIndices = (a: ReceiptAudit) =>
+  [...new Set([...a.holes, ...a.changed.map((c) => c.index), ...a.unexpected])].sort((x, y) => x - y);
