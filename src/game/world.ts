@@ -511,6 +511,46 @@ export function landmarkSpots(s: Seed): Map<string, number[]> {
 }
 const SPOKE_AT = [0, 0, 48, 168, 720, 2160, 4380, 8760];
 const RINGS = [{ r: 5, at: 240 }, { r: 10, at: 2160 }, { r: 16, at: 4380 }, { r: 24, at: 8760 }, { r: 34, at: 15000 }];
+/**
+ * Road openings (a spoke at SPOKE_AT, a ring at RINGS.at) give many old lots their road at one instant. Lots whose
+ * nominal birth already lies in the past used to stand finished in that same instant (Ehrenberg, Gebbingen 27.11.2026:
+ * +24 / +29 houses at 240 h). From ROAD_SETTLE_SINCE such a lot is built after the opening instead: its site starts
+ * at a pure per-tile offset within roadSettle(T) and takes the ordinary HOUSE_BUILD. Nothing is stored — the opening
+ * hour T and the offset are derived. Openings a village had passed by ROAD_SETTLE_SINCE keep the old rule, so no
+ * standing house turns back into a site.
+ * Duration: twice the build time of a landmark of that era (buildTime) — 28.8 growth hours at 240 h, so on average
+ * less than one site at a time even for 30 lots; later openings take longer, as landmarks do.
+ *
+ * RELEASE STEP — the date is a placeholder (rule off, like WEDDING_SWITCH_SINCE) until Stephan releases it:
+ * set ROAD_SETTLE_SINCE in the commit that is published, to an instant AFTER that publish (publish time plus a few
+ * hours). A date before the publish would turn houses of villages that crossed an opening in between back into
+ * sites. Once published with a real date, never move the date again (an earlier date resets houses, a later one makes
+ * sites jump to finished).
+ */
+export const ROAD_SETTLE_OFF = Date.UTC(2100, 0, 4);
+export const ROAD_SETTLE_SINCE = ROAD_SETTLE_OFF;
+/** Test switch: the cutover in effect (tests set a real date; production always reads ROAD_SETTLE_SINCE). */
+export const roadSettleCfg = { since: ROAD_SETTLE_SINCE };
+export const roadSettle = (t: number) => 2 * buildTime(t);
+/** A tile's share 0…1 of the settling window; hashed twice so it is independent of the tile's birth and kind hashes. */
+const settleShare = (x: number, y: number) => hash((hash(x, y, 31) * 1048576) | 0, x - y, 9);
+/** Finish hour of a lot that was due before opening `t` and got its road only through it; null when `t` did not open it
+ *  (already on a road before, or still without one). `r` is the village radius the roads are read with. */
+function settledBirth(x: number, y: number, s: Seed, t: number, r: number): number | null {
+  let now = false, before = false;
+  for (let j = -1; j <= 1 && !before; j++) for (let i = -1; i <= 1; i++) {
+    if (!i && !j) continue;
+    if (pathAt(x + i, y + j, s, t - 1e-9, r)) { before = true; break; }
+    now ||= pathAt(x + i, y + j, s, t, r);
+  }
+  return now && !before ? t + HOUSE_BUILD + settleShare(x, y) * roadSettle(t) : null;
+}
+const ROAD_OPENINGS = [...new Set([...SPOKE_AT, ...RINGS.map((g) => g.at)])].filter((t) => t > 0).sort((a, b) => a - b);
+/** The opening hour whose settling window contains `age`, or null (windows never overlap; see road-settle.test.ts). */
+export const roadOpeningAt = (age: number): number | null => {
+  for (const t of ROAD_OPENINGS) if (age >= t && age < t + roadSettle(t) + HOUSE_BUILD) return t;
+  return null;
+};
 const waterNearCache = new Map<number, boolean>();
 export function waterNearby(x: number, y: number): boolean {
   const key = y * MAP + x, hit = waterNearCache.get(key); if (hit !== undefined) return hit;
@@ -671,8 +711,8 @@ const keptCache = new Map<string, Set<number>>();
  * Village paths that actually lead somewhere: raw spokes/rings are pruned from their loose ends
  * until every remaining end touches a building or the village square.
  */
-function keptPaths(s: Seed, age: number, r: number): Set<number> {
-  const ck = `${s.id}|${Math.floor(age * 60)}|${seedsKey(soloSeeds(s))}`; // anchors depend on purchases/charter, not only age
+function keptPaths(s: Seed, age: number, r: number, open: number | null = null): Set<number> {
+  const ck = `${s.id}|${Math.floor(age * 60)}|${open ?? ""}|${seedsKey(soloSeeds(s))}`; // anchors depend on purchases/charter, not only age
   const hit = keptCache.get(ck); if (hit) return hit;
   const R = Math.ceil(reachOf(s, r) + 1), cx = Math.round(s.x), cy = Math.round(s.y);
   const paths = new Set<number>(), anchor = new Set<number>();
@@ -681,7 +721,7 @@ function keptPaths(s: Seed, age: number, r: number): Set<number> {
     const d = townDist(x, y, s);
     if (d > r + 0.5) continue;
     if (pathAt(x, y, s, age, r)) { paths.add(y * MAP + x); continue; }
-    const k = forSeed(x, y, s, age, r, d, true);
+    const k = forSeed(x, y, s, age, r, d, true, undefined, open);
     if (k && !NOT_ANCHOR.has(k)) anchor.add(y * MAP + x);
   }
   const nbrs = (k: number) => { const x = k % MAP, y = (k / MAP) | 0, o: number[] = []; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (i || j) o.push((y + j) * MAP + x + i); return o; };
@@ -729,7 +769,7 @@ function barnOfYard(x: number, y: number, s: Seed, age: number, r: number, stage
   }
   return farm;
 }
-function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: number, raw = false, out?: BuildOut): Kind | null {
+function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: number, raw = false, out?: BuildOut, open: number | null = null): Kind | null {
   const dx = x - s.x, dy = y - s.y, stage = stageOf(age);
   // the village well is dug during the first 9 minutes: a building site, not a second campfire next to the core one at (+1,+1)
   if (dx === 0 && dy === 0) {
@@ -758,7 +798,13 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   }
   if (stage >= 3 && d > 3 && d < r * 0.8 && waterNearby(x,y) && hash(x,y,89) > 0.985) return "harbor";
   if (pathAt(x,y,s,age,r)) {
-    if (!raw && !keptPaths(s, age, r).has(y * MAP + x)) return null;
+    // a building in the way of a road just opened stands until the road reaches it, in the second half of the window
+    // (when about half of the new lots are built), so an opening never removes houses at one instant either
+    if (open !== null && age < open + (0.5 + 0.5 * settleShare(x, y)) * roadSettle(open) && !pathAt(x,y,s,open-1e-9,r)) {
+      const was = forSeed(x, y, s, open - 1e-9, r, d, true);
+      if (was && !NOT_ANCHOR.has(was)) return was;
+    }
+    if (!raw && !keptPaths(s, age, r, open).has(y * MAP + x)) return null;
     return stage >= 4 && d > r * 0.55 ? "avenue" : stage >= 3 && d < r * 0.6 ? "street" : "path";
   }
   if (stage >= 2 && d < SQUARE_R) return "square";
@@ -767,6 +813,14 @@ function forSeed(x: number, y: number, s: Seed, age: number, r: number, d: numbe
   if (age < birth && out) { out.p = 1 - (birth - age) / HOUSE_BUILD; out.at = birth; }
   let near = false;
   for (let j=-1;j<=1 && !near;j++) for (let i=-1;i<=1;i++) if ((i||j) && pathAt(x+i,y+j,s,age,r)) { near=true; break; }
+  // a lot that was due before the road opening and got its road only through it is built after the opening (roadSettle)
+  if (near && open !== null && birth <= open) {
+    const born = settledBirth(x, y, s, open, r);
+    if (born !== null) {
+      if (age < born - HOUSE_BUILD) near = false; // not started yet: the land stays what it was before the opening
+      else if (age < born && out) { out.p = 1 - (born - age) / HOUSE_BUILD; out.at = born; }
+    }
+  }
   const h = hash(x,y,4);
   if (!near) {
     if (stage >= 4 && d < r * 0.5) return h < 0.45 ? "garden" : null;
@@ -1178,12 +1232,39 @@ const seedsKeyRaw = (seeds: Seed[]) => seeds.map((s) => [s.id, s.x, s.y, s.creat
 ].join(":")).join(";");
 
 /** Growth hour at which the building on this tile is finished (0 for the founding core). */
-export function bornAt(x: number, y: number, s: Seed): number {
+/** With `seeds`, a lot settled after a road opening (roadSettle) reports that later finish hour — the hour its house
+ *  really stands — so arrivals, first-name order, wedding eligibility and the chronicle follow the map. Openings under
+ *  the old rule keep the nominal hour, exactly as before. */
+const bornMemo = new Map<string, number>();
+export function bornAt(x: number, y: number, s: Seed, seeds?: Seed[]): number {
   const dx = x - s.x, dy = y - s.y;
   if (CORE[`${dx},${dy}`] || (!dx && !dy)) return 0;
   const here = landmarkSpots(s).get(`${dx},${dy}`);
   if (here?.length) return LANDMARKS[here[here.length - 1]!]!.at;
-  return tileBirth(Math.hypot(dx, dy)) * (0.75 + 0.5 * hash(x, y, 3));
+  const b = tileBirth(Math.hypot(dx, dy)) * (0.75 + 0.5 * hash(x, y, 3));
+  const was = seeds ? settledFrom(s, seeds) : Infinity;
+  if (was === Infinity) return b;
+  const first = ROAD_OPENINGS.findIndex((t) => t > was);
+  if (first < 0) return b;
+  const ck = `${s.id}|${s.x}|${s.y}|${x}|${y}|${first}`, hit = bornMemo.get(ck);
+  if (hit !== undefined) return hit;
+  // "due before the opening" exactly as the map decides it (forSeed reads the lot's birth from townDist)
+  const due = tileBirth(townDist(x, y, s)) * (0.75 + 0.5 * hash(x, y, 3));
+  let out = b;
+  for (let n = first; n < ROAD_OPENINGS.length; n++) {
+    const t = ROAD_OPENINGS[n]!;
+    if (due > t) continue;
+    // read with the radius at the end of the window, the widest the map uses while it settles this opening
+    const v = settledBirth(x, y, s, t, radiusOf(t + roadSettle(t) + HOUSE_BUILD));
+    if (v !== null) { out = v; break; }
+    // already on a road by then: the nominal hour stands
+    let near = false;
+    for (let j = -1; j <= 1 && !near; j++) for (let i = -1; i <= 1; i++) if ((i || j) && pathAt(x + i, y + j, s, t, radiusOf(t))) { near = true; break; }
+    if (near) break;
+  }
+  if (bornMemo.size > 20000) bornMemo.clear();
+  bornMemo.set(ck, out);
+  return out;
 }
 
 // several seed sets (whole realm, single village) are queried per frame: keep one cache each instead of thrashing one
@@ -1293,7 +1374,7 @@ export function structureAt(x: number, y: number, seeds: Seed[], now: number): S
       const r = radiusOf(age);
       if (d > r + 0.5 || d >= bestD) continue;
       const bo: BuildOut = { p: 1, at: 0 };
-      let k = forSeed(x, y, s, age, r, d, false, bo);
+      let k = forSeed(x, y, s, age, r, d, false, bo, roadOpening(s, seeds, age));
       // watermill displaced by a bridge head moves to its refuge tile on the same shore
       const mr = millRefuge(s, seeds, now);
       if (mr && mr.x === x && mr.y === y && age >= mr.at - buildTime(mr.at)) {
@@ -1762,6 +1843,25 @@ type AgeSlot = { now: number; m: Map<string, number> };
 const ageMemo = new WeakMap<Seed[], AgeSlot[]>();
 /** Count of real effAge computations (cache misses); test/benchmark instrumentation only. */
 export const ageMemoStats = { misses: 0 };
+/** Growth hours the village had at the cutover: openings up to that hour keep the old rule. Infinity while the rule is
+ *  off (placeholder date), -1 for a village founded after the cutover. Pure; memoized per seeds array and cutover. */
+const settleMemo = new WeakMap<Seed[], { since: number; m: Map<string, number> }>();
+export function settledFrom(s: Seed, seeds: Seed[]): number {
+  const since = roadSettleCfg.since;
+  if (since >= ROAD_SETTLE_OFF) return Infinity;
+  if (Date.parse(s.created_at) >= since) return -1;
+  let c = settleMemo.get(seeds);
+  if (!c || c.since !== since) { c = { since, m: new Map() }; settleMemo.set(seeds, c); }
+  let was = c.m.get(s.id);
+  if (was === undefined) { was = effAge(s, seeds, since); c.m.set(s.id, was); }
+  return was;
+}
+/** The road opening this village is settling at `age` (roadOpeningAt), unless it had passed that opening by the
+ *  cutover (old rule: its houses already stand). */
+export function roadOpening(s: Seed, seeds: Seed[], age: number): number | null {
+  const t = roadOpeningAt(age);
+  return t !== null && t > settledFrom(s, seeds) ? t : null;
+}
 export function effAge(s: Seed, seeds: Seed[], now: number) {
   let slots = ageMemo.get(seeds);
   if (!slots) { slots = []; ageMemo.set(seeds, slots); }
