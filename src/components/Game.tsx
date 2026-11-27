@@ -1,5 +1,5 @@
 import { remoteIsle } from "@/game/island";
-import { dropSeedId, withoutSeed, withoutKeys, LoadGate, applySign, mergeRows, onIds, snapRows, refreshMap } from "@/game/realtime";
+import { dropSeedId, withoutSeed, detachSeed, withoutKeys, LoadGate, applySign, mergeRows, onIds, snapRows, refreshMap } from "@/game/realtime";
 import { allIn, allPages, allEither } from "@/lib/fetch-all";
 import { readBodies, toFetch, bodyView, type BodyMiss } from "@/lib/letter-bodies";
 import { WalkStick } from "./WalkStick";
@@ -290,7 +290,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const [encounters, setEncounters] = useState<EncRow[]>([]);
   const [votes, setVotes] = useState<{ id: string; seed_id: string; partner_id: string; pact: string; created_at: string }[]>([]);
   const [moves, setMoves] = useState<MoveRow[]>([]);
-  const [works, setWorks] = useState<{ id: string; seed_id: string; partner_id: string; work: string; cost: number; created_at: string }[]>([]);
+  const [works, setWorks] = useState<{ id: string; seed_id: string; partner_id: string | null; work: string; cost: number; created_at: string }[]>([]);
   const [pactOpen, setPactOpen] = useState(false);
   const [pactPick, setPactPick] = useState<PactKind | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -1112,9 +1112,9 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         setSeeds((s) => s.filter((x) => x.id !== id)); setHome((h) => (h && h.id === id ? null : h));
         setEncounters((r) => withoutSeed(r, id, "seed_id")); setCharters((r) => withoutSeed(r, id, "seed_id"));
         setFirstRoads((r) => withoutSeed(r, id, "seed_id", "target_id")); setVotes((r) => withoutSeed(r, id, "seed_id", "partner_id"));
-        setWorks((r) => withoutSeed(r, id, "seed_id", "partner_id")); setPurchases((r) => withoutSeed(r, id, "seed_id"));
+        setWorks((r) => detachSeed(r, id, ["seed_id"], ["partner_id"])); setPurchases((r) => withoutSeed(r, id, "seed_id"));
         setBlessings((r) => withoutSeed(r, id, "seed_id")); setPlantings((r) => withoutSeed(r, id, "seed_id"));
-        setGifts((r) => withoutSeed(r, id, "from_seed", "to_seed")); setSigns((r) => withoutSeed(r, id, "seed_id", "target_id"));
+        setGifts((r) => detachSeed(r, id, [], ["from_seed", "to_seed"])); setSigns((r) => withoutSeed(r, id, "seed_id", "target_id"));
         // abandon_village also deletes letters to/from the village: drop them and their bodies, close views on it
         setLetters((r) => { const gone = r.filter((l) => l.from_seed === id || l.to_seed === id).map((l) => l.id); if (gone.length) setBodies((b) => withoutKeys(b, gone)); return gone.length ? withoutSeed(r, id, "from_seed", "to_seed") : r; });
         setPostTo((x) => (x && x.id === id ? null : x)); setProfile((x) => (x && x.id === id ? null : x));

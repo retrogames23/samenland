@@ -1114,6 +1114,13 @@
       "when": 1795636155947,
       "tag": "0158_brunnen_material_companion_noop",
       "breakpoints": true
+    },
+    {
+      "idx": 159,
+      "version": "7",
+      "when": 1795765179249,
+      "tag": "0159_finanzintegritaet_schema_drift",
+      "breakpoints": true
     }
   ]
 }
