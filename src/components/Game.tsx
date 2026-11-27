@@ -186,7 +186,7 @@ import { LabDesk } from "@/components/hud/LabDesk";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { CHEST } from "@/game/lang/chest";
 import { FOUNDING } from "@/game/lang/founding";
-import { foundingIsolated } from "@/game/founding-roads";
+import { foundingIsolated, foundingReach } from "@/game/founding-roads";
 import { seedMove } from "@/game/economy-world";
 import { CHEST_STAGE, RANK_STAGE, CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
 import { titleOfSeed, TITLE_PRICE, TITLE_STAGE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, needRankOf, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
@@ -751,6 +751,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const [planting, setPlanting] = useState(false);
   // Gründungswarnung (P5): the road menu's own check for the chosen spot, once per spot and seed list — never blocks founding
   const plantIsolated = useMemo(() => (plantAsk ? foundingIsolated(plantAsk[0], plantAsk[1], realm, seeds, userId) : false), [plantAsk, realm, seeds, userId]);
+  const plantReach = useMemo(() => (plantAsk ? foundingReach(plantAsk[0], plantAsk[1], realm, seeds, userId) : TRADE_DIST), [plantAsk, realm, seeds, userId]);
   // one seed per account on any map; admins get one per map
   useEffect(() => {
     if (!userId) { setHome(null); return; }
@@ -3627,7 +3628,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         return (
           <Parchment image={ART["surveyor"]} title={t.plantAsk.title} later={isolated ? t.plantAsk.elsewhere : t.cancel} onLater={() => setPlantAsk(null)} action={<Button type="button" size="sm" disabled={planting} onClick={plantNow}>{planting ? t.plantAsk.wait : isolated ? t.plantAsk.okAnyway : t.plantAsk.ok}</Button>}>
             <p className="mt-2 text-center font-display text-xl leading-snug">{t.plantAsk.intro(form.name.trim())}</p>
-            {isolated && <p role="alert" data-testid="found-isolated" className="mt-3 rounded-md border-2 border-brass bg-brass/20 p-2.5 text-sm leading-snug text-ink">{t.plantAsk.farOff(TRADE_DIST, t.stages[3]!, t.stages[4]!)}</p>}
+            {isolated && <p role="alert" data-testid="found-isolated" className="mt-3 rounded-md border-2 border-brass bg-brass/20 p-2.5 text-sm leading-snug text-ink">{t.plantAsk.farOff(plantReach, t.stages[3]!, t.stages[4]!)}</p>}
             {remoteIsle(px, py) && <p role="alert" className="mt-3 rounded-md border border-accent bg-accent/20 p-2 text-xs leading-snug">⚓ {t.plantAsk.isle}</p>}
             <div className="mt-4 space-y-1 text-sm">
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.land}</span><span className="text-right font-semibold">{CHAR_ICON[c]} {TOWN_CHARACTER[lang].names[c]}</span></div>

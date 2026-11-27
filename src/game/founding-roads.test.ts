@@ -9,10 +9,17 @@ import {
   roadBridge,
   TRADE_DIST,
   NEAR_ROAD_DIST,
+  roadReach,
   type Seed,
 } from "./world";
 import { roadsFor, rankOf, RANK_NEED } from "./rank";
-import { foundingIsolated, foundingRoadCandidates, FOUNDING_PROBE } from "./founding-roads";
+import {
+  foundingIsolated,
+  foundingReach,
+  foundingRoadCandidates,
+  FOUNDING_PROBE,
+} from "./founding-roads";
+import { DICT, LANGS } from "./i18n";
 
 // P5 Gründungswarnung: the founding parchment warns when foundingRoadCandidates is empty. It must be the road
 // menu's own check (roadCandidates) and agree with what the rank certificate (roadsFor) later counts.
@@ -175,6 +182,9 @@ describe("agreement with the road menu and the rank certificate on real terrain"
         const me = founded(uuid(), x, y, realm),
           world = [...seeds, me];
         expect(ids(roadCandidates(me, world)), `${realm} ${x},${y}`).toEqual(probe);
+        expect(foundingReach(x, y, realm, seeds, "u-me"), `reach ${realm} ${x},${y}`).toBe(
+          roadReach(me, world),
+        );
         if (!probe.length) {
           isolated++;
           expect(roadsFor(me, world, t0 + 60 * D)).toBe(0);
@@ -193,6 +203,55 @@ describe("agreement with the road menu and the rank certificate on real terrain"
     expect(isolated).toBeGreaterThan(0);
     expect(offered).toBeGreaterThan(50);
   }, 120_000);
+});
+
+describe("reach named in the warning (P5a)", () => {
+  // The warning names the reach roadCandidates really applies (roadReach), not always TRADE_DIST.
+  const warn = (reach: number) =>
+    LANGS.map((l) => DICT[l].plantAsk.farOff(reach, DICT[l].stages[3]!, DICT[l].stages[4]!));
+  it(`two towns within ${NEAR_ROAD_DIST} across the water: isolated at reach ${NEAR_ROAD_DIST}, the warning says ${NEAR_ROAD_DIST}`, () => {
+    // us-west 247,224: the towns at 65 and 78 tiles lie only across the water; the one at 95 is reachable by land
+    setRealm("us-west");
+    const n1 = mk("n1", 260, 288, "us-west"),
+      n2 = mk("n2", 217, 296, "us-west"),
+      land = mk("land", 342, 224, "us-west");
+    expect(foundingIsolated(247, 224, "us-west", [n1, n2, land], "u-me")).toBe(true);
+    expect(foundingReach(247, 224, "us-west", [n1, n2, land], "u-me")).toBe(NEAR_ROAD_DIST);
+    const me = founded("me-real-id", 247, 224, "us-west");
+    expect(roadReach(me, [n1, n2, land, me])).toBe(NEAR_ROAD_DIST);
+    for (const msg of warn(foundingReach(247, 224, "us-west", [n1, n2, land], "u-me"))) {
+      expect(msg).toContain(String(NEAR_ROAD_DIST));
+      expect(msg).not.toContain(String(TRADE_DIST));
+    }
+    expect(warn(NEAR_ROAD_DIST)[0]).toContain("höchstens 80 Felder entfernt");
+    // with full reach the land village would be a partner — the 80 is what isolates this spot
+    expect(foundingReach(247, 224, "us-west", [land], "u-me")).toBe(TRADE_DIST);
+    expect(foundingIsolated(247, 224, "us-west", [land], "u-me")).toBe(false);
+  });
+  it(`lone far neighbour: isolated at reach ${TRADE_DIST}, the warning still says ${TRADE_DIST}`, () => {
+    const far = [mk("a", 300 + TRADE_DIST + 1, 400)];
+    expect(foundingIsolated(300, 400, "europe", far, "u-me")).toBe(true);
+    expect(foundingReach(300, 400, "europe", far, "u-me")).toBe(TRADE_DIST);
+    expect(foundingReach(300, 400, "europe", [], "u-me")).toBe(TRADE_DIST);
+    for (const msg of warn(foundingReach(300, 400, "europe", far, "u-me")))
+      expect(msg).toContain(String(TRADE_DIST));
+    expect(warn(TRADE_DIST)[0]).toContain("höchstens 120 Felder entfernt");
+  });
+  it("one town within 80 keeps the full reach, other maps never shrink it", () => {
+    expect(foundingReach(300, 400, "europe", [mk("n1", 360, 400)], "u-me")).toBe(TRADE_DIST);
+    expect(
+      foundingReach(
+        300,
+        400,
+        "europe",
+        [mk("n1", 360, 400, "europe-2"), mk("n2", 300, 460, "europe-2")],
+        "u-me",
+      ),
+    ).toBe(TRADE_DIST);
+    expect(
+      foundingReach(300, 400, "europe", [mk("n1", 360, 400), mk("n2", 300, 460)], "u-me"),
+    ).toBe(NEAR_ROAD_DIST);
+  });
 });
 
 describe("why the warning matters (rank rule, unchanged)", () => {
