@@ -3,6 +3,7 @@ import { seasonAt } from "./season";
 import { festJoy } from "./weddings";
 import { CULTURE_SICK, BEGINEN_SICK } from "./prosperity";
 import { badestubeWinter } from "./gemeinwesen";
+import { STIFT_FACTOR, stiftEndowed } from "./stiftungszeit";
 
 /** Plain summer chance that a household has a sick member in a SICK_DAYS window. */
 export const SICK_BASE = 0.06;
@@ -36,10 +37,12 @@ export function sickChance(s: Seed, at: number): number {
   ];
   const risk = SICK_BASE + SICK_WINTER * seasonAt(at).winter * (stepsDone(s, "harvest", at) >= 3 ? 0.5 : 1) * badestubeWinter(s.realm, own, at)
     * (cathedralDone(s, at) >= 5 ? CATHEDRAL_WINTER : 1);
-  // Gemeindebauten (civic.ts), each from its completion marker on, multiplied: Spital 1 ×0.85, Spital 2 ×0.90
+  // Gemeindebauten (civic.ts), each from its completion marker on, multiplied: Spital 1 ×0.85, Spital 2 ×0.90;
+  // P4: while the Spital is endowed (stiftung.ts Stiftungszeit) one more ×0.85 — once, however many stages are in store
   return (
     boons.reduce((r, b) => r * (1 - b / SICK_BASE), risk) *
     (own("spital1") ? SPITAL_SICK : 1) *
-    (own("spital2") ? SPITAL2_SICK : 1)
+    (own("spital2") ? SPITAL2_SICK : 1) *
+    (stiftEndowed(s, "spital", at) ? STIFT_FACTOR : 1)
   );
 }
