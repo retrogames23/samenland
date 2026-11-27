@@ -51,7 +51,7 @@ export function homesBetween(s: Seed, seeds: Seed[], from: number, to: number) {
   if (a1 <= a0) return out;
   const R = Math.ceil(reachOf(s, radiusOf(a1))) + 1;
   for (let y = s.y - R; y <= s.y + R; y++) for (let x = s.x - R; x <= s.x + R; x++) {
-    const b = bornAt(x, y, s);
+    const b = bornAt(x, y, s, seeds);
     if (!(b > a0 && b <= a1)) continue;
     const st = structureAt(x, y, seeds, to);
     if (!st || st.seed.id !== s.id || !HOME_KINDS.has(st.kind) || st.build != null) continue;

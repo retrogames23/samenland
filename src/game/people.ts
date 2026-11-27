@@ -255,7 +255,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     // household founders cluster young (median ~30), older heads are the exception
     const pa = 22 + Math.floor(hh(2) ** 1.8 * 30);
     const yrs = (now - created) / 3.15576e10;
-    const since = age - bornAt(home[0], home[1], s);
+    const since = age - bornAt(home[0], home[1], s, seeds);
     let arrive: Person["arrive"] = null;
     if (since >= 0 && since < 1 && Math.hypot(home[0] - s.x, home[1] - s.y) > 1.5) {
       // a new family comes in from the village edge on the side facing their house
@@ -306,7 +306,7 @@ function buildTown(s: Seed, seeds: Seed[], now: number): Town {
     }
   }
   // first names go out in founding order (oldest house first, then id), so a newly built house never shifts an existing resident's name
-  const order = people.map((p) => ({ p, b: bornAt(p.home[0], p.home[1], s) })).sort((a, b) => a.b - b.b || a.p.id - b.p.id);
+  const order = people.map((p) => ({ p, b: bornAt(p.home[0], p.home[1], s, seeds) })).sort((a, b) => a.b - b.b || a.p.id - b.p.id);
   for (const { p } of order) p.first = pickFree(p.sex === "f" ? F : M, hash(p.id, 77, 10), taken);
   const weddings = marry(s, people, seeds, now);
   // the Dom is identified by its own bought site (specialTile), never by the first generic "factory" tile
@@ -589,7 +589,7 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
   for (const p of people) if (p.role === "head") heads.set(p.hh!, p);
   weddingDates(s, now).forEach(({ at, k, dowry, grand, town }) => {
     const ageK = effAge(s, seeds, at);
-    const free = people.filter((p) => (p.role === "child" || p.role === "lodger") && p.age >= 17 && p.age <= 45 && p.spouse == null && bornAt(p.home[0], p.home[1], s) <= ageK);
+    const free = people.filter((p) => (p.role === "child" || p.role === "lodger") && p.age >= 17 && p.age <= 45 && p.spouse == null && bornAt(p.home[0], p.home[1], s, seeds) <= ageK);
     const men = free.filter((p) => p.sex === "m"), women = free.filter((p) => p.sex === "f");
     const g = men.length ? men[Math.floor(hash(k, s.x, 990) * men.length)]! : null;
     const bs = g ? women.filter((w) => w.hh !== g.hh && w.last !== g.last) : [];
@@ -603,11 +603,11 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
       return;
     }
     // no singles yet: the young couple of the newest home are children of two older village families
-    const homes = [...heads.values()].filter((h) => h.age <= 40 && h.wedAt == null && bornAt(h.home[0], h.home[1], s) <= ageK)
-      .sort((p, q) => bornAt(q.home[0], q.home[1], s) - bornAt(p.home[0], p.home[1], s));
+    const homes = [...heads.values()].filter((h) => h.age <= 40 && h.wedAt == null && bornAt(h.home[0], h.home[1], s, seeds) <= ageK)
+      .sort((p, q) => bornAt(q.home[0], q.home[1], s, seeds) - bornAt(p.home[0], p.home[1], s, seeds));
     for (const h of homes) {
       const sp = people.find((q) => q.hh === h.hh && q.role === "spouse");
-      const older = [...heads.values()].filter((o) => o.hh !== h.hh && o.age >= h.age + 18 && bornAt(o.home[0], o.home[1], s) < bornAt(h.home[0], h.home[1], s));
+      const older = [...heads.values()].filter((o) => o.hh !== h.hh && o.age >= h.age + 18 && bornAt(o.home[0], o.home[1], s, seeds) < bornAt(h.home[0], h.home[1], s, seeds));
       if (!sp || !older.length) continue;
       const pa = older[Math.floor(hash(k, s.x, 992) * older.length)]!, pbList = older.filter((o) => o.last !== pa.last);
       if (!pbList.length) continue;
@@ -630,7 +630,7 @@ function marry(s: Seed, people: Person[], seeds: Seed[], now: number): Wedding[]
       return;
     }
     // last resort: any two unmarried adults of different homes
-    const any = people.filter((p) => p.role !== "mayor" && !p.guest && p.age >= 17 && p.age <= 50 && p.spouse == null && p.wedAt == null && bornAt(p.home[0], p.home[1], s) <= ageK);
+    const any = people.filter((p) => p.role !== "mayor" && !p.guest && p.age >= 17 && p.age <= 50 && p.spouse == null && p.wedAt == null && bornAt(p.home[0], p.home[1], s, seeds) <= ageK);
     const am = any.filter((p) => p.sex === "m");
     if (!am.length) return;
     const g2 = am[Math.floor(hash(k, s.x, 994) * am.length)]!;
