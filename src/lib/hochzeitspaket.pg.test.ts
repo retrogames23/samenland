@@ -1,9 +1,9 @@
-// Hochzeitspaket (migration 0159, with 0160 / Paket A2 applied on top) against a throw-away PostgreSQL (BUILD_MAIL_TEST_PG=postgres://...).
+// Hochzeitspaket (migration 0160: base part, with Paket A2 applied on top) against a throw-away PostgreSQL (BUILD_MAIL_TEST_PG=postgres://...).
 // Loads the real functions from the migration files: village_civic_wealth (0044 + 0046/0050 patches), the 0107 wedding
 // list (kept as village_wedding_list_0107 for comparison), 0096 village_weddings, 0127 receipts, 0118 chest walk,
-// the 0138 encounter guard, then 0159. Proves:
+// the 0138 encounter guard, then 0160. Proves:
 //   parity  — the legacy SQL calendar equals TypeScript weddingCalendar for all food/Gemeinwesen combinations;
-//   no-op   — with the placeholder switch, 0159 returns exactly what 0107 returned (list, walk, guard input);
+//   no-op   — with the placeholder switch, 0160 returns exactly what 0107 returned (list, walk, guard input);
 //   switch  — from the switch the database reads only receipts: list, chest walk and guard follow them, nothing is
 //             computed after the switch, the TS calendar and SQL agree across the switch end to end (also lab);
 //   records — receipts cannot be rewritten, dated in the future or booked twice (also in parallel);
@@ -25,7 +25,7 @@ const OWNER = "00000000-0000-0000-0000-0000000000c1";
 let n = 0;
 const nextId = () => `00000000-0000-0000-0000-${(0xd00000 + ++n).toString(16).padStart(12, "0")}`;
 
-d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
+d("Hochzeitspaket 0160 (real PostgreSQL)", () => {
   let sql: postgres.Sql;
   let admin: postgres.Sql | null = null;
   let dbName: string | null = null;
@@ -72,7 +72,7 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
     if (admin) { if (dbName) await admin.unsafe(`drop database if exists ${dbName} with (force)`).catch(() => {}); await admin.end(); }
   });
 
-  it("the switch dates in 0159 equal weddings.ts (both on the placeholder)", async () => {
+  it("the switch dates in 0160 equal weddings.ts (both on the placeholder)", async () => {
     const [r] = await sql`select public.wedding_switch_since('lab') as lab, public.wedding_switch_since('europe') as eu, public.wedding_switch_since('asia-2') as as2`;
     expect(new Date(r!["lab"] as string).getTime()).toBe(WEDDING_SWITCH_LAB_SINCE);
     expect(new Date(r!["eu"] as string).getTime()).toBe(WEDDING_SWITCH_SINCE);
@@ -113,7 +113,7 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
     expect(villages.length).toBe(162);
   }, 120000);
 
-  it("no-op: with the placeholder switch 0159 returns exactly what 0107 did (list, chest walk, guard input)", async () => {
+  it("no-op: with the placeholder switch 0160 returns exactly what 0107 did (list, chest walk, guard input)", async () => {
     for (const v of villages) {
       const id = v.seed.id;
       expect(await list(id, AT)).toEqual(await list(id, AT, "village_wedding_list_0107"));
@@ -293,7 +293,7 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
       const [inv] = await sql`select falsche_version from public.wedding_receipt_inventory() where seed_id = ${id}`;
       expect(inv!["falsche_version"]).toBe(1);
       // a valid version-2 receipt from T: counted, guard open
-      // remove the stray row again (since 0162 only with the H7 trigger disabled — a test-only step, like its insertion)
+      // remove the stray row again (since 0161 only with the H7 trigger disabled — a test-only step, like its insertion)
       await sql.unsafe("alter table public.wedding_receipts disable trigger wedding_receipts_keep");
       try { await sql`delete from public.wedding_receipts where seed_id = ${id} and wedding_index = ${legacy.length}`; }
       finally { await sql.unsafe("alter table public.wedding_receipts enable trigger wedding_receipts_keep"); }
@@ -330,8 +330,8 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
   });
 
   // ---------- integrity facts (documented as found, not changed by this package) ----------
-  // ---------- integrity (Paket C, migration 0162 / H7; before it a direct DELETE was possible — finding H7) ----------
-  it("integrity (0162): UPDATE, a single DELETE and TRUNCATE refused; only the village purge (CASCADE) removes receipts", async () => {
+  // ---------- integrity (Paket C, migration 0161 / H7; before it a direct DELETE was possible — finding H7) ----------
+  it("integrity (0161): UPDATE, a single DELETE and TRUNCATE refused; only the village purge (CASCADE) removes receipts", async () => {
     const v = await make(Date.now() - 90 * D, [["fisher", Date.now() - 89 * D]]);
     await insertReceipts(weddingReceiptRows(v.seed, Date.now()));
     const n = async () => (await sql`select count(*)::int as n from public.wedding_receipts where seed_id = ${v.seed.id}`)[0]!["n"] as number;

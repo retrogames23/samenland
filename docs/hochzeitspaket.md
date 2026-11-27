@@ -1,6 +1,6 @@
 # Hochzeitspaket – Stand nach der Nachbesserung
 
-Branch `claude/hochzeitspaket` · Basis `f6b31ce` · Migrationen `0159_hochzeitspaket`, `0160_hochzeit_anker` (Paket A2), `0161_hochzeit_vollstaendigkeit` (Paket B), `0162_hochzeit_integritaet_rechte` (Paket C) (nicht eingespielt)
+In `main` integriert (nicht eingespielt). Migrationen (bei der Integration nach `main` umnummeriert, nie eingespielt gewesen): `0159` Finanzintegrität · `0160_hochzeit_anker` (Grundlage Hochzeitspaket + Paket A2) · `0161_hochzeit_belegschutz` (H7) · `0162_hochzeit_vollstaendigkeit` (Paket B) · `0163_hochzeit_rechte_gates` (Paket C: Rechte, RPC-Gates, Vorabprüfung).
 
 Betrieb (Einspielreihenfolge, Vorabprüfung, Aktivierung, Vorwärts-Korrektur, PostgREST-Lücke): [`hochzeitspaket-betrieb.md`](hochzeitspaket-betrieb.md).
 
@@ -26,7 +26,7 @@ Betrieb (Einspielreihenfolge, Vorabprüfung, Aktivierung, Vorwärts-Korrektur, P
   - Hochzeitsantwort: wird abgelehnt.
   - Sweep: hält an (HTTP 409).
 
-## Paket A2 – Anker-Fortsetzung (Migration 0160, nicht eingespielt)
+## Paket A2 – Anker-Fortsetzung (Migration 0160, Teil 2; nicht eingespielt)
 
 **Anlass:** Freigabeprüfung O1, T15. Ein späterer Kauf von Gesellenherberge oder Holzfällerlager oder ein später gesiegelter Handwerks-Freibrief verkürzt rückwirkend die Bauzeit von Dom- und Universitätsschritten (`world.ts` `buildWith` prüft kein Kaufdatum). Unter der einheitlichen Regel verschob das bereits gebuchte Hochzeiten.
 
@@ -58,7 +58,7 @@ Betrieb (Einspielreihenfolge, Vorabprüfung, Aktivierung, Vorwärts-Korrektur, P
 - Anzeige und Prognose im Client rechnen weiter ab Gründung. Für Dörfer, die nach *T* einen der drei Faktoren nachkaufen, kann die Anzeige vergangener Hochzeiten von den Belegen abweichen. Geld und Wächter folgen den Belegen.
 - Neue Server-Version erst nach 0160 ausliefern: Sie liest `next_at` und bucht über `wedding_receipts_book`.
 
-## Paket B – Vollständigkeit, Reihenfolge, Pending (Migration 0161, nicht eingespielt)
+## Paket B – Vollständigkeit, Reihenfolge, Pending (Migration 0162, nicht eingespielt)
 
 **Ziel:** Keine Kassen- oder Ressourcenbuchung läuft mit einem unvollständigen Stand der Hochzeitsabrechnung.
 
@@ -125,7 +125,7 @@ Betrieb (Einspielreihenfolge, Vorabprüfung, Aktivierung, Vorwärts-Korrektur, P
   - Mit dem Platzhalter 2100 greift das nie.
 
 **Voraussetzung für Paket C (Aktivierung)**
-1. 0160 und 0161 sind eingespielt; Server und Client mit `CLIENT_PROTOCOL = 2` sind ausgeliefert.
+1. 0160 bis 0163 sind eingespielt; Server und Client mit `CLIENT_PROTOCOL = 2` sind ausgeliefert.
 2. Die Auslieferung mit dem echten *T* (TS-Konstante und `wedding_switch_since` gemeinsam) ist mindestens 20 Tage vor *T* live: `WED_MAX` für verankerte Belege, darin enthalten die 7 Tage des Gates.
 3. Vor *T* sind Sweep und Inventar sauber.
 4. Kein Schritt setzt den Nachweis voraus, dass keine alten Tabs mehr offen sind. Das Gate lädt sie neu.
@@ -134,7 +134,7 @@ Betrieb (Einspielreihenfolge, Vorabprüfung, Aktivierung, Vorwärts-Korrektur, P
 - Ein alter Tab aus einem veralteten Browser-Cache, der nach *T* öffnet und klickt, bevor seine erste Synchronisierung zurück ist, kann während des erzwungenen Neuladens kurz den alten Text zeigen.
 - Gebucht wird dabei nie etwas Falsches.
 
-## Paket C – Integrität, Rechte, Client-Wege (Migration 0162, nicht eingespielt)
+## Paket C – Integrität, Rechte, Client-Wege (Migrationen 0161 und 0163, nicht eingespielt)
 
 - **H7 (Variante 2):** Einzelne Belege sind unveränderlich, auch für `service_role`.
   - `UPDATE` verweigert weiterhin der Wächter.
@@ -149,8 +149,8 @@ Betrieb (Einspielreihenfolge, Vorabprüfung, Aktivierung, Vorwärts-Korrektur, P
 ## Ausführung (erst nach Freigabe)
 
 1. Prüfpaket nach Masterplan 3.2 erstellen (`01_vorher.sql`, `02_nachher.sql`, `03_fingerprints.sql`, `04_funktionstexte.sql`), lesend; Begleitmigration einplanen. **Noch nicht erstellt.**
-2. Vorher lesend prüfen: Die Live-Definition von `village_wedding_list` muss dem Text aus 0107 entsprechen, denn 0159 ersetzt sie.
-3. 0159, 0160, 0161, 0162 einspielen (Reihenfolge und Zeitfenster: `hochzeitspaket-betrieb.md`). Danach lesend: `select * from public.wedding_receipt_inventory() where fehlt + weicht_ab + luecken + doppelt + falsche_version > 0;`
+2. Vorher lesend prüfen: Die Live-Definition von `village_wedding_list` muss dem Text aus 0107 entsprechen, denn 0160 ersetzt sie.
+3. 0159, 0160, 0161, 0162, 0163 einspielen (Reihenfolge und Zeitfenster: `hochzeitspaket-betrieb.md`). Danach lesend: `select * from public.wedding_receipt_inventory() where fehlt + weicht_ab + luecken + doppelt + falsche_version > 0;`
 4. Sweep: erst Probelauf, dann `apply`, Karte für Karte. Bei `halted` oder `errors` stoppen.
 5. Umschaltdatum setzen: in einem PR TS-Konstante und `wedding_switch_since` gemeinsam, mit einem Datum **in der Zukunft**.
    - Begründung: Setzt man *T* früher als bestehende Belege, zählen diese Belege nicht mehr (Version 1 nach *T*) und werden auch nicht mehr berechnet.

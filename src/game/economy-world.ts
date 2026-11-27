@@ -9,8 +9,8 @@ export type EconomyWorld = {
   encounters: (Dated & { event: string; choice: string; cost: number; request_id?: string | null })[];
   roads: (Dated & { target_id: string })[];
   votes: (Dated & { partner_id: string; pact: string })[];
-  works: (Dated & { partner_id: string; work: string; cost: number })[];
-  gifts: { id: string; from_seed: string; to_seed: string; kind: string; created_at: string }[];
+  works: (Dated & { partner_id: string | null; work: string; cost: number })[];
+  gifts: { id: string; from_seed: string | null; to_seed: string | null; kind: string; created_at: string }[];
   /** Relocations (Umsetzen). Only loaded for rank certification, so the server sees the same village as the
    *  player; tax assessment never loads them (paid receipts must not change). Absent = no `moves` field at all. */
   moves?: (Dated & { item: string; x: number; y: number; cost?: number | null })[];

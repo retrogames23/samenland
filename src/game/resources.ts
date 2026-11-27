@@ -198,7 +198,7 @@ export type ResourceOverview =
       from: string;
       next: string;
       site?: TownWay | null;
-      /** Paket B (0161): the daily booking waits for the wedding settlement (an open Gemeindebau reads the chest) — the
+      /** Paket B (0162): the daily booking waits for the wedding settlement (an open Gemeindebau reads the chest) — the
        *  stocks shown are the last booked ones */
       pending?: boolean;
       /** P1 (0151): start of the Ankauf on this map, price per unit and the newest credit */

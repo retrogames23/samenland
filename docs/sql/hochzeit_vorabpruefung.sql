@@ -9,8 +9,8 @@
 -- 1) Stand der Migrationen und des Schalters.
 --    Erwartet: alle vier Zeilen true; schalter = 2100-01-04 00:00:00+00 für beide Reiche (Platzhalter, noch nicht aktiviert).
 SELECT to_regprocedure('public.wedding_receipts_book(uuid,jsonb)') IS NOT NULL AS m0160,
-       to_regclass('public.wedding_settlement') IS NOT NULL AS m0161,
-       to_regprocedure('public.wedding_activation_inventory()') IS NOT NULL AS m0162,
+       to_regclass('public.wedding_settlement') IS NOT NULL AS m0162,
+       to_regprocedure('public.wedding_activation_inventory()') IS NOT NULL AS m0163,
        EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'wedding_receipts_keep' AND NOT tgisinternal AND tgenabled = 'O') AS h7_aktiv,
        public.wedding_switch_since('europe') AS schalter_europe,
        public.wedding_switch_since('lab') AS schalter_lab;

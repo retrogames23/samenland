@@ -137,17 +137,19 @@ export const dailyTax = (s: Seed, h: number, seeds?: Seed[]) => {
 
 /** Friend-invite bonus (mirrors DB referrals in village_balance): both villages get the reward. */
 export const REFERRAL_TALER = 50;
-export type Referral = { id: string; referrer_seed: string; referee_seed: string; reward: number; created_at: string };
+/** A side is null once that village was deleted (0159): the other side keeps its bonus. */
+export type Referral = { id: string; referrer_seed: string | null; referee_seed: string | null; reward: number; created_at: string };
 export const referralClaims = (rows: Referral[]): QuestClaim[] => rows.flatMap((r) => [
-  { id: `${r.id}:a`, seed_id: r.referrer_seed, quest: `ref:${r.referee_seed}`, reward: r.reward, created_at: r.created_at },
-  { id: `${r.id}:b`, seed_id: r.referee_seed, quest: `ref:${r.referrer_seed}`, reward: r.reward, created_at: r.created_at },
+  ...(r.referrer_seed ? [{ id: `${r.id}:a`, seed_id: r.referrer_seed, quest: `ref:${r.referee_seed ?? "gone"}`, reward: r.reward, created_at: r.created_at }] : []),
+  ...(r.referee_seed ? [{ id: `${r.id}:b`, seed_id: r.referee_seed, quest: `ref:${r.referrer_seed ?? "gone"}`, reward: r.reward, created_at: r.created_at }] : []),
 ]);
 
 /** Mayor visit welcome gift by the visited town's raw age (mirrors DB visit_reward): 30 → 150 Mark. */
 export const VISIT_STEPS: [number, number][] = [[8760, 150], [4380, 100], [2160, 75], [168, 50], [24, 40], [0, 30]];
 export const visitReward = (h: number) => VISIT_STEPS.find(([a]) => h >= a)![1];
-export type Visit = { id: string; visitor_seed: string; visited_seed: string; reward: number; created_at: string };
-export const visitClaims = (rows: Visit[]): QuestClaim[] => rows.map((v) => ({ id: `${v.id}:v`, seed_id: v.visitor_seed, quest: `visit:${v.visited_seed}`, reward: v.reward, created_at: v.created_at }));
+/** visited_seed is null once the visited village was deleted (0159): the visitor keeps the welcome gift. */
+export type Visit = { id: string; visitor_seed: string; visited_seed: string | null; reward: number; created_at: string };
+export const visitClaims = (rows: Visit[]): QuestClaim[] => rows.map((v) => ({ id: `${v.id}:v`, seed_id: v.visitor_seed, quest: `visit:${v.visited_seed ?? "gone"}`, reward: v.reward, created_at: v.created_at }));
 
 // ---------------- treasure chest (Gemeindetruhe) ----------------
 /**

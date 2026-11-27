@@ -1,15 +1,7 @@
--- Paket C – Integrität der Hochzeitsbelege (H7, Variante 2), Rechte und versionierte Client-Wege. Baut auf 0159–0161 auf.
+-- 0163 Hochzeit C – Rechte, versionierte Client-Wege (RPC-Gates) und Vorabprüfung. Baut auf 0160–0162 auf.
+-- (Der Belegschutz H7 steht in 0161.)
 -- Ändert keine Geldregel und keinen Buchungsweg; der Umschaltzeitpunkt bleibt der Platzhalter 2100-01-04.
 --
--- 1) H7: einzelne Hochzeitsbelege sind unveränderliche Historie — auch für service_role.
---      UPDATE: weiterhin vom Wächter (0159) verweigert; DELETE eines einzelnen Belegs und TRUNCATE: neue Trigger, die auch
---      der Tabelleneigentümer nicht umgeht (außer er schaltet Trigger ausdrücklich ab — siehe Betriebsdoku).
---      Rechte: nur noch SELECT (authenticated über RLS, service_role); geschrieben wird ausschließlich über die
---      SECURITY-DEFINER-Buchungen wedding_receipts_book / wedding_settle (0160/0161). Damit verliert auch ein alter
---      Serverstand seinen direkten Upsert-Weg (er lief vor dem Umschaltzeitpunkt nur als Schatten und schluckt den Fehler).
---      Entscheidung unverändert: Wird ein Dorf gelöscht (abandon_village, purge_user_data), gehen seine Belege per
---      FK ON DELETE CASCADE mit verloren. Das ist keine Einzel-Löschung und bleibt erlaubt; die Aufbewahrungsfrage ist
---      offen und wird hier nicht technisch entschieden.
 -- 2) Rechte, jeweils durch einen Aufrufweg begründet (Test: paket-c.pg.test.ts):
 --      village_weddings: kein Client ruft sie auf, intern nur über SECURITY-DEFINER-Funktionen des Eigentümers
 --        (encounter_guard, village_balance_walk) → PUBLIC, anon, authenticated entzogen.
@@ -20,25 +12,6 @@
 --    client_gate_lead() vor dem Umschaltzeitpunkt ('client outdated') — dieselbe 7-Tage-Regel wie die Server-Gates
 --    (src/lib/client-protocol.ts). Eigene Namen statt Überladungen: PostgREST wählt dann nie zwischen zwei Signaturen.
 
--- 1) H7 ---------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.wedding_receipt_keep()
- RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
-AS $$
-BEGIN
-  IF TG_OP = 'TRUNCATE' THEN RAISE EXCEPTION 'wedding receipts are kept'; END IF;
-  -- die Dorf-Löschung (FK ON DELETE CASCADE) entfernt die Belege erst, wenn das Dorf schon weg ist: erlaubt
-  IF EXISTS (SELECT 1 FROM public.seeds s WHERE s.id = OLD.seed_id) THEN RAISE EXCEPTION 'wedding receipts are kept'; END IF;
-  RETURN OLD;
-END $$;
-REVOKE ALL ON FUNCTION public.wedding_receipt_keep() FROM PUBLIC, anon, authenticated, service_role;
-DROP TRIGGER IF EXISTS wedding_receipts_keep ON public.wedding_receipts;
-CREATE TRIGGER wedding_receipts_keep BEFORE DELETE ON public.wedding_receipts
-  FOR EACH ROW EXECUTE FUNCTION public.wedding_receipt_keep();
-DROP TRIGGER IF EXISTS wedding_receipts_no_truncate ON public.wedding_receipts;
-CREATE TRIGGER wedding_receipts_no_truncate BEFORE TRUNCATE ON public.wedding_receipts
-  FOR EACH STATEMENT EXECUTE FUNCTION public.wedding_receipt_keep();
-REVOKE ALL ON TABLE public.wedding_receipts FROM PUBLIC, anon, authenticated, service_role;
-GRANT SELECT ON TABLE public.wedding_receipts TO authenticated, service_role;
 -- 2) Rechte ------------------------------------------------------------------------------------------------------------
 REVOKE EXECUTE ON FUNCTION public.village_weddings(uuid, timestamptz) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.claim_visit(uuid, uuid) FROM PUBLIC, anon;
@@ -57,7 +30,7 @@ REVOKE ALL ON FUNCTION public.client_gate_lead() FROM PUBLIC, anon, authenticate
 REVOKE ALL ON FUNCTION public.client_gate_open(uuid) FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.client_protocol_min(), public.client_gate_lead(), public.client_gate_open(uuid) TO service_role;
 
--- die neuen Wege entstehen aus der Live-Definition (gleicher Ablauf, gleiche Prüfungen, Muster aus 0046/0161); jede erwartete
+-- die neuen Wege entstehen aus der Live-Definition (gleicher Ablauf, gleiche Prüfungen, Muster aus 0046/0162); jede erwartete
 -- Stelle muss genau einmal vorkommen, sonst bricht die Migration ab
 CREATE OR REPLACE FUNCTION pg_temp.paket_c_patch(_fn text, _pairs text[])
  RETURNS text LANGUAGE plpgsql AS $$
@@ -146,4 +119,4 @@ REVOKE ALL ON FUNCTION public.wedding_activation_inventory() FROM PUBLIC, anon, 
 GRANT EXECUTE ON FUNCTION public.wedding_activation_inventory() TO service_role;
 
 COMMENT ON TABLE public.wedding_receipts IS
-  'Server-derived wedding records (index = WedDate.k). Version 1 = legacy rule (before wedding_switch_since), 2 = unified rule (from it; the only money record). History: never recomputed (A2, next_at anchors the continuation), never updated, never deleted or truncated one by one (0162, also for service_role); removed only with the village (FK CASCADE). Written only by wedding_receipts_book / wedding_settle.';
+  'Server-derived wedding records (index = WedDate.k). Version 1 = legacy rule (before wedding_switch_since), 2 = unified rule (from it; the only money record). History: never recomputed (A2, next_at anchors the continuation), never updated, never deleted or truncated one by one (0161, also for service_role); removed only with the village (FK CASCADE). Written only by wedding_receipts_book / wedding_settle.';

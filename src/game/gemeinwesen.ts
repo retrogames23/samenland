@@ -12,7 +12,7 @@
  * from the cut-over on, so no past population, receipt or chronicle changes; the new rule never lowers a count.
  *
  * The wedding rhythm (weddings.ts wedHealth) uses gemeinwesenGate + careHealthExtra from weddingSwitchSince(realm)
- * (Hochzeitspaket, migration 0159); before the switch it keeps its legacy count (herb hut + healer).
+ * (Hochzeitspaket, migration 0160); before the switch it keeps its legacy count (herb hut + healer).
  */
 export const GEMEINWESEN = ["herbs", "healer", "library", "badestube", "beginen"] as const;
 /** Today's Gemeinwesen (care gate and capacity before the cut-over). */

@@ -1,5 +1,5 @@
 import { remoteIsle } from "@/game/island";
-import { dropSeedId, withoutSeed, withoutKeys, LoadGate, applySign, mergeRows, onIds, snapRows, refreshMap } from "@/game/realtime";
+import { dropSeedId, withoutSeed, detachSeed, withoutKeys, LoadGate, applySign, mergeRows, onIds, snapRows, refreshMap } from "@/game/realtime";
 import { allIn, allPages, allEither } from "@/lib/fetch-all";
 import { readBodies, toFetch, bodyView, type BodyMiss } from "@/lib/letter-bodies";
 import { WalkStick } from "./WalkStick";
@@ -190,6 +190,7 @@ import { LabDesk } from "@/components/hud/LabDesk";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { CHEST } from "@/game/lang/chest";
 import { FOUNDING } from "@/game/lang/founding";
+import { foundingCheck } from "@/game/founding-roads";
 import { seedMove } from "@/game/economy-world";
 import { CHEST_STAGE, RANK_STAGE, CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
 import { titleOfSeed, TITLE_PRICE, TITLE_STAGE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, needRankOf, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
@@ -293,7 +294,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const [encounters, setEncounters] = useState<EncRow[]>([]);
   const [votes, setVotes] = useState<{ id: string; seed_id: string; partner_id: string; pact: string; created_at: string }[]>([]);
   const [moves, setMoves] = useState<MoveRow[]>([]);
-  const [works, setWorks] = useState<{ id: string; seed_id: string; partner_id: string; work: string; cost: number; created_at: string }[]>([]);
+  const [works, setWorks] = useState<{ id: string; seed_id: string; partner_id: string | null; work: string; cost: number; created_at: string }[]>([]);
   const [pactOpen, setPactOpen] = useState(false);
   const [pactPick, setPactPick] = useState<PactKind | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -756,6 +757,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const ptrRef = useRef<[number, number] | null>(null), tipRef = useRef<HTMLDivElement | null>(null);
   const [plantAsk, setPlantAsk] = useState<[number, number] | null>(null);
   const [planting, setPlanting] = useState(false);
+  // Gründungswarnung (P5): the road menu's own check for the chosen spot, once per spot and seed list — never blocks founding
+  const plantCheck = useMemo(() => (plantAsk ? foundingCheck(plantAsk[0], plantAsk[1], realm, seeds, userId) : null), [plantAsk, realm, seeds, userId]);
+  const plantIsolated = plantCheck?.isolated ?? false;
+  const plantReach = plantCheck?.reach ?? TRADE_DIST;
   // one seed per account on any map; admins get one per map
   useEffect(() => {
     if (!userId) { setHome(null); return; }
@@ -1115,9 +1120,9 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         setSeeds((s) => s.filter((x) => x.id !== id)); setHome((h) => (h && h.id === id ? null : h));
         setEncounters((r) => withoutSeed(r, id, "seed_id")); setCharters((r) => withoutSeed(r, id, "seed_id"));
         setFirstRoads((r) => withoutSeed(r, id, "seed_id", "target_id")); setVotes((r) => withoutSeed(r, id, "seed_id", "partner_id"));
-        setWorks((r) => withoutSeed(r, id, "seed_id", "partner_id")); setPurchases((r) => withoutSeed(r, id, "seed_id"));
+        setWorks((r) => detachSeed(r, id, ["seed_id"], ["partner_id"])); setPurchases((r) => withoutSeed(r, id, "seed_id"));
         setBlessings((r) => withoutSeed(r, id, "seed_id")); setPlantings((r) => withoutSeed(r, id, "seed_id"));
-        setGifts((r) => withoutSeed(r, id, "from_seed", "to_seed")); setSigns((r) => withoutSeed(r, id, "seed_id", "target_id"));
+        setGifts((r) => detachSeed(r, id, [], ["from_seed", "to_seed"])); setSigns((r) => withoutSeed(r, id, "seed_id", "target_id"));
         // abandon_village also deletes letters to/from the village: drop them and their bodies, close views on it
         setLetters((r) => { const gone = r.filter((l) => l.from_seed === id || l.to_seed === id).map((l) => l.id); if (gone.length) setBodies((b) => withoutKeys(b, gone)); return gone.length ? withoutSeed(r, id, "from_seed", "to_seed") : r; });
         setPostTo((x) => (x && x.id === id ? null : x)); setProfile((x) => (x && x.id === id ? null : x));
@@ -3655,12 +3660,13 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         const c = wayOf({ x: px, y: py });
         let near: Seed | null = null, nd = Infinity;
         for (const s of seeds) { const d = Math.hypot(px - s.x, py - s.y); if (d < nd) { nd = d; near = s; } }
-        // the same check as the road menu: reach and a real road path without a sea bridge (fixed probe id/date keeps the path cache warm)
-        const probe = { id: "plant-probe", name: "", owner: "", x: px, y: py, hue: 0, realm, user_id: userId, roads: [], created_at: new Date(0).toISOString() } as unknown as Seed;
-        const roadable = roadCandidates(probe, [...seeds, probe]).length > 0;
+        // isolated = the road menu's check (founding-roads.ts): no village reachable by a trade road from this spot
+        const isolated = plantIsolated;
         return (
-          <Parchment image={ART["surveyor"]} title={t.plantAsk.title} later={t.cancel} onLater={() => setPlantAsk(null)} action={<Button type="button" size="sm" disabled={planting} onClick={plantNow}>{planting ? t.plantAsk.wait : t.plantAsk.ok}</Button>}>
+          <Parchment image={ART["surveyor"]} title={t.plantAsk.title} later={isolated ? t.plantAsk.elsewhere : t.cancel} onLater={() => setPlantAsk(null)} action={<Button type="button" size="sm" disabled={planting} onClick={plantNow}>{planting ? t.plantAsk.wait : isolated ? t.plantAsk.okAnyway : t.plantAsk.ok}</Button>}>
             <p className="mt-2 text-center font-display text-xl leading-snug">{t.plantAsk.intro(form.name.trim())}</p>
+            {isolated && <p role="alert" data-testid="found-isolated" className="mt-3 rounded-md border-2 border-brass bg-brass/20 p-2.5 text-sm leading-snug text-ink">{t.plantAsk.farOff(plantReach, t.stages[3]!, t.stages[4]!)}</p>}
+            {remoteIsle(px, py) && <p role="alert" className="mt-3 rounded-md border border-accent bg-accent/20 p-2 text-xs leading-snug">⚓ {t.plantAsk.isle}</p>}
             <div className="mt-4 space-y-1 text-sm">
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.land}</span><span className="text-right font-semibold">{CHAR_ICON[c]} {TOWN_CHARACTER[lang].names[c]}</span></div>
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{form.gender === "d" ? MAYOR[lang].d : form.gender === "w" ? MAYOR[lang].w : t.plantAsk.owner}</span><span className="text-right font-semibold">{form.owner.trim()}</span></div>
@@ -3668,8 +3674,6 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t.plantAsk.nearest}</span><span className="text-right">{near ? t.plantAsk.near(near.name, Math.round(nd)) : t.plantAsk.none}</span></div>
             </div>
             <p className="mt-3 text-center text-xs text-muted-foreground">{TOWN_CHARACTER[lang].land[c]}</p>
-            {remoteIsle(px, py) && <p role="alert" className="mt-3 rounded-md border border-accent bg-accent/20 p-2 text-xs leading-snug">⚓ {t.plantAsk.isle}</p>}
-            {!roadable && <p role="status" className="mt-3 rounded-md border border-border bg-muted/40 p-2 text-xs leading-snug">{t.plantAsk.farOff(TRADE_DIST)}</p>}
             <div className="mt-3 space-y-1 rounded-md border border-border bg-muted/40 p-2 text-xs">
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].builds}</span><span className="text-right font-semibold">{WAY_BUILDS[c].map((k) => t.kind[k]).join(", ")}</span></div>
               <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{FOUNDING[lang].style}</span><span className="text-right">{FOUNDING[lang].look[c]}</span></div>

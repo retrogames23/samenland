@@ -1,4 +1,4 @@
--- Paket B – O1 (Vollständigkeit der Hochzeitsabrechnung) und O2 (Reihenfolge, Pending). Baut auf 0159 und 0160 (A2) auf.
+-- Paket B – O1 (Vollständigkeit der Hochzeitsabrechnung) und O2 (Reihenfolge, Pending). Baut auf 0160 (Grundlage und A2) auf.
 --
 -- Problem: ab wedding_switch_since(realm) kennt die Datenbank eine Hochzeit nur als Beleg, den der vertrauenswürdige
 -- Server bucht. Bis er gebucht ist, ist der Kassenstand ein unterer Grenzwert, und jede Geld- oder Ressourcenbuchung,

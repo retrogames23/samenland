@@ -1,9 +1,9 @@
-// Paket C (migration 0162: H7 Variante 2, Rechte, versionierte Client-RPCs, Aktivierungsinventar) against a throw-away
+// Paket C (migrations 0161 H7 Variante 2 and 0163 Rechte, versionierte Client-RPCs, Aktivierungsinventar) against a throw-away
 // PostgreSQL with the COMPLETE schema and Supabase's default privileges (full-schema.testkit.ts). BUILD_MAIL_TEST_PG=… .
 // These are PostgreSQL tests: roles anon/authenticated/service_role, RLS and auth.uid() are real PostgreSQL behaviour;
 // PostgREST itself (HTTP, schema cache, overload resolution, JWT → role) is NOT part of them — see docs/hochzeitspaket-betrieb.md.
 //
-// PAKET_C_OUT=<dir> writes the rights overviews (before = schema up to 0161, after = with 0162) as JSON and Markdown.
+// PAKET_C_OUT=<dir> writes the rights overviews (before = without 0161 and 0163, after = with both) as JSON and Markdown.
 //
 // Abnahme: C-H7 (Abschnitt 3), C-R (Rechte, Abschnitt 4), C-K (Client-Wege, Abschnitt 5), C-I (Inventar, Abschnitt 8).
 import { createHash } from "node:crypto";
@@ -12,7 +12,7 @@ import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CLIENT_GATE_LEAD, CLIENT_PROTOCOL } from "./client-protocol";
 import { CLIENT_RPCS, CLIENT_TABLE_WRITES, NOT_IN_MIGRATIONS } from "./client-rpc-registry";
-import { buildFullSchema, dropDatabase } from "./full-schema.testkit";
+import { buildFullSchema, dropDatabase, migration } from "./full-schema.testkit";
 import { type RightsEntry, ROLES, key, rightsDiff, rightsMarkdown, rightsReport } from "./rights-audit.testkit";
 
 const BASE = process.env["BUILD_MAIL_TEST_PG"];
@@ -41,7 +41,7 @@ const FOCUS = ["wedding_receipts", "wedding_settlement", "wedding_quarantine", "
   "building_move_guard", "purchase_material", "purchase_material_book", "claim_visit", "claim_referral", "claim_wonder", "princely_audience",
   "abandon_village", "purge_user_data"];
 
-/** Expected effective ACL (PUBLIC, anon, authenticated, service_role) of the critical objects after 0162 — machine-readable. */
+/** Expected effective ACL (PUBLIC, anon, authenticated, service_role) of the critical objects after 0161 and 0163 — machine-readable. */
 const T_ = (p: string, a: string, au: string, s: string) => ({ PUBLIC: p, anon: a, authenticated: au, service_role: s });
 const SRV = T_("", "", "", "X"), CLIENT = T_("", "", "X", "X"), NOBODY = T_("", "", "", "");
 const EXPECTED: Record<string, Record<string, string>> = {
@@ -78,7 +78,7 @@ const EXPECTED: Record<string, Record<string, string>> = {
   "function abandon_village(_seed uuid)": CLIENT,
   "function purge_user_data(_uid uuid)": SRV,
 };
-/** Every privilege change 0162 makes, with the call path that justifies it (a change without a reason fails the test). */
+/** Every privilege change 0161 and 0163 make, with the call path that justifies it (a change without a reason fails the test). */
 const CHANGES: Record<string, string> = {
   "table wedding_receipts": "H7: nur noch SELECT; geschrieben nur über wedding_receipts_book / wedding_settle (SECURITY DEFINER, Eigentümer); kein Client, kein Server schreibt direkt",
   "function village_weddings(_seed uuid, _at timestamp with time zone)": "kein Client-Aufruf; intern nur aus SECURITY-DEFINER-Funktionen des Eigentümers (encounter_guard, village_balance_walk)",
@@ -156,8 +156,11 @@ d("Paket C – Rechte, Integrität, Client-Wege (vollständiges Schema, Supabase
 
   beforeAll(async () => {
     const vor = `${DB}_vor`;
-    const urlVor = await buildFullSchema(BASE!, vor, "0161_hochzeit_vollstaendigkeit");
+    // "before" = everything except H7 (0161) and C (0163): the schema up to 0160 plus B (0162, independent of H7), so the
+    // comparison shows exactly what the two rights migrations change
+    const urlVor = await buildFullSchema(BASE!, vor, "0160_hochzeit_anker");
     const s0 = postgres(urlVor, { max: 1, onnotice: () => {} });
+    await s0.unsafe(migration("0162_hochzeit_vollstaendigkeit"));
     before = await rightsReport(s0);
     await s0.end(); await dropDatabase(BASE!, vor);
     const url = await buildFullSchema(BASE!, DB);
@@ -167,8 +170,8 @@ d("Paket C – Rechte, Integrität, Client-Wege (vollständiges Schema, Supabase
       mkdirSync(OUT, { recursive: true });
       writeFileSync(`${OUT}/rechte_vorher.json`, JSON.stringify(before, null, 1));
       writeFileSync(`${OUT}/rechte_nachher.json`, JSON.stringify(after, null, 1));
-      writeFileSync(`${OUT}/rechte_vorher.md`, rightsMarkdown("Rechteübersicht vorher (Migrationen bis 0161, Supabase-Standardrechte)", before, FOCUS));
-      writeFileSync(`${OUT}/rechte_nachher.md`, rightsMarkdown("Rechteübersicht nachher (mit 0162)", after, FOCUS));
+      writeFileSync(`${OUT}/rechte_vorher.md`, rightsMarkdown("Rechteübersicht vorher (ohne 0161 und 0163, Supabase-Standardrechte)", before, FOCUS));
+      writeFileSync(`${OUT}/rechte_nachher.md`, rightsMarkdown("Rechteübersicht nachher (mit 0161 und 0163)", after, FOCUS));
       const diff = rightsDiff(before, after).map((c) => ({ ...c, begruendung: CHANGES[c.object] ?? null }));
       writeFileSync(`${OUT}/rechte_aenderungen.json`, JSON.stringify(diff, null, 1));
     }
@@ -280,7 +283,7 @@ d("Paket C – Rechte, Integrität, Client-Wege (vollständiges Schema, Supabase
       }
       expect(wrong).toEqual([]);
     });
-    it("C-R jede Rechteänderung von 0162 ist im Änderungsverzeichnis mit Aufrufweg begründet, und keine andere Änderung", () => {
+    it("C-R jede Rechteänderung von 0161 und 0163 ist im Änderungsverzeichnis mit Aufrufweg begründet, und keine andere Änderung", () => {
       const diff = rightsDiff(before, after).map((c) => c.object);
       expect(diff.filter((k) => !(k in CHANGES)), "Änderung ohne Begründung").toEqual([]);
       // every listed change is real (definition-only changes of the old signatures are not ACL changes and are not in the diff)
@@ -308,8 +311,8 @@ d("Paket C – Rechte, Integrität, Client-Wege (vollständiges Schema, Supabase
     it("C-R die Rechteübersichten sind vollständig (jede Tabelle, Sicht, Sequenz und jede Funktionssignatur) und maschinenlesbar", async () => {
       const [c] = await sql`select (select count(*)::int from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind in ('r','v','m','S','p')) rel,
         (select count(*)::int from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prokind = 'f') fn`;
-      // + the two stand-in tables created after the report
-      expect(after.length).toBe(c!["rel"] + c!["fn"] - 2);
+      // + the stand-in table build_mail created after the report (princely_errands exists since 0159)
+      expect(after.length).toBe(c!["rel"] + c!["fn"] - 1);
       expect(after.filter((e) => e.kind === "function").length).toBe(c!["fn"]);
       for (const e of after) for (const r of ROLES) expect(typeof e.privileges[r]).toBe("string");
       if (OUT) expect(JSON.parse(readFileSync(`${OUT}/rechte_nachher.json`, "utf8")).length).toBe(after.length);

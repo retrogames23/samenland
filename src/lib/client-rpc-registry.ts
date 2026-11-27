@@ -26,7 +26,7 @@ export const CLIENT_RPCS: Record<string, ClientPath> = {
   resource_overview: { geld: "ressourcen", pending: true,
     schutz: "Altsignatur alter Clients: bis T−7d Weiterleitung an resource_overview_v2, ab T−7d 'client outdated'" },
   civic_open: { geld: "keins", pending: false, schutz: "legt nur die Ausbaustufe mit Budget an (keine Kassenbuchung; gezahlt wird später über den Kontor in resource_refresh_try)" },
-  claim_visit: { geld: "einnahme", pending: false, schutz: "nur angemeldet (0162: anon/PUBLIC entzogen); Einnahme ohne Kassenprüfung, vom Kassendeckel begrenzt; kein pending" },
+  claim_visit: { geld: "einnahme", pending: false, schutz: "nur angemeldet (0163: anon/PUBLIC entzogen); Einnahme ohne Kassenprüfung, vom Kassendeckel begrenzt; kein pending" },
   claim_referral: { geld: "einnahme", pending: false, schutz: "nur angemeldet; Einnahme ohne Kassenprüfung; kein pending" },
   claim_wonder: { geld: "einnahme", pending: false, schutz: "nur angemeldet; Einnahme ohne Kassenprüfung; kein pending" },
   princely_audience: { geld: "einnahme", pending: false, schutz: "nur angemeldet; Belohnung (Einnahme), keine Kassenprüfung; kein pending" },

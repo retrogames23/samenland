@@ -9,8 +9,8 @@ export type EconomyWorld = {
   encounters: (Dated & { event: string; choice: string; cost: number })[];
   roads: (Dated & { target_id: string })[];
   votes: (Dated & { partner_id: string; pact: string })[];
-  works: (Dated & { partner_id: string; work: string; cost: number })[];
-  gifts: { id: string; from_seed: string; to_seed: string; kind: string; created_at: string }[];
+  works: (Dated & { partner_id: string | null; work: string; cost: number })[];
+  gifts: { id: string; from_seed: string | null; to_seed: string | null; kind: string; created_at: string }[];
 };
 
 /** Rebuild only inputs that existed on the assessed day; later villages/buildings must not rewrite the past. */

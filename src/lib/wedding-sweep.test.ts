@@ -1,7 +1,7 @@
 // Hochzeitspaket: real settleWeddings, sweep driver, calculateTreasury and bookEncounter against an IN-MEMORY
 // wedding_receipts table (mock, not PostgreSQL). The fake emulates the booking call of 0160 (wedding_receipts_book:
 // one call all-or-nothing, identical repeat = no-op, differing row = conflict, anchor chain, quarantine refusal) and
-// wedding_quarantine. The version trigger of 0159 and the real locking are NOT emulated here — those are tested on real
+// wedding_quarantine. The version trigger of 0160 and the real locking are NOT emulated here — those are tested on real
 // PostgreSQL in hochzeitspaket.pg.test.ts and hochzeit-anker.pg.test.ts.
 // Covers: Korrektur A (full comparison of the stable legacy part, seven cases — since Paket A2 a divergence quarantines
 // the village), Korrektur C (switchMismatch fail-closed in sweep, treasury sync and wedding answer; normal state; error
@@ -396,7 +396,7 @@ describe("Korrektur C: switchMismatch fails closed everywhere (one shared verdic
     expect(weddingSettlementProblem(r)).toBeNull();
     expect(r.audit.missing).toEqual([]);
   });
-  it("C4 before migration 0159 (function missing) and both dates in the future: no mismatch, settlement works", async () => {
+  it("C4 before migration 0160 (function missing) and both dates in the future: no mismatch, settlement works", async () => {
     db.dbSwitch = null;
     const r = await settleWeddings(villages[2]!, NOW);
     expect(weddingSettlementProblem(r)).toBeNull();

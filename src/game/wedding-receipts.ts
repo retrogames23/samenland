@@ -21,7 +21,7 @@ export type WeddingReceiptRow = {
 };
 
 /** Bump only together with a migration that explains how old receipts relate to the new rules.
- *  1 = legacy rule (weddings before weddingSwitchSince), 2 = unified rule (migration 0159, Hochzeitspaket). */
+ *  1 = legacy rule (weddings before weddingSwitchSince), 2 = unified rule (migration 0160, Hochzeitspaket). */
 export const WEDDING_RECEIPT_VERSION = 1;
 export const WEDDING_RECEIPT_VERSION_UNIFIED = 2;
 

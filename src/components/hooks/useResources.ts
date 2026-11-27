@@ -30,7 +30,7 @@ export function useResources(
       return null;
     }
     const id = my.id;
-    // Paket C: the versioned path (migration 0162); the old resource_overview refuses from 7 days before the switch
+    // Paket C: the versioned path (migration 0163); the old resource_overview refuses from 7 days before the switch
     const { data, error } = await (supabase.rpc as unknown as (f: string, a: object) => PromiseLike<{ data: unknown; error: unknown }>)("resource_overview_v2", { _seed: id, _client: CLIENT_PROTOCOL });
     if (argsRef.current.my?.id !== id) return null;
     const next = error || !data ? null : (data as unknown as ResourceOverview);

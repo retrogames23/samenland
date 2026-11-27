@@ -31,6 +31,24 @@ export function withoutSeed<T>(rows: T[], id: string, ...cols: (keyof T)[]): T[]
   return rows.some((r) => cols.some((c) => r[c] === id)) ? rows.filter((r) => !cols.some((c) => r[c] === id)) : rows;
 }
 
+/**
+ * Booking rows of a deleted village whose counterpart keeps its booking (migration 0159, mirrors the FK rules):
+ * a row whose `own` column names the village goes with it (ON DELETE CASCADE); a `refs` column naming it becomes null
+ * (ON DELETE SET NULL); a row without `own` columns whose refs are all null books for nobody and is dropped.
+ */
+export function detachSeed<T>(rows: T[], id: string, own: (keyof T)[], refs: (keyof T)[]): T[] {
+  if (!rows.some((r) => [...own, ...refs].some((c) => r[c] === id))) return rows;
+  const out: T[] = [];
+  for (const r of rows) {
+    if (own.some((c) => r[c] === id)) continue;
+    if (!refs.some((c) => r[c] === id)) { out.push(r); continue; }
+    const n = { ...r }; for (const c of refs) if (n[c] === id) (n[c] as unknown) = null;
+    if (own.length === 0 && refs.every((c) => n[c] == null)) continue;
+    out.push(n);
+  }
+  return out;
+}
+
 /** drop keys (e.g. letter bodies of deleted letters); same object if none present */
 export function withoutKeys<V>(m: Record<string, V>, keys: readonly string[]): Record<string, V> {
   if (!keys.some((k) => k in m)) return m; const o = { ...m }; for (const k of keys) delete o[k]; return o;

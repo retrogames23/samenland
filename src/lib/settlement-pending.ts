@@ -3,7 +3,7 @@
  *
  * The database answers a money or resource action with `wedding settlement pending` when the wedding settlement is not
  * proven complete and the booked (lower-bound) chest does not cover the price, or when a resource booking would read
- * the chest (migration 0161: wedding_money_check, resource_refresh_try). Nothing is stored in that case — the whole
+ * the chest (migration 0162: wedding_money_check, resource_refresh_try). Nothing is stored in that case — the whole
  * statement is rolled back. This is never "not enough money": the message deliberately shares no words with it, so
  * older clients that look for "not enough money" never show a pending refusal as poverty.
  *

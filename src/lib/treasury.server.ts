@@ -136,7 +136,7 @@ async function dbWeddingSwitch(realm: string): Promise<number> {
   const hit = switchCache.get(realm), now = Date.now();
   if (hit && now - hit.at < 60_000) return hit.value;
   const { data, error } = await supabaseAdmin.rpc("wedding_switch_since" as never, { _realm: realm } as never);
-  // Before migration 0159 the database computes every wedding with the legacy rule: a switch at infinity.
+  // Before migration 0160 the database computes every wedding with the legacy rule: a switch at infinity.
   // Only PostgREST's "function not found" counts as that (PGRST202); every other error fails closed.
   const missingFn = !!error && ((error as { code?: string }).code === "PGRST202" || /Could not find the function/i.test(error.message ?? ""));
   if (error && !missingFn) throw new WeddingSettlementError("switch_unavailable", "Wedding switch unavailable");
@@ -334,13 +334,13 @@ export async function settleBeforeSpendById(id: string, now: number): Promise<We
   if (!seed) throw new Error("Missing village");
   return settleBeforeSpend(seed, now);
 }
-/** Kasse und Vollständigkeit aus einem Aufruf (DB village_balance_checked, 0161). */
+/** Kasse und Vollständigkeit aus einem Aufruf (DB village_balance_checked, 0162). */
 export async function checkedBalance(id: string): Promise<{ balance: number; settled: boolean }> {
   const { data, error } = await untyped.rpc("village_balance_checked", { _seed: id });
   if (error || data == null || typeof data.balance !== "number") throw new Error("Balance unavailable");
   return { balance: data.balance, settled: data.settled === true };
 }
-/** Resource booking with an explicit result (DB resource_refresh_try, 0161); a failing call counts as not booked. */
+/** Resource booking with an explicit result (DB resource_refresh_try, 0162); a failing call counts as not booked. */
 export async function refreshResources(id: string): Promise<"current" | "booked" | "inactive" | "pending" | "failed"> {
   const { data, error } = await untyped.rpc("resource_refresh_try", { _seed: id, _today: new Date().toISOString().slice(0, 10) });
   if (error || typeof data !== "string") return "failed";
@@ -373,7 +373,7 @@ export async function calculateTreasury(id: string, realm: string) {
     const problem = weddingSettlementProblem(await settleWeddings(atNow, now));
     if (problem) { console.error("Wedding settlement stopped", id, problem.reason, problem.indices); throw problem; }
   }
-  // Step 4: the lazy material pull (Gemeindebauten P2, 0147) with an explicit result (0161). A completion marker
+  // Step 4: the lazy material pull (Gemeindebauten P2, 0147) with an explicit result (0162). A completion marker
   // (spital1) it books must exist before taxed days after it are assessed, so the input is read again when it booked.
   const { resourcesSince } = await import("@/game/resources");
   let resources: Awaited<ReturnType<typeof refreshResources>> = "inactive";

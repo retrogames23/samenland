@@ -1,13 +1,13 @@
 // Paket A2 (Anker-Fortsetzung, migration 0160) against a throw-away PostgreSQL (BUILD_MAIL_TEST_PG=postgres://...).
 // The REAL trusted-server code (treasury.server.ts settleWeddings, activeQuarantine, weddingSettlementProblem) runs
 // against the real database through a small PostgREST stand-in for the three calls it makes (select on
-// wedding_receipts / wedding_quarantine, rpc). Schema and migrations: wedding-pg-schema.ts (0159 + 0160).
+// wedding_receipts / wedding_quarantine, rpc). Schema and migrations: wedding-pg-schema.ts (0160, both parts).
 //
-// Test-only change, stated openly: the switch instant is fixed in the code (placeholder 2100-01-04) and 0159's guard
+// Test-only change, stated openly: the switch instant is fixed in the code (placeholder 2100-01-04) and 0160's guard
 // refuses receipts dated after now() + 5 minutes. To book unified-rule weddings with the REAL rule, this file replaces
 // exactly the `now()` of that one future check by a test clock (setting test.now) — every other line of the guard,
 // the booking call and the quarantine are the migration's text (asserted below). The same for the one future check of
-// wedding_settle (0161, Paket B), which settleWeddings now calls for the completeness proof.
+// wedding_settle (0162, Paket B), which settleWeddings now calls for the completeness proof.
 //
 // Abnahmekriterien (test names start with the criterion): A2-K1 … A2-K7, A2-K9 (A2-K8: hochzeit-regel-golden.test.ts,
 // hochzeit-anker.test.ts and the parity test in hochzeitspaket.pg.test.ts).
@@ -16,7 +16,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Seed } from "@/game/world";
 import { weddingReceiptRows, planReceipts, type BookedReceipt, type WeddingReceiptRow } from "@/game/wedding-receipts";
 import { WEDDING_SWITCH_SINCE } from "@/game/weddings";
-import { M0160, M0161, block, prepareWeddingDb } from "./wedding-pg-schema";
+import { M0160, M0162, block, prepareWeddingDb } from "./wedding-pg-schema";
 
 const URL = process.env["BUILD_MAIL_TEST_PG"];
 if (!URL && (process.env["CI"] || process.env["REQUIRE_PG"])) throw new Error("BUILD_MAIL_TEST_PG missing: Paket A2 DB tests must run");
@@ -120,8 +120,8 @@ d("Paket A2 – Anker-Fortsetzung (real PostgreSQL, real settleWeddings)", () =>
     const line = "IF NEW.occurred_at > now() + interval '5 minutes' THEN";
     expect(guard.split(line).length).toBe(2);
     await sql.unsafe(guard.replace(line, "IF NEW.occurred_at > coalesce(nullif(current_setting('test.now', true), '')::timestamptz, now()) + interval '5 minutes' THEN"));
-    // Paket B: the same test clock for the one future check of wedding_settle (0161), nothing else changed
-    const settleFn = block(M0161, "CREATE OR REPLACE FUNCTION public.wedding_settle(", "END $$;");
+    // Paket B: the same test clock for the one future check of wedding_settle (0162), nothing else changed
+    const settleFn = block(M0162, "CREATE OR REPLACE FUNCTION public.wedding_settle(", "END $$;");
     const sline = "IF _through > now() + interval '5 minutes' THEN";
     expect(settleFn.split(sline).length).toBe(2);
     await sql.unsafe(settleFn.replace(sline, "IF _through > coalesce(nullif(current_setting('test.now', true), '')::timestamptz, now()) + interval '5 minutes' THEN"));
@@ -293,7 +293,7 @@ d("Paket A2 – Anker-Fortsetzung (real PostgreSQL, real settleWeddings)", () =>
       const r = await settleWeddings(s, T + 61 * D);
       expect(r.quarantine).toMatchObject({ reason: "legacy_divergent", recorded: true });
       expect(await sql`select 1 from public.wedding_quarantine where seed_id = ${s.id}`).toHaveLength(2);
-      // the village purge still removes everything (ON DELETE CASCADE; single receipts cannot be deleted since 0162)
+      // the village purge still removes everything (ON DELETE CASCADE; single receipts cannot be deleted since 0161)
       await sql`delete from public.seeds where id = ${s.id}`;
       expect(await sql`select 1 from public.wedding_receipts where seed_id = ${s.id}`).toHaveLength(0);
       expect(await sql`select 1 from public.wedding_quarantine where seed_id = ${s.id}`).toHaveLength(0);

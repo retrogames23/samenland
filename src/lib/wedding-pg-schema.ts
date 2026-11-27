@@ -1,7 +1,7 @@
 // Shared throw-away PostgreSQL schema for the wedding tests (hochzeitspaket.pg.test.ts, hochzeit-anker.pg.test.ts).
 // Loads the real functions from the migration files: village_civic_wealth (0044 + 0046/0050 patches), the 0107 wedding
 // list (also kept as village_wedding_list_0107 for comparison), 0096 village_weddings, 0127 receipts, 0118 chest walk,
-// the 0138 encounter guard, 0159 (Hochzeitspaket), 0160 (Paket A2, anchor continuation) and the wedding part of 0161
+// the 0138 encounter guard, 0160 (Hochzeitspaket base and Paket A2, anchor continuation), 0161 (H7) and the wedding part of 0162
 // (Paket B: completeness proof). Test support only.
 import { readFileSync } from "node:fs";
 import type postgres from "postgres";
@@ -15,7 +15,12 @@ export const block = (text: string, start: string, end: string) => {
   if (b < 0) throw new Error(`missing end of ${start}`);
   return text.slice(a, b + end.length);
 };
-export const M0107 = mig("0107_chest_cap_all_income.sql"), M0159 = mig("0159_hochzeitspaket.sql");
+export const M0107 = mig("0107_chest_cap_all_income.sql");
+/** 0160 holds two parts: the Hochzeitspaket base (Teil 1) and Paket A2, the anchor continuation (Teil 2). */
+const M0160_FILE = mig("0160_hochzeit_anker.sql"), TEIL2 = M0160_FILE.indexOf("-- ======================================= Teil 2:");
+if (TEIL2 < 0) throw new Error("0160: Teil 2 marker missing");
+/** Teil 1 of 0160: receipts version 1/2, switch instant, guard, inventory (the former base migration). */
+export const M0160_BASE = M0160_FILE.slice(0, TEIL2);
 export const LIST_0107 = block(M0107, "CREATE OR REPLACE FUNCTION public.village_wedding_list", "END $function$;");
 export const WALK_0118 = block(mig("0118_building_moves.sql"), "CREATE OR REPLACE FUNCTION public.village_balance_walk", "END $function$;");
 export function civicWealthSql() {
@@ -29,16 +34,16 @@ export function civicWealthSql() {
   return f;
 }
 
-export const M0160 = mig("0160_hochzeit_anker.sql");
-export const M0161 = mig("0161_hochzeit_vollstaendigkeit.sql");
-/** The wedding part of 0161 (proof table, completeness, money check, wedding_settle, checked balance) — the rest of it
+/** Teil 2 of 0160: Paket A2 (anchor continuation). */
+export const M0160 = M0160_FILE.slice(TEIL2);
+/** 0161: H7 (receipts: no single DELETE, no TRUNCATE, SELECT-only rights). */
+export const M0161 = mig("0161_hochzeit_belegschutz.sql");
+export const M0162 = mig("0162_hochzeit_vollstaendigkeit.sql");
+/** The wedding part of 0162 (proof table, completeness, money check, wedding_settle, checked balance) — the rest of it
  *  patches game guards that this stub schema does not have (tested on the full schema in paket-b.pg.test.ts). */
-export const M0161_WEDDING = M0161.slice(0, M0161.indexOf("-- 3b/4)"));
-export const M0162 = mig("0162_hochzeit_integritaet_rechte.sql");
-/** The H7 part of 0162 (receipts: no single DELETE, no TRUNCATE, SELECT-only rights) — the rest concerns game RPCs. */
-export const M0162_H7 = M0162.slice(M0162.indexOf("-- 1) H7 ---"), M0162.indexOf("-- 2) Rechte ---"));
+export const M0162_WEDDING = M0162.slice(0, M0162.indexOf("-- 3b/4)"));
 
-/** Creates the stub tables and loads the migrations. `anchor: false` stops after 0159 (state before Paket A2). */
+/** Creates the stub tables and loads the migrations. `anchor: false` stops after Teil 1 of 0160 (state before Paket A2). */
 export async function prepareWeddingDb(sql: postgres.Sql, opts: { anchor?: boolean } = {}) {
   await sql.unsafe(`
     drop schema if exists auth cascade; create schema auth;
@@ -91,6 +96,6 @@ export async function prepareWeddingDb(sql: postgres.Sql, opts: { anchor?: boole
   await sql.unsafe(mig("0127_wedding_receipts.sql"));
   await sql.unsafe(mig("0138_encounters_server_only.sql"));
   await sql.unsafe(`create trigger encounter_guard before insert on public.encounters for each row execute function public.encounter_guard();`);
-  await sql.unsafe(M0159);
-  if (opts.anchor ?? true) { await sql.unsafe(M0160); await sql.unsafe(M0161_WEDDING); await sql.unsafe(M0162_H7); }
+  await sql.unsafe(M0160_BASE);
+  if (opts.anchor ?? true) { await sql.unsafe(M0160); await sql.unsafe(M0161); await sql.unsafe(M0162_WEDDING); }
 }

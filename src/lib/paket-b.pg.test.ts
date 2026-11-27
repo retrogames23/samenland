@@ -1,5 +1,5 @@
-// Paket B (migration 0161: O1 Vollständigkeitsnachweis, O2 Reihenfolge und Pending, purchase_material-Fix) against a
-// throw-away PostgreSQL with the COMPLETE schema (full-schema.testkit.ts: every journal migration 0000–0161, files
+// Paket B (migration 0162: O1 Vollständigkeitsnachweis, O2 Reihenfolge und Pending, purchase_material-Fix) against a
+// throw-away PostgreSQL with the COMPLETE schema (full-schema.testkit.ts: every journal migration 0000–0162, files
 // unchanged). BUILD_MAIL_TEST_PG=postgres://… ; own database.
 //
 // The switch instant is moved into the past exactly as a switch migration would do it (IMMUTABLE wedding_switch_since).
@@ -106,7 +106,7 @@ d("Paket B – O1/O2, Pending und Ressourcenabrechnung (vollständiges Schema, e
   }, 120000);
   afterAll(async () => { await sql.end(); await dropDatabase(BASE!, DB); });
 
-  it("setup: 0161 applied on the full schema; the five guards and purchase_material use the one money check", async () => {
+  it("setup: 0162 applied on the full schema; the five guards and purchase_material use the one money check", async () => {
     const src = async (f: string) => (await sql`select pg_get_functiondef(${f}::regprocedure) s`)[0]!["s"] as string;
     for (const g of ["purchase_guard()", "gift_guard()", "encounter_guard()", "twin_work_guard()", "building_move_guard()", "purchase_material()"])
       expect(await src(`public.${g}`), g).toContain("public.wedding_money_check(");
@@ -286,7 +286,7 @@ d("Paket B – O1/O2, Pending und Ressourcenabrechnung (vollständiges Schema, e
       const subsets = [[idx[0]!], [idx[2]!], [idx[5]!], [idx[0]!, idx[5]!], idx, [idx[1]!, idx[3]!], [idx[4]!]];
       for (const sub of subsets) {
         await sql.begin(async (tx) => {
-          // simulate missing receipts inside a transaction that is rolled back; since 0162 a single DELETE is refused, so
+          // simulate missing receipts inside a transaction that is rolled back; since 0161 a single DELETE is refused, so
           // the test switches the triggers off for this transaction only (session_replication_role = replica)
           await tx`set local session_replication_role = replica`;
           await tx`delete from public.wedding_receipts where seed_id = ${v.id} and wedding_index = any(${sub})`;
@@ -377,7 +377,7 @@ d("Paket B – O1/O2, Pending und Ressourcenabrechnung (vollständiges Schema, e
     // resource_refresh → resource_refresh_at → resource_refresh_try (raises on pending); everything else uses the result
     expect(refreshCallers).toEqual(["resource_refresh"]);
     const tryCallers = fns.filter((f) => /resource_refresh_try\(/.test(f["prosrc"] as string)).map((f) => f["proname"] as string).sort();
-    // (0162: the client RPCs are the versioned _v2 paths; their old signatures delegate to them or refuse)
+    // (0163: the client RPCs are the versioned _v2 paths; their old signatures delegate to them or refuse)
     expect(tryCallers).toEqual(["civic_raise_budget_v2", "purchase_material", "resource_overview_v2", "resource_refresh_at"]);
   });
   it("B12 the wedding answer (encounter_guard, server only) follows the same rule: booked live wedding, pending without proof, money after it", async () => {
@@ -425,7 +425,7 @@ d("Paket B – O1/O2, Pending und Ressourcenabrechnung (vollständiges Schema, e
     expect((p1["quiet_until"] as Date).getTime()).toBe(s.NEXT);
     expect((p1["settled_through"] as Date).getTime()).toBeGreaterThan(thru);
     expect(await settledNow(v)).toBe(true);
-    // the chain changes behind the proof (a receipt removed by hand — since 0162 only with the triggers switched off, as
+    // the chain changes behind the proof (a receipt removed by hand — since 0161 only with the triggers switched off, as
     // here): the proof no longer matches — not complete
     expect(await err(sql`delete from public.wedding_receipts where seed_id = ${v.id} and wedding_index = ${t1["wedding_index"]}`)).toBe("wedding receipts are kept");
     await sql.begin(async (tx) => { await tx`set local session_replication_role = replica`;
@@ -580,13 +580,13 @@ d("Paket B – O1/O2, Pending und Ressourcenabrechnung (vollständiges Schema, e
   });
 });
 
-// ---------- before the switch (today's production state): 0161 changes nothing ----------
-d("Paket B – vor dem Umschaltzeitpunkt (Platzhalter 2100): 0161 verändert nichts (Vergleich mit einem Schema bis 0160)", () => {
+// ---------- before the switch (today's production state): 0162 changes nothing ----------
+d("Paket B – vor dem Umschaltzeitpunkt (Platzhalter 2100): 0162 verändert nichts (Vergleich mit einem Schema bis 0160)", () => {
   const A = `paketb_vor_${process.pid}_${Date.now()}`, B = `paketb_ohne_${process.pid}_${Date.now()}`;
   let withB: postgres.Sql, without: postgres.Sql;
   beforeAll(async () => {
     withB = postgres(await buildFullSchema(BASE!, A), { max: 2, onnotice: () => {} });
-    without = postgres(await buildFullSchema(BASE!, B, "0160_hochzeit_anker"), { max: 2, onnotice: () => {} });
+    without = postgres(await buildFullSchema(BASE!, B, "0161_hochzeit_belegschutz"), { max: 2, onnotice: () => {} });
   }, 120000);
   afterAll(async () => { await withB.end(); await without.end(); await dropDatabase(BASE!, A); await dropDatabase(BASE!, B); });
 
