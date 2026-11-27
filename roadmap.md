@@ -1,4 +1,6 @@
 # Roadmap
+- [x] PR #72: fester Stichtag 2026-11-28 12:00 UTC; Straßentests 13/13, Simulation 54/54, reguläre Suite 1937 bestanden / 284 DB-Tests ohne Testdatenbank übersprungen.
+- [ ] PR #72: Release-Commit, Plattform-Typecheck/Build und Veröffentlichung bis 09:00 UTC sowie Live-Nachweis; keine Datenbankmigration.
 - [x] Model C Schritt 4: eigene Raubzüge mit Stadtgarde-Zeitpunkt und Kassenbegrenzung; alle 38 Tests und beide 730-Tage-Profile mit täglichen Bilanzprüfungen bestanden
 - [x] Model C Schritt 3: Projektkatalog und Bauphasen korrigiert; 374.500 lokal / 490.000 gesamt, alle 31 Simulationstests bestanden
 - [x] Nachtmasken Gruppe F: 21 Gebäude gezielt korrigieren, im Original-Renderer prüfen, Abnahmebilder und gezielten Test liefern

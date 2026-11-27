@@ -521,14 +521,12 @@ const RINGS = [{ r: 5, at: 240 }, { r: 10, at: 2160 }, { r: 16, at: 4380 }, { r:
  * Duration: twice the build time of a landmark of that era (buildTime) — 28.8 growth hours at 240 h, so on average
  * less than one site at a time even for 30 lots; later openings take longer, as landmarks do.
  *
- * RELEASE STEP — the date is a placeholder (rule off, like WEDDING_SWITCH_SINCE) until Stephan releases it:
- * set ROAD_SETTLE_SINCE in the commit that is published, to an instant AFTER that publish (publish time plus a few
- * hours). A date before the publish would turn houses of villages that crossed an opening in between back into
- * sites. Once published with a real date, never move the date again (an earlier date resets houses, a later one makes
- * sites jump to finished).
+ * RELEASE CUTOVER — 2026-11-28 12:00 UTC; publish no later than 09:00 UTC (at least three hours beforehand).
+ * Openings already passed at this instant keep the old rule. Never move this date after activation: an earlier
+ * date resets houses, a later one makes sites jump to finished.
  */
 export const ROAD_SETTLE_OFF = Date.UTC(2100, 0, 4);
-export const ROAD_SETTLE_SINCE = ROAD_SETTLE_OFF;
+export const ROAD_SETTLE_SINCE = Date.UTC(2026, 10, 28, 12, 0, 0);
 /** Test switch: the cutover in effect (tests set a real date; production always reads ROAD_SETTLE_SINCE). */
 export const roadSettleCfg = { since: ROAD_SETTLE_SINCE };
 export const roadSettle = (t: number) => 2 * buildTime(t);

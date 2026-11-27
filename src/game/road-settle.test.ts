@@ -84,7 +84,7 @@ const SPOTS = [
   [500, 500],
   [640, 410],
 ] as const;
-const CUT = Date.UTC(2026, 10, 30); // the tests switch the rule on at this date (production: CUT)
+const CUT = Date.UTC(2026, 10, 30); // isolated test cutover; production has its own fixed release date
 const NEW = CUT + 864e5; // founded after the cutover: every opening follows the new rule
 const OLD = Date.UTC(2020, 0, 1); // had passed every opening by the cutover: old rule
 
@@ -201,9 +201,32 @@ describe("road openings settle their lots one by one", () => {
     for (const T of [2160, 4380, 8760, 15000]) expect(roadOpeningAt(T + 1)).toBe(T);
   });
 
-  it("ships switched off: with the placeholder date every village follows the old rule", () => {
-    expect(ROAD_SETTLE_SINCE).toBe(ROAD_SETTLE_OFF); // the release commit sets the real date (see world.ts) and this line
+  it("ships the fixed UTC cutover on 2026-11-28 at 12:00", () => {
+    expect(ROAD_SETTLE_SINCE).toBe(Date.UTC(2026, 10, 28, 12, 0, 0));
+    expect(ROAD_SETTLE_SINCE).toBeLessThan(ROAD_SETTLE_OFF);
+  });
+
+  it("production cutover keeps openings before it old and settles openings after it", () => {
     roadSettleCfg.since = ROAD_SETTLE_SINCE;
+    try {
+      for (const [x, y] of SPOTS) {
+        const span = at(mk(x, y, OLD), 240) - OLD;
+        const before = mk(x, y, ROAD_SETTLE_SINCE - span - 60_000);
+        const after = mk(x, y, ROAD_SETTLE_SINCE - span + 60_000);
+        const beforeSeed = before[0], afterSeed = after[0];
+        if (!beforeSeed || !afterSeed) throw new Error("Missing cutover test seed");
+        expect(at(before, 240)).toBeLessThan(ROAD_SETTLE_SINCE);
+        expect(at(after, 240)).toBeGreaterThan(ROAD_SETTLE_SINCE);
+        expect(roadOpening(beforeSeed, before, 240.05)).toBeNull();
+        expect(roadOpening(afterSeed, after, 240.05)).toBe(240);
+      }
+    } finally {
+      roadSettleCfg.since = CUT;
+    }
+  });
+
+  it("with the explicit off switch every village follows the old rule", () => {
+    roadSettleCfg.since = ROAD_SETTLE_OFF;
     try {
       const fresh = mk(420, 300, NEW);
       expect(roadOpening(fresh[0]!, fresh, 240.05)).toBeNull();
