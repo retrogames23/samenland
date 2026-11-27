@@ -611,31 +611,31 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
-          from_seed: string
+          from_seed: string | null
           id: string
           kind: string
           note: number
-          to_seed: string
+          to_seed: string | null
           user_id: string
         }
         Insert: {
           amount?: number
           created_at?: string
-          from_seed: string
+          from_seed?: string | null
           id?: string
           kind: string
           note?: number
-          to_seed: string
+          to_seed?: string | null
           user_id: string
         }
         Update: {
           amount?: number
           created_at?: string
-          from_seed?: string
+          from_seed?: string | null
           id?: string
           kind?: string
           note?: number
-          to_seed?: string
+          to_seed?: string | null
           user_id?: string
         }
         Relationships: [
@@ -841,7 +841,22 @@ export type Database = {
           seed_id?: string
           task_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "princely_errands_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "princely_errands_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "princely_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       princely_tasks: {
         Row: {
@@ -1055,25 +1070,25 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          referee_seed: string
+          referee_seed: string | null
           referee_user: string
-          referrer_seed: string
+          referrer_seed: string | null
           reward: number
         }
         Insert: {
           created_at?: string
           id?: string
-          referee_seed: string
+          referee_seed?: string | null
           referee_user: string
-          referrer_seed: string
+          referrer_seed?: string | null
           reward?: number
         }
         Update: {
           created_at?: string
           id?: string
-          referee_seed?: string
+          referee_seed?: string | null
           referee_user?: string
-          referrer_seed?: string
+          referrer_seed?: string | null
           reward?: number
         }
         Relationships: [
@@ -1415,7 +1430,7 @@ export type Database = {
           cost: number
           created_at: string
           id: string
-          partner_id: string
+          partner_id: string | null
           seed_id: string
           user_id: string
           work: string
@@ -1424,7 +1439,7 @@ export type Database = {
           cost?: number
           created_at?: string
           id?: string
-          partner_id: string
+          partner_id?: string | null
           seed_id: string
           user_id: string
           work: string
@@ -1433,7 +1448,7 @@ export type Database = {
           cost?: number
           created_at?: string
           id?: string
-          partner_id?: string
+          partner_id?: string | null
           seed_id?: string
           user_id?: string
           work?: string
@@ -1567,7 +1582,7 @@ export type Database = {
           id: string
           last_at: string | null
           reward: number
-          visited_seed: string
+          visited_seed: string | null
           visitor_seed: string
         }
         Insert: {
@@ -1575,7 +1590,7 @@ export type Database = {
           id?: string
           last_at?: string | null
           reward?: number
-          visited_seed: string
+          visited_seed?: string | null
           visitor_seed: string
         }
         Update: {
@@ -1583,7 +1598,7 @@ export type Database = {
           id?: string
           last_at?: string | null
           reward?: number
-          visited_seed?: string
+          visited_seed?: string | null
           visitor_seed?: string
         }
         Relationships: [
@@ -1603,11 +1618,53 @@ export type Database = {
           },
         ]
       }
+      wedding_quarantine: {
+        Row: {
+          details: Json
+          detected_at: string
+          id: number
+          indices: number[]
+          reason: string
+          release_note: string | null
+          released_at: string | null
+          seed_id: string
+        }
+        Insert: {
+          details?: Json
+          detected_at?: string
+          id?: number
+          indices?: number[]
+          reason: string
+          release_note?: string | null
+          released_at?: string | null
+          seed_id: string
+        }
+        Update: {
+          details?: Json
+          detected_at?: string
+          id?: number
+          indices?: number[]
+          reason?: string
+          release_note?: string | null
+          released_at?: string | null
+          seed_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wedding_quarantine_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wedding_receipts: {
         Row: {
           dowry: number
           is_grand: boolean
           is_town: boolean
+          next_at: string | null
           occurred_at: string
           seed_id: string
           version: number
@@ -1617,6 +1674,7 @@ export type Database = {
           dowry: number
           is_grand: boolean
           is_town: boolean
+          next_at?: string | null
           occurred_at: string
           seed_id: string
           version?: number
@@ -1626,6 +1684,7 @@ export type Database = {
           dowry?: number
           is_grand?: boolean
           is_town?: boolean
+          next_at?: string | null
           occurred_at?: string
           seed_id?: string
           version?: number
@@ -1636,6 +1695,38 @@ export type Database = {
             foreignKeyName: "wedding_receipts_seed_id_fkey"
             columns: ["seed_id"]
             isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wedding_settlement: {
+        Row: {
+          anchor_index: number
+          quiet_until: string
+          seed_id: string
+          settled_through: string
+          updated_at: string
+        }
+        Insert: {
+          anchor_index: number
+          quiet_until: string
+          seed_id: string
+          settled_through: string
+          updated_at?: string
+        }
+        Update: {
+          anchor_index?: number
+          quiet_until?: string
+          seed_id?: string
+          settled_through?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wedding_settlement_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: true
             referencedRelation: "seeds"
             referencedColumns: ["id"]
           },
@@ -1798,12 +1889,19 @@ export type Database = {
         Args: { _budget: number; _item: string; _seed: string }
         Returns: Json
       }
+      civic_raise_budget_v2: {
+        Args: { _budget: number; _client: number; _item: string; _seed: string }
+        Returns: Json
+      }
       claim_referral: { Args: { _ref: string; _seed: string }; Returns: number }
       claim_visit: {
         Args: { _seed: string; _visited: string }
         Returns: number
       }
       claim_wonder: { Args: { _seed: string; _site: string }; Returns: number }
+      client_gate_lead: { Args: never; Returns: string }
+      client_gate_open: { Args: { _seed: string }; Returns: boolean }
+      client_protocol_min: { Args: never; Returns: number }
       estate_assessment: {
         Args: { _pop: number; _wealth: number }
         Returns: number
@@ -1877,6 +1975,10 @@ export type Database = {
         Returns: number
       }
       resource_overview: { Args: { _seed: string }; Returns: Json }
+      resource_overview_v2: {
+        Args: { _client: number; _seed: string }
+        Returns: Json
+      }
       resource_rate: {
         Args: { _at: string; _resource: string; _seed: string }
         Returns: number
@@ -1885,6 +1987,10 @@ export type Database = {
       resource_refresh_at: {
         Args: { _seed: string; _today: string }
         Returns: undefined
+      }
+      resource_refresh_try: {
+        Args: { _seed: string; _today: string }
+        Returns: string
       }
       resource_stock: {
         Args: { _before?: string; _resource: string; _seed: string }
@@ -1914,6 +2020,7 @@ export type Database = {
         Returns: undefined
       }
       village_balance: { Args: { _seed: string }; Returns: number }
+      village_balance_checked: { Args: { _seed: string }; Returns: Json }
       village_balance_legacy: {
         Args: { _at: string; _seed: string }
         Returns: number
@@ -2002,6 +2109,56 @@ export type Database = {
         }[]
       }
       visit_reward: { Args: { _age_hours: number }; Returns: number }
+      wedding_activation_inventory: {
+        Args: never
+        Returns: {
+          abweichungen: number
+          anker_naechste: string
+          belege: number
+          grund: string
+          klasse: string
+          nachweis_bis: string
+          nachweis_ruhig_bis: string
+          quarantaene: string
+          realm: string
+          seed_id: string
+          status: string
+        }[]
+      }
+      wedding_anchor_inventory: {
+        Args: never
+        Returns: {
+          alt_abweichend: number
+          anker_bei: string
+          belege: number
+          hoechster_index: number
+          kettenbrueche: number
+          klasse: string
+          naechste: string
+          quarantaene: string
+          realm: string
+          seed_id: string
+          v2_ohne_anker: number
+        }[]
+      }
+      wedding_lock_key: { Args: { _seed: string }; Returns: number }
+      wedding_money_check: {
+        Args: { _price: number; _seed: string }
+        Returns: undefined
+      }
+      wedding_quarantine_release: {
+        Args: { _note: string; _seed: string }
+        Returns: number
+      }
+      wedding_quarantine_set: {
+        Args: {
+          _details: Json
+          _indices: number[]
+          _reason: string
+          _seed: string
+        }
+        Returns: number
+      }
       wedding_receipt_diff: {
         Args: { _seed: string }
         Returns: {
@@ -2012,6 +2169,32 @@ export type Database = {
           sql_dowry: number
         }[]
       }
+      wedding_receipt_inventory: {
+        Args: never
+        Returns: {
+          belege: number
+          doppelt: number
+          falsche_version: number
+          fehlt: number
+          luecken: number
+          realm: string
+          seed_id: string
+          weicht_ab: number
+        }[]
+      }
+      wedding_receipts_book: {
+        Args: { _rows: Json; _seed: string }
+        Returns: Json
+      }
+      wedding_settle: {
+        Args: { _rows: Json; _seed: string; _through: string }
+        Returns: Json
+      }
+      wedding_settled_at: {
+        Args: { _at: string; _seed: string }
+        Returns: boolean
+      }
+      wedding_switch_since: { Args: { _realm: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
