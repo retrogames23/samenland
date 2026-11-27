@@ -187,7 +187,7 @@ import { LabDesk } from "@/components/hud/LabDesk";
 import { DICT, LANGS, LANG_LABEL, LANG_NAME, RTL, LOCALE, plantError, type Lang } from "@/game/i18n";
 import { CHEST } from "@/game/lang/chest";
 import { FOUNDING } from "@/game/lang/founding";
-import { foundingIsolated, foundingReach } from "@/game/founding-roads";
+import { foundingCheck } from "@/game/founding-roads";
 import { seedMove } from "@/game/economy-world";
 import { CHEST_STAGE, RANK_STAGE, CHEST_STEPS, CHEST_CAP, CHEST_PRICE, chestLevel, chestCap, chestBlock } from "@/game/economy";
 import { titleOfSeed, TITLE_PRICE, TITLE_STAGE, TITLE_STEPS, TITLE_RANK, TITLE_BONUS, titleOf, titleBlock, RANK_PRICE, RANK_ROADS, rankOf, rankBlock, type RankStep, ITEMS, MONUMENT_PRICE, MONUMENTS, nextMonumentStep, needRankOf, GUILD, canBuy, canBuyWay, WAY_ITEM, dailyTax, attributes, treasury, referralClaims, visitClaims, type Item, type Purchase } from "@/game/economy";
@@ -755,8 +755,9 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const [plantAsk, setPlantAsk] = useState<[number, number] | null>(null);
   const [planting, setPlanting] = useState(false);
   // Gründungswarnung (P5): the road menu's own check for the chosen spot, once per spot and seed list — never blocks founding
-  const plantIsolated = useMemo(() => (plantAsk ? foundingIsolated(plantAsk[0], plantAsk[1], realm, seeds, userId) : false), [plantAsk, realm, seeds, userId]);
-  const plantReach = useMemo(() => (plantAsk ? foundingReach(plantAsk[0], plantAsk[1], realm, seeds, userId) : TRADE_DIST), [plantAsk, realm, seeds, userId]);
+  const plantCheck = useMemo(() => (plantAsk ? foundingCheck(plantAsk[0], plantAsk[1], realm, seeds, userId) : null), [plantAsk, realm, seeds, userId]);
+  const plantIsolated = plantCheck?.isolated ?? false;
+  const plantReach = plantCheck?.reach ?? TRADE_DIST;
   // one seed per account on any map; admins get one per map
   useEffect(() => {
     if (!userId) { setHome(null); return; }

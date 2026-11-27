@@ -14,6 +14,7 @@ import {
 } from "./world";
 import { roadsFor, rankOf, RANK_NEED } from "./rank";
 import {
+  foundingCheck,
   foundingIsolated,
   foundingReach,
   foundingRoadCandidates,
@@ -185,6 +186,11 @@ describe("agreement with the road menu and the rank certificate on real terrain"
         expect(foundingReach(x, y, realm, seeds, "u-me"), `reach ${realm} ${x},${y}`).toBe(
           roadReach(me, world),
         );
+        // the parchment's single computation gives the same two answers
+        expect(foundingCheck(x, y, realm, seeds, "u-me"), `check ${realm} ${x},${y}`).toEqual({
+          isolated: probe.length === 0,
+          reach: roadReach(me, world),
+        });
         if (!probe.length) {
           isolated++;
           expect(roadsFor(me, world, t0 + 60 * D)).toBe(0);
@@ -217,6 +223,10 @@ describe("reach named in the warning (P5a)", () => {
       land = mk("land", 342, 224, "us-west");
     expect(foundingIsolated(247, 224, "us-west", [n1, n2, land], "u-me")).toBe(true);
     expect(foundingReach(247, 224, "us-west", [n1, n2, land], "u-me")).toBe(NEAR_ROAD_DIST);
+    expect(foundingCheck(247, 224, "us-west", [n1, n2, land], "u-me")).toEqual({
+      isolated: true,
+      reach: NEAR_ROAD_DIST,
+    });
     const me = founded("me-real-id", 247, 224, "us-west");
     expect(roadReach(me, [n1, n2, land, me])).toBe(NEAR_ROAD_DIST);
     for (const msg of warn(foundingReach(247, 224, "us-west", [n1, n2, land], "u-me"))) {

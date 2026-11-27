@@ -50,6 +50,18 @@ export function foundingReach(
   const { probe, world } = foundingWorld(x, y, realm, seeds, userId);
   return roadReach(probe, world);
 }
+/** Both answers for the founding parchment from one probe: isolated exactly as foundingIsolated, reach exactly as
+ *  foundingReach (parity in founding-roads.test.ts). */
+export function foundingCheck(
+  x: number,
+  y: number,
+  realm: Realm,
+  seeds: Seed[],
+  userId: string | null = null,
+): { isolated: boolean; reach: number } {
+  const { probe, world } = foundingWorld(x, y, realm, seeds, userId);
+  return { isolated: roadCandidates(probe, world).length === 0, reach: roadReach(probe, world) };
+}
 /** Isolated: no other village can be reached by a trade road from this site — the founding parchment warns, never blocks. */
 export const foundingIsolated = (
   x: number,
