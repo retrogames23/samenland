@@ -1156,6 +1156,20 @@
       "when": 1795785998705,
       "tag": "0164_begleitmigration_0164",
       "breakpoints": true
+    },
+    {
+      "idx": 165,
+      "version": "7",
+      "when": 1795812300000,
+      "tag": "0165_stiftungen_p4",
+      "breakpoints": true
+    },
+    {
+      "idx": 166,
+      "version": "7",
+      "when": 1795812301000,
+      "tag": "0166_begleitmigration_0166",
+      "breakpoints": true
     }
   ]
 }
