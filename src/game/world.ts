@@ -18,7 +18,7 @@ import { gemeinwesenGate, gemeinwesenActive, GEMEINWESEN } from "./gemeinwesen";
 const ROAD_YIELDS: ReadonlySet<string> = new Set(["field", "garden", "pasture", "hay", "fence"]);
 export const MAP = 1024;
 
-export type Seed = { civicRoads?: CivicRoad[]; id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; renamed_at?: string | null; realm?: Realm; mayor_gender?: string | null; mayor_age?: number | null; mayor_traits?: string[] | null; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; roads?: { target: string; at: number }[]; decisions?: Decision[]; votes?: { partner: string; pact: PactKind; at: number }[]; works?: { partner: string; work: WorkKind; cost: number; at: number }[]; sent?: { to: string; kind: "gift" | "aid" | "thanks"; at: number; id: string }[]; letters?: { to: string; at: number; id: string }[]; aid?: number[]; moves?: { item: string; x: number; y: number; at: number; cost?: number }[] };
+export type Seed = { civicRoads?: CivicRoad[]; id: string; name: string; owner: string; x: number; y: number; hue: number; created_at: string; renamed_at?: string | null; realm?: Realm; mayor_gender?: string | null; mayor_age?: number | null; mayor_traits?: string[] | null; user_id?: string | null; blessed?: number[]; bought?: { item: string; at: number; x?: number | null; y?: number | null }[]; charter?: { path: CharterPath; at: number }; roads?: { target: string; at: number }[]; decisions?: Decision[]; votes?: { partner: string; pact: PactKind; at: number }[]; works?: { partner: string | null; work: WorkKind; cost: number; at: number }[]; sent?: { to: string | null; kind: "gift" | "aid" | "thanks"; at: number; id: string }[]; letters?: { to: string; at: number; id: string }[]; aid?: number[]; moves?: { item: string; x: number; y: number; at: number; cost?: number }[] };
 export type Planting = { id: string; seed_id: string; kind: "tree" | "flower" | "lantern" | "cherry" | "quince"; x: number; y: number; created_at: string };
 export type CivicRoad = { at: number };
 
@@ -2087,7 +2087,7 @@ export function isTwin(l: Link, seeds: Seed[], now: number) {
 export function twinLinks(s: Seed, seeds: Seed[], now: number) {
   return links(seeds).filter((l) => (l.a.id === s.id || l.b.id === s.id) && isTwin(l, seeds, now));
 }
-const latest = <T extends { partner: string; at: number }>(xs: T[] | undefined, id: string, now: number) =>
+const latest = <T extends { partner: string | null; at: number }>(xs: T[] | undefined, id: string, now: number) =>
   (xs ?? []).filter((v) => v.partner === id && v.at <= now).sort((a, b) => b.at - a.at)[0];
 
 /** Agreed pact between two twins, derived from both votes; sample towns follow the player, silence for 7 days adopts the partner's choice. */

@@ -110,3 +110,31 @@ describe("late follow-ups after a map switch", () => {
     expect(bodies).toEqual({ L: "t" });
   });
 });
+
+// Migration 0159: when a village is deleted, the other villages' bookings stay (FK ON DELETE SET NULL / CASCADE).
+import { detachSeed } from "./realtime";
+import { referralClaims, visitClaims } from "./economy";
+import { giftBalance, type Gift } from "./gifts";
+describe("deleted village: counter bookings stay (0159)", () => {
+  const gift = (id: string, from: string | null, to: string | null): Gift => ({ id, from_seed: from, to_seed: to, kind: "gift", amount: 40, note: 0, created_at: "2026-01-01T00:00:00Z" });
+  it("gifts: the deleted side becomes null, a row with both sides gone is dropped, others are untouched", () => {
+    const rows = [gift("1", "a", "b"), gift("2", "b", "a"), gift("3", "a", "a"), gift("4", "b", "c"), gift("5", null, "a")];
+    const out = detachSeed(rows, "a", [], ["from_seed", "to_seed"]);
+    expect(out).toEqual([gift("1", null, "b"), gift("2", "b", null), gift("4", "b", "c")]);
+    expect(rows[0]).toEqual(gift("1", "a", "b"));                      // input not mutated
+    expect(detachSeed(rows, "zz", [], ["from_seed", "to_seed"])).toBe(rows);   // same array when nothing names the village
+    // b's money from gifts is the same before and after a was deleted
+    expect(giftBalance("b", out)).toBe(giftBalance("b", rows));
+  });
+  it("twin works: the village's own half goes, the partner's half stays with partner_id null", () => {
+    const rows = [{ id: "1", seed_id: "a", partner_id: "b" as string | null, cost: 100 }, { id: "2", seed_id: "b", partner_id: "a" as string | null, cost: 100 }, { id: "3", seed_id: "b", partner_id: "c" as string | null, cost: 50 }];
+    expect(detachSeed(rows, "a", ["seed_id"], ["partner_id"])).toEqual([{ id: "2", seed_id: "b", partner_id: null, cost: 100 }, { id: "3", seed_id: "b", partner_id: "c", cost: 50 }]);
+  });
+  it("referral and visit claims: only the remaining side books, with its full reward", () => {
+    const r = { id: "r", reward: 50, created_at: "2026-01-01T00:00:00Z" };
+    expect(referralClaims([{ ...r, referrer_seed: null, referee_seed: "b" }])).toEqual([{ id: "r:b", seed_id: "b", quest: "ref:gone", reward: 50, created_at: r.created_at }]);
+    expect(referralClaims([{ ...r, referrer_seed: "a", referee_seed: null }])).toEqual([{ id: "r:a", seed_id: "a", quest: "ref:gone", reward: 50, created_at: r.created_at }]);
+    expect(referralClaims([{ ...r, referrer_seed: "a", referee_seed: "b" }]).map((c) => [c.seed_id, c.quest])).toEqual([["a", "ref:b"], ["b", "ref:a"]]);
+    expect(visitClaims([{ id: "v", visitor_seed: "a", visited_seed: null, reward: 75, created_at: r.created_at }])).toEqual([{ id: "v:v", seed_id: "a", quest: "visit:gone", reward: 75, created_at: r.created_at }]);
+  });
+});

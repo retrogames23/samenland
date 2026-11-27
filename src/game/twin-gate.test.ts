@@ -19,7 +19,7 @@ const R = {
 const rPairHash = (l: Link) => hash(l.a.x + l.b.x, l.a.y + l.b.y, 21);
 const rFestivalDay = (l: Link, at: number) => new Date(at).getUTCDate() === 1 + Math.floor(rPairHash(l) * 28);
 const rUtcDay = (t: number) => Math.floor(t / 864e5);
-const rLatest = <T extends { partner: string; at: number }>(xs: T[] | undefined, id: string, now: number) =>
+const rLatest = <T extends { partner: string | null; at: number }>(xs: T[] | undefined, id: string, now: number) =>
   (xs ?? []).filter((v) => v.partner === id && v.at <= now).sort((a, b) => b.at - a.at)[0];
 const rLink = (s: Seed, o: Seed, seeds: Seed[]) =>
   links(seeds).find((k) => (k.a.id === s.id && k.b.id === o.id) || (k.a.id === o.id && k.b.id === s.id));
