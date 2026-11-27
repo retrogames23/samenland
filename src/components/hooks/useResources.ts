@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { certifyMySite } from "@/lib/resources.functions";
 import { resourcesSince, type ResourceOverview } from "@/game/resources";
 import { clock } from "@/game/time";
+import { fresh } from "@/lib/fresh-auth";
 import { CLIENT_PROTOCOL } from "@/lib/client-protocol";
 import type { Seed } from "@/game/world";
 
@@ -19,7 +20,7 @@ export function useResources(
   deps: unknown[],
 ) {
   const [res, setRes] = useState<ResourceOverview | null>(null);
-  const certifyFn = useServerFn(certifyMySite);
+  const certifyFn = fresh(useServerFn(certifyMySite));
   const asked = useRef<string | null>(null);
   const argsRef = useRef({ my, userId });
   argsRef.current = { my, userId };

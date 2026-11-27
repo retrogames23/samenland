@@ -3,13 +3,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { settleTreasury } from "@/lib/treasury.functions";
 import { coalescedRefresh } from "@/lib/treasury-refresh";
 import { CLIENT_PROTOCOL } from "@/lib/client-protocol";
+import { fresh } from "@/lib/fresh-auth";
 import type { Seed } from "@/game/world";
 
 export type Accounting = Awaited<ReturnType<typeof settleTreasury>>;
 
 /** Keeps the own village's chest in step with the trusted server: books open tax days in bounded batches, refreshes every minute and after authoritative row changes. */
 export function useTreasurySync(my: Seed | undefined, userId: string | null | undefined, deps: unknown[]) {
-  const treasuryFn = useServerFn(settleTreasury);
+  const treasuryFn = fresh(useServerFn(settleTreasury));
   const [accounting, setAccounting] = useState<Accounting | null>(null);
   const seedRef = useRef<string | null>(null);
   seedRef.current = my?.id ?? null;

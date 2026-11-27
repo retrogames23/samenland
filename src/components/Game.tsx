@@ -55,6 +55,8 @@ import { decideEncounter } from "@/lib/encounter.functions";
 import { retryOnPending, dbPending, codePending, isSettlementPending } from "@/lib/settlement-pending";
 import { SETTLEMENT_T } from "@/game/lang/settlement";
 import { CLIENT_PROTOCOL } from "@/lib/client-protocol";
+import { fresh } from "@/lib/fresh-auth";
+import { callFault, type CallFault } from "@/lib/server-call";
 import { useTreasurySync } from "@/components/hooks/useTreasurySync";
 import { useResources } from "@/components/hooks/useResources";
 import { ResourceBar, MaterialLine } from "@/components/hud/ResourceBar";
@@ -1678,9 +1680,9 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   };
 
   const my = seeds.find((s) => s.id === mine);
-  const certifyFn = useServerFn(certifyMyRank);
-  const nothilfeFn = useServerFn(callNothilfe);
-  const decideFn = useServerFn(decideEncounter);
+  const certifyFn = fresh(useServerFn(certifyMyRank));
+  const nothilfeFn = fresh(useServerFn(callNothilfe));
+  const decideFn = fresh(useServerFn(decideEncounter));
   const { accounting, setAccounting, refreshAccounting, refreshTreasury } = useTreasurySync(my, userId, [purchases, gifts, claims, encounters, works, moves]);
   // Wirtschaft Paket 1: wood and stone as the database books them; the quote only shows what the guard will charge
   const { res, refreshResources } = useResources(my, userId, [purchases]);
@@ -1759,7 +1761,9 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     await refreshTreasury().catch(() => false);
     // the trusted server recomputes the open encounter and books the answer (M1: clients never insert encounters)
     // a thrown call (timeout, network) is never retried: its outcome is unknown; only a pending answer is
-    const r = await retryOnPending(() => decideFn({ data: { seed: my.id, event, choice, client: CLIENT_PROTOCOL } }).catch(() => null), codePending, syncSettlement);
+    // an auth refusal alone is retried once with a refreshed session (fresh): it is refused before anything is booked
+    let fault: CallFault | null = null;
+    const r = await retryOnPending(() => decideFn({ data: { seed: my.id, event, choice, client: CLIENT_PROTOCOL } }).catch((e: unknown) => { fault = callFault(e); return null; }), codePending, syncSettlement);
     encSaving.current = false;
     if (!r || !r.ok) {
       // already answered elsewhere or the question changed: reload instead of leaving a stale question open
@@ -1767,7 +1771,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         (rows) => setEncounters(snapRows(rows, (x) => onIds(mapIds.current, x.seed_id)))); }
       // poor or still pending: the question stays open for a later answer
       if (r?.code === "poor" || r?.code === "pending") setEncOpen(true);
-      return setMsg(r?.code === "pending" ? pendingMsg() : r?.code === "poor" ? t.poor : t.enc.fail);
+      // the short code tells the cases apart for support: auth / net / server (the call threw) or the server's refusal code
+      return setMsg(r?.code === "pending" ? pendingMsg() : r?.code === "poor" ? t.poor : `${t.enc.fail} (${r?.code ?? fault ?? "server"})`);
     }
     const data = r.row;
     setEncounters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
