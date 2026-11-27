@@ -14,6 +14,7 @@
 // database half; the TypeScript half is src/game/stiftung.test.ts), H-G1 … H-G7 (Hochzeitspaket × Gemeindebauten).
 import { createHash } from "node:crypto";
 import postgres from "postgres";
+import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildFullSchema, dropDatabase, journalTags, migration } from "./full-schema.testkit";
 import { SETTLEMENT_PENDING } from "./settlement-pending";
@@ -1025,6 +1026,20 @@ d("P4 Stiftungen – K9 Bestand: die Migration 0165 lässt bestehende Dörfer, K
   const fnHashes = async (q: postgres.Sql) => (await q`select p.oid::regprocedure::text f, md5(pg_get_functiondef(p.oid)) h from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.prokind = 'f' order by 1`).map((r) => `${r["f"]}=${r["h"]}`);
 
+  /** Runs one file of the check package (docs/sql/0165, read-only transaction inside) and returns its rows by kind. */
+  const pruefpaket = async (q: postgres.Sql, file: string) => {
+    const text = readFileSync(new globalThis.URL(`../../docs/sql/0165/${file}`, import.meta.url), "utf8");
+    expect(text).toMatch(/^BEGIN TRANSACTION READ ONLY;$/m);
+    expect(text.trimEnd().endsWith("ROLLBACK;")).toBe(true);
+    expect(text.replace(/--.*$/gm, "").replace(/'[^']*'/g, "''")).not.toMatch(/\b(insert|update|delete|create|alter|drop|grant|revoke|truncate|commit)\b/i);
+    const conn = await q.reserve();                                // one connection: the file opens and ends its own transaction
+    let sets: Record<string, unknown>[][];
+    try { sets = (await conn.unsafe(text).simple()) as unknown as Record<string, unknown>[][]; } finally { conn.release(); }
+    const rows = sets.flat().filter((r) => r && typeof r === "object" && "art" in r);
+    const of = (art: string) => rows.filter((r) => r["art"] === art);
+    return { checks: of("pruefung"), hints: of("hinweis"), bestand: of("bestand").map((r) => `${r["name"]} = ${r["wert"]}`), ident: of("identitaet") };
+  };
+
   beforeAll(async () => {
     expect(I).toBeGreaterThan(0);
     const before = TAGS[I - 1]!;
@@ -1053,10 +1068,33 @@ d("P4 Stiftungen – K9 Bestand: die Migration 0165 lässt bestehende Dörfer, K
   it("K9 Bestand: Zeilen, Kontostände, Lager, Kontorpreise und Kaufzählung sind nach 0165/0166 identisch; nur die erwarteten Funktionen ändern sich", async () => {
     const s0 = await state(sql), f0 = await fnHashes(sql);
     expect((await sql`select to_regclass('public.stift_stages') t`)[0]!["t"]).toBeNull();
+    // the check package before: every check ok, the live definitions equal the repository
+    const vor = await pruefpaket(sql, "01_vorher.sql");
+    expect(vor.checks.length).toBe(10);
+    expect(vor.checks.filter((r) => r["ok"] !== true).map((r) => r["pruefung"])).toEqual([]);
+    expect(vor.hints.length).toBe(4);
+    expect(vor.hints.every((r) => r["ok"] === true)).toBe(true);
+    expect(vor.bestand.length).toBe(9);
+    expect(vor.ident.length).toBe(1);
+    expect(await state(sql)).toEqual(s0);                          // the package itself changes nothing
     await sql.unsafe(migration("0165_stiftungen_p4"));
     await sql.unsafe(migration("0166_begleitmigration_0166"));
     const s1 = await state(sql), f1 = await fnHashes(sql);
     expect(s1).toEqual(s0);
+    // the check package after: every check ok, fingerprints as built from the repository, Bestand line by line the same
+    const nach = await pruefpaket(sql, "02_nachher.sql");
+    expect(nach.checks.length).toBe(23);
+    expect(nach.checks.filter((r) => r["ok"] !== true).map((r) => r["pruefung"])).toEqual([]);
+    expect(nach.hints.every((r) => r["ok"] === true)).toBe(true);
+    expect(nach.bestand).toEqual(vor.bestand);
+    expect(vor.bestand.find((x) => x.startsWith("purchases"))).toMatch(/= 2[0-9] \| /);   // real rows were compared
+    for (const f of ["03_fingerprints.sql", "04_funktionstexte.sql"]) await pruefpaket(sql, f);
+    expect(await state(sql)).toEqual(s1);
+    // after the migration the "before" package says so (0165 present) instead of passing
+    expect((await pruefpaket(sql, "01_vorher.sql")).checks.filter((r) => r["ok"] !== true).length).toBeGreaterThan(0);
+    // the fingerprints file names the migration files' own SHA-256 (drizzle.__drizzle_migrations.hash)
+    const fp = readFileSync(new globalThis.URL("../../docs/sql/0165/03_fingerprints.sql", import.meta.url), "utf8");
+    for (const tag of ["0165_stiftungen_p4", "0166_begleitmigration_0166"]) expect(fp).toContain(createHash("sha256").update(migration(tag)).digest("hex"));
     expect((await sql`select count(*)::int c from public.stift_stages`)[0]!["c"]).toBe(0);
     // exactly four existing functions changed, everything else is byte-identical; the new ones are all stift_*
     const old = new Map(f0.map((x) => x.split("=") as [string, string]));
@@ -1099,6 +1137,10 @@ d("P4 Stiftungen – K9 Bestand: die Migration 0165 lässt bestehende Dörfer, K
     expect(def).toContain("IF price IS NULL THEN RAISE EXCEPTION 'unknown item'; END IF;");
     await bad.unsafe(def.replace("IF price IS NULL THEN RAISE EXCEPTION 'unknown item'; END IF;", "IF price IS NULL THEN RAISE EXCEPTION 'unknown  item'; END IF;"));
     const f0 = await fnHashes(bad);
+    // the check package shows it beforehand: the patch place is missing, the fingerprint differs
+    const vor = await pruefpaket(bad, "01_vorher.sql");
+    expect(vor.checks.filter((r) => r["ok"] !== true).map((r) => r["pruefung"])).toEqual(["Patch-Stelle in purchase_guard: genau 1 mal"]);
+    expect(vor.hints.filter((r) => r["ok"] !== true).map((r) => r["pruefung"])).toEqual(["Fingerabdruck purchase_guard = Repository (Stand 0164)"]);
     const res = await bad.unsafe(migration("0165_stiftungen_p4")).then(() => "ok", (e: Error) => e.message);
     expect(res).toContain("P4 0165: public.purchase_guard() enthält die erwartete Stelle 0 mal statt 1 mal");
     expect((await bad`select to_regclass('public.stift_stages') t`)[0]!["t"]).toBeNull();
