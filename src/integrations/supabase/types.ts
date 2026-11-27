@@ -611,31 +611,31 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
-          from_seed: string | null
+          from_seed: string
           id: string
           kind: string
           note: number
-          to_seed: string | null
+          to_seed: string
           user_id: string
         }
         Insert: {
           amount?: number
           created_at?: string
-          from_seed?: string | null
+          from_seed: string
           id?: string
           kind: string
           note?: number
-          to_seed?: string | null
+          to_seed: string
           user_id: string
         }
         Update: {
           amount?: number
           created_at?: string
-          from_seed?: string | null
+          from_seed?: string
           id?: string
           kind?: string
           note?: number
-          to_seed?: string | null
+          to_seed?: string
           user_id?: string
         }
         Relationships: [
@@ -841,22 +841,7 @@ export type Database = {
           seed_id?: string
           task_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "princely_errands_seed_id_fkey"
-            columns: ["seed_id"]
-            isOneToOne: false
-            referencedRelation: "seeds"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "princely_errands_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "princely_tasks"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       princely_tasks: {
         Row: {
@@ -1070,25 +1055,25 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          referee_seed: string | null
+          referee_seed: string
           referee_user: string
-          referrer_seed: string | null
+          referrer_seed: string
           reward: number
         }
         Insert: {
           created_at?: string
           id?: string
-          referee_seed?: string | null
+          referee_seed: string
           referee_user: string
-          referrer_seed?: string | null
+          referrer_seed: string
           reward?: number
         }
         Update: {
           created_at?: string
           id?: string
-          referee_seed?: string | null
+          referee_seed?: string
           referee_user?: string
-          referrer_seed?: string | null
+          referrer_seed?: string
           reward?: number
         }
         Relationships: [
@@ -1430,7 +1415,7 @@ export type Database = {
           cost: number
           created_at: string
           id: string
-          partner_id: string | null
+          partner_id: string
           seed_id: string
           user_id: string
           work: string
@@ -1439,7 +1424,7 @@ export type Database = {
           cost?: number
           created_at?: string
           id?: string
-          partner_id?: string | null
+          partner_id: string
           seed_id: string
           user_id: string
           work: string
@@ -1448,7 +1433,7 @@ export type Database = {
           cost?: number
           created_at?: string
           id?: string
-          partner_id?: string | null
+          partner_id?: string
           seed_id?: string
           user_id?: string
           work?: string
@@ -1582,7 +1567,7 @@ export type Database = {
           id: string
           last_at: string | null
           reward: number
-          visited_seed: string | null
+          visited_seed: string
           visitor_seed: string
         }
         Insert: {
@@ -1590,7 +1575,7 @@ export type Database = {
           id?: string
           last_at?: string | null
           reward?: number
-          visited_seed?: string | null
+          visited_seed: string
           visitor_seed: string
         }
         Update: {
@@ -1598,7 +1583,7 @@ export type Database = {
           id?: string
           last_at?: string | null
           reward?: number
-          visited_seed?: string | null
+          visited_seed?: string
           visitor_seed?: string
         }
         Relationships: [
@@ -1623,7 +1608,6 @@ export type Database = {
           dowry: number
           is_grand: boolean
           is_town: boolean
-          next_at: string | null
           occurred_at: string
           seed_id: string
           version: number
@@ -1633,7 +1617,6 @@ export type Database = {
           dowry: number
           is_grand: boolean
           is_town: boolean
-          next_at?: string | null
           occurred_at: string
           seed_id: string
           version?: number
@@ -1643,7 +1626,6 @@ export type Database = {
           dowry?: number
           is_grand?: boolean
           is_town?: boolean
-          next_at?: string | null
           occurred_at?: string
           seed_id?: string
           version?: number
