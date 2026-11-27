@@ -26,8 +26,12 @@ der anderen Spieler änderte sich rückwirkend.
   gepatcht (`CREATE OR REPLACE`), darum bleiben Eigentümer, Rechte, SECURITY DEFINER und `search_path` unverändert.
   Kein GRANT oder REVOKE an bestehenden Objekten.
 - Die neue Trigger-Funktion `finance_orphan_cleanup` ist keiner API-Rolle gewährt (Trigger brauchen kein EXECUTE).
-- `princely_errands` existiert live, aber in keiner Migration. 0159 legt sie an, wo sie fehlt (Spalten laut generierten
-  Typen), entfernt Zeilen ohne Dorf und setzt die beiden Fremdschlüssel.
+- `princely_errands` existiert live, aber in keiner Migration. 0159 legt sie an, wo sie fehlt, entfernt Zeilen ohne
+  Dorf und setzt die beiden Fremdschlüssel.
+  - Neu angelegt hat sie die drei Constraints der Produktion: `princely_errands_pkey`, `princely_errands_errand_check`
+    (nur `gardener` oder `groom`) und `princely_errands_task_id_errand_key` (UNIQUE auf `task_id`, `errand`).
+  - Existiert sie schon, prüft der Preflight, dass diese drei vorhanden, gültig und inhaltlich richtig sind, und bricht
+    sonst vor jeder Änderung ab. Für den CHECK gelten die Schreibweisen `errand IN (…)` und `errand = … OR errand = …`.
 - Bereits verlorene Gegenbuchungen aus früheren Löschungen werden **nicht** rekonstruiert.
 
 ## Sicherungen in der Migration
@@ -76,8 +80,10 @@ als Referenz im Lieferpaket, nicht im Repo.
   FK-Richtungen oben folgen daraus, welche Seite tatsächlich bucht; bitte gegen die Vereinbarung prüfen.
 - `princely_errand` (Funktion) und `build_mail` (Tabelle) fehlen weiter in den Migrationen. Ihre Live-Definitionen sind
   unbekannt (Abfrage 5 der Vorabprüfung holt die Funktion).
-- Live-Policies, -Rechte und eventuelle weitere Constraints von `princely_errands` sind unbekannt; 0159 lässt sie
-  unverändert.
+- Live-Policies und -Rechte von `princely_errands` sind unbekannt; 0159 lässt sie unverändert. Der Zweig für neue
+  Datenbanken setzt eigene (Lesen nur für den Dorf-Eigentümer).
+- Die Funktion `princely_errand` liegt nicht im Repo. Getestet ist deshalb die Anweisung
+  `INSERT … ON CONFLICT (task_id, errand) DO NOTHING` gegen die Tabelle, nicht die Funktion selbst.
 - Der Branch `claude/hochzeitspaket` verwendet die Nummern 0159–0162 ebenfalls (nicht eingespielt, nicht gemergt). Wird
   0159 von hier zuerst gemergt, müssen jene Migrationen vor ihrem Merge neu nummeriert werden.
 - In erhaltenen `gifts`- und `twin_works`-Zeilen bleibt `user_id` des gelöschten Kontos stehen (wie bisher bei allen

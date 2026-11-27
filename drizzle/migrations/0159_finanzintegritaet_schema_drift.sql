@@ -21,7 +21,7 @@
 -- (Trigger finance_orphan_cleanup).
 --
 -- Schema-Drift: public.princely_errands existiert in der Live-Datenbank (generierte Typen), aber in keiner Migration,
--- und hat dort keine Fremdschlüssel. abandon_village räumt sie nicht ab, sodass verwaiste Zeilen entstehen.
+-- und hat dort keine Fremdschlüssel (wohl aber: Primärschlüssel, CHECK errand in (gardener, groom), UNIQUE (task_id, errand)). abandon_village räumt sie nicht ab, sodass verwaiste Zeilen entstehen.
 --   princely_errands.seed_id -> seeds(id)           ON DELETE CASCADE
 --   princely_errands.task_id -> princely_tasks(id)  ON DELETE CASCADE
 --
@@ -181,6 +181,37 @@ BEGIN
     PERFORM pg_temp.m0159_col('public.princely_errands', 'seed_id', 'uuid');
     PERFORM pg_temp.m0159_col('public.princely_errands', 'task_id', 'uuid');
     PERFORM pg_temp.m0159_col('public.princely_errands', 'errand', 'text');
+    -- die drei Constraints der Produktion: vorhanden, gültig, inhaltlich richtig
+    -- Primärschlüssel princely_errands_pkey auf (id)
+    SELECT count(*) INTO n FROM pg_constraint c WHERE c.conrelid = 'public.princely_errands'::regclass AND c.contype = 'p'
+       AND c.conname = 'princely_errands_pkey' AND c.convalidated
+       AND (SELECT array_agg(a.attname::text ORDER BY k.ord) FROM unnest(c.conkey) WITH ORDINALITY k(attnum, ord)
+              JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum) = ARRAY['id'];
+    IF n <> 1 THEN RAISE EXCEPTION '0159: princely_errands: Primärschlüssel princely_errands_pkey auf (id) fehlt oder weicht ab'; END IF;
+    -- CHECK princely_errands_errand_check: nur die Spalte errand, erlaubt genau gardener und groom
+    SELECT count(*) INTO n FROM pg_constraint c WHERE c.conrelid = 'public.princely_errands'::regclass AND c.contype = 'c'
+       AND c.conname = 'princely_errands_errand_check';
+    IF n <> 1 THEN RAISE EXCEPTION '0159: princely_errands: CHECK-Constraint princely_errands_errand_check fehlt'; END IF;
+    SELECT c.convalidated AS ok, pg_get_constraintdef(c.oid) AS def,
+           (SELECT array_agg(a.attname::text ORDER BY a.attname) FROM unnest(c.conkey) k JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k) AS cols,
+           (SELECT array_agg(m[1] ORDER BY m[1]) FROM regexp_matches(pg_get_constraintdef(c.oid), '''([^'']*)''', 'g') m) AS vals
+      INTO r FROM pg_constraint c WHERE c.conrelid = 'public.princely_errands'::regclass AND c.conname = 'princely_errands_errand_check';
+    IF NOT r.ok THEN RAISE EXCEPTION '0159: princely_errands_errand_check ist NOT VALID'; END IF;
+    IF r.cols IS DISTINCT FROM ARRAY['errand'] OR r.vals IS DISTINCT FROM ARRAY['gardener', 'groom']
+       OR (r.def !~ '^CHECK \(\(errand = ANY \(ARRAY\[''(gardener|groom)''::text, ''(gardener|groom)''::text\]\)\)\)$'
+           AND r.def !~ '^CHECK \(\(\(errand = ''(gardener|groom)''::text\) OR \(errand = ''(gardener|groom)''::text\)\)\)$') THEN
+      RAISE EXCEPTION '0159: princely_errands_errand_check weicht ab (erwartet: errand nur gardener oder groom): %', r.def;
+    END IF;
+    -- UNIQUE princely_errands_task_id_errand_key auf (task_id, errand), ohne NULLS NOT DISTINCT, nicht aufschiebbar
+    SELECT count(*) INTO n FROM pg_constraint c WHERE c.conrelid = 'public.princely_errands'::regclass AND c.contype = 'u'
+       AND c.conname = 'princely_errands_task_id_errand_key';
+    IF n <> 1 THEN RAISE EXCEPTION '0159: princely_errands: UNIQUE-Constraint princely_errands_task_id_errand_key fehlt'; END IF;
+    SELECT count(*) INTO n FROM pg_constraint c JOIN pg_index i ON i.indexrelid = c.conindid
+     WHERE c.conrelid = 'public.princely_errands'::regclass AND c.conname = 'princely_errands_task_id_errand_key'
+       AND c.convalidated AND NOT c.condeferrable AND i.indisvalid AND i.indisunique AND i.indpred IS NULL
+       AND (SELECT array_agg(a.attname::text ORDER BY k.ord) FROM unnest(c.conkey) WITH ORDINALITY k(attnum, ord)
+              JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum) = ARRAY['task_id', 'errand'];
+    IF n <> 1 THEN RAISE EXCEPTION '0159: princely_errands_task_id_errand_key weicht ab (erwartet: UNIQUE (task_id, errand), gültig)'; END IF;
     FOR r IN SELECT c.conname, pg_get_constraintdef(c.oid) AS def FROM pg_constraint c WHERE c.conrelid = 'public.princely_errands'::regclass AND c.contype = 'f' LOOP
       IF NOT ((r.conname = 'princely_errands_seed_id_fkey' AND r.def = 'FOREIGN KEY (seed_id) REFERENCES seeds(id) ON DELETE CASCADE')
            OR (r.conname = 'princely_errands_task_id_fkey' AND r.def = 'FOREIGN KEY (task_id) REFERENCES princely_tasks(id) ON DELETE CASCADE')) THEN
@@ -313,14 +344,17 @@ DO $$
 DECLARE n bigint;
 BEGIN
   IF to_regclass('public.princely_errands') IS NULL THEN
-    -- Nur wo die Tabelle fehlt (lokale/neue Datenbanken). Spalten wie in den generierten Typen der Live-Datenbank;
+    -- Nur wo die Tabelle fehlt (lokale/neue Datenbanken). Spalten wie in den generierten Typen der Live-Datenbank,
+    -- Constraints wie live bestätigt (princely_errands_pkey, _errand_check, _task_id_errand_key);
     -- Lesen nur für den Eigentümer des Dorfes („owner-only rows“), geschrieben wird über die Funktion princely_errand.
     CREATE TABLE public.princely_errands (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       seed_id uuid NOT NULL,
       task_id uuid NOT NULL,
       errand text NOT NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
+      created_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT princely_errands_errand_check CHECK (errand = ANY (ARRAY['gardener'::text, 'groom'::text])),
+      CONSTRAINT princely_errands_task_id_errand_key UNIQUE (task_id, errand)
     );
     ALTER TABLE public.princely_errands ENABLE ROW LEVEL SECURITY;
     CREATE POLICY "Owners see their errands" ON public.princely_errands FOR SELECT TO authenticated
@@ -365,6 +399,9 @@ BEGIN
   END LOOP;
   IF NOT pg_temp.m0159_check_fk('public.princely_errands', 'task_id', 'princely_errands_task_id_fkey', 'princely_tasks', 'id', 'c', 'c') THEN
     RAISE EXCEPTION '0159: princely_errands_task_id_fkey nicht im Zielzustand'; END IF;
+  IF (SELECT count(*) FROM pg_constraint c WHERE c.conrelid = 'public.princely_errands'::regclass AND c.convalidated
+        AND c.conname IN ('princely_errands_pkey', 'princely_errands_errand_check', 'princely_errands_task_id_errand_key')) <> 3 THEN
+    RAISE EXCEPTION '0159: princely_errands: die drei Constraints (pkey, errand_check, task_id_errand_key) sind nicht vollständig'; END IF;
   FOR r IN SELECT * FROM (VALUES ('public.abandon_village(uuid)'), ('public.purge_user_data(uuid)')) v(fn) LOOP
     def := pg_get_functiondef(r.fn::regprocedure);
     IF def ~ 'village_visits\s+WHERE[^;]*visited_seed' OR def ~ 'twin_works\s+WHERE[^;]*partner_id'

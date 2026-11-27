@@ -339,7 +339,7 @@ d("0159 Finanzintegrität und Schema-Drift (vollständiges Schema, echtes Postgr
     // a reference to a village that does not exist is refused
     const gc = await gift(sql, c, v);
     expect(await err(sql`update public.gifts set to_seed = ${uid()} where id = ${gc}`)).toMatch(/violates foreign key constraint "gifts_to_seed_fkey"/);
-    expect(await err(sql`insert into public.princely_errands (seed_id, task_id, errand) values (${c.id}, ${uid()}, 'x')`)).toMatch(/violates foreign key constraint "princely_errands_task_id_fkey"/);
+    expect(await err(sql`insert into public.princely_errands (seed_id, task_id, errand) values (${c.id}, ${uid()}, 'groom')`)).toMatch(/violates foreign key constraint "princely_errands_task_id_fkey"/);
     expect(await err(sql`update public.village_visits set visited_seed = ${uid()} where id = ${v2}`)).toMatch(/violates foreign key constraint "village_visits_visited_seed_fkey"/);
     expect(await err(sql`update public.village_visits set visitor_seed = null where id = ${v2}`)).toMatch(/null value in column "visitor_seed"/);
     expect(await err(sql`update public.twin_works set seed_id = null where id = ${w}`)).toMatch(/null value in column "seed_id"/);
@@ -347,8 +347,54 @@ d("0159 Finanzintegrität und Schema-Drift (vollständiges Schema, echtes Postgr
 
   // ================= F8: princely_errands =================
   describe("F8 princely_errands", () => {
-    const liveTable = `create table public.princely_errands (id uuid primary key default gen_random_uuid(), seed_id uuid not null, task_id uuid not null,
-      errand text not null, created_at timestamptz not null default now()); alter table public.princely_errands enable row level security;`;
+    /** The table as confirmed in production: primary key, errand check, unique (task_id, errand) — and no foreign keys. */
+    const liveCols = (nn: string) => `create table public.princely_errands (id uuid primary key default gen_random_uuid(), seed_id uuid${nn}, task_id uuid${nn},
+      errand text not null, created_at timestamptz not null default now(),
+      constraint princely_errands_errand_check check (errand in ('gardener', 'groom')),
+      constraint princely_errands_task_id_errand_key unique (task_id, errand));`;
+    const liveTable = liveCols(" not null") + ` alter table public.princely_errands enable row level security;`;
+    it("F8 Tabelle fehlt vor der Migration (Neuinstallation): Constraints wie in Produktion — nur gardener/groom, (task_id, errand) eindeutig, ON CONFLICT DO NOTHING trägt", async () => {
+      const s = await fresh("errands_new");
+      try {
+        expect((await s`select to_regclass('public.princely_errands') r`)[0]!["r"]).toBeNull();
+        expect(await err(apply(s))).toBe("ok");
+        const cons = await s`select conname, contype, pg_get_constraintdef(oid) def, convalidated ok from pg_constraint where conrelid = 'public.princely_errands'::regclass order by conname`;
+        expect(cons.map((c) => `${c["conname"]} [${c["contype"]}${c["ok"] ? "" : ", NOT VALID"}]: ${c["def"]}`)).toEqual([
+          "princely_errands_errand_check [c]: CHECK ((errand = ANY (ARRAY['gardener'::text, 'groom'::text])))",
+          "princely_errands_pkey [p]: PRIMARY KEY (id)",
+          "princely_errands_seed_id_fkey [f]: FOREIGN KEY (seed_id) REFERENCES seeds(id) ON DELETE CASCADE",
+          "princely_errands_task_id_errand_key [u]: UNIQUE (task_id, errand)",
+          "princely_errands_task_id_fkey [f]: FOREIGN KEY (task_id) REFERENCES princely_tasks(id) ON DELETE CASCADE",
+        ]);
+        const a = await village(s), ta = await task(s, a, 1, false), ta2 = await task(s, a, 2, false);
+        const ins = (t: string, e: string | null) => err(s`insert into public.princely_errands (seed_id, task_id, errand) values (${a.id}, ${t}, ${e})`);
+        // only the two errands of the estate are allowed
+        expect(await ins(ta, "gardener")).toBe("ok");
+        expect(await ins(ta, "groom")).toBe("ok");
+        for (const bad of ["cook", "Gardener", "groom ", ""]) expect(await ins(ta, bad), JSON.stringify(bad)).toMatch(/violates check constraint "princely_errands_errand_check"/);
+        expect(await ins(ta, null)).toMatch(/null value in column "errand"/);
+        // the same errand for the same task cannot be stored twice; the same errand for another task can
+        expect(await ins(ta, "gardener")).toMatch(/duplicate key value violates unique constraint "princely_errands_task_id_errand_key"/);
+        expect(await ins(ta2, "gardener")).toBe("ok");
+        expect(await count(s, "public.princely_errands where task_id = $1", [ta])).toBe(2);
+        // ON CONFLICT (task_id, errand) DO NOTHING — the statement form princely_errand relies on — needs exactly this
+        // unique constraint as its arbiter: a repeated errand is a no-op, a new one is inserted
+        const upsert = (t: string, e: string) => s`insert into public.princely_errands (seed_id, task_id, errand) values (${a.id}, ${t}, ${e})
+          on conflict (task_id, errand) do nothing returning id`;
+        expect((await upsert(ta, "gardener")).length).toBe(0);
+        expect((await upsert(ta2, "groom")).length).toBe(1);
+        expect((await upsert(ta2, "groom")).length).toBe(0);
+        // the bare form (no conflict target) works too, and neither form hides a check violation
+        expect((await s`insert into public.princely_errands (seed_id, task_id, errand) values (${a.id}, ${ta}, 'groom') on conflict do nothing returning id`).length).toBe(0);
+        expect(await err(s`insert into public.princely_errands (seed_id, task_id, errand) values (${a.id}, ${ta}, 'cook') on conflict (task_id, errand) do nothing`))
+          .toMatch(/violates check constraint "princely_errands_errand_check"/);
+        expect(await count(s, "public.princely_errands where seed_id = $1", [a.id])).toBe(4);
+        // the count the decree uses (distinct errands of the task) is therefore exact
+        expect(await count(s, "(select distinct errand from public.princely_errands where task_id = $1) q", [ta])).toBe(2);
+        // a second run of the migration accepts the table it created
+        expect(await err(apply(s))).toBe("ok");
+      } finally { await s.end(); }
+    });
     it("F8 Tabelle fehlt (Repo-Stand): wird mit beiden Fremdschlüsseln, RLS und Leserecht nur für den Eigentümer angelegt", async () => {
       const cols = await sql`select column_name c, data_type t, is_nullable nn from information_schema.columns where table_schema = 'public' and table_name = 'princely_errands' order by ordinal_position`;
       expect(cols.map((c) => `${c["c"]} ${c["t"]} ${c["nn"]}`)).toEqual(["id uuid NO", "seed_id uuid NO", "task_id uuid NO", "errand text NO", "created_at timestamp with time zone NO"]);
@@ -382,30 +428,50 @@ d("0159 Finanzintegrität und Schema-Drift (vollständiges Schema, echtes Postgr
         expect(await count(s, "public.princely_errands where id = $1", [good1])).toBe(0);
       } finally { await s.end(); }
     });
+    it("F8 gleichwertige Schreibweise des CHECK (errand = 'gardener' OR errand = 'groom') wird akzeptiert", async () => {
+      const s = await fresh("errands_or");
+      try {
+        await s.unsafe(liveTable + `alter table public.princely_errands drop constraint princely_errands_errand_check;
+          alter table public.princely_errands add constraint princely_errands_errand_check check (errand = 'groom' or errand = 'gardener');`);
+        expect(await err(apply(s))).toBe("ok");
+      } finally { await s.end(); }
+    });
     it("F8 nullbare Spalten wie bei einer älteren Live-Tabelle: Zeilen ohne Dorf (NULL) werden entfernt; die Spalten sind danach NOT NULL", async () => {
       const s = await fresh("errands_null");
       try {
-        await s.unsafe(`create table public.princely_errands (id uuid primary key default gen_random_uuid(), seed_id uuid, task_id uuid, errand text not null, created_at timestamptz not null default now())`);
+        await s.unsafe(liveCols(""));
         const a = await village(s), ta = await task(s, a, 1, false);
         const good = await errand(s, a, ta, "gardener");
-        await s`insert into public.princely_errands (seed_id, task_id, errand) values (null, null, 'x'), (null, ${ta}, 'y'), (${uid()}, null, 'z')`;
+        await s`insert into public.princely_errands (seed_id, task_id, errand) values (null, null, 'gardener'), (null, ${ta}, 'groom'), (${uid()}, null, 'groom')`;
         expect(await err(apply(s))).toBe("ok");
         expect((await s`select id from public.princely_errands`).map((r) => r["id"])).toEqual([good]);
         expect(await count(s, "pg_attribute where attrelid = 'public.princely_errands'::regclass and attname in ('seed_id', 'task_id') and attnotnull")).toBe(2);
       } finally { await s.end(); }
     });
     it.each([
-      ["Dorf vorhanden, Auftrag fehlt", (a: V) => `insert into public.princely_errands (seed_id, task_id, errand) values ('${a.id}', gen_random_uuid(), 'x')`, /1 Zeilen eines bestehenden Dorfes ohne zugehörigen Auftrag/],
-      ["Dorf vorhanden, Auftrag NULL", (a: V) => `alter table public.princely_errands alter column task_id drop not null; insert into public.princely_errands (seed_id, task_id, errand) values ('${a.id}', null, 'x')`, /1 Zeilen eines bestehenden Dorfes ohne zugehörigen Auftrag/],
-      ["Auftrag gehört einem anderen Dorf", (a: V, tOther: string) => `insert into public.princely_errands (seed_id, task_id, errand) values ('${a.id}', '${tOther}', 'x')`, /1 Zeilen, deren Auftrag einem anderen Dorf gehört/],
+      ["Dorf vorhanden, Auftrag fehlt", (a: V) => `insert into public.princely_errands (seed_id, task_id, errand) values ('${a.id}', gen_random_uuid(), 'groom')`, /1 Zeilen eines bestehenden Dorfes ohne zugehörigen Auftrag/],
+      ["Dorf vorhanden, Auftrag NULL", (a: V) => `alter table public.princely_errands alter column task_id drop not null; insert into public.princely_errands (seed_id, task_id, errand) values ('${a.id}', null, 'groom')`, /1 Zeilen eines bestehenden Dorfes ohne zugehörigen Auftrag/],
+      ["Auftrag gehört einem anderen Dorf", (a: V, tOther: string) => `insert into public.princely_errands (seed_id, task_id, errand) values ('${a.id}', '${tOther}', 'groom')`, /1 Zeilen, deren Auftrag einem anderen Dorf gehört/],
       ["unerwarteter Fremdschlüssel", () => `alter table public.princely_errands add constraint pe_fk foreign key (seed_id) references public.seeds(id) not valid`, /unerwarteter Fremdschlüssel pe_fk auf princely_errands/],
       ["falscher Spaltentyp", () => `alter table public.princely_errands alter column task_id type text`, /princely_errands\.task_id ist text statt uuid/],
+      ["CHECK auf errand fehlt", () => `alter table public.princely_errands drop constraint princely_errands_errand_check`, /CHECK-Constraint princely_errands_errand_check fehlt/],
+      ["CHECK erlaubt andere Werte", () => `alter table public.princely_errands drop constraint princely_errands_errand_check; alter table public.princely_errands add constraint princely_errands_errand_check check (errand in ('gardener', 'groom', 'cook'))`, /princely_errands_errand_check weicht ab/],
+      ["CHECK verbietet statt erlaubt", () => `alter table public.princely_errands drop constraint princely_errands_errand_check; alter table public.princely_errands add constraint princely_errands_errand_check check (not (errand in ('gardener', 'groom')) or true)`, /princely_errands_errand_check weicht ab/],
+      ["CHECK mit weiterer Bedingung", () => `alter table public.princely_errands drop constraint princely_errands_errand_check; alter table public.princely_errands add constraint princely_errands_errand_check check (errand in ('gardener', 'groom') and seed_id is not null)`, /princely_errands_errand_check weicht ab/],
+      ["CHECK NOT VALID", () => `alter table public.princely_errands drop constraint princely_errands_errand_check; alter table public.princely_errands add constraint princely_errands_errand_check check (errand in ('gardener', 'groom')) not valid`, /princely_errands_errand_check ist NOT VALID/],
+      ["CHECK unter anderem Namen", () => `alter table public.princely_errands rename constraint princely_errands_errand_check to pe_check`, /CHECK-Constraint princely_errands_errand_check fehlt/],
+      ["UNIQUE (task_id, errand) fehlt", () => `alter table public.princely_errands drop constraint princely_errands_task_id_errand_key`, /UNIQUE-Constraint princely_errands_task_id_errand_key fehlt/],
+      ["UNIQUE auf anderen Spalten", () => `alter table public.princely_errands drop constraint princely_errands_task_id_errand_key; alter table public.princely_errands add constraint princely_errands_task_id_errand_key unique (seed_id, errand)`, /princely_errands_task_id_errand_key weicht ab/],
+      ["UNIQUE in anderer Spaltenreihenfolge", () => `alter table public.princely_errands drop constraint princely_errands_task_id_errand_key; alter table public.princely_errands add constraint princely_errands_task_id_errand_key unique (errand, task_id)`, /princely_errands_task_id_errand_key weicht ab/],
+      ["nur ein eindeutiger Index statt des Constraints", () => `alter table public.princely_errands drop constraint princely_errands_task_id_errand_key; create unique index princely_errands_task_id_errand_key on public.princely_errands (task_id, errand)`, /UNIQUE-Constraint princely_errands_task_id_errand_key fehlt/],
+      ["Primärschlüssel fehlt", () => `alter table public.princely_errands drop constraint princely_errands_pkey`, /Primärschlüssel princely_errands_pkey auf \(id\) fehlt oder weicht ab/],
+      ["Primärschlüssel auf anderen Spalten", () => `alter table public.princely_errands drop constraint princely_errands_pkey; alter table public.princely_errands add constraint princely_errands_pkey primary key (id, errand)`, /Primärschlüssel princely_errands_pkey auf \(id\) fehlt oder weicht ab/],
     ] as const)("F8 unklarer Fall „%s“: Migration bricht ab, nichts ist geändert oder gelöscht", async (label, prep, message) => {
       const s = await fresh(`errands_x${++n}`);
       try {
         await s.unsafe(liveTable);
         const a = await village(s), b = await village(s), tb = await task(s, b, 1, false);
-        await errand(s, { id: uid(), owner: uid() }, uid(), "orphan");      // would be removed — must survive the abort
+        await errand(s, { id: uid(), owner: uid() }, uid(), "gardener");    // would be removed — must survive the abort
         await gift(s, a, b);
         await s.unsafe((prep as (a: V, t: string) => string)(a, tb));
         const c0 = await catalog(s), r0 = await rowsHash(s, ["princely_errands", "gifts"]);
