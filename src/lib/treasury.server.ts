@@ -188,7 +188,9 @@ export async function bookedReceipts(seedId: string): Promise<BookedReceipt[]> {
   return fetchPaged<BookedReceipt>("Wedding receipts", (c) => {
     let q = supabaseAdmin.from("wedding_receipts").select("wedding_index, occurred_at, dowry, is_grand, is_town, version, next_at").eq("seed_id", seedId);
     if (c) q = q.gt("wedding_index", c.wedding_index);
-    return q.order("wedding_index").limit(PAGE);
+    // Migration 0160 adds next_at; generated live-schema types may still describe 0158.
+    // Override only the result type, preserving database errors and the exact query.
+    return q.order("wedding_index").limit(PAGE).overrideTypes<BookedReceipt[], { merge: false }>();
   });
 }
 // wedding_quarantine and the two functions of migration 0160 are not in the generated client types yet
