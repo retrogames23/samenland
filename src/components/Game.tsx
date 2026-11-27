@@ -1,6 +1,7 @@
 import { remoteIsle } from "@/game/island";
 import { dropSeedId, withoutSeed, withoutKeys, LoadGate, applySign, mergeRows, onIds, snapRows, refreshMap } from "@/game/realtime";
 import { allIn, allPages, allEither } from "@/lib/fetch-all";
+import { readBodies, toFetch, bodyView, type BodyMiss } from "@/lib/letter-bodies";
 import { WalkStick } from "./WalkStick";
 import { maxZoom } from "@/game/camera";
 import { personHit } from "@/game/hit";
@@ -273,6 +274,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [letters, setLetters] = useState<LetterRow[]>([]);
   const [bodies, setBodies] = useState<Record<string, string>>({});
+  // per-letter state of a text not (yet) here: on the way, or the read failed (retry offered)
+  const [bodyMiss, setBodyMiss] = useState<Record<string, BodyMiss>>({});
+  const bodiesRef = useRef(bodies); bodiesRef.current = bodies;
+  const bodyMissRef = useRef(bodyMiss); bodyMissRef.current = bodyMiss;
   const [postTo, setPostTo] = useState<Seed | null>(null);
   const [profile, setProfile] = useState<Seed | null>(null);
   const [postText, setPostText] = useState("");
@@ -783,26 +788,43 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   // letter texts are only readable once signed in: on phones the session often arrives after the map load
   useEffect(() => {
     setBodies({});
+    setBodyMiss({});
   }, [userId]);
   useEffect(() => {
     if (!userId || !letters.length) return;
     let live = true;
     const epoch = rtGate.current.epochNow;
-    void mapRows<{ letter_id: string; body: string }>(
+    // never throws: a failed read leaves the texts missing, and the guestbook / messenger card fetch theirs again
+    void readBodies(
       letters.map((l) => l.id),
       (c) => supabase.from("letter_bodies").select("letter_id, body").in("letter_id", c),
-      "letter_id",
-    ).then((bs) => {
-      if (live && rtGate.current.isCurrent(epoch))
-        setBodies((old) => ({
-          ...old,
-          ...Object.fromEntries(bs.map((b) => [b.letter_id, b.body])),
-        }));
+    ).then(({ got }) => {
+      if (live && rtGate.current.isCurrent(epoch)) setBodies((old) => ({ ...old, ...got }));
     });
     return () => {
       live = false;
     };
   }, [userId, letters]);
+  /** Fetch the texts of the player's own letters on display (guestbook, messenger card) that are not here yet. */
+  const ensureBodies = useCallback((ids: string[], retry = false) => {
+    if (!userId) return;
+    const want = toFetch(ids, bodiesRef.current, bodyMissRef.current, retry);
+    if (!want.length) return;
+    setBodyMiss((m) => ({ ...m, ...Object.fromEntries(want.map((id) => [id, "loading" as const])) }));
+    void readBodies(want, (c) => supabase.from("letter_bodies").select("letter_id, body").in("letter_id", c)).then(({ got, failed }) => {
+      setBodies((b) => ({ ...b, ...got }));
+      setBodyMiss((m) => {
+        const n = { ...m };
+        for (const id of want) delete n[id];
+        for (const id of failed) n[id] = "failed";
+        return n;
+      });
+    });
+  }, [userId]);
+  const letterLine = (id: string) => {
+    const v = bodyView(id, bodies, bodyMiss);
+    return "text" in v ? `„${v.text}“` : v.state === "failed" ? t.post.unreadable : t.post.opening;
+  };
   useEffect(() => {
     if (!userId) return;
     // the account's last explicit language choice wins over browser detection
@@ -1008,8 +1030,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
         allEither<LetterRow>(ids, ["from_seed", "to_seed"], (col, c) => supabase.from("letters").select("id, from_seed, to_seed, created_at").gte("created_at", since).in(col, c)).then(async (ls) => {
           if (!live()) return;
           setLetters((o) => mergeRows(ls, o, (l) => keep(l.from_seed, l.to_seed)));
-          const bs = uid ? await mapRows<{ letter_id: string; body: string }>(ls.map((l) => l.id), (c) => supabase.from("letter_bodies").select("letter_id, body").in("letter_id", c), "letter_id") : [];
-          if (live()) setBodies((old) => ({ ...old, ...Object.fromEntries(bs.map((b) => [b.letter_id, b.body])) }));
+          const bs = uid ? (await readBodies(ls.map((l) => l.id), (c) => supabase.from("letter_bodies").select("letter_id, body").in("letter_id", c))).got : {};
+          if (live()) setBodies((old) => ({ ...old, ...bs }));
         }); }
       const ss = (a.data ?? []) as Seed[];
       const meId = uid ? ss.find((s) => s.user_id === uid)?.id ?? null : null;
@@ -2133,6 +2155,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     if (ev) { setLabTown(s); setFest((q) => [...q, ev].slice(-6)); }
   };
   const festNow = !anyOpen && !decision.open && !chronOpen ? fest[0] : undefined;
+  const festLetter = festNow?.code === "letter" ? festNow.id : null;
+  useEffect(() => { if (festLetter) ensureBodies([festLetter]); }, [festLetter, ensureBodies]);
   const festSeed = my ?? labTown ?? undefined;
   const festSounded = useRef<ChronEvent | null>(null), giftSounded = useRef<string | null>(null);
   useEffect(() => {
@@ -2152,7 +2176,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     if (e.code === "family") return [t.fest.newcomers[0], t.fest.newcomers[1](n)];
     if (e.code === "road") return [t.fest.road[0], t.fest.road[1](e.other)];
     if (e.code === "twin") return [t.fest.twin[0], t.fest.twin[1](e.other)];
-    if (e.code === "letter") return [t.post.arrived(e.other), bodies[e.id] ? `„${bodies[e.id]}“` : t.post.sealed];
+    if (e.code === "letter") return [t.post.arrived(e.other), letterLine(e.id)];
     if (e.code === "bought" && /^title[1-3]$/.test(e.item)) return [t.office.fest, t.office.festBody(my?.owner ?? n, itemName(e.item))];
     if (e.code === "stage") return [t.fest.stage[0], t.fest.stage[1](t.stages[e.stage] ?? "")];
     if (e.code === "built" && SEAT_KINDS.includes(e.kind)) { const p = t.fest.seat[SEAT_KINDS.indexOf(e.kind)]; if (p) return p; }
@@ -2349,7 +2373,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     if (!my) return;
     if (x != null && y != null) {
       const err = treeGuard(canPlaceSpecial, plantings)(item, x, y, my, seeds, clock());
-      if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore" | "road"]);
+      if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore" | "road" | "ring"]);
     }
     // instant feedback: sound, close placement and show the site right away; the server confirms or we roll back
     tap(); setPlacing(null);
@@ -2449,7 +2473,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const relocate = async (item: string, x: number, y: number) => {
     if (!my) return;
     const err = treeGuard(canMoveTo, plantings)(item, x, y, my, seeds, clock());
-    if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore" | "road"]);
+    if (err) return setMsg(t.place[err as "far" | "ground" | "taken" | "shore" | "road" | "ring"]);
     const block = moveBlock(my, item, clock());
     if (block) return setMsg(RELOCATE[lang][block]);
     tap(); setPlacing(null);
@@ -2541,10 +2565,11 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     return (
       <div className="mt-2 border-t border-border pt-2 text-xs">
         <div className="font-display text-sm text-foreground">{t.post.book}</div>
+        <EnsureBodies ids={got.map((g) => g.id)} ensure={ensureBodies} />
         {got.length === 0 ? <div className="text-muted-foreground">{t.post.empty}</div> : (
           <ul className="max-h-40 space-y-1 overflow-y-auto overflow-x-hidden">{got.map((g) => (
-            <li key={g.id}><button type="button" className="w-full rounded px-1 py-0.5 text-left hover:bg-accent" onClick={() => { setRollOpen(false); setTab(null); setFest((q) => [{ at: letterArrives(g.o, my, g.at), code: "letter", id: g.id, other: g.o.name }, ...q]); }}>
-              <span className="italic text-foreground">„{bodies[g.id] ?? t.post.sealed}“</span> <span className="text-muted-foreground">{t.post.from(g.o.name)}</span>
+            <li key={g.id}><button type="button" className="w-full rounded px-1 py-0.5 text-left hover:bg-accent" onClick={() => { if (bodyMiss[g.id] === "failed") return ensureBodies([g.id], true); setRollOpen(false); setTab(null); setFest((q) => [{ at: letterArrives(g.o, my, g.at), code: "letter", id: g.id, other: g.o.name }, ...q]); }}>
+              <span className="italic text-foreground">{letterLine(g.id)}</span> <span className="text-muted-foreground">{t.post.from(g.o.name)}</span>
             </button></li>
           ))}</ul>)}
       </div>
@@ -4300,6 +4325,12 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
 
 // The data API returns at most 1000 rows per request — page through growing tables so no claim is ever missed.
 const mapRows = allIn;
+/** Mounted with the guestbook: asks for the texts of the entries it lists (only those still missing). */
+function EnsureBodies({ ids, ensure }: { ids: string[]; ensure: (ids: string[]) => void }) {
+  const key = ids.join(",");
+  useEffect(() => { if (key) ensure(key.split(",")); }, [key, ensure]);
+  return null;
+}
 // startup timeline (P.3b.1): marks share the navigation origin; read via performance.getEntriesByType("mark")
 const perfMark = (n: string) => { try { performance.mark(`p3:${n}`); } catch { /* ignore */ } };
 const allRows = async <T = any,>(q: () => any, key = "id") => ({ data: await allPages<T>(q, key) }); // eslint-disable-line @typescript-eslint/no-explicit-any
