@@ -1,6 +1,7 @@
-import { Coins, Mountain, TreePine } from "lucide-react";
+import { Coins, Hourglass, Mountain, TreePine } from "lucide-react";
 import type { Lang } from "@/game/i18n";
 import { RESOURCE_T } from "@/game/lang/resources";
+import { SETTLEMENT_T } from "@/game/lang/settlement";
 import { RESOURCES, type KontorQuote, type ResourceOverview } from "@/game/resources";
 
 const ICON = { wood: TreePine, stone: Mountain } as const;
@@ -51,6 +52,11 @@ export function ResourceBar({
           </span>
         );
       })}
+      {res.pending && (
+        <span className="flex items-center text-muted-foreground" title={SETTLEMENT_T[lang].resources} data-resources-pending>
+          <Hourglass aria-label={SETTLEMENT_T[lang].resources} className="h-3.5 w-3.5 md:h-4 md:w-4" />
+        </span>
+      )}
       {fresh && ak && (
         <span
           className="flex items-center gap-0.5 text-primary"

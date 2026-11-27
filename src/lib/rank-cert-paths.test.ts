@@ -22,7 +22,8 @@ const tables: Record<string, unknown[]> = {
 };
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
-    rpc: () => Promise.resolve({ data: null, error: null }),
+    // Hochzeitspaket: the treasury sync first asks the database for the wedding switch (fails closed otherwise)
+    rpc: (fn: string) => Promise.resolve({ data: fn === "wedding_switch_since" ? "2100-01-04T00:00:00+00:00" : null, error: null }),
     from: (table: string) => {
       const q: Record<string, unknown> = {};
       for (const k of ["select", "eq", "in", "gt", "gte", "or", "order", "limit"]) q[k] = () => q;

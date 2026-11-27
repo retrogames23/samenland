@@ -72,6 +72,13 @@ export async function acceptRatsbuch(
     .maybeSingle();
   if (qe) throw new Error("Ratsbuch read failed");
   if (!req || !isKind(req.kind)) return { ok: false, code: "already" };
+  // Paket B (O2): an accepted request can cost money (the paid growth answers, encounter_guard price) — the weddings are
+  // booked with their completeness proof first. If that cannot be reached, the guard still judges the price against the
+  // booked lower bound and answers 'wedding settlement pending' (guardCode → "pending"); its statement then stores
+  // nothing — no encounter, no closed request (ratsbuch_close is an AFTER trigger), no refreshed request.
+  const { settleBeforeSpendById } = await import("./treasury.server");
+  const problem = await settleBeforeSpendById(seedId, Date.now()).catch((e: unknown) => e);
+  if (problem) console.error("Ratsbuch: wedding settlement not complete", seedId, problem instanceof Error ? problem.message : problem);
   const { data, error } = await supabaseAdmin
     .from("encounters")
     .insert({ seed_id: seedId, user_id: userId, event: req.kind, choice, request_id: requestId })

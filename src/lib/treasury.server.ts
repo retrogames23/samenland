@@ -2,8 +2,10 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { economyWorldAt, type EconomyWorld } from "@/game/economy-world";
 import { residentTax } from "@/game/resident-tax";
 import type { Seed } from "@/game/world";
-import { weddingReceiptRows, receiptsComplete } from "@/game/wedding-receipts";
+import { planReceipts, type AnchorAudit, type BookedReceipt, type QuarantineReason, type WeddingClass, type WeddingReceiptRow } from "@/game/wedding-receipts";
 import type { Realm } from "@/game/time";
+import { weddingSwitchSince, type WeddingAnchor } from "@/game/weddings";
+import { isSettlementPending } from "./settlement-pending";
 
 const DAY = 86400000;
 /** Days simulated per request; kept small so a full map stays inside the worker CPU budget. */
@@ -91,52 +93,296 @@ export async function bookedDays(id: string, first: number): Promise<{ has(d: nu
   return new Set(all.map(r => r.day));
 }
 
-/** Rows per upsert request; far below the Data API cap. */
+/** Rows per booking call; far below the Data API cap. Each call is one transaction (wedding_receipts_book). */
 const RECEIPT_CHUNK = 500;
+/** Paket A2: a village whose booked receipts cannot be continued reliably. Recorded once in wedding_quarantine
+ *  (append-only, released only by hand with a note); while it is active nothing is booked for the village. */
+export type WeddingQuarantine = {
+  reason: QuarantineReason | "verify_failed";
+  indices: number[];
+  /** detected_at of the stored record (null when not recorded: dry run or the record failed) */
+  since: string | null;
+  recorded: boolean;
+};
+export type WeddingSettlement = {
+  /** Paket A2 classification of the booked receipts (null: not read because of a switch mismatch or a quarantine) */
+  kind: WeddingClass | null;
+  /** the last booked unified-rule receipt the calendar continues from (null: no anchor yet) */
+  anchor: WeddingAnchor | null;
+  /** weddings known after this settlement: booked plus still to book */
+  computed: number;
+  booked: number;
+  /** rows still to book (after the highest booked index) */
+  missing: number;
+  inserted: number;
+  /** every divergent index; non-empty means stop */
+  mismatches: number[];
+  audit: AnchorAudit;
+  quarantine: WeddingQuarantine | null;
+  /** TypeScript and database disagree on the switch instant and the earlier one has passed */
+  switchMismatch?: true;
+  /** stored state re-read and checked after writing */
+  verified: boolean;
+  /** Paket B (O1): the completeness proof (wedding_settlement) was written together with this settlement */
+  marked: boolean;
+};
+const NO_AUDIT: AnchorAudit = { missing: [], holes: [], changed: [], unexpected: [], unanchored: [], chain: [] };
+
+const switchCache = new Map<string, { at: number; value: number }>();
+/** Tests only: forget the cached database switch dates. */
+export const resetWeddingSwitchCache = () => switchCache.clear();
+/** DB wedding_switch_since(realm), cached for a minute per worker. Any error other than "function not there" fails. */
+async function dbWeddingSwitch(realm: string): Promise<number> {
+  const hit = switchCache.get(realm), now = Date.now();
+  if (hit && now - hit.at < 60_000) return hit.value;
+  const { data, error } = await supabaseAdmin.rpc("wedding_switch_since" as never, { _realm: realm } as never);
+  // Before migration 0160 the database computes every wedding with the legacy rule: a switch at infinity.
+  // Only PostgREST's "function not found" counts as that (PGRST202); every other error fails closed.
+  const missingFn = !!error && ((error as { code?: string }).code === "PGRST202" || /Could not find the function/i.test(error.message ?? ""));
+  if (error && !missingFn) throw new WeddingSettlementError("switch_unavailable", "Wedding switch unavailable");
+  if (!missingFn && data == null) throw new WeddingSettlementError("switch_unavailable", "Wedding switch unavailable");
+  const value = missingFn ? Infinity : Date.parse(data as unknown as string);
+  if (Number.isNaN(value)) throw new WeddingSettlementError("switch_unavailable", "Wedding switch unavailable");
+  switchCache.set(realm, { at: now, value });
+  return value;
+}
+
 /**
- * Freezes the village's wedding calendar (src/game/weddings.ts, the single source of truth) into
- * wedding_receipts. Idempotent: the (seed_id, wedding_index) key plus ignoreDuplicates means an existing
- * receipt is never rewritten and parallel settlements cannot double-book. SHADOW STAGE: nothing in the
- * database reads these rows yet; wedding_receipt_diff() compares them with the SQL calendar.
- * Returns the number of rows sent (0 when everything was already booked).
+ * The one switch check every path uses (treasury sync, wedding answer, settlement, sweep).
+ * `mismatch`: TypeScript and database name different switch instants AND the earlier of the two has been reached —
+ * from then on a wedding exists that one side computes with the new rule and the other with the old one. Before
+ * that instant every wedding that can exist is older than both dates, both sides compute it with the legacy rule,
+ * so nothing can be booked wrongly (this is also the state between publishing code and applying the migration).
  */
-export async function settleWeddings(seed: Seed, now: number): Promise<number> {
-  const rows = weddingReceiptRows(seed, now);
-  if (!rows.length) return 0;
-  const [top, booked] = await Promise.all([
-    supabaseAdmin.from("wedding_receipts").select("wedding_index").eq("seed_id", seed.id).order("wedding_index", { ascending: false }).limit(1).maybeSingle(),
-    supabaseAdmin.from("wedding_receipts").select("wedding_index", { count: "exact", head: true }).eq("seed_id", seed.id),
-  ]);
-  if (top.error || booked.error) throw new Error("Wedding receipts read failed");
-  // Exactly 0..n-1 present means nothing is missing; any hole is re-sent (key + ignoreDuplicates keep it safe).
-  if (receiptsComplete(booked.count ?? 0, top.data?.wedding_index ?? null, rows.length)) return 0;
-  for (let i = 0; i < rows.length; i += RECEIPT_CHUNK) {
-    const { error } = await supabaseAdmin.from("wedding_receipts").upsert(rows.slice(i, i + RECEIPT_CHUNK), { onConflict: "seed_id,wedding_index", ignoreDuplicates: true });
-    if (error) throw new Error("Wedding settlement failed");
+export type WeddingSwitchState = { ts: number; db: number; mismatch: boolean };
+export async function weddingSwitchState(realm: string, now: number): Promise<WeddingSwitchState> {
+  const ts = weddingSwitchSince(realm), db = await dbWeddingSwitch(realm);
+  return { ts, db, mismatch: ts !== db && Math.min(ts, db) <= now };
+}
+
+/** receipt_divergence: found now and not recorded (dry run); quarantined: recorded in wedding_quarantine;
+ *  booking_failed: the booking call failed for another reason (nothing half-written: each call is one transaction). */
+export type WeddingProblem = "switch_mismatch" | "switch_unavailable" | "receipt_divergence" | "quarantined" | "booking_failed";
+export class WeddingSettlementError extends Error {
+  constructor(readonly reason: WeddingProblem, message: string, readonly indices: number[] = []) {
+    super(message);
+    this.name = "WeddingSettlementError";
   }
-  return rows.length;
+}
+/** The one verdict on a settlement, shared by every caller: null = in order, otherwise the reason to stop. */
+export function weddingSettlementProblem(s: WeddingSettlement): WeddingSettlementError | null {
+  if (s.switchMismatch) return new WeddingSettlementError("switch_mismatch", "Wedding switch differs between server and database");
+  if (s.quarantine?.recorded) return new WeddingSettlementError("quarantined", "Wedding settlement quarantined", s.quarantine.indices);
+  if (s.quarantine || s.mismatches.length) return new WeddingSettlementError("receipt_divergence", "Wedding receipts disagree with the calendar", s.mismatches);
+  return null;
+}
+/** Fails closed for callers that must not continue (treasury sync before any write, wedding answer). */
+export async function assertWeddingSwitch(realm: string, now: number) {
+  const st = await weddingSwitchState(realm, now);
+  if (st.mismatch) throw new WeddingSettlementError("switch_mismatch", "Wedding switch differs between server and database");
+  return st;
+}
+
+/** Every stored receipt of a village with all compared fields and its anchor (index order, paged). */
+export async function bookedReceipts(seedId: string): Promise<BookedReceipt[]> {
+  return fetchPaged<BookedReceipt>("Wedding receipts", (c) => {
+    let q = supabaseAdmin.from("wedding_receipts").select("wedding_index, occurred_at, dowry, is_grand, is_town, version, next_at").eq("seed_id", seedId);
+    if (c) q = q.gt("wedding_index", c.wedding_index);
+    return q.order("wedding_index").limit(PAGE);
+  });
+}
+// wedding_quarantine and the two functions of migration 0160 are not in the generated client types yet
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const untyped = supabaseAdmin as any;
+/** The active quarantine of a village (released_at IS NULL), or null. A read error fails closed. */
+export async function activeQuarantine(seedId: string): Promise<WeddingQuarantine | null> {
+  const { data, error } = await untyped.from("wedding_quarantine").select("reason, indices, detected_at").eq("seed_id", seedId).is("released_at", null).maybeSingle();
+  if (error) throw new WeddingSettlementError("booking_failed", "Wedding quarantine unavailable");
+  return data ? { reason: data.reason, indices: data.indices ?? [], since: data.detected_at ?? null, recorded: true } : null;
+}
+/** Records the quarantine (idempotent in the database: an active record is kept as it is). */
+async function recordQuarantine(seedId: string, reason: WeddingQuarantine["reason"], indices: number[], audit: AnchorAudit): Promise<WeddingQuarantine> {
+  const details = { holes: audit.holes, changed: audit.changed, unexpected: audit.unexpected, unanchored: audit.unanchored, chain: audit.chain };
+  const { error } = await untyped.rpc("wedding_quarantine_set", { _seed: seedId, _reason: reason, _indices: indices, _details: details });
+  if (error) { console.error("Wedding quarantine not recorded", seedId, reason, error.message); return { reason, indices, since: null, recorded: false }; }
+  return (await activeQuarantine(seedId)) ?? { reason, indices, since: null, recorded: false };
+}
+type BookOutcome = { ok: true; inserted: number; marked: boolean } | "conflict" | "quarantined";
+/** One atomic booking call: receipt rows and their anchors (next_at) together or not at all. With `through` (Paket B)
+ *  it is wedding_settle: the same booking plus the completeness proof up to `through`, in the same transaction. */
+async function bookRows(seedId: string, rows: WeddingReceiptRow[], through: number | null): Promise<BookOutcome> {
+  const body = rows.map(({ seed_id: _s, ...r }) => r);
+  const { data, error } = through == null
+    ? await untyped.rpc("wedding_receipts_book", { _seed: seedId, _rows: body })
+    : await untyped.rpc("wedding_settle", { _seed: seedId, _rows: body, _through: new Date(through).toISOString() });
+  if (!error) return { ok: true, inserted: Number(data?.inserted ?? 0), marked: data?.marked === true };
+  const m: string = error.message ?? "";
+  if (m.includes("quarantined")) return "quarantined";
+  // a concurrent settlement booked first: its rows differ or the chain moved on — re-read, never overwrite
+  if (m.includes("wedding receipt conflict") || m.includes("anchor chain") || m.includes("index gap") || m.includes("duplicate key")) return "conflict";
+  throw new WeddingSettlementError("booking_failed", "Wedding settlement failed");
+}
+/**
+ * Paket A2 (Anker-Fortsetzung): books the village's weddings into wedding_receipts.
+ *  - switch mismatch (weddingSwitchState): nothing is read or written.
+ *  - an active quarantine: nothing is read or written; every caller stops (weddingSettlementProblem).
+ *  - every booked receipt is read and checked (planReceipts): the stable legacy part field by field, the unified part
+ *    as a chain (next_at of each receipt = instant of the next). A receipt that does not fit is never repaired:
+ *    the village is quarantined (recorded only when applying) and nothing is written.
+ *  - what is still to book continues from the anchor (the last booked unified-rule receipt) — or, before the first
+ *    one, from the reference calendar. Booked weddings are never recomputed, so later purchases cannot move them.
+ *  - booking goes through wedding_receipts_book: one transaction per call, per-village lock, identical repeats are
+ *    no-ops, a differing row is refused. On a conflict (a parallel settlement was first) the receipts are re-read and
+ *    planned again once; the winner's rows are kept as booked.
+ *  - afterwards the stored state is read again and checked.
+ * `apply: false` only reports (dry run).
+ */
+export async function settleWeddings(seed: Seed, now: number, opts: { apply?: boolean } = {}): Promise<WeddingSettlement> {
+  const apply = opts.apply ?? true;
+  const empty = { kind: null, anchor: null, computed: 0, booked: 0, missing: 0, inserted: 0, audit: NO_AUDIT, verified: false, marked: false } as const;
+  const sw = await weddingSwitchState(seed.realm ?? "", now);
+  if (sw.mismatch) return { ...empty, mismatches: [], quarantine: null, switchMismatch: true };
+  const held = await activeQuarantine(seed.id);
+  if (held) return { ...empty, mismatches: held.indices, quarantine: held };
+  // dates differ but neither has been reached: every row is older than both (filter kept as a second fence)
+  const fence = Math.min(sw.ts, sw.db);
+  const fenced = (rows: WeddingReceiptRow[]) => rows.filter((r) => sw.ts === sw.db || Date.parse(r.occurred_at) < fence);
+  const before = await bookedReceipts(seed.id);
+  let plan = planReceipts(seed, before, now);
+  const report = (booked: number, p: typeof plan, extra: Partial<WeddingSettlement> = {}): WeddingSettlement => {
+    const rows = fenced(p.rows);
+    return { kind: p.kind, anchor: p.anchor, computed: booked + rows.length, booked, missing: rows.length, inserted: 0, mismatches: p.quarantine?.indices ?? [],
+      audit: { ...p.audit, missing: rows }, quarantine: null, verified: false, marked: false, ...extra };
+  };
+  const quarantine = async (booked: number, p: typeof plan, reason?: WeddingQuarantine["reason"]) => {
+    const r = reason ?? p.quarantine!.reason, idx = p.quarantine!.indices;
+    const q = apply ? await recordQuarantine(seed.id, r, idx, p.audit) : { reason: r, indices: idx, since: null, recorded: false };
+    return report(booked, p, { quarantine: q });
+  };
+  if (plan.quarantine) return quarantine(before.length, plan);
+  let rows = fenced(plan.rows);
+  if (!apply) return report(before.length, plan);
+  // Paket B (O1): the completeness proof is written with the last booking call — or alone when nothing is left to book.
+  // Only when TypeScript and database agree on the switch (otherwise every possible wedding is older than both dates
+  // and the database computes it itself).
+  const through = sw.ts === sw.db ? now : null;
+  if (!rows.length) {
+    if (through == null) return report(before.length, plan);
+    const o = await bookRows(seed.id, [], through);
+    if (o === "quarantined") { const q = await activeQuarantine(seed.id); return report(before.length, plan, { quarantine: q ?? { reason: "verify_failed", indices: [], since: null, recorded: false } }); }
+    return report(before.length, plan, { marked: typeof o === "object" && o.marked });
+  }
+  const planned = rows.length, kind = plan.kind;
+  let inserted = 0, marked = false;
+  for (let attempt = 0; ; attempt++) {
+    let outcome: BookOutcome = { ok: true, inserted: 0, marked: false };
+    for (let i = 0; i < rows.length && typeof outcome === "object"; i += RECEIPT_CHUNK) {
+      const last = i + RECEIPT_CHUNK >= rows.length;
+      outcome = await bookRows(seed.id, rows.slice(i, i + RECEIPT_CHUNK), last ? through : null);
+      if (typeof outcome === "object") { inserted += outcome.inserted; marked = outcome.marked; } // rows this settlement stored (a parallel one may store others)
+    }
+    if (typeof outcome === "object") break;
+    if (outcome === "quarantined") { const q = await activeQuarantine(seed.id); return report(before.length, plan, { quarantine: q ?? { reason: "verify_failed", indices: [], since: null, recorded: false } }); }
+    if (attempt >= 1) throw new WeddingSettlementError("booking_failed", "Wedding settlement conflict");
+    const now2 = await bookedReceipts(seed.id);
+    plan = planReceipts(seed, now2, now);
+    if (plan.quarantine) return quarantine(now2.length, plan);
+    rows = fenced(plan.rows);
+    if (!rows.length) {
+      // a parallel settlement booked everything: only the proof is left (idempotent)
+      if (through != null) { const o = await bookRows(seed.id, [], through); marked = typeof o === "object" && o.marked; }
+      break;
+    }
+  }
+  const after = await bookedReceipts(seed.id);
+  const check = planReceipts(seed, after, now);
+  if (check.quarantine) return { ...(await quarantine(after.length, check, "verify_failed")), kind, inserted, verified: true };
+  // `kind` is the classification found before booking, `anchor` the one after it; `missing` what this settlement found
+  // to book (what is left afterwards is in audit.missing); `inserted` what its own booking calls stored
+  return { ...report(after.length, check), kind, missing: planned, inserted, verified: true, marked };
+}
+
+/**
+ * Paket B (O2): the one order every money or resource action of the trusted server follows —
+ *   1. check the switch, 2. book the due weddings, 3. write the completeness proof (settleWeddings → wedding_settle),
+ *   4. only then the money or resource action; 5. on a problem (switch mismatch, quarantine, divergence) the caller stops
+ *   with a pending result and books nothing.
+ * Before the switch the database computes every wedding itself, so nothing needs booking for the action.
+ */
+export async function settleBeforeSpend(seed: Seed, now: number): Promise<WeddingSettlementError | null> {
+  const sw = await weddingSwitchState(seed.realm ?? "", now);
+  if (sw.mismatch) return new WeddingSettlementError("switch_mismatch", "Wedding switch differs between server and database");
+  if (now < Math.min(sw.ts, sw.db)) return null;
+  const { moves: _moves, ...plain } = seed as Seed & { moves?: unknown };
+  return weddingSettlementProblem(await settleWeddings(plain as Seed, now));
+}
+/**
+ * settleBeforeSpend for a caller that has only the village id (Ratsbuch). Before the switch nothing is booked and the
+ * realm is not loaded; from it the realm is loaded once, as in bookEncounter, and the weddings are settled first.
+ */
+export async function settleBeforeSpendById(id: string, now: number): Promise<WeddingSettlementError | null> {
+  const { data: row, error } = await supabaseAdmin.from("seeds").select("realm").eq("id", id).maybeSingle();
+  if (error || !row) throw new Error("Missing village");
+  const realm = row.realm as string;
+  const sw = await weddingSwitchState(realm, now);
+  if (sw.mismatch) return new WeddingSettlementError("switch_mismatch", "Wedding switch differs between server and database");
+  if (now < Math.min(sw.ts, sw.db)) return null;
+  const input = await loadEconomyInput(realm);
+  const { setRealm } = await import("@/game/time");
+  setRealm(realm as Realm);
+  const seed = economyWorldAt(input, now).find((s) => s.id === id);
+  if (!seed) throw new Error("Missing village");
+  return settleBeforeSpend(seed, now);
+}
+/** Kasse und Vollständigkeit aus einem Aufruf (DB village_balance_checked, 0162). */
+export async function checkedBalance(id: string): Promise<{ balance: number; settled: boolean }> {
+  const { data, error } = await untyped.rpc("village_balance_checked", { _seed: id });
+  if (error || data == null || typeof data.balance !== "number") throw new Error("Balance unavailable");
+  return { balance: data.balance, settled: data.settled === true };
+}
+/** Resource booking with an explicit result (DB resource_refresh_try, 0162); a failing call counts as not booked. */
+export async function refreshResources(id: string): Promise<"current" | "booked" | "inactive" | "pending" | "failed"> {
+  const { data, error } = await untyped.rpc("resource_refresh_try", { _seed: id, _today: new Date().toISOString().slice(0, 10) });
+  if (error || typeof data !== "string") return "failed";
+  return data as "current" | "booked" | "inactive" | "pending";
 }
 
 export async function calculateTreasury(id: string, realm: string) {
   const now = Date.now();
+  // Hochzeitspaket: fail closed before any read or write when server and database disagree on the wedding switch.
+  await assertWeddingSwitch(realm, now);
   const cut = await supabaseAdmin.from("tax_cutover").select("at").eq("singleton", true).maybeSingle();
   if (cut.error) throw new Error("Treasury read failed");
   if (!cut.data) {
-    const { data:balance, error } = await supabaseAdmin.rpc("village_balance", {_seed:id});
-    if (error || balance==null) throw new Error("Balance unavailable");
-    return { seed:id, balance, daily:0, population:0, earned:0, active:false, settled:true };
+    const b = await checkedBalance(id);
+    return { seed:id, balance:b.balance, daily:0, population:0, earned:0, active:false, settled:true, pending:!b.settled };
   }
-  // Gemeindebauten (P2, 0147): book the lazy material pull first, so a completion marker (spital1) that is already
-  // due exists before taxed days after it are assessed. Only where resources run; best effort — a failure only delays it.
-  const { resourcesSince } = await import("@/game/resources");
-  if (now >= resourcesSince(realm)) await supabaseAdmin.rpc("resource_refresh" as never, { _seed: id } as never).then(() => undefined, () => undefined);
+  const { setRealm } = await import("@/game/time");
   // one shared read of all simulation inputs (previously duplicated here)
-  const input = await loadEconomyInput(realm);
+  let input = await loadEconomyInput(realm);
+  // Lazy import avoids loading visual art; the realm is fixed for this synchronous calculation.
+  setRealm(realm as Realm);
+  // Paket B (O2), steps 1–3: the weddings first — booked and proven complete (settleWeddings → wedding_settle) before any
+  // resource or money booking reads the chest. Fail closed: a switch mismatch, a quarantine or a divergent receipt stops
+  // the sync with an error instead of returning a balance computed under an unknown rule state (weddingSettlementProblem,
+  // shared with the wedding answer, Nothilfe and the sweep). Calendar inputs are not touched by the resource booking
+  // below (Gemeindebau, Kontor and Ankauf rows; O1 release review T15), so this input is the right one.
+  {
+    const atNow = economyWorldAt(input, now).find(s => s.id === id);
+    if (!atNow) throw new Error("Missing village");
+    const problem = weddingSettlementProblem(await settleWeddings(atNow, now));
+    if (problem) { console.error("Wedding settlement stopped", id, problem.reason, problem.indices); throw problem; }
+  }
+  // Step 4: the lazy material pull (Gemeindebauten P2, 0147) with an explicit result (0162). A completion marker
+  // (spital1) it books must exist before taxed days after it are assessed, so the input is read again when it booked.
+  const { resourcesSince } = await import("@/game/resources");
+  let resources: Awaited<ReturnType<typeof refreshResources>> = "inactive";
+  if (now >= resourcesSince(realm)) {
+    resources = await refreshResources(id);
+    if (resources === "booked") { input = await loadEconomyInput(realm); setRealm(realm as Realm); }
+  }
   const target = input.seeds.find(s => s.id === id);
   if (!target) throw new Error("Missing village");
-  // Lazy import avoids loading visual art; the realm is fixed for this synchronous calculation.
-  const { setRealm } = await import("@/game/time");
-  setRealm(realm as Realm);
   const created = Date.parse(target.created_at), days = Math.max(0, Math.floor((now-created)/DAY));
   const first = cut.data ? Math.max(1, Math.ceil((Date.parse(cut.data.at)-created)/DAY)) : days+1;
   const recorded = await bookedDays(id, first);
@@ -155,10 +401,9 @@ export async function calculateTreasury(id: string, realm: string) {
   const currentSeeds = economyWorldAt(input, now), current = currentSeeds.find(s => s.id===id);
   setRealm(realm as Realm);
   const daily = current ? residentTax(current, currentSeeds, now) : null;
-  // Shadow stage: record wedding receipts, but never let this affect the balance or fail the sync.
-  if (current) { try { await settleWeddings(current, now); } catch (e) { console.error("Wedding receipts (shadow) failed", e); } }
-  const { data:balance, error:balanceError } = await supabaseAdmin.rpc("village_balance", {_seed:id});
-  if (balanceError || balance==null) throw new Error("Balance unavailable");
+  // Kasse und Vollständigkeit in einem Aufruf: `pending` tells the client that the wedding settlement (or the resource
+  // booking that waits for it) is still outstanding — never a lack of money.
+  const { balance, settled: weddingsSettled } = await checkedBalance(id);
   const { data:confirmed, error:confirmationError } = await supabaseAdmin.rpc("village_receipt_total", {_seed:id});
   if (confirmationError) throw new Error("Receipt verification failed");
   const completed = Number(confirmed ?? 0);
@@ -167,7 +412,8 @@ export async function calculateTreasury(id: string, realm: string) {
   const rec = await fetchPaged<{ day: number; income: number }>("Tax receipts", (c) => supabaseAdmin.from("tax_receipts").select("day, income").eq("seed_id", id).gte("day", c ? c.day + 1 : first).order("day").limit(PAGE));
   const receipts: Record<number, number> = {};
   for (const r of rec) receipts[r.day] = r.income;
-  return { seed:id, balance, daily:daily?.income ?? 0, population:daily?.population ?? 0, earned:completed, active:!!cut.data, settled, receipts };
+  return { seed:id, balance, daily:daily?.income ?? 0, population:daily?.population ?? 0, earned:completed, active:!!cut.data, settled, receipts,
+    pending: !weddingsSettled || resources === "pending" };
 }
 /** Books one Zimmerleute-Nothilfe after recomputing the event on the server; the DB guard checks price, rank, money and once-only. */
 export async function bookNothilfe(id: string, realm: string, userId: string, kind: "f" | "w", at: number) {
@@ -181,6 +427,11 @@ export async function bookNothilfe(id: string, realm: string, userId: string, ki
   if (!seed) throw new Error("Missing village");
   const item = nothilfeItem(kind, at);
   if ((seed.bought ?? []).some(b => b.item === item)) return { ok: false as const, code: "already" };
+  // Paket B (O2): weddings booked and proven complete before the money action (steps 1–3). If that cannot be reached
+  // (quarantine, divergence, a failed call), the database still judges the price against the booked lower bound and
+  // answers 'wedding settlement pending' when it does not cover it (step 5) — nothing is booked then.
+  const settleProblem = await settleBeforeSpend(seed, now).catch((e: unknown) => e);
+  if (settleProblem) console.error("Nothilfe: wedding settlement not complete", id, settleProblem instanceof Error ? settleProblem.message : settleProblem);
   const ruin = activeRuins(seed, now).find(r => r.kind === kind && Math.floor(r.at) === at);
   if (!ruin) return { ok: false as const, code: "noRuin" };
   const { seaWays } = await import("@/game/world");
@@ -190,7 +441,7 @@ export async function bookNothilfe(id: string, realm: string, userId: string, ki
   const { data, error } = await supabaseAdmin.from("purchases").insert({ seed_id: id, user_id: userId, item, x: null, y: null }).select("id, seed_id, item, cost, created_at, x, y").single();
   if (error || !data) {
     const m = error?.message ?? "";
-    return { ok: false as const, code: m.includes("not enough money") ? "poor" : m.includes("rank too low") ? "rank" : m.includes("already") || m.includes("duplicate") ? "already" : "fail" };
+    return { ok: false as const, code: isSettlementPending(m) ? "pending" : m.includes("not enough money") ? "poor" : m.includes("rank too low") ? "rank" : m.includes("already") || m.includes("duplicate") ? "already" : "fail" };
   }
   return { ok: true as const, row: data, left: ruin.left / 2 };
 }

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { certifyMySite } from "@/lib/resources.functions";
 import { resourcesSince, type ResourceOverview } from "@/game/resources";
 import { clock } from "@/game/time";
+import { CLIENT_PROTOCOL } from "@/lib/client-protocol";
 import type { Seed } from "@/game/world";
 
 /**
@@ -29,7 +30,8 @@ export function useResources(
       return null;
     }
     const id = my.id;
-    const { data, error } = await supabase.rpc("resource_overview", { _seed: id });
+    // Paket C: the versioned path (migration 0163); the old resource_overview refuses from 7 days before the switch
+    const { data, error } = await (supabase.rpc as unknown as (f: string, a: object) => PromiseLike<{ data: unknown; error: unknown }>)("resource_overview_v2", { _seed: id, _client: CLIENT_PROTOCOL });
     if (argsRef.current.my?.id !== id) return null;
     const next = error || !data ? null : (data as unknown as ResourceOverview);
     setRes(next);

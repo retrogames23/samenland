@@ -3,13 +3,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db: { tables: any; fail?: { table: string; from: number } | undefined; nullData?: string | undefined; ranges: string[]; onPage?: ((table: string, n: number) => void) | undefined } = { tables: {}, ranges: [] };
+const db: { calls: string[]; refresh: string; tables: any; fail?: { table: string; from: number } | undefined; nullData?: string | undefined; ranges: string[]; onPage?: ((table: string, n: number) => void) | undefined } = { calls: [], refresh: "current", tables: {}, ranges: [] };
 const cmp = (a: unknown, b: unknown) => String(a).localeCompare(String(b), undefined, { numeric: true });
 
 // Minimal PostgREST stand-in: eq/in/gte/gt/or(keyset) filters, multi-key order, limit pages, upsert with unique key.
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
-    rpc: (fn: string) => Promise.resolve({ data: fn === "village_balance" ? 0 : (db.tables.tax_receipts ?? []).reduce((a: number, r: Row) => a + (r.income as number), 0), error: null }),
+    // Hochzeitspaket: the treasury sync first asks the database for the wedding switch (fails closed otherwise)
+    // Paket B: the settlement proof (wedding_settle), the checked balance and the resource booking with its result
+    rpc: (fn: string) => (db.calls.push(`rpc:${fn}`), Promise.resolve({ data: fn === "wedding_switch_since" ? "2100-01-04T00:00:00+00:00" : fn === "village_balance" ? 0
+      : fn === "village_balance_checked" ? { balance: 0, settled: true } : fn === "resource_refresh_try" ? db.refresh : fn === "wedding_settle" ? { inserted: 0, already: 0, marked: false }
+      : (db.tables.tax_receipts ?? []).reduce((a: number, r: Row) => a + (r.income as number), 0), error: null })),
     from: (table: string) => {
       const filters: ((r: Row) => boolean)[] = [], orders: [string, boolean][] = [];
       let lim = Infinity, head = false;
@@ -36,6 +40,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
         eq: (k: string, v: unknown) => { filters.push(r => r[k] === v); return q; },
         in: (k: string, v: unknown[]) => { const s = new Set(v); filters.push(r => s.has(r[k])); return q; },
         gte: (k: string, v: number) => { filters.push(r => (r[k] as number) >= v); return q; },
+        is: (k: string, v: unknown) => { filters.push(r => (r[k] ?? null) === v); return q; }, // Paket A2: wedding_quarantine (released_at IS NULL)
         order: (k: string, o?: { ascending?: boolean }) => { orders.push([k, o?.ascending !== false]); return q; },
         limit: (n: number) => { lim = n; return q; },
         gt: (k: string, v: unknown) => { filters.push(r => cmp(r[k], v) > 0); return q; },
@@ -47,7 +52,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
           return q;
         },
         maybeSingle: () => { const d = run() as { data: Row[] | null; error: unknown }; return Promise.resolve({ data: table === "tax_cutover" ? (db.tables.tax_cutover ?? [])[0] ?? null : d.data?.[0] ?? null, error: d.error }); },
-        upsert: (ins: Row[]) => { const t = (db.tables[table] ??= []); for (const r of ins) if (!t.some((x: Row) => x.seed_id === r.seed_id && x.day === r.day)) t.push(r); return Promise.resolve({ error: null }); },
+        upsert: (ins: Row[]) => { db.calls.push(`upsert:${table}`); const t = (db.tables[table] ??= []); for (const r of ins) if (!t.some((x: Row) => x.seed_id === r.seed_id && x.day === r.day)) t.push(r); return Promise.resolve({ error: null }); },
         then: (res: (v: unknown) => void, rej?: (e: unknown) => void) => Promise.resolve(run()).then(res, rej),
       };
       return q;
@@ -59,7 +64,7 @@ vi.mock("@/game/resident-tax", () => ({ residentTax: () => ({ population: 1, hou
 vi.mock("@/game/economy-world", () => ({ economyWorldAt: (w: { seeds: unknown[] }) => w.seeds }));
 
 const empty = () => ({ seeds: [], purchases: [], blessings: [], charters: [], encounters: [], first_roads: [], twin_votes: [], twin_works: [], gifts: [], tax_receipts: [] }) as Record<string, Row[]>;
-beforeEach(() => { db.tables = empty(); db.fail = undefined; db.nullData = undefined; db.onPage = undefined; db.ranges = []; });
+beforeEach(() => { db.calls = []; db.refresh = "current"; db.tables = empty(); db.fail = undefined; db.nullData = undefined; db.onPage = undefined; db.ranges = []; });
 
 describe("treasury pagination", () => {
   it("loads building_moves only when asked (rank certification), never for tax", async () => {
@@ -122,6 +127,30 @@ describe("treasury pagination", () => {
     expect(days.length).toBe(1210);
     expect(new Set(days).size).toBe(1210);
     expect(days).toContain(1100);
+  });
+  it("Paket B (B1/B2/B12): the treasury sync books the weddings with their proof before the resource booking, the tax days and the balance read", async () => {
+    const { calculateTreasury } = await import("./treasury.server");
+    const created = Date.now() - 40 * 86400000;
+    db.tables.seeds = [{ id: "00000000-0000-0000-0000-00000000b0b0", user_id: "u", realm: "lab", x: 0, y: 0, created_at: new Date(created).toISOString() }];
+    db.tables.tax_cutover = [{ at: new Date(created).toISOString(), singleton: true }];
+    db.refresh = "booked";
+    const r = await calculateTreasury("00000000-0000-0000-0000-00000000b0b0", "lab");
+    const at = (k: string) => db.calls.indexOf(k);
+    expect(at("rpc:wedding_settle")).toBeGreaterThan(at("rpc:wedding_switch_since"));
+    expect(at("rpc:resource_refresh_try")).toBeGreaterThan(at("rpc:wedding_settle"));
+    expect(at("upsert:tax_receipts")).toBeGreaterThan(at("rpc:resource_refresh_try"));
+    expect(at("rpc:village_balance_checked")).toBeGreaterThan(at("upsert:tax_receipts"));
+    expect(db.calls).not.toContain("rpc:resource_refresh");                 // never the variant without a result
+    expect(db.ranges.filter((x) => x.startsWith("seeds")).length).toBe(2);   // the resource booking booked: input read again
+    expect(r).toMatchObject({ pending: false });
+  });
+  it("Paket B: a resource booking that waits for the weddings is reported as pending, never as missing money", async () => {
+    const { calculateTreasury } = await import("./treasury.server");
+    const created = Date.now() - 40 * 86400000;
+    db.tables.seeds = [{ id: "00000000-0000-0000-0000-00000000b0b1", user_id: "u", realm: "lab", x: 0, y: 0, created_at: new Date(created).toISOString() }];
+    db.tables.tax_cutover = [{ at: new Date(created).toISOString(), singleton: true }];
+    db.refresh = "pending";
+    expect(await calculateTreasury("00000000-0000-0000-0000-00000000b0b1", "lab")).toMatchObject({ pending: true });
   });
   it("data null without an error aborts instead of counting as an empty page", async () => {
     const { loadEconomyInput } = await import("./treasury.server");

@@ -11,9 +11,8 @@
  * Before the cut-over every count is exactly today's (Kräuterhütte, Heiler, Bibliothek). Buildings bought earlier count
  * from the cut-over on, so no past population, receipt or chronicle changes; the new rule never lowers a count.
  *
- * Deliberately NOT here: the wedding rhythm (weddings.ts wedStage) keeps its own count, because DB village_weddings
- * mirrors it exactly; it moves to gemeinwesenGate only in a separate package that changes TypeScript and SQL together
- * with a parity test.
+ * The wedding rhythm (weddings.ts wedHealth) uses gemeinwesenGate + careHealthExtra from weddingSwitchSince(realm)
+ * (Hochzeitspaket, migration 0160); before the switch it keeps its legacy count (herb hut + healer).
  */
 export const GEMEINWESEN = ["herbs", "healer", "library", "badestube", "beginen"] as const;
 /** Today's Gemeinwesen (care gate and capacity before the cut-over). */

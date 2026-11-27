@@ -52,6 +52,9 @@ import { scribeGreeting } from "@/lib/chronicle.functions";
 import { deleteAccount } from "@/lib/account.functions";
 import { certifyMyRank, callNothilfe } from "@/lib/treasury.functions";
 import { decideEncounter } from "@/lib/encounter.functions";
+import { retryOnPending, dbPending, codePending, isSettlementPending } from "@/lib/settlement-pending";
+import { SETTLEMENT_T } from "@/game/lang/settlement";
+import { CLIENT_PROTOCOL } from "@/lib/client-protocol";
 import { useTreasurySync } from "@/components/hooks/useTreasurySync";
 import { useResources } from "@/components/hooks/useResources";
 import { ResourceBar, MaterialLine } from "@/components/hud/ResourceBar";
@@ -1690,6 +1693,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   };
   const matQuote = (item: string) => quoteIn(res, item);
   const kontorOf = (item: string) => matQuote(item)?.cost ?? 0;
+  /** Paket B (O2): a pending refusal (wedding settlement outstanding) syncs once and retries the action at most once;
+   *  nothing else is ever retried here, so an action with an unknown outcome (timeout) is never sent twice. */
+  const syncSettlement = () => refreshAccounting();
+  const pendingMsg = () => SETTLEMENT_T[lang].pending;
   const prepareSpend = async () => {
     // always book outstanding daily tax first — right after load `accounting` is still unknown
     if (await refreshTreasury()) return true;
@@ -1751,14 +1758,16 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     // book outstanding tax first, but let the server guard judge the price — free choices must never be blocked here
     await refreshTreasury().catch(() => false);
     // the trusted server recomputes the open encounter and books the answer (M1: clients never insert encounters)
-    const r = await decideFn({ data: { seed: my.id, event, choice } }).catch(() => null);
+    // a thrown call (timeout, network) is never retried: its outcome is unknown; only a pending answer is
+    const r = await retryOnPending(() => decideFn({ data: { seed: my.id, event, choice, client: CLIENT_PROTOCOL } }).catch(() => null), codePending, syncSettlement);
     encSaving.current = false;
     if (!r || !r.ok) {
       // already answered elsewhere or the question changed: reload instead of leaving a stale question open
       { const ids = mapIds.current; refreshMap(rtGate.current, () => mapRows(ids, (c) => supabase.from("encounters").select("*").in("seed_id", c)) as Promise<EncRow[]>,
         (rows) => setEncounters(snapRows(rows, (x) => onIds(mapIds.current, x.seed_id)))); }
-      if (r?.code === "poor") setEncOpen(true);
-      return setMsg(r?.code === "poor" ? t.poor : t.enc.fail);
+      // poor or still pending: the question stays open for a later answer
+      if (r?.code === "poor" || r?.code === "pending") setEncOpen(true);
+      return setMsg(r?.code === "pending" ? pendingMsg() : r?.code === "poor" ? t.poor : t.enc.fail);
     }
     const data = r.row;
     setEncounters((s) => (s.some((x) => x.id === data.id) ? s : [...s, data]));
@@ -1775,8 +1784,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const payWork = async (o: Seed, work: WorkKind) => {
     if (!my || !userId) return;
     if (!await prepareSpend()) return;
-    const { data, error } = await supabase.from("twin_works").insert({ seed_id: my.id, partner_id: o.id, user_id: userId, work }).select("id, seed_id, partner_id, work, cost, created_at").single();
-    if (error || !data) return setMsg(t.twin.poor);
+    const { data, error } = await retryOnPending(() => supabase.from("twin_works").insert({ seed_id: my.id, partner_id: o.id, user_id: userId, work }).select("id, seed_id, partner_id, work, cost, created_at").single(), dbPending, syncSettlement);
+    if (error || !data) { const m = error?.message ?? ""; return setMsg(isSettlementPending(m) ? pendingMsg() : m.includes("not enough money") ? t.twin.poor : t.twin.fail); }
     setWorks((w) => [...w, data]); tap();
   };
   const myStats = my ? townStats(my, seeds, clock()) : null;
@@ -2354,8 +2363,8 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     if (!my || !userId) return;
     tap();
     if (!await prepareSpend()) return;
-    const { data, error } = await supabase.from("gifts").insert({ from_seed: my.id, to_seed: to.id, user_id: userId, kind, note }).select("id, from_seed, to_seed, kind, amount, note, created_at").single();
-    if (error || !data) return setMsg(t.gifts.fail);
+    const { data, error } = await retryOnPending(() => supabase.from("gifts").insert({ from_seed: my.id, to_seed: to.id, user_id: userId, kind, note }).select("id, from_seed, to_seed, kind, amount, note, created_at").single(), dbPending, syncSettlement);
+    if (error || !data) return setMsg(dbPending({ error }) ? pendingMsg() : t.gifts.fail);
     setGifts((q) => (q.some((x) => x.id === data.id) ? q : [...q, data as Gift]));
     setMsg(kind === "thanks" ? t.gifts.thanked(to.name) : t.gifts.sent(to.name));
   };
@@ -2390,9 +2399,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     if (needRank > 0) { try { await certifyFn({ data: { seed: my.id } }); } catch { return rollback(t.buyFail); } }
     // the Kontor price depends on the certified location: without it, reload (which certifies) before quoting
     const quote = quoteIn(res?.active && res.site == null && materialOf(item) ? await refreshResources() : res, item);
-    const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null, ...(quote ? { kontor_max: quote.cost } : {}) }).select("id, seed_id, item, cost, created_at, x, y").single();
+    const { data, error } = await retryOnPending(() => supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item, x: x ?? null, y: y ?? null, ...(quote ? { kontor_max: quote.cost } : {}) }).select("id, seed_id, item, cost, created_at, x, y").single(), dbPending, syncSettlement);
     if (error || !data) {
       const m = error?.message ?? "";
+      if (isSettlementPending(m)) { void refreshResources(); return rollback(pendingMsg()); }
       if (m.includes("material short")) { void refreshResources(); return rollback(RESOURCE_T[lang].short); }
       if (isAusbau(item)) {
         const at = AUSBAU[lang];
@@ -2417,14 +2427,14 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const [civicBudget, setCivicBudget] = useState<Partial<Record<CivicStage, number>>>({});
   const [civicRate, setCivicRate] = useState("");
   const [civicRaise, setCivicRaise] = useState("");
-  const civicErr = (m: string) => { const ct = CIVIC_T[lang].errors; setMsg(m.includes("rank too low") ? ct.rank : m.includes("previous stage open") ? ct.after : m.includes("site busy") ? ct.busy : m.includes("not enough money") ? ct.money : m.includes("bad budget") ? ct.budget : m.includes("material complete") ? ct.done : ct.fail); };
+  const civicErr = (m: string) => { const ct = CIVIC_T[lang].errors; if (isSettlementPending(m)) return setMsg(pendingMsg()); setMsg(m.includes("rank too low") ? ct.rank : m.includes("previous stage open") ? ct.after : m.includes("site busy") ? ct.busy : m.includes("not enough money") ? ct.money : m.includes("bad budget") ? ct.budget : m.includes("material complete") ? ct.done : ct.fail); };
   /** Raise the Kontor limit of the open stage (DB civic_raise_budget books the open days with the old limit first). */
   const civicRaiseBudget = async (stage: CivicStage, budget: number) => {
     if (!my || civicBusy.current) return;
     civicBusy.current = true;
     try {
       tap();
-      const { error } = await (supabase.rpc as unknown as (f: string, a: object) => Promise<{ error: { message?: string } | null }>)("civic_raise_budget", { _seed: my.id, _item: stage, _budget: budget });
+      const { error } = await retryOnPending(() => (supabase.rpc as unknown as (f: string, a: object) => Promise<{ error: { message?: string } | null }>)("civic_raise_budget_v2", { _seed: my.id, _item: stage, _budget: budget, _client: CLIENT_PROTOCOL }), dbPending, syncSettlement);
       if (error) return civicErr(error.message ?? "");
       setCivicRaise(""); jingle("coins"); await refreshResources(); await refreshCivic();
     } finally { civicBusy.current = false; }
@@ -2447,7 +2457,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       tap();
       if (!await prepareSpend()) return;
       const n = purchases.filter((p) => p.seed_id === my.id && isCivicInstalment(stage, p.item)).length + 1;
-      const { data, error } = await supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item: civicDeposit(stage, n), cost: amount, x: null, y: null }).select("id, seed_id, item, cost, created_at, x, y").single();
+      const { data, error } = await retryOnPending(() => supabase.from("purchases").insert({ seed_id: my.id, user_id: userId!, item: civicDeposit(stage, n), cost: amount, x: null, y: null }).select("id, seed_id, item, cost, created_at, x, y").single(), dbPending, syncSettlement);
       if (error || !data) return civicErr(error?.message ?? "");
       setPurchases((s) => [...s.filter((x) => x.id !== data.id), data]);
       setCivicRate(""); jingle("coins"); await refreshCivic();
@@ -2461,9 +2471,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     try {
       const nt = NOTHILFE[lang];
       if (!await prepareSpend()) return setMsg(t.buyFail);
-      const r = await nothilfeFn({ data: { seed: my.id, kind, at } }).catch(() => null);
+      // a thrown call (timeout, network) is never retried: its outcome is unknown; only a pending answer is
+      const r = await retryOnPending(() => nothilfeFn({ data: { seed: my.id, kind, at, client: CLIENT_PROTOCOL } }).catch(() => null), codePending, syncSettlement);
       if (!r) return setMsg(t.buyFail);
-      if (!r.ok) return setMsg(r.code === "poor" ? t.poor : r.code === "already" ? nt.already : r.code === "noRuin" ? nt.noRuin : r.code === "rank" ? t.needStage(t.stages[NOTHILFE_RANK] ?? "") : t.buyFail);
+      if (!r.ok) return setMsg(r.code === "pending" ? pendingMsg() : r.code === "poor" ? t.poor : r.code === "already" ? nt.already : r.code === "noRuin" ? nt.noRuin : r.code === "rank" ? t.needStage(t.stages[NOTHILFE_RANK] ?? "") : t.buyFail);
       setPurchases((s) => [...s.filter((x) => x.id !== r.row.id), r.row]);
       const fresh = await refreshAccounting();
       const balance = fresh?.seed === my.id ? fresh.balance : Math.max(0, cash - r.row.cost);
@@ -2482,10 +2493,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     setMoves((s) => [...s, { id: tmpId, seed_id: my.id, item, x, y, cost: moveCost(item) ?? 0, created_at: new Date(clock()).toISOString() }]);
     const rollback = (m: string) => { setMoves((s) => s.filter((p) => p.id !== tmpId)); setMsg(m); };
     if (!await prepareSpend()) return rollback(t.buyFail);
-    const { data, error } = await supabase.from("building_moves").insert({ seed_id: my.id, user_id: userId!, item, x, y }).select("id, seed_id, item, x, y, cost, created_at").single();
+    const { data, error } = await retryOnPending(() => supabase.from("building_moves").insert({ seed_id: my.id, user_id: userId!, item, x, y }).select("id, seed_id, item, x, y, cost, created_at").single(), dbPending, syncSettlement);
     if (error || !data) {
       const m = error?.message ?? "";
-      return rollback(m.includes("not enough money") ? t.poor : m.includes("move cooldown") ? RELOCATE[lang].cooldown : m.includes("move busy") ? RELOCATE[lang].busy : t.buyFail);
+      return rollback(isSettlementPending(m) ? pendingMsg() : m.includes("not enough money") ? t.poor : m.includes("move cooldown") ? RELOCATE[lang].cooldown : m.includes("move busy") ? RELOCATE[lang].busy : t.buyFail);
     }
     setMoves((s) => [...s.filter((p) => p.id !== data.id && p.id !== tmpId), data as MoveRow]);
     void refreshTreasury();

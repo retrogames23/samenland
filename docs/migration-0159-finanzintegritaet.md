@@ -1,6 +1,6 @@
 # Migration 0159 – Finanzintegrität und Schema-Drift
 
-Stand: Branch `claude/finanzintegritaet-0159` (von `main` `fbde951`). **Nicht eingespielt.** Die Live-Datenbank wurde
+Stand: in `main` gemergt (PR #69). **Nicht eingespielt.** Die Live-Datenbank wurde
 weder gelesen noch verändert.
 
 ## Was sich ändert
@@ -84,8 +84,7 @@ als Referenz im Lieferpaket, nicht im Repo.
   Datenbanken setzt eigene (Lesen nur für den Dorf-Eigentümer).
 - Die Funktion `princely_errand` liegt nicht im Repo. Getestet ist deshalb die Anweisung
   `INSERT … ON CONFLICT (task_id, errand) DO NOTHING` gegen die Tabelle, nicht die Funktion selbst.
-- Der Branch `claude/hochzeitspaket` verwendet die Nummern 0159–0162 ebenfalls (nicht eingespielt, nicht gemergt). Wird
-  0159 von hier zuerst gemergt, müssen jene Migrationen vor ihrem Merge neu nummeriert werden.
+- Das Hochzeitspaket folgt als 0160–0163 (bei der Integration umnummeriert).
 - In erhaltenen `gifts`- und `twin_works`-Zeilen bleibt `user_id` des gelöschten Kontos stehen (wie bisher bei allen
   nicht gelöschten Zeilen); `referrals.referee_user` ebenso.
 - PostgREST wurde nicht getestet (in dieser Umgebung nicht ausführbar); alle Datenbanktests laufen direkt gegen PostgreSQL.

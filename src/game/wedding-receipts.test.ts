@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { weddingDates } from "./weddings";
-import { weddingReceiptRows, receiptsComplete, WEDDING_RECEIPT_VERSION } from "./wedding-receipts";
+import { weddingReceiptRows, auditReceipts, divergentIndices, WEDDING_RECEIPT_VERSION, type BookedReceipt } from "./wedding-receipts";
 import type { Seed } from "./world";
 
 const s = { id: "w", user_id: "u", x: 500, y: 500, created_at: "2026-01-01T00:00:00Z" } as unknown as Seed;
@@ -50,17 +50,67 @@ describe("wedding receipts", () => {
     expect(late.slice(0, early.length)).toEqual(early);
   });
 
-  it("the lab realm never produces receipts", () => {
+  it("the lab realm produces no receipts before its switch (the SQL calendar pays those dowries)", () => {
     expect(weddingReceiptRows({ ...s, realm: "lab" } as Seed, c0 + 400 * D)).toEqual([]);
   });
 
-  it("receiptsComplete: exactly 0..n-1 counts as complete, holes and strays do not", () => {
-    expect(receiptsComplete(0, null, 0)).toBe(true);
-    expect(receiptsComplete(5, 4, 5)).toBe(true); // 0,1,2,3,4
-    expect(receiptsComplete(4, 4, 5)).toBe(false); // 0,1,2,4 -> hole at 3
-    expect(receiptsComplete(5, 5, 5)).toBe(false); // 0,1,2,4,5 -> hole at 3, stray 5
-    expect(receiptsComplete(6, 5, 5)).toBe(false); // more receipts than the calendar has
-    expect(receiptsComplete(3, 2, 5)).toBe(false); // simply not booked yet
-    expect(receiptsComplete(0, null, 3)).toBe(false);
+  describe("auditReceipts: full comparison, never a count shortcut (Korrektur A)", () => {
+    const rows = () => weddingReceiptRows(grown, c0 + 300 * D);
+    const store = (r: ReturnType<typeof rows>): BookedReceipt[] =>
+      r.map(({ wedding_index, occurred_at, dowry, is_grand, is_town, version }) => ({ wedding_index, occurred_at, dowry, is_grand, is_town, version }));
+    it("has enough weddings to test holes in the middle", () => expect(rows().length).toBeGreaterThan(6));
+
+    it("A1 complete indices but a wrong dowry: divergent", () => {
+      const r = rows(), b = store(r); b[3] = { ...b[3]!, dowry: b[3]!.dowry + 1 };
+      const a = auditReceipts(r, b);
+      expect(a.changed).toEqual([{ index: 3, fields: ["dowry"] }]);
+      expect(divergentIndices(a)).toEqual([3]);
+      expect(a.missing).toEqual([]);
+    });
+    it("A2 complete indices but a wrong instant (one millisecond): divergent", () => {
+      const r = rows(), b = store(r); b[2] = { ...b[2]!, occurred_at: new Date(Date.parse(b[2]!.occurred_at) + 1).toISOString() };
+      expect(auditReceipts(r, b).changed).toEqual([{ index: 2, fields: ["occurred_at"] }]);
+      // the same instant written differently is the same receipt
+      const c = store(r); c[2] = { ...c[2]!, occurred_at: c[2]!.occurred_at.replace("Z", "+00:00") };
+      expect(divergentIndices(auditReceipts(r, c))).toEqual([]);
+    });
+    it("A3 complete indices but a wrong version: divergent (also grand/town flags)", () => {
+      const r = rows(), b = store(r); b[1] = { ...b[1]!, version: 2 }; b[4] = { ...b[4]!, is_grand: !b[4]!.is_grand };
+      expect(auditReceipts(r, b).changed).toEqual([{ index: 1, fields: ["version"] }, { index: 4, fields: ["is_grand"] }]);
+    });
+    it("A4 a missing middle index is a hole (divergent), not something to fill", () => {
+      const r = rows(), b = store(r).filter((x) => x.wedding_index !== 3);
+      const a = auditReceipts(r, b);
+      expect(a.holes).toEqual([3]);
+      expect(a.missing).toEqual([]);
+      expect(divergentIndices(a)).toEqual([3]);
+    });
+    it("A5 a missing first receipt is a hole; missing last ones are only not settled yet", () => {
+      const r = rows();
+      const first = auditReceipts(r, store(r).slice(1));
+      expect(first.holes).toEqual([0]);
+      const last = auditReceipts(r, store(r).slice(0, r.length - 2));
+      expect(divergentIndices(last)).toEqual([]);
+      expect(last.missing.map((x) => x.wedding_index)).toEqual([r.length - 2, r.length - 1]);
+      const none = auditReceipts(r, []);
+      expect(none.missing).toHaveLength(r.length);
+      expect(divergentIndices(none)).toEqual([]);
+    });
+    it("A6 a receipt the calendar does not have is unexpected (divergent)", () => {
+      const r = rows(), b = store(r);
+      b.push({ ...b[b.length - 1]!, wedding_index: r.length + 4, occurred_at: new Date(Date.parse(b[b.length - 1]!.occurred_at) + 5).toISOString() });
+      const a = auditReceipts(r, b);
+      expect(a.unexpected).toEqual([r.length + 4]);
+      expect(divergentIndices(a)).toEqual([r.length + 4]);
+    });
+    it("A7 a correct complete set: nothing to send, nothing divergent", () => {
+      const r = rows(), a = auditReceipts(r, store(r));
+      expect(a).toEqual({ missing: [], holes: [], changed: [], unexpected: [] });
+    });
+    it("lab: receipts start at the first wedding after the switch, so the earlier indices are not holes", () => {
+      const r = rows().slice(4), a = auditReceipts(r, store(r.slice(0, 2)));
+      expect(a.holes).toEqual([]);
+      expect(a.missing.map((x) => x.wedding_index)).toEqual(r.slice(2).map((x) => x.wedding_index));
+    });
   });
 });
