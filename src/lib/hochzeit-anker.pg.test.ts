@@ -293,9 +293,9 @@ d("Paket A2 – Anker-Fortsetzung (real PostgreSQL, real settleWeddings)", () =>
       const r = await settleWeddings(s, T + 61 * D);
       expect(r.quarantine).toMatchObject({ reason: "legacy_divergent", recorded: true });
       expect(await sql`select 1 from public.wedding_quarantine where seed_id = ${s.id}`).toHaveLength(2);
-      // the village purge still removes everything (ON DELETE CASCADE)
-      await sql`delete from public.wedding_receipts where seed_id = ${s.id}`;
+      // the village purge still removes everything (ON DELETE CASCADE; single receipts cannot be deleted since 0162)
       await sql`delete from public.seeds where id = ${s.id}`;
+      expect(await sql`select 1 from public.wedding_receipts where seed_id = ${s.id}`).toHaveLength(0);
       expect(await sql`select 1 from public.wedding_quarantine where seed_id = ${s.id}`).toHaveLength(0);
     });
     it("A2-K4 privileges: quarantine and the 0160 functions are for the service role only", async () => {

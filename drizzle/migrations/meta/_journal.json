@@ -1135,6 +1135,13 @@
       "when": 1795731558703,
       "tag": "0161_hochzeit_vollstaendigkeit",
       "breakpoints": true
+    },
+    {
+      "idx": 162,
+      "version": "7",
+      "when": 1795737097821,
+      "tag": "0162_hochzeit_integritaet_rechte",
+      "breakpoints": true
     }
   ]
 }

@@ -293,7 +293,10 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
       const [inv] = await sql`select falsche_version from public.wedding_receipt_inventory() where seed_id = ${id}`;
       expect(inv!["falsche_version"]).toBe(1);
       // a valid version-2 receipt from T: counted, guard open
-      await sql`delete from public.wedding_receipts where seed_id = ${id} and wedding_index = ${legacy.length}`;
+      // remove the stray row again (since 0162 only with the H7 trigger disabled — a test-only step, like its insertion)
+      await sql.unsafe("alter table public.wedding_receipts disable trigger wedding_receipts_keep");
+      try { await sql`delete from public.wedding_receipts where seed_id = ${id} and wedding_index = ${legacy.length}`; }
+      finally { await sql.unsafe("alter table public.wedding_receipts enable trigger wedding_receipts_keep"); }
       await ins(rec(id, legacy.length, at, 2, 44));
       expect(await list(id, Date.now())).toEqual([...legacy, [at, 44]]);
       expect(await balance()).toBe(base + 44);
@@ -327,7 +330,8 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
   });
 
   // ---------- integrity facts (documented as found, not changed by this package) ----------
-  it("integrity: UPDATE refused; direct DELETE by the service role and the village purge (CASCADE) remove receipts", async () => {
+  // ---------- integrity (Paket C, migration 0162 / H7; before it a direct DELETE was possible — finding H7) ----------
+  it("integrity (0162): UPDATE, a single DELETE and TRUNCATE refused; only the village purge (CASCADE) removes receipts", async () => {
     const v = await make(Date.now() - 90 * D, [["fisher", Date.now() - 89 * D]]);
     await insertReceipts(weddingReceiptRows(v.seed, Date.now()));
     const n = async () => (await sql`select count(*)::int as n from public.wedding_receipts where seed_id = ${v.seed.id}`)[0]!["n"] as number;
@@ -335,14 +339,16 @@ d("Hochzeitspaket 0159 (real PostgreSQL)", () => {
     expect(before).toBeGreaterThan(2);
     const err = (p: Promise<unknown>) => p.then(() => "ok").catch((e: Error) => e.message);
     expect(await err(sql`update public.wedding_receipts set dowry = dowry where seed_id = ${v.seed.id}`)).toBe("wedding receipts are immutable");
-    await sql`delete from public.wedding_receipts where seed_id = ${v.seed.id} and wedding_index = 0`; // not blocked
-    expect(await n()).toBe(before - 1);
-    await sql`delete from public.seeds where id = ${v.seed.id}`; // the purge path
+    expect(await err(sql`delete from public.wedding_receipts where seed_id = ${v.seed.id} and wedding_index = 0`)).toBe("wedding receipts are kept");
+    expect(await err(sql`truncate public.wedding_receipts`)).toBe("wedding receipts are kept");
+    expect(await n()).toBe(before);
+    await sql`delete from public.seeds where id = ${v.seed.id}`; // the purge path (CASCADE): the receipts go with the village
     expect(await n()).toBe(0);
     const [p] = await sql`select has_table_privilege('service_role', 'public.wedding_receipts', 'DELETE') as del,
                                  has_table_privilege('service_role', 'public.wedding_receipts', 'TRUNCATE') as tru,
+                                 has_table_privilege('service_role', 'public.wedding_receipts', 'INSERT') as srv_ins,
                                  has_table_privilege('authenticated', 'public.wedding_receipts', 'INSERT') as auth_ins,
                                  has_table_privilege('authenticated', 'public.wedding_receipts', 'SELECT') as auth_sel`;
-    expect(p).toEqual({ del: true, tru: true, auth_ins: false, auth_sel: true });
+    expect(p).toEqual({ del: false, tru: false, srv_ins: false, auth_ins: false, auth_sel: true });
   });
 });

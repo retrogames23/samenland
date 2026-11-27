@@ -192,10 +192,10 @@ d("Paket B – O1/O2, Pending und Ressourcenabrechnung (vollständiges Schema, e
     const s = await labWithStage(false);
     const h0 = await snapshot();
     expect(await buy(s.v, "hunter", { kontor_max: 100000 })).toBe(PENDING);
-    expect(await asPlayer(s.v, (tx) => tx`select public.civic_raise_budget(${s.v.id}, 'spital1', 1500)`)).toBe(PENDING);
+    expect(await asPlayer(s.v, (tx) => tx`select public.civic_raise_budget_v2(${s.v.id}, 'spital1', 1500, 2)`)).toBe(PENDING);
     expect(await snapshot()).toBe(h0);
     let ov: Record<string, unknown> = {};
-    expect(await asPlayer(s.v, async (tx) => { ov = (await tx`select public.resource_overview(${s.v.id}) r`)[0]!["r"] as Record<string, unknown>; })).toBe("ok");
+    expect(await asPlayer(s.v, async (tx) => { ov = (await tx`select public.resource_overview_v2(${s.v.id}, 2) r`)[0]!["r"] as Record<string, unknown>; })).toBe("ok");
     expect(ov).toMatchObject({ active: true, pending: true });
     expect(await snapshot()).toBe(h0);
   });
@@ -286,6 +286,9 @@ d("Paket B – O1/O2, Pending und Ressourcenabrechnung (vollständiges Schema, e
       const subsets = [[idx[0]!], [idx[2]!], [idx[5]!], [idx[0]!, idx[5]!], idx, [idx[1]!, idx[3]!], [idx[4]!]];
       for (const sub of subsets) {
         await sql.begin(async (tx) => {
+          // simulate missing receipts inside a transaction that is rolled back; since 0162 a single DELETE is refused, so
+          // the test switches the triggers off for this transaction only (session_replication_role = replica)
+          await tx`set local session_replication_role = replica`;
           await tx`delete from public.wedding_receipts where seed_id = ${v.id} and wedding_index = any(${sub})`;
           const part: number[] = [];
           for (const p of probes) part.push((await tx`select public.village_balance_walk(${v.id}, '2026-11-12 00:00:00+00', ${iso(p)}) b`)[0]!["b"] as number);
@@ -374,7 +377,8 @@ d("Paket B – O1/O2, Pending und Ressourcenabrechnung (vollständiges Schema, e
     // resource_refresh → resource_refresh_at → resource_refresh_try (raises on pending); everything else uses the result
     expect(refreshCallers).toEqual(["resource_refresh"]);
     const tryCallers = fns.filter((f) => /resource_refresh_try\(/.test(f["prosrc"] as string)).map((f) => f["proname"] as string).sort();
-    expect(tryCallers).toEqual(["civic_raise_budget", "purchase_material", "resource_overview", "resource_refresh_at"]);
+    // (0162: the client RPCs are the versioned _v2 paths; their old signatures delegate to them or refuse)
+    expect(tryCallers).toEqual(["civic_raise_budget_v2", "purchase_material", "resource_overview_v2", "resource_refresh_at"]);
   });
   it("B12 the wedding answer (encounter_guard, server only) follows the same rule: booked live wedding, pending without proof, money after it", async () => {
     // the live wedding booked one hour ago, but by a call without the proof (as a server before Paket B): not verifiable
@@ -421,8 +425,11 @@ d("Paket B – O1/O2, Pending und Ressourcenabrechnung (vollständiges Schema, e
     expect((p1["quiet_until"] as Date).getTime()).toBe(s.NEXT);
     expect((p1["settled_through"] as Date).getTime()).toBeGreaterThan(thru);
     expect(await settledNow(v)).toBe(true);
-    // the chain changes behind the proof (a receipt deleted by hand): the proof no longer matches — not complete
-    await sql`delete from public.wedding_receipts where seed_id = ${v.id} and wedding_index = ${t1["wedding_index"]}`;
+    // the chain changes behind the proof (a receipt removed by hand — since 0162 only with the triggers switched off, as
+    // here): the proof no longer matches — not complete
+    expect(await err(sql`delete from public.wedding_receipts where seed_id = ${v.id} and wedding_index = ${t1["wedding_index"]}`)).toBe("wedding receipts are kept");
+    await sql.begin(async (tx) => { await tx`set local session_replication_role = replica`;
+      await tx`delete from public.wedding_receipts where seed_id = ${v.id} and wedding_index = ${t1["wedding_index"]}`; });
     expect(await settledNow(v)).toBe(false);
     // a quarantine is never complete
     const q = await scenario({ w2: 500, complete: true });

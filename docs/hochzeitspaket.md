@@ -1,6 +1,8 @@
 # Hochzeitspaket – Stand nach der Nachbesserung
 
-Branch `claude/hochzeitspaket` · Basis `f6b31ce` · Migrationen `0159_hochzeitspaket`, `0160_hochzeit_anker` (Paket A2), `0161_hochzeit_vollstaendigkeit` (Paket B) (nicht eingespielt)
+Branch `claude/hochzeitspaket` · Basis `f6b31ce` · Migrationen `0159_hochzeitspaket`, `0160_hochzeit_anker` (Paket A2), `0161_hochzeit_vollstaendigkeit` (Paket B), `0162_hochzeit_integritaet_rechte` (Paket C) (nicht eingespielt)
+
+Betrieb (Einspielreihenfolge, Vorabprüfung, Aktivierung, Vorwärts-Korrektur, PostgREST-Lücke): [`hochzeitspaket-betrieb.md`](hochzeitspaket-betrieb.md).
 
 **Status: nicht abgenommen, keine Produktionsfreigabe.** Nach Masterplan v6.2, 11.3 ist die Anpassung des Hochzeitsrhythmus bewusst zurückgestellt. Die Zielregel dieses Pakets ist **nicht beschlossen** (siehe „Offene Designfragen“).
 
@@ -132,19 +134,23 @@ Branch `claude/hochzeitspaket` · Basis `f6b31ce` · Migrationen `0159_hochzeits
 - Ein alter Tab aus einem veralteten Browser-Cache, der nach *T* öffnet und klickt, bevor seine erste Synchronisierung zurück ist, kann während des erzwungenen Neuladens kurz den alten Text zeigen.
 - Gebucht wird dabei nie etwas Falsches.
 
-## Befunde zur Unveränderlichkeit (unverändert gelassen)
+## Paket C – Integrität, Rechte, Client-Wege (Migration 0162, nicht eingespielt)
 
-- `UPDATE`: durch den Trigger verweigert.
-- `DELETE`: Für `service_role` ist es weiterhin direkt möglich, ebenso über die Dorf-Löschung (`purge_user_data` → `ON DELETE CASCADE`).
-- `TRUNCATE`: Für `service_role` möglich; Zeilentrigger greifen dabei nicht.
-- Trigger abschalten: Der Tabelleneigentümer kann Trigger abschalten.
-- Folge: „Unveränderlich“ gilt nur für den regulären Schreibpfad. Ein gelöschter Beleg nach *T* senkt den Kassenstand rückwirkend. Danach meldet die Prüfung eine Lücke oder bucht den fehlenden Beleg am Ende erneut.
+- **H7 (Variante 2):** Einzelne Belege sind unveränderlich, auch für `service_role`.
+  - `UPDATE` verweigert weiterhin der Wächter.
+  - `DELETE` einzelner Belege und `TRUNCATE` verweigern zwei neue Trigger (`wedding receipts are kept`), auch für den Tabelleneigentümer.
+  - Rechte nur noch `SELECT`; geschrieben wird ausschließlich über `wedding_receipts_book` / `wedding_settle`.
+- **CASCADE bleibt:** Wird ein Dorf gelöscht (`abandon_village`, `purge_user_data`), gehen Belege, Nachweis und Quarantäne-Datensatz mit verloren. Das ist bewusst so und dokumentiert; ein Archiv gibt es nicht.
+- **Rechte:** vollständiges Audit vorher/nachher (Tabellen, Sichten, Sequenzen, jede Funktionssignatur; PUBLIC, anon, authenticated, service_role, wirksam mit RLS).
+  - Entzogen, je mit Aufrufweg begründet: `village_weddings` (nur noch service_role), `claim_visit` (nicht mehr anon/PUBLIC).
+- **Alte Clients:** `civic_raise_budget_v2` / `resource_overview_v2` mit Protokollnummer. Die alten Signaturen leiten bis *T*−7 Tage weiter, danach `client outdated`. Alle direkten Client-Wege stehen in `src/lib/client-rpc-registry.ts`.
+- **Vorabprüfung:** `wedding_activation_inventory()` und `docs/sql/hochzeit_vorabpruefung.sql` (nur lesend).
 
 ## Ausführung (erst nach Freigabe)
 
 1. Prüfpaket nach Masterplan 3.2 erstellen (`01_vorher.sql`, `02_nachher.sql`, `03_fingerprints.sql`, `04_funktionstexte.sql`), lesend; Begleitmigration einplanen. **Noch nicht erstellt.**
 2. Vorher lesend prüfen: Die Live-Definition von `village_wedding_list` muss dem Text aus 0107 entsprechen, denn 0159 ersetzt sie.
-3. 0159 einspielen. Danach lesend: `select * from public.wedding_receipt_inventory() where fehlt + weicht_ab + luecken + doppelt + falsche_version > 0;`
+3. 0159, 0160, 0161, 0162 einspielen (Reihenfolge und Zeitfenster: `hochzeitspaket-betrieb.md`). Danach lesend: `select * from public.wedding_receipt_inventory() where fehlt + weicht_ab + luecken + doppelt + falsche_version > 0;`
 4. Sweep: erst Probelauf, dann `apply`, Karte für Karte. Bei `halted` oder `errors` stoppen.
 5. Umschaltdatum setzen: in einem PR TS-Konstante und `wedding_switch_since` gemeinsam, mit einem Datum **in der Zukunft**.
    - Begründung: Setzt man *T* früher als bestehende Belege, zählen diese Belege nicht mehr (Version 1 nach *T*) und werden auch nicht mehr berechnet.
@@ -165,4 +171,4 @@ Branch `claude/hochzeitspaket` · Basis `f6b31ce` · Migrationen `0159_hochzeits
 - **H4** Belege nach *T* verzögern die Mitgift bis zur Abrechnung; dazu die Frage nach einem täglichen Sweep.
 - **H5** `encounter_guard` mit oder ohne Prüfung auf `is_grand`.
 - **H6** Fail-closed bei abweichenden Belegen *vor T*: Heute blockiert das den Kassen-Sync des betroffenen Dorfes, obwohl vor *T* nur Schattenbelege betroffen sind.
-- **H7** Schutz vor `DELETE`/`TRUNCATE` (siehe Befunde).
+- ~~**H7** Schutz vor `DELETE`/`TRUNCATE`~~ — umgesetzt in Paket C (Variante 2). Offen bleibt nur die Aufbewahrung bei Dorf-Löschung (CASCADE).

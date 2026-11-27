@@ -26,8 +26,12 @@ create or replace function storage.foldername(name text) returns text[] language
 alter table storage.objects enable row level security;
 do $$ begin if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then create publication supabase_realtime; end if; end $$;
 grant usage on schema public to anon, authenticated, service_role;
-alter default privileges in schema public grant all on tables to service_role;
-alter default privileges in schema public grant all on functions to service_role;
+-- Supabase's default privileges for objects the postgres role creates in public (as on the hosted platform): every new
+-- table, sequence and function is granted to anon, authenticated and service_role unless a migration revokes it.
+-- (Functions additionally carry PostgreSQL's own EXECUTE for PUBLIC.) This makes the local rights match production.
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 `;
 
 /** Tags of the journal in order. */

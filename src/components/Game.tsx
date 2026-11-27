@@ -2429,7 +2429,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     civicBusy.current = true;
     try {
       tap();
-      const { error } = await retryOnPending(() => (supabase.rpc as unknown as (f: string, a: object) => Promise<{ error: { message?: string } | null }>)("civic_raise_budget", { _seed: my.id, _item: stage, _budget: budget }), dbPending, syncSettlement);
+      const { error } = await retryOnPending(() => (supabase.rpc as unknown as (f: string, a: object) => Promise<{ error: { message?: string } | null }>)("civic_raise_budget_v2", { _seed: my.id, _item: stage, _budget: budget, _client: CLIENT_PROTOCOL }), dbPending, syncSettlement);
       if (error) return civicErr(error.message ?? "");
       setCivicRaise(""); jingle("coins"); await refreshResources(); await refreshCivic();
     } finally { civicBusy.current = false; }

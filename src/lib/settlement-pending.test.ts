@@ -75,7 +75,7 @@ describe("Paket B – pending on the client", () => {
       'supabase.from("gifts").insert(',
       'supabase.from("twin_works").insert(',
       'supabase.from("building_moves").insert(',
-      '("civic_raise_budget", {',
+      '("civic_raise_budget_v2", {',
       'decideFn({ data: { seed: my.id, event, choice, client: CLIENT_PROTOCOL } })',
       'nothilfeFn({ data: { seed: my.id, kind, at, client: CLIENT_PROTOCOL } })',
     ];

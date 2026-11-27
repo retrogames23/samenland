@@ -34,6 +34,9 @@ export const M0161 = mig("0161_hochzeit_vollstaendigkeit.sql");
 /** The wedding part of 0161 (proof table, completeness, money check, wedding_settle, checked balance) — the rest of it
  *  patches game guards that this stub schema does not have (tested on the full schema in paket-b.pg.test.ts). */
 export const M0161_WEDDING = M0161.slice(0, M0161.indexOf("-- 3b/4)"));
+export const M0162 = mig("0162_hochzeit_integritaet_rechte.sql");
+/** The H7 part of 0162 (receipts: no single DELETE, no TRUNCATE, SELECT-only rights) — the rest concerns game RPCs. */
+export const M0162_H7 = M0162.slice(M0162.indexOf("-- 1) H7 ---"), M0162.indexOf("-- 2) Rechte ---"));
 
 /** Creates the stub tables and loads the migrations. `anchor: false` stops after 0159 (state before Paket A2). */
 export async function prepareWeddingDb(sql: postgres.Sql, opts: { anchor?: boolean } = {}) {
@@ -89,5 +92,5 @@ export async function prepareWeddingDb(sql: postgres.Sql, opts: { anchor?: boole
   await sql.unsafe(mig("0138_encounters_server_only.sql"));
   await sql.unsafe(`create trigger encounter_guard before insert on public.encounters for each row execute function public.encounter_guard();`);
   await sql.unsafe(M0159);
-  if (opts.anchor ?? true) { await sql.unsafe(M0160); await sql.unsafe(M0161_WEDDING); }
+  if (opts.anchor ?? true) { await sql.unsafe(M0160); await sql.unsafe(M0161_WEDDING); await sql.unsafe(M0162_H7); }
 }
