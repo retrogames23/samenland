@@ -233,6 +233,16 @@ export function activeRuins(s: Seed, now: number): Ruin[] {
   for (const f of floods(s, now)) if (f.ruined.length && now >= f.end) { const p = rebuildProgress(s, "w", f, now); if (p < 1) { const t = f.ruined[0]!; out.push({ kind: "w", at: f.at, end: f.end, x: t % MAP, y: Math.floor(t / MAP), progress: p, left: rebuildLeft(s, "w", f, now) }); } }
   return out;
 }
+/**
+ * The rebuild running on this tile after a fire or flood, with the time left — so the map can say why this site takes
+ * far longer than an ordinary house (FIRE_REBUILD 36 h, FLOOD_REBUILD) instead of looking stuck. Display only.
+ */
+export function rebuildAt(s: Seed, x: number, y: number, now: number): { kind: NotKind; left: number } | null {
+  const t = y * MAP + x;
+  for (const f of fires(s, now)) if (!f.guarded && now >= f.end && f.tiles.includes(t) && rebuildProgress(s, "f", f, now) < 1) return { kind: "f", left: rebuildLeft(s, "f", f, now) };
+  for (const f of floods(s, now)) if (now >= f.end && f.ruined.includes(t) && rebuildProgress(s, "w", f, now) < 1) return { kind: "w", left: rebuildLeft(s, "w", f, now) };
+  return null;
+}
 const tcache = new Map<string, Map<number, TileHit>>();
 /** What disasters do to each tile right now: burning, rebuilding after fire/flood, or under water. */
 export function tileHits(s: Seed, now: number): Map<number, TileHit> {

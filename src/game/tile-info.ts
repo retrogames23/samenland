@@ -5,12 +5,17 @@ import { inCourt } from "./court";
 import { roleOf } from "./rotation";
 import { isDen, denOk, denBeast } from "./wildlife";
 import { worldHour, isWorkHour } from "./time";
+import { rebuildAt } from "./disasters";
 
 const WILD_OK = new Set(["forest", "meadow", "grass", "hill", "fertile"]);
 import { townOf, onFireTile } from "./people";
 import type { Animal, Effect } from "./lang/tileinfo";
 
-export type TileFacts = { terrain: Terrain; kind: string | null; seed: string | null; animals: Animal[]; effects: Effect[] };
+export type TileFacts = {
+  terrain: Terrain; kind: string | null; seed: string | null; animals: Animal[]; effects: Effect[];
+  /** set while the tile is being rebuilt after a fire ("f") or flood ("w"): time left in ms */
+  rebuild: { kind: "f" | "w"; left: number } | null;
+};
 
 export function tileFacts(x: number, y: number, seeds: Seed[], now: number, planted: boolean): TileFacts {
   const t = terrain(x, y), st = structureAt(x, y, seeds, now);
@@ -47,5 +52,6 @@ export function tileFacts(x: number, y: number, seeds: Seed[], now: number, plan
   else if (t === "fertile") fx.push("fertile");
   if (!isWater(t) && riverDistAt(x, y) >= 0 && riverDistAt(x, y) < 1.5) fx.push("shore");
   if (resourceAt(x, y) === "stone") fx.push("stone");
-  return { terrain: t, kind, seed: sd?.name ?? null, animals: [...animals], effects: fx };
+  const rebuild = st && sd && st.build !== undefined && !st.fire ? rebuildAt(sd, x, y, now) : null;
+  return { terrain: t, kind, seed: sd?.name ?? null, animals: [...animals], effects: fx, rebuild };
 }

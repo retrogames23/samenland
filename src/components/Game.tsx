@@ -401,7 +401,10 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
     const f = tileFacts(nt[0], nt[1], st.current.seeds, clock(), isPlantedRare(st.current.plantings, nt[0], nt[1])), ti = TILEINFO[lang];
     const head = f.kind ? `${t.kind[f.kind] ?? (t.kinds as Record<string, string>)[f.kind] ?? f.kind}${f.seed ? ` (${f.seed})` : ""}` : t.terrain[f.terrain];
     const parts = [head, ...(f.kind ? [t.terrain[f.terrain]] : []), ...f.animals.map((a) => ti.animals[a])];
-    box.textContent = parts.join(" · ") + (f.effects.length ? ` — ${f.effects.map((k) => ti.fx[k]).join(", ")}` : "");
+    // a rebuild after fire or flood takes far longer than an ordinary site: say so, with the time left
+    const eta = (ms: number) => (ms >= 3.6e6 ? t.etaH(Math.ceil(ms / 3.6e6)) : t.etaM(Math.max(1, Math.ceil(ms / 6e4))));
+    const fx = [...(f.rebuild ? [`${ti.rebuild[f.rebuild.kind]} · ${eta(f.rebuild.left)}`] : []), ...f.effects.map((k) => ti.fx[k])];
+    box.textContent = parts.join(" · ") + (fx.length ? ` — ${fx.join(", ")}` : "");
     box.style.display = "";
     if (tileInfoTimer.current) clearTimeout(tileInfoTimer.current);
     tileInfoTimer.current = fade ? setTimeout(() => { if (tileInfoRef.current) tileInfoRef.current.style.display = "none"; }, fade) : null;
@@ -4321,6 +4324,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               <div className="text-xs text-muted-foreground">{t.inTown(name, ins.seed.name)}</div>
               {ins.build !== null ? (
                 <div className="mt-1 space-y-1 text-sm">
+                  {ins.rebuild && <div className="font-semibold">{TILEINFO[lang].rebuild[ins.rebuild]}</div>}
                   <div>{t.progress(Math.round(ins.build * 100))}</div>
                   {ins.doneAt != null && ins.doneAt > now && <div className="text-xs text-muted-foreground">{ins.doneAt - now >= 3.6e6 ? t.etaH(Math.ceil((ins.doneAt - now) / 3.6e6)) : t.etaM(Math.max(1, Math.ceil((ins.doneAt - now) / 6e4)))}</div>}
                   <div className="h-2 w-full overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary" style={{ width: `${Math.round(ins.build * 100)}%` }} /></div>
