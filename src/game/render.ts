@@ -107,6 +107,7 @@ import gardenerU from "@/assets/sprites/court/gardener.webp";
 import courtGroomU from "@/assets/sprites/court/groom.webp";
 import { heraldVisit, HERALD_RIDE_S, type PrincelyRow } from "./princely";
 import { pBegin, pEnd, pCount, pEvict, pCache, canvasBytes, pFB, pFE, pOps, perfFine, perfOn } from "./perf-probe";
+import { drawBurntSite } from "./burnt-site";
 import { SEAT_KINDS, onGeoChange, hash, vnoise, riverDistAt, structureAt, specialSites, soloSeeds, faceFlip, MIRROR_KINDS, terrain, resourceAt, isWater, MAP, FLAT, FOOT2, links, roadProgress, isTwin, acreOf, ageHours, viewAge, radiusOf, reachOf, isBlessed, signTile, pondTiles, tradeProfile, complement, type TradeGood, type Signpost, type Planting, type Seed, type Link, type Structure, type Kind } from "./world";
 
 export const TW = 32, TH = 16;
@@ -283,6 +284,8 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
     c.fillStyle = i % 2 ? "rgba(60,42,24,0.7)" : "rgba(130,100,66,0.6)";
     c.beginPath(); c.ellipse(cx + (a - b) * hw * 0.9, cy + (a + b) * hh * 0.9, 0.9, 0.45, 0, 0, 7); c.fill();
   }
+  // a rebuild after a fire: soot, ash and charred beams under the new walls
+  if (s.burnt) drawBurntSite(c, cx, cy, hw, hh, p, sd, t, detail);
   // foundation trench is cut first, stones follow
   {
     const f = p > 0.15 ? Math.min(1, (p - 0.15) / 0.2) : 0, k = 0.78;
@@ -309,8 +312,8 @@ function drawSite(c: C, s: Structure, cx: number, cy: number, t: number, detail:
     const im = folkImage("scaffold");
     if (im) { const sw = w * 1.05, sh = (sw * im.naturalHeight) / im.naturalWidth; c.drawImage(im, cx - sw / 2, cy + hh * 1.1 - sh, sw, sh); }
   }
-  // stakes and string while the plot is still being marked out
-  if (p < 0.3) {
+  // stakes and string while the plot is still being marked out (a burnt-out plot keeps its old lines: no staking)
+  if (p < 0.3 && !s.burnt) {
     const corners: Pt[] = [[cx, cy - hh], [cx - hw, cy], [cx + hw, cy], [cx, cy + hh]];
     // hemp twine sags softly between the pegs (drawn first, the pegs stand over its knots)
     c.strokeStyle = "rgba(196,178,138,0.85)"; c.lineWidth = 0.5; c.lineCap = "round"; c.beginPath();
