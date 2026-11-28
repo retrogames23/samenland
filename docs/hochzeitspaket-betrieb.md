@@ -1,7 +1,31 @@
 # Hochzeitspaket – Betrieb: Einspielen, Aktivieren, Vorwärts-Korrektur (Paket C)
 
-Stand: in `main` integriert, Migrationen `0160`–`0163` (nach `0159` Finanzintegrität). **Nichts davon ist eingespielt oder aktiviert.**
-Migrationen (bei der Integration nach `main` umnummeriert, nie eingespielt gewesen): `0159` Finanzintegrität · `0160_hochzeit_anker` (Grundlage Hochzeitspaket + Paket A2) · `0161_hochzeit_belegschutz` (H7) · `0162_hochzeit_vollstaendigkeit` (Paket B) · `0163_hochzeit_rechte_gates` (Paket C: Rechte, RPC-Gates, Vorabprüfung).
+Stand (berichtigt am 28.11.2026, Paket M des Masterplans v7.0): in `main` integriert, Migrationen `0160`–`0163` (nach `0159` Finanzintegrität).
+**Eingespielt laut Lovable-Begleitcommit `9814824` („Migrations 0159–0164 eingespielt“, 27.11.2026, 13:28 UTC). Nicht aktiviert.**
+Die frühere Angabe dieses Dokuments „Nichts davon ist eingespielt“ stammte von vor diesem Commit und ist überholt.
+**0159–0164 nie erneut einspielen.** Abschnitt 3 („Einspielreihenfolge“) beschreibt den Ablauf vor dem Einspielen und ist insoweit Geschichte.
+
+| Migration | Stand der Nachweise |
+|---|---|
+| `0159`–`0163` | eingespielt laut Begleitcommit; neu erzeugte Supabase-Typen im selben Commit enthalten die Objekte des Pakets. **Live-Journal-ID und Hash noch nicht zurückgelesen** (die lesende Abfrage steht aus). **Eine paketeigene Nachher-Prüfung mit dokumentiertem Ergebnis ist im Repository nicht vorhanden**; das Prüfpaket nach `docs/hochzeitspaket.md` wurde nicht erstellt. Eine gesonderte Freigabe zum Einspielen ist nicht dokumentiert. |
+| `0164` (Begleitmigration, `SELECT 1;`) | Live-ID 166, Zeitstempel `1795785998705`, SHA-256 `17db4fd369edb9244b9f91d9aeed145c3d04ad8ba6e95d06247f07a63527d11a` (P4-Installationsbericht vom 28.11.2026). |
+
+Mittelbarer Hinweis, kein Ersatz für ID und Hash: In der P4-Vorher-Prüfung vom 28.11.2026 entsprach `purchase_guard` in der echten Datenbank
+dem Repository-Stand vor 0165, also dem Stand nach 0162.
+
+Erwartete Journalwerte (SHA-256 der Dateien in `main`, `created_at` = `when` im Migrationsjournal), zum Abgleich mit `drizzle.__drizzle_migrations`:
+
+| Migration | `created_at` | SHA-256 |
+|---|---|---|
+| `0159_finanzintegritaet_schema_drift` | `1795765179249` | `18fd32a5ddb7dfd31c14a85bf1eb6eade44484c1977f7fd02cb4e33bb27bf572` |
+| `0160_hochzeit_anker` | `1795768676950` | `c3fb3fdf6b0edbfa89b02e69715d156786afca204351a0379284432977b48e9c` |
+| `0161_hochzeit_belegschutz` | `1795768678640` | `a0a903599bec1cc3d2ab7a168664e5c854e798e34d6e9a7449a4629e41130174` |
+| `0162_hochzeit_vollstaendigkeit` | `1795768680345` | `89314dc921979f8182c2e6981dd5abb475b10823737cb362188d496eeb8256e0` |
+| `0163_hochzeit_rechte_gates` | `1795768682088` | `89b9b3e23249620e902779873b19325d60adbed3272c46d8f387e57976997aff` |
+
+Die lesende Abfrage dafür liegt bereit: `docs/sql/paket-m_live-journal.sql` (READ ONLY; enthält zusätzlich `0168_restrict_role_lookup`).
+
+Migrationen (bei der Integration nach `main` umnummeriert; unter den früheren Nummern nie eingespielt gewesen): `0159` Finanzintegrität · `0160_hochzeit_anker` (Grundlage Hochzeitspaket + Paket A2) · `0161_hochzeit_belegschutz` (H7) · `0162_hochzeit_vollstaendigkeit` (Paket B) · `0163_hochzeit_rechte_gates` (Paket C: Rechte, RPC-Gates, Vorabprüfung).
 Der Umschaltzeitpunkt *T* bleibt der Platzhalter `2100-01-04` (TS `weddingSwitchSince` ↔ DB `wedding_switch_since`).
 Die Zielregel (Dom/Universität/Klostergarten) ist weiterhin offen. Ob und wann etwas in die Produktion geht, entscheidet Stephan.
 
