@@ -82,7 +82,8 @@ type Res<T> = PromiseLike<StiftResult<T>>;
 /**
  * P4 Stiftungen of the own village as the database reports them (stift_overview: read-only, books nothing) and the
  * three player actions. Display only — the database checks every action again. Before the map's switch (stiftSince:
- * the placeholder 2100 everywhere until a date is decided) nothing is asked at all, so no map sends an extra call.
+ * the lab map since migration 0169, the placeholder 2100 on every other map) nothing is asked at all, so no public map
+ * sends an extra call.
  */
 export function useStiftung(
   my: Seed | undefined,

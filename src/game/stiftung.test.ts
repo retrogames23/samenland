@@ -15,6 +15,7 @@ import {
   STIFT_OPEN_REST_MS,
   STIFT_PAUSE_MS,
   STIFT_SINCE,
+  STIFT_SINCE_LAB,
   isStiftRow,
   stiftCloseAllowed,
   stiftDeposit,
@@ -69,10 +70,26 @@ describe("P4 Stiftungen – Grundwerte und Zeilenmuster", () => {
       7 * DAY,
     ]);
   });
-  it("kein Stichtag: der Schalter steht für lab und öffentlich auf dem Platzhalter 04.01.2100", () => {
-    for (const r of ["lab", "europe", "us-west", null])
-      expect(stiftSince(r)).toBe(Date.UTC(2100, 0, 4));
+  it("Schalter (P4 Schritt 2b, 0169): nur lab ist aktiv (28.11.2026 00:00 UTC); jede andere Welt bleibt auf dem Platzhalter 04.01.2100", () => {
+    expect(stiftSince("lab")).toBe(Date.parse("2026-11-28T00:00:00Z"));
+    expect(STIFT_SINCE_LAB).toBe(Date.parse("2026-11-28T00:00:00Z"));
+    // the four public time zones, their overflow maps, anything unknown and no realm at all: off
+    for (const r of [
+      "europe", "us-west", "us-east", "asia", "europe-2", "europe-3", "us-west-2", "us-east-2", "asia-2",
+      "Lab", "LAB", "lab ", "lab-2", "", "unknown", null, undefined,
+    ])
+      expect(stiftSince(r), String(r)).toBe(Date.UTC(2100, 0, 4));
     expect(STIFT_SINCE).toBe(Date.UTC(2100, 0, 4));
+    // the opening rule follows the switch: lab may open now, a public village with the same state may not
+    const now = Date.parse("2026-11-28T10:00:00Z");
+    const s = seed([{ item: "spital1", at: now - 30 * DAY }]);
+    const lock = (realm: string, at = now) =>
+      stiftOpenLock({ realm, seed: s, bau: "spital", rows: [], civic: [], civicPaid: 0, lastTax: 500, now: at });
+    expect(lock("lab")).toBeNull();
+    expect(lock("lab", STIFT_SINCE_LAB)).toBeNull();
+    expect(lock("lab", STIFT_SINCE_LAB - 1)).toEqual({ why: "inactive" });
+    for (const r of ["europe", "us-west", "us-east", "asia", "europe-2"]) expect(lock(r)).toEqual({ why: "inactive" });
+    for (const r of ["europe", "us-west", "us-east", "asia"]) expect(lock(r, Date.UTC(2099, 11, 31))).toEqual({ why: "inactive" });
   });
   it("Stiftungszeilen passen nie auf das Gemeindebau-Muster und zählen nicht als Gebäude (Kriterium 7)", () => {
     const rows = [stiftMarker("spital", 1), stiftDeposit("spital", 12, 3), stiftKontor("waage", 2)];
@@ -129,7 +146,7 @@ describe("P4 Stiftungszeit additiv (Abschnitt 2.1) – TypeScript", () => {
     expect(stiftEndowed(s2, "spital", c1 + 28 * DAY)).toBe(false);
   });
   it("S2 genau 14 Tage Rest: Öffnen und Abschluss erlaubt, 28 Tage Rest; eine Sekunde mehr: Öffnen abgelehnt", () => {
-    // (the switch is the 2100 placeholder, so the opening rule is tested with instants after it)
+    // (a public map: its switch is the 2100 placeholder, so the opening rule is tested with instants after it)
     const B = STIFT_SINCE + 50 * DAY;
     const st = [{ item: "spital1", at: B - 100 * DAY }];
     // two closes: the end is B + 25 days; at B + 11 days exactly 14 days are left
@@ -137,7 +154,7 @@ describe("P4 Stiftungszeit additiv (Abschnitt 2.1) – TypeScript", () => {
     expect(stiftUntil(s, "spital", B)).toBe(B + 25 * DAY);
     const lock = (now: number) =>
       stiftOpenLock({
-        realm: "lab",
+        realm: "europe",
         seed: s,
         bau: "spital",
         rows: [],
@@ -343,7 +360,7 @@ describe("P4 Stiftungen – Vorrang, Reservierung, Abschlussplan", () => {
     const s = seed([...base, ...closes("spital", NOW - DAY)]);
     const lock = (o: Partial<Parameters<typeof stiftOpenLock>[0]>) =>
       stiftOpenLock({
-        realm: "lab",
+        realm: "europe",
         seed: s,
         bau: "spital",
         rows: [],

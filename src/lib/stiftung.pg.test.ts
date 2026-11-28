@@ -225,7 +225,7 @@ d("P4 Stiftungen – Regeln, Stiftungszeit und Hochzeitspaket (vollständiges Sc
     const file = migration(journalTags().find((t) => t.startsWith("0165_"))!);
     expect(file).toContain("SELECT CASE WHEN _realm = 'lab' THEN timestamptz '2100-01-04 00:00:00+00' ELSE timestamptz '2100-01-04 00:00:00+00' END");
     expect(STIFT_SINCE).toBe(Date.parse("2100-01-04T00:00:00Z"));
-    expect(journalTags().slice(-2)).toEqual(["0165_stiftungen_p4", "0166_begleitmigration_0166"]);
+    expect(journalTags()).toEqual(expect.arrayContaining(["0165_stiftungen_p4", "0166_begleitmigration_0166"]));
     expect(migration("0166_begleitmigration_0166")).toBe("SELECT 1;");
     const src = async (f: string) => (await sql`select pg_get_functiondef(${f}::regprocedure) s`)[0]!["s"] as string;
     const guard = await src("public.purchase_guard()");
