@@ -121,8 +121,9 @@ Prüfpaket liegt vor (`docs/p4-lab-aktivierung.md`). Einspielen, Prüfen und Spi
 
 ## Offene Abnahmepunkte (durch Tests nicht ersetzbar)
 
-- Regulärer Ablauf mit einem echten Lab-Dorf (Lovable, Spielabnahme A1–A12 in `docs/p4-lab-aktivierung-lovable.md`).
-- Sichtprüfung der Stiftungskarte auf Desktop und Mobil (bisher nur Komponententest, kein Browser).
+- Regulärer Ablauf mit einem echten Lab-Dorf: A3–A11 offen, bis in Testau ein Gemeindebau regulär fertig ist
+  (`docs/p4-abnahmeprotokoll.md`).
+- Sichtprüfung der Stiftungskarte auf Desktop und Mobil: am 28.11.2026 bestanden (A1, A2, A12; Protokoll wie oben).
 - Bewertung des Berechtigungsbefunds `sandbox_exec` in der Sicherheitsprüfung.
 
 Erledigt: Vorher- und Nachher-Prüfung in der echten Datenbank mit Live-ID und Hash; neu erzeugte Supabase-Typen.

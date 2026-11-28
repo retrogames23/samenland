@@ -65,6 +65,7 @@ werden nicht erstattet (Einzahlungen sind endgültig). Der Client braucht dafür
   (Auftrag unten).
 - **Lab gilt erst als aktiviert**, wenn Lovables Nachher-Prüfung 23/23 zeigt, und **als abgenommen**, wenn die
   Spielabnahme A1–A12 auf Desktop und Mobil mit Screenshots vorliegt.
+- Stand der Spielabnahme: `docs/p4-abnahmeprotokoll.md` (28.11.2026: A1, A2, A12 bestanden; A3–A11 offen).
 
 ## Lokale Tests
 
