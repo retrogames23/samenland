@@ -83,6 +83,19 @@ test("new foundations: the stretch is equal-area — as much building land as a 
 });
 
 const ratio = (g: Row[], inl: Row[], f: (r: Row) => number, p: number) => q(g.map(f), p) / q(inl.map(f), p);
+test("new foundations: the stretch depends on the site alone — not on the village id, the founding day or the order of calls", () => {
+  for (const st of [...COAST.slice(0, 12), ...SHORE.slice(0, 12)]) {
+    const at = (id: string, born: number) => landShape({ id, x: st.x, y: st.y, created_at: new Date(born).toISOString() });
+    const a = at("id-a", COAST_AREA_SINCE), b = at("id-b", COAST_AREA_SINCE + 400 * D), c = landShape({ id: "id-c", x: st.x, y: st.y });
+    expect(b).toEqual(a);
+    expect(c).toEqual(a);
+    expect(at("id-a", COAST_AREA_SINCE)).toBe(a);                                    // cached, the same object
+    // the legacy shape of the same site is its own cache entry: one village id can never read the other rule's shape
+    expect(at("id-a", COAST_AREA_SINCE - 1).k).toBe(st.k0);
+    expect(at("id-a", COAST_AREA_SINCE).k).toBe(a.k);
+  }
+});
+
 test("the defect, measured on the legacy rule: strongly coastal sites hold clearly more building land and more people than inland", () => {
   for (const eff of [11, 16, 28]) {
     const inl = run("inland", INLAND, OLD, eff), co = run("coast", COAST, OLD, eff);

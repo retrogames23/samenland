@@ -86,6 +86,8 @@ const SPOTS = [
   [500, 500],
   [640, 410],
 ] as const;
+/** Coastal shape for every village of this run: legacy stretch (default) or equal-area (COAST_SHAPE=area). */
+const COAST_SHAPE = process.env["COAST_SHAPE"] === "area" ? 0 : Infinity;
 const CUT = Date.UTC(2026, 10, 30); // isolated test cutover; production has its own fixed release date
 const NEW = CUT + 864e5; // founded after the cutover: every opening follows the new rule
 const OLD = Date.UTC(2020, 0, 1); // had passed every opening by the cutover: old rule
@@ -94,9 +96,10 @@ describe("road openings settle their lots one by one", () => {
   beforeAll(() => {
     setRealm("europe");
     roadSettleCfg.since = CUT;
-    // this suite compares villages founded before and after its own cut-over at the same (partly coastal) sites: keep
-    // one coastal shape for both, so only the settling rule differs (coast-balance.test.ts tests the shape rule)
-    coastAreaCfg.since = Infinity;
+    // this suite compares villages founded before and after its own cut-over at the same (partly coastal) sites: both
+    // get one coastal shape, so only the settling rule differs. It runs under BOTH shapes — here with the legacy
+    // stretch, in road-settle-area.test.ts with the equal-area stretch of new foundations (coast-balance.test.ts).
+    coastAreaCfg.since = COAST_SHAPE;
   });
   afterAll(() => {
     roadSettleCfg.since = ROAD_SETTLE_SINCE;
@@ -190,6 +193,9 @@ describe("road openings settle their lots one by one", () => {
         }
         const total = town(old, T + 0.05).done.size - before.done.size; // what used to appear at once
         if (total >= 8) {
+          // a site stands for HOUSE_BUILD hours only; the 24 samples above are hours apart and catch one by luck.
+          // Sampling at half a build time cannot miss a site that exists.
+          for (let e = T; e < end && !sawSite; e += HOUSE_BUILD / 2) sawSite = town(fresh, e).sites.size > 0;
           expect(maxStep, `${x},${y} largest step of ${total}`).toBeLessThanOrEqual(
             Math.max(4, Math.ceil(total / 4)), // per 1/24 of the window
           );

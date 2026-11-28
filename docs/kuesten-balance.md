@@ -71,6 +71,24 @@ Binnendörfer leicht ab, weil für Neugründungen der gestaffelte Anliegerbau gi
 Kernzahlen, starke Küste gegen Binnenland: Bauland-Median alt +17 / +16 / +12 %, neu +2 / +3 / −1 % (11 / 16 / 28
 Tage). Bürger im oberen Zehntel alt +12 / +8 / +16 %, neu +5 / +6 / +10 %. Nahrungskapazität in allen Zeilen gleich.
 
+## Abschlussprüfung (28.11.2026)
+
+- **Bestehende Dörfer unverändert:** vollständige Dorfanlage (jede Kachel mit Bauart, Haustyp, Baustelle) und
+  Bürgerzahl für 18 Standorte × 4 Altersstufen, gegründet am 01.01.2026 und am 27.11.2026, auf unverändertem `main`
+  (687e02d) und auf diesem Branch berechnet: 144 von 144 Anlagen identisch. Bei Gründung nach dem Stichtag weichen
+  genau die 13 Küstenstandorte ab, die 5 Binnenstandorte bleiben identisch.
+- **Neue Form stabil:** k hängt nur vom Standort ab (nicht von Dorf-ID, Gründungstag oder Aufrufreihenfolge);
+  Bauland je Standort zwischen 100 und 103 % eines Binnenkreises.
+- **Straßenfreischaltung (road-settle):** Die Suite läuft jetzt unter beiden Küstenformen
+  (`road-settle.test.ts` alte Form, `road-settle-area.test.ts` neue Form), je 13 Tests. Unter der neuen Form schlug
+  zunächst eine Prüfung fehl („Häuser durchlaufen eine Baustelle“, Öffnung bei 720 h). Ursache war die Stichprobe des
+  Tests: eine Baustelle steht 0,6 Stunden, geprüft wurde alle 3,6 Stunden. Feinere Abtastung zeigt Baustellen unter
+  beiden Formen (79 bzw. 86 von 484 Zeitpunkten). Die Prüfung tastet jetzt mit halber Bauzeit ab und kann eine
+  vorhandene Baustelle nicht mehr verfehlen.
+- **Sieben fehlgeschlagene Tests:** `civic.pg.test.ts` (5) und `resources.pg.test.ts` (2), am 28.11.2026 um 10:25 UTC
+  auf unverändertem `main` (687e02d) zweimal und auf diesem Branch einmal ausgeführt: dieselben sieben Tests, dieselben
+  Fehlermeldungen. Sie stammen nicht aus diesem PR und sind hier nicht korrigiert.
+
 ## Offen (Entscheidungen von Stephan)
 
 1. Flächentreue Regel auch auf bestehende Küstendörfer anwenden (Neuanordnung, siehe oben)?
