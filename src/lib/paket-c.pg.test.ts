@@ -81,6 +81,7 @@ const EXPECTED: Record<string, Record<string, string>> = {
 /** Every privilege change 0161 and 0163 make — and every object a later migration adds (0165) — with the call path that justifies it
  *  (a change without a reason fails the test). */
 const CHANGES: Record<string, string> = {
+  "function has_role(_user_id uuid, _role app_role)": "0168: nur angemeldete eigene Rollen über RLS; interne Verwaltungsprüfungen bleiben möglich",
   "table wedding_receipts": "H7: nur noch SELECT; geschrieben nur über wedding_receipts_book / wedding_settle (SECURITY DEFINER, Eigentümer); kein Client, kein Server schreibt direkt",
   "function village_weddings(_seed uuid, _at timestamp with time zone)": "kein Client-Aufruf; intern nur aus SECURITY-DEFINER-Funktionen des Eigentümers (encounter_guard, village_balance_walk)",
   "function claim_visit(_seed uuid, _visited uuid)": "Geld-Einnahme; nur der angemeldete Client ruft sie (Game.tsx) — anon/PUBLIC entzogen",
@@ -321,8 +322,8 @@ d("Paket C – Rechte, Integrität, Client-Wege (vollständiges Schema, Supabase
       const rows = await sql`select p.proname, p.provolatile, p.prosecdef from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prokind = 'f'
         and p.prorettype <> 'trigger'::regtype and has_function_privilege('anon', p.oid, 'EXECUTE') order by 1`;
       expect(rows.filter((r) => r["provolatile"] === "v").map((r) => r["proname"])).toEqual([]);
-      // unverändert gelassen, weil STABLE und nur aus öffentlich lesbaren Daten abgeleitet (Kalender, Rolle für RLS)
-      expect(rows.filter((r) => r["prosecdef"]).map((r) => r["proname"]).sort()).toEqual(["has_role", "road_done", "tax_receipt_start", "village_raids"]);
+      // Role lookups now obey caller RLS and are not executable by anon (0168).
+      expect(rows.filter((r) => r["prosecdef"]).map((r) => r["proname"]).sort()).toEqual(["road_done", "tax_receipt_start", "village_raids"]);
     });
     it("C-R die Rechteübersichten sind vollständig (jede Tabelle, Sicht, Sequenz und jede Funktionssignatur) und maschinenlesbar", async () => {
       const [c] = await sql`select (select count(*)::int from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind in ('r','v','m','S','p')) rel,

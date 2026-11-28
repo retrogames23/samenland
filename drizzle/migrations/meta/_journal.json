@@ -1177,6 +1177,13 @@
       "when": 1795825577061,
       "tag": "0167_begleitmigration_0167",
       "breakpoints": true
+    },
+    {
+      "idx": 168,
+      "version": "7",
+      "when": 1795826174087,
+      "tag": "0168_restrict_role_lookup",
+      "breakpoints": true
     }
   ]
 }

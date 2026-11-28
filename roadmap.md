@@ -1,4 +1,8 @@
 # Roadmap
+- [x] Ausgewählte Sicherheitsbefunde: fremde Rollenabfragen mit 0168 gesperrt; Live-Rechte geprüft, 25/25 isolierte PostgreSQL-Tests bestanden, Befund als behoben gemeldet.
+- [ ] Zwei Empfehlungsbefunde: bestätigte Einladungsnachweise und Umgang mit bestehenden Links benötigen Freigabe.
+- [ ] Naturwunder-Belohnung: vertrauenswürdiger Besuchsnachweis benötigt eine bestätigte Spielregel; keine stille Abschaltung.
+- [ ] Markt-Belohnung: serverseitiger Überschussnachweis und Ablösung der direkten Buchung benötigen Freigabe.
 - [x] PR #72: fester Stichtag 2026-11-28 12:00 UTC; Straßentests 13/13, Simulation 54/54, reguläre Suite 1937 bestanden / 284 DB-Tests ohne Testdatenbank übersprungen.
 - [x] PR #72: Release-Commit e0509e7c, automatischer Typecheck ohne gespeicherte Fehler / Build OK; veröffentlicht 2026-11-27 23:28:25 UTC, Live-Code enthält den festen Stichtag; keine Datenbankmigration.
 - [ ] PR #72: vom Hosting gespeicherte Commit-SHA direkt rücklesen – Hosting-Abfragen liefern keine Deployment-SHA und melden main weiterhin auf 4405f669; Releaseinhalt ist live nachgewiesen.
