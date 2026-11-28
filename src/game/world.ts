@@ -374,10 +374,42 @@ export const stageOf = (h: number) => {
 /** Mixed sqrt/log expansion: ~43 tiles at two years, continuing beyond that. */
 export const radiusOf = (h: number) => 1.6 + 0.18 * Math.sqrt(Math.max(0, h)) + 3 * Math.log1p(Math.max(0, h) / 60);
 
-/** Coastal towns fan inland: unit vector away from water plus a stretch that compensates lost sea area. Pure, cached. */
+/**
+ * Coastal towns fan inland: unit vector away from water plus a stretch k that compensates lost sea area. Pure, cached.
+ *
+ * Two rules for k, chosen by founding date (a stretch can never change for a standing town: every house, ring road and
+ * field is laid out in town-space distance, so a new k would move about half of its houses):
+ * - founded before COAST_AREA_SINCE: the land-share estimate 1 + (0.9 − f) × 3.6 (f = buildable share within 16 tiles).
+ *   It overshoots on strongly coastal sites: median 15–19 % more building land than a flat inland town of the same
+ *   radius, single sites over 30 % (docs/kuesten-balance.md).
+ * - founded from COAST_AREA_SINCE (and every prospective site without a founding date): the equal-area stretch — the
+ *   smallest k at which the town shape holds as much buildable land as a full inland circle, averaged over
+ *   COAST_AREA_RADII. Coast is then neither a bonus nor a penalty in building land; at most COAST_K_MAX.
+ */
+export const COAST_AREA_SINCE = Date.UTC(2026, 10, 29, 0, 0, 0);
+export const COAST_AREA_RADII = [8, 12, 16, 24] as const, COAST_K_MAX = 2.8;
+type ShapeSeed = { id: string; x: number; y: number; created_at?: string | null };
+/** Test hook, like roadSettleCfg: tests of other rules pin the cut-over; production never changes it. */
+export const coastAreaCfg = { since: COAST_AREA_SINCE };
+export const coastAreaRule = (s: ShapeSeed) => !s.created_at || Date.parse(s.created_at) >= coastAreaCfg.since;
+/** Buildable land inside the town shape of radius R, as a share of a full circle of that radius (1 = flat inland town). */
+export function coastLandShare(x: number, y: number, ux: number, uy: number, k: number, radii: readonly number[] = COAST_AREA_RADII) {
+  let sum = 0;
+  for (const R of radii) {
+    let n = 0; const B = Math.ceil(R * k) + 1;
+    for (let j = -B; j <= B; j++) for (let i = -B; i <= B; i++) {
+      let p = i * ux + j * uy; const q = -i * uy + j * ux;
+      if (p > 0) p /= k;
+      if (Math.hypot(p, q) <= R && buildable(terrain(x + i, y + j))) n++;
+    }
+    sum += n / (Math.PI * R * R);
+  }
+  return sum / radii.length;
+}
 const shapeCache = new Map<string, { ux: number; uy: number; k: number }>();
-export function landShape(s: { id: string; x: number; y: number }) {
-  const ck = `${s.id}|${s.x}|${s.y}`;
+export function landShape(s: ShapeSeed) {
+  const area = coastAreaRule(s);
+  const ck = `${s.id}|${s.x}|${s.y}|${area ? 1 : 0}`;
   const hit = shapeCache.get(ck); if (hit) return hit;
   let land = 0, tot = 0, vx = 0, vy = 0;
   const R = 16;
@@ -387,12 +419,20 @@ export function landShape(s: { id: string; x: number; y: number }) {
     if (buildable(terrain(Math.round(s.x) + i, Math.round(s.y) + j))) { land++; vx += i / d; vy += j / d; }
   }
   const f = tot ? land / tot : 1, m = Math.hypot(vx, vy);
-  const out = m > 1e-6 && f < 0.9 ? { ux: vx / m, uy: vy / m, k: Math.min(2.8, 1 + (0.9 - f) * 3.6) } : { ux: 1, uy: 0, k: 1 };
+  let out = m > 1e-6 && f < 0.9 ? { ux: vx / m, uy: vy / m, k: Math.min(2.8, 1 + (0.9 - f) * 3.6) } : { ux: 1, uy: 0, k: 1 };
+  if (area && out.k > 1) {
+    const { ux, uy } = out, X = Math.round(s.x), Y = Math.round(s.y);
+    const share = (k: number) => coastLandShare(X, Y, ux, uy, k);
+    let lo = 1, hi = COAST_K_MAX;
+    if (share(1) >= 1) hi = 1;
+    else if (share(hi) > 1) for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (share(mid) < 1) lo = mid; else hi = mid; }
+    out = hi === 1 ? { ux: 1, uy: 0, k: 1 } : { ux, uy, k: hi };
+  }
   shapeCache.set(ck, out);
   return out;
 }
 /** Town-space distance: tiles landward count as closer, so a harbour town reaches k× deeper inland. */
-export function townDist(x: number, y: number, s: { id: string; x: number; y: number }): number {
+export function townDist(x: number, y: number, s: ShapeSeed): number {
   const { ux, uy, k } = landShape(s);
   const dx = x - s.x, dy = y - s.y;
   if (k === 1) return Math.hypot(dx, dy);
@@ -401,7 +441,7 @@ export function townDist(x: number, y: number, s: { id: string; x: number; y: nu
   return Math.hypot(p, q);
 }
 /** Max real-tile reach of a town with town-space radius r (for bounding boxes). */
-export const reachOf = (s: { id: string; x: number; y: number }, r: number) => r * landShape(s).k;
+export const reachOf = (s: ShapeSeed, r: number) => r * landShape(s).k;
 /** Monotonic numeric inverse; no artificial maximum town size. */
 export const birthAt = (d: number) => {
   if (d <= 1.6) return 0;
@@ -1245,7 +1285,7 @@ export function bornAt(x: number, y: number, s: Seed, seeds?: Seed[]): number {
   if (was === Infinity) return b;
   const first = ROAD_OPENINGS.findIndex((t) => t > was);
   if (first < 0) return b;
-  const ck = `${s.id}|${s.x}|${s.y}|${x}|${y}|${first}`, hit = bornMemo.get(ck);
+  const ck = `${s.id}|${s.x}|${s.y}|${x}|${y}|${first}|${landShape(s).k}`, hit = bornMemo.get(ck);
   if (hit !== undefined) return hit;
   // "due before the opening" exactly as the map decides it (forSeed reads the lot's birth from townDist)
   const due = tileBirth(townDist(x, y, s)) * (0.75 + 0.5 * hash(x, y, 3));

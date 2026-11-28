@@ -11,6 +11,8 @@ import {
   roadSettleCfg,
   ROAD_SETTLE_SINCE,
   ROAD_SETTLE_OFF,
+  coastAreaCfg,
+  COAST_AREA_SINCE,
   HOUSE_BUILD,
   type Seed,
 } from "./world";
@@ -92,9 +94,13 @@ describe("road openings settle their lots one by one", () => {
   beforeAll(() => {
     setRealm("europe");
     roadSettleCfg.since = CUT;
+    // this suite compares villages founded before and after its own cut-over at the same (partly coastal) sites: keep
+    // one coastal shape for both, so only the settling rule differs (coast-balance.test.ts tests the shape rule)
+    coastAreaCfg.since = Infinity;
   });
   afterAll(() => {
     roadSettleCfg.since = ROAD_SETTLE_SINCE;
+    coastAreaCfg.since = COAST_AREA_SINCE;
   });
 
   it("settling windows never overlap and start exactly at the opening", () => {
