@@ -386,7 +386,7 @@ export const radiusOf = (h: number) => 1.6 + 0.18 * Math.sqrt(Math.max(0, h)) + 
  *   smallest k at which the town shape holds as much buildable land as a full inland circle, averaged over
  *   COAST_AREA_RADII. Coast is then neither a bonus nor a penalty in building land; at most COAST_K_MAX.
  */
-export const COAST_AREA_SINCE = Date.UTC(2026, 10, 29, 0, 0, 0);
+export const COAST_AREA_SINCE = Date.UTC(2026, 10, 30, 0, 0, 0); // 2026-11-30T00:00:00Z, confirmed by Stephan; publish before it
 export const COAST_AREA_RADII = [8, 12, 16, 24] as const, COAST_K_MAX = 2.8;
 type ShapeSeed = { id: string; x: number; y: number; created_at?: string | null };
 /** Test hook, like roadSettleCfg: tests of other rules pin the cut-over; production never changes it. */

@@ -58,6 +58,9 @@ test("the sample holds enough inland Kornkammern and coastal gateways", () => {
 });
 
 test("standing towns keep their shape: founded before the cut-over, k is the legacy land-share stretch, unchanged", () => {
+  expect(new Date(COAST_AREA_SINCE).toISOString()).toBe("2026-11-30T00:00:00.000Z");   // the shipped cut-over
+  expect(coastAreaRule({ id: "a", x: 0, y: 0, created_at: "2026-11-29T23:59:59.999Z" })).toBe(false);
+  expect(coastAreaRule({ id: "a", x: 0, y: 0, created_at: "2026-11-30T00:00:00.000Z" })).toBe(true);
   expect(coastAreaRule({ id: "a", x: 0, y: 0, created_at: new Date(COAST_AREA_SINCE - 1).toISOString() })).toBe(false);
   expect(coastAreaRule({ id: "a", x: 0, y: 0, created_at: new Date(COAST_AREA_SINCE).toISOString() })).toBe(true);
   expect(coastAreaRule({ id: "a", x: 0, y: 0 })).toBe(true);                       // a prospective site is a new foundation

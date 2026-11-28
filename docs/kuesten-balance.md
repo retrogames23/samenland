@@ -20,11 +20,14 @@ Binnenland im Median rund 175.
 
 ## Änderung
 
-`src/game/world.ts`, `landShape`: Für Dörfer, die **ab dem 29.11.2026 00:00 UTC** gegründet werden
+`src/game/world.ts`, `landShape`: Für Dörfer, die **ab dem 30.11.2026 00:00 UTC (2026-11-30T00:00:00Z, 01:00 Uhr MEZ)** gegründet werden
 (`COAST_AREA_SINCE`), ist die Dehnung flächentreu: das kleinste k, bei dem die Dorfform so viel bebaubares Land
 enthält wie ein voller Kreis im Binnenland, gemittelt über die Radien 8, 12, 16 und 24; höchstens 2,8. Küste ist damit
 beim Bauland weder Bonus noch Malus. Charaktere, Handelsboni, Nahrungsregeln, Wachstum und Stiftungen sind unberührt.
 Keine Migration, keine Datenbankänderung.
+
+Der Stichtag ist von Stephan am 28.11.2026 bestätigt. Merge und Publish müssen vor dem Stichtag liegen; sonst ändert ein
+dazwischen gegründetes Küstendorf beim Publish einmal seine Form.
 
 **Bestehende Dörfer behalten ihre Form.** Grund: Jedes Haus, jede Ringstraße und jedes Feld liegt im gedehnten
 Dorfraum. Ein neues k würde ein stehendes Küstendorf neu anordnen – gemessen an zehn Standorten bleiben nur 46–90 %
