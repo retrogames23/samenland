@@ -1262,6 +1262,59 @@ export type Database = {
           },
         ]
       }
+      stift_stages: {
+        Row: {
+          bau: string
+          done_at: string | null
+          funded_at: string | null
+          kontor: number | null
+          nr: number
+          opened_at: string
+          paid: number
+          price: number
+          seed_id: string
+          stone_store: number | null
+          until_at: string | null
+          wood_store: number | null
+        }
+        Insert: {
+          bau: string
+          done_at?: string | null
+          funded_at?: string | null
+          kontor?: number | null
+          nr: number
+          opened_at?: string
+          paid?: number
+          price: number
+          seed_id: string
+          stone_store?: number | null
+          until_at?: string | null
+          wood_store?: number | null
+        }
+        Update: {
+          bau?: string
+          done_at?: string | null
+          funded_at?: string | null
+          kontor?: number | null
+          nr?: number
+          opened_at?: string
+          paid?: number
+          price?: number
+          seed_id?: string
+          stone_store?: number | null
+          until_at?: string | null
+          wood_store?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stift_stages_seed_id_fkey"
+            columns: ["seed_id"]
+            isOneToOne: false
+            referencedRelation: "seeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supporter_rewards: {
         Row: {
           amount_cents: number
@@ -2002,6 +2055,54 @@ export type Database = {
         Args: { _body: string; _from: string; _to: string }
         Returns: string
       }
+      stift_close: {
+        Args: { _bau: string; _client: number; _max: number; _seed: string }
+        Returns: Json
+      }
+      stift_deposit: {
+        Args: {
+          _amount: number
+          _bau: string
+          _client: number
+          _n: number
+          _seed: string
+        }
+        Returns: Json
+      }
+      stift_endowed_at: {
+        Args: { _at: string; _bau: string; _seed: string }
+        Returns: boolean
+      }
+      stift_enter: {
+        Args: { _bau: string; _client: number; _seed: string }
+        Returns: string
+      }
+      stift_free_quota: {
+        Args: { _seed: string }
+        Returns: Record<string, unknown>
+      }
+      stift_open: {
+        Args: { _bau: string; _client: number; _seed: string }
+        Returns: Json
+      }
+      stift_overview: {
+        Args: { _client: number; _seed: string }
+        Returns: Json
+      }
+      stift_reserved: {
+        Args: { _seed: string }
+        Returns: Record<string, unknown>
+      }
+      stift_row_price: {
+        Args: { _cost: number; _item: string; _seed: string }
+        Returns: number
+      }
+      stift_since: { Args: { _realm: string }; Returns: string }
+      stift_until_at: {
+        Args: { _at: string; _bau: string; _seed: string }
+        Returns: string
+      }
+      stift_vorrang: { Args: { _seed: string }; Returns: string }
       survey_open: { Args: never; Returns: boolean }
       survey_submit: {
         Args: { _answers: Json; _lang: string; _status: string; _wish: string }
