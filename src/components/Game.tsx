@@ -1692,7 +1692,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const { res, refreshResources } = useResources(my, userId, [purchases]);
   // Gemeindebauten (P2): stages and quota as the database books them; refreshed with every resource booking
   const { civic, quota: civicQuota, refreshCivic } = useCivic(my, userId, [purchases, res]);
-  // Stiftungen (P4): overview and the three player actions; asks nothing before stiftSince (placeholder 2100 everywhere)
+  // Stiftungen (P4): overview and the three player actions; asks nothing before stiftSince (only the lab map is active, migration 0169)
   const { stift, refreshStiftung, stiftOpen, stiftDeposit, stiftClose } = useStiftung(my, userId, [purchases, res, civic]);
   const quoteIn = (r: typeof res, item: string) => {
     const need = r?.active ? materialOf(item) : null;

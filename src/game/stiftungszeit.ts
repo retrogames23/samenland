@@ -31,11 +31,14 @@ export const STIFT_MS = STIFT_DAYS * DAY,
   STIFT_PAUSE_MS = STIFT_PAUSE_DAYS * DAY;
 
 /**
- * Start of Stiftungen per map (DB stift_since). No date is decided (D7): the placeholder holds for the lab and for the
- * public maps alike, so nothing is active anywhere. A real date is its own later migration and decision.
+ * Start of Stiftungen per map (DB stift_since, migrations 0165 and 0169). Only the admin test map `lab` is active
+ * (P4 Schritt 2b, migration 0169: 2026-11-28 00:00 UTC). Every other map — europe, us-west, us-east, asia and their
+ * overflow maps — stays on the placeholder: no public date is decided (D7); a real date is its own later migration and
+ * decision. Stiftungen never act backwards (every row is a player action), so a start in the past books nothing.
  */
 export const STIFT_SINCE = Date.UTC(2100, 0, 4);
-export const stiftSince = (_realm: string | null | undefined) => STIFT_SINCE;
+export const STIFT_SINCE_LAB = Date.UTC(2026, 10, 28);
+export const stiftSince = (realm: string | null | undefined) => (realm === "lab" ? STIFT_SINCE_LAB : STIFT_SINCE);
 
 /** Row names (DB purchase_guard, migration 0165). */
 export const stiftMarker = (bau: StiftBau, n: number) => `stift:${bau}:${n}`;

@@ -1184,6 +1184,20 @@
       "when": 1795826174087,
       "tag": "0168_restrict_role_lookup",
       "breakpoints": true
+    },
+    {
+      "idx": 169,
+      "version": "7",
+      "when": 1795857739857,
+      "tag": "0169_stiftungen_lab_aktivierung",
+      "breakpoints": true
+    },
+    {
+      "idx": 170,
+      "version": "7",
+      "when": 1795857740857,
+      "tag": "0170_begleitmigration_0170",
+      "breakpoints": true
     }
   ]
 }

@@ -14,10 +14,10 @@ Migrationen 0165–0167 eingespielt und geprüft, veröffentlicht laut Stephan, 
 | Nachher-Prüfung | **bestanden, 23 von 23** | vier gepatchte Bestandsfunktionen exakt wie erwartet, 13 neue Funktionskörper bytegenau, acht weitere geprüfte Bestandsfunktionen unverändert |
 | Bestand | **unverändert in den dokumentierten Kennzahlen** | 211 Seeds, Käufe, Steuerbelege, Rohstoff-Ledger, Kassenstände, Kontorpreise; `stift_stages` leer, keine Stiftungs-Kaufzeile |
 | Published (Lovable) | **veröffentlicht laut Stephan** (28.11.2026, nach dem Installationsbericht) | Angabe von Stephan; das Hosting liefert keine Deployment-SHA |
-| Aktivierung | **keine.** `stift_since()` = 04.01.2100 in allen fünf Welten (`lab`, `europe`, `us-west`, `us-east`, `asia`); `stiftSince()` im Client ebenso | Installationsbericht; ein echtes Datum ist eine eigene Migration mit eigener Freigabe (Lab: Masterplan Schritt 2b; öffentlich: P6 / D7) |
+| Aktivierung | **nur `lab`, und erst nach dem Einspielen von 0169 durch Lovable** (P4 Schritt 2b, `docs/p4-lab-aktivierung.md`): `stift_since('lab')` = 28.11.2026. `europe`, `us-west`, `us-east`, `asia` und alle Überlaufkarten bleiben auf 04.01.2100; `stiftSince()` im Client ebenso | Bis Lovables Nachher-Prüfung zu 0169 vorliegt, gilt live der Stand des Installationsberichts (alle fünf Welten 04.01.2100). Öffentlich: eigene Migration mit eigener Freigabe (P6 / D7) |
 | Supabase-Typen | **neu erzeugt** | Lovable-Commit `5bda94e` |
 
-Kein Dorf kann stiften; der Client fragt vor dem Schalter nichts ab.
+In den öffentlichen Welten kann kein Dorf stiften; der Client fragt dort vor dem Schalter nichts ab.
 
 **0165–0167 nicht erneut einspielen und nicht erneut prüfen.** `docs/sql/0165/02_nachher.sql` und `03_fingerprints.sql`
 laufen nicht noch einmal; ihre Ergebnisse liegen im Installationsbericht vor.
@@ -116,12 +116,12 @@ Abschluss verändert keinen früheren Zeitpunkt und keinen Steuerbeleg.
 5. Publish. Danach bleibt alles inaktiv, bis ein Datum für `lab` gesetzt wird (eigener kleiner PR).
 
 Erledigt: Merge (PR #73), Vorher-Prüfung 10/10, Einspielen (Live-IDs 167–169), Nachher-Prüfung 23/23, Publish laut Stephan.
-**Nächster Schritt ist allein die Lab-Aktivierung** (eigener PR mit eigener Migration, Begleitmigration und Prüfpaket) –
-nur nach Stephans separater ausdrücklicher Freigabe.
+Lab-Aktivierung (Schritt 2b): von Stephan am 28.11.2026 freigegeben; PR mit Migration 0169, Begleitmigration 0170 und
+Prüfpaket liegt vor (`docs/p4-lab-aktivierung.md`). Einspielen, Prüfen und Spielabnahme durch Lovable stehen aus.
 
 ## Offene Abnahmepunkte (durch Tests nicht ersetzbar)
 
-- Regulärer Ablauf mit einem echten Lab-Dorf (erst nach der Lab-Aktivierung möglich).
+- Regulärer Ablauf mit einem echten Lab-Dorf (Lovable, Spielabnahme A1–A12 in `docs/p4-lab-aktivierung-lovable.md`).
 - Sichtprüfung der Stiftungskarte auf Desktop und Mobil (bisher nur Komponententest, kein Browser).
 - Bewertung des Berechtigungsbefunds `sandbox_exec` in der Sicherheitsprüfung.
 
