@@ -1,20 +1,40 @@
 # P4 Stiftungen – Migration 0165 (Wirtschaftsumbau)
 
-Stand: 27.11.2026. Grundlage: Masterplan v6.7 (Abschnitt 4.1, Entscheidungen D2, D6, D10a, D11) und der
-Implementierungsauftrag Entwurf 2. **Status: implementiert auf dem Branch `claude/p4-stiftungen`, nicht gemergt, nicht
-eingespielt, nirgends aktiv.**
+Stand: 28.11.2026 (Statusberichtigung, Paket M des Masterplans v7.0). Grundlage der Umsetzung: Masterplan v6.7
+(Abschnitt 4.1, Entscheidungen D2, D6, D10a, D11) und der Implementierungsauftrag Entwurf 2. **Status: gemergt (PR #73),
+Migrationen 0165–0167 eingespielt und geprüft, veröffentlicht laut Stephan, nirgends aktiv.**
 
 ## Ebenenstatus
 
-| Ebene | Stand |
-|---|---|
-| Repository (Branch, PR) | Code, Migration 0165/0166, Tests, Texte, Prüfpaket |
-| `main` | unverändert |
-| Datenbank (lab und öffentlich) | **nichts eingespielt** |
-| Published (Lovable) | unverändert |
-| Aktivierung | **keine.** `stift_since()` / `stiftSince()` = 04.01.2100 für `lab` und öffentlich. Ein echtes Datum ist eine eigene Migration mit eigener Freigabe (Stufe 2 Lab, Stufe 3 öffentlich / D7) |
+| Ebene | Stand | Beleg |
+|---|---|---|
+| Code in `main` | **gemergt** | PR #73, Merge-Commit `83a839d` (28.11.2026, 00:09 UTC) |
+| Datenbank | **0165, 0166 und die Lovable-Begleitmigration 0167 eingespielt** | P4-Installationsbericht vom 28.11.2026: Datenbank `postgres`, OID 5, PostgreSQL 17.11; Live-IDs 167 / 168 / 169; 0165 mit SHA-256 `9b5fc4d0fa1ba375cdc6af3e687dca7538c7041080da7876dae565cc4bd88851` (gleich der Datei in `main`) |
+| Vorher-Prüfung | **bestanden, 10 von 10** | 28.11.2026, 00:25:12 UTC; die vier Bestandsfunktionen entsprachen dem Stand vor 0165 |
+| Nachher-Prüfung | **bestanden, 23 von 23** | vier gepatchte Bestandsfunktionen exakt wie erwartet, 13 neue Funktionskörper bytegenau, acht weitere geprüfte Bestandsfunktionen unverändert |
+| Bestand | **unverändert in den dokumentierten Kennzahlen** | 211 Seeds, Käufe, Steuerbelege, Rohstoff-Ledger, Kassenstände, Kontorpreise; `stift_stages` leer, keine Stiftungs-Kaufzeile |
+| Published (Lovable) | **veröffentlicht laut Stephan** (28.11.2026, nach dem Installationsbericht) | Angabe von Stephan; das Hosting liefert keine Deployment-SHA |
+| Aktivierung | **keine.** `stift_since()` = 04.01.2100 in allen fünf Welten (`lab`, `europe`, `us-west`, `us-east`, `asia`); `stiftSince()` im Client ebenso | Installationsbericht; ein echtes Datum ist eine eigene Migration mit eigener Freigabe (Lab: Masterplan Schritt 2b; öffentlich: P6 / D7) |
+| Supabase-Typen | **neu erzeugt** | Lovable-Commit `5bda94e` |
 
-Auch nach Merge, Einspielen und Publish kann kein Dorf stiften; der Client fragt vor dem Schalter nichts ab.
+Kein Dorf kann stiften; der Client fragt vor dem Schalter nichts ab.
+
+**0165–0167 nicht erneut einspielen und nicht erneut prüfen.** `docs/sql/0165/02_nachher.sql` und `03_fingerprints.sql`
+laufen nicht noch einmal; ihre Ergebnisse liegen im Installationsbericht vor.
+
+### Zwei Einschränkungen des Installationsberichts (unverändert zu erhalten)
+
+- **Berechtigungsbefund `sandbox_exec`:** Die interne Rolle `sandbox_exec` besitzt durch Default-Grants **SELECT und
+  INSERT auf `stift_stages`** und **BYPASSRLS = true**. Der Bericht weist das als zusätzlichen internen Grant aus. Die
+  Migration 0165 vergibt dieses Recht nicht selbst. **Nicht eigenmächtig ändern;** der Befund ist für die
+  Sicherheitsprüfung vorgemerkt (Masterplan v7.0, Abschnitte 3.4 und 9).
+- **Methode:** Die SQL-Blöcke der Prüfung wurden einzeln lesend ausgeführt, nicht innerhalb einer einzigen durchgehenden
+  READ-ONLY-Transaktion. Die Prüfungen und Bestandskennzahlen sind damit einzeln belegt, nicht als ein gemeinsamer
+  Zeitpunkt.
+
+Die 21 Regeltests (K1–K9, S1–S5, H-G1–H-G7) in der PostgreSQL-Testdatenbank sind ein eigener Nachweis und nicht mit den
+23 Live-Nachprüfungen gleichzusetzen: Die Tests zeigen die Regeln (PostgreSQL 16), die Nachprüfung zeigt die Installation
+in der echten Datenbank (PostgreSQL 17.11).
 
 ## Regeln und wo sie stehen
 
@@ -89,22 +109,25 @@ Abschluss verändert keinen früheren Zeitpunkt und keinen Steuerbeleg.
 
 `stiftung.pg.test.ts` (K9) führt alle vier Dateien gegen eine Testdatenbank aus, vor und nach der Migration.
 
-## Ablauf nach dem Review (jede Stufe mit eigener Freigabe von Stephan)
+## Ablauf (Schritte 1 bis 5 erledigt am 28.11.2026)
 
 1. Merge des PR. 2. `01_vorher.sql` und `03_fingerprints.sql` in der echten Datenbank, Ergebnis mit DB-ID und Zeit ablegen.
 3. Einspielen von 0165 und 0166 über Lovable. 4. `02_nachher.sql` und `03_fingerprints.sql`, Ergebnis ablegen.
 5. Publish. Danach bleibt alles inaktiv, bis ein Datum für `lab` gesetzt wird (eigener kleiner PR).
 
+Erledigt: Merge (PR #73), Vorher-Prüfung 10/10, Einspielen (Live-IDs 167–169), Nachher-Prüfung 23/23, Publish laut Stephan.
+**Nächster Schritt ist allein die Lab-Aktivierung** (eigener PR mit eigener Migration, Begleitmigration und Prüfpaket) –
+nur nach Stephans separater ausdrücklicher Freigabe.
+
 ## Offene Abnahmepunkte (durch Tests nicht ersetzbar)
 
-- Vorher- und Nachher-Prüfung in der echten Datenbank mit DB-ID und Hash.
 - Regulärer Ablauf mit einem echten Lab-Dorf (erst nach der Lab-Aktivierung möglich).
 - Sichtprüfung der Stiftungskarte auf Desktop und Mobil (bisher nur Komponententest, kein Browser).
-- Neu erzeugte Supabase-Typen nach dem Einspielen.
+- Bewertung des Berechtigungsbefunds `sandbox_exec` in der Sicherheitsprüfung.
 
-## Vorschlag für den Masterplan-Nachtrag
+Erledigt: Vorher- und Nachher-Prüfung in der echten Datenbank mit Live-ID und Hash; neu erzeugte Supabase-Typen.
 
-- 3.x / 11.2 Schritt 2: „P4 implementiert (PR, Migration 0165/0166), nicht gemergt, nicht eingespielt, nicht aktiv.“
-- 4.1: Status der P4-Tabelle von „nicht implementiert“ auf „implementiert, nicht aktiv“; die neun Festlegungen oben.
-- 12: Die 21 Prüfpunkte sind in der Testdatenbank ausgeführt (Tabelle im PR); offen bleiben die vier Punkte oben.
-- D7 bleibt offen; Lab-Aktivierung als eigener Schritt.
+## Masterplan
+
+Der Stand von P4 steht verbindlich im Masterplan Wirtschaftsumbau v7.0, Abschnitt 3.4 (Nachweismatrix). Der frühere
+„Vorschlag für den Masterplan-Nachtrag“ dieses Dokuments ist dort eingearbeitet und entfällt.
