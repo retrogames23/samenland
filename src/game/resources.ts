@@ -106,11 +106,15 @@ export type KontorQuote = { need: Stock; missing: Stock; cost: number };
 /** What the Kontor would add for a need at the given stock: only the missing units (DB resource_kontor, half up). */
 /** Waage 1 (Gemeindebau, civic.ts) makes every Kontor price 15 % cheaper (DB resource_kontor_at). */
 export const WAAGE_DISCOUNT = 0.85;
+/** The Waage factor on a Kontor price: false = none, true = Waage 1 alone (×0.85), a number = the whole factor as
+ *  stiftung.ts waageFactor gives it (Waage 1 and, while the Waage is endowed, P4, another ×0.85). */
+export const kontorFactor = (waage: boolean | number) =>
+  typeof waage === "number" ? waage : waage ? WAAGE_DISCOUNT : 1;
 export function kontorQuote(
   need: Stock,
   stock: Stock,
   site: TownWay | null = null,
-  waage = false,
+  waage: boolean | number = false,
 ): KontorQuote {
   const missing = {
     wood: Math.max(0, need.wood - stock.wood),
@@ -120,7 +124,7 @@ export function kontorQuote(
   return {
     need,
     missing,
-    cost: Math.round(raw * (site ? SITE_KONTOR[site] : 1) * (waage ? WAAGE_DISCOUNT : 1) + 1e-9),
+    cost: Math.round(raw * (site ? SITE_KONTOR[site] : 1) * kontorFactor(waage) + 1e-9),
   };
 }
 

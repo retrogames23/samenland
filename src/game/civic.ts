@@ -17,7 +17,7 @@
  * Effects read only that marker (bought row with at <= now), so nothing acts before the stage really stands.
  */
 import type { Seed } from "./world";
-import { KONTOR_PRICE, SITE_KONTOR, WAAGE_DISCOUNT, isAnkauf, type Stock } from "./resources";
+import { KONTOR_PRICE, SITE_KONTOR, WAAGE_DISCOUNT, isAnkauf, kontorFactor, type Stock } from "./resources";
 import type { TownWay } from "./character";
 
 /**
@@ -68,11 +68,19 @@ export const isCivicStage = (item: string): item is CivicStage =>
 export const CIVIC_MONEY_RE = /^(spital|waage)[1-9][0-9]*:(r[1-9][0-9]*|k[0-9]{8})$/;
 export const isCivicMoney = (item: string) => CIVIC_MONEY_RE.test(item);
 /**
+ * P4 Stiftungen (stiftung.ts, migration 0165): every purchase row of a Stiftung — deposits `stift:<bau>:<n>:r<m>`,
+ * the Kontor part of the close `stift:<bau>:<n>:k` and the completion marker `stift:<bau>:<n>` (0 Mark). None is a
+ * building, a civic work or a chronicle entry. The prefix keeps them off the Gemeindebau pattern above.
+ */
+export const STIFT_ROW_RE = /^stift:(spital|waage):[1-9][0-9]*(:r[1-9][0-9]*|:k)?$/;
+export const isStiftRow = (item: string) => STIFT_ROW_RE.test(item);
+/**
  * F-P2-1: does a purchase row count as a bought building for quests and the decree "build"? Mirrors DB quest_guard
  * (np) and princely_task_met (migration 0153): ordinary purchases count, a stage counts once by its completion marker
  * (`spitalN`/`waageN`); its instalments and daily Kontor rows and every Ankauf credit (P1) do not.
  */
-export const countsAsBuilding = (item: string) => !isAnkauf(item) && !isCivicMoney(item);
+export const countsAsBuilding = (item: string) =>
+  !isAnkauf(item) && !isCivicMoney(item) && !isStiftRow(item);
 /** Instalment rows only (`<stage>:r<n>`) — they pay the building price, never the Kontor. */
 export const isCivicInstalment = (stage: CivicStage, item: string) =>
   new RegExp(`^${stage}:r[1-9][0-9]*$`).test(item);
@@ -89,13 +97,14 @@ export function civicLock(s: Pick<Seed, "bought">, stage: CivicStage, rank: numb
   return null;
 }
 
-/** Kontor price of units as DB resource_kontor_at: site factor, Waage discount, round half up. */
-export function kontorCost(units: Stock, site: TownWay | null, waage: boolean) {
+/** Kontor price of units as DB resource_kontor_at: site factor, Waage factor (resources.ts kontorFactor: true = Waage 1
+ *  alone, a number = the whole factor incl. an endowed Waage, stiftung.ts waageFactor), round half up. */
+export function kontorCost(units: Stock, site: TownWay | null, waage: boolean | number) {
   const raw = units.wood * KONTOR_PRICE.wood + units.stone * KONTOR_PRICE.stone;
-  return Math.round(raw * (site ? SITE_KONTOR[site] : 1) * (waage ? WAAGE_KONTOR : 1) + 1e-9);
+  return Math.round(raw * (site ? SITE_KONTOR[site] : 1) * kontorFactor(waage) + 1e-9);
 }
 /** Largest sensible Kontor budget: the whole material of the stage bought at the Kontor (DB civic_open checks it). */
-export const civicBudgetMax = (stage: CivicStage, site: TownWay | null, waage: boolean) =>
+export const civicBudgetMax = (stage: CivicStage, site: TownWay | null, waage: boolean | number) =>
   kontorCost(civicNeed(stage), site, waage);
 
 /** Range for raising the Kontor limit of an open stage later (DB civic_raise_budget): above the current limit, at most the
@@ -104,7 +113,7 @@ export const civicBudgetMax = (stage: CivicStage, site: TownWay | null, waage: b
 export function civicRaiseRange(
   row: Pick<CivicRow, "budget" | "need_wood" | "need_stone" | "material_at">,
   site: TownWay | null,
-  waage: boolean,
+  waage: boolean | number,
 ) {
   if (row.material_at) return null;
   const max = kontorCost({ wood: row.need_wood, stone: row.need_stone }, site, waage);

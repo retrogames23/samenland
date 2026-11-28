@@ -98,6 +98,10 @@ import { FOUNTAIN } from "@/game/lang/fountain";
 import { CIVIC_T } from "@/game/lang/civic";
 import { CIVIC, CIVIC_MIN_RANK, CIVIC_STAGES, countsAsBuilding, civicBudgetMax, civicLock, civicRaiseRange, isCivicStage, civicDeposit, isCivicInstalment, civicDone, civicNeed, civicPhase, type CivicStage } from "@/game/civic";
 import { useCivic } from "@/components/hooks/useCivic";
+import { useStiftung } from "@/components/hooks/useStiftung";
+import { StiftungCard } from "@/components/hud/StiftungCard";
+import { waageFactor, type StiftBau } from "@/game/stiftung";
+import { STIFT_T, stiftErrorText } from "@/game/lang/stiftung";
 import { FREIMARKT } from "@/game/lang/freimarkt";
 import { NOTHILFE } from "@/game/lang/nothilfe";
 import { NOTHILFE_PRICE, NOTHILFE_RANK, nothilfeItem } from "@/game/nothilfe";
@@ -1688,10 +1692,12 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
   const { res, refreshResources } = useResources(my, userId, [purchases]);
   // Gemeindebauten (P2): stages and quota as the database books them; refreshed with every resource booking
   const { civic, quota: civicQuota, refreshCivic } = useCivic(my, userId, [purchases, res]);
+  // Stiftungen (P4): overview and the three player actions; asks nothing before stiftSince (placeholder 2100 everywhere)
+  const { stift, refreshStiftung, stiftOpen, stiftDeposit, stiftClose } = useStiftung(my, userId, [purchases, res, civic]);
   const quoteIn = (r: typeof res, item: string) => {
     const need = r?.active ? materialOf(item) : null;
-    // a finished Waage 1 makes every Kontor price 15 % cheaper (DB resource_kontor_at)
-    return need == null || !r?.active ? null : kontorQuote(need, { wood: r.wood.stock, stone: r.stone.stock }, r.site ?? null, my ? civicDone(my, "waage1", clock()) : false);
+    // a finished Waage 1 makes every Kontor price 15 % cheaper, an endowed Waage (P4) another 15 % (DB resource_kontor_at)
+    return need == null || !r?.active ? null : kontorQuote(need, { wood: r.wood.stock, stone: r.stone.stock }, r.site ?? null, my ? waageFactor(my, clock()) : false);
   };
   const matQuote = (item: string) => quoteIn(res, item);
   const kontorOf = (item: string) => matQuote(item)?.cost ?? 0;
@@ -2468,6 +2474,34 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
       setCivicRate(""); jingle("coins"); await refreshCivic();
     } finally { civicBusy.current = false; }
   };
+  /** Stiftungen (P4): every payment is this deliberate click — the database books nothing on its own (stift_deposit, stift_close). */
+  const stiftErr = (m: string) => setMsg(isSettlementPending(m) ? pendingMsg() : stiftErrorText(STIFT_T[lang], m));
+  const stiftDo = async (run: () => Promise<boolean>) => {
+    if (!my || civicBusy.current) return;
+    civicBusy.current = true;
+    try { tap(); if (await run()) { jingle("coins"); await refreshResources(); await refreshCivic(); await refreshStiftung(); } } finally { civicBusy.current = false; }
+  };
+  const stiftOpenNow = (bau: StiftBau) => stiftDo(async () => {
+    const { error } = await stiftOpen(bau);
+    if (error) { stiftErr(error.message ?? ""); return false; }
+    return true;
+  });
+  const stiftPay = (bau: StiftBau, n: number, amount: number) => stiftDo(async () => {
+    if (amount < 1 || !await prepareSpend()) return false;
+    // a pending answer stored nothing; the same deposit number makes a repeated request book once
+    const { data, error } = await retryOnPending(() => stiftDeposit(bau, n, amount), dbPending, syncSettlement);
+    if (error || !data) { stiftErr(error?.message ?? ""); return false; }
+    setPurchases((s) => [...s.filter((x) => x.id !== data.row.id), data.row]);
+    return true;
+  });
+  const stiftCloseNow = (bau: StiftBau, max: number) => stiftDo(async () => {
+    if (!await prepareSpend()) return false;
+    const { data, error } = await retryOnPending(() => stiftClose(bau, max), dbPending, syncSettlement);
+    if (error || !data) { stiftErr(error?.message ?? ""); return false; }
+    setPurchases((s) => [...s.filter((x) => !data.rows.some((r) => r.id === x.id)), ...data.rows]);
+    setMsg(STIFT_T[lang].done(Math.ceil((Date.parse(data.until) - Date.parse(data.done)) / 864e5)));
+    return true;
+  });
   /** Zimmerleute-Nothilfe: the server recomputes the ruin and books it; nothing is trusted from the client. */
   const aidBusy = useRef(false);
   const callAid = async (kind: "f" | "w", at: number) => {
@@ -2786,7 +2820,7 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
           {my && res?.active && (() => {
             // Gemeindebauten (P2 + P3a): only where resources run (lab); one site at a time, effects from the marker on;
             // a later stage opens from its rank once the previous stage stands (civicLock ↔ DB civic_open)
-            const ct = CIVIC_T[lang], locked = myStage < CIVIC_MIN_RANK, waage = civicDone(my, "waage1", now);
+            const ct = CIVIC_T[lang], locked = myStage < CIVIC_MIN_RANK, waage = waageFactor(my, now);
             const active = civic.find((r) => civicPhase(r, now) !== "done");
             const paidOf = (stage: CivicStage) => purchases.filter((p) => p.seed_id === my.id && isCivicInstalment(stage, p.item)).reduce((a, p) => a + p.cost, 0);
             return (
@@ -2854,6 +2888,11 @@ export function Game({ serverTime }: { serverTime?: number } = {}) {
               </div>
             );
           })()}
+          {my && res?.active && stift?.active && (
+            // Stiftungen (P4): only where the switch is set (nowhere yet); one card per Bau, every lock with its amount or date
+            <StiftungCard key="stift" lang={lang} stift={stift} stageName={(item) => (isCivicStage(item) ? CIVIC_T[lang].stages[item][0] : item)} taler={t.taler} cash={cash}
+              pending={!!res.pending} onOpen={(bau) => void stiftOpenNow(bau)} onDeposit={(bau, n, amount) => void stiftPay(bau, n, amount)} onClose={(bau, max) => void stiftCloseNow(bau, max)} />
+          )}
           {my && MONUMENT_KEYS.filter((k) => myStage < MONUMENTS[k].rank && (!MONUMENTS[k].way || MONUMENTS[k].way === wayOf(my))).sort((a, b) => MONUMENTS[a].rank - MONUMENTS[b].rank).map((key) => (
             <div key={`lock-${key}`} className="rounded-md border border-brass/40 bg-brass/5 p-2 opacity-60">
               <div className="flex items-center gap-2">

@@ -53,10 +53,12 @@ describe("Paket C – Registry der direkten Client-Wege", () => {
   });
   it("the money/resource RPCs that know pending are the versioned ones, called with the client protocol", () => {
     const pendingRpcs = Object.entries(CLIENT_RPCS).filter(([, p]) => p.pending).map(([n]) => n).sort();
-    expect(pendingRpcs).toEqual(["civic_raise_budget", "civic_raise_budget_v2", "resource_overview", "resource_overview_v2"]);
+    // (P4, migration 0165: the two Stiftung money actions carry the protocol from the start — no old signature exists)
+    expect(pendingRpcs).toEqual(["civic_raise_budget", "civic_raise_budget_v2", "resource_overview", "resource_overview_v2", "stift_close", "stift_deposit"]);
     const all = src.map(([, s]) => s).join("\n");
     expect(all).toMatch(/\("civic_raise_budget_v2", \{[^}]*_client: CLIENT_PROTOCOL/);
     expect(all).toMatch(/\("resource_overview_v2",\s*\{[^}]*_client: CLIENT_PROTOCOL/);
+    for (const f of ["stift_open", "stift_deposit", "stift_close", "stift_overview"]) expect(all).toMatch(new RegExp(`\\("${f}",\\s*\\{[^}]*_client: CLIENT_PROTOCOL`));
     expect(CLIENT_PROTOCOL).toBeGreaterThanOrEqual(2);
   });
   it("money expenses through table writes are exactly the guarded ones that can be pending", () => {

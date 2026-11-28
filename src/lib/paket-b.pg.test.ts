@@ -378,7 +378,8 @@ d("Paket B – O1/O2, Pending und Ressourcenabrechnung (vollständiges Schema, e
     expect(refreshCallers).toEqual(["resource_refresh"]);
     const tryCallers = fns.filter((f) => /resource_refresh_try\(/.test(f["prosrc"] as string)).map((f) => f["proname"] as string).sort();
     // (0163: the client RPCs are the versioned _v2 paths; their old signatures delegate to them or refuse)
-    expect(tryCallers).toEqual(["civic_raise_budget_v2", "purchase_material", "resource_overview_v2", "resource_refresh_at"]);
+    // (0165 P4: stift_close books the open days first and refuses on pending, see stiftung.pg.test.ts H-G6)
+    expect(tryCallers).toEqual(["civic_raise_budget_v2", "purchase_material", "resource_overview_v2", "resource_refresh_at", "stift_close"]);
   });
   it("B12 the wedding answer (encounter_guard, server only) follows the same rule: booked live wedding, pending without proof, money after it", async () => {
     // the live wedding booked one hour ago, but by a call without the proof (as a server before Paket B): not verifiable

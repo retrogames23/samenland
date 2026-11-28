@@ -78,7 +78,8 @@ const EXPECTED: Record<string, Record<string, string>> = {
   "function abandon_village(_seed uuid)": CLIENT,
   "function purge_user_data(_uid uuid)": SRV,
 };
-/** Every privilege change 0161 and 0163 make, with the call path that justifies it (a change without a reason fails the test). */
+/** Every privilege change 0161 and 0163 make — and every object a later migration adds (0165) — with the call path that justifies it
+ *  (a change without a reason fails the test). */
 const CHANGES: Record<string, string> = {
   "table wedding_receipts": "H7: nur noch SELECT; geschrieben nur über wedding_receipts_book / wedding_settle (SECURITY DEFINER, Eigentümer); kein Client, kein Server schreibt direkt",
   "function village_weddings(_seed uuid, _at timestamp with time zone)": "kein Client-Aufruf; intern nur aus SECURITY-DEFINER-Funktionen des Eigentümers (encounter_guard, village_balance_walk)",
@@ -90,6 +91,21 @@ const CHANGES: Record<string, string> = {
   "function client_protocol_min()": "neu: Protokollkonstante, nur service_role / intern",
   "function client_gate_lead()": "neu: Gate-Vorlauf, nur service_role / intern",
   "function client_gate_open(_seed uuid)": "neu: Gate-Prüfung, nur service_role / intern",
+  // P4 Stiftungen (migration 0165) — neue Objekte; ihre Rechte prüft stiftung.pg.test.ts ("Aufbau")
+  "table stift_stages": "0165 neu: Besitzer liest (RLS); geschrieben nur über stift_open / stift_deposit / stift_close (SECURITY DEFINER)",
+  "function stift_open(_seed uuid, _bau text, _client integer)": "0165 neu: Client-Weg mit Protokoll (useStiftung.ts), nur angemeldet",
+  "function stift_deposit(_seed uuid, _bau text, _n integer, _amount integer, _client integer)": "0165 neu: Client-Weg mit Protokoll (useStiftung.ts), nur angemeldet",
+  "function stift_close(_seed uuid, _bau text, _max integer, _client integer)": "0165 neu: Client-Weg mit Protokoll (useStiftung.ts), nur angemeldet",
+  "function stift_overview(_seed uuid, _client integer)": "0165 neu: lesender Client-Weg mit Protokoll (useStiftung.ts), nur angemeldet",
+  "function stift_since(_realm text)": "0165 neu: Schalter, nur service_role / intern",
+  "function stift_until_at(_seed uuid, _bau text, _at timestamp with time zone)": "0165 neu: Stiftungszeit, nur service_role / intern (resource_kontor_at)",
+  "function stift_endowed_at(_seed uuid, _bau text, _at timestamp with time zone)": "0165 neu: Stiftungszeit, nur service_role / intern (resource_kontor_at)",
+  "function stift_vorrang(_seed uuid)": "0165 neu: Baustellen-Vorrang, nur service_role / intern",
+  "function stift_reserved(_seed uuid, OUT wood integer, OUT stone integer)": "0165 neu: Reservierung, nur service_role / intern",
+  "function stift_free_quota(_seed uuid, OUT wood integer, OUT stone integer)": "0165 neu: freies Kontingent, nur service_role / intern",
+  "function stift_row_price(_seed uuid, _item text, _cost integer)": "0165 neu: nur aus purchase_guard (Eigentümer)",
+  "function stift_enter(_seed uuid, _bau text, _client integer)": "0165 neu: gemeinsamer Einstieg der drei Aktionen, nur intern",
+  "function stift_stages_keep()": "0165 neu: Trigger-Funktion, kein Aufrufrecht",
   "function wedding_receipt_keep()": "neu: H7-Trigger (EXECUTE wird beim Feuern nicht geprüft) — niemandem gewährt",
   "function wedding_activation_inventory()": "neu: Vorabprüfung, nur service_role",
 };
