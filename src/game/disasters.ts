@@ -184,7 +184,8 @@ export const raidLoss = (s: Seed, now: number) => raids(s, now).reduce((a, r) =>
 
 /** Craft charter: the guild masons rebuild after fire and flood twice as fast. */
 export const craftRepair = (s: Seed, at: number) => (s.charter?.path === "craft" && s.charter.at <= at ? 2 : 1);
-export type TileHit = { fire?: true; build?: number; flood?: true; wet?: number; silt?: number; levee?: number };
+/** `burnt`: the site is a rebuild after a fire (drawn with soot and charred beams). */
+export type TileHit = { fire?: true; build?: number; burnt?: true; flood?: true; wet?: number; silt?: number; levee?: number };
 /** Silt lies on the fields for a few days after the water has gone. */
 export const SILT_LEN = 4 * DAY;
 /** How deep the water stands on a tile (0..1): rises from the river bank inland, then drains in reverse. */
@@ -255,7 +256,7 @@ export function tileHits(s: Seed, now: number): Map<number, TileHit> {
     if (fb >= 1) continue;
     for (const t of f.tiles) {
       if (now < f.end) m.set(t, { fire: true });
-      else if (!f.guarded) m.set(t, { build: fb });
+      else if (!f.guarded) m.set(t, { build: fb, burnt: true });
     }
   }
   for (const f of floods(s, now)) {
